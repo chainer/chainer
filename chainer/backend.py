@@ -114,7 +114,7 @@ class Device(object):
 
     def create_context(self):
         # Returns an object that implements __enter__ and __exit__.
-        return None
+        return _dummy_context()
 
     def send(self, arrays):
         """Transfers given arrays to the device.
@@ -127,6 +127,11 @@ class Device(object):
 
         """
         return _convert_arrays(arrays, self.send_array)
+
+
+@contextlib.contextmanager
+def _dummy_context():
+    yield
 
 
 def get_device(device_spec):
@@ -193,11 +198,6 @@ def _get_device_compat(device_spec):
     return get_device(device_spec)
 
 
-@contextlib.contextmanager
-def _dummy_context():
-    yield
-
-
 def using_device(device_spec):
     """Context manager to apply the thread-local device state.
 
@@ -209,10 +209,7 @@ def using_device(device_spec):
     # TODO(niboshi): Set default device (once this concept is introduced in
     # Chainer).
     device = get_device(device_spec)
-    context = device.create_context()
-    if context is None:
-        return _dummy_context()
-    return context
+    return device.create_context()
 
 
 def get_array_module(*args):
