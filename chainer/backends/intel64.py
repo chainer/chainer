@@ -34,8 +34,8 @@ class Intel64Device(backend.Device):
     def xp(self):
         return numpy
 
-    @classmethod
-    def from_array(cls, array):
+    @staticmethod
+    def from_array(array):
         if isinstance(array, mdarray):
             return Intel64Device()
         return None

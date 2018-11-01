@@ -162,14 +162,14 @@ class GpuDevice(backend.Device):
         super(GpuDevice, self).__init__()
         self.device = device
 
-    @classmethod
-    def from_device_id(cls, device_id):
+    @staticmethod
+    def from_device_id(device_id):
         assert isinstance(device_id, _integer_types)
         assert device_id >= 0
         return GpuDevice(Device(device_id))
 
-    @classmethod
-    def from_array(cls, array):
+    @staticmethod
+    def from_array(array):
         if isinstance(array, ndarray) and array.device is not None:
             return GpuDevice(array.device)
         return None
