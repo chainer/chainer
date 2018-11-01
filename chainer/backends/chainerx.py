@@ -59,7 +59,7 @@ def _get_chainerx_device(device_spec):
     return chainerx.get_device(device_spec)
 
 
-def to_chainerx(array):
+def _to_chainerx(array):
     """Converts an array or arrays to ChainerX.
 
     Destination ChainerX devices are chosen according to the types of input

@@ -85,7 +85,7 @@ def to_numpy(array):
 
 # TODO(niboshi): Revisit API
 def to_chainerx(array, device_spec=None):
-    return chainer.backends.chainerx.to_chainerx(array)
+    return chainer.backends.chainerx._to_chainerx(array)
 
 
 # TODO(niboshi): Write more detailed description about interface/usage.
