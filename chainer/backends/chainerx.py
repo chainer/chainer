@@ -93,7 +93,7 @@ def _array_to_chainerx(array, device):
             # cupy to non-cuda backend
             # TODO(niboshi): Remove conversion to numpy when both CuPy and
             # ChainerX support the array interface.
-            array = chainer.backends.cpu.to_numpy(array)
+            array = chainer.backends.cpu._to_numpy(array)
             return chainerx.array(array, device=device, copy=False)
         elif device.index != array.device.id:
             # cupy to cuda backend but different device

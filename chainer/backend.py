@@ -38,9 +38,9 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, backends.cpu.to_numpy(src))
+        numpy.copyto(dst, backends.cpu._to_numpy(src))
     elif isinstance(dst, backends.intel64.mdarray):
-        backends.intel64.ideep.basic_copyto(dst, backends.cpu.to_numpy(src))
+        backends.intel64.ideep.basic_copyto(dst, backends.cpu._to_numpy(src))
     elif isinstance(dst, backends.cuda.ndarray):
         if isinstance(src, chainer.get_cpu_array_types()):
             src = numpy.asarray(src)
@@ -80,7 +80,7 @@ def _convert_arrays(array, func):
 
 # TODO(niboshi): Revisit API
 def to_numpy(array):
-    return chainer.backends.cpu.to_numpy(array)
+    return chainer.backends.cpu._to_numpy(array)
 
 
 # TODO(niboshi): Revisit API

@@ -27,7 +27,7 @@ def _get_device(device_spec):
     return None
 
 
-def to_numpy(array):
+def _to_numpy(array):
     """Converts an array or arrays to NumPy."""
     return backend._convert_arrays(array, _array_to_numpy)
 
