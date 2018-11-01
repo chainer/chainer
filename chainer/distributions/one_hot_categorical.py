@@ -5,6 +5,26 @@ from chainer.functions.math import exponential
 import chainer.functions.math.sum as sum_mod
 
 
+def _stack(xp, xs, axis):
+    try:
+        return xp.stack(xs, axis)
+    except AttributeError:
+        return xp.concatenate(
+            [xp.expand_dims(x, axis) for x in xs],
+            axis=axis)
+
+
+def _random_choice(xp, a, size, p):
+    try:
+        return xp.random.choice(a, size, p=p)
+    except ValueError:
+        xp.testing.assert_allclose(
+            p.sum(), 1, rtol=0, atol=10 * xp.finfo(p.dtype).eps)
+        p = p.astype(xp.float64)
+        p /= p.sum()
+        return xp.random.choice(a, size, p=p)
+
+
 class OneHotCategorical(distribution.Distribution):
 
     """OneHotCategorical Distribution.
@@ -45,9 +65,9 @@ class OneHotCategorical(distribution.Distribution):
         xp = cuda.get_array_module(self.p)
         obo_p = self.p.data.reshape((-1,) + self.event_shape)
         eye = xp.eye(self.event_shape[0])
-        eps = [xp.random.choice(
-            one_p.shape[0], size=(n,), p=one_p) for one_p in obo_p]
-        eps = xp.stack(eps).T.reshape((n,)+self.batch_shape)
+        eps = [_random_choice(xp, one_p.shape[0], size=(n,), p=one_p)
+               for one_p in obo_p]
+        eps = _stack(xp, eps, axis=1).reshape((n,)+self.batch_shape)
         eps = eye[eps]
         noise = chainer.Variable(eps)
         return noise
