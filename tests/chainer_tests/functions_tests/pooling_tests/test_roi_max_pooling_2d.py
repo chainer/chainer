@@ -1,4 +1,3 @@
-import collections
 import unittest
 
 import numpy
@@ -12,7 +11,7 @@ from chainer.testing import attr
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, chainer.utils.collections_abc.Iterable):
         return x
     return x, x
 
