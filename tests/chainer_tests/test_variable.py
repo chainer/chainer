@@ -18,6 +18,7 @@ import chainer.functions as F
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
+import chainer.testing.backend
 from chainer import variable
 import chainerx
 import chainerx.testing
@@ -1143,6 +1144,69 @@ class TestVariableToDevice(unittest.TestCase):
     @attr.chainerx
     def test_to_device_chainerx(self):
         self.check_to_device(self.x, self.gx, 'native:0', chainerx)
+
+
+_to_device_twice_backend_params = [
+    # NumPy
+    {},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
+
+
+@testing.parameterize(*testing.product(
+    {
+        'x_shape': [(10,), (), None],
+        'requires_grad': [True, False],
+    }))
+@testing.backend.inject_backend_tests(None, _to_device_twice_backend_params)
+@testing.backend.inject_backend_tests(None, _to_device_twice_backend_params)
+class TestVariableToDeviceTwice(unittest.TestCase):
+
+    def setUp(self):
+        if self.x_shape is None:
+            self.x = None
+        else:
+            self.x = np.zeros(self.x_shape, dtype=np.float32)
+
+    def test_to_device_twice(self, backend_config1, backend_config2):
+        device1 = backend_config1.device
+        device2 = backend_config2.device
+        var = chainer.Variable(self.x, requires_grad=self.requires_grad)
+
+        # Transfer to device 1
+        var.to_device(device1)
+
+        # Transfer to device 2
+        should_fail = (
+            self.requires_grad
+            and self.x is not None
+            and device1.xp is chainerx
+            and device2.xp is not chainerx)
+        if should_fail:
+            # Non-ChainerX device to ChainerX device should fail if
+            # requires_grad
+            with pytest.raises(RuntimeError):
+                var.to_device(device2)
+        else:
+            # Should succeed
+            var.to_device(device2)
+
+            assert var.requires_grad == self.requires_grad
+            if self.x is None:
+                assert var.array is None
+                assert var.data is None
+            else:
+                assert isinstance(var.array, device2.xp.ndarray)
+                assert backend.get_device_from_array(var.array) == device2
+                np.testing.assert_array_equal(
+                    self.x,
+                    backend.to_numpy(var.array))
 
 
 class TestVariableBasic(unittest.TestCase):

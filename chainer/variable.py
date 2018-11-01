@@ -566,7 +566,10 @@ class Variable(object):
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
             arr = self._data[0]
-            actual_grad = arr.grad if arr.is_grad_required() else None
+            actual_grad = (
+                arr.grad
+                if arr is not None and arr.is_grad_required()
+                else None)
             if actual_grad is None:
                 self._grad_var = None
             else:

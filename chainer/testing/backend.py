@@ -127,8 +127,12 @@ class BackendConfig(object):
         marks = []
         if self.use_chainerx:
             marks.append(attr.chainerx)
-            if self.chainerx_device.startswith('cuda:'):
+            backend_name, device_index = self.chainerx_device.split(':')
+            device_index = int(device_index)
+            if backend_name == 'cuda':
                 marks.append(attr.gpu)
+                if device_index >= 1:
+                    marks.append(attr.multi_gpu(device_index + 1))
         elif self.use_cuda:
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
