@@ -392,6 +392,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("concatenate",
           [](py::sequence arrays, nonstd::optional<int8_t> axis) {
               std::vector<Array> xs;
+              xs.reserve(arrays.size());
               std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
                   return Array{py::cast<ArrayBodyPtr>(item)};
               });
@@ -402,6 +403,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("stack",
           [](py::sequence arrays, int8_t axis) {
               std::vector<Array> xs;
+              xs.reserve(arrays.size());
               std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
                   return Array{py::cast<ArrayBodyPtr>(item)};
               });
