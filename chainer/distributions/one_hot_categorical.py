@@ -18,9 +18,11 @@ def _random_choice(xp, a, size, p):
     try:
         return xp.random.choice(a, size, p=p)
     except ValueError:
-        tol = 10 * xp.finfo(p.dtype.eps)
+        # Validate the sum as NumPy PR #6131 (numpy>=1.10)
+        tol = xp.finfo(p.dtype.eps) ** 0.5
         p = p.astype(xp.float64)
         xp.testing.assert_allclose(p.sum(), 1, rtol=0, atol=tol)
+
         p /= p.sum()
         return xp.random.choice(a, size, p=p)
 
