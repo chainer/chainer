@@ -1433,7 +1433,7 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         x = chainer.Variable(np.array(0.))
         line = inspect.currentframe().f_lineno + 1
         y = chainer.functions.sqrt(x)  # `line` is THIS line
-        with self.assertRaisesRegex(FloatingPointError, 'line %d' % line):
+        with six.assertRaisesRegex(self, FloatingPointError, 'line %d' % line):
             with np.errstate(divide='raise'):
                 y.backward()
 
