@@ -28,19 +28,18 @@
 # Written by Ross Girshick
 # -----------------------------------------------------------------------------
 
-import collections
-
 import numpy
 import six
 
 from chainer.backends import cuda
 from chainer import function
 from chainer.functions.pooling.roi_pooling_2d import _roi_pooling_slice
+from chainer.utils import collections_abc
 from chainer.utils import type_check
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, collections_abc.Iterable):
         return x
     return x, x
 
