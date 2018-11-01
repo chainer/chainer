@@ -690,7 +690,7 @@ Use apply() method instead.\
             for array in retained_outputs])
 
         device = backend.get_device_from_array(
-            *retained_inputs, *retained_outputs, *grad_outputs)
+            *(retained_inputs + retained_outputs + grad_outputs))
         with chainer.using_device(device):
             gxs = self._backward_target_inputs(
                 tuple(target_input_indexes),
