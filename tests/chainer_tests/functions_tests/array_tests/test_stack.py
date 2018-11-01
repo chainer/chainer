@@ -37,6 +37,10 @@ class TestStack(unittest.TestCase):
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype),
         ]
         self.g = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.ggs = [
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype),
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype),
+        ]
 
     def check_forward(self, xs_data):
         xs = [chainer.Variable(x) for x in xs_data]
@@ -90,6 +94,31 @@ class TestStack(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(
             [chainerx.array(x) for x in self.xs], chainerx.array(self.g))
+
+    def check_double_backward(self, xs_data, g_data, ggs_data):
+        def func(*xs):
+            return functions.stack(xs, self.axis)
+
+        gradient_check.check_double_backward(
+            func, xs_data, g_data, ggs_data, dtype=numpy.float64)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.xs, self.g, self.ggs)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.xs), cuda.to_gpu(self.g), cuda.to_gpu(self.ggs))
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        # TODO(imanishi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_double_backward(
+            backend.to_chainerx(self.xs),
+            backend.to_chainerx(self.g),
+            backend.to_chainerx(self.ggs))
 
 
 testing.run_module(__name__, __file__)
