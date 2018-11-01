@@ -396,7 +396,7 @@ void InitChainerxManipulation(pybind11::module& m) {
               std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
                   return Array{py::cast<ArrayBodyPtr>(item)};
               });
-              return MoveArrayBody(Concatenate(std::move(xs), axis));
+              return MoveArrayBody(Concatenate(xs, axis));
           },
           py::arg("arrays"),
           py::arg("axis") = nullptr);
@@ -407,7 +407,7 @@ void InitChainerxManipulation(pybind11::module& m) {
               std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
                   return Array{py::cast<ArrayBodyPtr>(item)};
               });
-              return MoveArrayBody(Stack(std::move(xs), axis));
+              return MoveArrayBody(Stack(xs, axis));
           },
           py::arg("arrays"),
           py::arg("axis") = 0);
