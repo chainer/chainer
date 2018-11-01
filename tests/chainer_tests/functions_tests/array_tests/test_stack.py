@@ -3,11 +3,13 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -45,7 +47,7 @@ class TestStack(unittest.TestCase):
             expect = numpy.stack(self.xs, axis=self.axis)
             testing.assert_allclose(y.data, expect)
 
-        y_data = cuda.to_cpu(y.data)
+        y_data = backend.to_numpy(y.data)
         self.assertEqual(y_data.shape[self.axis], 2)
         numpy.testing.assert_array_equal(
             y_data.take(0, axis=self.axis), self.xs[0])
@@ -58,6 +60,13 @@ class TestStack(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(x) for x in self.xs])
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(imanishi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward([chainerx.array(x) for x in self.xs])
 
     def check_backward(self, xs_data, g_data):
         def func(*xs):
@@ -73,6 +82,14 @@ class TestStack(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.g))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(imanishi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(
+            [chainerx.array(x) for x in self.xs], chainerx.array(self.g))
 
 
 testing.run_module(__name__, __file__)
