@@ -18,9 +18,9 @@ def _random_choice(xp, a, size, p):
     try:
         return xp.random.choice(a, size, p=p)
     except ValueError:
-        xp.testing.assert_allclose(
-            p.sum(), 1, rtol=0, atol=10 * xp.finfo(p.dtype).eps)
+        tol = 10 * xp.finfo(p.dtype.eps)
         p = p.astype(xp.float64)
+        xp.testing.assert_allclose(p.sum(), 1, rtol=0, atol=tol)
         p /= p.sum()
         return xp.random.choice(a, size, p=p)
 
