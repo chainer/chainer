@@ -4,7 +4,7 @@ import numpy
 
 import chainer
 from chainer import backends
-import chainerx
+import chainerx as chainerx_module
 
 
 def _contains_nan(x):
@@ -120,8 +120,8 @@ class Device(object):
             assert isinstance(self.device, backends.cuda.Device)
             return '<{}(cupy, {})>'.format(class_name, self.device.id)
 
-        if self.xp is chainerx:
-            assert isinstance(self.device, chainerx.Device)
+        if self.xp is chainerx_module:
+            assert isinstance(self.device, chainerx_module.Device)
             return '<{}(chainerx, {})>'.format(class_name, self.device.name)
 
         assert False
@@ -244,13 +244,13 @@ def get_array_module(*args):
         on the types of the arguments.
 
     """
-    if chainerx.is_available() or backends.cuda.available:
+    if chainerx_module.is_available() or backends.cuda.available:
         args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
 
-    if (chainerx.is_available()
-            and any([isinstance(a, chainerx.ndarray) for a in args])):
-        return chainerx
+    if (chainerx_module.is_available()
+            and any([isinstance(a, chainerx_module.ndarray) for a in args])):
+        return chainerx_module
     elif backends.cuda.available:
         return backends.cuda.cupy.get_array_module(*args)
     else:
@@ -283,7 +283,7 @@ def get_device_from_array(*arrays):
         if device is not None:
             return device
 
-        if isinstance(array, chainerx.ndarray):
+        if isinstance(array, chainerx_module.ndarray):
             return backends.chainerx.ChainerxDevice(array.device)
 
         device = backends.intel64.Intel64Device.from_array(array)
