@@ -692,13 +692,16 @@ Use apply() method instead.\
         # TODO(sonots): Fix to use using_device() if it becomes available
         with backend.get_device_from_array(
                 *(retained_inputs + retained_outputs + grad_outputs)):
+
             gxs = self._backward_target_inputs(
                 tuple(target_input_indexes),
                 tuple([chainer.Variable(
                     gy, requires_grad=gy.is_backprop_required())
                     for gy in grad_outputs]))
 
-        return [gx._data[0] for gx in gxs]
+        gx_arrs = [gx._data[0] for gx in gxs]
+        assert all([isinstance(gx, chainerx.ndarray) for gx in gx_arrs])
+        return gx_arrs
 
     def _backward_target_inputs(self, target_input_indexes, grad_outputs):
         # Filters out input gradients that are not required and returns the

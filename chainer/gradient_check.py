@@ -848,27 +848,25 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
 
 class _GradientSetter(FunctionNode):
-    def __init__(self, grad):
+    input_shape = None
+    input_dtype = None
+
+    def __init__(self, xp, grad):
+        self.xp = xp
         self.grad = grad
 
     def forward(self, inputs):
-        self.retain_inputs(tuple(range(len(inputs))))
-        xp = backend.get_array_module(inputs[0])
+        self.input_shape = inputs[0].shape
+        self.input_dtype = inputs[0].dtype
 
         # output a 0-sized 1-dim array like inputs
+        # xp can be different from self.xp for ChainerX fallback.
+        xp = backend.get_array_module(*inputs)
         return xp.empty((0,), dtype=inputs[0].dtype),
 
     def backward(self, indexes, grad_outputs):
-        inputs = self.get_retained_inputs()
         if self.grad is None:
-            assert len(inputs) == 1 and inputs[0].size == 1
-            xp = backend.get_array_module(*inputs)
-            if xp is chainerx:
-                grad = tuple([
-                    xp.ones_like(y.array, device=y.array.device)
-                    for y in inputs])
-            else:
-                grad = tuple([xp.ones_like(y.array) for y in inputs])
+            grad = (self.xp.ones(self.input_shape, self.input_dtype),)
         else:
             grad = self.grad
 
@@ -878,19 +876,20 @@ class _GradientSetter(FunctionNode):
 
 
 def _set_y_grad(y, y_grad):
+    xp = backend.get_array_module(*y)
     if y_grad is not None:
         if len(y) != len(y_grad):
             raise ValueError(
                 'Upstream gradients must contain equally many elements as '
                 'number of output elements.\n'
                 'Actual: {} != {}'.format(len(y), len(y_grad)))
-        y, = _GradientSetter(y_grad).apply(y)
+        y, = _GradientSetter(xp, y_grad).apply(y)
     else:
         if len(y) != 1:
             raise ValueError(
                 'Function must return a zero-dimensional array of length 1 '
                 'if the upstream gradient is `None`.\n'
                 'Actual: {} != 1'.format(len(y)))
-        y, = _GradientSetter(None).apply(y)
+        y, = _GradientSetter(xp, None).apply(y)
         y_grad = (1,)
     return y, y_grad
