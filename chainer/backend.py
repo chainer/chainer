@@ -102,7 +102,7 @@ class Device(object):
             'Device class does not support runtime context using `with` '
             'statement. Use chainer.using_device instead.')
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         # Definition of __exit__ is needed to raise a custom error on
         # __enter__.
         pass
