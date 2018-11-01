@@ -205,13 +205,30 @@ class ConcatWithAsyncTransfer(object):
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
             automatically created on the first call. Data transfer operation
             is launched acynchrnously using the stream.
+        compute_stream(cupy.cuda.Stream): CUDA stream used for compute kernels.
+            If not ``None``, CUDA events are created/used to avoid global
+            synchronization and overlap execution of compute kernels and data
+            transfers as much as possible. If ``None``, global synchronization
+            is used instread.
     """
 
-    def __init__(self, stream=None):
+    def __init__(self, stream=None, compute_stream=None):
         self._stream = stream
+        self.compute_stream = compute_stream
+
         self._device = None
         self._conveyor = collections.defaultdict(
             lambda: Conveyor(self._device, self._stream))
+        if compute_stream is not None:
+            # * event1 prevents a CPU thread to update arrays that might be
+            #   still being used by GPU kernels.
+            # * event2 prevents a GPU kernel to read arrays that might be
+            #   still being transfered to GPU.
+            self.event1 = cuda.Event()
+            self.event2 = cuda.Event()
+            self.sync_get = False
+        else:
+            self.sync_get = True
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -239,6 +256,10 @@ class ConcatWithAsyncTransfer(object):
         if device is not self._device:
             raise ValueError('device is different')
 
+        if self.compute_stream is not None:
+            self.event1.synchronize()
+            self.event1.record(stream=self.compute_stream)
+
         with cuda.get_device_from_id(device):
             if isinstance(first_elem, tuple):
                 result = []
@@ -250,7 +271,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[i] for example in batch], padding[i]))
 
                 for i in six.moves.range(len(first_elem)):
-                    result.append(self._conveyor[i].get())
+                    result.append(self._conveyor[i].get(sync=self.sync_get))
+
+                if self.compute_stream is not None:
+                    self.event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self.event2)
 
                 return tuple(result)
 
@@ -264,7 +289,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[key] for example in batch], padding[key]))
 
                 for key in first_elem:
-                    result[key] = self._conveyor[key].get()
+                    result[key] = self._conveyor[key].get(sync=self.sync_get)
+
+                if self.compute_stream is not None:
+                    self.event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self.event2)
 
                 return result
 
@@ -293,6 +322,7 @@ class Conveyor(object):
     def __init__(self, device=None, stream=None):
         self._device = device
         self._stream = stream
+
         self._array_set = [[None, None], [None, None]]
         self._ret_array = []
 
@@ -345,19 +375,23 @@ class Conveyor(object):
         self._array_set.append([pin_array, cp_array])
         self._ret_array.append(cp_array)
 
-    def get(self):
+    def get(self, sync=True):
         """Returns the array of data transferred to a target device asynchronously.
 
-        This method first waits for completion of asynchrnous data trasfer
-        initiated by :meth:`put`, then returns the array on the target
-        device.
+        If sync is ``True``, the data of returned array is available in GPU
+        kernels. If sync is ``False``, the data of returned array might be
+        being transfered to GPU, so synchronizeaion must be done carefully by
+        the calling function.
 
-        Global synchronizaton (deviceSynchronize()) is used to ensure
-        completion of asynchronous data transfer for safer reason.
-        If a caller function is correctly handling the synchronization,
-        local synchronization (self._stream.synchronize()) may be enough.
+        Args:
+            sync (bool): If ``True``, global synchronizaton is used to ensure
+                completion of asynchronous data transfer for safer reason.
+                If ``False``, it assumes a caller function is handling
+                synchronization correctly hence does not use global
+                synchronization.
         """
         if (self._device is not None and self._device >= 0 and
                 self._stream is not None):
-            cuda.cupy.cuda.runtime.deviceSynchronize()
+            if sync:
+                cuda.cupy.cuda.runtime.deviceSynchronize()
         return self._ret_array.pop(0)
