@@ -18,7 +18,12 @@ def inject_backend_tests(method_names):
             'use_ideep': ['never', 'always'],
         })
         # GPU tests
-        + [{'use_cuda': True}])
+        + [{'use_cuda': True}]
+        # ChainerX tests
+        + [
+            {'use_chainerx': True, 'chainerx_device': 'native:0'},
+            {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        ])
     return decorator
 
 
@@ -142,8 +147,7 @@ class TestSplitAxis(unittest.TestCase):
         self.inputs = [x]
 
     def check_forward(self, inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
 
         x, = inputs
         x = chainer.Variable(x)
@@ -158,11 +162,13 @@ class TestSplitAxis(unittest.TestCase):
             testing.assert_allclose(yd, y.data, atol=0, rtol=0)
 
     def test_forward(self, backend_config):
+        # TODO(hvy): Support it
+        if self.dtype == numpy.float16 and backend_config.use_chainerx:
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
 
         x, = inputs
         x = chainer.Variable(x)
@@ -177,6 +183,9 @@ class TestSplitAxis(unittest.TestCase):
         testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
 
     def test_backward(self, backend_config):
+        # TODO(hvy): Support it
+        if self.dtype == numpy.float16 and backend_config.use_chainerx:
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(self.inputs, backend_config)
 
 
