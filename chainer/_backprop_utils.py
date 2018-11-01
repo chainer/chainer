@@ -189,13 +189,11 @@ def _reraise_forward_stack(func):
         try:
             yield
         except Exception as e:
-            # Chainer raises RuntimeError for NaN values, and numpy raises
-            # FloatingPointError for invalid values.
-            if func.stack is not None and \
-                    (isinstance(e, RuntimeError) or
-                     isinstance(e, FloatingPointError)):
-                additional_message = \
-                    " in backward computation for:\n{}".format(
-                        "\n".join(traceback.format_list(func.stack[:-1])))
-                e.args = (e.args[0] + additional_message, ) + e.args[1:]
+            # Reraise any type of exceptions including the following:
+            # - Chainer raises RuntimeError for NaN values; and
+            # - NumPy raises FloatingPointError for invalid values.
+            additional_message = \
+                " in backward computation for:\n{}".format(
+                    "\n".join(traceback.format_list(func.stack[:-1])))
+            e.args = (e.args[0] + additional_message, ) + e.args[1:]
             raise
