@@ -961,9 +961,12 @@ Actual: {0}'''.format(type(data))
                 are to be updated.
         """
         return_cont = False
+        assert_refs = True
         if kwargs:
             return_cont = argument.parse_kwargs(
-                kwargs, ('_return_cont', False)
+                kwargs,
+                ('_return_cont', return_cont),
+                ('_assert_refs', assert_refs),
             )
 
         self._node._check_old_style_gradient()
@@ -1002,13 +1005,17 @@ Actual: {0}'''.format(type(data))
                 raise RuntimeError(
                     'the continuation Variable.backward(_return_cont=True) '
                     'has been consumed')
+            outputs = ref_self
             if sys.getrefcount(ref_self[0]) > 2:
-                raise RuntimeError(
-                    'The continuation Variable.backward(_return_cont=True) '
-                    'is called but there are other references to self')
+                if assert_refs:
+                    raise RuntimeError(
+                        'The continuation Variable.backward(_return_cont=True)'
+                        ' is called but there are other references to self')
+                else:
+                    outputs = list(outputs)
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
-                _backward_main(ref_self, retain_grad, loss_scale)
+                _backward_main(outputs, retain_grad, loss_scale)
 
         return cont
 
