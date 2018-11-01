@@ -43,6 +43,9 @@ class Intel64Device(backend.Device):
     def __eq__(self, other):
         return isinstance(other, Intel64Device)
 
+    def __repr__(self):
+        return '<{}>'.format(self.__class__.__name__)
+
     def send_array(self, array):
         if isinstance(array, ideep.mdarray):
             return array

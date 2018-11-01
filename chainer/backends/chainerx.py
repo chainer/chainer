@@ -21,6 +21,10 @@ class ChainerxDevice(backend.Device):
             isinstance(other, ChainerxDevice)
             and other.device == self.device)
 
+    def __repr__(self):
+        return '<{} {}>'.format(
+            self.__class__.__name__, self.device.name)
+
     def create_context(self):
         # Returns a context that sets the default device.
         return chainerx.device_scope(self.device)

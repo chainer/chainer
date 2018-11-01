@@ -334,19 +334,22 @@ class TestDevice(unittest.TestCase):
 
     def test_repr_module_numpy(self):
         device = chainer.get_device(numpy)
-        assert str(device) == '<chainer.backends.cpu.CpuDevice(numpy)>'
+        assert str(device) == '<CpuDevice (numpy)>'
 
     @attr.chainerx
     def test_repr_tuple_chainerx_device(self):
         device = chainer.get_device(('native', 0))
-        assert (str(device)
-                == '<chainer.backends.chainerx.ChainerxDevice'
-                '(chainerx, native:0)>')
+        assert str(device) == '<ChainerxDevice native:0>'
 
     @attr.gpu
     def test_repr_tuple_cupy_device(self):
         device = chainer.get_device((cuda.cupy, 0))
-        assert str(device) == '<chainer.backends.cuda.GpuDevice(cupy, 0)>'
+        assert str(device) == '<GpuDevice (cupy):0>'
+
+    @attr.ideep
+    def test_repr_tuple_intel64_device(self):
+        device = chainer.get_device(intel64)
+        assert str(device) == '<Intel64Device>'
 
     def test_eq_numpy(self):
         assert backend.get_device(numpy) == backend.get_device(numpy)

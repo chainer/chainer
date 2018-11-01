@@ -112,22 +112,6 @@ class Device(object):
         raise NotImplementedError(
             'Device implementation must override this method.')
 
-    def __repr__(self):
-        class_name = '{}.{}'.format(
-            self.__class__.__module__, self.__class__.__name__)
-        if self.xp is numpy:
-            return '<{}(numpy)>'.format(class_name)
-
-        if self.xp is backends.cuda.cupy:
-            assert isinstance(self.device, backends.cuda.Device)
-            return '<{}(cupy, {})>'.format(class_name, self.device.id)
-
-        if self.xp is chainerx_module:
-            assert isinstance(self.device, chainerx_module.Device)
-            return '<{}(chainerx, {})>'.format(class_name, self.device.name)
-
-        assert False
-
     def create_context(self):
         # Returns an object that implements __enter__ and __exit__.
         return None

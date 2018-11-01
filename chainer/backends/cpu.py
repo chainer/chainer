@@ -14,6 +14,9 @@ class CpuDevice(backend.Device):
     def __eq__(self, other):
         return isinstance(other, CpuDevice)
 
+    def __repr__(self):
+        return '<{} (numpy)>'.format(self.__class__.__name__)
+
     def send_array(self, array):
         return _array_to_numpy(array)
 

@@ -177,6 +177,10 @@ class GpuDevice(backend.Device):
     def __eq__(self, other):
         return isinstance(other, GpuDevice) and other.device == self.device
 
+    def __repr__(self):
+        return '<{} (cupy):{}>'.format(
+            self.__class__.__name__, self.device.id)
+
     @property
     def xp(self):
         return cupy
