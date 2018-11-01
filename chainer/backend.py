@@ -95,7 +95,8 @@ class Device(object):
     @property
     def xp(self):
         """Array module corresponding to the device."""
-        raise NotImplementedError('Derived class must override this property.')
+        raise NotImplementedError(
+            'Device implementation must override this property.')
 
     def __enter__(self):
         raise RuntimeError(
@@ -108,7 +109,8 @@ class Device(object):
         pass
 
     def __eq__(self, other):
-        raise NotImplementedError('Derived class must override this method.')
+        raise NotImplementedError(
+            'Device implementation must override this method.')
 
     def __repr__(self):
         class_name = '{}.{}'.format(
