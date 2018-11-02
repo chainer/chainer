@@ -548,7 +548,7 @@ def roi_average_align_2d(
     """Spatial Region of Interest (ROI) average align function.
 
     This function acts similarly to
-    :func:`~chainer.functions.roi_average_pooling_2d`, but it computes average
+    :func:`~chainer.functions.roi_pooling_2d`, but it computes average
     of input spatial patch with bilinear interpolation for each channel with
     the region of interest.
 
