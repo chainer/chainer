@@ -25,8 +25,8 @@ class FFT(function_node.FunctionNode):
         real, imag = inputs
         x = real + imag * 1j
         y = getattr(xp.fft, self._method)(x)
-        real_y = y.real.astype(real.dtype)
-        imag_y = y.imag.astype(imag.dtype)
+        real_y = y.real.astype(real.dtype, copy=False)
+        imag_y = y.imag.astype(imag.dtype, copy=False)
         return real_y, imag_y
 
     def backward(self, inputs, grads):
