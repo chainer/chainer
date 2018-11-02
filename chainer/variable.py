@@ -598,14 +598,16 @@ class Variable(object):
         if array is None:
             self._data = [None]
         else:
-            # A view is always created and kept, in order not to change the
-            # graph status of the original array `array`.
-            array_view = array.view()
+            # If the array `array` is not connected to a graph, a view of it is
+            # created and kept, in order not to change the no-graph status of
+            # it. If the array is connected, the graph status is kept track of.
+            if not array.is_backprop_required():
+                array = array.view()
             if requires_grad:
-                array_view.require_grad()
+                array.require_grad()
                 if grad is not None:
-                    array_view.set_grad(grad)
-            self._data = [array_view]
+                    array.set_grad(grad)
+            self._data = [array]
 
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
