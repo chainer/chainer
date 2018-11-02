@@ -31,6 +31,9 @@ class RReLU(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
+        if self.r is not None:
+            type_check.expect(x_type.dtype == self.r.dtype)
+            type_check.expect(x_type.shape == self.r.shape)
 
     def forward_cpu(self, inputs):
         x, = inputs
