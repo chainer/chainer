@@ -36,10 +36,11 @@ class RReLU(function_node.FunctionNode):
         if chainer.config.train:
             if self.r is None:
                 self.r = np.random.uniform(
-                    self.lower, self.upper, x[0].shape).astype(x[0].dtype)
+                    self.lower, self.upper, x[0].shape
+                ).astype(x[0].dtype, copy=False)
         else:
             self.r = np.full(
-                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
+                x[0].shape, (self.lower + self.upper) / 2, dtype=x[0].dtype)
         y = np.where(x[0] >= 0, x[0], x[0] * self.r)
         self.retain_outputs((0,))
         return y,
@@ -49,11 +50,12 @@ class RReLU(function_node.FunctionNode):
         if chainer.config.train:
             if self.r is None:
                 self.r = xp.random.uniform(
-                    self.lower, self.upper, x[0].shape).astype(x[0].dtype)
+                    self.lower, self.upper, x[0].shape
+                ).astype(x[0].dtype, copy=False)
         else:
             self.r = xp.full(
-                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
-        y = _kern()(x[0], x[0], self.r.astype(x[0].dtype))
+                x[0].shape, (self.lower + self.upper) / 2, dtype=x[0].dtype)
+        y = _kern()(x[0], x[0], self.r)
         self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
