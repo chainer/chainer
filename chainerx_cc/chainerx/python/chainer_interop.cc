@@ -95,7 +95,11 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       // Collect incoming output gradients
                       std::vector<ArrayBodyPtr> grad_outputs;
                       for (size_t i_out = 0; i_out < bctx.output_count(); ++i_out) {
-                          grad_outputs.emplace_back(internal::GetArrayBody(*bctx.output_grad(i_out)));
+                          if (auto gy = bctx.output_grad(i_out)) {
+                              grad_outputs.emplace_back(internal::GetArrayBody(*gy));
+                          } else {
+                              grad_outputs.emplace_back(nullptr);
+                          }
                       }
 
                       // Get retained inputs and outputs

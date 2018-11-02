@@ -678,7 +678,9 @@ Use apply() method instead.\
             (self._output_indexes_to_retain is None
              and len(retained_outputs) == 0)
             or (len(self._output_indexes_to_retain) == len(retained_outputs)))
-        assert all(isinstance(a, chainerx.ndarray) for a in grad_outputs)
+        assert all([
+            a is None or isinstance(a, chainerx.ndarray)
+            for a in grad_outputs])
 
         self._chainerx_retained_inputs = tuple([
             variable.Variable(
@@ -695,8 +697,11 @@ Use apply() method instead.\
 
             gxs = self._backward_target_inputs(
                 tuple(target_input_indexes),
-                tuple([chainer.Variable(
-                    gy, requires_grad=gy.is_backprop_required())
+                tuple([
+                    None
+                    if gy is None
+                    else chainer.Variable(
+                        gy, requires_grad=gy.is_backprop_required())
                     for gy in grad_outputs]))
 
         gx_arrs = [gx._data[0] for gx in gxs]
