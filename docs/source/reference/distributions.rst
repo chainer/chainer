@@ -26,6 +26,7 @@ Distributions
    chainer.distributions.Normal
    chainer.distributions.OneHotCategorical
    chainer.distributions.Pareto
+   chainer.distributions.Poisson
    chainer.distributions.Uniform
 
 
