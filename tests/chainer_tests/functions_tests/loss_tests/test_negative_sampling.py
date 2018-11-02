@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 import six
 
 import chainer
@@ -65,7 +66,8 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         w = chainer.Variable(w_data)
         y = functions.negative_sampling(
             x, t, w, sampler, self.sample_size, reduce=self.reduce)
-        self.assertEqual(y.shape, self.gy.shape)
+        assert y.dtype == self.dtype
+        assert y.shape == self.gy.shape
 
         samples = cuda.to_cpu(y.creator.samples)
 
@@ -86,6 +88,7 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         if self.reduce == 'sum':
             loss = loss.sum()
 
+        assert y.dtype == loss.dtype
         testing.assert_allclose(y.data, loss, **self.check_forward_options)
 
     def test_forward_cpu(self):
@@ -155,7 +158,7 @@ class TestNegativeSamplingInvalidReductionOption(unittest.TestCase):
         t = xp.asarray(self.t)
         w = xp.asarray(self.w)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             negative_sampling.negative_sampling(
                 x, t, w, make_sampler(xp, 5), 2, reduce='invalid_option')
 
