@@ -1,4 +1,3 @@
-import collections
 import unittest
 
 import numpy
@@ -9,10 +8,11 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.utils import collections_abc
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, collections_abc.Iterable):
         return x
     return x, x
 
