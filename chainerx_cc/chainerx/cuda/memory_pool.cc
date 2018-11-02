@@ -11,6 +11,32 @@
 namespace chainerx {
 namespace cuda {
 
+AllocatorStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
+    cudaError_t status = cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal);
+    switch (status) {
+        case cudaSuccess:
+            return AllocatorStatus::kSuccess;
+        case cudaErrorMemoryAllocation:
+            return AllocatorStatus::kErrorMemoryAllocation;
+        default:
+            Throw(status);
+    }
+    CHAINERX_NEVER_REACH();
+}
+
+AllocatorStatus PinnedMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
+    cudaError_t status = cudaHostAlloc(ptr, bytesize, cudaHostAllocWriteCombined);
+    switch (status) {
+        case cudaSuccess:
+            return AllocatorStatus::kSuccess;
+        case cudaErrorMemoryAllocation:
+            return AllocatorStatus::kErrorMemoryAllocation;
+        default:
+            Throw(status);
+    }
+    CHAINERX_NEVER_REACH();
+}
+
 MemoryPool::~MemoryPool() {
     // NOTE: CudaSetDeviceScope is not available at dtor because it may throw
     int orig_device_index{0};
@@ -32,6 +58,17 @@ MemoryPool::~MemoryPool() {
     }
 
     cudaSetDevice(orig_device_index);
+}
+
+void MemoryPool::FreeAllBlocks() {
+    CudaSetDeviceScope scope{device_index_};
+    std::lock_guard<std::mutex> lock{free_bins_mutex_};
+    for (const std::vector<void*>& free_list : free_bins_) {
+        for (void* ptr : free_list) {
+            allocator_->Free(ptr);
+        }
+    }
+    free_bins_.clear();
 }
 
 void* MemoryPool::Malloc(size_t bytesize) {
@@ -59,7 +96,15 @@ void* MemoryPool::Malloc(size_t bytesize) {
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
         CudaSetDeviceScope scope{device_index_};
-        allocator_->Malloc(&ptr, allocation_size);
+        AllocatorStatus status = allocator_->Malloc(&ptr, allocation_size);
+        if (status == AllocatorStatus::kErrorMemoryAllocation) {
+            FreeAllBlocks();
+            status = allocator_->Malloc(&ptr, allocation_size);
+            if (status == AllocatorStatus::kErrorMemoryAllocation) {
+                // TODO(sonots): Include total pooled bytes in the error message
+                throw OutOfMemoryError{allocation_size};
+            }
+        }
     }
 
     {

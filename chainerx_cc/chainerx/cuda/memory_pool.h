@@ -7,12 +7,20 @@
 #include <vector>
 
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/error.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
 namespace cuda {
 
 constexpr size_t kAllocationUnitSize = 512;
+
+enum class AllocatorStatus { kSuccess = 0, kErrorMemoryAllocation };
+
+class OutOfMemoryError : public ChainerxError {
+public:
+    OutOfMemoryError(size_t bytesize) : ChainerxError{"Out of memory to allocate ", bytesize, "bytes."} {}
+};
 
 // TODO(hvy): Add a member function to check for the last error, using e.g. cudaPeekAtLastError.
 // This function may for instance throw in case the return value is not a cudaSuccess.
@@ -21,7 +29,7 @@ class Allocator {
 public:
     // Allocates memory.
     // This function may throw.
-    virtual void Malloc(void** ptr, size_t bytesize) = 0;
+    virtual AllocatorStatus Malloc(void** ptr, size_t bytesize) = 0;
 
     // Frees allocated memory.
     // This function does not throw, since it should be usable from within a destructor.
@@ -30,13 +38,13 @@ public:
 
 class DeviceMemoryAllocator : public Allocator {
 public:
-    void Malloc(void** ptr, size_t bytesize) override { CheckCudaError(cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal)); }
+    AllocatorStatus Malloc(void** ptr, size_t bytesize) override;
     void Free(void* ptr) override { cudaFree(ptr); }
 };
 
 class PinnedMemoryAllocator : public Allocator {
 public:
-    void Malloc(void** ptr, size_t bytesize) override { CheckCudaError(cudaHostAlloc(ptr, bytesize, cudaHostAllocWriteCombined)); }
+    AllocatorStatus Malloc(void** ptr, size_t bytesize) override;
     void Free(void* ptr) override { cudaFreeHost(ptr); }
 };
 
@@ -48,6 +56,8 @@ public:
         : device_index_{device_index}, allocator_{std::move(allocator)} {}
 
     ~MemoryPool();
+
+    void FreeAllBlocks();
 
     void* Malloc(size_t bytesize);
 
