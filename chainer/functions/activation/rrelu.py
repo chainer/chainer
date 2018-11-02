@@ -61,21 +61,18 @@ class RReLU(function_node.FunctionNode):
             self.r = xp.full(
                 x.shape, (self.lower + self.upper) / 2, dtype=x.dtype)
         y = _kern()(x, x, self.r)
-        self.retain_inputs(())
         self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x = None
         y = self.get_retained_outputs()[0].data
-        return _RReLUGrad(x, y, self.r).apply(grad_outputs)
+        return _RReLUGrad(y, self.r).apply(grad_outputs)
 
 
 class _RReLUGrad(function_node.FunctionNode):
 
-    def __init__(self, x, y, r):
+    def __init__(self, y, r):
         self.r = r
-        self.x = x
         self.y = y
 
     def forward_cpu(self, inputs):
