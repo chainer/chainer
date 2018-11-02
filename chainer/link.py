@@ -147,19 +147,6 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state['_device'] = None
-        return state
-
-    def __deepcopy__(self, memo):
-        cls = self.__class__
-        other = cls.__new__(cls)
-        for k, v in self.__dict__.items():
-            setattr(other, k, copy.deepcopy(v, memo))
-        memo[id(self)] = other
-        return other
-
     @property
     def local_link_hooks(self):
         """Ordered dictionary of registered link hooks.
