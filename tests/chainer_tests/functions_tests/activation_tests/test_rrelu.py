@@ -20,11 +20,11 @@ from chainer.testing import condition
 class TestRReLU(unittest.TestCase):
 
     def setUp(self):
-        # Avoid unstability of numeraical grad
+        # Avoid unstability of numerical grad
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        # Asummption l < u
+        # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
@@ -88,7 +88,7 @@ class TestRReLUR(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
-        # Asummption l < u
+        # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
@@ -98,7 +98,7 @@ class TestRReLUR(unittest.TestCase):
 
     def _check(self):
         r = self.r if self.specify_r else None
-        with chainer.using_config('tarin', self.train):
+        with chainer.using_config('train', self.train):
             out, out_r = functions.rrelu(
                 self.x, self.l, self.u, r=r, return_r=True)
 
