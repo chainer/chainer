@@ -106,7 +106,7 @@ class TestRReLUR(unittest.TestCase):
         if r is None:
             assert out_r.shape == out.array.shape
         else:
-            if chainer.config.train:
+            if self.train:
                 assert out_r is r
 
     def test_cpu(self):
