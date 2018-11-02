@@ -289,6 +289,9 @@ class ConnectionistTemporalClassification(function.Function):
             label_length, self.path, self.path_length, xp)
 
         loss = -_logsumexp(self.prob_trans[0], xp, axis=1)
+        # avoid that loss for too short input becomes infinity
+        loss[label_length > self.input_length] = 0
+
         if self.reduce == 'mean':
             loss = utils.force_array(xp.mean(loss))
         return loss,
@@ -302,6 +305,10 @@ class ConnectionistTemporalClassification(function.Function):
             self.yseq.shape[2], self.path, self.path_length,
             xp.exp(self.prob_trans - total_probability[:, None]), xp)
         self.yseq -= label_prob
+
+        # stop propagating loss for too short input
+        self.yseq[:, inputs[1] > self.input_length, :] = 0
+
         if self.reduce == 'mean':
             self.yseq *= grad_output[0] / batch_size
         else:

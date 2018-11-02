@@ -250,4 +250,49 @@ class TestCTCInvalidReductionOption(unittest.TestCase):
                 tuple(x), t, 0, reduce='invalid_option')
 
 
+class TestCTCTooLongLabels(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (1, 2, 3)).astype(numpy.float32)
+        self.t = numpy.array([[0, 1, 0], [1, 0, 1]]).astype(numpy.int32)
+        self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+        self.label_length = numpy.array([3, 1], 'i')
+
+    def check_forward(self, xs, ts, label_length):
+        loss = functions.connectionist_temporal_classification(
+            xs, ts, 2, label_length=label_length,
+            reduce='no').data
+        assert loss[0] == 0
+        assert loss[1] > 0
+
+    def test_forward_cpu(self):
+        self.check_forward(
+            tuple(self.x), self.t, self.label_length)
+
+    def test_forward_gpu(self):
+        self.check_forward(
+            tuple(cuda.to_gpu(x) for x in self.x),
+            cuda.to_gpu(self.t), cuda.to_gpu(self.label_length))
+
+    def check_backward(self, xs, ts, label_length, gy):
+        def f(label_length, t, *x):
+            return functions.connectionist_temporal_classification(
+                x, t, 2, label_length=label_length, reduce='no')
+
+        gradient_check.check_backward(
+            f, (label_length, ts) + xs, gy,
+            eps=1e-2, atol=1e-4)
+
+    def test_backward_cpu(self):
+        self.check_backward(
+            tuple(self.x), self.t, self.label_length, self.gy)
+
+    def test_backward_gpu(self):
+        self.check_backward(
+            tuple(cuda.to_gpu(x) for x in self.x),
+            cuda.to_gpu(self.t),
+            cuda.to_gpu(self.label_length),
+            cuda.to_gpu(self.gy))
+
+
 testing.run_module(__name__, __file__)
