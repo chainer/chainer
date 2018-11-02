@@ -204,12 +204,12 @@ class ConcatWithAsyncTransfer(object):
     Args:
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
             automatically created on the first call. Data transfer operation
-            is launched acynchrnously using the stream.
+            is launched asynchronously using the stream.
         compute_stream(cupy.cuda.Stream): CUDA stream used for compute kernels.
             If not ``None``, CUDA events are created/used to avoid global
             synchronization and overlap execution of compute kernels and data
             transfers as much as possible. If ``None``, global synchronization
-            is used instread.
+            is used instead.
     """
 
     def __init__(self, stream=None, compute_stream=None):
