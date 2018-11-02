@@ -7,9 +7,11 @@ from chainer import gradient_check, testing, Variable, no_backprop_mode
 from chainer.functions import hinge_max_margin
 from chainer.testing import attr
 
+asl = 'along_second_axis'
+
 
 @testing.parameterize(*testing.product({
-    'reduce': ['along_second_axis', 'mean'],
+    'reduce': [asl, 'mean'],
     'norm': ['L1', 'L2', 'Huber'],
     'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }))
@@ -22,7 +24,7 @@ class TestHingeMaxMargin(unittest.TestCase):
         self.t = numpy.random.randint(
             0, shape[1], shape[:1]).astype(self.label_dtype)
         self.x[numpy.arange(shape[0]), self.t] += 1
-        if self.reduce == 'along_second_axis':
+        if self.reduce == asl:
             self.gy = numpy.random.uniform(
                 -1, 1, self.x.shape).astype(numpy.float32)
 
@@ -63,9 +65,9 @@ class TestHingeMaxMargin(unittest.TestCase):
                 with no_backprop_mode():
                     no_sign_change = numpy.allclose(numpy.sign(
                         hinge_max_margin(x_data_plus, t_data_numpy, self.norm,
-                                         'along_second_axis').data),
+                                         asl).data),
                         numpy.sign(hinge_max_margin(x_data_minus, t_data_numpy,
-                                   self.norm, 'along_second_axis').data))
+                                                    self.norm, asl).data))
                 if not no_sign_change:
                     x_data = xp.random.uniform(-1, 1, x_data.shape).astype(
                         x_data.dtype)
