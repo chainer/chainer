@@ -14,7 +14,7 @@ namespace chainerx {
 namespace cuda {
 namespace cuda_internal {
 
-class MemoryPoolTestFriend;  // for unit-tests
+class MemoryPoolTest;  // for unit-tests
 
 }  // namespace cuda_internal
 
@@ -69,7 +69,7 @@ public:
     void Free(void* ptr);
 
 private:
-    friend class cuda_internal::MemoryPoolTestFriend;  // for unit-tests
+    friend class cuda_internal::MemoryPoolTest;  // for unit-tests
 
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
