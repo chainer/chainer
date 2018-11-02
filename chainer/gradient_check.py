@@ -885,7 +885,7 @@ def _set_y_grad(y, y_grad):
                 'Actual: {} != {}'.format(len(y), len(y_grad)))
         y, = _GradientSetter(xp, y_grad).apply(y)
     else:
-        if len(y) != 1:
+        if len(y) != 1 or y[0].shape != ():
             raise ValueError(
                 'Function must return a zero-dimensional array of length 1 '
                 'if the upstream gradient is `None`.\n'
