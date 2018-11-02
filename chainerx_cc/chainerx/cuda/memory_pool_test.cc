@@ -8,6 +8,14 @@
 
 namespace chainerx {
 namespace cuda {
+namespace cuda_internal {
+
+class MemoryPoolTestFriend {
+public:
+    static const std::vector<std::vector<void*>>& GetFreeBins(const MemoryPool& pool) { return pool.free_bins_; }
+};
+
+}  // namespace cuda_internal
 
 class MemoryPoolTest : public ::testing::TestWithParam<std::shared_ptr<MemoryPool>> {};
 
@@ -57,6 +65,18 @@ TEST_P(MemoryPoolTest, FreeForeignPointer) {
     MemoryPool& memory_pool = *GetParam();
     void* ptr = &memory_pool;
     EXPECT_THROW(memory_pool.Free(ptr), ChainerxError);
+}
+
+TEST_P(MemoryPoolTest, FreeAllBlocks) {
+    MemoryPool& memory_pool = *GetParam();
+    const std::vector<std::vector<void*>>& free_bins = cuda_internal::MemoryPoolTestFriend::GetFreeBins(memory_pool);
+
+    void* ptr1 = memory_pool.Malloc(1);
+    memory_pool.Free(ptr1);
+    EXPECT_FALSE(free_bins.empty());
+
+    memory_pool.FreeAllBlocks();
+    EXPECT_TRUE(free_bins.empty());
 }
 
 INSTANTIATE_TEST_CASE_P(

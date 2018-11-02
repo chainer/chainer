@@ -12,6 +12,11 @@
 
 namespace chainerx {
 namespace cuda {
+namespace cuda_internal {
+
+class MemoryPoolTestFriend;  // for unit-tests
+
+}  // namespace cuda_internal
 
 constexpr size_t kAllocationUnitSize = 512;
 
@@ -64,6 +69,8 @@ public:
     void Free(void* ptr);
 
 private:
+    friend class cuda_internal::MemoryPoolTestFriend;  // for unit-tests
+
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
     std::unordered_map<void*, size_t> in_use_;
