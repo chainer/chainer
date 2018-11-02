@@ -56,8 +56,8 @@ class TestRReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         xp = backend.get_array_module(x_data)
-        r = xp.random.uniform(self.l, self.u, x_data[
-                              0].shape).astype(x_data[0].dtype)
+        r = xp.random.uniform(self.l, self.u, x_data.shape).astype(
+            x_data.dtype)
 
         def f(x):
             return functions.rrelu(x, self.l, self.u, r=r)
@@ -93,8 +93,8 @@ class TestRReLUR(unittest.TestCase):
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
             self.l, self.u = self.u, self.l
-        self.r = (numpy.random.uniform(
-            self.l, self.u, self.x[0].shape)).astype(self.x[0].dtype)
+        self.r = numpy.random.uniform(
+            self.l, self.u, self.x.shape).astype(self.x.dtype)
 
     def _check(self):
         r = self.r if self.specify_r else None
