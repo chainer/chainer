@@ -57,12 +57,7 @@ class Orthogonal(initializer.Initializer):
                                  ' that of dimensions ({})'.format(
                                      flat_shape[0], flat_shape[1]))
             a = numpy.random.normal(size=flat_shape)
-            # we do not have cupy.linalg.svd for now
-            u, _, vh = numpy.linalg.svd(a, full_matrices=False)
-            # pick the one with the correct shape
-            if u.shape == flat_shape:
-                q = u * numpy.sign(numpy.diag(vh))[None, :]
-            else:
-                q = vh * numpy.sign(numpy.diag(u))[:, None]
-            array[...] = xp.asarray(q.reshape(array.shape))
-            array *= self.scale
+            # cupy.linalg.qr requires cusolver in CUDA 8+
+            q, r = numpy.linalg.qr(a.T)
+            q *= self.scale * numpy.sign(numpy.diag(r))
+            array[...] = xp.asarray(q.T.reshape(array.shape))
