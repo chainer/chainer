@@ -78,16 +78,9 @@ def main():
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
-    # TODO(niboshi): Clean up device transfer, either using to_device or
-    # a context manager.
-    if device is chainer.cuda.DummyDevice:
-        model.to_cpu()
-    elif isinstance(device, chainer.cuda.Device):
-        model.to_gpu(device.id)
-    elif chainerx.is_available() and isinstance(device, chainerx.Device):
-        model.to_chainerx(device)
-    else:
-        assert False
+    model.to_device(device)
+    if isinstance(device, chainer.cuda.Device):
+        device.use()  # Make the GPU current
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
