@@ -553,9 +553,6 @@ class Ident(chainer.Function):
 class TestCheckBackward(unittest.TestCase):
 
     def test_multiple_output(self, backend_config):
-        if backend_config.use_chainerx:
-            raise unittest.SkipTest(
-                'ChainerX does not support chainer.Function')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
         x2 = backend_config.get_array(numpy.array([1], dtype='f'))
         g1 = backend_config.get_array(numpy.array([1], dtype='f'))
@@ -572,7 +569,7 @@ class TestCheckBackward(unittest.TestCase):
     def test_no_grads_for_not_float(self, backend_config):
         if backend_config.use_chainerx:
             raise unittest.SkipTest(
-                'ChainerX does not support chainer.Function')
+                'gradient_check does not support no_grad option for ChainerX')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
         # grad check for this is skipped
         x2 = backend_config.get_array(numpy.array([0, 1], dtype='i'))
@@ -587,6 +584,9 @@ class TestCheckBackward(unittest.TestCase):
         gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
 
     def test_no_grads_option(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'gradient_check does not support no_grad option for ChainerX')
         x1 = backend_config.get_array(numpy.array([2], dtype='f'))
         # grad check for this is skipped
         x2 = backend_config.get_array(numpy.array([3], dtype='f'))
@@ -627,7 +627,7 @@ class TestCheckBackward(unittest.TestCase):
     def test_no_grads_option_with_dtype(self, backend_config):
         if backend_config.use_chainerx:
             raise unittest.SkipTest(
-                'ChainerX does not support chainer.Function')
+                'gradient_check does not support no_grad option for ChainerX')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
         x2 = backend_config.get_array(numpy.array([1], dtype='f'))
         g1 = backend_config.get_array(numpy.array([1], dtype='f'))

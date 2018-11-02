@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -55,7 +56,7 @@ class TestHinge(unittest.TestCase):
 
     def check_forward(self, x_data, t_data):
         x_val = chainer.Variable(x_data)
-        t_val = chainer.Variable(t_data)
+        t_val = chainer.Variable(t_data, requires_grad=False)
         loss = functions.hinge(x_val, t_val, self.norm, self.reduce)
         if self.reduce == 'mean':
             self.assertEqual(loss.data.shape, ())
@@ -87,6 +88,24 @@ class TestHinge(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
+    @attr.chainerx
+    def test_forward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.t))
+
+    @attr.gpu
+    @attr.chainerx
+    def test_forward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(
+            backend.to_chainerx(cuda.to_gpu(self.x)),
+            backend.to_chainerx(cuda.to_gpu(self.t)))
+
     def check_backward(self, x_data, t_data):
         def f(x, t):
             return functions.hinge(x, t, self.norm)
@@ -94,12 +113,42 @@ class TestHinge(unittest.TestCase):
         gradient_check.check_backward(
             f, (x_data, t_data), None, dtype='d', **self.backward_options)
 
+    def check_backward_chainerx(self, x_data, t_data):
+        # TODO(niboshi): gradient_check does not support integer input
+        # (no_grads) for ChainerX. Support it and merge this method with
+        # `self.check_backward`.
+
+        def f(x):
+            return functions.hinge(x, t_data, self.norm)
+
+        gradient_check.check_backward(
+            f, (x_data,), None, dtype='d', **self.backward_options)
+
     def test_backward_cpu(self):
         self.check_backward(self.x, self.t)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+
+    @attr.chainerx
+    def test_backward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward_chainerx(
+            backend.to_chainerx(self.x),
+            backend.to_chainerx(self.t))
+
+    @attr.gpu
+    @attr.chainerx
+    def test_backward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward_chainerx(
+            backend.to_chainerx(cuda.to_gpu(self.x)),
+            backend.to_chainerx(cuda.to_gpu(self.t)))
 
 
 class TestHingeInvalidOption(unittest.TestCase):
