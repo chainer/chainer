@@ -1,6 +1,7 @@
 import chainer
 from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -28,13 +29,14 @@ class HuberLoss(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         xp = backend.get_array_module(*inputs)
         x0, x1 = inputs
-        diff = x0 - x1
-        delta = diff.dtype.type(self.delta)
+        dtype = x0.dtype
+        diff = utils.force_array(x0 - x1, dtype)
+        delta = dtype.type(self.delta)
 
         xp.abs(diff, out=diff)
-        y = xp.square(diff)
+        y = utils.force_array(xp.square(diff), dtype)
         diff -= delta
-        xp.maximum(diff, 0, dtype=diff.dtype, out=diff)
+        xp.maximum(diff, 0, dtype=dtype, out=diff)
         xp.square(diff, out=diff)
         y -= diff
         y *= 0.5
