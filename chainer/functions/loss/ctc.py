@@ -324,6 +324,8 @@ class CudnnCTC(ConnectionistTemporalClassification):
     """
     def __init__(self, blank_symbol, reduce='mean', deterministic=True):
         super(CudnnCTC, self).__init__(blank_symbol, reduce) 
+        #TODO(sato): check whether `blank_symbol`==0
+        # warning, if blan_symbol not 
         if deterministic:
             self.algo = libcudnn.CUDNN_CTC_LOSS_ALGO_DETERMINISTIC
         else:
@@ -462,10 +464,16 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
     
     x = chainer.functions.stack(x)
-    if cuda.cudnn_enabled and _cudnn_version >= 7000 and t.shape[1] <= 256:
+    if cuda.cudnn_enabled and _cudnn_version >= 7000 and t.shape[1] <= 256 and blank_symbol == 0:
         # `target_lengths` must be less than 256.
-        return CudnnCTC(blank_symbol, reduce, deterministic)(
+        # TODO(sato): In cuDNN version, we can set `deterministic`. 
+        # TODO(sato) write something.
+        # 255 test, 256 test case.  
+        # warning if blank_symbol != 0
+        # Remove args blank_symbol, reduce
+        return CudnnCTC(blank_symbol, reduce, deterministic=False)(
             input_length, label_length, t, x)
+        # kokode reduce F.mean()
     else:
         return ConnectionistTemporalClassification(blank_symbol, reduce)(
             input_length, label_length, t, x)
