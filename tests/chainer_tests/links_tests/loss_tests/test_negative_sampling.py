@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import links
 from chainer import testing
@@ -111,10 +112,13 @@ class TestNegativeSampling(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         link = self.create_link()
-        link.to_gpu()
-        self.assertTrue(link.sampler.use_gpu)
-        link.to_cpu()
-        self.assertFalse(link.sampler.use_gpu)
+        link.to_device((cuda.cupy, 0))
+        self.assertEqual(
+            link.sampler.device, chainer.get_device((cuda.cupy, 0)))
+        link.to_device(numpy)
+        self.assertEqual(
+            link.sampler.device,
+            chainer.get_device(backends.cpu.CpuDevice()))
 
     def test_return_samples(self, backend_config):
         batch_size = self.t.shape[0]

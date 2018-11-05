@@ -332,10 +332,10 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
     # update_core_chainerx().
 
     def test_upate(self):
-        initial_p = chainerx.array([1., 2., 3.], np.float32)
+        initial_p = np.array([1., 2., 3.], np.float32)
         x = chainerx.array([2., 4., 6.], np.float32)
 
-        expected_p = backend.to_numpy(4. * initial_p - 6. * x)
+        expected_p = 4. * initial_p - 6. * backend.to_numpy(x)
 
         class ChainerxUpdateRule(optimizer.UpdateRule):
             call_count = 0
@@ -363,6 +363,7 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
                 return 3. * x * self.p
 
         link = Link()
+        link.to_device('native:0')
         y = link(x)
         y.backward()
         optimizer_ = ChainerxOptimizer()
@@ -450,10 +451,10 @@ class TestGradientMethod(unittest.TestCase):
 
     def setup_chainerx(self, orig_xp):
         if orig_xp is cuda.cupy:
-            self.target.to_gpu()
+            self.target.to_device('cuda:0')
         else:
             assert orig_xp is np
-        self.target.to_chainerx()
+            self.target.to_device('native:0')
         self.optimizer.setup(self.target)
 
     def test_setup(self):
@@ -528,10 +529,10 @@ class TestGradientMethodLossScale(unittest.TestCase):
 
     def setup_chainerx(self, orig_xp):
         if orig_xp is cuda.cupy:
-            self.target.to_gpu()
+            self.target.to_device('cuda:0')
         else:
             assert orig_xp is np
-        self.target.to_chainerx()
+            self.target.to_device('native:0')
         self.optimizer.setup(self.target)
 
     def check_update(self):

@@ -80,7 +80,7 @@ class Evaluator(extension.Extension):
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
         if device is not None:
-            device = backend.get_device(device)
+            device = backend._get_device_compat(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}

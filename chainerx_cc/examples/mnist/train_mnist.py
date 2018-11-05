@@ -34,15 +34,6 @@ class MLP:
             p -= lr * param.grad.as_grad_stopped()
             param.cleargrad()
 
-    def no_grad(self):
-        # TODO(beam2d): implement a mode to not create a graph
-        self.W1 = self.W1.as_grad_stopped()
-        self.b1 = self.b1.as_grad_stopped()
-        self.W2 = self.W2.as_grad_stopped()
-        self.b2 = self.b2.as_grad_stopped()
-        self.W3 = self.W3.as_grad_stopped()
-        self.b3 = self.b3.as_grad_stopped()
-
     def require_grad(self):
         for param in self.params:
             param.require_grad()
@@ -53,8 +44,7 @@ def new_linear_params(n_in, n_out):
         np.float32)  # TODO(beam2d): not supported in chx
     W /= np.sqrt(n_in)  # TODO(beam2d): not supported in chx
     W = chx.array(W)
-    # TODO(beam2d): make zeros accept int as shape
-    b = chx.zeros((n_out,), dtype=chx.float32)
+    b = chx.zeros(n_out, dtype=chx.float32)
     return W, b
 
 
@@ -74,21 +64,17 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
         raise ValueError(
             'Test size can be no larger than {}'.format(X_test.shape[0]))
 
-    model.no_grad()
+    with chx.no_backprop_mode():
+        total_loss = chx.array(0, dtype=chx.float32)
+        num_correct = chx.array(0, dtype=chx.int64)
+        for i in range(0, N_test, batch_size):
+            x = X_test[i:min(i + batch_size, N_test)]
+            t = Y_test[i:min(i + batch_size, N_test)]
 
-    # TODO(beam2d): make chx.array(0, dtype=...) work
-    total_loss = chx.zeros((), dtype=chx.float32)
-    num_correct = chx.zeros((), dtype=chx.int64)
-    for i in range(0, N_test, batch_size):
-        x = X_test[i:min(i + batch_size, N_test)]
-        t = Y_test[i:min(i + batch_size, N_test)]
-
-        y = model.forward(x)
-        total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype)
-                        == t).astype(chx.int32).sum()
-
-    model.require_grad()
+            y = model.forward(x)
+            total_loss += compute_loss(y, t) * batch_size
+            num_correct += (y.argmax(axis=1).astype(t.dtype)
+                            == t).astype(chx.int32).sum()
 
     mean_loss = float(total_loss) / N_test
     accuracy = int(num_correct) / N_test

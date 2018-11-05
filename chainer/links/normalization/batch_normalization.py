@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
 from chainer import initializers
@@ -277,13 +276,13 @@ class BatchNormalization(link.Link):
 
         gamma = self.gamma
         if gamma is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
         beta = self.beta
         if beta is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
 

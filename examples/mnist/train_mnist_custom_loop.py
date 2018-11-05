@@ -10,13 +10,14 @@ applies an optimizer to update the model.
 import argparse
 import re
 
+import numpy
+
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.iterators import SerialIterator
 import chainer.links as L
 from chainer import serializers
-import chainerx
 
 import train_mnist
 
@@ -29,9 +30,13 @@ def parse_device(args):
         gpu = int(args.device)
 
     if gpu is not None:
-        return chainer.backend.get_device(gpu)
+        if gpu < 0:
+            return chainer.get_device(numpy)
+        else:
+            import cupy
+            return chainer.get_device((cupy, gpu))
 
-    return chainer.backend.get_device(args.device)
+    return chainer.get_device(args.device)
 
 
 def main():
@@ -67,16 +72,7 @@ def main():
 
     # Set up a neural network to train
     model = L.Classifier(train_mnist.MLP(args.unit, 10))
-    # TODO(niboshi): Clean up device transfer, either using to_device or
-    # a context manager.
-    if device is chainer.cuda.DummyDevice:
-        model.to_cpu()
-    elif isinstance(device, chainer.cuda.Device):
-        model.to_gpu(device.id)
-    elif chainerx.is_available() and isinstance(device, chainerx.Device):
-        model.to_chainerx(device)
-    else:
-        assert False
+    model.to_device(device)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
