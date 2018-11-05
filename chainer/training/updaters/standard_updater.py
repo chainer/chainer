@@ -1,7 +1,6 @@
 import six
 
 from chainer import backend
-from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
@@ -68,7 +67,7 @@ class StandardUpdater(_updater.Updater):
                  device=None, loss_func=None, loss_scale=None,
                  auto_new_epoch=True):
         if device is not None:
-            device = backend.get_device(device)
+            device = backend._get_device_compat(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -78,9 +77,9 @@ class StandardUpdater(_updater.Updater):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
 
-        if isinstance(device, cuda.Device):
+        if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target.to_gpu(device.id)
+                optimizer.target.to_device(device)
 
         self.converter = converter
         self.loss_func = loss_func

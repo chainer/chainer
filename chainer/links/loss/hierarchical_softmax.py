@@ -3,6 +3,7 @@ import copy
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.initializers import uniform
@@ -113,18 +114,11 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            self.paths = cuda.to_gpu(self.paths)
-            self.codes = cuda.to_gpu(self.codes)
-            self.begins = cuda.to_gpu(self.begins)
-        return self
-
-    def to_cpu(self):
-        self.paths = cuda.to_cpu(self.paths)
-        self.codes = cuda.to_cpu(self.codes)
-        self.begins = cuda.to_cpu(self.begins)
-        return self
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        self.paths = device.send(self.paths)
+        self.codes = device.send(self.codes)
+        self.begins = device.send(self.begins)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -306,16 +300,10 @@ class BinaryHierarchicalSoftmax(link.Link):
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(BinaryHierarchicalSoftmax, self).to_gpu(device)
-            self._func.to_gpu(device)
-        return self
-
-    def to_cpu(self):
-        super(BinaryHierarchicalSoftmax, self).to_cpu()
-        self._func.to_cpu()
-        return self
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        self._func.to_device(device)
+        return super(BinaryHierarchicalSoftmax, self).to_device(device)
 
     @staticmethod
     def create_huffman_tree(word_counts):

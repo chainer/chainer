@@ -2,6 +2,8 @@
 import argparse
 import re
 
+import numpy
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -35,9 +37,13 @@ def parse_device(args):
         gpu = int(args.device)
 
     if gpu is not None:
-        return chainer.backend.get_device(gpu)
+        if gpu < 0:
+            return chainer.get_device(numpy)
+        else:
+            import cupy
+            return chainer.get_device((cupy, gpu))
 
-    return chainer.backend.get_device(args.device)
+    return chainer.get_device(args.device)
 
 
 def main():
@@ -79,8 +85,6 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
     model.to_device(device)
-    if isinstance(device, chainer.cuda.Device):
-        device.use()  # Make the GPU current
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -104,7 +108,7 @@ def main():
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
     # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
-    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
+    if device.xp is not chainerx:
         trainer.extend(extensions.dump_graph('main/loss'))
 
     # Take a snapshot for each specified epoch

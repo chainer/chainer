@@ -11,6 +11,7 @@ import six
 import chainer
 from chainer import _backprop_utils
 from chainer import backend
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -517,6 +518,7 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
+            self._is_chainerx = True
             self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
@@ -564,7 +566,10 @@ class Variable(object):
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
             arr = self._data[0]
-            actual_grad = arr.grad if arr.is_grad_required() else None
+            actual_grad = (
+                arr.grad
+                if arr is not None and arr.is_grad_required()
+                else None)
             if actual_grad is None:
                 self._grad_var = None
             else:
@@ -583,7 +588,7 @@ class Variable(object):
     def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
-        self._is_chainerx = True
+        assert self._is_chainerx
         requires_grad = self._requires_grad
 
         if (not requires_grad
@@ -949,31 +954,7 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        is_chainerx = self._is_chainerx
-        if is_chainerx:
-            data_chx = self._data[0]
-            if data_chx is not None and data_chx.is_backprop_required():
-                raise RuntimeError(
-                    'A variable of a ChainerX array which requires gradients '
-                    'cannot be copied into CPU.')
-            self._clear_chainerx()
-            self._node = VariableNode(self, self._chainerx_name)
-
-        array = self.array
-        if array is None:
-            return
-
-        if not isinstance(array, numpy.ndarray):
-            self._data = [backend.to_numpy(array)]
-
-        grad_var = self.grad_var
-        if grad_var is not None:
-            grad_var.to_cpu()
-
-        # ensure that the node tracks the device migration
-        node = self._node
-        if node is not None and node._data is not None:
-            node.retain_data()
+        self.to_device(backends.cpu.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -983,27 +964,8 @@ class Variable(object):
                 used.
 
         """
-        is_chainerx = self._is_chainerx
-        if is_chainerx:
-            data_chx = self._data[0]
-            if data_chx is not None and data_chx.is_backprop_required():
-                raise RuntimeError(
-                    'A variable of a ChainerX array which requires gradients '
-                    'cannot be copied into GPU.')
-            self._clear_chainerx()
-            self._node = VariableNode(self, self._chainerx_name)
-
-        if self.array is None:
-            self._data = [None]  # Renew placeholder to break sharing
-        else:
-            self._data = [cuda.to_gpu(self.array, device)]
-            grad_var = self.grad_var
-            if grad_var is not None:
-                grad_var.to_gpu(device)
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node is not None and node._data is not None:
-                node.retain_data()
+        cuda.check_cuda_available()
+        self.to_device(cuda._get_device_or_current(device))
 
     def to_intel64(self):
         """Copies the data and gradient arrays to intel64 specific mdarray.
@@ -1011,44 +973,16 @@ class Variable(object):
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
         """
-        if self._is_chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a to_intel64 method.')
-
         intel64.check_ideep_available()
-        array = self.array
-        if array is not None:
-            if isinstance(array, cuda.ndarray):
-                # cupy.ndarray to numpy.ndarray
-                array = array.get()
-            if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
-                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
-                # Currently iDeep only supports (1, 2, 4)-dim arrays.
-                # Note that array returned from `ideep.array` may not be an
-                # iDeep mdarray, e.g., when the dtype is not float32.
-                array = intel64.ideep.array(
-                    array, itype=intel64.ideep.wgt_array)
-            self._data = [array]
-
-        grad_var = self.grad_var
-        if grad_var is not None:
-            grad_var.to_intel64()
-        # ensure that the node tracks the device migration
-        node = self._node
-        if node._data is not None:
-            node.retain_data()
+        self.to_device(intel64)
 
     # TODO(niboshi): Revisit API. Possibly the default device should be used
     # for device=None. In that case current behavior (automatically choose
     # a device with zero-copy) should be achieved in another way.
-    def to_chainerx(self, device=None):
-        """Copies the data and gradient arrays to specified device.
-
-        Args:
-            device: Target device specifier. If omitted, an appropriate device
-                depending on the original array is used.
-
-        """
+    def to_chainerx(self):
+        """Copies the data and gradient arrays to ChainerX devices."""
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
         if not self._is_chainerx and self.creator is not None:
             raise RuntimeError(
                 'A variable with a creator cannot be '
@@ -1059,16 +993,17 @@ class Variable(object):
         new_grad = None
 
         if data is not None:
-            new_data = backend.to_chainerx(data, device)
+            new_data = backend.to_chainerx(data)
             if self._requires_grad:
                 new_data.require_grad()
 
             grad_var = self.grad_var
             if grad_var is not None:
-                grad_var.to_chainerx(device)
+                grad_var.to_chainerx()
                 new_grad = grad_var.array
 
         self._data = [new_data]
+        self._is_chainerx = True
         self._set_chainerx_array(new_data, new_grad)
 
         # ChainerX itself has own node objects,
@@ -1084,19 +1019,52 @@ class Variable(object):
 
         Args:
             device: Target device specifier. See
-                :class:`~chainer.backend.DeviceId` for
-                available values.
+                :func:`~chainer.get_device` for available values.
 
         """
-        device_id = backend.DeviceId(device)
-        if device_id.xp is numpy:
-            self.to_cpu()
-        elif device_id.xp is cuda.cupy:
-            self.to_gpu(device_id.device)
-        elif device_id.xp is chainerx:
-            self.to_chainerx(device_id.device)
+        device = chainer.get_device(device)
+
+        was_chainerx = self._is_chainerx
+        is_chainerx = device.xp is chainerx
+
+        arr = self._data[0]
+        grad_var = self.grad_var
+
+        if was_chainerx and not is_chainerx:
+            chx_arr = self._data[0]
+            if chx_arr is not None and chx_arr.is_backprop_required():
+                raise RuntimeError(
+                    'A variable of a ChainerX array which requires gradients '
+                    'cannot be copied into non-chainerx device '
+                    '({}).'.format(device))
+            self._clear_chainerx()
+            self._node = VariableNode(self, self._chainerx_name)
+
+        self._is_chainerx = is_chainerx
+
+        if arr is None:
+            return
+
+        if backend.get_device_from_array(arr) == device:
+            return
+
+        new_arr = device.send(arr)
+        if is_chainerx:
+            if grad_var is None:
+                new_grad = None
+            else:
+                new_grad = device.send(grad_var._data[0])
+            self._set_chainerx_array(new_arr, new_grad)
         else:
-            assert False
+            self._data = [new_arr]
+            if grad_var is not None:
+                grad_var.to_device(device)
+
+        # ensure that the node tracks the device migration
+        if not is_chainerx:
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1568,8 +1536,6 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
-    _initial_backend = None
-    _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
         if initializer is None:
@@ -1596,6 +1562,7 @@ class Parameter(Variable):
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
+        self._initial_device = chainer.get_device(backends.cpu.CpuDevice())
         self.update_rule = None
         self.initializer = initializer
 
@@ -1607,47 +1574,41 @@ class Parameter(Variable):
                                     self.initializer, self.update_rule)
 
     def to_cpu(self):
-        if self.array is None:
-            self._initial_backend = None
-            self._initial_device = None
-        super(Parameter, self).to_cpu()
+        return self.to_device(backends.cpu.CpuDevice())
 
     def to_gpu(self, device=None):
-        if self.array is None:
-            if device is None:
-                device = cuda.Device().id
-            self._initial_backend = 'cuda'
-            self._initial_device = device
-        super(Parameter, self).to_gpu(device)
+        device = chainer.get_device(cuda._get_device_or_current(device))
+        assert device.xp is cuda.cupy
+        self.to_device(device)
 
     def to_intel64(self):
-        if self.array is None:
-            self._initial_backend = 'intel64'
-            self._initial_device = None
-        super(Parameter, self).to_intel64()
+        self.to_device(intel64)
 
-    # TODO(niboshi): Revisit API
-    def to_chainerx(self, device=None):
+    def to_chainerx(self):
+        xp = self._initial_device.xp
+        if xp is chainerx:
+            return self
+
         if self.data is None:
-            if device is None:
-                raise ValueError(
-                    'Explicit device is required for delayed initialization.')
-            self._initial_backend = 'chainerx'
-            self._initial_device = device
-        super(Parameter, self).to_chainerx(device)
+            # TODO(niboshi): Update this logic for updating
+            # self._initial_device
+            if xp is numpy:
+                self._initial_device = chainer.get_device('native:0')
+            elif xp is cuda.cupy:
+                self._initial_device = chainer.get_device(
+                    'cuda:{}'.format(self._initial_device.device.id))
+            else:
+                assert False
 
-    def to_device(self, device=None):
-        device_id = backend.DeviceId(device)
-        if device_id.xp is numpy:
-            self._initial_backend = None
-            self._initial_device = None
-        elif device_id.xp is cuda.cupy:
-            self._initial_backend = 'cuda'
-            self._initial_device = device_id.device
-        elif device_id.xp is chainerx:
-            self._initial_backend = 'chainerx'
-            self._initial_device = device_id.device
-        super(Parameter, self).to_device(device_id)
+        super(Parameter, self).to_chainerx()
+
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        if self.data is None:
+            if self._initial_device != device:
+                self._data = [None]  # Renew placeholder to break sharing
+                self._initial_device = device
+        super(Parameter, self).to_device(device)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
@@ -1671,12 +1632,9 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        if self._initial_backend == 'chainerx':
-            xp = chainerx
-            device = chainerx.get_device(self._initial_device)
-        else:
-            xp = cuda.cupy if self._initial_backend == 'cuda' else numpy
-            device = cuda.get_device_from_id(self._initial_device)
+        device = self._initial_device
+        assert device is not None
+        xp = device.xp
 
         data = initializers.generate_array(
             self.initializer, shape, xp, device=device)
@@ -1688,7 +1646,8 @@ class Parameter(Variable):
         self.grad = grad
 
         # Convert the array for iDeep.
-        if self._initial_backend == 'intel64':
+        # TODO(niboshi): This could be done in generate_array().
+        if isinstance(self._initial_device, intel64.Intel64Device):
             self.to_intel64()
 
     def update(self):

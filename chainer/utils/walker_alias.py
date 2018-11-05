@@ -1,5 +1,7 @@
 import numpy
 
+import chainer
+from chainer import backends
 from chainer.backends import cuda
 
 
@@ -43,25 +45,43 @@ class WalkerAlias(object):
         assert((values < len(threshold)).all())
         self.threshold = threshold
         self.values = values
-        self.use_gpu = False
+        self._device = chainer.get_device(backends.cpu.CpuDevice())
+
+    @property
+    def device(self):
+        return self._device
+
+    @property
+    def use_gpu(self):
+        # TODO(niboshi): Maybe better to deprecate the property.
+        xp = self._device.xp
+        if xp is cuda.cupy:
+            return True
+        elif xp is numpy:
+            return False
+        raise RuntimeError(
+            'WalkerAlias.use_gpu attribute is only applicable for numpy or '
+            'cupy devices. Use WalkerAlias.device attribute for general '
+            'devices.')
+
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        self.threshold = device.send(self.threshold)
+        self.values = device.send(self.values)
+        self._device = device
+        return self
 
     def to_gpu(self):
         """Make a sampler GPU mode.
 
         """
-        if not self.use_gpu:
-            self.threshold = cuda.to_gpu(self.threshold)
-            self.values = cuda.to_gpu(self.values)
-            self.use_gpu = True
+        return self.to_device(cuda.Device())
 
     def to_cpu(self):
         """Make a sampler CPU mode.
 
         """
-        if self.use_gpu:
-            self.threshold = cuda.to_cpu(self.threshold)
-            self.values = cuda.to_cpu(self.values)
-            self.use_gpu = False
+        return self.to_device(backends.cpu.CpuDevice())
 
     def sample(self, shape):
         """Generates a random sample based on given probabilities.
@@ -75,10 +95,15 @@ class WalkerAlias(object):
             if it is in GPU mode the return value is a :class:`cupy.ndarray`
             object.
         """
-        if self.use_gpu:
+        xp = self._device.xp
+        if xp is cuda.cupy:
             return self.sample_gpu(shape)
-        else:
+        elif xp is numpy:
             return self.sample_cpu(shape)
+        else:
+            # TODO(niboshi): Support ChainerX
+            raise NotImplementedError(
+                'WalkerAlias does not support device: {}'.format(self._device))
 
     def sample_cpu(self, shape):
         ps = numpy.random.uniform(0, 1, shape)

@@ -6,6 +6,7 @@ import mock
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -229,9 +230,12 @@ class TestLink(unittest.TestCase):
         cupy = cuda.cupy
         l0 = self.link
         l1 = l0.copy()
+        self.assertIs(l0.device.xp, numpy)
         self.assertIsNone(l0.u.data)
         self.assertIsNone(l1.u.data)
         l1.to_gpu()
+        self.assertIs(l0.device.xp, numpy)
+        self.assertIsNone(l0.u.data)
         l1.u.initialize((2, 3))
         self.assertIsNone(l0.u.data)
         self.assertIsInstance(l1.u.data, cupy.ndarray)
@@ -276,7 +280,7 @@ class TestLink(unittest.TestCase):
     def test_deepcopy(self):
         link = copy.deepcopy(self.link)
         self._check_deepcopy(link)
-        self.assertIsNone(link._device_id)
+        self.assertEqual(link.device.xp, numpy)
 
     @attr.multi_gpu(2)
     def test_deepcopy_multi_device(self):
@@ -284,7 +288,7 @@ class TestLink(unittest.TestCase):
         self.link.to_gpu(device_id)
         link = copy.deepcopy(self.link)
         self._check_deepcopy(link)
-        self.assertEqual(link._device_id, device_id)
+        self.assertEqual(link.device.device, cuda.Device(device_id))
         self.assertEqual(link.x.data.device.id, device_id)
         self.assertEqual(link.y.data.device.id, device_id)
 
@@ -339,13 +343,13 @@ class TestLink(unittest.TestCase):
     def test_to_gpu_different_device(self):
         cuda.Device(1).use()
         self.link.to_gpu(0)
-        self.assertEqual(self.link._device_id, 0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
     def test_to_gpu_current_device(self):
         cuda.Device(1).use()
         self.link.to_gpu()
-        self.assertEqual(self.link._device_id, 1)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
 
     def test_params(self):
         params = list(self.link.params())
@@ -647,19 +651,19 @@ class CountParameter(chainer.Parameter):
 
     def to_cpu(self):
         self.count_to_cpu += 1
-        super(CountParameter, self).to_cpu()
+        return super(CountParameter, self).to_cpu()
 
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
-        super(CountParameter, self).to_gpu(device)
+        return super(CountParameter, self).to_gpu(device)
 
-    def to_chainerx(self, device=None):
+    def to_chainerx(self):
         self.count_to_chainerx += 1
-        super(CountParameter, self).to_chainerx(device)
+        return super(CountParameter, self).to_chainerx()
 
     def to_device(self, device=None):
         self.count_to_device += 1
-        super(CountParameter, self).to_device(device)
+        return super(CountParameter, self).to_device(device)
 
     def zerograd(self):
         self.count_zerograd += 1
@@ -669,12 +673,21 @@ class CountParameter(chainer.Parameter):
 class TestChain(unittest.TestCase):
 
     def setUp(self):
+        # Schematic:
+        # c2
+        # - c1
+        #   - l1 (x: uninitialized with shape=(2, 3))
+        #   - l2 (x: uninitialized with shape=2)
+        # - l3   (x: uninitialized without shape)
+
         self.l1 = chainer.Link()
         with self.l1.init_scope():
             self.l1.x = chainer.Parameter(shape=(2, 3))
+
         self.l2 = chainer.Link()
         with self.l2.init_scope():
             self.l2.x = chainer.Parameter(shape=2)
+
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter()
@@ -683,6 +696,7 @@ class TestChain(unittest.TestCase):
         with self.c1.init_scope():
             self.c1.l1 = self.l1
         self.c1.add_link('l2', self.l2)
+
         self.c2 = chainer.Chain()
         with self.c2.init_scope():
             self.c2.c1 = self.c1
@@ -872,12 +886,15 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_cpu, 1)
-        self.assertEqual(self.l1.x.count_to_gpu, 1)
-        self.assertEqual(self.l2.x.count_to_cpu, 1)
-        self.assertEqual(self.l2.x.count_to_gpu, 1)
-        self.assertEqual(self.l3.x.count_to_cpu, 1)
-        self.assertEqual(self.l3.x.count_to_gpu, 1)
+        self.assertEqual(self.l1.x.count_to_cpu, 0)
+        self.assertEqual(self.l1.x.count_to_gpu, 0)
+        self.assertEqual(self.l1.x.count_to_device, 2)
+        self.assertEqual(self.l2.x.count_to_cpu, 0)
+        self.assertEqual(self.l2.x.count_to_gpu, 0)
+        self.assertEqual(self.l2.x.count_to_device, 2)
+        self.assertEqual(self.l3.x.count_to_cpu, 0)
+        self.assertEqual(self.l3.x.count_to_gpu, 0)
+        self.assertEqual(self.l3.x.count_to_device, 2)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, numpy.ndarray)
@@ -899,9 +916,12 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_gpu, 1)
-        self.assertEqual(self.l2.x.count_to_gpu, 1)
-        self.assertEqual(self.l3.x.count_to_gpu, 1)
+        self.assertEqual(self.l1.x.count_to_gpu, 0)
+        self.assertEqual(self.l1.x.count_to_device, 1)
+        self.assertEqual(self.l2.x.count_to_gpu, 0)
+        self.assertEqual(self.l2.x.count_to_device, 1)
+        self.assertEqual(self.l3.x.count_to_gpu, 0)
+        self.assertEqual(self.l3.x.count_to_device, 1)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
@@ -909,9 +929,10 @@ class TestChain(unittest.TestCase):
 
     @attr.chainerx
     def test_to_chainerx(self):
+        self.c2.to_device(backends.cpu.CpuDevice())
+
         self.set_count_parameters()
-        device = chainerx.get_device('native:0')
-        self.c2.to_chainerx(device)
+        self.c2.to_chainerx()
         self.assertIs(self.c2.xp, chainerx)
         self.assertIs(self.c1.xp, chainerx)
         self.assertIs(self.l1.xp, chainerx)
@@ -923,8 +944,11 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertEqual(self.l1.x.count_to_chainerx, 1)
+        self.assertEqual(self.l1.x.count_to_device, 0)
         self.assertEqual(self.l2.x.count_to_chainerx, 1)
+        self.assertEqual(self.l2.x.count_to_device, 0)
         self.assertEqual(self.l3.x.count_to_chainerx, 1)
+        self.assertEqual(self.l3.x.count_to_device, 0)
 
         self.l3.x.initialize((3,))
         self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
@@ -932,7 +956,7 @@ class TestChain(unittest.TestCase):
 
     def test_to_device(self):
         self.set_count_parameters()
-        device = chainer.backend.DeviceId(numpy)
+        device = chainer.backend.get_device(backends.cpu.CpuDevice())
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
@@ -1478,8 +1502,8 @@ class TestChainList(unittest.TestCase):
 
     @attr.chainerx
     def test_to_chainerx(self):
-        device = chainerx.get_device('native:0')
-        self.c2.to_chainerx(device)
+        self.c2.to_device(backends.cpu.CpuDevice())
+        self.c2.to_chainerx()
         self.assertIs(self.c2.xp, chainerx)
         self.assertIs(self.c1.xp, chainerx)
         self.assertIs(self.l1.xp, chainerx)
@@ -1491,15 +1515,16 @@ class TestChainList(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
         self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
         self.assertIsInstance(self.l3.x.grad, chainerx.ndarray)
-        self.assertIs(self.l1.x.data.device, device)
-        self.assertIs(self.l1.x.grad.device, device)
-        self.assertIs(self.l2.x.data.device, device)
-        self.assertIs(self.l2.x.grad.device, device)
-        self.assertIs(self.l3.x.data.device, device)
-        self.assertIs(self.l3.x.grad.device, device)
+        expected_device = chainerx.get_device('native:0')
+        self.assertIs(self.l1.x.data.device, expected_device)
+        self.assertIs(self.l1.x.grad.device, expected_device)
+        self.assertIs(self.l2.x.data.device, expected_device)
+        self.assertIs(self.l2.x.grad.device, expected_device)
+        self.assertIs(self.l3.x.data.device, expected_device)
+        self.assertIs(self.l3.x.grad.device, expected_device)
 
     def test_to_device(self):
-        device = chainer.backend.DeviceId(numpy)
+        device = chainer.backend.get_device(backends.cpu.CpuDevice())
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
@@ -1807,7 +1832,7 @@ class TestIntel64(unittest.TestCase):
     def test_cpu_to_intel64(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, intel64.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
 
@@ -1830,7 +1855,7 @@ class TestIntel64(unittest.TestCase):
         prev_pa = link.pa
         prev_ps = link.ps
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, intel64.Intel64Device)
 
         # Everything should be left untouched
 
@@ -1847,9 +1872,9 @@ class TestIntel64(unittest.TestCase):
     def test_gpu_to_intel64(self):
         link = self.link
         link.to_gpu()
-        assert link._device_id == 0
+        assert link.device.device == cuda.Device(0)
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, intel64.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
 
@@ -1868,9 +1893,9 @@ class TestIntel64(unittest.TestCase):
     def test_intel64_to_gpu(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, intel64.Intel64Device)
         link.to_gpu()
-        assert link._device_id == 0
+        assert link.device.device == cuda.Device(0)
 
         # Arrays should be converted to cupy.ndarray
 
@@ -1888,9 +1913,9 @@ class TestIntel64(unittest.TestCase):
     def test_intel64_to_cpu(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, intel64.Intel64Device)
         link.to_cpu()
-        assert link._device_id is None
+        assert isinstance(link.device, chainer.backends.cpu.CpuDevice)
 
         # Arrays should be converted to numpy.ndarray
 
@@ -1949,13 +1974,13 @@ class TestToChainerX(unittest.TestCase):
 
     def test_chainerx_to_chainerx(self):
         link = self.link
-        link.to_chainerx('native:0')
+        link.to_chainerx()
         prev_y = link.y
         prev_v = link.v
         prev_pa = link.pa
         prev_ps = link.ps
-        link.to_chainerx('native:0')
-        assert link._device_id is None
+        link.to_chainerx()
+        assert link.device.device == chainerx.get_device('native:0')
 
         # Everything should be left untouched
 
@@ -1970,7 +1995,7 @@ class TestToChainerX(unittest.TestCase):
 
     def test_cpu_to_chainerx(self):
         link = self.link
-        link.to_chainerx('native:0')
+        link.to_chainerx()
 
         # Initialized parameter
         assert isinstance(link.y.data, chainerx.ndarray)
@@ -1989,9 +2014,9 @@ class TestToChainerX(unittest.TestCase):
     def test_gpu_to_chainerx(self):
         link = self.link
         link.to_gpu()
-        assert link._device_id == 0
-        link.to_chainerx('cuda:0')
-        assert link._device_id is None
+        assert link.device.device == cuda.Device(0)
+        link.to_chainerx()
+        assert link.device.device == chainerx.get_device('cuda:0')
 
         # Arrays should be converted to chainerx.ndarray
 
@@ -2056,20 +2081,17 @@ class TestToDevice(unittest.TestCase):
 
     def test_to_device_numpy(self):
         link = self.check_to_device(numpy, numpy.ndarray)
-        assert link._xp is None
-        assert link._device_id is None
+        assert isinstance(link.device, chainer.backends.cpu.CpuDevice)
 
     @attr.gpu
     def test_to_device_cupy(self):
         link = self.check_to_device((cuda.cupy, 0), cuda.ndarray)
-        assert link._xp is cuda.cupy
-        assert link._device_id == self.current_device_id
+        assert link.device.device == cuda.Device(0)
 
     @attr.chainerx
     def test_to_device_chainerx(self):
         link = self.check_to_device('native:0', chainerx.ndarray)
-        assert link._xp is chainerx
-        assert link._device_id is None
+        assert link.device.device == chainerx.get_device('native:0')
 
 
 class TestCallMethod(unittest.TestCase):

@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -24,19 +25,23 @@ class TestWalkerAlias(unittest.TestCase):
         testing.assert_allclose(self.ps, counts, atol=0.1, rtol=0.1)
 
     def test_sample_cpu(self):
+        assert not self.sampler.use_gpu
         self.check_sample()
 
     @attr.gpu
     def test_sample_gpu(self):
         self.sampler.to_gpu()
-        self.assertTrue(self.sampler.use_gpu)
+        assert self.sampler.use_gpu
+        assert isinstance(self.sampler._device.device, cuda.Device)
         self.check_sample()
 
     @attr.gpu
     def test_to_cpu(self):
         self.sampler.to_gpu()
         self.sampler.to_cpu()
-        self.assertFalse(self.sampler.use_gpu)
+        assert not self.sampler.use_gpu
+        assert isinstance(
+            self.sampler._device, chainer.backends.cpu.CpuDevice)
         self.check_sample()
 
 

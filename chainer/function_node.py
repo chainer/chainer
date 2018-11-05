@@ -689,10 +689,9 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_outputs])
 
-        # TODO(sonots): Fix to use using_device() if it becomes available
-        with backend.get_device_from_array(
-                *(retained_inputs + retained_outputs + grad_outputs)):
-
+        device = backend.get_device_from_array(
+            *(retained_inputs + retained_outputs + grad_outputs))
+        with chainer.using_device(device):
             gxs = self._backward_target_inputs(
                 tuple(target_input_indexes),
                 tuple([chainer.Variable(
