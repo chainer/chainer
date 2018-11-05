@@ -952,7 +952,7 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        return self.to_device(backends.cpu.CpuDevice())
+        self.to_device(backends.cpu.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -1580,7 +1580,7 @@ class Parameter(Variable):
         self.to_device(device)
 
     def to_intel64(self):
-        return self.to_device(intel64)
+        self.to_device(intel64)
 
     def to_chainerx(self):
         xp = self._initial_device.xp
@@ -1598,7 +1598,7 @@ class Parameter(Variable):
             else:
                 assert False
 
-        return super(Parameter, self).to_chainerx()
+        super(Parameter, self).to_chainerx()
 
     def to_device(self, device):
         device = chainer.get_device(device)
