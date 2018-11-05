@@ -75,9 +75,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
     model.no_grad()
 
-    # TODO(beam2d): make chx.array(0, dtype=...) work
-    total_loss = chx.zeros((), dtype=chx.float32)
-    num_correct = chx.zeros((), dtype=chx.int64)
+    total_loss = chx.array(0, dtype=chx.float32)
+    num_correct = chx.array(0, dtype=chx.int64)
     for i in range(0, N_test, batch_size):
         x = X_test[i:min(i + batch_size, N_test)]
         t = Y_test[i:min(i + batch_size, N_test)]
