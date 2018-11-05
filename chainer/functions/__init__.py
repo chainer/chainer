@@ -208,8 +208,6 @@ from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-# TODO(kmaehashi) this alias should be removed in
-# https://github.com/chainer/chainer/pull/5198
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
 from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_max_align_2d import roi_max_align_2d  # NOQA
