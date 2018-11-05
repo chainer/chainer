@@ -24,7 +24,7 @@ enum class AllocatorStatus { kSuccess = 0, kErrorMemoryAllocation };
 
 class OutOfMemoryError : public ChainerxError {
 public:
-    OutOfMemoryError(size_t bytesize) : ChainerxError{"Out of memory to allocate ", bytesize, " bytes."} {}
+    explicit OutOfMemoryError(size_t bytesize) : ChainerxError{"Out of memory to allocate ", bytesize, " bytes."} {}
 };
 
 // TODO(hvy): Add a member function to check for the last error, using e.g. cudaPeekAtLastError.
