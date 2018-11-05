@@ -273,7 +273,6 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_multivariatenormal_dist(True)
         self.check_kl(dist1, dist2)
 
-    @testing.with_requires('numpy>=1.11')
     def test_one_hot_categorical_one_hot_categorical_cpu(self):
         dist1 = self.make_one_hot_categorical_dist()
         dist2 = self.make_one_hot_categorical_dist()
