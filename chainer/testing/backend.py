@@ -64,9 +64,7 @@ class BackendConfig(object):
             return chainerx
         if self.use_cuda:
             return cuda.cupy
-        if self.use_ideep != 'never':
-            return numpy
-        return numpy
+        return numpy  # applicable with/without ideep
 
     @property
     def device(self):
@@ -156,9 +154,7 @@ class BackendConfig(object):
             return arr.to_device(self.chainerx_device)
         if self.use_cuda:
             return chainer.backends.cuda.to_gpu(np_array, self.cuda_device)
-        if self.use_ideep != 'never':
-            return np_array
-        return np_array
+        return np_array  # applicable with/without ideep
 
     def get_array(self, np_array):
         if isinstance(np_array, tuple):
