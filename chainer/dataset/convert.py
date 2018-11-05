@@ -3,10 +3,10 @@ import collections
 import numpy
 import six
 
+import chainer
 from chainer import backend
 from chainer import backends
 from chainer.backends import cuda
-import chainerx
 
 
 def to_device(device, x):
@@ -162,52 +162,32 @@ def concat_examples(batch, device=None, padding=None):
 
 
 def _concat_arrays(arrays, padding):
-
-    # ChainerX arrays are converted to either NumPy/CuPy because ChainerX
-    # does not support some operations required.
-    # TODO(niboshi): Avoid conversion
-    chainerx_device = None
-    if isinstance(arrays[0], chainerx.ndarray):
-        chainerx_device = arrays[0].device
-        if chainerx_device.backend.name == 'native':
-            arrays = backend.to_numpy(arrays)
-        elif chainerx_device.backend.name == 'cuda':
-            arrays = cuda.to_gpu(arrays, chainerx_device.index)
-        else:
-            raise RuntimeError(
-                'Only native and cuda backends are supported for ChainerX '
-                'arrays')
-
     # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
     # types such as int or float.
-    elif (not isinstance(arrays[0], numpy.ndarray)
-            and not isinstance(arrays[0], cuda.ndarray)):
+    if numpy.isscalar(arrays[0]):
         arrays = numpy.asarray(arrays)
 
     if padding is not None:
         arr_concat = _concat_arrays_with_padding(arrays, padding)
     else:
-        xp = backend.get_array_module(arrays[0])
-        with cuda.get_device_from_array(arrays[0]):
-            arr_concat = xp.concatenate([array[None] for array in arrays])
+        device = backend.get_device_from_array(arrays[0])
+        with chainer.using_device(device):
+            arr_concat = device.xp.concatenate(
+                [array[None] for array in arrays])
 
-    if chainerx_device is not None:
-        return backend.get_device(chainerx_device).send(arr_concat)
     return arr_concat
 
 
 def _concat_arrays_with_padding(arrays, padding):
-    # ChainerX arrays are not supported in this function
-
     shape = numpy.array(arrays[0].shape, dtype=int)
     for array in arrays[1:]:
         if numpy.any(shape != array.shape):
             numpy.maximum(shape, array.shape, shape)
     shape = tuple(numpy.insert(shape, 0, len(arrays)))
 
-    xp = backend.get_array_module(arrays[0])
-    with cuda.get_device_from_array(arrays[0]):
-        result = xp.full(shape, padding, dtype=arrays[0].dtype)
+    device = backend.get_device_from_array(arrays[0])
+    with chainer.using_device(device):
+        result = device.xp.full(shape, padding, dtype=arrays[0].dtype)
         for i in six.moves.range(len(arrays)):
             src = arrays[i]
             slices = tuple(slice(dim) for dim in src.shape)
