@@ -9,6 +9,15 @@ import chainerx.testing
 from chainerx_tests import array_utils
 
 
+# Value for parameterization to represent an unspecified (default) argument.
+class _UnspecifiedType:
+    def __repr__(self):
+        return '<Unspecified>'
+
+
+_unspecified = _UnspecifiedType()
+
+
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -
     1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
@@ -337,6 +346,8 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     ([(2, 3), (2, 3)], -1),
     ([(2, 3), (2, 3)], None),
     ([(2, 3), (4, 5)], None),
+    ([(2, 3), (2, 3)], _unspecified),
+    ([(2, 3), (4, 5)], _unspecified),
 ])
 def test_concat(xp, shapes, axis):
     arrays = []
@@ -345,7 +356,11 @@ def test_concat(xp, shapes, axis):
         a = numpy.arange(i * 100, i * 100 + size)
         a = a.reshape(shape).astype('float32')
         arrays.append(xp.array(a))
-    return xp.concatenate(arrays, axis)
+    if axis is _unspecified:
+        args = (arrays,)
+    else:
+        args = (arrays, axis)
+    return xp.concatenate(*args)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
