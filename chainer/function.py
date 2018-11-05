@@ -4,6 +4,7 @@ import weakref
 import six
 
 from chainer import backend
+from chainer import backends
 from chainer.backends import cuda
 from chainer import configuration
 # for backward compatibility
@@ -161,8 +162,8 @@ class FunctionAdapter(function_node.FunctionNode):
         # Convert input and output gradients to numpy/cupy
         xp = backend.get_array_module(*(in_data + grad_out_data))
         if xp is chainerx:
-            in_data = tuple([_from_chainerx(a) for a in in_data])
-            grad_out_data = tuple([_from_chainerx(a) for a in grad_out_data])
+            in_data = backends.chainerx.from_chainerx(in_data)
+            grad_out_data = backends.chainerx.from_chainerx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
@@ -175,7 +176,7 @@ class FunctionAdapter(function_node.FunctionNode):
 
         # Convert input gradients back to ChainerX
         if xp is chainerx:
-            gxs = tuple([backend.to_chainerx(a) for a in gxs])
+            gxs = backends.chainerx.to_chainerx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -328,8 +329,7 @@ class Function(object):
 
         """
         if self.node._is_chainerx:
-            chx_output_data = self.node.output_data
-            return tuple([_from_chainerx(a) for a in chx_output_data])
+            return backends.chainerx.from_chainerx(self.node.output_data)
         return self.node.output_data
 
     @property
@@ -574,17 +574,3 @@ class Function(object):
             warnings.warn('retain_after_backward option has no effect',
                           DeprecationWarning)
         self.node.retain_outputs(indexes)
-
-
-# TODO(niboshi): Move to chainer.backend
-def _from_chainerx(array):
-    if not isinstance(array, chainerx.ndarray):
-        return array
-    backend_name = array.device.backend.name
-    if backend_name == 'native':
-        return backend.to_numpy(array)
-    if backend_name == 'cuda':
-        return cuda.to_gpu(array, array.device.index)
-    raise RuntimeError(
-        'Only native and cuda backends are supported as ChainerX backends in '
-        'chainer.Function')

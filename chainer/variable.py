@@ -1013,6 +1013,16 @@ class Variable(object):
             node._variable = lambda: None
             self._node = None
 
+    def from_chainerx(self):
+        """Converts arrays to ChainerX array without any copy.
+
+        Raises and error if no such copy is possible.
+        """
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+        if not self._is_chainerx:
+            raise RuntimeError('Cannot convert from non-ChainerX array.')
+
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
 

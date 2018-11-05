@@ -72,8 +72,7 @@ def to_numpy(array):
     return _cpu._to_numpy(array)
 
 
-# TODO(niboshi): Revisit API
-def to_chainerx(array, device_spec=None):
+def to_chainerx(array):
     return _chainerx._to_chainerx(array)
 
 

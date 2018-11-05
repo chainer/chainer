@@ -40,6 +40,25 @@ class ChainerxDevice(_backend.Device):
         return _array_to_chainerx(array, device)
 
 
+def to_chainerx(array):
+    """Converts an array or arrays to ChainerX without copy.
+
+    Destination ChainerX devices are chosen according to the types of input
+    arrays.
+    """
+    return backend._convert_arrays(
+        array, lambda arr: _array_to_chainerx(arr, None))
+
+
+def from_chainerx(array):
+    """Converts an array or arrays from ChainerX to NumPy or CuPy ones.
+
+    Destination devices are chosen such that no copies occur.
+    """
+    return backend._convert_arrays(
+        array, lambda arr: _array_from_chainerx(arr))
+
+
 def _get_device(device_spec):
     # Called from chainer.backend.get_device
     if not chainerx.is_available():
@@ -117,3 +136,17 @@ def _array_to_chainerx(array, device):
     raise TypeError(
         'Array cannot be converted into chainerx.ndarray'
         '\nActual type: {0}.'.format(type(array)))
+
+
+def _array_from_chainerx(array):
+    if not isinstance(array, chainerx.ndarray):
+        raise ValueError('Source must be a ChainerX array.')
+
+    backend_name = array.device.backend.name
+    if backend_name == 'native':
+        return backend.to_numpy(array)
+    if backend_name == 'cuda':
+        return chainer.backends.cuda.to_gpu(array, array.device.index)
+
+    raise RuntimeError(
+        'Only native and cuda backends are supported as ChainerX backends')
