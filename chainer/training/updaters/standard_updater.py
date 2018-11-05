@@ -45,7 +45,7 @@ class StandardUpdater(_updater.Updater):
             just before the parameters are to be updated.
         auto_new_epoch (bool): If ``True``,
             :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
-            automatically called when the ``is_new_poch`` attribute of the
+            automatically called when the ``is_new_epoch`` attribute of the
             main iterator is ``True``.
 
     Attributes:

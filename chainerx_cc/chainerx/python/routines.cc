@@ -390,14 +390,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("array"),
           py::arg("shape"));
     m.def("concatenate",
-          [](py::sequence tup, nonstd::optional<int8_t> axis) {
+          [](py::sequence arrays, nonstd::optional<int8_t> axis) {
               std::vector<Array> xs;
-              std::transform(
-                      tup.begin(), tup.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
-              return MoveArrayBody(Concatenate(std::move(xs), axis));
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(Concatenate(xs, axis));
           },
           py::arg("arrays"),
           py::arg("axis") = nullptr);
+    m.def("stack",
+          [](py::sequence arrays, int8_t axis) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(Stack(xs, axis));
+          },
+          py::arg("arrays"),
+          py::arg("axis") = 0);
     m.def("split",
           [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) { return MoveArrayBodies(Split(Array{ary}, sections, axis)); },
           py::arg("ary"),

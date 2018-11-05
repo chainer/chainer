@@ -416,8 +416,15 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         }
     }
 
-    Array out = Empty(shape, dtype, device);
-    const Strides& strides = out.strides();
+    Strides strides{shape, dtype};
+
+    // Aligning with NumPy strides behavior
+    auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
+    if (last_zero_it != shape.rend()) {
+        std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
+    }
+
+    Array out = internal::Empty(shape, dtype, strides, device);
     {
         NoBackpropModeScope scope{};
         int64_t out_offset = 0;
@@ -464,6 +471,112 @@ Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axi
         return array.Reshape(shape);
     });
     return ConcatenateImpl(raveled_arrays, 0);
+}
+
+namespace {
+std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
+    Shape shape{gout.shape()};
+    Strides strides{gout.strides()};
+    size_t dim = shape[axis];
+    int64_t step = strides[axis];
+    shape.erase(shape.begin() + axis);
+    strides.erase(strides.begin() + axis);
+
+    std::vector<Array> gxs;
+    std::vector<ConstArrayRef> gxs_refs{};
+    gxs.reserve(dim);
+    gxs_refs.reserve(dim);
+    {
+        NoBackpropModeScope scope{};
+        Dtype dtype = gout.dtype();
+        Device& device = gout.device();
+        for (size_t i = 0; i < dim; ++i) {
+            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
+            gxs_refs.emplace_back(gxs.back());
+        }
+    }
+
+    {
+        BackwardBuilder bb{"stack-grad", gout, gxs_refs};
+        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+            bt.Define([axis](BackwardContext& bctx) {
+                std::vector<Array> ggxs;
+                ggxs.reserve(bctx.output_count());
+                for (size_t i = 0; i < bctx.output_count(); ++i) {
+                    // TODO(imanishi): Check if bctx.output_grad(i) is not nullopt.
+                    ggxs.emplace_back(*bctx.output_grad(i));
+                }
+                bctx.input_grad() = Stack(ggxs, axis);
+            });
+        }
+        bb.Finalize();
+    }
+    return gxs;
+}
+}  // namespace
+
+Array Stack(const std::vector<Array>& arrays, int8_t axis) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    Shape shape = arrays.front().shape();
+    Dtype dtype = arrays.front().dtype();
+    Device& device = arrays.front().device();
+    uint8_t ndim = shape.ndim();
+    axis = internal::NormalizeAxis(axis, ndim + 1);
+
+    for (const Array& array : arrays) {
+        if (shape != array.shape()) {
+            throw DimensionError{"All input arrays must have the same shape"};
+        }
+        if (dtype != array.dtype()) {
+            throw DtypeError{"All the input arrays must have same dtypes"};
+        }
+    }
+    shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
+
+    Strides strides{shape, dtype};
+
+    // Aligning with NumPy strides behavior
+    auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
+    if (last_zero_it != shape.rend()) {
+        std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
+    }
+
+    Array out = internal::Empty(shape, dtype, strides, device);
+
+    int64_t step = strides[axis];
+    strides.erase(strides.begin() + axis);
+    {
+        NoBackpropModeScope scope{};
+        int64_t out_offset = 0;
+        for (const Array& array : arrays) {
+            Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
+            device.Copy(array, sliced_out);
+            out_offset += step;
+        }
+    }
+
+    std::vector<ConstArrayRef> array_refs;
+    array_refs.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_refs), [](const Array& array) { return ConstArrayRef{array}; });
+
+    {
+        BackwardBuilder bb{"stack", array_refs, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+            bt.Define([axis](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                std::vector<Array> gxs = StackGrad(gout, axis);
+                for (size_t i = 0; i < gxs.size(); ++i) {
+                    bctx.input_grad(i) = gxs[i];
+                }
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
 }
 
 namespace {

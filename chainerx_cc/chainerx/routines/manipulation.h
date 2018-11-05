@@ -39,6 +39,9 @@ Array BroadcastTo(const Array& array, const Shape& shape);
 Array Concatenate(const std::vector<Array>& arrays);
 Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
 
+// Returns a joined array along a new axis.
+Array Stack(const std::vector<Array>& arrays, int8_t axis = 0);
+
 // Returns a set of arrays resulting from splitting the given array into sections along the specified axis.
 // If the dimension is not equally divisible, DimensionError is throws.
 std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis = 0);

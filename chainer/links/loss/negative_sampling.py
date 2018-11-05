@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer.functions.loss import negative_sampling
 from chainer import link
+from chainer.utils import argument
 from chainer.utils import walker_alias
 from chainer import variable
 
@@ -45,8 +46,10 @@ class NegativeSampling(link.Link):
         self.sampler.to_device(device)
         return super(NegativeSampling, self).to_device(device)
 
-    def forward(self, x, t, reduce='sum'):
-        """Computes the loss value for given input and ground truth labels.
+    def forward(self, x, t, reduce='sum', **kwargs):
+        """forward(x, t, reduce='sum', *, return_samples=False)
+
+        Computes the loss value for given input and ground truth labels.
 
         Args:
             x (~chainer.Variable): Input of the weight matrix multiplication.
@@ -54,11 +57,29 @@ class NegativeSampling(link.Link):
             reduce (str): Reduction option. Its value must be either
                 ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is
                 raised.
+            return_samples (bool):
+                If ``True``, the sample array is also returned.
+                The sample array is a
+                :math:`(\\text{batch_size}, \\text{sample_size} + 1)`-array of
+                integers whose first column is fixed to the ground truth labels
+                and the other columns are drawn from the
+                :class:`chainer.utils.WalkerAlias` sampler.
 
         Returns:
-            ~chainer.Variable: Loss value.
+            ~chainer.Variable or tuple:
+                If ``return_samples`` is ``False`` (default), loss value is
+                returned.
+
+                Otherwise, a tuple of the loss value and the sample array
+                is returned.
 
         """
-        return negative_sampling.negative_sampling(
+        return_samples = False
+        if kwargs:
+            return_samples, = argument.parse_kwargs(
+                kwargs, ('return_samples', return_samples))
+
+        ret = negative_sampling.negative_sampling(
             x, t, self.W, self.sampler.sample, self.sample_size,
-            reduce=reduce)
+            reduce=reduce, return_samples=return_samples)
+        return ret

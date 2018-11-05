@@ -127,7 +127,7 @@ The [train_mnist.py example](examples/mnist/train_mnist.py) now runs with Chaine
 
 ## FAQ
 
-### Can I use ChianerX without Chainer?
+### Can I use ChainerX without Chainer?
 
 Yes, it is possible. See the code samples below.
 
