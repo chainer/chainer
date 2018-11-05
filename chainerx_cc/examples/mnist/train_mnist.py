@@ -53,8 +53,7 @@ def new_linear_params(n_in, n_out):
         np.float32)  # TODO(beam2d): not supported in chx
     W /= np.sqrt(n_in)  # TODO(beam2d): not supported in chx
     W = chx.array(W)
-    # TODO(beam2d): make zeros accept int as shape
-    b = chx.zeros((n_out,), dtype=chx.float32)
+    b = chx.zeros(n_out, dtype=chx.float32)
     return W, b
 
 
