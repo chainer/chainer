@@ -134,6 +134,7 @@ class FunctionNode(object):
 
     inputs = None
     outputs = None
+    _output_count = None
     rank = 0
     stack = None
     _input_indexes_to_retain = None
@@ -183,11 +184,17 @@ class FunctionNode(object):
         instead.
 
         """
-        if self._retained_output_data is None:
-            raise RuntimeError('retained output data is gone')
-        out_data = [None] * len(self.outputs)
+        if self._is_chainerx:
+            retained_output_data = [
+                var.array for var in self._chainerx_retained_outputs]
+        else:
+            if self._retained_output_data is None:
+                raise RuntimeError('retained output data is gone')
+            retained_output_data = self._retained_output_data
+
+        out_data = [None] * self._output_count
         for index, data in six.moves.zip(self._output_indexes_to_retain,
-                                         self._retained_output_data):
+                                         retained_output_data):
             out_data[index] = data
         return tuple(out_data)
 
@@ -344,6 +351,8 @@ Use apply() method instead.\
                 msg = ('NaN is detected on forward computation of '
                        '{}'.format(self.label))
                 raise RuntimeError(msg)
+
+        self._output_count = len(outputs)
 
         if self._is_chainerx:
             # TODO(hvy): Take configuration.config.enable_backprop into
