@@ -80,7 +80,7 @@ TEST(MemoryPoolTest, MallocThrowOutOfMemory) {
 TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
     MemoryPool memory_pool{0, std::make_unique<OnceOutOfMemoryAllocator>()};
     EXPECT_NO_THROW(memory_pool.Malloc(1));
-    auto allocator = reinterpret_cast<const OnceOutOfMemoryAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
+    auto allocator = static_cast<const OnceOutOfMemoryAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
     EXPECT_EQ(allocator->malloc_called(), 2);
 }
 
