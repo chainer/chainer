@@ -327,6 +327,9 @@ class Function(object):
         retained are set to ``None``.
 
         """
+        if self.node._is_chainerx:
+            chx_output_data = self.node.output_data
+            return [_from_chainerx(a) for a in chx_output_data]
         return self.node.output_data
 
     @property

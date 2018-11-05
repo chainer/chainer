@@ -59,6 +59,9 @@ class TestFunctionBackprop(unittest.TestCase):
                 y2 = x1 * x3 + x2.astype(x1.dtype)
                 y3 = x1 + x3
                 self.retain_inputs((0, 2))
+                # TODO(niboshi): Include 0 in retain_outputs to test integer
+                # array retention
+                self.retain_outputs((1,))
                 return y1, y2, y3
 
             def backward(self, inputs, grad_outputs):
@@ -66,6 +69,13 @@ class TestFunctionBackprop(unittest.TestCase):
                 assert x2 is None  # not retained
                 gy1, gy2, gy3 = grad_outputs
                 assert gy1 is None  # y1 is int32
+
+                assert len(self.output_data) == 3
+                assert self.output_data[0] is None
+                assert self.output_data[2] is None
+                _, y2, _ = self.output_data
+                assert isinstance(y2, backward_xp.ndarray)
+
                 # y3 is disconnected
                 # TODO(niboshi): Expression after "or" is workaround for
                 # chainerx. ChainerX backward should return None for
@@ -116,6 +126,9 @@ class TestFunctionBackprop(unittest.TestCase):
                 y2 = x1 * x3 + x2.astype(x1.dtype)
                 y3 = x1 + x3
                 self.retain_inputs((0, 2))
+                # TODO(niboshi): Include 0 in retain_outputs to test integer
+                # array retention
+                self.retain_outputs((1,))
                 return y1, y2, y3
 
             def backward(self, input_indexes, grad_outputs):
@@ -123,6 +136,10 @@ class TestFunctionBackprop(unittest.TestCase):
                 x1, x3 = self.get_retained_inputs()
                 gy1, gy2, gy3 = grad_outputs
                 assert gy1 is None  # y1 is int32
+
+                y2, = self.get_retained_outputs()
+                assert isinstance(y2.array, backward_xp.ndarray)
+
                 # y3 is disconnected
                 # TODO(niboshi): Expression after "or" is workaround for
                 # chainerx. ChainerX backward should return None for
