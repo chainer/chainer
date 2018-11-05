@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -27,14 +27,14 @@ class Where(function_node.FunctionNode):
 
     def forward(self, inputs):
         # may broadcast
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, y = inputs
         condition = self.condition
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
         condition = self.condition
-        xp = cuda.get_array_module(condition)
+        xp = backend.get_array_module(condition)
         g, = grad_outputs
         zero = xp.zeros((), dtype=g.dtype)
         ret = []
@@ -79,7 +79,7 @@ def where(condition, x, y):
                [False,  True]])
         >>> x = np.array([[1, 2], [3, 4]], np.float32)
         >>> y = np.zeros((2, 2), np.float32)
-        >>> F.where(cond, x, y).data
+        >>> F.where(cond, x, y).array
         array([[1., 0.],
                [0., 4.]], dtype=float32)
 

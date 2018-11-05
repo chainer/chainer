@@ -16,7 +16,7 @@ class Softplus(function_node.FunctionNode):
         self.beta_inv = float(1.0 / beta)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -111,7 +111,7 @@ def softplus(x, beta=1.0):
         >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
-        >>> F.softplus(x, beta=1.0).data
+        >>> F.softplus(x, beta=1.0).array
         array([0.126928 , 0.6931472, 2.126928 ], dtype=float32)
 
     """

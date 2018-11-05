@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -20,7 +20,7 @@ class Contrastive(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1', 'y'))
+        type_check._argname(in_types, ('x0', 'x1', 'y'))
 
         x0_type, x1_type, y_type = in_types
         type_check.expect(
@@ -36,7 +36,7 @@ class Contrastive(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         self.retain_inputs((0, 1, 2))
         x0, x1, y = inputs
 
@@ -53,7 +53,7 @@ class Contrastive(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x0, x1, y = self.get_retained_inputs()
         gy, = grad_outputs
-        xp = cuda.get_array_module(gy.data)
+        xp = backend.get_array_module(gy.data)
 
         # Recompute intermediate variables as in forward.
         diff = x0 - x1
@@ -155,7 +155,7 @@ astype(np.float32)
         >>> z = F.contrastive(x0, x1, y, reduce='no')
         >>> z.shape
         (2,)
-        >>> z.data
+        >>> z.array
         array([0.625, 0.   ], dtype=float32)
 
     """

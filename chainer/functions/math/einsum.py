@@ -1,5 +1,6 @@
 import warnings
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -73,7 +74,7 @@ class EinSum(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         for i, in_type in enumerate(in_types):
-            type_check.argname((in_type,), ('x{}'.format(i),))
+            type_check._argname((in_type,), ('x{}'.format(i),))
             type_check.expect(in_type.dtype.kind == 'f')
 
         in_subs = self.in_subs.split(',')
@@ -93,7 +94,7 @@ class EinSum(function_node.FunctionNode):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
         y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs,
                     check_undefined_ellipsis_sum=True)
@@ -133,7 +134,7 @@ class DiagEinSum(EinSum):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
 
         out_set = set(self.out_sub)

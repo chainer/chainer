@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -8,7 +8,7 @@ class SquaredDifference(function_node.FunctionNode):
     """Squared difference of input variables."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -17,7 +17,7 @@ class SquaredDifference(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x1, x2 = inputs
         difference = x1 - x2
         y = xp.square(difference)

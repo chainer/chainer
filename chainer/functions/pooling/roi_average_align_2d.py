@@ -15,18 +15,17 @@
 # \roi align operator described in Mask RCNN
 # -----------------------------------------------------------------------------
 
-import collections
-
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, chainer.utils.collections_abc.Iterable):
         return x
     return x, x
 
@@ -548,9 +547,10 @@ def roi_average_align_2d(
 ):
     """Spatial Region of Interest (ROI) average align function.
 
-    This function acts similarly to :class:`~functions.ROIPooling2D`, but
-    it computes average of input spatial patch with bilinear interpolation
-    for each channel with the region of interest.
+    This function acts similarly to
+    :func:`~chainer.functions.roi_average_pooling_2d`, but it computes average
+    of input spatial patch with bilinear interpolation for each channel with
+    the region of interest.
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be

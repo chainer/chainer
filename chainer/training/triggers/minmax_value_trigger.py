@@ -60,6 +60,11 @@ class BestValueTrigger(object):
     def _init_summary(self):
         self._summary = reporter.DictSummary()
 
+    def serialize(self, serializer):
+        self._interval_trigger.serialize(serializer['interval_trigger'])
+        self._summary.serialize(serializer['summary'])
+        self._best_value = serializer('best_value', self._best_value)
+
 
 class MaxValueTrigger(BestValueTrigger):
 

@@ -11,6 +11,7 @@ import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions as F
@@ -219,7 +220,8 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
 
-    def check_grad(self, x, xp):
+    def check_grad(self, x):
+        xp = backend.get_array_module(x)
         g = xp.array(x)
         v = chainer.Variable(x)
         gv = chainer.Variable(g)
@@ -227,6 +229,13 @@ class TestVariable(unittest.TestCase):
 
         assert v.grad is g
         assert v.grad_var is gv
+
+    def test_grad_cpu(self):
+        self.check_grad(self.x)
+
+    @attr.gpu
+    def test_grad_gpu(self):
+        self.check_grad(cuda.to_gpu(self.x))
 
     def check_len(self, gpu):
         x = self.x
@@ -544,7 +553,7 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        xp = cuda.get_array_module(a_data)
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -567,7 +576,7 @@ class TestVariable(unittest.TestCase):
         self.check_cleargrad(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
-        xp = cuda.get_array_module(a_data)
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
@@ -622,7 +631,7 @@ class TestVariable(unittest.TestCase):
         self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
     def check_copydata(self, data1, data2, expect):
-        xp = cuda.get_array_module(data1)
+        xp = backend.get_array_module(data1)
         v = chainer.Variable(data1)
         w = chainer.Variable(data2)
         v.copydata(w)
@@ -678,7 +687,7 @@ class TestVariable(unittest.TestCase):
 
     def check_addgrad(self, src, dst, expect,
                       clear_src_grad=False, clear_dst_grad=False):
-        xp = cuda.get_array_module(dst)
+        xp = backend.get_array_module(dst)
         a = chainer.Variable(src)
         a.grad = src
         b = chainer.Variable(dst)
@@ -1310,7 +1319,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.x = np.array([1], np.float32)
 
     def check_type_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1334,7 +1343,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.check_type_mismatch(cuda.to_gpu(self.x))
 
     def check_dtype_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1358,7 +1367,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.check_dtype_mismatch(cuda.to_gpu(self.x))
 
     def check_shape_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1392,7 +1401,7 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         chainer.set_debug(False)
 
     def check_traceback(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1554,7 +1563,7 @@ class UnnamedVariableToStringTestBase(object):
     {'x_shape': (2, 2,), 'dtype': np.float64,
      'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
      'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
+    {'x_shape': (3,), 'dtype': np.float32,
      'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
 )
 @testing.with_requires('numpy<1.14')
@@ -1576,7 +1585,7 @@ class TestUnnamedVariableToStringLegacy(
     {'x_shape': (2, 2,), 'dtype': np.float64,
      'repr': 'variable([[0., 1.],\n          [2., 3.]])',
      'str': 'variable([[0. 1.]\n          [2. 3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
+    {'x_shape': (3,), 'dtype': np.float32,
      'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
 )
 @testing.with_requires('numpy>=1.14')
@@ -1862,7 +1871,8 @@ class TestLossScale(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(0,), (1,), (3, 2), (2, 3, 4, 3)],
+    # ideep2.0.0 not support shape 0
+    'shape': [(1,), (3, 2), (2, 3, 4, 3)],
     'dtype': [
         np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
         np.uint64, np.float16, np.float32, np.float64],

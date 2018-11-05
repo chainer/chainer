@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -9,7 +10,7 @@ class Minimum(function_node.FunctionNode):
     """Element-wise minimum of input variables."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -21,7 +22,7 @@ class Minimum(function_node.FunctionNode):
         # may broadcast
         self.retain_inputs((0, 1))
         x1, x2 = inputs
-        xp = cuda.get_array_module(x1, x2)
+        xp = backend.get_array_module(x1, x2)
         return utils.force_array(xp.minimum(x1, x2)),
 
     def backward(self, indexes, grad_outputs):

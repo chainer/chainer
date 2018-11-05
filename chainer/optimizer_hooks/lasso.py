@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer import cuda
 
 
@@ -38,7 +39,7 @@ class Lasso(object):
         p, g = param.data, param.grad
         if p is None or g is None:
             return
-        xp = cuda.get_array_module(p)
+        xp = backend.get_array_module(p)
         with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
             if int(dev) == -1:

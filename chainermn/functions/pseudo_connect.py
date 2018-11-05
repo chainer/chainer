@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.utils
 
 
@@ -14,7 +14,7 @@ class PseudoConnect(chainer.Function):
     def backward(self, inputs, grad_outputs):
         delegate_variable = inputs[0]
         # actual_variables = inputs[1:]
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         # delegate_variable do not need backward gradients, instead sending
         # back dummy grads in order to take consistency of shapes of grads.
@@ -50,7 +50,7 @@ def pseudo_connect(delegate_variable, *actual_variables):
 
         This model receives inputs from rank=3 process and sends its outputs
         to rank=1 process. The entire graph can be seen as one connected
-        component ``ConnectedGraphSub``. Please refer the document of
+        component ``ConnectedGraphSub``. Please refer the documentation of
         ``MultiNodeChainList`` for detail.
 
         On the other hand, see the next example::

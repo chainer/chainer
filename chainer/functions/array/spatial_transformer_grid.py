@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
@@ -18,7 +19,7 @@ class SpatialTransformerGrid(function.Function):
         self.output_shape = output_shape
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('theta',))
+        type_check._argname(in_types, ('theta',))
 
         theta_type = in_types[0]
         type_check.expect(
@@ -58,7 +59,7 @@ class SpatialTransformerGrid(function.Function):
         theta, = inputs
         H, W = self.output_shape
         B, _, _ = theta.shape
-        xp = cuda.get_array_module(theta)
+        xp = backend.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
             xp.linspace(-1, 1, H, dtype=theta.dtype),
@@ -94,7 +95,7 @@ class SpatialTransformerGrid(function.Function):
         ggrid, = grad_outputs
         H, W = self.output_shape
         B, _, _ = theta.shape
-        xp = cuda.get_array_module(theta)
+        xp = backend.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
             xp.linspace(-1, 1, H, dtype=theta.dtype),

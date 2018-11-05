@@ -13,7 +13,7 @@ class ELU(function_node.FunctionNode):
         self.alpha = float(alpha)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(x_type.dtype.kind == 'f')
@@ -48,7 +48,7 @@ class ELUGrad(function_node.FunctionNode):
         self.alpha = alpha
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -108,7 +108,7 @@ def elu(x, alpha=1.0):
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)
         >>> y = F.elu(x, alpha=1.)
-        >>> y.data
+        >>> y.array
         array([[-0.63212055,  0.        ],
                [ 2.        , -0.95021296]], dtype=float32)
 

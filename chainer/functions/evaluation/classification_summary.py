@@ -3,15 +3,17 @@ from __future__ import division
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
 
 def _fbeta_score(precision, recall, beta):
     beta_square = beta * beta
-    return ((1 + beta_square) * precision * recall /
-            (beta_square * precision + recall)).astype(precision.dtype)
+    return (
+        (1 + beta_square) * precision * recall
+        / (beta_square * precision + recall)
+    ).astype(precision.dtype, copy=False)
 
 
 class ClassificationSummary(function.Function):
@@ -22,7 +24,7 @@ class ClassificationSummary(function.Function):
         self.ignore_label = ignore_label
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -40,7 +42,7 @@ class ClassificationSummary(function.Function):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # numpy.bincount requires int32 on Windows
         t = t.astype('i', copy=False)

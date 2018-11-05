@@ -2,6 +2,7 @@ import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -44,7 +45,7 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         a = a.swapaxes(-1, -2)
     if transb and b.ndim != 1:
         b = b.swapaxes(-1, -2)
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
 
     if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)
@@ -77,7 +78,7 @@ class MatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
@@ -192,7 +193,7 @@ def matmul(a, b, transa=False, transb=False):
 
         >>> a = np.array([[1, 0], [0, 1]], np.float32)
         >>> b = np.array([[4, 1], [2, 2]], np.float32)
-        >>> F.matmul(a, b).data
+        >>> F.matmul(a, b).array
         array([[4., 1.],
                [2., 2.]], dtype=float32)
 
@@ -220,7 +221,7 @@ class BatchMatMul(function_node.FunctionNode):
         self.transb = transb
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(

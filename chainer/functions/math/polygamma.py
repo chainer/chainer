@@ -14,7 +14,7 @@ class PolyGamma(function_node.FunctionNode):
         return 'polygamma'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('n', 'x'))
+        type_check._argname(in_types, ('n', 'x'))
         n_type, x_type = in_types
 
         type_check.expect(
@@ -38,7 +38,6 @@ class PolyGamma(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         n, x = inputs
         self.retain_inputs((0, 1))
-        print(n, x, type(n), type(x))
         return utils.force_array(
             cuda.cupyx.scipy.special.polygamma(n, x), dtype=x.dtype),
 

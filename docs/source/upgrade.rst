@@ -7,8 +7,70 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v6
+==========
+
+CuPy Needs To Be Manually Updated
+---------------------------------
+
+Prior to Chainer v6, CuPy is automatically updated to the appropriate version when updating Chainer (i.e., ``pip install -U chainer`` updates CuPy package).
+In Chainer v6, Chainer does not perform this automatic update.
+You need to manually update CuPy package when updating Chainer package.
+
+This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
+See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
+
+CuPy v6
+-------
+
+Chainer v6 requires CuPy v6 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v6 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v6>`_ for details.
+
+
 Chainer v5
 ==========
+
+ChainerMN Became Part of Chainer
+--------------------------------
+
+ChainerMN, which enables multi-node distributed deep learning using Chainer, has been merged to Chainer v5.
+
+Prior to Chainer v4, ChainerMN was provided as a separate ``chainermn`` package.
+In Chainer v5, ChainerMN now became a part of Chainer; ChainerMN will be installed just by installing ``chainer`` package.
+If you are using ``chainermn`` package, make sure to remove it by ``pip uninstall chainermn`` before upgrading to Chainer v5 or later.
+
+For documentation of ChainerMN, see :doc:`chainermn/index`.
+
+FunctionNode Classes are Hidden from ``chainer.functions``
+----------------------------------------------------------
+
+Prior to Chainer v5, :class:`~chainer.FunctionNode` classes (e.g., ``chainer.functions.MaxPooling2D``) are exposed under :mod:`chainer.functions`.
+In Chainer v5, these classes are hidden from :mod:`chainer.functions`.
+Use the equivalent wrapper functions listed in :doc:`reference/functions` (e.g., :func:`chainer.functions.max_pooling_2d`) instead.
+
+Some wrapper functions now provide options to access internal states to avoid directly using :class:`~chainer.FunctionNode` classes.
+
+* :func:`chainer.functions.max_pooling_2d`: ``return_indices``
+* :func:`chainer.functions.max_pooling_nd`: ``return_indices``
+* :func:`chainer.functions.dropout`: ``mask``, ``return_mask``
+* :func:`chainer.functions.gaussian`: ``eps``, ``return_eps``
+
+For example, suppose your existing code needs to access ``MaxPooling2D.indexes`` to later perform upsampling::
+
+    p = F.MaxPooling2D(2, 2)
+    h = p.apply((x,))[0]
+    ...
+    y = F.upsampling_2d(h, p.indexes, ksize=2)
+
+The above code may raise this error in Chainer v5::
+
+    AttributeError: module 'chainer.functions' has no attribute 'MaxPooling2D'
+
+You can rewrite the above code using ``return_indices`` option of :func:`chainer.functions.max_pooling_2d`::
+
+    h, indices = F.max_pooling_2d(x, 2, 2, return_indices=True)
+    ...
+    y = F.upsampling_2d(h, indices, ksize=2)
 
 Persistent Values are Copied in ``Link.copyparams``
 ---------------------------------------------------
@@ -21,12 +83,6 @@ In Chainer v5, in addition to parameters, persistent values (see :doc:`guides/se
 This is especially beneficial when copying parameters of :class:`~chainer.links.BatchNormalization`, as it uses persistent values to record running statistics.
 
 You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
-
-FuncionNodes as Implementation Details
---------------------------------------
-
-When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
-These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
 
 Updaters Automatically Call ``Optimizer.new_epoch``
 ---------------------------------------------------
@@ -42,6 +98,35 @@ If you have been calling :meth:`~chainer.Optimizer.new_epoch` method manually wh
 * Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
 
 If you implement your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
+
+Extending the Backend Namespace
+-------------------------------
+
+In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
+``get_device_from_array`` Returns Actual Device for Empty Arrays
+----------------------------------------------------------------
+
+Prior to Chainer v5, :func:`chainer.backends.cuda.get_device_from_array` returned :class:`chainer.backends.cuda.DummyDeviceType` if the array is empty.
+In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device` object::
+
+    >>> x = cupy.array([])
+    >>> chainer.backends.cuda.get_device_from_array(x)
+    <CUDA Device 0>
+
+Update of Docker Images
+-----------------------
+
+Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 9.2 and cuDNN 7.
+
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
+CuPy v5
+-------
+
+Chainer v5 requires CuPy v5 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v5 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v5>`_ for details.
 
 
 Chainer v4

@@ -103,6 +103,7 @@ from chainer.functions.loss.crf1d import crf1d  # NOQA
 from chainer.functions.loss.cross_covariance import cross_covariance  # NOQA
 from chainer.functions.loss.ctc import connectionist_temporal_classification  # NOQA
 from chainer.functions.loss.decov import decov  # NOQA
+from chainer.functions.loss.discriminative_loss import discriminative_margin_based_clustering_loss  # NOQA
 from chainer.functions.loss.hinge import hinge  # NOQA
 from chainer.functions.loss.huber_loss import huber_loss  # NOQA
 from chainer.functions.loss.mean_absolute_error import mean_absolute_error  # NOQA
@@ -210,7 +211,9 @@ from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
 # TODO(kmaehashi) this alias should be removed in
 # https://github.com/chainer/chainer/pull/5198
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
+from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_max_align_2d import roi_max_align_2d  # NOQA
+from chainer.functions.pooling.roi_max_pooling_2d import roi_max_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA

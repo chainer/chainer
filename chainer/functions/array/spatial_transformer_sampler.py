@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
@@ -62,7 +63,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _forward(self, inputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
 
@@ -96,10 +97,10 @@ class SpatialTransformerSampler(function.Function):
         w2 = (u_clipped - u0) * (v1 - v_clipped)
         w3 = (u1 - u_clipped) * (v_clipped - v0)
         w4 = (u_clipped - u0) * (v_clipped - v0)
-        w1 = w1.astype(x_pad.dtype)
-        w2 = w2.astype(x_pad.dtype)
-        w3 = w3.astype(x_pad.dtype)
-        w4 = w4.astype(x_pad.dtype)
+        w1 = w1.astype(x_pad.dtype, copy=False)
+        w2 = w2.astype(x_pad.dtype, copy=False)
+        w3 = w3.astype(x_pad.dtype, copy=False)
+        w4 = w4.astype(x_pad.dtype, copy=False)
 
         x_indexed_1 = xp.concatenate([xp.expand_dims(
             x_pad[b, :, v0[b], u0[b]], axis=0) for b in range(B)], axis=0)
@@ -154,7 +155,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _backward(self, inputs, grad_outputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         gy, = grad_outputs
 
         B, C, H, W = x.shape
@@ -189,10 +190,10 @@ class SpatialTransformerSampler(function.Function):
         wu1 = u1 - u_clipped
         wv0 = v_clipped - v0
         wv1 = v1 - v_clipped
-        wu0 = wu0.astype(gy.dtype)
-        wu1 = wu1.astype(gy.dtype)
-        wv0 = wv0.astype(gy.dtype)
-        wv1 = wv1.astype(gy.dtype)
+        wu0 = wu0.astype(gy.dtype, copy=False)
+        wu1 = wu1.astype(gy.dtype, copy=False)
+        wv0 = wv0.astype(gy.dtype, copy=False)
+        wv1 = wv1.astype(gy.dtype, copy=False)
 
         # --- gu, gv
         x_indexed_1 = xp.concatenate([xp.expand_dims(

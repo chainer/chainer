@@ -7,6 +7,7 @@ import warnings
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
@@ -179,7 +180,7 @@ def report(values, observer=None):
     """Reports observed values with the current reporter object.
 
     Any reporter object can be set current by the ``with`` statement. This
-    function calls the :meth:`Report.report` method of the current reporter.
+    function calls the :meth:`Reporter.report` method of the current reporter.
     If no reporter object is current, this function does nothing.
 
     .. admonition:: Example
@@ -198,11 +199,14 @@ def report(values, observer=None):
                   # This chain just computes the mean absolute and squared
                   # errors between the prediction and y.
                   pred = self.predictor(x)
-                  abs_error = F.sum(F.abs(pred - y)) / len(x)
+                  abs_error = F.sum(abs(pred - y)) / len(x)
                   loss = F.mean_squared_error(pred, y)
 
                   # Report the mean absolute and squared errors.
-                  report({'abs_error': abs_error, 'squared_error': loss}, self)
+                  chainer.report({
+                      'abs_error': abs_error,
+                      'squared_error': loss,
+                  }, self)
 
                   return loss
 
@@ -211,7 +215,7 @@ def report(values, observer=None):
        :class:`~chainer.training.updaters.StandardUpdater`),
        these reported values are
        named ``'main/abs_error'`` and ``'main/squared_error'``. If these values
-       are reported inside the :class:`~chainer.training.extension.Evaluator`
+       are reported inside the :class:`~chainer.training.extensions.Evaluator`
        extension, ``'validation/'`` is added at the head of the link name, thus
        the item names are changed to ``'validation/main/abs_error'`` and
        ``'validation/main/squared_error'`` (``'validation'`` is the default
@@ -260,8 +264,8 @@ class Summary(object):
     """
 
     def __init__(self):
-        self._x = 0
-        self._x2 = 0
+        self._x = 0.0
+        self._x2 = 0.0
         self._n = 0
 
     def add(self, value, weight=1):
@@ -294,7 +298,7 @@ class Summary(object):
 
         """
         x, n = self._x, self._n
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         with _get_device(x):
             mean = x / n
             var = self._x2 / n - mean * mean

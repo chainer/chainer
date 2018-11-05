@@ -111,13 +111,17 @@ Install Chainer Backend for Intel Architecture
 The following environments are recommended by `Chainer Backend for Intel Architecture <https://github.com/intel/ideep>`_.
 
 * Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
-* Python 2.7.5+, 3.5.2+, and 3.6.0+
+* Python 2.7.6+, 3.5.2+, and 3.6.0+
 
 On recommended systems, you can install Chainer Backend for Intel Architecture wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install 'ideep4py<2'
+    $ pip install 'ideep4py<2.1'
+
+.. note::
+
+    ``ideep4py`` v1.0.x is incompatible with v2.0.x, and is not supported in Chainer v5.0 or later.
 
 Enable Chainer Backend for Intel Architecture Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

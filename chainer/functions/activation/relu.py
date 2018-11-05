@@ -25,7 +25,7 @@ class ReLU(function_node.FunctionNode):
     _use_ideep = False
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -168,7 +168,7 @@ def relu(x):
         >>> np.any(x < 0)
         True
         >>> y = F.relu(x)
-        >>> np.any(y.data < 0)
+        >>> np.any(y.array < 0)
         False
         >>> y.shape
         (3, 2)

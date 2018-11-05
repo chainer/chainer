@@ -5,16 +5,16 @@ Installation Guide
 
 Requirements
 ------------
-In addition to Chainer, ChainerMN depends on the following software libraries:
+
+ChainerMN depends on the following software libraries:
 CUDA-Aware MPI, NVIDIA NCCL, and a few Python packages including CuPy and MPI4py.
 
+.. note::
 
-Chainer
-~~~~~~~
+    In Chainer v5, ChainerMN became a part of Chainer package.
+    Installing Chainer (``pip install chainer``) automatically makes ChainerMN available.
 
-ChainerMN adds distributed training features to Chainer;
-thus it naturally requires Chainer.
-Please refer to `Chainer's official instructions <http://docs.chainer.org/en/latest/install.html>`__ to install.
+    Before upgrading from Chainer v4 to v5 or later, make sure to remove existing ``chainermn`` package (``pip uninstall chainermn``).
 
 .. _mpi-install:
 
@@ -43,9 +43,16 @@ MVAPICH (for details, see `Mvapich's official instructions <http://mvapich.cse.o
   $ export MV2_USE_CUDA=1  # Should be set all the time when using ChainerMN
 
 .. _nccl-install:
-  
+
 NCCL
 ~~~~
+
+.. note::
+
+    If you are installing CuPy using wheels (i.e., ``pip install cupy-cudaXX`` where ``XX`` is the CUDA version), you don't have to install NCCL manually.
+    The latest NCCL 2.x library is bundled with CuPy wheels.
+
+    See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/stable/install.html>`__ for the detailed steps to install CuPy.
 
 To enable efficient intra- and inter-node GPU-to-GPU communication,
 we use `NVIDIA Collective Communications Library (NCCL) <https://developer.nvidia.com/nccl>`_.
@@ -69,8 +76,8 @@ only exception is when you run ChainerMN on CPU-only environments. See
      export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 
    If you change the version of NCCL installed, you have to reinstall CuPy. Because, current ChainerMN applies CuPy to use NCCL.
-   See `CuPy official instructions <https://docs-cupy.chainer.org/en/stable/install.html#id13>`__ for reinstalltion.
-   
+   See `CuPy official instructions <https://docs-cupy.chainer.org/en/stable/install.html#reinstall-cupy>`__ for reinstalltion.
+
 .. _mpi4py-install:
 
 
@@ -94,7 +101,7 @@ CuPy
 ~~~~
 
 Chainer and ChainerMN rely on CuPy to use GPUs. 
-Please refer to `Chainer's official instructions <https://docs-cupy.chainer.org/en/stable/install.html>`__ to install.
+Please refer to `CuPy Installation Guide <https://docs-cupy.chainer.org/en/stable/install.html>`__ for the detailed steps to install CuPy.
 CuPy requires NCCL to be enabled.
 See :ref:`check-nccl`, if you want to check whether NCCL is enabled in CuPy.
 
@@ -103,59 +110,27 @@ See :ref:`non-gpu-env` for more details.
 
 
 Tested Environments
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 We tested ChainerMN on all the following environments.
 
 * OS
   
   * Ubuntu 14.04 LTS 64bit
+  * Ubuntu 16.04 LTS 64bit
 
 * Python 2.7.13 3.5.1 3.6.1
-* Chainer 3.5.0 4.0.0 4.1.0
-* CuPy 2.5.0 4.0.0 4.1.0
 * MPI
 
-  * openmpi 1.6.5 1.10.3 2.1.1
+  * openmpi 1.10.7 2.1.2
 
 * MPI4py 3.0.0
-* NCCL 1.3.4 2.0.4 2.1.15
-  
-.. _chainermn-install:
-
-Installation
-------------
-
-Install via pip
-~~~~~~~~~~~~~~~
-
-We recommend to install ChainerMN via :command:`pip`::
-
-  $ pip install chainermn
-
-NOTE: If you need :command:`sudo` to use pip, you should be careful
-about environment variables.  The :command:`sudo` command DOES NOT
-inherit the environment, and thus you need to specify the variables
-explicitly. ::
-
-  $ sudo CPATH=${CPATH} LIBRARY_PATH=${LIBRARY_PATH} pip install chainermn
-
-
-.. _install-from-source:
-  
-Install from Source
-~~~~~~~~~~~~~~~~~~~
-
-You can use ``setup.py`` to install ChainerMN from source::
-
-  $ tar zxf chainermn-x.y.z.tar.gz
-  $ cd chainermn-x.y.z
-  $ python setup.py install
+* NCCL 2.2.13
 
 .. _non-gpu-env:
-  
-Non-GPU environments
-~~~~~~~~~~~~~~~~~~~~
+
+Installation on Non-GPU Environments
+------------------------------------
 
 Users who want to try ChainerMN in CPU-only environment may skip installation of CuPy.
 Non-GPU set up may not be performant as GPU-enabled set up,
@@ -164,9 +139,3 @@ in non-GPU environment such as laptops or CI jobs.
 
 In this case, the MPI does not have to be CUDA-aware.
 Only ``naive`` communicator works with the CPU mode.
-
-.. note::
-
-   Current version of ChainerMN does not need ``--no-nccl`` flag 
-   for CPU-only environment at installation any more. 
-   It would be just ignored.

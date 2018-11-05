@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -39,7 +40,7 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
     else:
         B = dn
 
-    xp = cuda.get_array_module(A_data, B)
+    xp = backend.get_array_module(A_data, B)
     if xp is numpy:
         C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
@@ -184,7 +185,7 @@ class CooMatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('sp', 'dn'))
+        type_check._argname(in_types, ('sp', 'dn'))
         sp_type, dn_type = in_types
         # sp_type.shape: ((nb,) ldnz)
         # dn_type.shape: ((nb,) _k, _n) when transb is False
@@ -257,7 +258,7 @@ def _coo_matmul_gradsp(a, b, c_row, c_col, c_shape, transa, transb, transc,
         C_row = c_row
         C_col = c_col
 
-    xp = cuda.get_array_module(A, B)
+    xp = backend.get_array_module(A, B)
     if xp is numpy:
         return _coo_matmul_gradsp_cpu(A, B, C_row, C_col, dtype)
     else:

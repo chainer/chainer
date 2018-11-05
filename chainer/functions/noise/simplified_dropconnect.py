@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -35,7 +35,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-        type_check.argname((x_type, w_type), ('x', 'W'))
+        type_check._argname((x_type, w_type), ('x', 'W'))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -46,7 +46,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
-            type_check.argname((b_type,), ('b',))
+            type_check._argname((b_type,), ('b',))
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
@@ -65,7 +65,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         if self.mask is None:
             if self.use_batchwise_mask:

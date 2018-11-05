@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -23,7 +24,7 @@ def _check_indices(indices):
 
 
 def _inverse_indices(indices):
-    xp = cuda.get_array_module(indices)
+    xp = backend.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
         r[indices] = numpy.arange(len(indices))
@@ -46,7 +47,7 @@ class Permutate(function_node.FunctionNode):
         self.inv = inv
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         if self.axis < 0:
             type_check.expect(x_type.ndim >= -self.axis)
@@ -109,18 +110,18 @@ def permutate(x, indices, axis=0, inv=False):
                [4., 5.]], dtype=float32)
         >>> indices = np.array([2, 0, 1], np.int32)
         >>> y = F.permutate(x, indices)
-        >>> y.data
+        >>> y.array
         array([[4., 5.],
                [0., 1.],
                [2., 3.]], dtype=float32)
         >>> y = F.permutate(x, indices, inv=True)
-        >>> y.data
+        >>> y.array
         array([[2., 3.],
                [4., 5.],
                [0., 1.]], dtype=float32)
         >>> indices = np.array([1, 0], np.int32)
         >>> y = F.permutate(x, indices, axis=1)
-        >>> y.data
+        >>> y.array
         array([[1., 0.],
                [3., 2.],
                [5., 4.]], dtype=float32)

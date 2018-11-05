@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -11,7 +11,7 @@ class FFT(function_node.FunctionNode):
         self._method = method
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('real', 'imag'))
+        type_check._argname(in_types, ('real', 'imag'))
         r_type, i_type = in_types
         type_check.expect(
             r_type.dtype.kind == 'f',
@@ -21,17 +21,17 @@ class FFT(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         real, imag = inputs
         x = real + imag * 1j
         y = getattr(xp.fft, self._method)(x)
-        real_y = y.real.astype(real.dtype)
-        imag_y = y.imag.astype(imag.dtype)
+        real_y = y.real.astype(real.dtype, copy=False)
+        imag_y = y.imag.astype(imag.dtype, copy=False)
         return real_y, imag_y
 
     def backward(self, inputs, grads):
         gr, gi = grads
-        xp = cuda.get_array_module(*grads)
+        xp = backend.get_array_module(*grads)
         if gr is None:
             gr = xp.zeros_like(gi.data)
         if gi is None:

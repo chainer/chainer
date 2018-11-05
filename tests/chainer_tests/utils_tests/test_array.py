@@ -7,6 +7,26 @@ from chainer.utils import array
 
 
 @testing.parameterize(
+    {'shape': ()},
+    {'shape': (2, 3)},
+    {'shape': (1,)},
+    {'shape': (0,)},
+    {'shape': (5, 6, 7)},
+    {'shape': (0, 3)},
+    {'shape': (2, 0)},
+    {'shape': (5, 0, 7)},
+)
+class TestSizeOfShape(unittest.TestCase):
+
+    def test_size_of_shape(self):
+        arr = numpy.empty(self.shape)
+        size = array.size_of_shape(arr.shape)
+        size_expect = arr.size
+        assert type(size) == type(size_expect)
+        assert size == size_expect
+
+
+@testing.parameterize(
     {'in_shape': (), 'out_shape': ()},
     {'in_shape': (3,), 'out_shape': ()},
     {'in_shape': (3,), 'out_shape': (1,)},
