@@ -43,9 +43,9 @@ def _func_class(func):
 
 
 def _make_data_default(shape, dtype):
-    x = numpy.random.uniform(-1, 1, shape).astype(dtype)
-    gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-    ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
+    x = numpy.random.uniform(-1, 1, shape).astype(dtype, copy=False)
+    gy = numpy.random.uniform(-1, 1, shape).astype(dtype, copy=False)
+    ggx = numpy.random.uniform(-1, 1, shape).astype(dtype, copy=False)
     return x, gy, ggx
 
 
