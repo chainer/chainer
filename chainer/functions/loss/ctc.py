@@ -4,6 +4,7 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+from chainer import configuration
 from chainer import function
 from chainer import utils
 from chainer.utils import collections_abc
@@ -102,6 +103,28 @@ def _flip_path_probability(prob, input_length, path_length, xp):
         rotate_label][::-1, :, ::-1]
 
 
+def _check_type_forward(in_types):
+    type_check._argname(
+        in_types, ('input_length', 'label_length', 't', 'x'))
+    input_length_type, label_length_type, t_type, x_type = in_types
+    type_check.expect(
+        input_length_type.dtype == numpy.int32,
+        input_length_type.ndim == 1,
+        label_length_type.dtype == numpy.int32,
+        label_length_type.ndim == 1,
+        t_type.ndim == 2,
+        t_type.dtype == numpy.int32,
+        x_type.ndim == 3,
+        x_type.dtype == numpy.float32,
+    )
+    n_batch = x_type.shape[1]
+    type_check.expect(
+        t_type.shape[0] == n_batch,
+        input_length_type.shape[0] == n_batch,
+        label_length_type.shape[0] == n_batch,
+    )
+
+
 class ConnectionistTemporalClassification(function.Function):
 
     """The implementation of Connectionist Temporal Classfication loss functions.
@@ -124,25 +147,7 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check._argname(
-            in_types, ('input_length', 'label_length', 't', 'x'))
-        input_length_type, label_length_type, t_type, x_type = in_types
-        type_check.expect(
-            input_length_type.dtype == numpy.int32,
-            input_length_type.ndim == 1,
-            label_length_type.dtype == numpy.int32,
-            label_length_type.ndim == 1,
-            t_type.ndim == 2,
-            t_type.dtype == numpy.int32,
-            x_type.ndim == 3,
-            x_type.dtype == numpy.float32,
-        )
-        n_batch = x_type.shape[1]
-        type_check.expect(
-            t_type.shape[0] == n_batch,
-            input_length_type.shape[0] == n_batch,
-            label_length_type.shape[0] == n_batch,
-        )
+        _check_type_forward(in_types)
 
     def log_matrix(self, x, xp):
         if xp == numpy:
@@ -318,18 +323,21 @@ class ConnectionistTemporalClassification(function.Function):
         return None, None, None, self.yseq
 
 
-class CudnnCTC(ConnectionistTemporalClassification):
+class CudnnCTC(function.Function):
 
-    """The implementation of Connectionist Temporal Classfication loss functions with CuDNN.
+    """The implementation of Connectionist Temporal Classfication loss
+    functions with CuDNN.
+
+    Note that it occurs error when labelLengths is greater than 256.
     """
-    def __init__(self, blank_symbol, reduce='mean', deterministic=True):
-        super(CudnnCTC, self).__init__(blank_symbol, reduce) 
-        #TODO(sato): check whether `blank_symbol`==0
-        # warning, if blan_symbol not 
+    def __init__(self, deterministic=True):
         if deterministic:
             self.algo = libcudnn.CUDNN_CTC_LOSS_ALGO_DETERMINISTIC
         else:
             self.algo = libcudnn.CUDNN_CTC_LOSS_ALGO_NON_DETERMINISTIC
+
+    def check_type_forward(self, in_types):
+        _check_type_forward(in_types)
 
     def forward(self, inputs):
         xp = backend.get_array_module(inputs[0])
@@ -348,24 +356,21 @@ class CudnnCTC(ConnectionistTemporalClassification):
         gradients_desc = cudnn.create_tensor_descriptor(gradients)
         loss = cuda.cupy.zeros((batch_size, ), 'f')
         work_size = libcudnn.getCTCLossWorkspaceSize(
-                handle, probs_desc.value, gradients_desc.value, labels.ctypes.data,
-                label_length.ctypes.data, input_length.ctypes.data, self.algo, ctc_desc.value)
+                handle, probs_desc.value, gradients_desc.value,
+                labels.ctypes.data, label_length.ctypes.data,
+                input_length.ctypes.data, self.algo, ctc_desc.value)
         workspace = cuda.cupy.empty((work_size,), dtype='b')
         libcudnn.CTCLoss(handle, probs_desc.value, probs.data.ptr,
-            labels.ctypes.data, label_length.ctypes.data, input_length.ctypes.data,
-            loss.data.ptr, gradients_desc.value, gradients.data.ptr, self.algo, ctc_desc.value,
+            labels.ctypes.data, label_length.ctypes.data,
+            input_length.ctypes.data, loss.data.ptr, gradients_desc.value,
+            gradients.data.ptr, self.algo, ctc_desc.value,
             workspace.data.ptr, work_size)
         self._gradients = gradients
-        if self.reduce == 'mean':
-            loss = utils.force_array(xp.mean(loss))
         return loss,
 
     def backward(self, inputs, grad_output):
         batch_size = len(inputs[2])
-        if self.reduce == 'mean':
-            grads = self._gradients * (grad_output[0] / batch_size)
-        else:
-            grads = self._gradients * grad_output[0][..., None]
+        grads = self._gradients * grad_output[0][..., None]
         return None, None, None, grads
 
 
@@ -462,18 +467,24 @@ def connectionist_temporal_classification(
         input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
     if label_length is None:
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
-    
+
     x = chainer.functions.stack(x)
-    if cuda.cudnn_enabled and _cudnn_version >= 7000 and t.shape[1] <= 256 and blank_symbol == 0:
-        # `target_lengths` must be less than 256.
-        # TODO(sato): In cuDNN version, we can set `deterministic`. 
-        # TODO(sato) write something.
-        # 255 test, 256 test case.  
-        # warning if blank_symbol != 0
-        # Remove args blank_symbol, reduce
-        return CudnnCTC(blank_symbol, reduce, deterministic=False)(
-            input_length, label_length, t, x)
-        # kokode reduce F.mean()
+    if cuda.cudnn_enabled and _cudnn_version >= 7000 and t.shape[1] <= 256:
+        if reduce not in ('mean', 'no'):
+            raise ValueError(
+                "only 'mean' and 'no' are valid "
+                "for 'reduce', but '%s' is given" % reduce)
+
+        if blank_symbol != 0:
+            raise ValueError("For cuDNN CTC, you must use 'blank_symbol' = 0")
+
+        # For cuDNN CTC, you can set `deterministic`.
+        deterministic = configuration.config.cudnn_deterministic
+        loss = CudnnCTC(deterministic=deterministic)(
+                        input_length, label_length, t, x)
+        if reduce == 'mean':
+            loss = chainer.functions.mean(loss)
+        return loss
     else:
         return ConnectionistTemporalClassification(blank_symbol, reduce)(
             input_length, label_length, t, x)
