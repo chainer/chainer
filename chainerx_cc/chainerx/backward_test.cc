@@ -868,11 +868,24 @@ TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
         BackwardBuilder bb{"func", x, {y1, y2, y3, y4}};
         BackwardBuilder::Target bt = bb.CreateTarget(0);
         bt.Define([x](BackwardContext& bctx) {
-            Array gy1gx = *bctx.output_grad(0) * Exp(x) * x;
-            Array gy2gx = *bctx.output_grad(1) * Exp(x) * 2;
-            Array gy3gx = *bctx.output_grad(2) * Exp(x) * 3;
-            Array gy4gx = *bctx.output_grad(3) * Exp(x) * 4;
-            bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
+            const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
+            const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
+            const nonstd::optional<Array>& gy2 = bctx.output_grad(2);
+            const nonstd::optional<Array>& gy3 = bctx.output_grad(3);
+            Array sum = ZerosLike(x);
+            if (gy0.has_value()) {
+                sum += *gy0 * Exp(x) * x;
+            }
+            if (gy1.has_value()) {
+                sum += *gy1 * Exp(x) * 2;
+            }
+            if (gy2.has_value()) {
+                sum += *gy2 * Exp(x) * 3;
+            }
+            if (gy3.has_value()) {
+                sum += *gy3 * Exp(x) * 4;
+            }
+            bctx.input_grad() = sum;
         });
         bb.Finalize();
     };
@@ -1429,19 +1442,19 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));
                 EXPECT_TRUE(bctx.HasOutputGrad(1));
 
-                const Array& gy1 = *bctx.output_grad(0);
-                const Array& gy2 = *bctx.output_grad(1);
-                EXPECT_ARRAY_EQ(ZerosLike(gy2_value), gy1);
-                EXPECT_ARRAY_EQ(gy2_value, gy2);
+                const nonstd::optional<Array>& gy1 = bctx.output_grad(0);
+                const nonstd::optional<Array>& gy2 = bctx.output_grad(1);
+                EXPECT_FALSE(gy1.has_value());
+                EXPECT_TRUE(gy2.has_value());
+                EXPECT_ARRAY_EQ(gy2_value, *gy2);
 
-                EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, gy2));
+                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, *gy2));
                 } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy2));
+                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *gy2));
                 }
 
-                bctx.input_grad() = 2 * gy1 + 3 * gy2;
+                bctx.input_grad() = 3 * *gy2;
             });
             bb.Finalize();
         }
@@ -1798,9 +1811,16 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx1 + gy2gx1;
+                const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
+                const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
+                Array sum = ZerosLike(y1);
+                if (gy0.has_value()) {
+                    sum = sum + *gy0 * (3 * y1 - y2) / 2;
+                }
+                if (gy1.has_value()) {
+                    sum = sum + *gy1 * (-y1 + 3 * y2) / 2;
+                }
+                bctx.input_grad() = sum;
             });
         }
         {
@@ -1838,9 +1858,16 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx2 + gy2gx2;
+                const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
+                const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
+                Array sum = ZerosLike(y1);
+                if (gy0.has_value()) {
+                    sum = sum + *gy0 * (3 * y1 - y2) / 2;
+                }
+                if (gy1.has_value()) {
+                    sum = sum + *gy1 * (y1 + 3 * y2) / 2;
+                }
+                bctx.input_grad() = sum;
             });
         }
         bb.Finalize();

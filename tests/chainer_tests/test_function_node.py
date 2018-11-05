@@ -1162,11 +1162,7 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
         assert call_arg['indexes'] == (1,)
         assert isinstance(call_arg['grad_outputs'], tuple)
         assert len(call_arg['grad_outputs']) == 2
-        assert isinstance(call_arg['grad_outputs'][0], chainer.Variable)
-        assert isinstance(call_arg['grad_outputs'][0].array, chainerx.ndarray)
-        chainerx.testing.assert_array_equal_ex(
-            call_arg['grad_outputs'][0].array, numpy.full(shape, 0, dtype),
-            strides_check=False)
+        assert call_arg['grad_outputs'][0] is None
         chainerx.testing.assert_array_equal_ex(
             call_arg['grad_outputs'][1].array, numpy.full(shape, 1, dtype),
             strides_check=False)
