@@ -53,9 +53,16 @@ class WalkerAlias(object):
 
     @property
     def use_gpu(self):
-        raise AttributeError(
-            'WalkerAlias.use_gpu attribute has been removed. Use '
-            'WalkerAlias.device attribute instead.')
+        # TODO(niboshi): Maybe better to deprecate the property.
+        xp = self._device.xp
+        if xp is cuda.cupy:
+            return True
+        elif xp is numpy:
+            return False
+        raise RuntimeError(
+            'WalkerAlias.use_gpu attribute is only applicable for numpy or '
+            'cupy devices. Use WalkerAlias.device attribute for general '
+            'devices.')
 
     def to_device(self, device):
         device = chainer.get_device(device)
