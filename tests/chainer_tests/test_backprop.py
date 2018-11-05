@@ -47,6 +47,7 @@ class TestFunctionBackprop(unittest.TestCase):
 
         class Func(chainer.Function):
             def forward(self, inputs):
+                assert isinstance(inputs, tuple)
                 # x1, x3: float32
                 # x2: int32
                 x1, x2, x3 = inputs
@@ -65,15 +66,20 @@ class TestFunctionBackprop(unittest.TestCase):
                 return y1, y2, y3
 
             def backward(self, inputs, grad_outputs):
+                assert isinstance(inputs, tuple)
                 x1, x2, x3 = inputs
                 assert x2 is None  # not retained
+
+                assert isinstance(grad_outputs, tuple)
                 gy1, gy2, gy3 = grad_outputs
                 assert gy1 is None  # y1 is int32
 
-                assert len(self.output_data) == 3
-                assert self.output_data[0] is None
-                assert self.output_data[2] is None
-                _, y2, _ = self.output_data
+                output_data = self.output_data
+                assert isinstance(output_data, tuple)
+                assert len(output_data) == 3
+                assert output_data[0] is None
+                assert output_data[2] is None
+                _, y2, _ = output_data
                 assert isinstance(y2, backward_xp.ndarray)
 
                 # y3 is disconnected
@@ -132,12 +138,21 @@ class TestFunctionBackprop(unittest.TestCase):
                 return y1, y2, y3
 
             def backward(self, input_indexes, grad_outputs):
+                assert isinstance(input_indexes, tuple)
+
                 assert input_indexes == (0, 2)
-                x1, x3 = self.get_retained_inputs()
+
+                retained_inputs = self.get_retained_inputs()
+                assert isinstance(retained_inputs, tuple)
+                x1, x3 = retained_inputs
+
+                assert isinstance(grad_outputs, tuple)
                 gy1, gy2, gy3 = grad_outputs
                 assert gy1 is None  # y1 is int32
 
-                y2, = self.get_retained_outputs()
+                retained_outputs = self.get_retained_outputs()
+                assert isinstance(retained_outputs, tuple)
+                y2, = retained_outputs
                 assert isinstance(y2.array, backward_xp.ndarray)
 
                 # y3 is disconnected
