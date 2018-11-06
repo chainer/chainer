@@ -18,6 +18,12 @@ class ChainerxDevice(_backend.Device):
     def xp(self):
         return chainerx
 
+    @staticmethod
+    def from_array(array):
+        if isinstance(array, chainerx.ndarray) and array.device is not None:
+            return ChainerxDevice(array.device)
+        return None
+
     def __eq__(self, other):
         return (
             isinstance(other, ChainerxDevice)
