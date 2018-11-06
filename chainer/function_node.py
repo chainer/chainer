@@ -10,6 +10,7 @@ import chainer
 from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import backend
+from chainer import backends
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
@@ -277,19 +278,8 @@ Use apply() method instead.\
                 if x_is_variable and x._chainerx_fallback_array is not None:
                     x_data = x._chainerx_fallback_array
                 else:
-                    arr = chainerx_in_data[i]
-                    # TODO(sonots): Use zero-copy API if it becomes available.
-                    backend_name = arr.device.backend.name
-                    if backend_name == 'cuda':
-                        def to_backend(x):
-                            return cuda.to_gpu(x, x.device.index)
-                    elif backend_name == 'native':
-                        to_backend = backend.to_numpy
-                    else:
-                        raise RuntimeError(
-                            'FunctionNode only supports ChainerX arrays with '
-                            'native or cuda backend')
-                    x_data = to_backend(arr)
+                    x_data = backends.chainerx.from_chainerx(
+                        chainerx_in_data[i])
 
                     # Update the fallback cache if possible.
                     if x_is_variable:
@@ -357,7 +347,7 @@ Use apply() method instead.\
         if self._is_chainerx:
             # TODO(hvy): Take configuration.config.enable_backprop into
             # account?
-            chainerx_out_data = [backend.to_chainerx(y) for y in outputs]
+            chainerx_out_data = backends.chainerx.to_chainerx(outputs)
 
             # Insert a ChainerX op-node that calls FunctionNode.backward in
             # backprop. Note that chainerx_out_data may not require gradients.
@@ -1137,14 +1127,14 @@ def _extract_apply_in_data(inputs):
         return False, ()
 
     # Unwrap arrays
-    arrays = [
+    arrays = tuple([
         (x._data[0] if x._is_chainerx else x.array)
-        if isinstance(x, variable.Variable) else x for x in inputs]
+        if isinstance(x, variable.Variable) else x for x in inputs])
 
     if (chainerx.is_available()
             and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, tuple(backend.to_chainerx(arrays))
-    return False, tuple(arrays)
+        return True, backends.chainerx.to_chainerx(arrays)
+    return False, arrays
 
 
 def _get_ordered_func_heap():
