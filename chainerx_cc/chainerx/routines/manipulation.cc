@@ -17,6 +17,7 @@
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/device.h"
+#include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
@@ -401,9 +402,8 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         if (ndim != array.ndim()) {
             throw DimensionError{"All the input arrays must have same number of dimensions"};
         }
-        if (dtype != array.dtype()) {
-            throw DtypeError{"All the input arrays must have same dtypes"};
-        }
+        // TODO(imanishi): dtype conversion
+        CheckEqual(dtype, array.dtype());
         for (int8_t i = 0; i < ndim; ++i) {
             if (axis == i) {
                 shape[i] += s[i];
@@ -530,9 +530,8 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         if (shape != array.shape()) {
             throw DimensionError{"All input arrays must have the same shape"};
         }
-        if (dtype != array.dtype()) {
-            throw DtypeError{"All the input arrays must have same dtypes"};
-        }
+        // TODO(imanishi): dtype conversion
+        CheckEqual(dtype, array.dtype());
     }
     shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
 
