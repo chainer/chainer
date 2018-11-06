@@ -15,11 +15,10 @@
 # \roi align operator described in Mask RCNN
 # -----------------------------------------------------------------------------
 
-import collections
-
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.functions.pooling.roi_average_align_2d \
@@ -30,7 +29,7 @@ from chainer.utils import type_check
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, chainer.utils.collections_abc.Iterable):
         return x
     return x, x
 
