@@ -9,8 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG
 
 
 def logsumexp(x, axis):
