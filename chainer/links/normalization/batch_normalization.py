@@ -297,7 +297,7 @@ class BatchNormalization(link.Link):
             avg_mean = self.avg_mean
             avg_var = self.avg_var
 
-            if chainer.config.recompute:
+            if chainer.config.in_recomputing:
                 # Do not update statistics when extra forward computation is
                 # called.
                 avg_mean = None

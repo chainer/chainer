@@ -52,7 +52,7 @@ class Forget(function_node.FunctionNode):
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
 
         with function.force_backprop_mode(),\
-                chainer.using_config('recompute', True):
+                chainer.using_config('in_recomputing', True):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
             if len(outs) > 1:
@@ -129,8 +129,8 @@ def forget(func, *xs):
         If you want to use ``F.forget`` to a link which updates the link's
         internal information every time the forward computation is called,
         please ensure that the information is updated just once in a single
-        iteration. You may use the ``chainer.config.recompute`` flag to check
-        if the forward computation is the first call in an iteration.
+        iteration. You may use the ``chainer.config.in_recomputing`` flag to
+        check if the forward computation is the first call in an iteration.
         Please see the implementation of
         :class:`~chainer.links.BatchNormalization` for detail.
 
