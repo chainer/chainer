@@ -305,7 +305,7 @@ class Conveyor(object):
 
     """Interface to handle asynchronous data transfer using double buffering.
 
-    An asynchrous data transfer is initiated by :meth:`put`, and the result,
+    An asynchronous data transfer is initiated by :meth:`put`, and the result,
     the array transferred to a target device, is obtained by :meth:`get`.
     You should call :meth:`put` followed by :meth:`get`.
 
@@ -327,7 +327,7 @@ class Conveyor(object):
         self._ret_array = []
 
     def put(self, array):
-        """Initiates asynchrous transfer of an array to a target device.
+        """Initiates asynchronous transfer of an array to a target device.
 
         This method assumes that the input array is a numpy array and
         on host memory without page-locked. So, it first copys the data
@@ -380,11 +380,11 @@ class Conveyor(object):
 
         If sync is ``True``, the data of returned array is available in GPU
         kernels. If sync is ``False``, the data of returned array might be
-        being transfered to GPU, so synchronizeaion must be done carefully by
+        being transferred to GPU, so synchronization must be done carefully by
         the calling function.
 
         Args:
-            sync (bool): If ``True``, global synchronizaton is used to ensure
+            sync (bool): If ``True``, global synchronization is used to ensure
                 completion of asynchronous data transfer for safer reason.
                 If ``False``, it assumes a caller function is handling
                 synchronization correctly hence does not use global
