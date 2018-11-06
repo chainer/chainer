@@ -36,6 +36,7 @@ from chainer.distribution import cross_entropy  # NOQA
 from chainer.distribution import Distribution  # NOQA
 from chainer.distribution import kl_divergence  # NOQA
 from chainer.distribution import register_kl  # NOQA
+from chainer.device import Device  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import FunctionAdapter  # NOQA

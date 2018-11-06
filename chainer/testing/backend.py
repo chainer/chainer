@@ -77,7 +77,7 @@ class BackendConfig(object):
             elif self.use_ideep != 'never':
                 device = chainer.get_device(chainer.backends.intel64)
             else:
-                device = chainer.get_device(chainer.backends.cpu.CpuDevice())
+                device = chainer.get_device(chainer.backends._cpu.CpuDevice())
             self._device = device
         return self._device
 

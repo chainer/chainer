@@ -1,5 +1,5 @@
 import chainer
-from chainer import backend
+from chainer import _backend
 
 
 class CooMatrix(object):
@@ -54,7 +54,7 @@ class CooMatrix(object):
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
         data = self.data.data
-        xp = backend.get_array_module(data)
+        xp = _backend.get_array_module(data)
         if data.ndim == 1:
             x = xp.zeros(self.shape, dtype=data.dtype)
             nnz = xp.count_nonzero(data)
@@ -107,7 +107,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
             >>> x.shape
             (2, 3)
     """
-    xp = backend.get_array_module(x)
+    xp = _backend.get_array_module(x)
     if x.ndim == 2:
         _row, _col = xp.where(x != 0)
         nnz = len(_row)
@@ -175,7 +175,7 @@ def _is_c_order(row, col):
             if not _is_c_order(row[i], col[i]):
                 return False
         return True
-    xp = backend.get_array_module(row)
+    xp = _backend.get_array_module(row)
     _row = row[col >= 0]
     _col = col[row >= 0]
     if _row[_row < 0].size > 0 or _col[_col < 0].size:

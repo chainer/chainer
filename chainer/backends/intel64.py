@@ -5,8 +5,9 @@ import sys
 import numpy
 
 import chainer
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.configuration import config
+from chainer import device
 
 
 _ideep_version = None
@@ -24,7 +25,7 @@ except ImportError as e:
         pass  # for type testing
 
 
-class Intel64Device(backend.Device):
+class Intel64Device(device.Device):
 
     def __init__(self):
         check_ideep_available()
@@ -51,7 +52,7 @@ class Intel64Device(backend.Device):
             return array
 
         if not isinstance(array, numpy.ndarray):
-            array = backend.to_numpy(array)  # to numpy.ndarray
+            array = _cpu._to_numpy(array)  # to numpy.ndarray
 
         if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
             # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.

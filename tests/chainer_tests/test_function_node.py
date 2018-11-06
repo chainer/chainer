@@ -77,7 +77,7 @@ class TestFunctionNode(unittest.TestCase):
         self.gx1 = None
 
     def setup_cpu(self):
-        self._setup(chainer.get_device(backends.cpu.CpuDevice()))
+        self._setup(chainer.get_device(chainer.backend.CpuDevice()))
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):

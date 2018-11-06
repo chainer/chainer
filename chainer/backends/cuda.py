@@ -40,8 +40,11 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
+from chainer.backends import _cpu
+from chainer.backends import intel64
 from chainer.configuration import config
+from chainer import device
+from chainer import utils
 import chainerx
 
 available = False
@@ -153,7 +156,7 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 # Device
 # ------------------------------------------------------------------------------
-class GpuDevice(backend.Device):
+class GpuDevice(device.Device):
 
     def __init__(self, device):
         assert isinstance(device, Device)
@@ -357,7 +360,7 @@ def to_gpu(array, device=None, stream=None):
     else:
         device = _get_device_or_current(device)
 
-    return backend._convert_arrays(
+    return utils.array._convert_arrays(
         array, lambda arr: _array_to_gpu(arr, device, stream))
 
 
@@ -385,7 +388,7 @@ def _array_to_gpu(array, device, stream):
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
-    elif isinstance(array, chainer.backends.intel64.mdarray):
+    elif isinstance(array, intel64.mdarray):
         array = numpy.asarray(array)
 
     if isinstance(array, ndarray):
@@ -448,7 +451,7 @@ def to_cpu(array, stream=None):
         If input arrays include `None`, it is returned as `None` as is.
 
     """
-    return backend._convert_arrays(
+    return utils.array._convert_arrays(
         array, lambda arr: _array_to_cpu(arr, stream))
 
 
@@ -459,7 +462,7 @@ def _array_to_cpu(array, stream):
         check_cuda_available()
         with get_device_from_array(array):
             return array.get(stream)
-    return chainer.backends.cpu._array_to_numpy(array)
+    return _cpu._array_to_numpy(array)
 
 
 def copy(array, out=None, out_device=None, stream=None):
