@@ -86,7 +86,7 @@ class LinearFunction(function_node.FunctionNode):
         # required that all output arrays of this forward
         # function be allocated explicitly:
         xp = cuda.get_array_module(x)
-        y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+        y = xp.empty((x.shape[0], W.shape[0]), dtype=x.dtype)
 
         # This is required because all of the "static_*()" functions
         # use the convention that any output arrays are supplied
