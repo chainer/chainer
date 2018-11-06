@@ -12,6 +12,7 @@
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
 #include "chainerx/axes.h"
+#include "chainerx/backward.h"
 #include "chainerx/check_backward.h"
 #include "chainerx/device_id.h"
 #include "chainerx/error.h"
@@ -879,6 +880,19 @@ TEST_P(ManipulationTest, SplitIndicesBackward) {
              testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1),
              testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)},
             {Full({2, 4}, 1e-1)});
+}
+
+TEST_P(ManipulationTest, SplitBackwardSomeOutputGradsAreAbsent) {
+    using T = double;
+
+    Array x = (*testing::BuildArray({4, 2}).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Array gx1 = testing::BuildArray({4, 2}).WithData<T>({0, 1, 2, 3, 0, 0, 0, 0});
+    Array gy1 = testing::BuildArray({2, 2}).WithLinearData<T>().WithPadding(1);
+    std::vector<Array> y = Split(x, 2);
+    EXPECT_EQ(y.size(), size_t{2});
+    y[0].SetGrad(gy1);
+    Backward(y[0]);
+    EXPECT_ARRAY_EQ(gx1, *x.GetGrad());
 }
 
 TEST_P(ManipulationTest, SplitSectionsDoubleBackward) {
