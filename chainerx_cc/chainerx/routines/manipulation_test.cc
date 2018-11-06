@@ -886,8 +886,8 @@ TEST_P(ManipulationTest, SplitBackwardSomeOutputGradsAreAbsent) {
     using T = double;
 
     Array x = (*testing::BuildArray({4, 2}).WithLinearData<T>().WithPadding(1)).RequireGrad();
-    Array gx1 = testing::BuildArray({4, 2}).WithData<T>({0, 1, 2, 3, 0, 0, 0, 0});
-    Array gy1 = testing::BuildArray({2, 2}).WithLinearData<T>().WithPadding(1);
+    Array gx1 = testing::BuildArray({4, 2}).WithData<T>({10, 11, 12, 13, 0, 0, 0, 0});
+    Array gy1 = testing::BuildArray({2, 2}).WithData<T>({10, 11, 12, 13});
     std::vector<Array> y = Split(x, 2);
     EXPECT_EQ(y.size(), size_t{2});
     y[0].SetGrad(gy1);
