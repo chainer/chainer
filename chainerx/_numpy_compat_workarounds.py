@@ -64,7 +64,9 @@ def _populate_ndarray():
             # Convert to cupy.ndarray on the same device as source array
             if isinstance(value, chainerx.ndarray):
                 value = _to_cupy(value)
-            _to_cupy(self).__setitem__(key, value)
+            self_cupy = _to_cupy(self)
+            with self_cupy.device:
+                self_cupy.__setitem__(key, value)
         else:
             raise NotImplementedError(
                 'Currently item assignment is supported only in native and '
