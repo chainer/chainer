@@ -8,7 +8,6 @@ import pytest
 import six
 
 import chainer
-from chainer import backends
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
