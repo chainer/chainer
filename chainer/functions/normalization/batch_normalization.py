@@ -21,6 +21,8 @@ if cuda.cudnn_enabled:
 
 
 _singleton_ndarray_ctypes_cache = {}
+
+
 def _singleton_ndarray_ctypes(v, dtype):
     if (v, dtype) in _singleton_ndarray_ctypes_cache:
         obj = _singleton_ndarray_ctypes_cache[(v, dtype)]
