@@ -23,6 +23,9 @@ namespace python_internal {
 namespace {
 
 void InitChainerxModule(pybind11::module& m) {
+    py::options options;
+    options.disable_function_signatures();
+
     m.doc() = "ChainerX";
     m.attr("__name__") = "chainerx";  // Show each member as "chainerx.*" instead of "chainerx.core.*"
 
@@ -52,6 +55,25 @@ void InitChainerxModule(pybind11::module& m) {
     // sub-module registration to shadow it.
     pybind11::module m_testing = m.def_submodule("_testing");
     testing::testing_internal::InitChainerxTestingModule(m_testing);
+
+    // Modifies __doc__ property of a pybind-generated function object.
+    m.def("_set_pybind_doc", [](py::handle obj, std::string docstring) {
+        if (!py::isinstance<py::function>(obj)) {
+            throw py::type_error{"Object is not a function."};
+        }
+
+        // This function is called only sequentially from Python module.
+        // No need of race guard.
+        static std::vector<std::string>* docstrings_keeper = new std::vector<std::string>{};
+
+        docstrings_keeper->emplace_back(std::move(docstring));
+        const char* c_docstring = docstrings_keeper->back().c_str();
+
+        auto func = py::cast<py::function>(obj);
+        auto cfunc = func.cpp_function();
+        auto py_cfunc = reinterpret_cast<PyCFunctionObject*>(cfunc.ptr());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        py_cfunc->m_ml->ml_doc = c_docstring;
+    });
 }
 
 }  // namespace

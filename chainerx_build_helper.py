@@ -84,6 +84,7 @@ def config_setup_kwargs(setup_kwargs):
             'ChainerX is only available for Python 3.5 or later.')
     setup_kwargs['packages'] += [
         'chainerx',
+        'chainerx._docs',
         'chainerx.creation',
         'chainerx.testing',
     ]

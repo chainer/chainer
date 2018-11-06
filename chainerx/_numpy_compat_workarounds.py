@@ -120,10 +120,14 @@ def _populate_ndarray():
                 'Currently item assignment is supported only in native and '
                 'cuda backend.')
 
+    # TODO(niboshi): Write documentation
     def clip(self, a_min, a_max):
+        """TODO"""
         return -chainerx.maximum(-chainerx.maximum(self, a_min), -a_max)
 
+    # TODO(niboshi): Write documentation
     def ravel(self):
+        """TODO"""
         return self.reshape((self.size,))
 
     ndarray.__setitem__ = __setitem__
