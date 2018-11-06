@@ -868,24 +868,11 @@ TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
         BackwardBuilder bb{"func", x, {y1, y2, y3, y4}};
         BackwardBuilder::Target bt = bb.CreateTarget(0);
         bt.Define([x](BackwardContext& bctx) {
-            const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
-            const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
-            const nonstd::optional<Array>& gy2 = bctx.output_grad(2);
-            const nonstd::optional<Array>& gy3 = bctx.output_grad(3);
-            Array sum = ZerosLike(x);
-            if (gy0.has_value()) {
-                sum += *gy0 * Exp(x) * x;
-            }
-            if (gy1.has_value()) {
-                sum += *gy1 * Exp(x) * 2;
-            }
-            if (gy2.has_value()) {
-                sum += *gy2 * Exp(x) * 3;
-            }
-            if (gy3.has_value()) {
-                sum += *gy3 * Exp(x) * 4;
-            }
-            bctx.input_grad() = sum;
+            EXPECT_TRUE(bctx.output_grad(0).has_value());
+            EXPECT_FALSE(bctx.output_grad(1).has_value());
+            EXPECT_FALSE(bctx.output_grad(2).has_value());
+            EXPECT_FALSE(bctx.output_grad(3).has_value());
+            bctx.input_grad() = *bctx.output_grad(0) * Exp(x) * x;
         });
         bb.Finalize();
     };
@@ -1858,16 +1845,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
-                const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
-                Array sum = ZerosLike(y1);
-                if (gy0.has_value()) {
-                    sum = sum + *gy0 * (3 * y1 - y2) / 2;
-                }
-                if (gy1.has_value()) {
-                    sum = sum + *gy1 * (y1 + 3 * y2) / 2;
-                }
-                bctx.input_grad() = sum;
+                EXPECT_FALSE(bctx.output_grad(0).has_value());
+                EXPECT_TRUE(bctx.output_grad(1).has_value());
+                bctx.input_grad() = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
             });
         }
         bb.Finalize();
