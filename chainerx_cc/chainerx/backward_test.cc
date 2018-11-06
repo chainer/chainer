@@ -1798,16 +1798,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                const nonstd::optional<Array>& gy0 = bctx.output_grad(0);
-                const nonstd::optional<Array>& gy1 = bctx.output_grad(1);
-                Array sum = ZerosLike(y1);
-                if (gy0.has_value()) {
-                    sum = sum + *gy0 * (3 * y1 - y2) / 2;
-                }
-                if (gy1.has_value()) {
-                    sum = sum + *gy1 * (-y1 + 3 * y2) / 2;
-                }
-                bctx.input_grad() = sum;
+                EXPECT_FALSE(bctx.output_grad(0).has_value());
+                EXPECT_TRUE(bctx.output_grad(1).has_value());
+                bctx.input_grad() = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
             });
         }
         {
