@@ -65,7 +65,9 @@ class SoftplusGrad(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
-        gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * gy
+        one = x.dtype.type(1)
+        exponent = numpy.exp(-self.beta * numpy.abs(x))
+        gx = gy * numpy.where(x >= 0, one, exponent) / (one + exponent)
         return utils.force_array(gx, x.dtype),
 
     def forward_gpu(self, inputs):
@@ -73,15 +75,19 @@ class SoftplusGrad(function_node.FunctionNode):
         x, gy = inputs
         gx = cuda.elementwise(
             'T x, T gy, T beta', 'T gx',
-            'gx = (1 - 1 / (1 + exp(beta * x))) * gy',
+            'T one = 1;'
+            'T exponent = exp(-beta * fabs(x));'
+            'gx = gy * (x >= 0 ? one : exponent) / (one + exponent);',
             'softplus_bwd')(x, gy, self.beta)
         return gx,
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
         ggx, = grad_outputs
-        e = chainer.functions.exp(self.beta * x)
-        gx = ggx * gy * self.beta * e / (1 + e) ** 2
+        exponent = chainer.functions.exp(
+            -self.beta * chainer.functions.absolute(x))
+        gx = (ggx * gy * self.beta * exponent /
+              chainer.functions.square(1 + exponent))
         ggy = SoftplusGrad((self.beta,)).apply((x, ggx))[0]
         return gx, ggy
 

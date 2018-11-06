@@ -10,12 +10,23 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
     _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
     _mode_channel = libcudnn.CUDNN_SOFTMAX_MODE_CHANNEL
     _mode_instance = libcudnn.CUDNN_SOFTMAX_MODE_INSTANCE
+
+
+_singleton_ndarray_ctypes_cache = {}
+def _singleton_ndarray_ctypes(v, dtype):
+    if (v, dtype) in _singleton_ndarray_ctypes_cache:
+        obj = _singleton_ndarray_ctypes_cache[(v, dtype)]
+    else:
+        obj = numpy.array(v, dtype=dtype).ctypes
+        _singleton_ndarray_ctypes_cache[(v, dtype)] = obj
+    return obj
 
 
 def _get_tensor4d_shape(axis, shape):
@@ -51,8 +62,8 @@ class Softmax(function_node.FunctionNode):
         xp = backend.get_array_module(*x)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             handle = cudnn.get_handle()
             x_tensor4d = cuda.cupy.ascontiguousarray(
                 x[0].reshape(_get_tensor4d_shape(self.axis, x[0].shape)))
@@ -88,8 +99,8 @@ class _SoftmaxGrad(function_node.FunctionNode):
         xp = backend.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             handle = cudnn.get_handle()
             gx = xp.empty_like(y)
             gx_tensor4d = cuda.cupy.ascontiguousarray(

@@ -8,10 +8,21 @@ import chainer.functions
 from chainer.functions.activation import softmax
 from chainer.utils import type_check
 
+
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
     _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
+
+
+_singleton_ndarray_ctypes_cache = {}
+def _singleton_ndarray_ctypes(v, dtype):
+    if (v, dtype) in _singleton_ndarray_ctypes_cache:
+        obj = _singleton_ndarray_ctypes_cache[(v, dtype)]
+    else:
+        obj = numpy.array(v, dtype=dtype).ctypes
+        _singleton_ndarray_ctypes_cache[(v, dtype)] = obj
+    return obj
 
 
 _get_tensor4d_shape = softmax._get_tensor4d_shape
@@ -34,8 +45,8 @@ def _log_softmax(x, axis=1):
         xp = backend.get_array_module(x)
         if xp is not numpy:
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             handle = cudnn.get_handle()
             x_tensor4d = cuda.cupy.ascontiguousarray(
                 x.reshape(_get_tensor4d_shape(axis, x.shape)))
@@ -97,8 +108,8 @@ class LogSoftmaxGrad(function_node.FunctionNode):
         xp = self._x_xp
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             handle = cudnn.get_handle()
             gx = xp.empty(self._x_shape, dtype=self._x_dtype)
             gx_tensor4d = cuda.cupy.ascontiguousarray(

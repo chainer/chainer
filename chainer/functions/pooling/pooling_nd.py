@@ -13,6 +13,16 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
+_singleton_ndarray_ctypes_cache = {}
+def _singleton_ndarray_ctypes(v, dtype):
+    if (v, dtype) in _singleton_ndarray_ctypes_cache:
+        obj = _singleton_ndarray_ctypes_cache[(v, dtype)]
+    else:
+        obj = numpy.array(v, dtype=dtype).ctypes
+        _singleton_ndarray_ctypes_cache[(v, dtype)] = obj
+    return obj
+
+
 class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
@@ -60,8 +70,8 @@ class _PoolingND(function_node.FunctionNode):
         y_desc = cudnn.create_tensor_descriptor(y)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
+        one = _singleton_ndarray_ctypes(1, oz_dtype)
+        zero = _singleton_ndarray_ctypes(0, oz_dtype)
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
@@ -81,8 +91,8 @@ class _PoolingND(function_node.FunctionNode):
         y_desc = cudnn.create_tensor_descriptor(gy)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
+        one = _singleton_ndarray_ctypes(1, oz_dtype)
+        zero = _singleton_ndarray_ctypes(0, oz_dtype)
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
             handle, pool_desc.value,

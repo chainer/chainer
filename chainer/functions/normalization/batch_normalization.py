@@ -20,6 +20,16 @@ if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
+_singleton_ndarray_ctypes_cache = {}
+def _singleton_ndarray_ctypes(v, dtype):
+    if (v, dtype) in _singleton_ndarray_ctypes_cache:
+        obj = _singleton_ndarray_ctypes_cache[(v, dtype)]
+    else:
+        obj = numpy.array(v, dtype=dtype).ctypes
+        _singleton_ndarray_ctypes_cache[(v, dtype)] = obj
+    return obj
+
+
 def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     if axis is None:
         axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
@@ -199,8 +209,8 @@ class BatchNormalization(function_node.FunctionNode):
                 running_var = self.running_var
 
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             y = cuda.cupy.empty_like(x)
             # Factor used in the moving average
             factor = 1 - self.decay
@@ -350,8 +360,8 @@ class BatchNormalizationGrad(function.Function):
             if dtype_param is not dtype:
                 gamma = gamma.astype(dtype_param)
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             gx = cuda.cupy.empty_like(x)
             ggamma = cuda.cupy.empty_like(gamma)
             gbeta = cuda.cupy.empty_like(gamma)
@@ -557,8 +567,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 mean = mean.astype(dtype_param)
                 var = var.astype(dtype_param)
             oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
+            one = _singleton_ndarray_ctypes(1, oz_dtype)
+            zero = _singleton_ndarray_ctypes(0, oz_dtype)
             y = cuda.cupy.empty_like(x)
 
             libcudnn.batchNormalizationForwardInference(
