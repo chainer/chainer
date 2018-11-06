@@ -147,7 +147,7 @@ class ConnectionistTemporalClassification(function.Function):
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
             res = create_recurrence_relation(x, self.zero_padding)
-        return res.astype(numpy.float32)
+        return res.astype(numpy.float32, copy=False)
 
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
