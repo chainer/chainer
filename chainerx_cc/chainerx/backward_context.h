@@ -137,8 +137,6 @@ private:
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_;
 
-    nonstd::optional<Array> zero_grad = nonstd::nullopt;
-
     std::vector<std::shared_ptr<internal::ArrayBody>> retained_input_array_bodies_;
 
     // Array bodies for retained outputs.

@@ -101,6 +101,7 @@ const nonstd::optional<Array>& BackwardContext::output_grad(size_t output_index)
     if (HasOutputGrad(output_index)) {
         return output_grads_[output_index]->get();
     }
+    static const nonstd::optional<Array>& zero_grad = nonstd::nullopt;
     return zero_grad;
 }
 
