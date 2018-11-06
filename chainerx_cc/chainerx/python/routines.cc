@@ -399,7 +399,7 @@ void InitChainerxManipulation(pybind11::module& m) {
               return MoveArrayBody(Concatenate(xs, axis));
           },
           py::arg("arrays"),
-          py::arg("axis") = nullptr);
+          py::arg("axis") = 0);
     m.def("stack",
           [](py::sequence arrays, int8_t axis) {
               std::vector<Array> xs;
