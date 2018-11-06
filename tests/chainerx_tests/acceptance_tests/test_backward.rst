@@ -3,7 +3,7 @@ Acceptance tests for Backprop
 
 >>> import chainerx as chx
 
->>> a = chx.ndarray((2, 3), chx.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+>>> a = chx.array([[0, 1, 2], [3, 4, 5]], chx.float32).require_grad()
 >>> b = chx.full_like(a, 2)
 >>> a.is_grad_required()
 True

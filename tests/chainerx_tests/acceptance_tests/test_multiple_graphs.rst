@@ -8,8 +8,8 @@ Double backprop with different graphs
 
 >>> with chx.backprop_scope('weight') as weight_backprop:
 ...     with chx.backprop_scope('input') as input_backprop:
-...         x = chx.ndarray((3,), chx.float32, [1, 2, 3]).require_grad(input_backprop)
-...         w = chx.ndarray((3,), chx.float32, [4, 5, 6]).require_grad(weight_backprop)
+...         x = chx.array([1, 2, 3], chx.float32).require_grad(input_backprop)
+...         w = chx.array([4, 5, 6], chx.float32).require_grad(weight_backprop)
 ...         y = x * w
 ...         y.is_backprop_required(input_backprop)
 True
@@ -43,8 +43,8 @@ chainerx.ChainerxError: Array does not belong to the graph: 'weight'.
 Double backprop with single graph
 ---------------------------------
 
->>> x = chx.ndarray((3,), chx.float32, [1, 2, 3]).require_grad()
->>> w = chx.ndarray((3,), chx.float32, [4, 5, 6]).require_grad()
+>>> x = chx.array([1, 2, 3], chx.float32).require_grad()
+>>> w = chx.array([4, 5, 6], chx.float32).require_grad()
 >>> y = x * w
 >>> y.is_backprop_required()
 True

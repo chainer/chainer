@@ -70,24 +70,6 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
 
 namespace {
 
-ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
-    Shape shape = ToShape(shape_tup);
-    auto total_size = shape.GetTotalSize();
-    auto bytes = GetItemSize(dtype) * total_size;
-    if (static_cast<size_t>(total_size) != list.size()) {
-        throw DimensionError{"Invalid data length"};
-    }
-
-    // Allocate a buffer and copy data
-    std::shared_ptr<void> ptr = std::make_unique<uint8_t[]>(bytes);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
-    });
-
-    return MoveArrayBody(FromContiguousHostData(shape, dtype, ptr, device));
-}
-
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
 
@@ -140,15 +122,6 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
 
 void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
-    // TODO(hvy): Remove list accepting bindings and replace calls with chainerx.array.
-    // For multidimensional arrays, nested lists should be passed to chainerx.array.
-    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, py::handle device) {
-              return MakeArray(shape, GetDtype(dtype), list, GetDevice(device));
-          }),
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("data") = nullptr,
-          py::arg("device") = nullptr);
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));

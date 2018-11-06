@@ -36,7 +36,7 @@ array([[[ 95],
 broadcast_to
 ------------
 
->>> a = chx.ndarray((3, 1), chx.int64, [1, 2, 3])
+>>> a = chx.array([[1], [2], [3]], chx.int64)
 >>> a
 array([[1],
        [2],
@@ -63,8 +63,8 @@ array([[[1],
 Broadcast add/mul
 -----------------
 
->>> a = chx.ndarray((3,), chx.int64, [1, 2, 3])
->>> b = chx.ndarray((2, 3), chx.int64, [10, 20, 30, 40, 50, 60])
+>>> a = chx.array([1, 2, 3], chx.int64)
+>>> b = chx.array([[10, 20, 30], [40, 50, 60]], chx.int64)
 >>> a + b
 array([[11, 22, 33],
        [41, 52, 63]], shape=(2, 3), dtype=int64, device='native:0')
@@ -72,7 +72,7 @@ array([[11, 22, 33],
 array([[ 10,  40,  90],
        [ 40, 100, 180]], shape=(2, 3), dtype=int64, device='native:0')
 
->>> c = chx.ndarray((2, 1), chx.int64, [10, 20])
+>>> c = chx.array([[10], [20]], chx.int64)
 >>> a + c
 array([[11, 12, 13],
        [21, 22, 23]], shape=(2, 3), dtype=int64, device='native:0')
@@ -96,7 +96,7 @@ array([3., 5., 7.], shape=(3,), dtype=float32, device='native:0', backprop_ids=[
 array([[ 0.,  5., 14.],
        [ 9., 20., 35.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
->>> c.set_grad(chx.ndarray((2, 3), c.dtype, [1, 2, 3, 4, 5, 6]))
+>>> c.set_grad(chx.array([[1, 2, 3], [4, 5, 6]], c.dtype))
 >>> chx.backward(c)
 >>> a.grad
 array([[15., 32., 57.],

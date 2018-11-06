@@ -3,10 +3,19 @@ Acceptance tests for introducing CUDA
 
 >>> import chainerx as chx
 
+Create uninitialized array
+--------------------------
+
+>>> a = chx.ndarray((3,), chx.float32, device='cuda:0')
+>>> a.shape
+(3,)
+>>> a.dtype
+dtype('float32')
+
 Create array from python list
 -----------------------------
 
->>> a = chx.ndarray((3,), chx.float32, [1, 2, 3], 'cuda:0')
+>>> a = chx.array([1, 2, 3], chx.float32, device='cuda:0')
 >>> a.shape
 (3,)
 >>> a.dtype
