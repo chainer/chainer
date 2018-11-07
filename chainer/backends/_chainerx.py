@@ -45,6 +45,9 @@ class ChainerxDevice(_backend.Device):
             return array.to_device(device)
         return _array_to_chainerx(array, device)
 
+    def use(self):
+        chainerx.set_default_device(self.device)
+
 
 def _get_device(device_spec):
     # Called from chainer.backend.get_device

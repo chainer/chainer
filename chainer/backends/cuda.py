@@ -195,6 +195,9 @@ class GpuDevice(_backend.Device):
     def send_array(self, array):
         return _array_to_gpu(array, self.device, None)
 
+    def use(self):
+        self.device.use()
+
 
 def _get_device(device_spec):
     if not available:
