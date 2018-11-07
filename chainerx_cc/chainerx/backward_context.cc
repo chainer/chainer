@@ -70,7 +70,6 @@ BackwardContext::BackwardContext(
       output_array_nodes_{output_array_nodes},
       output_grads_{output_grads},
       input_grads_{input_grads},
-      zero_output_grads_{output_array_nodes_.size()},
       double_backprop_option_{double_backprop_option} {
     CHAINERX_ASSERT(op_node.get() == &backward_entry.op_node());
     CHAINERX_ASSERT(output_array_nodes_.size() == output_grads_.size());
@@ -102,22 +101,7 @@ const nonstd::optional<Array>& BackwardContext::output_grad(size_t output_index)
     if (HasOutputGrad(output_index)) {
         return output_grads_[output_index]->get();
     }
-
-    // If there already is a zero-filled gradient allocated, return it.
-    CHAINERX_ASSERT(output_index < output_count());
-    nonstd::optional<Array>& zero_grad = zero_output_grads_[output_index];
-    if (zero_grad.has_value()) {
-        return zero_grad;
-    }
-
-    // Allocate new zero-filled gradient and return it.
-    const nonstd::optional<internal::ArrayProps>& props = op_node_->GetOutputArrayProps(output_index);
-    if (!props.has_value()) {
-        zero_grad = nonstd::nullopt;
-        return zero_grad;
-    }
-    zero_grad = Zeros(props->shape, props->dtype, props->device);
-    return zero_grad;
+    return zero_grad_;
 }
 
 Array& BackwardContext::input_grad() {

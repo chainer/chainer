@@ -80,7 +80,7 @@ public:
 
     size_t input_count() const { return input_grads_.size(); }
 
-    size_t output_count() const { return zero_output_grads_.size(); }
+    size_t output_count() const { return output_grads_.size(); }
 
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
     bool next_required() const { return double_backprop_option_ == DoubleBackpropOption::kEnable; }
@@ -137,10 +137,6 @@ private:
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_;
 
-    // Holds zero-filled arrays for outputs without actual gradients.
-    // The arrays are allocated on-demand in output_grad.
-    mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
-
     std::vector<std::shared_ptr<internal::ArrayBody>> retained_input_array_bodies_;
 
     // Array bodies for retained outputs.
@@ -148,6 +144,9 @@ private:
     std::vector<std::shared_ptr<internal::ArrayBody>> retained_output_array_bodies_;
 
     DoubleBackpropOption double_backprop_option_;
+
+    // Be introduced to avoid the return value of output_grad() being destroyed at the end of the function.
+    const nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
 };
 
 }  // namespace chainerx
