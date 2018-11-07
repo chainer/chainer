@@ -56,7 +56,7 @@ private:
 
 class MemoryPoolTestForEachAllocator : public ::testing::TestWithParam<std::shared_ptr<MemoryPool>> {};
 
-TEST_P(MemoryPoolTestForEachAllocator, Malloc) {
+TEST_P(MemoryPoolTestForEachAllocator, MallocAndFree) {
     MemoryPool& memory_pool = *GetParam();
 
     void* ptr1 = memory_pool.Malloc(1);
@@ -72,19 +72,7 @@ TEST_P(MemoryPoolTestForEachAllocator, Malloc) {
     memory_pool.Free(ptr1);
 }
 
-TEST(MemoryPoolTest, MallocThrowOutOfMemory) {
-    MemoryPool memory_pool{0, std::make_unique<AlwaysOutOfMemoryAllocator>()};
-    EXPECT_THROW(memory_pool.Malloc(1), OutOfMemoryError);
-}
-
-TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
-    MemoryPool memory_pool{0, std::make_unique<OnceOutOfMemoryAllocator>()};
-    EXPECT_NO_THROW(memory_pool.Malloc(1));
-    auto allocator = static_cast<const OnceOutOfMemoryAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
-    EXPECT_EQ(allocator->malloc_called(), 2);
-}
-
-TEST_P(MemoryPoolTestForEachAllocator, AllocationUnitSize) {
+TEST_P(MemoryPoolTestForEachAllocator, MallocAllocationUnitSize) {
     MemoryPool& memory_pool = *GetParam();
 
     void* ptr1 = memory_pool.Malloc(100);
@@ -96,14 +84,14 @@ TEST_P(MemoryPoolTestForEachAllocator, AllocationUnitSize) {
     memory_pool.Free(ptr2);
 }
 
-TEST_P(MemoryPoolTestForEachAllocator, ZeroByte) {
+TEST_P(MemoryPoolTestForEachAllocator, MallocZeroByte) {
     MemoryPool& memory_pool = *GetParam();
     void* ptr = memory_pool.Malloc(0);
     EXPECT_EQ(nullptr, ptr);
     memory_pool.Free(ptr);  // no throw
 }
 
-TEST_P(MemoryPoolTestForEachAllocator, DoubleFree) {
+TEST_P(MemoryPoolTestForEachAllocator, FreeTwice) {
     MemoryPool& memory_pool = *GetParam();
     void* ptr = memory_pool.Malloc(1);
     memory_pool.Free(ptr);
@@ -134,6 +122,19 @@ INSTANTIATE_TEST_CASE_P(
         ::testing::Values(
                 std::make_shared<MemoryPool>(0, std::make_unique<DeviceMemoryAllocator>()),
                 std::make_shared<MemoryPool>(0, std::make_unique<PinnedMemoryAllocator>())));
+
+TEST(MemoryPoolTest, MallocThrowOutOfMemory) {
+    MemoryPool memory_pool{0, std::make_unique<AlwaysOutOfMemoryAllocator>()};
+    EXPECT_THROW(memory_pool.Malloc(1), OutOfMemoryError);
+}
+
+TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
+    MemoryPool memory_pool{0, std::make_unique<OnceOutOfMemoryAllocator>()};
+    void* ptr = memory_pool.Malloc(1);  // no throw
+    auto allocator = static_cast<const OnceOutOfMemoryAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
+    EXPECT_EQ(allocator->malloc_called(), 2);
+    memory_pool.Free(ptr);
+}
 
 }  // namespace
 }  // namespace cuda
