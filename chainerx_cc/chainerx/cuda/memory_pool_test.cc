@@ -41,9 +41,8 @@ public:
         (void)bytesize;  // unused
         if (malloc_called_++ == 0) {
             return MallocStatus::kErrorMemoryAllocation;
-        } else {
-            return MallocStatus::kSuccess;
         }
+        return MallocStatus::kSuccess;
     }
     void Free(void* ptr) override {
         (void)ptr;  // unused
