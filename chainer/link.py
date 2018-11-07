@@ -138,7 +138,7 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._device = chainer.get_device(backend.CpuDevice())
+        self._device = backend.CpuDevice()
         self._within_init_scope = False
         self.name = None
 
