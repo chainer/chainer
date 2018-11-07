@@ -37,7 +37,7 @@ Mixed
 >>> y
 array([29., 42., 57.], shape=(3,), dtype=float32, device='cuda:0')
 
-array.copy() copies the array on the same device
+ndarray.copy() copies the array on the same device
 --------------------------------------------------
 
 >>> with chx.device_scope('native'):  # Allocate arrays on CPU
