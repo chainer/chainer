@@ -353,8 +353,7 @@ class TestDevice(unittest.TestCase):
 
     def test_eq_numpy(self):
         assert backend.get_device(numpy) == backend.get_device(numpy)
-        assert (backend.get_device(backend.CpuDevice())
-                == backend.get_device(numpy))
+        assert backend.CpuDevice() == backend.get_device(numpy)
 
     @attr.gpu
     def test_eq_cupy(self):
@@ -532,8 +531,7 @@ class TestDeviceSend(unittest.TestCase):
 
     def test_numpy_to_numpy_with_device(self):
         orig = self.orig_numpy()
-        self.send_check_equal(
-            orig, chainer.get_device(backend.CpuDevice()))
+        self.send_check_equal(orig, backend.CpuDevice())
 
 
 testing.run_module(__name__, __file__)

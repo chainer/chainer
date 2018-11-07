@@ -151,7 +151,7 @@ class TestEvaluatorTupleData(unittest.TestCase):
                 self.converter.args[i]['batch'], self.data[i])
             self.assertEqual(
                 self.converter.args[i]['device'],
-                chainer.get_device(backend.CpuDevice()))
+                backend.CpuDevice())
 
         # The model gets results of converter.
         self.assertEqual(len(self.target.args), len(self.batches))
