@@ -557,4 +557,19 @@ class TestGpuDeviceFromDeviceIdInvalid(unittest.TestCase):
             backend.GpuDevice.from_device_id(self.device_id)
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+class TestGpuDeviceUse(unittest.TestCase):
+
+    def test_use(self, backend_config):
+        device = chainer.get_device((cuda.cupy, backend_config.cuda_device))
+        with cuda.Device(0):
+            device.use()
+            assert device.device == cuda.Device()
+
+
 testing.run_module(__name__, __file__)

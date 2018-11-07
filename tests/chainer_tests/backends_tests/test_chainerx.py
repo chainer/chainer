@@ -5,6 +5,7 @@ import numpy
 from chainer import backend
 from chainer import testing
 import chainer.testing.backend  # NOQA
+import chainerx
 
 
 @testing.backend.inject_backend_tests(
@@ -53,6 +54,22 @@ class TestChainerxDeviceFromArrayInvalidValue(unittest.TestCase):
     def test_from_array(self):
         device = backend.ChainerxDevice.from_array(self.value)
         assert device is None
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestChainerxDeviceUse(unittest.TestCase):
+
+    def test_use(self, backend_config):
+        device = chainer.get_device(backend_config.chainerx_device)
+        with chainerx.device_scope('native:1'):
+            device.use()
+            assert device.device is chainerx.get_default_device()
 
 
 testing.run_module(__name__, __file__)
