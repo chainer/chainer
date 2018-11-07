@@ -42,51 +42,6 @@ def test_init_with_device(shape, dtype_spec, device):
     _check_array(array, dtype_spec, shape, device=device)
 
 
-# Checks the constructor of ndarray taking a Python list.
-# TODO(hvy): This interface differs from numpy.ndarray and should be removed.
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_from_list(shape, dtype_spec):
-    dtype_name = chainerx.dtype(dtype_spec).name
-    data_list = array_utils.create_dummy_ndarray(
-        numpy, shape, dtype_name).ravel().tolist()
-    array = chainerx.ndarray(shape, dtype_spec, data_list)
-    _check_array(array, dtype_name, shape, data_list)
-
-
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
-@pytest.mark.parametrize(
-    'device', [None, 'native:1', chainerx.get_device('native:1')])
-def test_init_from_list_with_device(shape, dtype_spec, device):
-    dtype_name = chainerx.dtype(dtype_spec).name
-    data_list = array_utils.create_dummy_ndarray(
-        numpy, shape, dtype_name).ravel().tolist()
-    array = chainerx.ndarray(shape, dtype_spec, data_list, device)
-    _check_array(array, dtype_name, shape, data_list, device=device)
-
-
-def test_init_invalid_length():
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((), chainerx.int8, [])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((), chainerx.int8, [1, 1])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((1,), chainerx.int8, [])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((1,), chainerx.int8, [1, 1])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((0,), chainerx.int8, [1])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((3, 2), chainerx.int8, [1, 1, 1, 1, 1])
-
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.ndarray((3, 2), chainerx.int8, [1, 1, 1, 1, 1, 1, 1])
-
-
 def test_to_device():
     a = chainerx.ones((2,), chainerx.float32, device="native:0")
     dst_device = chainerx.get_device("native:1")
@@ -152,7 +107,7 @@ def test_view(shape, dtype):
 
 
 def test_view_must_not_share_properties():
-    array = chainerx.ndarray((1,), chainerx.float32, [3.0])
+    array = chainerx.array([3.0], chainerx.float32)
     view = array.view()
     # Test preconditions
     assert not array.is_grad_required()
@@ -321,26 +276,26 @@ def test_as_grad_stopped_view(shape, float_dtype):
 
 
 def test_array_repr():
-    array = chainerx.ndarray((0,), chainerx.bool_, [])
+    array = chainerx.array([], chainerx.bool_)
     assert "array([], shape=(0,), dtype=bool, device='native:0')" == str(array)
 
-    array = chainerx.ndarray((1,), chainerx.bool_, [False])
+    array = chainerx.array([False], chainerx.bool_)
     assert ("array([False], shape=(1,), dtype=bool, "
             "device='native:0')" == str(array))
 
-    array = chainerx.ndarray((2, 3), chainerx.int8, [0, 1, 2, 3, 4, 5])
+    array = chainerx.array([[0, 1, 2], [3, 4, 5]], chainerx.int8)
     assert ("array([[0, 1, 2],\n"
             "       [3, 4, 5]], shape=(2, 3), dtype=int8, "
             "device='native:0')") == str(array)
 
-    array = chainerx.ndarray((2, 3), chainerx.float32, [0, 1, 2, 3.25, 4, 5])
+    array = chainerx.array([[0, 1, 2], [3.25, 4, 5]], chainerx.float32)
     assert ("array([[0.  , 1.  , 2.  ],\n"
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, "
             "device='native:0')") == str(array)
 
 
 def test_array_repr_default_backprop_id():
-    array = chainerx.ndarray((1,), chainerx.float32, [3.0])
+    array = chainerx.array([3.0], chainerx.float32)
     array.require_grad()
     assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
             "backprop_ids=['<default>'])" == str(array))
@@ -348,7 +303,7 @@ def test_array_repr_default_backprop_id():
 
 def test_array_repr_expired_backprop_id():
     with chainerx.backprop_scope('bp1') as bp1:
-        array = chainerx.ndarray((1,), chainerx.float32, [3.0])
+        array = chainerx.array([3.0], chainerx.float32)
         array.require_grad(bp1)
     assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
             "backprop_ids=['<expired>'])" == str(array))
@@ -356,7 +311,7 @@ def test_array_repr_expired_backprop_id():
 
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
 def test_array_require_grad_without_backprop_id(backprop_args):
-    array = chainerx.ndarray((3, 1), chainerx.float32, [1, 1, 1])
+    array = chainerx.array([1, 1, 1], chainerx.float32)
 
     assert not array.is_grad_required(*backprop_args)
     assert not array.is_backprop_required(*backprop_args)
@@ -374,7 +329,7 @@ def test_array_require_grad_without_backprop_id(backprop_args):
 
 
 def test_array_require_grad_with_backprop_id():
-    array = chainerx.ndarray((3, 1), chainerx.float32, [1, 1, 1])
+    array = chainerx.array([1, 1, 1], chainerx.float32)
 
     with chainerx.backprop_scope('bp1') as bp1:
         assert not array.is_backprop_required(bp1)
@@ -404,8 +359,8 @@ def test_array_require_grad_with_backprop_id():
 
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
 def test_array_grad_without_backprop_id(backprop_args):
-    array = chainerx.ndarray((3, 1), chainerx.float32, [1., 1., 1.])
-    grad = chainerx.ndarray((3, 1), chainerx.float32, [0.5, 0.5, 0.5])
+    array = chainerx.array([1., 1., 1.], chainerx.float32)
+    grad = chainerx.array([0.5, 0.5, 0.5], chainerx.float32)
 
     with pytest.raises(chainerx.ChainerxError):
         array.get_grad(*backprop_args)
@@ -441,8 +396,8 @@ def test_array_grad_without_backprop_id(backprop_args):
 
 
 def test_array_grad_with_backprop_id():
-    array = chainerx.ndarray((3, 1), chainerx.float32, [1., 1., 1.])
-    grad = chainerx.ndarray((3, 1), chainerx.float32, [0.5, 0.5, 0.5])
+    array = chainerx.array([1., 1., 1.], chainerx.float32)
+    grad = chainerx.array([0.5, 0.5, 0.5], chainerx.float32)
 
     with chainerx.backprop_scope('bp1') as bp1:
         with pytest.raises(chainerx.ChainerxError):
@@ -481,10 +436,9 @@ def test_array_grad_with_backprop_id():
 
 
 def test_array_grad_no_deepcopy():
-    shape = (3, 1)
     dtype = chainerx.float32
-    array = chainerx.ndarray(shape, dtype, [2, 5, 1])
-    grad = chainerx.ndarray(shape, dtype, [5, 7, 8])
+    array = chainerx.array([2, 5, 1], dtype)
+    grad = chainerx.array([5, 7, 8], dtype)
 
     # Set grad
     array.require_grad().set_grad(grad)
@@ -493,16 +447,15 @@ def test_array_grad_no_deepcopy():
     grad1 = array.get_grad()
     grad2 = array.get_grad()
 
-    grad1 *= chainerx.ndarray(shape, dtype, [2, 2, 2])
+    grad1 *= chainerx.array([2, 2, 2], dtype)
     assert grad2._debug_flat_data == [
         10, 14, 16], 'grad getter must not incur a copy'
 
 
 def test_array_cleargrad():
-    shape = (3, 1)
     dtype = chainerx.float32
-    array = chainerx.ndarray(shape, dtype, [2, 5, 1])
-    grad = chainerx.ndarray(shape, dtype, [5, 7, 8])
+    array = chainerx.array([2, 5, 1], dtype)
+    grad = chainerx.array([5, 7, 8], dtype)
 
     # Set grad, get it and save it
     array.require_grad().set_grad(grad)
@@ -518,9 +471,8 @@ def test_array_cleargrad():
 
 
 def test_array_grad_identity():
-    shape = (3, 1)
-    array = chainerx.ndarray(shape, chainerx.float32, [1., 1., 1.])
-    grad = chainerx.ndarray(shape, chainerx.float32, [0.5, 0.5, 0.5])
+    array = chainerx.array([1., 1., 1.], chainerx.float32)
+    grad = chainerx.array([0.5, 0.5, 0.5], chainerx.float32)
     array.require_grad().set_grad(grad)
 
     assert array.get_grad() is grad, (
@@ -529,19 +481,19 @@ def test_array_grad_identity():
         'grad must preserve physical identity in repeated retrieval')
 
     # array.grad and grad share the same data
-    grad += chainerx.ndarray(shape, chainerx.float32, [2, 2, 2])
+    grad += chainerx.array([2, 2, 2], chainerx.float32)
     assert array.get_grad()._debug_flat_data == [
         2.5, 2.5, 2.5], 'A modification to grad must affect array.grad'
 
     array_grad = array.get_grad()
-    array_grad += chainerx.ndarray(shape, chainerx.float32, [1, 1, 1])
+    array_grad += chainerx.array([1, 1, 1], chainerx.float32)
     assert grad._debug_flat_data == [
         3.5, 3.5, 3.5], 'A modification to array.grad must affect grad'
 
 
 def test_array_require_grad_multiple_graphs_forward():
-    x1 = chainerx.ndarray((3, 1), chainerx.float32, [1, 1, 1])
-    x2 = chainerx.ndarray((3, 1), chainerx.float32, [1, 1, 1])
+    x1 = chainerx.array([1, 1, 1], chainerx.float32)
+    x2 = chainerx.array([1, 1, 1], chainerx.float32)
 
     with chainerx.backprop_scope('bp1') as bp1, \
             chainerx.backprop_scope('bp2') as bp2, \
@@ -585,15 +537,14 @@ def test_array_grad_invalid_grad(
     dtype = chainerx.float64
     device = 'native:0'
 
-    array = chainerx.ndarray(shape, dtype, [1., 1., 1.], device=device)
+    array = chainerx.ones(shape, dtype, device=device)
     array.require_grad()
 
     grad_shape = shape if invalid_shape is None else invalid_shape
     grad_dtype = dtype if invalid_dtype is None else invalid_dtype
-    grad_data = [1] * array_utils.total_size(grad_shape)
     grad_device = device if invalid_device is None else invalid_device
-    invalid_grad = chainerx.ndarray(
-        grad_shape, grad_dtype, grad_data, grad_device)
+    invalid_grad = chainerx.ones(
+        grad_shape, grad_dtype, device=grad_device)
 
     with pytest.raises(expected_error):
         array.set_grad(invalid_grad)
@@ -603,10 +554,10 @@ def test_array_grad_invalid_grad(
 
 def test_array_backward():
     with chainerx.backprop_scope('bp1') as bp1:
-        x1 = chainerx.ndarray((3, 1), chainerx.float32, [
-                              1, 1, 1]).require_grad(backprop_id=bp1)
-        x2 = chainerx.ndarray((3, 1), chainerx.float32, [
-                              1, 1, 1]).require_grad(backprop_id=bp1)
+        x1 = chainerx.array(
+            [1, 1, 1], chainerx.float32).require_grad(backprop_id=bp1)
+        x2 = chainerx.array(
+            [1, 1, 1], chainerx.float32).require_grad(backprop_id=bp1)
         y = x1 * x2
 
         y.backward(backprop_id=bp1, enable_double_backprop=True)

@@ -4,13 +4,13 @@ import chainerx
 
 
 def _check_backward_unary(fprop):
-    x = chainerx.ndarray((3,), chainerx.float32, [1., 2., 1.])
+    x = chainerx.array([1, 2, 1], chainerx.float32)
     x.require_grad()
 
     chainerx.check_backward(
         fprop,
         (x,),
-        (chainerx.ndarray((3,), chainerx.float32, [0., -2., 1.]),),
+        (chainerx.array([0, -2, 1], chainerx.float32),),
         (chainerx.full((3,), 1e-3, chainerx.float32),),
     )
 
@@ -33,11 +33,9 @@ def test_incorrect_backward_unary():
 def _check_backward_binary(fprop):
     chainerx.check_backward(
         fprop,
-        (chainerx.ndarray(
-            (3,), chainerx.float32, [1., -2., 1.]).require_grad(),
-         chainerx.ndarray(
-             (3,), chainerx.float32, [0., 1., 2.]).require_grad()),
-        (chainerx.ndarray((3,), chainerx.float32, [1., -2., 3.]),),
+        (chainerx.array([1, -2, 1], chainerx.float32).require_grad(),
+         chainerx.array([0, 1, 2], chainerx.float32).require_grad()),
+        (chainerx.array([1, -2, 3], chainerx.float32),),
         (chainerx.full((3,), 1e-3, chainerx.float32),
          chainerx.full((3,), 1e-3, chainerx.float32)),
     )
@@ -59,8 +57,7 @@ def test_incorrect_backward_binary():
 def test_correct_double_backward_unary():
     chainerx.check_double_backward(
         lambda xs: (xs[0] * xs[0],),
-        (chainerx.ndarray((3,), chainerx.float32,
-                          [1., 2., 3.]).require_grad(),),
+        (chainerx.array([1, 2, 3], chainerx.float32).require_grad(),),
         (chainerx.ones((3,), chainerx.float32).require_grad(),),
         (chainerx.ones((3,), chainerx.float32),),
         (chainerx.full((3,), 1e-3, chainerx.float32),
@@ -73,7 +70,7 @@ def test_correct_double_backward_unary():
 def test_correct_double_backward_binary():
     chainerx.check_double_backward(
         lambda xs: (xs[0] * xs[1],),
-        (chainerx.ndarray((3,), chainerx.float32, [1., 2., 3.]).require_grad(),
+        (chainerx.array([1, 2, 3], chainerx.float32).require_grad(),
          chainerx.ones((3,), chainerx.float32).require_grad()),
         (chainerx.ones((3,), chainerx.float32).require_grad(),),
         (chainerx.ones((3,), chainerx.float32),

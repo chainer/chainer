@@ -7,8 +7,8 @@ Acceptance tests for elementwise operations
 Array equality
 --------------
 
->>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6])
->>> b = chx.ndarray((3,), chx.float32, [4, 2, 5])
+>>> a = chx.array([[1, 2, 3], [4, 5, 6]], chx.float32)
+>>> b = chx.array([4, 2, 5], chx.float32)
 
 >>> a == b
 array([[False,  True, False],
@@ -48,7 +48,7 @@ array([ 9.,  6.,  3., -0., -3., -6., -9.], shape=(7,), dtype=float32, device='na
 Conversion to Python scalar
 ---------------------------
 
->>> a = chx.ndarray((1,), chx.float32, [3.25])
+>>> a = chx.array([3.25], chx.float32)
 >>> float(a)
 3.25
 >>> int(a)
