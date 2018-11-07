@@ -1561,7 +1561,7 @@ class Parameter(Variable):
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
-        self._initial_device = chainer.get_device(backend.CpuDevice())
+        self._initial_device = backend.CpuDevice()
         self.update_rule = None
         self.initializer = initializer
 
