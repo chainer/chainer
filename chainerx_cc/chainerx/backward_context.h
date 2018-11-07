@@ -144,6 +144,9 @@ private:
     std::vector<std::shared_ptr<internal::ArrayBody>> retained_output_array_bodies_;
 
     DoubleBackpropOption double_backprop_option_;
+
+    // Be introduced to avoid the return value of output_grad() being destroyed at the end of the function.
+    const nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
 };
 
 }  // namespace chainerx
