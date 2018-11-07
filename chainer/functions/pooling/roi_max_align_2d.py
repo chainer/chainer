@@ -120,8 +120,8 @@ class ROIMaxAlign2D(function.Function):
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
-            max_val = None
-            max_index = None
+            max_val = -1e20
+            max_index = -1
             iy = 0
             while iy < roi_bin_grid_h:
                 y = roi_start_h + ph * bin_size_h + \
@@ -146,8 +146,7 @@ class ROIMaxAlign2D(function.Function):
 
                     tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
                     tmp_index = iy * roi_bin_grid_w + ix
-                    if max_val is None or max_index is None \
-                            or (tmp_val > max_val):
+                    if tmp_val > max_val:
                         max_val = tmp_val
                         max_index = tmp_index
 
@@ -314,34 +313,35 @@ class ROIMaxAlign2D(function.Function):
                 roi_bin_grid_w = self.sampling_ratio[1]
 
             max_index = self.argmax_data[n, c, ph, pw]
-            iy = int(max_index / roi_bin_grid_w)
-            ix = max_index % roi_bin_grid_w
+            if max_index != -1:
+                iy = int(max_index / roi_bin_grid_w)
+                ix = max_index % roi_bin_grid_w
 
-            y = roi_start_h + ph * bin_size_h + \
-                (iy + .5) * bin_size_h / roi_bin_grid_h
-            x = roi_start_w + pw * bin_size_w + \
-                (ix + .5) * bin_size_w / roi_bin_grid_w
+                y = roi_start_h + ph * bin_size_h + \
+                    (iy + .5) * bin_size_h / roi_bin_grid_h
+                x = roi_start_w + pw * bin_size_w + \
+                    (ix + .5) * bin_size_w / roi_bin_grid_w
 
-            # bilinear_interpolation_gradient {{
+                # bilinear_interpolation_gradient {{
 
-            y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                _get_bilinear_interp_params(y, x, height, width)
-            if y_low is None:
-                continue
+                y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
+                    _get_bilinear_interp_params(y, x, height, width)
+                if y_low is None:
+                    continue
 
-            g1 = top_diff_this_bin * w1
-            g2 = top_diff_this_bin * w2
-            g3 = top_diff_this_bin * w3
-            g4 = top_diff_this_bin * w4
+                g1 = top_diff_this_bin * w1
+                g2 = top_diff_this_bin * w2
+                g3 = top_diff_this_bin * w3
+                g4 = top_diff_this_bin * w4
 
-            if (x_low >= 0 and x_high >= 0 and
-                    y_low >= 0 and y_high >= 0):
-                bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
-                bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
-                bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
-                bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
+                if (x_low >= 0 and x_high >= 0 and
+                        y_low >= 0 and y_high >= 0):
+                    bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
+                    bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
+                    bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
+                    bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
 
-            # }}
+                # }}
 
         return bottom_diff, None, None
 
@@ -406,43 +406,45 @@ class ROIMaxAlign2D(function.Function):
                 : ceil(roi_width / pooled_width);
 
             int max_index = argmax_data[top_offset + ph * pooled_width + pw];
-            int iy = max_index / roi_bin_grid_w;
-            int ix = max_index % roi_bin_grid_w;
+            if (max_index != -1) {
+                int iy = max_index / roi_bin_grid_w;
+                int ix = max_index % roi_bin_grid_w;
 
-            T y = roi_start_h + ph * bin_size_h +
-                static_cast<T>(iy + .5f) * bin_size_h /
-                    static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
-            T x = roi_start_w + pw * bin_size_w +
-                static_cast<T>(ix + .5f) * bin_size_w /
-                    static_cast<T>(roi_bin_grid_w);
+                T y = roi_start_h + ph * bin_size_h +
+                    static_cast<T>(iy + .5f) * bin_size_h /
+                        static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                T x = roi_start_w + pw * bin_size_w +
+                    static_cast<T>(ix + .5f) * bin_size_w /
+                        static_cast<T>(roi_bin_grid_w);
 
-            // bilinear_interpolation_gradient {{
-            int y_low, x_low, y_high, x_high;
-            T w1, w2, w3, w4;
-            bool ret = get_bilinear_interp_params(
-                x, y, height, width,
-                y_low, x_low, y_high, x_high,
-                w1, w2, w3, w4
-            );
-            if (!ret) {
-                continue;
-            }
+                // bilinear_interpolation_gradient {{
+                int y_low, x_low, y_high, x_high;
+                T w1, w2, w3, w4;
+                bool ret = get_bilinear_interp_params(
+                    x, y, height, width,
+                    y_low, x_low, y_high, x_high,
+                    w1, w2, w3, w4
+                );
+                if (!ret) {
+                    continue;
+                }
 
-            T g1 = top_diff_this_bin * w1;
-            T g2 = top_diff_this_bin * w2;
-            T g3 = top_diff_this_bin * w3;
-            T g4 = top_diff_this_bin * w4;
+                T g1 = top_diff_this_bin * w1;
+                T g2 = top_diff_this_bin * w2;
+                T g3 = top_diff_this_bin * w3;
+                T g4 = top_diff_this_bin * w4;
 
-            if (x_low >= 0 && x_high >= 0 &&
-                    y_low >= 0 && y_high >= 0) {
-                atomicAdd(&bottom_diff[bottom_diff_offset +
-                                       y_low * width + x_low], g1);
-                atomicAdd(&bottom_diff[bottom_diff_offset +
-                                       y_low * width + x_high], g2);
-                atomicAdd(&bottom_diff[bottom_diff_offset +
-                                       y_high * width + x_low], g3);
-                atomicAdd(&bottom_diff[bottom_diff_offset +
-                                       y_high * width + x_high], g4);
+                if (x_low >= 0 && x_high >= 0 &&
+                        y_low >= 0 && y_high >= 0) {
+                    atomicAdd(&bottom_diff[bottom_diff_offset +
+                                           y_low * width + x_low], g1);
+                    atomicAdd(&bottom_diff[bottom_diff_offset +
+                                           y_low * width + x_high], g2);
+                    atomicAdd(&bottom_diff[bottom_diff_offset +
+                                           y_high * width + x_low], g3);
+                    atomicAdd(&bottom_diff[bottom_diff_offset +
+                                           y_high * width + x_high], g4);
+                }
             }
             // }}
             ''',
