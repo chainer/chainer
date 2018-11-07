@@ -5,7 +5,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer import backends
 from chainer.backends import cuda
 
 
@@ -40,7 +39,7 @@ def to_device(device, x):
     # For backward compatibilities
     if isinstance(device, six.integer_types):
         if device < 0:
-            device = backends.cpu.CpuDevice()
+            device = backend.CpuDevice()
         else:
             device = backend.get_device(cuda.Device(device))
     else:

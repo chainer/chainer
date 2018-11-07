@@ -3,6 +3,7 @@ import functools
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.testing import attr
 import chainerx
@@ -75,9 +76,9 @@ class BackendConfig(object):
             elif self.use_chainerx:
                 device = chainer.get_device(self.chainerx_device)
             elif self.use_ideep != 'never':
-                device = chainer.get_device(chainer.backends.intel64)
+                device = backend.Intel64Device()
             else:
-                device = chainer.get_device(chainer.backends.cpu.CpuDevice())
+                device = backend.CpuDevice()
             self._device = device
         return self._device
 

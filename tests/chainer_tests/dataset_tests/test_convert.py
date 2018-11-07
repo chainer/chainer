@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 from chainer import backend
-from chainer import backends
+from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
 from chainer.testing import attr
@@ -49,14 +49,14 @@ class TestConcatExamples(unittest.TestCase):
     def test_concat_arrays_to_gpu(self, backend_config):
         arrays = self.get_arrays_to_concat(backend_config)
         self.check_concat_arrays(
-            arrays, 0, backends.cuda.GpuDevice.from_device_id(0))
+            arrays, 0, backend.GpuDevice.from_device_id(0))
 
     @attr.chainerx
     def test_concat_arrays_to_chainerx(self, backend_config):
         device = chainerx.get_device('native:0')
         arrays = self.get_arrays_to_concat(backend_config)
         self.check_concat_arrays(
-            arrays, device, backends.chainerx.ChainerxDevice(device))
+            arrays, device, backend.ChainerxDevice(device))
 
     def get_tuple_arrays_to_concat(self, backend_config):
         return [
@@ -85,14 +85,14 @@ class TestConcatExamples(unittest.TestCase):
     def test_concat_tuples_to_gpu(self, backend_config):
         tuples = self.get_tuple_arrays_to_concat(backend_config)
         self.check_concat_tuples(
-            tuples, 0, backends.cuda.GpuDevice.from_device_id(0))
+            tuples, 0, backend.GpuDevice.from_device_id(0))
 
     @attr.chainerx
     def test_concat_tuples_to_chainerx(self, backend_config):
         device = chainerx.get_device('native:0')
         arrays = self.get_tuple_arrays_to_concat(backend_config)
         self.check_concat_tuples(
-            arrays, device, backends.chainerx.ChainerxDevice(device))
+            arrays, device, backend.ChainerxDevice(device))
 
     def get_dict_arrays_to_concat(self, backend_config):
         return [
@@ -121,14 +121,14 @@ class TestConcatExamples(unittest.TestCase):
     def test_concat_dicts_to_gpu(self, backend_config):
         dicts = self.get_dict_arrays_to_concat(backend_config)
         self.check_concat_dicts(
-            dicts, 0, backends.cuda.GpuDevice.from_device_id(0))
+            dicts, 0, backend.GpuDevice.from_device_id(0))
 
     @attr.chainerx
     def test_concat_dicts_to_chainerx(self, backend_config):
         device = chainerx.get_device('native:0')
         arrays = self.get_dict_arrays_to_concat(backend_config)
         self.check_concat_dicts(
-            arrays, device, backends.chainerx.ChainerxDevice(device))
+            arrays, device, backend.ChainerxDevice(device))
 
 
 @testing.backend.inject_backend_tests(
@@ -273,12 +273,12 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
             self.check_concat_arrays(
                 self.int_arrays,
                 device,
-                backends.cpu.CpuDevice(),
+                backend.CpuDevice(),
                 numpy.int64)
             self.check_concat_arrays(
                 self.float_arrays,
                 device,
-                backends.cpu.CpuDevice(),
+                backend.CpuDevice(),
                 numpy.float64)
 
     @attr.gpu
@@ -287,12 +287,12 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
         self.check_concat_arrays(
             self.int_arrays,
             device,
-            backends.cuda.GpuDevice.from_device_id(0),
+            backend.GpuDevice.from_device_id(0),
             numpy.int64)
         self.check_concat_arrays(
             self.float_arrays,
             device,
-            backends.cuda.GpuDevice.from_device_id(0),
+            backend.GpuDevice.from_device_id(0),
             numpy.float64)
 
     @attr.chainerx
@@ -301,18 +301,18 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
         self.check_concat_arrays(
             self.int_arrays,
             device,
-            backends.chainerx.ChainerxDevice(chainerx.get_device(device)),
+            backend.ChainerxDevice(chainerx.get_device(device)),
             numpy.int64)
         self.check_concat_arrays(
             self.float_arrays,
             device,
-            backends.chainerx.ChainerxDevice(chainerx.get_device(device)),
+            backend.ChainerxDevice(chainerx.get_device(device)),
             numpy.float64)
 
 
 def get_xp(gpu):
     if gpu:
-        return backends.cuda.cupy
+        return cuda.cupy
     else:
         return numpy
 

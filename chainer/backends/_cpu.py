@@ -1,11 +1,12 @@
-from chainer import backend
-from chainer import backends
-import chainerx
-
 import numpy
 
+from chainer import _backend
+from chainer.backends import cuda
+from chainer.backends import intel64
+import chainerx
 
-class CpuDevice(backend.Device):
+
+class CpuDevice(_backend.Device):
 
     @property
     def xp(self):
@@ -29,7 +30,7 @@ def _get_device(device_spec):
 
 def _to_numpy(array):
     """Converts an array or arrays to NumPy."""
-    return backend._convert_arrays(array, _array_to_numpy)
+    return _backend._convert_arrays(array, _array_to_numpy)
 
 
 def _array_to_numpy(array):
@@ -37,12 +38,12 @@ def _array_to_numpy(array):
         return None
     if isinstance(array, numpy.ndarray):
         return array
-    if isinstance(array, backends.intel64.mdarray):
+    if isinstance(array, intel64.mdarray):
         return numpy.asarray(array)
     if isinstance(array, chainerx.ndarray):
         return chainerx.to_numpy(array, copy=False)
-    if isinstance(array, backends.cuda.ndarray):
-        with backends.cuda.get_device_from_array(array):
+    if isinstance(array, cuda.ndarray):
+        with cuda.get_device_from_array(array):
             return array.get()
     if numpy.isscalar(array):
         return numpy.asarray(array)

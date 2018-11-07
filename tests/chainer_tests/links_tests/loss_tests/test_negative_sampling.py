@@ -3,19 +3,21 @@ import unittest
 import numpy
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend
+# TODO(hvy): Remove the following import once testing.backend is imported
+# in testing/__init__.py
+import chainer.testing.backend
 
 
 @testing.parameterize(*testing.product({
     't': [[0, 2], [-1, 1, 2]],
     'reduce': ['sum', 'no'],
 }))
-@backend.inject_backend_tests(
+@testing.backend.inject_backend_tests(
     ['test_forward', 'test_return_samples'],
     [
         # CPU test
@@ -116,9 +118,7 @@ class TestNegativeSampling(unittest.TestCase):
         self.assertEqual(
             link.sampler.device, chainer.get_device((cuda.cupy, 0)))
         link.to_device(numpy)
-        self.assertEqual(
-            link.sampler.device,
-            chainer.get_device(backends.cpu.CpuDevice()))
+        self.assertEqual(link.sampler.device, backend.CpuDevice())
 
     def test_return_samples(self, backend_config):
         batch_size = self.t.shape[0]

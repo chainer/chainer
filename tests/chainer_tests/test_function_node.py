@@ -8,11 +8,13 @@ import pytest
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend
+# TODO(hvy): Remove the following import once testing.backend is imported
+# in testing/__init__.py
+import chainer.testing.backend
 from chainer import utils
 from chainer.utils import type_check
 import chainerx
@@ -77,7 +79,7 @@ class TestFunctionNode(unittest.TestCase):
         self.gx1 = None
 
     def setup_cpu(self):
-        self._setup(chainer.get_device(backends.cpu.CpuDevice()))
+        self._setup(backend.CpuDevice())
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
@@ -190,7 +192,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
-        xp = chainer.backend.get_array_module(x1)
+        xp = backend.get_array_module(x1)
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
@@ -356,12 +358,12 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def check_mix_xp(self, xp):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
-        x2 = chainer.backend.to_chainerx(xp_x2)
+        x2 = backend.to_chainerx(xp_x2)
         y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
 
         assert isinstance(y.array, chainerx.ndarray)
         chainerx.testing.assert_array_equal(
-            chainer.backend.to_numpy(xp_x1 * xp_x2), y.array)
+            backend.to_numpy(xp_x1 * xp_x2), y.array)
 
     @attr.chainerx
     def test_mix_numpy(self):
@@ -499,7 +501,7 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
         self.check_debug_forward(cuda.to_gpu(self.one))
 
 
-@backend.inject_backend_tests(
+@testing.backend.inject_backend_tests(
     None,
     testing.product({'use_cuda': [True, False]}))
 class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
@@ -960,7 +962,7 @@ class ExpPair(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = chainer.backend.get_array_module(x)
+        xp = backend.get_array_module(x)
         self.retain_outputs((0, 1))
         return xp.exp(x), xp.exp(x)
 
@@ -1000,7 +1002,7 @@ class ExpAndExpm1(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = chainer.backend.get_array_module()
+        xp = backend.get_array_module()
         y0 = xp.exp(x)
         y1 = xp.expm1(x)
         self.retain_outputs((0,))

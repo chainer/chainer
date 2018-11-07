@@ -1,11 +1,13 @@
-import chainer
-from chainer import backend
-import chainerx
-
 import numpy
 
+from chainer import _backend
+from chainer.backends import _cpu
+from chainer.backends import cuda
+from chainer.backends import intel64
+import chainerx
 
-class ChainerxDevice(backend.Device):
+
+class ChainerxDevice(_backend.Device):
 
     def __init__(self, device):
         assert isinstance(device, chainerx.Device)
@@ -65,7 +67,7 @@ def _to_chainerx(array):
     Destination ChainerX devices are chosen according to the types of input
     arrays.
     """
-    return backend._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_to_chainerx(arr, None))
 
 
@@ -86,18 +88,18 @@ def _array_to_chainerx(array, device):
         if device is None:
             device = chainerx.get_device('native', 0)
         return chainerx.array(array, device=device, copy=False)
-    if isinstance(array, chainer.backends.cuda.ndarray):
+    if isinstance(array, cuda.ndarray):
         if device is None:
             device = chainerx.get_device('cuda', array.device.id)
         elif device.backend.name != 'cuda':
             # cupy to non-cuda backend
             # TODO(niboshi): Remove conversion to numpy when both CuPy and
             # ChainerX support the array interface.
-            array = chainer.backends.cpu._to_numpy(array)
+            array = _cpu._to_numpy(array)
             return chainerx.array(array, device=device, copy=False)
         elif device.index != array.device.id:
             # cupy to cuda backend but different device
-            array = chainer.backends.cuda.to_gpu(array, device=device.index)
+            array = cuda.to_gpu(array, device=device.index)
         # cupy to cuda backend with the same device
         return chainerx._core._fromrawpointer(
             array.data.mem.ptr,
@@ -107,7 +109,7 @@ def _array_to_chainerx(array, device):
             device,
             array.data.ptr - array.data.mem.ptr,
             array)
-    if isinstance(array, chainer.backends.intel64.mdarray):
+    if isinstance(array, intel64.mdarray):
         return _array_to_chainerx(numpy.array(array), device)
     if numpy.isscalar(array):
         return chainerx.asarray(array)

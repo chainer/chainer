@@ -8,7 +8,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -139,7 +138,7 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._device = chainer.get_device(backends.cpu.CpuDevice())
+        self._device = backend.CpuDevice()
         self._within_init_scope = False
         self.name = None
 
@@ -407,7 +406,7 @@ class Link(object):
         Returns: self
 
         """
-        return self.to_device(backends.cpu.CpuDevice())
+        return self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies parameter variables and persistent values to GPU.
