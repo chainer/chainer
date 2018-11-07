@@ -208,10 +208,10 @@ class ROIAverageAlign2D(function.Function):
             count = roi_bin_grid_h * roi_bin_grid_w
 
             output_val = 0.
-            for iy in range(roi_bin_grid_h):
+            for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                for ix in range(roi_bin_grid_w):
+                for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
@@ -385,10 +385,10 @@ class ROIAverageAlign2D(function.Function):
 
             count = roi_bin_grid_h * roi_bin_grid_w
 
-            for iy in range(roi_bin_grid_h):
+            for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                for ix in range(roi_bin_grid_w):
+                for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
