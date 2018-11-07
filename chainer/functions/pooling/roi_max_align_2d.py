@@ -112,22 +112,20 @@ class ROIMaxAlign2D(function.Function):
             bin_size_w = roi_width / pooled_width
 
             if self.sampling_ratio[0] is None:
-                roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
+                roi_bin_grid_h = int(numpy.ceil(roi_height / pooled_height))
             else:
                 roi_bin_grid_h = self.sampling_ratio[0]
             if self.sampling_ratio[1] is None:
-                roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+                roi_bin_grid_w = int(numpy.ceil(roi_width / pooled_width))
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
             max_val = -1e20
             max_index = -1
-            iy = 0
-            while iy < roi_bin_grid_h:
+            for iy in range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                ix = 0
-                while ix < roi_bin_grid_w:
+                for ix in range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
@@ -151,9 +149,6 @@ class ROIMaxAlign2D(function.Function):
                         max_index = tmp_index
 
                     # }}
-
-                    ix += 1
-                iy += 1
 
             top_data[n, c, ph, pw] = max_val
             self.argmax_data[n, c, ph, pw] = max_index
