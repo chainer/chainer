@@ -956,7 +956,7 @@ class TestChain(unittest.TestCase):
 
     def test_to_device(self):
         self.set_count_parameters()
-        device = chainer.backend.get_device(backend.CpuDevice())
+        device = backend.CpuDevice()
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
@@ -1524,7 +1524,7 @@ class TestChainList(unittest.TestCase):
         self.assertIs(self.l3.x.grad.device, expected_device)
 
     def test_to_device(self):
-        device = chainer.backend.get_device(backend.CpuDevice())
+        device = backend.CpuDevice()
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
@@ -1874,7 +1874,7 @@ class TestIntel64(unittest.TestCase):
         link.to_gpu()
         assert link.device.device == cuda.Device(0)
         link.to_intel64()
-        assert isinstance(link.device, intel64.Intel64Device)
+        assert isinstance(link.device, backend.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
 
