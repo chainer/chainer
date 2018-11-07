@@ -294,8 +294,8 @@ class ROIMaxAlign2D(function.Function):
             roi_end_h = bottom_rois[n, 2] * spatial_scale
             roi_end_w = bottom_rois[n, 3] * spatial_scale
 
-            roi_width = max(roi_end_w - roi_start_w, 1.)
             roi_height = max(roi_end_h - roi_start_h, 1.)
+            roi_width = max(roi_end_w - roi_start_w, 1.)
             bin_size_h = roi_height / pooled_height
             bin_size_w = roi_width / pooled_width
 
