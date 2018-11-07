@@ -8,14 +8,16 @@ from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend as testing_backend
+# TODO(hvy): Remove the following import once testing.backend is imported
+# in testing/__init__.py
+import chainer.testing.backend
 
 
 @testing.parameterize(*testing.product({
     't': [[0, 2], [-1, 1, 2]],
     'reduce': ['sum', 'no'],
 }))
-@testing_backend.inject_backend_tests(
+@testing.backend.inject_backend_tests(
     ['test_forward', 'test_return_samples'],
     [
         # CPU test

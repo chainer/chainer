@@ -12,7 +12,9 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend as testing_backend
+# TODO(hvy): Remove the following import once testing.backend is imported
+# in testing/__init__.py
+import chainer.testing.backend
 from chainer import utils
 from chainer.utils import type_check
 import chainerx
@@ -499,7 +501,7 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
         self.check_debug_forward(cuda.to_gpu(self.one))
 
 
-@testing_backend.inject_backend_tests(
+@testing.backend.inject_backend_tests(
     None,
     testing.product({'use_cuda': [True, False]}))
 class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
