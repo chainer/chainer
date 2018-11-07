@@ -122,10 +122,10 @@ class ROIMaxAlign2D(function.Function):
 
             max_val = -1e20
             max_index = -1
-            for iy in range(roi_bin_grid_h):
+            for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                for ix in range(roi_bin_grid_w):
+                for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
