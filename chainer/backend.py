@@ -1,11 +1,11 @@
 import numpy
 
 import chainer
-from chainer.backends import _cpu as backends_cpu_module
-from chainer.backends import _chainerx as backends_chainerx_module
-from chainer.backends import cuda as backends_cuda_module
-from chainer.backends import intel64 as backends_intel64_module
-import chainerx as chainerx_module
+from chainer.backends import _cpu
+from chainer.backends import _chainerx
+from chainer.backends import cuda
+from chainer.backends import intel64
+import chainerx
 
 # Aliases
 from chainer._backend import Device
@@ -26,7 +26,7 @@ def _contains_nan(x):
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with backends_cuda_module.get_device_from_array(x):
+        with cuda.get_device_from_array(x):
             return get_array_module(x).isnan(x).any()
     else:
         return False
@@ -46,20 +46,19 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, backends_cpu_module._to_numpy(src))
-    elif isinstance(dst, backends_intel64_module.mdarray):
-        backends_intel64_module.ideep.basic_copyto(
-            dst, backends_cpu_module._to_numpy(src))
-    elif isinstance(dst, backends_cuda_module.ndarray):
+        numpy.copyto(dst, _cpu._to_numpy(src))
+    elif isinstance(dst, intel64.mdarray):
+        intel64.ideep.basic_copyto(
+            dst, _cpu._to_numpy(src))
+    elif isinstance(dst, cuda.ndarray):
         if isinstance(src, chainer.get_cpu_array_types()):
             src = numpy.asarray(src)
             if dst.flags.c_contiguous or dst.flags.f_contiguous:
                 dst.set(src)
             else:
-                backends_cuda_module.cupy.copyto(
-                    dst, backends_cuda_module.to_gpu(src, device=dst.device))
-        elif isinstance(src, backends_cuda_module.ndarray):
-            backends_cuda_module.cupy.copyto(dst, src)
+                cuda.cupy.copyto(dst, cuda.to_gpu(src, device=dst.device))
+        elif isinstance(src, cuda.ndarray):
+            cuda.cupy.copyto(dst, src)
         else:
             raise TypeError('cannot copy from non-array object of type {}'
                             .format(type(src)))
@@ -70,12 +69,12 @@ def copyto(dst, src):
 
 # TODO(niboshi): Revisit API
 def to_numpy(array):
-    return backends_cpu_module._to_numpy(array)
+    return _cpu._to_numpy(array)
 
 
 # TODO(niboshi): Revisit API
 def to_chainerx(array, device_spec=None):
-    return backends_chainerx_module._to_chainerx(array)
+    return _chainerx._to_chainerx(array)
 
 
 def get_device(device_spec):
@@ -116,10 +115,10 @@ def get_device(device_spec):
         return device_spec
 
     get_device_funcs = (
-        backends_cpu_module._get_device,
-        backends_cuda_module._get_device,
-        backends_intel64_module._get_device,
-        backends_chainerx_module._get_device
+        _chainerx._get_device,
+        _cpu._get_device,
+        cuda._get_device,
+        intel64._get_device,
     )
 
     for get_device_func in get_device_funcs:
@@ -134,7 +133,7 @@ def _get_device_compat(device_spec):
     # Backward-compatibility version of get_device.
     # It supports CUDA device index as an integer (numpy if negative)
     # Returns chainer.Device.
-    if isinstance(device_spec, backends_cuda_module._integer_types):
+    if isinstance(device_spec, cuda._integer_types):
         if device_spec < 0:
             return CpuDevice()
         else:
@@ -172,15 +171,15 @@ def get_array_module(*args):
         on the types of the arguments.
 
     """
-    if chainerx_module.is_available() or backends_cuda_module.available:
+    if chainerx.is_available() or cuda.available:
         args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
 
-    if (chainerx_module.is_available()
-            and any([isinstance(a, chainerx_module.ndarray) for a in args])):
-        return chainerx_module
-    elif backends_cuda_module.available:
-        return backends_cuda_module.cupy.get_array_module(*args)
+    if (chainerx.is_available()
+            and any([isinstance(a, chainerx.ndarray) for a in args])):
+        return chainerx
+    elif cuda.available:
+        return cuda.cupy.get_array_module(*args)
     else:
         return numpy
 
@@ -211,7 +210,7 @@ def get_device_from_array(*arrays):
         if device is not None:
             return device
 
-        if isinstance(array, chainerx_module.ndarray):
+        if isinstance(array, chainerx.ndarray):
             return ChainerxDevice(array.device)
 
         device = Intel64Device.from_array(array)
