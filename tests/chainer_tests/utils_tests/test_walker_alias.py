@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -41,7 +41,7 @@ class TestWalkerAlias(unittest.TestCase):
         self.sampler.to_cpu()
         assert not self.sampler.use_gpu
         assert isinstance(
-            self.sampler._device, chainer.backends.cpu.CpuDevice)
+            self.sampler._device, backend.CpuDevice)
         self.check_sample()
 
 
