@@ -23,10 +23,10 @@ namespace {
 // A dummy allocator to test throw OutOfMemoryError
 class AlwaysOutOfMemoryAllocator : public Allocator {
 public:
-    AllocatorStatus Malloc(void** ptr, size_t bytesize) override {
+    MallocStatus Malloc(void** ptr, size_t bytesize) override {
         (void)ptr;  // unused
         (void)bytesize;  // unused
-        return AllocatorStatus::kErrorMemoryAllocation;
+        return MallocStatus::kErrorMemoryAllocation;
     }
     void Free(void* ptr) override {
         (void)ptr;  // unused
@@ -36,13 +36,13 @@ public:
 // A dummy allocator to test retry on out of memory
 class OnceOutOfMemoryAllocator : public Allocator {
 public:
-    AllocatorStatus Malloc(void** ptr, size_t bytesize) override {
+    MallocStatus Malloc(void** ptr, size_t bytesize) override {
         (void)ptr;  // unused
         (void)bytesize;  // unused
         if (malloc_called_++ == 0) {
-            return AllocatorStatus::kErrorMemoryAllocation;
+            return MallocStatus::kErrorMemoryAllocation;
         } else {
-            return AllocatorStatus::kSuccess;
+            return MallocStatus::kSuccess;
         }
     }
     void Free(void* ptr) override {

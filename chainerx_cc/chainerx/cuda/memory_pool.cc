@@ -11,26 +11,26 @@
 namespace chainerx {
 namespace cuda {
 
-AllocatorStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
+MallocStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
     cudaError_t status = cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal);
     switch (status) {
         case cudaSuccess:
-            return AllocatorStatus::kSuccess;
+            return MallocStatus::kSuccess;
         case cudaErrorMemoryAllocation:
-            return AllocatorStatus::kErrorMemoryAllocation;
+            return MallocStatus::kErrorMemoryAllocation;
         default:
             Throw(status);
     }
     CHAINERX_NEVER_REACH();
 }
 
-AllocatorStatus PinnedMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
+MallocStatus PinnedMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
     cudaError_t status = cudaHostAlloc(ptr, bytesize, cudaHostAllocWriteCombined);
     switch (status) {
         case cudaSuccess:
-            return AllocatorStatus::kSuccess;
+            return MallocStatus::kSuccess;
         case cudaErrorMemoryAllocation:
-            return AllocatorStatus::kErrorMemoryAllocation;
+            return MallocStatus::kErrorMemoryAllocation;
         default:
             Throw(status);
     }
@@ -96,11 +96,11 @@ void* MemoryPool::Malloc(size_t bytesize) {
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
         CudaSetDeviceScope scope{device_index_};
-        AllocatorStatus status = allocator_->Malloc(&ptr, allocation_size);
-        if (status == AllocatorStatus::kErrorMemoryAllocation) {
+        MallocStatus status = allocator_->Malloc(&ptr, allocation_size);
+        if (status == MallocStatus::kErrorMemoryAllocation) {
             FreeAllBlocks();
             status = allocator_->Malloc(&ptr, allocation_size);
-            if (status == AllocatorStatus::kErrorMemoryAllocation) {
+            if (status == MallocStatus::kErrorMemoryAllocation) {
                 // TODO(sonots): Include total pooled bytes in the error message
                 throw OutOfMemoryError{allocation_size};
             }

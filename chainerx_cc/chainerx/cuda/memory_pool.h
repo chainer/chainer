@@ -20,7 +20,7 @@ class MemoryPoolTest;  // for unit-tests
 
 constexpr size_t kAllocationUnitSize = 512;
 
-enum class AllocatorStatus { kSuccess = 0, kErrorMemoryAllocation };
+enum class MallocStatus { kSuccess = 0, kErrorMemoryAllocation };
 
 class OutOfMemoryError : public ChainerxError {
 public:
@@ -34,7 +34,7 @@ class Allocator {
 public:
     // Allocates memory.
     // This function may throw.
-    virtual AllocatorStatus Malloc(void** ptr, size_t bytesize) = 0;
+    virtual MallocStatus Malloc(void** ptr, size_t bytesize) = 0;
 
     // Frees allocated memory.
     // This function does not throw, since it should be usable from within a destructor.
@@ -43,13 +43,13 @@ public:
 
 class DeviceMemoryAllocator : public Allocator {
 public:
-    AllocatorStatus Malloc(void** ptr, size_t bytesize) override;
+    MallocStatus Malloc(void** ptr, size_t bytesize) override;
     void Free(void* ptr) override { cudaFree(ptr); }
 };
 
 class PinnedMemoryAllocator : public Allocator {
 public:
-    AllocatorStatus Malloc(void** ptr, size_t bytesize) override;
+    MallocStatus Malloc(void** ptr, size_t bytesize) override;
     void Free(void* ptr) override { cudaFreeHost(ptr); }
 };
 
