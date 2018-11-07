@@ -136,6 +136,7 @@ class ROIMaxAlign2D(function.Function):
                     y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
                         _get_bilinear_interp_params(y, x, height, width)
                     if y_low is None:
+                        ix += 1
                         continue
 
                     v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
