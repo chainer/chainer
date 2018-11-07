@@ -1,14 +1,13 @@
+import numpy
+
+from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import device
-from chainer import utils
 import chainerx
 
-import numpy
 
-
-class ChainerxDevice(device.Device):
+class ChainerxDevice(_backend.Device):
 
     def __init__(self, device):
         assert isinstance(device, chainerx.Device)
@@ -68,7 +67,7 @@ def _to_chainerx(array):
     Destination ChainerX devices are chosen according to the types of input
     arrays.
     """
-    return utils.array._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_to_chainerx(arr, None))
 
 

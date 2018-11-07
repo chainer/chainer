@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer import _backend
 from chainer.backends import _cpu as backends_cpu_module
 from chainer.backends import _chainerx as backends_chainerx_module
 from chainer.backends import cuda as backends_cuda_module
@@ -9,11 +8,11 @@ from chainer.backends import intel64 as backends_intel64_module
 import chainerx as chainerx_module
 
 # Aliases
+from chainer._backend import Device
 from chainer.backends._chainerx import ChainerxDevice
 from chainer.backends._cpu import CpuDevice
 from chainer.backends.cuda import GpuDevice
 from chainer.backends.intel64 import Intel64Device
-from chainer.device import Device
 
 
 def _contains_nan(x):
@@ -173,7 +172,17 @@ def get_array_module(*args):
         on the types of the arguments.
 
     """
-    return _backend._get_array_module(*args)
+    if chainerx_module.is_available() or backends_cuda_module.available:
+        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
+                for arg in args]
+
+    if (chainerx_module.is_available()
+            and any([isinstance(a, chainerx_module.ndarray) for a in args])):
+        return chainerx_module
+    elif backends_cuda_module.available:
+        return backends_cuda_module.cupy.get_array_module(*args)
+    else:
+        return numpy
 
 
 def get_device_from_array(*arrays):

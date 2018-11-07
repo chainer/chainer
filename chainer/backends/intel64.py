@@ -5,9 +5,9 @@ import sys
 import numpy
 
 import chainer
+from chainer import _backend
 from chainer.backends import _cpu
 from chainer.configuration import config
-from chainer import device
 
 
 _ideep_version = None
@@ -25,7 +25,7 @@ except ImportError as e:
         pass  # for type testing
 
 
-class Intel64Device(device.Device):
+class Intel64Device(_backend.Device):
 
     def __init__(self):
         check_ideep_available()

@@ -40,11 +40,10 @@ import numpy
 import six
 
 import chainer
+from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import intel64
 from chainer.configuration import config
-from chainer import device
-from chainer import utils
 import chainerx
 
 available = False
@@ -156,7 +155,7 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 # Device
 # ------------------------------------------------------------------------------
-class GpuDevice(device.Device):
+class GpuDevice(_backend.Device):
 
     def __init__(self, device):
         assert isinstance(device, Device)
@@ -360,7 +359,7 @@ def to_gpu(array, device=None, stream=None):
     else:
         device = _get_device_or_current(device)
 
-    return utils.array._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_to_gpu(arr, device, stream))
 
 
@@ -451,7 +450,7 @@ def to_cpu(array, stream=None):
         If input arrays include `None`, it is returned as `None` as is.
 
     """
-    return utils.array._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_to_cpu(arr, stream))
 
 

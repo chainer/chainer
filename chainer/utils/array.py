@@ -54,22 +54,3 @@ def sum_to(x, shape):
     if lead > 0:
         y = y.squeeze(lead_axis)
     return y
-
-
-def _convert_arrays(array, func):
-    # Converts array or arrays
-    if isinstance(array, (list, tuple)):
-        d = {}
-        ret = []
-        for arr in array:
-            if arr is None:
-                ret.append(None)
-            else:
-                arr2 = d.get(id(arr))
-                if arr2 is None:
-                    arr2 = func(arr)
-                    d[id(arr)] = arr2
-                ret.append(arr2)
-        return type(array)(ret)
-    else:
-        return func(array)

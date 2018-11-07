@@ -1,13 +1,12 @@
 import numpy
 
+from chainer import _backend
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import device
-from chainer import utils
 import chainerx
 
 
-class CpuDevice(device.Device):
+class CpuDevice(_backend.Device):
 
     @property
     def xp(self):
@@ -31,7 +30,7 @@ def _get_device(device_spec):
 
 def _to_numpy(array):
     """Converts an array or arrays to NumPy."""
-    return utils.array._convert_arrays(array, _array_to_numpy)
+    return _backend._convert_arrays(array, _array_to_numpy)
 
 
 def _array_to_numpy(array):
