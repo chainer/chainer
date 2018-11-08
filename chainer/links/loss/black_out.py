@@ -59,5 +59,5 @@ class BlackOut(link.Link):
         else:
             shape = (batch_size, self.sample_size)
             sample_data = self.sampler.sample(shape)
-        samples = variable.Variable(sample_data)
+        samples = variable.Variable(sample_data, requires_grad=False)
         return black_out.black_out(x, t, self.W, samples)

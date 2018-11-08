@@ -96,20 +96,19 @@ class WalkerAlias(object):
             object.
         """
         xp = self._device.xp
-        if xp is cuda.cupy:
-            return self.sample_gpu(shape)
-        elif xp is numpy:
-            return self.sample_cpu(shape)
-        else:
-            # TODO(niboshi): Support ChainerX
-            raise NotImplementedError(
-                'WalkerAlias does not support device: {}'.format(self._device))
+        with chainer.using_device(self._device):
+            if xp is cuda.cupy:
+                return self.sample_gpu(shape)
+            else:
+                return self.sample_xp(xp, shape)
 
-    def sample_cpu(self, shape):
-        ps = numpy.random.uniform(0, 1, shape)
+    def sample_xp(self, xp, shape):
+        thr_dtype = self.threshold.dtype
+        ps = xp.random.uniform(0, 1, shape).astype(thr_dtype)
         pb = ps * len(self.threshold)
         index = pb.astype(numpy.int32)
-        left_right = (self.threshold[index] < pb - index).astype(numpy.int32)
+        left_right = self.threshold[index] < (pb - index.astype(thr_dtype))
+        left_right = left_right.astype(numpy.int32)
         return self.values[index * 2 + left_right]
 
     def sample_gpu(self, shape):
