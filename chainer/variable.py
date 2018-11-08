@@ -982,36 +982,33 @@ class Variable(object):
         """Copies the data and gradient arrays to ChainerX devices."""
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
-        if not self._is_chainerx and self.creator is not None:
+        if self._is_chainerx:
+            return
+        elif self.creator is not None:
             raise RuntimeError(
-                'A variable with a creator cannot be '
-                'converted into ChainerX array')
+                'A variable with a creator cannot be converted into ChainerX '
+                'array')
 
-        data = self.data
-        new_data = None
-        new_grad = None
+        array = self.array
+        grad = self.grad
 
-        if data is not None:
-            new_data = backend.to_chainerx(data)
-            if self._requires_grad:
-                new_data.require_grad()
+        if array is None and grad is not None:
+            raise RuntimeError(
+                'A variable without data but with a gradient cannot be '
+                'transferred to a ChainerX device.')
+            # TODO(hvy): Make it possible by delaying array.set_grad(grad).
 
-            grad_var = self.grad_var
-            if grad_var is not None:
-                grad_var.to_chainerx()
-                new_grad = grad_var.array
+        if array is None or isinstance(array, numpy.ndarray):
+            device = chainer.get_device('native:0')
+        elif isinstance(array, cuda.ndarray):
+            device = chainer.get_device(
+                'cuda:{}'.format(self.array.device.id))
+        else:
+            raise NotImplementedError(
+                'Variable.to_chainerx only supports transfer from native or '
+                'CUDA device.')
 
-        self._data = [new_data]
-        self._is_chainerx = True
-        self._set_chainerx_array(new_data, new_grad)
-
-        # ChainerX itself has own node objects,
-        # ensure that the node is disconnected with this variable.
-        node = self._node
-        if node is not None:
-            # Disconnect by replacing with an alternative of dead weakref
-            node._variable = lambda: None
-            self._node = None
+        self._to_device_without_check(device)
 
     def from_chainerx(self):
         """Converts arrays to ChainerX array without any copy.
@@ -1071,8 +1068,15 @@ class Variable(object):
                 grad_var.to_device(device)
 
         # ensure that the node tracks the device migration
-        if not is_chainerx:
-            node = self._node
+        node = self._node
+        if is_chainerx:
+            # ChainerX itself has own node objects,
+            # ensure that the node is disconnected with this variable.
+            if node is not None:
+                # Disconnect by replacing with an alternative of dead weakref
+                node._variable = lambda: None
+                self._node = None
+        else:
             if node._data is not None:
                 node.retain_data()
 
