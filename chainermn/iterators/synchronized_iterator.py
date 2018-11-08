@@ -34,6 +34,9 @@ class _SynchronizedIterator(chainer.dataset.iterator.Iterator):
     def __next__(self):
         return self.actual_iterator.__next__()
 
+    def serialize(self, serializer):
+        self.actual_iterator.serialize(serializer)
+
 
 def create_synchronized_iterator(actual_iterator, communicator):
     """Create a synchronized iterator from a Chainer iterator.
