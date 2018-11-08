@@ -18,21 +18,29 @@ from chainer.initializers import constant
 from chainer.utils import argument
 
 
-def _check_grad_type(func, x, gx):
-    if x.data is None or gx is None:
-        # ``x.data is None`` implies that the data array is not retained
+def _check_grad_type(func, x_node, gx, is_var_gx):
+    assert isinstance(x_node, VariableNode)
+    if gx is None:
         return
-    if not chainer.is_arrays_compatible((gx, x.data)):
+    x_grad = gx.array if is_var_gx else gx
+    x_data = x_node.data
+    if x_grad is None:
+        msg = 'Data of grad_var is None'
+        typ = ValueError
+    elif x_data is not None \
+            and not chainer.is_arrays_compatible((x_grad, x_data)):
+        # ``x_data is None`` implies that the data array is not retained
+        # TODO(kataoka): Make _update_data_info store the array module
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(gx), type(x.data)))
+               (type(x_grad), type(x_data)))
         typ = TypeError
-    elif gx.dtype != x.data.dtype:
+    elif x_grad.dtype != x_node.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.dtype, x.data.dtype))
+               (x_grad.dtype, x_node.dtype))
         typ = TypeError
-    elif gx.shape != x.data.shape:
+    elif x_grad.shape != x_node.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.shape, x.data.shape))
+               (x_grad.shape, x_node.shape))
         typ = ValueError
     else:
         return
@@ -694,8 +702,7 @@ Actual: {0}'''.format(type(data))
 
     @grad_var.setter
     def grad_var(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g.array)
+        _check_grad_type(None, self.node, g, True)
         self._grad_var = g
 
     @property
@@ -1053,7 +1060,7 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem.array)
+                    _check_grad_type(func, x, gx_elem, True)
                 del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
