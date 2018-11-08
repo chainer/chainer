@@ -975,6 +975,30 @@ class Variable(object):
         intel64.check_ideep_available()
         self.to_device(intel64)
 
+    def _to_chainerx_without_check(self):
+        array = self.array
+        grad = self.grad
+        if array is None and grad is not None:
+            raise RuntimeError(
+                'A variable without data but with a gradient cannot be '
+                'transferred to a ChainerX device.')
+            # TODO(hvy): Make it possible by delaying array.set_grad(grad).
+
+        xp = self.xp
+        if xp is chainerx:
+            return
+        elif xp is numpy or array is None:
+            device = chainer.get_device('native:0')
+        elif xp is cuda.cupy:
+            device = chainer.get_device(
+                'cuda:{}'.format(self.array.device.id))
+        else:
+            raise NotImplementedError(
+                'Variable.to_chainerx only supports transfer from native or '
+                'CUDA device.')
+
+        self._to_device_without_check(device)
+
     # TODO(niboshi): Revisit API. Possibly the default device should be used
     # for device=None. In that case current behavior (automatically choose
     # a device with zero-copy) should be achieved in another way.
@@ -988,27 +1012,7 @@ class Variable(object):
             raise RuntimeError(
                 'A variable with a creator cannot be converted into ChainerX '
                 'array')
-
-        array = self.array
-        grad = self.grad
-
-        if array is None and grad is not None:
-            raise RuntimeError(
-                'A variable without data but with a gradient cannot be '
-                'transferred to a ChainerX device.')
-            # TODO(hvy): Make it possible by delaying array.set_grad(grad).
-
-        if array is None or isinstance(array, numpy.ndarray):
-            device = chainer.get_device('native:0')
-        elif isinstance(array, cuda.ndarray):
-            device = chainer.get_device(
-                'cuda:{}'.format(self.array.device.id))
-        else:
-            raise NotImplementedError(
-                'Variable.to_chainerx only supports transfer from native or '
-                'CUDA device.')
-
-        self._to_device_without_check(device)
+        self._to_chainerx_without_check()
 
     def from_chainerx(self):
         """Converts arrays to ChainerX array without any copy.
@@ -1099,6 +1103,13 @@ class Variable(object):
                 raise RuntimeError(
                     'A variable of a ChainerX array which requires gradients '
                     'cannot be copied into non-chainerx device '
+                    '({}).'.format(device))
+        elif not was_chainerx and is_chainerx:
+            arr = self._data[0]
+            if arr is not None and self.creator is not None:
+                raise RuntimeError(
+                    'A variable of a non-ChainerX array which is connected to '
+                    'a graph cannot be copied to a ChainerX device '
                     '({}).'.format(device))
 
         self._to_device_without_check(device)
@@ -1622,6 +1633,9 @@ class Parameter(Variable):
         self.to_device(intel64)
 
     def to_chainerx(self):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+
         xp = self._initial_device.xp
         if xp is chainerx:
             return self
@@ -1637,7 +1651,7 @@ class Parameter(Variable):
             else:
                 assert False
 
-        super(Parameter, self).to_chainerx()
+        super(Parameter, self)._to_chainerx_without_check()
 
     def to_device(self, device):
         device = chainer.get_device(device)

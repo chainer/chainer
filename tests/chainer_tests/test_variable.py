@@ -1422,7 +1422,6 @@ class TestParameter(unittest.TestCase):
     {'x_shape': (10,)},
     {'x_shape': ()},
 )
-@attr.chainerx
 class TestParameterToDevice(unittest.TestCase):
 
     def check_to_device(self, x, device_spec, expected_xp):
@@ -1508,6 +1507,71 @@ class TestParameterToDevice(unittest.TestCase):
     @attr.chainerx
     def test_initialize_by_array_to_device_chainerx(self):
         self.check_initialize_by_array(self.x_shape, 'native:0', chainerx)
+
+
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
+@attr.chainerx
+class TestParameterToChainerX(unittest.TestCase):
+
+    def check_to_chainerx(self, x):
+        assert isinstance(x, chainer.Parameter)
+        x.to_chainerx()
+        assert x.xp is chainerx
+
+    def check_initializer(self, shape):
+        x = chainer.Parameter(shape=shape)
+        self.check_to_chainerx(x)
+
+    def check_initialize_by_scalar(self, shape):
+        x = chainer.Parameter(2., shape)
+        self.check_to_chainerx(x)
+
+    def check_initialize_by_initializer(self, shape):
+        x = chainer.Parameter(initializers.One(), shape)
+        self.check_to_chainerx(x)
+
+    def check_initialize_by_none(self, shape):
+        x = chainer.Parameter(None, shape)
+        self.check_to_chainerx(x)
+
+    def check_initialize_by_array(self, shape, xp, device=None):
+        if device is not None:
+            data = xp.random.uniform(-1, 1, shape, device=device).astype('f')
+        else:
+            data = xp.random.uniform(-1, 1, shape).astype('f')
+
+        x = chainer.Parameter(data)
+        self.check_to_chainerx(x)
+
+    def test_initializer_to_chainerx(self):
+        self.check_initializer(self.x_shape)
+
+    def test_initialize_by_scalar_to_chainerx(self):
+        self.check_initialize_by_scalar(self.x_shape)
+
+    def test_initialize_by_initializer_to_chainerx(self):
+        self.check_initialize_by_initializer(self.x_shape)
+
+    def test_initialize_by_none_to_chainerx(self):
+        self.check_initialize_by_none(self.x_shape)
+
+    def test_initialize_by_array_to_device_numpy(self):
+        self.check_initialize_by_array(self.x_shape, np)
+
+    @attr.gpu
+    def test_initialize_by_array_to_device_cupy(self):
+        self.check_initialize_by_array(self.x_shape, cuda.cupy)
+
+    @attr.chainerx
+    def test_initialize_by_array_to_device_chainerx_native(self):
+        self.check_initialize_by_array(self.x_shape, chainerx, 'native:0')
+
+    @attr.chainerx
+    def test_initialize_by_array_to_device_chainerx(self):
+        self.check_initialize_by_array(self.x_shape, chainerx, 'cuda:0')
 
 
 class TestUninitializedParameter(unittest.TestCase):
