@@ -118,7 +118,7 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(
+        type_check._argname(
             in_types, ('input_length', 'label_length', 't', 'x'))
         input_length_type, label_length_type, t_type, x_type = in_types
         type_check.expect(
@@ -147,7 +147,7 @@ class ConnectionistTemporalClassification(function.Function):
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
             res = create_recurrence_relation(x, self.zero_padding)
-        return res.astype(numpy.float32)
+        return res.astype(numpy.float32, copy=False)
 
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,

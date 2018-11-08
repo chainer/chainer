@@ -341,6 +341,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
+    'chainercv': ('https://chainercv.readthedocs.io/en/latest/', None),
 }
 
 doctest_global_setup = '''

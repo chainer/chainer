@@ -1,9 +1,7 @@
-import functools
-import operator
-
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer import utils
 from chainer import variable
 
 
@@ -133,6 +131,6 @@ class Linear(link.Link):
 
         """
         if self.W.data is None:
-            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+            in_size = utils.size_of_shape(x.shape[1:])
             self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)

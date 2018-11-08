@@ -36,8 +36,7 @@ We recommend using other BLAS libraries such as OpenBLAS.
 For details of the issue, please see
 https://docs.chainer.org/en/stable/tips.html#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x.
 
-Also note that Chainer does not officially support Mac OS X.
-Please use it at your own risk.
+Please be aware that Mac OS X is not an officially supported OS.
 ''')  # NOQA
 
 

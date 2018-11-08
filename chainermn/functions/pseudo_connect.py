@@ -50,7 +50,7 @@ def pseudo_connect(delegate_variable, *actual_variables):
 
         This model receives inputs from rank=3 process and sends its outputs
         to rank=1 process. The entire graph can be seen as one connected
-        component ``ConnectedGraphSub``. Please refer the document of
+        component ``ConnectedGraphSub``. Please refer the documentation of
         ``MultiNodeChainList`` for detail.
 
         On the other hand, see the next example::

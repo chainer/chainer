@@ -1,6 +1,3 @@
-import functools
-import operator
-
 import numpy
 
 import chainer
@@ -8,6 +5,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
+from chainer import utils
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
@@ -19,9 +17,9 @@ if cuda.cudnn_enabled:
 
 
 def _get_tensor4d_shape(axis, shape):
-    left_shape = functools.reduce(operator.mul, shape[:axis], 1)
+    left_shape = utils.size_of_shape(shape[:axis])
     center_shape = shape[axis]
-    right_shape = functools.reduce(operator.mul, shape[axis:][1:], 1)
+    right_shape = utils.size_of_shape(shape[axis:][1:])
     return left_shape, center_shape, right_shape, 1
 
 
@@ -39,13 +37,12 @@ class Softmax(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            x_type.ndim > 1,
-            self.axis < x_type.ndim
+            -x_type.ndim <= self.axis < x_type.ndim,
         )
 
     def forward(self, x):

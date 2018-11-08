@@ -10,8 +10,10 @@ from chainer.utils import type_check
 
 def _fbeta_score(precision, recall, beta):
     beta_square = beta * beta
-    return ((1 + beta_square) * precision * recall /
-            (beta_square * precision + recall)).astype(precision.dtype)
+    return (
+        (1 + beta_square) * precision * recall
+        / (beta_square * precision + recall)
+    ).astype(precision.dtype, copy=False)
 
 
 class ClassificationSummary(function.Function):
@@ -22,7 +24,7 @@ class ClassificationSummary(function.Function):
         self.ignore_label = ignore_label
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(

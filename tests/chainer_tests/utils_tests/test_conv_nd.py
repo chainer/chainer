@@ -44,13 +44,11 @@ class TestIm2ColND(unittest.TestCase):
     def check_im2col_nd(self, ksize, stride, pad, gpu):
         dims = self.dims
         if gpu:
-            im2col = conv_nd.im2col_nd_gpu
             img = cuda.to_gpu(self.img)
         else:
-            im2col = conv_nd.im2col_nd_cpu
             img = self.img
 
-        col = im2col(img, ksize, stride, pad)
+        col = conv_nd.im2col_nd(img, ksize, stride, pad)
         outs = tuple(conv_nd.get_conv_outsize(d, k, s, p)
                      for (d, k, s, p) in zip(dims, ksize, stride, pad))
         expected_shape = (2, 3) + ksize + outs
@@ -174,13 +172,11 @@ class TestCol2ImND(unittest.TestCase):
         col = numpy.random.uniform(-1, 1, col_shape).astype(numpy.float32)
 
         if gpu:
-            col2im = conv_nd.col2im_nd_gpu
             col_data = cuda.to_gpu(col)
         else:
-            col2im = conv_nd.col2im_nd_cpu
             col_data = col
 
-        img = col2im(col_data, stride, pad, dims)
+        img = conv_nd.col2im_nd(col_data, stride, pad, dims)
         img = cuda.to_cpu(img)
         img_shape = (2, 3) + dims
         self.assertEqual(img.shape, img_shape)
