@@ -1,5 +1,7 @@
 import warnings
 
+from chainer.training import trigger
+
 
 class IntervalTrigger(object):
 
@@ -108,3 +110,7 @@ class IntervalTrigger(object):
 
     def get_training_length(self):
         return (self.period, self.unit)
+
+
+# Alias for backward compatibility
+trigger.IntervalTrigger = IntervalTrigger
