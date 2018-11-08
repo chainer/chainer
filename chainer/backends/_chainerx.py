@@ -41,12 +41,12 @@ class ChainerxDevice(_backend.Device):
 
 
 def to_chainerx(array):
-    """Converts an array or arrays to ChainerX without copy.
+    """Converts an array or arrays to ChainerX.
 
     Destination ChainerX devices are chosen according to the types of input
     arrays.
     """
-    return backend._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_to_chainerx(arr, None))
 
 
@@ -55,7 +55,7 @@ def from_chainerx(array):
 
     Destination devices are chosen such that no copies occur.
     """
-    return backend._convert_arrays(
+    return _backend._convert_arrays(
         array, lambda arr: _array_from_chainerx(arr))
 
 
@@ -78,16 +78,6 @@ def _get_chainerx_device(device_spec):
     if isinstance(device_spec, chainerx.Device):
         return device_spec
     return chainerx.get_device(device_spec)
-
-
-def _to_chainerx(array):
-    """Converts an array or arrays to ChainerX.
-
-    Destination ChainerX devices are chosen according to the types of input
-    arrays.
-    """
-    return _backend._convert_arrays(
-        array, lambda arr: _array_to_chainerx(arr, None))
 
 
 def _array_to_chainerx(array, device):
@@ -144,9 +134,9 @@ def _array_from_chainerx(array):
 
     backend_name = array.device.backend.name
     if backend_name == 'native':
-        return backend.to_numpy(array)
+        return _cpu._to_numpy(array)
     if backend_name == 'cuda':
-        return chainer.backends.cuda.to_gpu(array, array.device.index)
+        return cuda.to_gpu(array, array.device.index)
 
     raise RuntimeError(
         'Only native and cuda backends are supported as ChainerX backends')

@@ -4,7 +4,6 @@ import weakref
 import six
 
 from chainer import backend
-from chainer import backends
 from chainer.backends import cuda
 from chainer import configuration
 # for backward compatibility
@@ -162,8 +161,8 @@ class FunctionAdapter(function_node.FunctionNode):
         # Convert input and output gradients to numpy/cupy
         xp = backend.get_array_module(*(in_data + grad_out_data))
         if xp is chainerx:
-            in_data = backends.chainerx.from_chainerx(in_data)
-            grad_out_data = backends.chainerx.from_chainerx(grad_out_data)
+            in_data = backend.from_chainerx(in_data)
+            grad_out_data = backend.from_chainerx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
@@ -176,7 +175,7 @@ class FunctionAdapter(function_node.FunctionNode):
 
         # Convert input gradients back to ChainerX
         if xp is chainerx:
-            gxs = backends.chainerx.to_chainerx(gxs)
+            gxs = backend.to_chainerx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -329,7 +328,7 @@ class Function(object):
 
         """
         if self.node._is_chainerx:
-            return backends.chainerx.from_chainerx(self.node.output_data)
+            return backend.from_chainerx(self.node.output_data)
         return self.node.output_data
 
     @property

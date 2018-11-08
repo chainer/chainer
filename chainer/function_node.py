@@ -10,7 +10,6 @@ import chainer
 from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import backend
-from chainer import backends
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
@@ -278,8 +277,7 @@ Use apply() method instead.\
                 if x_is_variable and x._chainerx_fallback_array is not None:
                     x_data = x._chainerx_fallback_array
                 else:
-                    x_data = backends.chainerx.from_chainerx(
-                        chainerx_in_data[i])
+                    x_data = backend.from_chainerx(chainerx_in_data[i])
 
                     # Update the fallback cache if possible.
                     if x_is_variable:
@@ -347,7 +345,7 @@ Use apply() method instead.\
         if self._is_chainerx:
             # TODO(hvy): Take configuration.config.enable_backprop into
             # account?
-            chainerx_out_data = backends.chainerx.to_chainerx(outputs)
+            chainerx_out_data = backend.to_chainerx(outputs)
 
             # Insert a ChainerX op-node that calls FunctionNode.backward in
             # backprop. Note that chainerx_out_data may not require gradients.
@@ -1133,7 +1131,7 @@ def _extract_apply_in_data(inputs):
 
     if (chainerx.is_available()
             and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, backends.chainerx.to_chainerx(arrays)
+        return True, backend.to_chainerx(arrays)
     return False, arrays
 
 
