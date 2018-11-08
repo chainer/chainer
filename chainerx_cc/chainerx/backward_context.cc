@@ -209,7 +209,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         }
 
         // If the weak ptr to old output array node was dead, replenish it with the fabricated one.
-        if (output_array_node == nullptr) {
+        if (output_array_node == nullptr && array_body->HasArrayNode(op_node_->backprop_id())) {
             output_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->backprop_id());
         }
 
@@ -237,10 +237,8 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     // Collect array node of this graph.
     // If the output array node is alive, add the node to the array body.
     // Otherwise, create a new array node out of the op node.
-    {
-        const std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes = op_node_->output_array_nodes();
-        CHAINERX_ASSERT(output_array_nodes[token.index()].has_value());
-        std::shared_ptr<ArrayNode> output_array_node = output_array_nodes[token.index()]->lock();
+    if (op_node_->output_array_nodes()[token.index()].has_value()) {
+        std::shared_ptr<ArrayNode> output_array_node = op_node_->output_array_nodes()[token.index()]->lock();
         if (output_array_node == nullptr) {
             // Create mocked output array node for "this" graph, based on the current op node
             output_array_node = internal::FabricateOutputArrayNode(op_node_, token.index());

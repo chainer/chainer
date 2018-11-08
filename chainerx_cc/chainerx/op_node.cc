@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
@@ -18,6 +19,7 @@ namespace internal {
 
 ArrayProps::ArrayProps(const Array& array) : shape{array.shape()}, dtype{array.dtype()}, device{array.device()} {}
 ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()}, dtype{array_node.dtype()}, device{array_node.device()} {}
+ArrayProps::ArrayProps(const ArrayBody& array_body) : shape{array_body.shape()}, dtype{array_body.dtype()}, device{array_body.device()} {}
 
 OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> input_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, input_array_node_indices_{std::move(input_array_node_indices)}, backward_func_{std::move(backward_func)} {}
@@ -27,13 +29,9 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
     CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index].has_value());
     CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index]->expired());
 
-    const nonstd::optional<ArrayProps>& props = op_node->GetOutputArrayProps(output_array_node_index);
-    if (!props.has_value()) {
-        throw ChainerxError{
-                "The gradient of output ", output_array_node_index, " of operation \"", op_node->name(), "\" is not propagated."};
-    }
+    const ArrayProps& props = op_node->GetOutputArrayProps(output_array_node_index);
 
-    auto output_array_node = std::make_shared<ArrayNode>(props->shape, props->dtype, props->device, op_node->backprop_id());
+    auto output_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->backprop_id());
 
     op_node->output_array_nodes()[output_array_node_index] = std::weak_ptr<ArrayNode>{output_array_node};
     output_array_node->set_creator_op_node(std::move(op_node));
@@ -53,14 +51,14 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
 
     for (const Array& out : outputs) {
         const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
+        CHAINERX_ASSERT(out_body != nullptr);
+        op_node->output_array_props_.emplace_back(*out_body);
         if (GetKind(out_body->dtype()) == DtypeKind::kFloat) {
             CHAINERX_ASSERT(!out_body->HasArrayNode(backprop_id));
             const std::shared_ptr<ArrayNode>& output_array_node = ArrayBody::CreateArrayNode(out_body, backprop_id);
-            op_node->output_array_props_.emplace_back(ArrayProps{*output_array_node});
             op_node->output_array_nodes_.emplace_back(output_array_node);
             output_array_node->set_creator_op_node(op_node);
         } else {
-            op_node->output_array_props_.emplace_back(nonstd::nullopt);
             op_node->output_array_nodes_.emplace_back(nonstd::nullopt);
         }
     }

@@ -11,6 +11,7 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
+#include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -33,6 +34,7 @@ class OpNode;
 struct ArrayProps {
     explicit ArrayProps(const Array& array);
     explicit ArrayProps(const ArrayNode& array_node);
+    explicit ArrayProps(const ArrayBody& array_body);
 
     Shape shape;
     Dtype dtype;
@@ -118,7 +120,7 @@ public:
 
     BackpropId backprop_id() const { return backprop_id_; }
 
-    const nonstd::optional<ArrayProps>& GetOutputArrayProps(size_t i) const {
+    const ArrayProps& GetOutputArrayProps(size_t i) const {
         CHAINERX_ASSERT(i < output_array_props_.size());
         return output_array_props_[i];
     }
@@ -166,7 +168,7 @@ private:
     std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
 
     // Array props of output array nodes. This is used for creating dummy gradients.
-    std::vector<nonstd::optional<ArrayProps>> output_array_props_;
+    std::vector<ArrayProps> output_array_props_;
 
     std::vector<OpNodeBackwardEntry> backward_entries_;
 };
