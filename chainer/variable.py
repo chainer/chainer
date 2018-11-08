@@ -1039,16 +1039,7 @@ class Variable(object):
                 'Variable.from_chainerx only supports transfer from native or '
                 'CUDA device.')
 
-    def to_device(self, device):
-        """Copies the data and gradient arrays to specified device.
-
-        Args:
-            device: Target device specifier. See
-                :func:`~chainer.get_device` for available values.
-
-        """
-        device = chainer.get_device(device)
-
+    def _to_device_without_check(self, device):
         was_chainerx = self._is_chainerx
         is_chainerx = device.xp is chainerx
 
@@ -1056,12 +1047,6 @@ class Variable(object):
         grad_var = self.grad_var
 
         if was_chainerx and not is_chainerx:
-            chx_arr = self._data[0]
-            if chx_arr is not None and chx_arr.is_backprop_required():
-                raise RuntimeError(
-                    'A variable of a ChainerX array which requires gradients '
-                    'cannot be copied into non-chainerx device '
-                    '({}).'.format(device))
             self._clear_chainerx()
             self._node = VariableNode(self, self._chainerx_name)
 
@@ -1090,6 +1075,29 @@ class Variable(object):
             node = self._node
             if node._data is not None:
                 node.retain_data()
+
+    def to_device(self, device):
+        """Copies the data and gradient arrays to specified device.
+
+        Args:
+            device: Target device specifier. See
+                :func:`~chainer.get_device` for available values.
+
+        """
+        device = chainer.get_device(device)
+
+        was_chainerx = self._is_chainerx
+        is_chainerx = device.xp is chainerx
+
+        if was_chainerx and not is_chainerx:
+            chx_arr = self._data[0]
+            if chx_arr is not None and chx_arr.is_backprop_required():
+                raise RuntimeError(
+                    'A variable of a ChainerX array which requires gradients '
+                    'cannot be copied into non-chainerx device '
+                    '({}).'.format(device))
+
+        self._to_device_without_check(device)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1633,7 +1641,7 @@ class Parameter(Variable):
             if self._initial_device != device:
                 self._data = [None]  # Renew placeholder to break sharing
                 self._initial_device = device
-        super(Parameter, self).to_device(device)
+        super(Parameter, self)._to_device_without_check(device)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()

@@ -147,6 +147,8 @@ def main():
     # Run the training
     trainer.run()
 
+    model.to_cpu()
+
 
 if __name__ == '__main__':
     main()
