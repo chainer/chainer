@@ -18,31 +18,32 @@ from chainer.initializers import constant
 from chainer.utils import argument
 
 
-def _check_grad_type(func, x_node, gx, is_var_gx):
+def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
     if gx is None:
         return
     x_grad = gx.array if is_var_gx else gx
-    x_data = x_node.data
-    arrays = [x_grad]
-    if x_data is not None:
-        # ``x_data is None`` implies that the data array is not retained
-        # TODO(kataoka): Make _update_data_info store the array module
-        arrays.append(x_data)
+    x_data = x.data
+
+    # TODO(kataoka): Make _update_data_info store the array module.
+    # ``is_node_x and x_data is None`` implies that the data array is not
+    # retained.
+    # ``not is_node_x and x_data is None`` implies that grad of uninitialized
+    # variable is checked here.
 
     if x_grad is None:
         msg = 'Data of grad_var is None'
         typ = ValueError
-    elif not chainer.is_arrays_compatible(arrays):
+    elif not chainer.is_arrays_compatible((x_grad, x_data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x_grad), type(x_data)))
         typ = TypeError
-    elif x_grad.dtype != x_node.dtype:
+    elif x_grad.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x_grad.dtype, x_node.dtype))
+               (x_grad.dtype, x.dtype))
         typ = TypeError
-    elif x_grad.shape != x_node.shape:
+    elif x_grad.shape != x.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x_grad.shape, x_node.shape))
+               (x_grad.shape, x.shape))
         typ = ValueError
     else:
         return
@@ -704,7 +705,7 @@ Actual: {0}'''.format(type(data))
 
     @grad_var.setter
     def grad_var(self, g):
-        _check_grad_type(None, self.node, g, True)
+        _check_grad_type(None, self, False, g, True)
         self._grad_var = g
 
     @property
@@ -1062,7 +1063,7 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem, True)
+                    _check_grad_type(func, x, True, gx_elem, True)
                 del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf

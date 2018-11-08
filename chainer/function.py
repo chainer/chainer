@@ -142,7 +142,7 @@ class FunctionAdapter(function_node.FunctionNode):
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
             gxs = self._function.backward(in_data, grad_out_data)
         for x, gx in six.moves.zip(self.inputs, gxs):
-            variable._check_grad_type(self, x, gx, False)
+            variable._check_grad_type(self, x, True, gx, False)
 
         ret = []
         for i in target_input_indexes:
