@@ -19,18 +19,20 @@ from chainer.utils import argument
 
 
 def _check_grad_type(func, x_node, gx, is_var_gx):
-    assert isinstance(x_node, VariableNode)
     if gx is None:
         return
     x_grad = gx.array if is_var_gx else gx
     x_data = x_node.data
+    arrays = [x_grad]
+    if x_data is not None:
+        # ``x_data is None`` implies that the data array is not retained
+        # TODO(kataoka): Make _update_data_info store the array module
+        arrays.append(x_data)
+
     if x_grad is None:
         msg = 'Data of grad_var is None'
         typ = ValueError
-    elif x_data is not None \
-            and not chainer.is_arrays_compatible((x_grad, x_data)):
-        # ``x_data is None`` implies that the data array is not retained
-        # TODO(kataoka): Make _update_data_info store the array module
+    elif not chainer.is_arrays_compatible(arrays):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x_grad), type(x_data)))
         typ = TypeError
