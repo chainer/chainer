@@ -975,6 +975,22 @@ class Variable(object):
         intel64.check_ideep_available()
         self.to_device(intel64)
 
+    # TODO(niboshi): Revisit API. Possibly the default device should be used
+    # for device=None. In that case current behavior (automatically choose
+    # a device with zero-copy) should be achieved in another way.
+    def to_chainerx(self):
+        """Copies the data and gradient arrays to ChainerX devices."""
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+        if self._is_chainerx:
+            return
+        elif self.creator is not None:
+            raise RuntimeError(
+                'A variable with a creator cannot be converted into ChainerX '
+                'array')
+
+        self._to_chainerx_without_check()
+
     def _to_chainerx_without_check(self):
         array = self.array
         grad = self.grad
@@ -999,21 +1015,6 @@ class Variable(object):
 
         self._to_device_without_check(device)
 
-    # TODO(niboshi): Revisit API. Possibly the default device should be used
-    # for device=None. In that case current behavior (automatically choose
-    # a device with zero-copy) should be achieved in another way.
-    def to_chainerx(self):
-        """Copies the data and gradient arrays to ChainerX devices."""
-        if not chainerx.is_available():
-            raise RuntimeError('ChainerX is not available.')
-        if self._is_chainerx:
-            return
-        elif self.creator is not None:
-            raise RuntimeError(
-                'A variable with a creator cannot be converted into ChainerX '
-                'array')
-        self._to_chainerx_without_check()
-
     def from_chainerx(self):
         """Converts arrays to ChainerX array without any copy.
 
@@ -1030,6 +1031,9 @@ class Variable(object):
                 'Cannot convert from a Variable with a ChainerX array that is '
                 'connected to a graph.')
 
+        self._from_chainerx_without_check()
+
+    def _from_chainerx_without_check(self):
         backend_name = self.array.device.backend.name
         if backend_name == 'native':
             self.to_cpu()
@@ -1610,7 +1614,7 @@ class Parameter(Variable):
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
-        self._initial_device = backend.CpuDevice()
+        self._initial_device = backend.get_device_from_array(initializer)
         self.update_rule = None
         self.initializer = initializer
 
@@ -1652,6 +1656,26 @@ class Parameter(Variable):
                 assert False
 
         super(Parameter, self)._to_chainerx_without_check()
+
+    def from_chainerx(self):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+
+        device = self._initial_device
+        if device.xp is not chainerx:
+            return self
+
+        if self.data is None:
+            backend_name = device.backend.name
+            if backend_name is 'native':
+                self._initial_device = backend.CpuDevice()
+            elif backend_name is 'cuda':
+                self._initial_device = chainer.get_device(
+                    (cuda.cupy, device.device.index))
+            else:
+                assert False
+
+        super(Parameter, self)._from_chainerx_without_check()
 
     def to_device(self, device):
         device = chainer.get_device(device)
