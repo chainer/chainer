@@ -21,7 +21,10 @@ from chainer.testing import attr
 import chainer.testing.backend
 from chainer import variable
 import chainerx
-import chainerx.testing
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 class Constant(chainer.Function):
