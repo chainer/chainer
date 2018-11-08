@@ -124,10 +124,10 @@ public:
     }
 
     // Returns the list of output array nodes on "this" graph.
-    const std::vector<std::weak_ptr<ArrayNode>>& output_array_nodes() const { return output_array_nodes_; }
+    const std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() const { return output_array_nodes_; }
 
     // Returns the list of output array nodes on "this" graph.
-    std::vector<std::weak_ptr<ArrayNode>>& output_array_nodes() { return output_array_nodes_; }
+    std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() { return output_array_nodes_; }
 
     // Returns the input array nodes of all graphs.
     const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_input_array_nodes() const {
@@ -157,7 +157,7 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> input_array_nodes_;
 
     // List of output array nodes of this graph.
-    std::vector<std::weak_ptr<ArrayNode>> output_array_nodes_;
+    std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>> output_array_nodes_;
 
     // List of input/output array nodes of outer graphs.
     // Outer graphs refer to graphs with lower ordinals.

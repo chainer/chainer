@@ -24,7 +24,8 @@ OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> in
 
 std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_node, size_t output_array_node_index) {
     CHAINERX_ASSERT(output_array_node_index < op_node->output_array_node_count());
-    CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index].expired());
+    CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index].has_value());
+    CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index]->expired());
 
     const nonstd::optional<ArrayProps>& props = op_node->GetOutputArrayProps(output_array_node_index);
     if (!props.has_value()) {
@@ -34,7 +35,7 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
 
     auto output_array_node = std::make_shared<ArrayNode>(props->shape, props->dtype, props->device, op_node->backprop_id());
 
-    op_node->output_array_nodes()[output_array_node_index] = output_array_node;
+    op_node->output_array_nodes()[output_array_node_index] = std::weak_ptr<ArrayNode>{output_array_node};
     output_array_node->set_creator_op_node(std::move(op_node));
 
     return output_array_node;
