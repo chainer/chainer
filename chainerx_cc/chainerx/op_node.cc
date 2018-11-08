@@ -61,7 +61,7 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
             output_array_node->set_creator_op_node(op_node);
         } else {
             op_node->output_array_props_.emplace_back(nonstd::nullopt);
-            op_node->output_array_nodes_.emplace_back(std::weak_ptr<ArrayNode>{});
+            op_node->output_array_nodes_.emplace_back(nonstd::nullopt);
         }
     }
     op_node->AssertConsistency();
