@@ -1016,12 +1016,28 @@ class Variable(object):
     def from_chainerx(self):
         """Converts arrays to ChainerX array without any copy.
 
+        Does nothing if the array held by the Variable is not a ChainerX array.
+
         Raises and error if no such copy is possible.
         """
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
         if not self._is_chainerx:
-            raise RuntimeError('Cannot convert from non-ChainerX array.')
+            return
+        if self._data[0].is_backprop_required():
+            raise RuntimeError(
+                'Cannot convert from a Variable with a ChainerX array that is '
+                'connected to a graph.')
+
+        backend_name = self.array.device.backend.name
+        if backend_name == 'native':
+            self.to_cpu()
+        elif backend_name == 'cuda':
+            self.to_gpu(self.array.device.index)
+        else:
+            raise NotImplementedError(
+                'Variable.from_chainerx only supports transfer from native or '
+                'CUDA device.')
 
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.

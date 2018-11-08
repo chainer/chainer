@@ -1133,6 +1133,66 @@ class TestVariableToChainerX(unittest.TestCase):
     {'x_shape': (10,)},
     {'x_shape': ()},
 )
+@chainer.testing.backend.inject_backend_tests(
+    ['test_from_chainerx'],
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestVariableFromChainerX(unittest.TestCase):
+
+    def setUp(self):
+        self.x = chainerx.zeros(self.x_shape, dtype=np.float32)
+
+    def infer_expected_xp_and_device(self, x):
+        xp = backend.get_array_module(x)
+        if xp is np:
+            return xp, None
+        elif xp is cuda.cupy:
+            return xp, x.device
+        elif xp is chainerx:
+            backend_name = x.device.backend.name
+            if backend_name == 'native':
+                return np, None
+            elif backend_name == 'cuda':
+                return cuda.cupy, cuda.cupy.cuda.Device(x.device.index)
+        assert False
+
+    def test_from_chainerx(self, backend_config):
+        x = backend_config.get_array(self.x)
+        x_var = chainer.Variable(x, requires_grad=False)
+        x_var.from_chainerx()
+
+        expected_xp, expected_device = self.infer_expected_xp_and_device(x)
+
+        assert x_var.xp is expected_xp
+        assert isinstance(x_var.array, expected_xp.ndarray)
+        assert expected_device is None or x_var.array.device == expected_device
+        assert x.shape == x_var.shape
+        assert x.dtype == x_var.dtype
+        assert x_var.grad is None
+        assert x_var.grad_var is None
+        np.testing.assert_array_equal(
+            backend.to_numpy(x_var.array), backend.to_numpy(x))
+
+    def test_invalid_from_chainerx_requires_grad(self):
+        x = chainer.Variable(self.x, requires_grad=True)
+        with self.assertRaises(RuntimeError):
+            x.from_chainerx()
+
+
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
 @attr.chainerx
 class TestVariableToDevice(unittest.TestCase):
 
