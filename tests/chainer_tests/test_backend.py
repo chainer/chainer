@@ -190,15 +190,11 @@ class TestToBackend(unittest.TestCase):
         if isinstance(array1, cuda.ndarray):
             array1 = array1.get()
         if isinstance(array2, cuda.ndarray):
-            array1 = array2.get()
+            array2 = array2.get()
 
         # At this moment arrays are either NumPy or ChainerX
 
-        if (isinstance(array1, numpy.ndarray)
-                and isinstance(array2, numpy.ndarray)):
-            numpy.testing.assert_array_equal(array1, array2)
-        else:
-            chainerx.testing.assert_array_equal(array1, array2)
+        chainerx.testing.assert_array_equal(array1, array2)
 
     def to_numpy_check_equal(self, orig):
         converted = backend.to_numpy(orig)
@@ -209,6 +205,12 @@ class TestToBackend(unittest.TestCase):
     def to_chainerx_check_equal(self, orig):
         converted = backend.to_chainerx(orig)
         assert isinstance(converted, chainerx.ndarray)
+        self.assert_array_equal(orig, converted)
+        return converted
+
+    def from_chainerx_check_equal(self, orig):
+        assert isinstance(orig, chainerx.ndarray)
+        converted = backend.from_chainerx(orig)
         self.assert_array_equal(orig, converted)
         return converted
 
@@ -248,6 +250,20 @@ class TestToBackend(unittest.TestCase):
         orig = self.orig_chainerx('native:0')
         converted = self.to_chainerx_check_equal(orig)
         assert converted is orig
+
+    @attr.chainerx
+    def test_numpy_from_chainerx(self):
+        orig = self.orig_chainerx('native:0')
+        converted = self.from_chainerx_check_equal(orig)
+        assert isinstance(converted, numpy.ndarray)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_cupy_from_chainerx(self):
+        orig = self.orig_chainerx('cuda:0')
+        converted = self.from_chainerx_check_equal(orig)
+        assert isinstance(converted, cuda.ndarray)
+        assert converted.device.id == 0
 
     # TODO(niboshi): Add more test variants
 
