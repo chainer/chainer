@@ -7,7 +7,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer import backends
 from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
@@ -296,7 +295,7 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                self.state[state_name] = backends.chainerx.from_chainerx(st)
+                self.state[state_name] = backend.from_chainerx(st)
                 chainerx_state_arrays[state_name] = st
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
@@ -304,14 +303,14 @@ class UpdateRule(object):
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backends.chainerx.from_chainerx(
+            param._chainerx_fallback_array = backend.from_chainerx(
                 param.array)
 
         temp_param = variable.Variable(param._chainerx_fallback_array)
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
-                backends.chainerx.from_chainerx(grad_array))
+                backend.from_chainerx(grad_array))
 
         # Update
         update_core(temp_param)
