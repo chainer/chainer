@@ -1125,14 +1125,14 @@ def _extract_apply_in_data(inputs):
         return False, ()
 
     # Unwrap arrays
-    arrays = tuple([
+    arrays = [
         (x._data[0] if x._is_chainerx else x.array)
-        if isinstance(x, variable.Variable) else x for x in inputs])
+        if isinstance(x, variable.Variable) else x for x in inputs]
 
     if (chainerx.is_available()
             and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, backend.to_chainerx(arrays)
-    return False, arrays
+        return True, tuple(backend.to_chainerx(arrays))
+    return False, tuple(arrays)
 
 
 def _get_ordered_func_heap():
