@@ -1000,9 +1000,8 @@ class Variable(object):
             # TODO(hvy): Make it possible by delaying array.set_grad(grad).
 
         xp = self.xp
-        if xp is chainerx:
-            return
-        elif xp is numpy or array is None:
+        assert xp is not chainerx
+        if xp is numpy or array is None:
             device = chainer.get_device('native:0')
         elif xp is cuda.cupy:
             device = chainer.get_device(
