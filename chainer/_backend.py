@@ -67,3 +67,8 @@ class Device(object):
 
         """
         return _convert_arrays(arrays, self.send_array)
+
+    def use(self):
+        """Makes this device default on the corresponding module.
+         """
+        pass
