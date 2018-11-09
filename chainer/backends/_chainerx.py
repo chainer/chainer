@@ -52,7 +52,7 @@ def to_chainerx(array):
 def from_chainerx(array):
     """Converts an array or arrays from ChainerX to NumPy or CuPy ones.
 
-    Destination devices are chosen such that no copies occur.
+    Destination array types are chosen such that no copies occur.
     """
     return _backend._convert_arrays(array, _array_from_chainerx)
 
