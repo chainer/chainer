@@ -96,10 +96,8 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     def backward(self, indexes, gy):
         return AveragePooling2DGrad(self).apply(gy)
 
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
-            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+    def _get_pool_mode(self):
+        return cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING
 
 
 class AveragePooling2DGrad(function_node.FunctionNode):

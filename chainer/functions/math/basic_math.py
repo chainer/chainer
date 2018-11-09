@@ -66,7 +66,7 @@ def _preprocess_rhs(x, value):
             'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
             'or a `Variable`.\nActual: {}'.format(type(value)))
 
-    return value.astype(x.dtype)
+    return value.astype(x.dtype, copy=False)
 
 
 class Neg(function_node.FunctionNode):

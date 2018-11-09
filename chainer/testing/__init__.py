@@ -1,4 +1,6 @@
 from chainer.testing.array import assert_allclose  # NOQA
+from chainer.testing.backend import BackendConfig  # NOQA
+from chainer.testing.backend import inject_backend_tests  # NOQA
 from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
