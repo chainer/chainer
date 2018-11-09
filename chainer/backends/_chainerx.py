@@ -46,8 +46,7 @@ def to_chainerx(array):
     Destination ChainerX devices are chosen according to the types of input
     arrays.
     """
-    return _backend._convert_arrays(
-        array, lambda arr: _array_to_chainerx(arr, None))
+    return _backend._convert_arrays(array, _array_to_chainerx)
 
 
 def from_chainerx(array):
@@ -55,8 +54,7 @@ def from_chainerx(array):
 
     Destination devices are chosen such that no copies occur.
     """
-    return _backend._convert_arrays(
-        array, lambda arr: _array_from_chainerx(arr))
+    return _backend._convert_arrays(array, _array_from_chainerx)
 
 
 def _get_device(device_spec):
@@ -80,7 +78,7 @@ def _get_chainerx_device(device_spec):
     return chainerx.get_device(device_spec)
 
 
-def _array_to_chainerx(array, device):
+def _array_to_chainerx(array, device=None):
     # If device is None, appropriate device is chosen according to the input
     # arrays.
     assert device is None or isinstance(device, chainerx.Device)
