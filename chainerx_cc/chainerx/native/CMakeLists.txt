@@ -35,8 +35,8 @@ if(${BLAS_FOUND})
     else()
         # Workaround to guess the BLAS include directory from its library path (.so).
         # This workaround is required since CMake does not set the variable as expected.
-        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_LIBRARIES} PATH)  # Directory of .so.
-        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_INCLUDE_DIRS} PATH)  # Directory of lib.
+        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_LIBRARIES} DIRECTORY)  # Directory of .so.
+        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_INCLUDE_DIRS} DIRECTORY)  # Directory of lib.
         set(BLAS_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}/include")
     endif()
     include_directories(${BLAS_INCLUDE_DIRS})
