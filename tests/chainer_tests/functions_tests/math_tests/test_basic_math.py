@@ -1074,6 +1074,7 @@ class TestVariableConstantOp(unittest.TestCase):
     def test_div_backward_chainerx(self):
         self.backward_chainerx(lambda x, y: x / y)
 
+    @attr.chainerx
     def test_rdiv_backward_chainerx(self):
         self.backward_chainerx(lambda x, y: y / x)
 
