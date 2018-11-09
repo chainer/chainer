@@ -299,6 +299,10 @@ class TestDeviceSpec(unittest.TestCase):
     def test_tuple_cupy_device(self):
         self.check_device_spec_cupy((cuda.cupy, 0), 0)
 
+    @attr.multi_gpu(2)
+    def test_tuple_cupy_device_multi_gpu(self):
+        self.check_device_spec_cupy((cuda.cupy, 1), 1)
+
     @attr.chainerx
     def test_chainerx_device(self):
         chainerx_device = chainerx.get_device('native:0')
