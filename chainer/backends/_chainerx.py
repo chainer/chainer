@@ -136,5 +136,6 @@ def _array_from_chainerx(array):
     if backend_name == 'cuda':
         return cuda.to_gpu(array, array.device.index)
 
-    raise RuntimeError(
-        'Only native and cuda backends are supported as ChainerX backends')
+    raise ValueError(
+        'Only ChainerX arrays with native or cuda backends can be converted '
+        'to non-ChainerX arrays.\nActual: {0}.'.format(backend_name))
