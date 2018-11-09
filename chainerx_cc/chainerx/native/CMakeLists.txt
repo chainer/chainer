@@ -30,8 +30,13 @@ add_library(chainerx_native STATIC
     tensor_dot.cc)
 
 if(${BLAS_FOUND})
-    # TODO(sonots): Fix that CMake built-in FindBLAS.cmake does not declare BLAS_INCLUDE_DIR
-    # include_directories(${BLAS_INCLUDE_DIR})
+    # Workaround to guess the BLAS include directory from its library path (.so).
+    # This workaround is required since CMake does not set the variable as expected.
+    get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_LIBRARIES} PATH)  # Directory of .so.
+    get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_INCLUDE_DIRS} PATH)  # Directory of lib.
+    set(BLAS_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}/include")
+
+    include_directories(${BLAS_INCLUDE_DIRS})
     target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
 endif()
 
