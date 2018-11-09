@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import collections_abc
@@ -8,7 +6,6 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 def _pair(x):
@@ -49,7 +46,7 @@ class Pooling2D(function_node.FunctionNode):
         self._used_cudnn = True
 
         # Implementation using cudnn
-        x = cuda.cupy.ascontiguousarray(x[0])
+        x = x[0]
         n, c, h, w = x.shape
         y_h = conv.get_conv_outsize(
             h, self.kh, self.sy, self.ph, self.cover_all)
@@ -59,6 +56,7 @@ class Pooling2D(function_node.FunctionNode):
         assert y_w > 0, 'Width in the output should be positive.'
         y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x.dtype)
 
+<<<<<<< HEAD
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
         x_desc = cudnn.create_tensor_descriptor(x)
@@ -72,10 +70,19 @@ class Pooling2D(function_node.FunctionNode):
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
         self._cudnn_inputs = (x,)
         self._cudnn_outputs = (y,)
+=======
+        cudnn.pooling_forward(
+            x, y,
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            self._get_pool_mode())
+
+        self.retain_outputs((0,))
+>>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
+<<<<<<< HEAD
         x = cuda.cupy.ascontiguousarray(x[0])
         y = self._cudnn_outputs[0]
         handle = cudnn.get_handle()
@@ -94,7 +101,15 @@ class Pooling2D(function_node.FunctionNode):
             handle, pool_desc.value, one.data, y_desc.value,
             y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
             x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
+=======
+        x = x[0]
+        y = self.output_data[0]
+        gx = cudnn.pooling_backward(
+            x, y, gy[0],
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            self._get_pool_mode())
+>>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
         return gx,
 
-    def create_pool_desc(self):
+    def _get_pool_mode(self):
         raise NotImplementedError()

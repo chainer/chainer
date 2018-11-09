@@ -47,10 +47,10 @@ class ResizeImages(function_node.FunctionNode):
         w2 = (u - u0) * (v1 - v)
         w3 = (u1 - u) * (v - v0)
         w4 = (u - u0) * (v - v0)
-        w1 = w1.astype(x.dtype)
-        w2 = w2.astype(x.dtype)
-        w3 = w3.astype(x.dtype)
-        w4 = w4.astype(x.dtype)
+        w1 = w1.astype(x.dtype, copy=False)
+        w2 = w2.astype(x.dtype, copy=False)
+        w3 = w3.astype(x.dtype, copy=False)
+        w4 = w4.astype(x.dtype, copy=False)
 
         y = (w1[None, None, :] * x[:, :, v0, u0] +
              w2[None, None, :] * x[:, :, v0, u1] +
@@ -106,10 +106,10 @@ class ResizeImagesGrad(function_node.FunctionNode):
         wu1 = u1 - u
         wv0 = v - v0
         wv1 = v1 - v
-        wu0 = wu0.astype(gy.dtype)
-        wu1 = wu1.astype(gy.dtype)
-        wv0 = wv0.astype(gy.dtype)
-        wv1 = wv1.astype(gy.dtype)
+        wu0 = wu0.astype(gy.dtype, copy=False)
+        wu1 = wu1.astype(gy.dtype, copy=False)
+        wv0 = wv0.astype(gy.dtype, copy=False)
+        wv1 = wv1.astype(gy.dtype, copy=False)
 
         # --- gx
         if xp is numpy:

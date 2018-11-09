@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 import functools
 import operator
 
+=======
+import numpy
+>>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
 import six
 
 import chainer
@@ -10,6 +14,7 @@ from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
+from chainer import utils
 from chainer import variable
 
 
@@ -288,8 +293,13 @@ class LSTM(LSTMBase):
 
         """
         if self.upward.W.data is None:
+<<<<<<< HEAD
             with chainer.using_device(self.device):
                 in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+=======
+            with cuda.get_device_from_id(self._device_id):
+                in_size = utils.size_of_shape(x.shape[1:])
+>>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 

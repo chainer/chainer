@@ -19,7 +19,7 @@ _optional_dependencies = [
         'packages': [
             'ideep4py',
         ],
-        'specifier': '>=2.0, <2.1',
+        'specifier': '>=2.0.0.post3, <2.1',
         'help': 'https://docs.chainer.org/en/latest/tips.html',
     },
 ]

@@ -5,6 +5,7 @@ from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.graph_optimizations import static_code
+from chainer import utils
 from chainer.utils import type_check
 import chainerx
 
@@ -103,7 +104,7 @@ class LinearFunction(function_node.FunctionNode):
         # required that all output arrays of this forward
         # function be allocated explicitly:
         xp = cuda.get_array_module(x)
-        y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+        y = xp.empty((x.shape[0], W.shape[0]), dtype=x.dtype)
 
         # This is required because all of the "static_*()" functions
         # use the convention that any output arrays are supplied
@@ -294,7 +295,7 @@ def linear(x, W, b=None, n_batch_axes=1):
         raise ValueError('n_batch_axes should be greater than 0.')
     if n_batch_axes > 1:
         batch_shape = x.shape[:n_batch_axes]
-        batch_size = numpy.prod(batch_shape)
+        batch_size = utils.size_of_shape(batch_shape)
         x = x.reshape(batch_size, -1)
     elif x.ndim > 2:
         x = x.reshape(x.shape[0], -1)
