@@ -979,7 +979,7 @@ class Variable(object):
         """Copies the data and gradient arrays to ChainerX devices."""
         self._to_chainerx(allow_unchaining=False)
 
-    def _to_chainerx(self, allow_unchaining):
+    def _to_chainerx(self, allow_unchaining=False):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
