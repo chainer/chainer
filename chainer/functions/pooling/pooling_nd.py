@@ -58,56 +58,20 @@ class _PoolingND(function_node.FunctionNode):
         y_shape = (n, c) + ys
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
 
-<<<<<<< HEAD
-        handle = cudnn.get_handle()
-        pool_desc = self.create_pool_desc()
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(y)
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        libcudnn.poolingForward(
-            handle, pool_desc.value, one.data, x_desc.value,
-            x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self._cudnn_inputs = (x,)
-        self._cudnn_outputs = (y,)
-=======
         cudnn.pooling_forward(
             x, y, self.ksize, self.stride, self.pad, self._get_pool_mode())
-
+        self._cudnn_inputs = (x,)
+        self._cudnn_outputs = (y,)
         self.retain_outputs((0,))
->>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
-<<<<<<< HEAD
-        x = cuda.cupy.ascontiguousarray(x[0])
-        y = self._cudnn_outputs[0]
-        handle = cudnn.get_handle()
-        pool_desc = self.create_pool_desc()
-
-        gy = cuda.cupy.ascontiguousarray(gy[0])
-
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(gy)
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        gx = cuda.cupy.empty_like(x)
-        libcudnn.poolingBackward(
-            handle, pool_desc.value,
-            one.data, y_desc.value, y.data.ptr, y_desc.value, gy.data.ptr,
-            x_desc.value, x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
-=======
         x = x[0]
-        y = self.output_data[0]
+        y = self._cudnn_outputs[0]
         gx = cudnn.pooling_backward(
             x, y, gy[0],
             self.ksize, self.stride, self.pad, self._get_pool_mode())
->>>>>>> dbdcee87466e4866c7daa70a057ae0896671bca3
         return gx,
 
     def _get_pool_mode(self):
