@@ -139,7 +139,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputSecondParam) {
     EXPECT_ARRAY_EQ(e, *x.GetGrad());
 }
 
-TEST(BackwardBuilderTest, FloatToInt_SomeOfOutputArrayBodiesAreGone) {
+TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayBodyIsGone) {
     testing::ContextSession context_session;
     Shape shape{2, 3};
 
@@ -179,7 +179,7 @@ TEST(BackwardBuilderTest, FloatToInt_SomeOfOutputArrayBodiesAreGone) {
     EXPECT_ARRAY_EQ(e, *x.GetGrad());
 }
 
-TEST(BackwardBuilderTest, FloatToInt_SomeOfOutputArrayNodesAreGone) {
+TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayNodeIsGone) {
     testing::ContextSession context_session;
     Shape shape{2, 3};
 
