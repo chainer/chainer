@@ -128,7 +128,7 @@ def _array_to_chainerx(array, device=None):
 
 def _array_from_chainerx(array):
     if not isinstance(array, chainerx.ndarray):
-        raise ValueError('Source must be a ChainerX array.')
+        raise TypeError('Source must be a ChainerX array.')
 
     backend_name = array.device.backend.name
     if backend_name == 'native':
