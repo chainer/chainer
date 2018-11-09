@@ -33,6 +33,9 @@ def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
     if x_grad is None:
         msg = 'Data of grad_var is None'
         typ = ValueError
+    elif x_data is None and not is_node_x:
+        msg = 'Data of variable is None'
+        typ = ValueError
     elif not chainer.is_arrays_compatible((x_grad, x_data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x_grad), type(x_data)))
