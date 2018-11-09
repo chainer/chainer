@@ -30,12 +30,15 @@ add_library(chainerx_native STATIC
     tensor_dot.cc)
 
 if(${BLAS_FOUND})
-    # Workaround to guess the BLAS include directory from its library path (.so).
-    # This workaround is required since CMake does not set the variable as expected.
-    get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_LIBRARIES} PATH)  # Directory of .so.
-    get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_INCLUDE_DIRS} PATH)  # Directory of lib.
-    set(BLAS_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}/include")
-
+    if(DEFINED ENV{BLAS_INCLUDE_DIRS})
+        set(BLAS_INCLUDE_DIRS $ENV{BLAS_INCLUDE_DIRS})
+    else()
+        # Workaround to guess the BLAS include directory from its library path (.so).
+        # This workaround is required since CMake does not set the variable as expected.
+        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_LIBRARIES} PATH)  # Directory of .so.
+        get_filename_component(BLAS_INCLUDE_DIRS ${BLAS_INCLUDE_DIRS} PATH)  # Directory of lib.
+        set(BLAS_INCLUDE_DIRS "${BLAS_INCLUDE_DIRS}/include")
+    endif()
     include_directories(${BLAS_INCLUDE_DIRS})
     target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
 endif()
