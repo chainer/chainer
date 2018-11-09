@@ -12,6 +12,12 @@ class CpuDevice(_backend.Device):
     def xp(self):
         return numpy
 
+    @staticmethod
+    def from_array(array):
+        if isinstance(array, numpy.ndarray):
+            return CpuDevice()
+        return None
+
     def __eq__(self, other):
         return isinstance(other, CpuDevice)
 

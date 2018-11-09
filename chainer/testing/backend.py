@@ -145,24 +145,8 @@ class BackendConfig(object):
         assert all(callable(_) for _ in marks)
         return marks
 
-    def _get_single_array(self, np_array):
-        if np_array is None:
-            return None
-        if self.use_chainerx:
-            # TODO(niboshi): Use backend.to_device or
-            # backend.to_chainerx(a, device)
-            arr = chainer.backend.to_chainerx(np_array)
-            return arr.to_device(self.chainerx_device)
-        if self.use_cuda:
-            return chainer.backends.cuda.to_gpu(np_array, self.cuda_device)
-        return np_array  # applicable with/without ideep
-
     def get_array(self, np_array):
-        if isinstance(np_array, tuple):
-            return tuple([self._get_single_array(a) for a in np_array])
-        if isinstance(np_array, list):
-            return [self._get_single_array(a) for a in np_array]
-        return self._get_single_array(np_array)
+        return self.device.send(np_array)
 
 
 def _wrap_backend_test_method(impl, param, method_name):
