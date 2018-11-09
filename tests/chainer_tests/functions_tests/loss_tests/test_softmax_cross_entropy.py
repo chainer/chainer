@@ -350,9 +350,9 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
         def conv(x):
             return chainer.backend.to_chainerx(x)
 
-        self.check_double_backward(
-            *[conv(a) for a in [self.x, self.t, self.gy, self.ggx]],
-            None if not self.weight_apply else conv(self.class_weight))
+        args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
+        args.append(None if not self.weight_apply else conv(self.class_weight))
+        self.check_double_backward(*args)
 
     @attr.chainerx
     @attr.gpu
@@ -364,9 +364,9 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
         def conv(x):
             return chainer.backend.to_chainerx(cuda.to_gpu(x))
 
-        self.check_double_backward(
-            *[conv(a) for a in [self.x, self.t, self.gy, self.ggx]],
-            None if not self.weight_apply else conv(self.class_weight))
+        args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
+        args.append(None if not self.weight_apply else conv(self.class_weight))
+        self.check_double_backward(*args)
 
 
 @testing.parameterize(*testing.product_dict(

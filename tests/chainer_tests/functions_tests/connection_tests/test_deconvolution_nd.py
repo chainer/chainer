@@ -163,7 +163,9 @@ class TestDeconvolutionND(unittest.TestCase):
                 cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
                 use_cudnn='never')
 
-    def check_backward(self, *inputs, use_cudnn='never'):
+    def check_backward(self, *inputs, **kwargs):
+        use_cudnn, = chainer.utils.argument.parse_kwargs(
+            kwargs, ('use_cudnn', 'never'))
         if not self.c_contiguous:
             inputs = array._as_noncontiguous_array(inputs)
 
