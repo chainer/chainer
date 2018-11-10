@@ -161,7 +161,7 @@ class CudnnRNNWeightConcat(function.Function):
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), 'f')
+        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(

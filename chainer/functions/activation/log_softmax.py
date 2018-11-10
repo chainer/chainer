@@ -33,7 +33,8 @@ def _log_softmax(x, axis=1):
     if chainer.should_use_cudnn('>=auto'):
         xp = backend.get_array_module(x)
         if xp is not numpy:
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
@@ -96,7 +97,10 @@ class LogSoftmaxGrad(function_node.FunctionNode):
         y, gy = inputs
         xp = self._x_xp
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
-            oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64
+                if self._x_dtype == numpy.float64
+                else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()

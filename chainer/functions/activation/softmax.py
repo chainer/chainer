@@ -48,7 +48,10 @@ class Softmax(function_node.FunctionNode):
     def forward(self, x):
         xp = backend.get_array_module(*x)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
-            oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64
+                if x[0].dtype == numpy.float64
+                else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()
@@ -85,7 +88,10 @@ class _SoftmaxGrad(function_node.FunctionNode):
         y, gy = inputs
         xp = backend.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
-            oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64
+                if y[0].dtype == numpy.float64
+                else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             handle = cudnn.get_handle()

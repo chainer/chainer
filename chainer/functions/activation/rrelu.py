@@ -126,7 +126,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], numpy.float32)
         >>> x
         array([[-1.,  0.],
                [ 2., -3.],

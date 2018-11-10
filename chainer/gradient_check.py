@@ -474,7 +474,7 @@ class _CheckBackward(object):
         assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
-                gx_accum += (g.astype('d') * direction).sum()
+                gx_accum += (g.astype(numpy.float64) * direction).sum()
 
         return gx_accum
 
@@ -508,7 +508,7 @@ class _CheckBackward(object):
                     x.array = x.array.astype(dtype, copy=False)
 
         xp = backend.get_array_module(*x_data)
-        delta = xp.array(0., 'd')
+        delta = xp.array(0., numpy.float64)
 
         def g():
             # This functions is called twice in `numerical_grad`.
@@ -518,7 +518,7 @@ class _CheckBackward(object):
             for x, data, direction in six.moves.zip(
                     variables, casted_data, directions):
                 # astype is require to store data with the given type
-                data = (data.astype('d') +
+                data = (data.astype(numpy.float64) +
                         delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
                     data = xp.array(data)

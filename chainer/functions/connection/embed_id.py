@@ -111,7 +111,7 @@ class EmbedIDGrad(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask, zero, _ = xp.broadcast_arrays(
-                mask[..., None], xp.zeros((), 'f'), ggy.data)
+                mask[..., None], xp.zeros((), numpy.float32), ggy.data)
             ggy = chainer.functions.where(mask, zero, ggy)
         return None, ggy
 
