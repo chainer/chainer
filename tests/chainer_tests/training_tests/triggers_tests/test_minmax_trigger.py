@@ -5,8 +5,13 @@ from chainer import serializers
 from chainer import testing
 from chainer.training import triggers
 
+from . import check_iteration_aware
+
 
 class BestValueTriggerTester(object):
+    def _create_trigger(self):
+        return type(self).trigger_type(self.key, trigger=self.interval)
+
     def _test_trigger(self, trigger, key, accuracies, expected,
                       resume=None, save=None):
         trainer = testing.get_trainer_with_mock_updater(
@@ -42,11 +47,11 @@ class BestValueTriggerTester(object):
             serializers.save_npz(save, trainer)
 
     def test_trigger(self):
-        trigger = type(self).trigger_type(self.key, trigger=self.interval)
+        trigger = self._create_trigger()
         self._test_trigger(trigger, self.key, self.accuracies, self.expected)
 
     def test_resumed_trigger(self):
-        trigger = type(self).trigger_type(self.key, trigger=self.interval)
+        trigger = self._create_trigger()
         with tempfile.TemporaryFile() as npz:
             self._test_trigger(
                 trigger, self.key, self.accuracies[:self.resume],
@@ -56,6 +61,23 @@ class BestValueTriggerTester(object):
             trigger = type(self).trigger_type(self.key, trigger=self.interval)
             self._test_trigger(trigger, self.key, self.accuracies,
                                self.expected_after_resume, resume=npz)
+
+    def test_iteration_aware(self):
+
+        def before_training_callback(trainer):
+            def set_observation(t):
+                t.observation = {
+                    self.key: self.accuracies[t.updater.iteration-1]}
+            trainer.extend(set_observation, name='set_observation',
+                           trigger=(1, 'iteration'), priority=2)
+
+        trigger = self._create_trigger()
+
+        check_iteration_aware(
+            trigger,
+            before_training_callback=before_training_callback,
+            max_iterations=len(self.accuracies),
+            extension_priority=1)
 
 
 @testing.parameterize(

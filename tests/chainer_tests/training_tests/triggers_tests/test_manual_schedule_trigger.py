@@ -10,6 +10,8 @@ from chainer import testing
 from chainer.testing import condition
 from chainer import training
 
+from . import check_iteration_aware
+
 
 @testing.parameterize(
     # single iteration
@@ -53,7 +55,7 @@ from chainer import training
         'iter_per_epoch': 0.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
         'expected': [True, False, False, False, False, False, False]},
 )
-class TestTrigger(unittest.TestCase):
+class TestManualScheduleTrigger(unittest.TestCase):
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -133,6 +135,13 @@ class TestTrigger(unittest.TestCase):
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
+
+    def test_iteration_aware(self):
+        trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+        check_iteration_aware(
+            trigger,
+            max_iterations=len(self.expected),
+            iter_per_epoch=self.iter_per_epoch)
 
 
 testing.run_module(__name__, __file__)

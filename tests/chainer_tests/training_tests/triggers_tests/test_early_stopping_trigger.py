@@ -7,6 +7,8 @@ from chainer import testing
 from chainer.training import triggers
 from chainer.training import util
 
+from . import check_iteration_aware
+
 
 def _test_trigger(self, trigger, key, accuracies, expected):
     trainer = testing.training.get_trainer_with_mock_updater(
@@ -78,6 +80,28 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
         expected = [False, False, True]
         _test_trigger(self, trigger, key, accuracies, expected)
+
+    def test_iteration_aware(self):
+        key = 'main/accuracy'
+        accuracies = [0.5, 0.5, 0.6, 0.7, 0.6, 0.4, 0.3, 0.2]
+        accuracies = numpy.asarray([
+            chainer.Variable(numpy.asarray(acc, dtype=numpy.float32))
+            for acc in accuracies])
+
+        def before_training_callback(trainer):
+            def set_observation(t):
+                t.observation = {key: accuracies[t.updater.iteration-1]}
+            trainer.extend(set_observation, name='set_observation',
+                           trigger=(1, 'iteration'), priority=2)
+
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+                                                check_trigger=(1, 'iteration'))
+
+        check_iteration_aware(
+            trigger,
+            before_training_callback=before_training_callback,
+            max_iterations=len(accuracies),
+            extension_priority=1)
 
 
 testing.run_module(__name__, __file__)

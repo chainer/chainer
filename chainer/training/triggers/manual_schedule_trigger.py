@@ -1,6 +1,9 @@
 import warnings
 
+from chainer.training import trigger
 
+
+@trigger.iteration_aware
 class ManualScheduleTrigger(object):
 
     """Trigger invoked at specified point(s) of iterations or epochs.

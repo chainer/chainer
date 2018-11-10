@@ -2,9 +2,11 @@ import operator
 import warnings
 
 from chainer import reporter
+from chainer.training import trigger as trigger_module
 from chainer.training import util
 
 
+@trigger_module.iteration_aware()
 class EarlyStoppingTrigger(object):
     """Trigger for Early Stopping
 

@@ -3,6 +3,7 @@ import warnings
 from chainer.training import trigger
 
 
+@trigger.iteration_aware
 class IntervalTrigger(object):
 
     """Trigger based on a fixed interval.

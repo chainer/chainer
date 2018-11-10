@@ -10,6 +10,8 @@ from chainer import testing
 from chainer.testing import condition
 from chainer import training
 
+from . import check_iteration_aware
+
 
 @testing.parameterize(
     # iteration
@@ -115,6 +117,13 @@ class TestIntervalTrigger(unittest.TestCase):
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
+
+    def test_iteration_aware(self):
+        trigger = training.triggers.IntervalTrigger(*self.interval)
+        check_iteration_aware(
+            trigger,
+            max_iterations=len(self.expected),
+            iter_per_epoch=self.iter_per_epoch)
 
 
 testing.run_module(__name__, __file__)

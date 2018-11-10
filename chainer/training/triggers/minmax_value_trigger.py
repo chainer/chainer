@@ -1,7 +1,9 @@
 from chainer import reporter
+from chainer.training import trigger as trigger_module
 from chainer.training import util
 
 
+@trigger_module.iteration_aware()
 class BestValueTrigger(object):
 
     """Trigger invoked when specific value becomes best.
