@@ -979,7 +979,7 @@ class Variable(object):
         """Copies the data and gradient arrays to ChainerX devices."""
         self._to_chainerx(allow_unchaining=False)
 
-    def _to_chainerx(self, allow_unchaining=False):
+    def _to_chainerx(self, allow_unchaining):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
@@ -1001,13 +1001,12 @@ class Variable(object):
 
         xp = self.xp
         assert xp is not chainerx
-        if xp is numpy or array is None:
+        if xp is numpy:
             device = chainer.get_device('native:0')
         elif xp is cuda.cupy:
-            device = chainer.get_device(
-                'cuda:{}'.format(self.array.device.id))
+            device = chainer.get_device(('cuda', self.array.device.id))
         else:
-            raise NotImplementedError(
+            raise RuntimeError(
                 'Variable.to_chainerx only supports transfer from native or '
                 'CUDA device.')
 
@@ -1022,7 +1021,7 @@ class Variable(object):
         """
         self._from_chainerx(allow_unchaining=False)
 
-    def _from_chainerx(self, allow_unchaining=False):
+    def _from_chainerx(self, allow_unchaining):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
@@ -1036,11 +1035,12 @@ class Variable(object):
 
         backend_name = self.array.device.backend.name
         if backend_name == 'native':
-            self.to_cpu()
+            self.to_device(backend.CpuDevice())
         elif backend_name == 'cuda':
-            self.to_gpu(self.array.device.index)
+            self.to_device(
+                cuda._get_device_or_current(self.array.device.index))
         else:
-            raise NotImplementedError(
+            raise RuntimeError(
                 'Variable.from_chainerx only supports transfer from native or '
                 'CUDA device.')
 
@@ -1054,7 +1054,7 @@ class Variable(object):
         """
         self._to_device(device, allow_unchaining=False)
 
-    def _to_device(self, device, allow_unchaining=False):
+    def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
         was_chainerx = self._is_chainerx
@@ -1656,9 +1656,6 @@ class Parameter(Variable):
         super(Parameter, self)._to_chainerx(allow_unchaining=True)
 
     def from_chainerx(self):
-        if not chainerx.is_available():
-            raise RuntimeError('ChainerX is not available.')
-
         device = self._initial_device
         if device.xp is not chainerx:
             return self
