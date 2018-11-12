@@ -194,7 +194,11 @@ class TestToBackend(unittest.TestCase):
 
         # At this moment arrays are either NumPy or ChainerX
 
-        chainerx.testing.assert_array_equal(array1, array2)
+        if chainerx.is_available():
+            xp = chainerx
+        else:
+            xp = numpy
+        xp.testing.assert_array_equal(array1, array2)
 
     def to_numpy_check_equal(self, orig):
         converted = backend.to_numpy(orig)
