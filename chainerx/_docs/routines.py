@@ -30,9 +30,9 @@ def _docs_linalg():
 Returns a dot product of two arrays.
 
 For arrays with more than one axis, it computes the dot product along the last
-axis of ``a`` and the second-to-last axis of ``b``. This is just a matrix product if
-the both arrays are 2-D. For 1-D arrays, it uses their unique axis as an axis
-to take dot product over.
+axis of ``a`` and the second-to-last axis of ``b``. This is just a matrix
+product if the both arrays are 2-D. For 1-D arrays, it uses their unique axis
+as an axis to take dot product over.
 
 Args:
     a (~chainerx.ndarray): The left argument.
