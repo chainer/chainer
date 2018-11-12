@@ -264,7 +264,7 @@ class BinaryHierarchicalSoftmax(link.Link):
     It costs only :math:`O(\\log(n))` time where :math:`n` is the vocabulary
     size in average.
 
-    At first a user need to prepare a binary tree whose each leaf is
+    At first a user needs to prepare a binary tree whose each leaf is
     corresponding to a word in a vocabulary.
     When a word :math:`x` is given, exactly one path from the root of the tree
     to the leaf of the word exists.
