@@ -70,10 +70,8 @@ def main():
 
     if args.binary:
         # Binarize dataset
-        train[train >= 0.5] = 1.0
-        train[train < 0.5] = 0.0
-        test[test >= 0.5] = 1.0
-        test[test < 0.5] = 0.0
+        train = (train >= 0.5).astype(np.float32)
+        test = (test >= 0.5).astype(np.float32)
 
     if args.test:
         train, _ = chainer.datasets.split_dataset(train, 100)
