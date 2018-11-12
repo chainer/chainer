@@ -79,7 +79,11 @@ def parse_device(args):
         gpu = int(args.device)
 
     if gpu is not None:
-        return chainer.backend.get_device(gpu)
+        if gpu < 0:
+            return chainer.get_device(numpy)
+        else:
+            import cupy
+            return chainer.get_device((cupy, gpu))
 
     return chainer.backend.get_device(args.device)
 
@@ -147,8 +151,7 @@ def main():
         print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     model.to_device(device)
-    if isinstance(device, chainer.cuda.Device):
-        device.use()  # Make the GPU current
+    device.use()
 
     # Load the mean file
     mean = np.load(args.mean)
