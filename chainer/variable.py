@@ -1002,7 +1002,7 @@ class Variable(object):
         xp = self.xp
         assert xp is not chainerx
         if xp is numpy:
-            device = chainer.get_device('native:0')
+            device = chainer.get_device(('native', 0))
         elif xp is cuda.cupy:
             device = chainer.get_device(('cuda', self.array.device.id))
         else:
