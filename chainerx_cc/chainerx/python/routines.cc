@@ -322,7 +322,7 @@ void InitChainerxLogic(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LessEqual(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
-    m.def("logical_not", [](const ArrayBodyPtr& x1) { return MoveArrayBody(LogicalNot(Array{x1})); }, py::arg("x1"));
+    m.def("logical_not", [](const ArrayBodyPtr& x) { return MoveArrayBody(LogicalNot(Array{x})); }, py::arg("x"));
 }
 
 void InitChainerxManipulation(pybind11::module& m) {
