@@ -326,6 +326,7 @@ class CudnnCTC(function.Function):
 
     Note that it occurs error when labelLengths is greater than 256.
     """
+
     def __init__(self, deterministic=True):
         if deterministic:
             self.algo = libcudnn.CUDNN_CTC_LOSS_ALGO_DETERMINISTIC
@@ -499,12 +500,13 @@ def connectionist_temporal_classification(
 
         if label_length.sum() != len(t):
             # Fix format according to label_length
-            t = chainer.functions.concat([_label[:_length]
-                    for _label, _length in zip(t, label_length)], axis=0).data
+            t = chainer.functions.concat(
+                [_label[:_length] for _label, _length in zip(t, label_length)],
+                axis=0)
 
         t_flatten = t.reshape(-1)
         loss = CudnnCTC(deterministic=deterministic)(
-                        input_length, label_length, t_flatten, x)
+            input_length, label_length, t_flatten, x)
         if reduce == 'mean':
             loss = chainer.functions.mean(loss)
         return loss
