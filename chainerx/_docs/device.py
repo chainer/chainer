@@ -19,6 +19,9 @@ def _set_docs_device():
         Device.name,
         """Device name.
 
+It is the backend name and the device index concatenated with a colon, e.g.
+``native:0``.
+
 Returns:
     str: Device name.
 """)
@@ -110,7 +113,8 @@ Creates a context manager to temporarily set the default device.
 
 Args:
     device (~chainerx.Device or str): Device object or device name to set as
-        the default device during the context.
+        the default device during the context. See :data:`chainerx.Device.name`
+        for the specification of device names.
 
 .. seealso::
     * :func:`chainerx.get_default_device`
