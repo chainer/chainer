@@ -10,11 +10,19 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product({
-    'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'axis': [0, 1],
-}))
+@testing.parameterize(*testing.product_dict(
+    testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
+        'axis': [1],
+    }) + [
+        {'shape': (2, 3), 'axis': 0},
+        {'shape': (2, 2, 3), 'axis': -1},
+        {'shape': (2, 2, 2, 3), 'axis': -4},
+    ],
+))
 @testing.fix_random()
 class TestLogSoftmax(unittest.TestCase):
 

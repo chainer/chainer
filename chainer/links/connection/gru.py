@@ -205,11 +205,13 @@ class StatefulGRU(GRUBase):
         super(StatefulGRU, self).to_cpu()
         if self.h is not None:
             self.h.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         super(StatefulGRU, self).to_gpu(device)
         if self.h is not None:
             self.h.to_gpu(device)
+        return self
 
     def set_state(self, h):
         assert isinstance(h, variable.Variable)

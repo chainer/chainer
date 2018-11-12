@@ -2,9 +2,11 @@ import numpy
 from six import moves
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
+from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
@@ -83,32 +85,37 @@ class DeconvolutionND(function_node.FunctionNode):
     def _forward_grouped_convolution_xp(self, x, W, b, xp):
         # G: group count
         # N: batch size
-        # iC: input channels
-        # oC: output channels
+        # xC: input channels
+        # yC: output channels
         G = self.groups
         N, xC = x.shape[:2]
-        in_size = x.shape[2:]
+        x_size = x.shape[2:]
         yCg = W.shape[1]
-        k_size = W.shape[2:]
-
+        yC = yCg * G
         xCg = xC // G
+        k_size = W.shape[2:]
+        dims = len(k_size)
         if xC % G != 0:
             raise TypeError('The number of groups must be '
                             'a divisor of that of input channels')
 
-        _x = x.reshape((N, G, xCg) + in_size)
-        _x = xp.rollaxis(_x, 1)  # (G, N, xCg) + in_size
-        _W = W.reshape((G, xCg, yCg) + k_size)
+        x = xp.rollaxis(x, 1)  # (xC, N, x_size...)
+        x = x.reshape(G, xCg, N * convolution_nd._prod(x_size))
+
+        W = W.reshape(G, xCg, yCg * convolution_nd._prod(k_size))
+        W = W.transpose(0, 2, 1)  # (G, yCg*k_size, xCg)
+
+        # (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size)
+        col = convolution_2d._matmul(W, x).astype(x.dtype, copy=False)
+
+        col = col.reshape((yC,) + k_size + (N,) + x_size)
+        col = xp.rollaxis(col, dims + 1)  # (N, yC, k_size..., x_size...)
+
+        y = conv_nd.col2im_nd(col, self.stride, self.pad, self.outs,
+                              dilate=self.dilate)
+
         if b is not None:
-            _b = b.reshape(G, yCg)
-
-        _ys = []
-        for g in moves.range(G):
-            _bg = None if b is None else _b[g]
-            _y, = self._forward_xp_core(_x[g], _W[g], _bg, xp)
-            _ys.append(_y)
-
-        y = xp.concatenate(_ys, axis=1)  # (N, yC) + out_size
+            y += b.reshape(1, yC, *((1,) * dims))
         return y,
 
     def _forward_xp_core(self, x, W, b, xp):
@@ -174,7 +181,7 @@ class DeconvolutionND(function_node.FunctionNode):
                 'Output sizes should be positive.'
         self._set_cover_all(x, W)
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
         elif not self._use_cudnn(x, W):
@@ -290,7 +297,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             pad.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
@@ -372,3 +379,41 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
+
+
+def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
+    """1-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)
+
+
+def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
+    """3-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)

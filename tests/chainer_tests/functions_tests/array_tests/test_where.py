@@ -12,20 +12,29 @@ from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2, 4)],
+    'shape': [
+        # c, x, y, output
+        ((3, 2, 4),) * 4,
+        ((4,), (3, 1, 1), (2, 1), (3, 2, 4)),
+    ],
     'dtype': [numpy.float16, numpy.float32, numpy.float32],
 }))
 class TestWhere(unittest.TestCase):
 
     def setUp(self):
-        self.c_data = numpy.random.uniform(-1, 1, self.shape) > 0
+        c_shape, x_shape, y_shape, out_shape = self.shape
+        self.c_data = numpy.random.uniform(-1, 1, c_shape) > 0
         self.x_data = \
-            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         self.y_data = \
-            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
         self.g_data = \
-            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            numpy.random.uniform(-1, 1, out_shape).astype(self.dtype)
         self.check_backward_options = {'dtype': numpy.float64}
+        if self.dtype == numpy.float16:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3,
+            })
 
     def check_forward(self, c_data, x_data, y_data):
         c = chainer.Variable(c_data)
@@ -34,13 +43,9 @@ class TestWhere(unittest.TestCase):
 
         z = functions.where(c, x, y)
 
-        self.assertEqual(x.data.shape, z.data.shape)
-
-        for i in numpy.ndindex(c.data.shape):
-            if c.data[i]:
-                self.assertEqual(x.data[i], z.data[i])
-            else:
-                self.assertEqual(y.data[i], z.data[i])
+        xp = c.xp
+        z_data_expected = xp.where(c_data, x_data, y_data)
+        testing.assert_allclose(z.array, z_data_expected)
 
     def test_forward_cpu(self):
         self.check_forward(self.c_data, self.x_data, self.y_data)

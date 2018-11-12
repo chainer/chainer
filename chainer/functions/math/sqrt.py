@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -13,12 +14,12 @@ class Sqrt(function_node.FunctionNode):
         return 'sqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_outputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
 
     def backward(self, indexes, grad_outputs):
@@ -34,7 +35,7 @@ class RsqrtGPU(function_node.FunctionNode):
         return 'rsqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_gpu(self, inputs):
@@ -81,7 +82,7 @@ def rsqrt(x):
 
     .. seealso:: :func:`~chainer.functions.sqrt`
     """
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     if xp is numpy:
         return 1.0 / sqrt(x)
 

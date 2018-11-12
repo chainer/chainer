@@ -3,7 +3,7 @@
 Upgrade Guide from v1 to v2
 ===========================
 
-This document provides detailed information of differences between Chainer v1 and v2.
+This documentation provides detailed information of differences between Chainer v1 and v2.
 You will know by reading it which part of your code is required (or recommended) to be fixed when you upgrade Chainer from v1 to v2.
 
 .. contents::

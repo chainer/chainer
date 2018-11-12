@@ -133,17 +133,12 @@ class AveragePoolingND(pooling_nd._PoolingND):
     def backward(self, indexes, gy):
         return AveragePoolingNDGrad(self).apply(gy)
 
-    def create_pool_desc(self):
+    def _get_pool_mode(self):
         if self.pad_value is None:
-            pooling_mode = (
-                cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING)
+            return cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING
         else:
             assert self.pad_value == 0
-            pooling_mode = (
-                cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
-
-        return cuda.cudnn.create_pooling_descriptor(
-            self.ksize, self.stride, self.pad, pooling_mode)
+            return cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING
 
 
 class AveragePoolingNDGrad(function_node.FunctionNode):
@@ -251,3 +246,47 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
     return AveragePoolingND(
         ndim, ksize, stride=stride, pad=pad, pad_value=pad_value
     ).apply((x,))[0]
+
+
+def average_pooling_1d(x, ksize, stride=None, pad=0, pad_value=0):
+    """1-dimensional spatial average pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.average_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.average_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return average_pooling_nd(x, ksize, stride, pad, pad_value)
+
+
+def average_pooling_3d(x, ksize, stride=None, pad=0, pad_value=0):
+    """3-dimensional spatial average pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.average_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.average_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return average_pooling_nd(x, ksize, stride, pad, pad_value)

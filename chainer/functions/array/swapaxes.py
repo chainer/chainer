@@ -46,7 +46,7 @@ def swapaxes(x, axis1, axis2):
         >>> y = F.swapaxes(x, axis1=0, axis2=1)
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)

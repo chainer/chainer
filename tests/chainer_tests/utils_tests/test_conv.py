@@ -67,13 +67,11 @@ class TestIm2Col(unittest.TestCase):
 
     def check_im2col(self, kh, kw, sy, sx, ph, pw, dy, dx, gpu):
         if gpu:
-            im2col = conv.im2col_gpu
             img = cuda.to_gpu(self.img)
         else:
-            im2col = conv.im2col_cpu
             img = self.img
 
-        col = im2col(img, kh, kw, sy, sx, ph, pw, dy=dy, dx=dx)
+        col = conv.im2col(img, kh, kw, sy, sx, ph, pw, dy=dy, dx=dx)
         col_h = conv.get_conv_outsize(self.h, kh, sy, ph, d=dy)
         col_w = conv.get_conv_outsize(self.w, kw, sx, pw, d=dx)
         self.assertEqual(col.shape, (2, 3, kh, kw, col_h, col_w))
@@ -127,13 +125,12 @@ class TestCol2Im(unittest.TestCase):
         col = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
         if gpu:
-            col2im = conv.col2im_gpu
             col_data = cuda.to_gpu(col)
         else:
-            col2im = conv.col2im_cpu
             col_data = col
 
-        img = col2im(col_data, sy, sx, ph, pw, self.h, self.w, dy=dy, dx=dx)
+        img = conv.col2im(
+            col_data, sy, sx, ph, pw, self.h, self.w, dy=dy, dx=dx)
         img = cuda.to_cpu(img)
         self.assertEqual(img.shape, (2, 3, self.h, self.w))
         for y in moves.range(self.h):

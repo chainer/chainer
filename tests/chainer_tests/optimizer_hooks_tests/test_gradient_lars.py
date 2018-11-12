@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.initializers as I
 from chainer import optimizer_hooks
 from chainer import optimizers
@@ -36,7 +36,7 @@ class TestGradientLARS(unittest.TestCase):
         g0 = self.target[0].param.grad
         w1 = self.target[1].param.data
         g1 = self.target[1].param.grad
-        xp = cuda.get_array_module(w0)
+        xp = backend.get_array_module(w0)
         threshold = 1e-2
         weight_decay = 0.2
         eps = 1e-9

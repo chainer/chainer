@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import initializer
 
 
@@ -28,7 +28,7 @@ class Uniform(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         array[...] = xp.random.uniform(
             low=-self.scale, high=self.scale, size=array.shape)
 

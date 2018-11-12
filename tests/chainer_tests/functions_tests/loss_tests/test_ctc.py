@@ -4,6 +4,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -69,7 +70,7 @@ class CTCTestBase(object):
             *args, reduce=self.reduce).data
 
         # compute expected value by recursive computation.
-        xp = cuda.get_array_module(self.x)
+        xp = backend.get_array_module(self.x)
         xt = xp.swapaxes(self.x, 0, 1)
         for b in range(xt.shape[0]):
             for t in range(xt.shape[1]):

@@ -545,7 +545,7 @@ def prepare(image, size=(224, 224)):
     #       mean pixel (rather than mean image) as with VGG team. The mean
     #       value used in ResNet is slightly different from that of VGG16.
     image -= numpy.array(
-        [103.063,  115.903,  123.152], dtype=dtype)
+        [103.063, 115.903, 123.152], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 

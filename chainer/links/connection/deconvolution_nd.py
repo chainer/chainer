@@ -42,7 +42,7 @@ class DeconvolutionND(link.Link):
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
@@ -148,3 +148,41 @@ class DeconvolutionND(link.Link):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
             outsize=self.outsize, dilate=self.dilate, groups=self.groups)
+
+
+class Deconvolution1D(DeconvolutionND):
+    """1-dimensional deconvolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.DeconvolutionND` by giving 1 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.DeconvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 dilate=1, groups=1):
+        super(Deconvolution1D, self).__init__(
+            1, in_channels, out_channels, ksize, stride, pad, nobias, outsize,
+            initialW, initial_bias, dilate, groups)
+
+
+class Deconvolution3D(DeconvolutionND):
+    """3-dimensional deconvolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.DeconvolutionND` by giving 3 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.DeconvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 dilate=1, groups=1):
+        super(Deconvolution3D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, outsize,
+            initialW, initial_bias, dilate, groups)

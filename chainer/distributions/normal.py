@@ -107,6 +107,10 @@ class Normal(distribution.Distribution):
     def mean(self):
         return self.loc
 
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
+
     def prob(self, x):
         return (PROBC / self.scale) * exponential.exp(
             - 0.5 * (x - self.loc) ** 2 / self.scale ** 2)

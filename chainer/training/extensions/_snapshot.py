@@ -6,7 +6,7 @@ from chainer.training import extension
 from chainer import utils
 
 
-def snapshot_object(target, filename, savefun=npz.save_npz):
+def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
     """Returns a trainer extension to take snapshots of a given object.
 
     This extension serializes the given object and saves it to the output
@@ -29,20 +29,34 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
             ``'snapshot_10000'`` at the 10,000th iteration.
         savefun: Function to save the object. It takes two arguments: the
             output file path and the object to serialize.
+        snapshot_on_error (bool): Whether to take a snapshot in case trainer
+            loop has been failed.
 
     Returns:
         An extension function.
 
     """
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
+
+    snapshot_on_error = utils.argument.parse_kwargs(
+        kwargs, ('snapshot_on_error', False))
+    error_handler = None
+    if snapshot_on_error:
+        def h(trainer, exception, exc_info):
+            _snapshot_object(trainer, trainer, filename.format(trainer),
+                             savefun)
+        error_handler = h
+
+    @extension.make_extension(trigger=(1, 'epoch'), priority=-100,
+                              on_error=error_handler)
     def snapshot_object(trainer):
-        _snapshot_object(trainer, target, filename.format(trainer), savefun)
+        _snapshot_object(trainer, target, filename.format(trainer),
+                         savefun)
 
     return snapshot_object
 
 
 def snapshot(savefun=npz.save_npz,
-             filename='snapshot_iter_{.updater.iteration}'):
+             filename='snapshot_iter_{.updater.iteration}', **kwargs):
     """Returns a trainer extension to take snapshots of the trainer.
 
     This extension serializes the trainer object and saves it to the output
@@ -69,11 +83,25 @@ def snapshot(savefun=npz.save_npz,
         filename (str): Name of the file into which the trainer is serialized.
             It can be a format string, where the trainer object is passed to
             the :meth:`str.format` method.
+        snapshot_on_error (bool): Whether to take a snapshot in case trainer
+            loop has been failed.
 
     """
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
+    snapshot_on_error = utils.argument.parse_kwargs(
+        kwargs, ('snapshot_on_error', False))
+
+    error_handler = None
+    if snapshot_on_error:
+        def h(trainer, exception, exc_info):
+            _snapshot_object(trainer, trainer, filename.format(trainer),
+                             savefun)
+        error_handler = h
+
+    @extension.make_extension(trigger=(1, 'epoch'), priority=-100,
+                              on_error=error_handler)
     def snapshot(trainer):
-        _snapshot_object(trainer, trainer, filename.format(trainer), savefun)
+        _snapshot_object(trainer, trainer, filename.format(trainer),
+                         savefun)
 
     return snapshot
 

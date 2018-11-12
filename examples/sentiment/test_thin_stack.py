@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -23,17 +24,17 @@ class TestThinStackGet(unittest.TestCase):
         self.gt = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, s_data, i_data):
-        xp = cuda.get_array_module(s_data)
+        xp = backend.get_array_module(s_data)
         s_old = s_data.copy()
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
         x, t = thin_stack.thin_stack_get(s, i)
 
         expect = s_old[xp.arange(len(i_data)), i_data]
-        testing.assert_allclose(x.data, expect)
+        testing.assert_allclose(x.array, expect)
 
         # Thin stack reuses the same ndarray.
-        self.assertIs(s_data, t.data)
+        self.assertIs(s_data, t.array)
 
     def test_forward_cpu(self):
         self.check_forward(self.s, self.i)
@@ -88,7 +89,7 @@ class TestThinStackSet(unittest.TestCase):
         self.gt = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, s_data, i_data, x_data):
-        xp = cuda.get_array_module(s_data)
+        xp = backend.get_array_module(s_data)
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
         x = chainer.Variable(x_data)
@@ -96,10 +97,10 @@ class TestThinStackSet(unittest.TestCase):
         t = thin_stack.thin_stack_set(s, i, x)
 
         testing.assert_allclose(
-            t.data[xp.arange(len(i_data)), i_data], x_data)
+            t.array[xp.arange(len(i_data)), i_data], x_data)
 
         # Thin stack reuses the same ndarray.
-        self.assertIs(s_data, t.data)
+        self.assertIs(s_data, t.array)
 
     def test_forward_cpu(self):
         self.check_forward(self.s, self.i, self.x)

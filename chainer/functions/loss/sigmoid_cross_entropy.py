@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.activation import sigmoid
 from chainer import utils
@@ -22,7 +22,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -34,7 +34,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
 
@@ -78,7 +78,7 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gy = inputs
 
         y, = sigmoid.Sigmoid().forward((x,))
@@ -164,7 +164,7 @@ astype(np.float32)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[ 0.126928  ,  0.04858735,  0.974077  ],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 

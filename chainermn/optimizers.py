@@ -39,6 +39,10 @@ class _MultiNodeOptimizer(object):
                 return True
         return False
 
+    def setup(self, link):
+        self.actual_optimizer.setup(link)
+        return self
+
     def __getattr__(self, attr_name):
         return getattr(self.actual_optimizer, attr_name)
 
@@ -117,6 +121,10 @@ class _DoubleBufferingOptimizer(object):
     def wait(self):
         self.allreduce_grad_stream.synchronize()
         chainer.cuda.Stream.null.synchronize()
+
+    def setup(self, link):
+        self.actual_optimizer.setup(link)
+        return self
 
     def __getattr__(self, attr_name):
         return getattr(self.actual_optimizer, attr_name)

@@ -8,6 +8,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import link
 from chainer import links
 from chainer import optimizers
@@ -147,6 +148,11 @@ class TestHDF5Deserializer(unittest.TestCase):
     def test_deserialize_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y))
+
+    @attr.ideep
+    def test_deserialize_ideep(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(intel64.mdarray(y))
 
     @attr.gpu
     def test_deserialize_none_value_gpu(self):
