@@ -29,6 +29,23 @@ def _docs_linalg():
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.logical_not,
+        """logical_not(x)
+Returns an array of NOT x element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.logical_not`
+""")
+
+    _docs.set_doc(
         chainerx.greater,
         """greater(x1, x2)
 Returns an array of (x1 > x2) element-wise.

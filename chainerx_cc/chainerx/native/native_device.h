@@ -89,7 +89,7 @@ public:
 
     void GreaterEqual(const Array& x1, const Array& x2, const Array& out) override;
 
-    void LogicalNot(const Array& x1, const Array& out) override;
+    void LogicalNot(const Array& x, const Array& out) override;
 
     // activation.cc
 

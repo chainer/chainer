@@ -24,6 +24,18 @@ Linear algebra
 Logic functions
 ---------------
 
+Logic operations
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.logical_not
+
+Comparison operations
+^^^^^^^^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:

@@ -89,17 +89,17 @@ namespace {
 
 template <typename T>
 struct LogicalNotImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, bool& out) { out = !x1; }
+    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = !x; }
 };
 
 }  // namespace
 
-void CudaDevice::LogicalNot(const Array& x1, const Array& out) {
-    CheckDevicesCompatible(x1, out);
+void CudaDevice::LogicalNot(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
-    VisitDtype(x1.dtype(), [&](auto pt) {
+    VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, bool>(LogicalNotImpl<T>{}, x1, out);
+        Elementwise<const T, bool>(LogicalNotImpl<T>{}, x, out);
     });
 }
 

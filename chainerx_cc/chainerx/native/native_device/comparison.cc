@@ -54,14 +54,14 @@ void NativeDevice::GreaterEqual(const Array& x1, const Array& x2, const Array& o
     });
 }
 
-void NativeDevice::LogicalNot(const Array& x1, const Array& out) {
-    CheckDevicesCompatible(x1, out);
-    VisitDtype(x1.dtype(), [&](auto pt) {
+void NativeDevice::LogicalNot(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t /*i*/, T x1, bool& out) { out = !x1; }
+            void operator()(int64_t /*i*/, T x, bool& out) { out = !x; }
         };
-        Elementwise<const T, bool>(Impl{}, x1, out);
+        Elementwise<const T, bool>(Impl{}, x, out);
     });
 }
 
