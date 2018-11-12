@@ -473,8 +473,9 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     x = chainer.functions.stack(x)
-    use_cudnn = cuda.cudnn_enabled and _cudnn_version >= 7000
-    use_cudnn &= t.shape[1] <= 256
+    use_cudnn = chainer.should_use_cudnn('>=auto', 7000)
+    # when the length of labels is greater than 255, we cannot use cuDNN.
+    use_cudnn &= t.shape[1] <= 255
     if xp is not numpy and use_cudnn:
         if reduce not in ('mean', 'no'):
             raise ValueError(
