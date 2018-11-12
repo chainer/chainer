@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Chainer example: train a VAE on Binarized MNIST
+"""Chainer example: train a VAE on MNIST
 """
 import argparse
 import os
@@ -35,6 +35,8 @@ def main():
     parser.add_argument('--k', '-k', default=1, type=int,
                         help='Number of Monte Carlo samples used in '
                              'encoded vector')
+    parser.add_argument('--binary', action='store_true',
+                        help='Use binarized MNIST')
     parser.add_argument('--batch-size', '-b', type=int, default=100,
                         help='learning minibatch size')
     parser.add_argument('--test', action='store_true',
@@ -49,7 +51,8 @@ def main():
 
     # Prepare VAE model, defined in net.py
     encoder = net.make_encoder(784, args.dim_z, args.dim_h)
-    decoder = net.make_decoder(784, args.dim_z, args.dim_h)
+    decoder = net.make_decoder(784, args.dim_z, args.dim_h,
+                               binary_check=args.binary)
     prior = net.make_prior(args.dim_z, device=args.gpu)
     avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
                                     beta=args.beta, k=args.k)
@@ -65,11 +68,12 @@ def main():
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist(withlabel=False)
 
-    # Binarize dataset
-    train[train >= 0.5] = 1.0
-    train[train < 0.5] = 0.0
-    test[test >= 0.5] = 1.0
-    test[test < 0.5] = 0.0
+    if args.binary:
+        # Binarize dataset
+        train[train >= 0.5] = 1.0
+        train[train < 0.5] = 0.0
+        test[test >= 0.5] = 1.0
+        test[test < 0.5] = 0.0
 
     if args.test:
         train, _ = chainer.datasets.split_dataset(train, 100)

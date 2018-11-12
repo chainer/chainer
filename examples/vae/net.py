@@ -60,8 +60,9 @@ class Encoder(chainer.Chain):
 
 class Decoder(chainer.Chain):
 
-    def __init__(self, n_in, n_latent, n_h):
+    def __init__(self, n_in, n_latent, n_h, binary_check=False):
         super(Decoder, self).__init__()
+        self.binary_check = binary_check
         with self.init_scope():
             self.linear = L.Linear(n_latent, n_h)
             self.output = L.Linear(n_h, n_in)
@@ -70,7 +71,7 @@ class Decoder(chainer.Chain):
         n_batch_axes = 1 if inference else 2
         h = F.tanh(self.linear(z, n_batch_axes=n_batch_axes))
         h = self.output(h, n_batch_axes=n_batch_axes)
-        return D.Bernoulli(logit=h)
+        return D.Bernoulli(logit=h, binary_check=self.binary_check)
 
 
 class Prior(chainer.Chain):
@@ -95,8 +96,8 @@ def make_encoder(n_in, n_latent, n_h):
     return Encoder(n_in, n_latent, n_h)
 
 
-def make_decoder(n_in, n_latent, n_h):
-    return Decoder(n_in, n_latent, n_h)
+def make_decoder(n_in, n_latent, n_h, binary_check=False):
+    return Decoder(n_in, n_latent, n_h, binary_check=binary_check)
 
 
 def make_prior(n_latent, dtype=np.float32, device=-1):
