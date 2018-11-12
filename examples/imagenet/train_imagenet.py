@@ -80,7 +80,7 @@ def parse_device(args):
 
     if gpu is not None:
         if gpu < 0:
-            return chainer.get_device(numpy)
+            return chainer.get_device(np)
         else:
             import cupy
             return chainer.get_device((cupy, gpu))
