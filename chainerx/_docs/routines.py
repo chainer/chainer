@@ -90,4 +90,52 @@ def _docs_normalization():
 
 
 def _docs_pooling():
-    pass
+    _docs.set_doc(
+        chainerx.max_pool,
+        """max_pool(x, ksize, stride=None, pad=0, cover_all=False)
+Spatial max pooling function.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
+        ``ksize=(k, k, ..., k)`` are equivalent.
+    stride (int or tuple of ints or None): Stride of pooling applications.
+        ``stride=s`` and ``stride=(s,s, ..., s)`` are equivalent. If
+        ``None`` is specified, then it uses same stride as the pooling
+        window size.
+    pad (int or tuple of ints): Spatial padding width for the input array.
+        ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+    cover_all (bool): If ``True``, all spatial locations are pooled into
+        some output pixels. It may make the output size larger.
+
+    Returns:
+        ~chainerx.ndarray:  Returns the output array.
+
+.. note::
+
+   This function currently does not support ``return_indices`` mode of
+   `~chainer.functions.max_pooling_nd`.
+""")
+
+    _docs.set_doc(
+        chainerx.average_pool,
+        """average_pool(x, ksize, stride=None, pad=0, pad_mode="ignore")
+Spatial average pooling function.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
+        ``ksize=(k, k, ..., k)`` are equivalent.
+    stride (int or tuple of ints or None): Stride of pooling applications.
+        ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent. If
+        ``None`` is specified, then it uses same stride as the pooling
+        window size.
+    pad (int or tuple of ints): Spatial padding width for the input array.
+        ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+    pad_mode (str): If ``"zero"`` is specified, the values in the padded
+        region are treated as 0.  If ``"ignore"`` is specified, such region
+        is ignored.
+
+Returns:
+    ~chainerx.ndarray: Output array.
+""")
