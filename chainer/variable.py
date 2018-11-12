@@ -1612,7 +1612,7 @@ class Parameter(Variable):
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
-        self._initial_device = backend.get_device_from_array(initializer)
+        self._initial_device = backend.CpuDevice()
         self.update_rule = None
         self.initializer = initializer
 
@@ -1638,46 +1638,43 @@ class Parameter(Variable):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
-        xp = self._initial_device.xp
-        if xp is chainerx:
-            return self
+        # Derive the target ChainerX device from the initializer if it is an
+        # ndarray, otherwise, from the current initial device.
+        if isinstance(self.initializer, chainer.get_array_types()):
+            device = backend.get_device_from_array(self.initializer)
+        else:
+            device = self._initial_device
 
-        if self.data is None:
-            # TODO(niboshi): Update this logic for updating
-            # self._initial_device
-            if xp is numpy:
-                self._initial_device = chainer.get_device('native:0')
-            elif xp is cuda.cupy:
-                self._initial_device = chainer.get_device(
-                    'cuda:{}'.format(self._initial_device.device.id))
-            else:
-                assert False
+        if device.xp is numpy:
+            self._initial_device = backend.ChainerxDevice(
+                chainerx.get_device('native:0'))
+        elif device.xp is cuda.cupy:
+            self._initial_device = backend.ChainerxDevice(
+                chainerx.get_device('cuda:{}'.format(device.device.id)))
 
         super(Parameter, self)._to_chainerx(allow_unchaining=True)
 
     def from_chainerx(self):
-        device = self._initial_device
-        if device.xp is not chainerx:
-            return self
+        if isinstance(self.initializer, chainer.get_array_types()):
+            device = backend.get_device_from_array(self.initializer)
+        else:
+            device = self._initial_device
 
-        if self.data is None:
-            backend_name = device.backend.name
+        if isinstance(device, backend.ChainerxDevice):
+            backend_name = device.device.backend.name
             if backend_name is 'native':
                 self._initial_device = backend.CpuDevice()
             elif backend_name is 'cuda':
                 self._initial_device = chainer.get_device(
                     (cuda.cupy, device.device.index))
-            else:
-                assert False
 
         super(Parameter, self)._from_chainerx(allow_unchaining=True)
 
     def to_device(self, device):
         device = chainer.get_device(device)
-        if self.data is None:
-            if self._initial_device != device:
-                self._data = [None]  # Renew placeholder to break sharing
-                self._initial_device = device
+        if self.data is None and self._initial_device != device:
+            self._data = [None]  # Renew placeholder to break sharing
+        self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
     def cleargrad(self):
