@@ -92,7 +92,7 @@ Returns:
     _docs.set_doc(
         chainerx.set_default_device,
         """set_default_device(device)
-Sets a given device as the default device of the current thread.
+Sets the given device as the default device of the current thread.
 
 Args:
     device (~chainerx.Device or str): Device object or device name to set as
