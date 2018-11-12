@@ -29,9 +29,81 @@ def _docs_linalg():
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.greater,
+        """greater(x1, x2)
+Returns an array of (x1 > x2) element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.greater`
+""")
+
+    _docs.set_doc(
+        chainerx.greater_equal,
+        """greater_equal(x1, x2)
+Returns an array of (x1 >= x2) element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.greater_equal`
+""")
+
+    _docs.set_doc(
+        chainerx.less,
+        """less(x1, x2)
+Returns an array of (x1 < x2) element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.less`
+""")
+
+    _docs.set_doc(
+        chainerx.less_equal,
+        """less_equal(x1, x2)
+Returns an array of (x1 <= x2) element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.less_equal`
+""")
+
+    _docs.set_doc(
         chainerx.equal,
         """equal(x1, x2)
-Returns an elementwise equality array.
+Returns an array of (x1 == x2) element-wise.
 
 Args:
     x1 (~chainerx.ndarray): Input array.
@@ -44,6 +116,24 @@ Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :func:`numpy.equal`
+""")
+
+    _docs.set_doc(
+        chainerx.not_equal,
+        """not_equal(x1, x2)
+Returns an array of (x1 != x2) element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.not_equal`
 """)
 
 

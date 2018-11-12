@@ -28,7 +28,12 @@ Logic functions
    :toctree: generated/
    :nosignatures:
 
+   chainerx.greater
+   chainerx.greater_equal
+   chainerx.less
+   chainerx.less_equal
    chainerx.equal
+   chainerx.not_equal
 
 Mathematical functions
 ----------------------
