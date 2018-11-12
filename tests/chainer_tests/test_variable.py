@@ -1174,6 +1174,7 @@ class TestVariableFromChainerX(unittest.TestCase):
         expected_xp, expected_device = self.infer_expected_xp_and_device(x)
 
         assert x_var.xp is expected_xp
+        assert x_var.node is not None
         assert isinstance(x_var.array, expected_xp.ndarray)
         assert expected_device is None or x_var.array.device == expected_device
         assert x.shape == x_var.shape
