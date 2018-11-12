@@ -9,6 +9,24 @@ from chainer import reporter
 
 
 class AvgELBOLoss(chainer.Chain):
+    """Loss function of VAE.
+
+    The loss value is equal to ELBO (Evidence Lower Bound)
+    multiplied by -1.
+
+    Args:
+        encoder (chainer.Chain): A neural network which outputs variational
+            posterior distribution q(z|x) of a latent variable z given
+            an observed variable x.
+        decoder (chainer.Chain): A neural network which outputs conditional
+            distribution p(x|z) of the observed variable x given
+            the latent variable z.
+        prior (chainer.Chain): A prior distribution over the latent variable z.
+        beta (float): Usually this is 1.0. Can be changed to control the
+            second term of ELBO bound, which works as regularization.
+        k (int): Number of Monte Carlo samples used in encoded vector.
+    """
+
     def __init__(self, encoder, decoder, prior, beta=1.0, k=1):
         super(AvgELBOLoss, self).__init__()
         self.beta = beta
