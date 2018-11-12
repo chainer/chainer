@@ -994,7 +994,7 @@ class Variable(object):
         array = self.array
         grad = self.grad
         if array is None and grad is not None:
-            # TODO(hvy): Make it impossible to reach this invalid state.
+            # TODO(hvy): Reconsider this possibly invalid state.
             raise RuntimeError(
                 'A variable without data but with a gradient cannot be '
                 'transferred to a ChainerX device.')
