@@ -66,13 +66,13 @@ Otherwise, there are three ways to specify a device:
 
 .. testcode::
 
-    # Specify backend name and device index separately.
+    # Specify a backend name and a device index separately.
     chainerx.get_device('native', 0)
 
-    # Specify backend name and device index in a single string.
+    # Specify a backend name and a device index in a single string.
     chainerx.get_device('native:0')
 
-    # Specify only backend name. In this case device index 0 is chosen.
+    # Specify only a backend name. In this case device index 0 is chosen.
     chainerx.get_device('native')
 
 Returns:
