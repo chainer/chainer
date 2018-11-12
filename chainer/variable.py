@@ -1635,10 +1635,10 @@ class Parameter(Variable):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
-        # Derive the target ChainerX device from the initializer if it is an
-        # ndarray, otherwise, from the current initial device.
-        if isinstance(self.initializer, chainer.get_array_types()):
-            device = backend.get_device_from_array(self.initializer)
+        # Derive the target ChainerX device from the array if it is
+        # initialized. Otherwise, from the current initial device.
+        if self.array is not None:
+            device = backend.get_device_from_array(self.array)
         else:
             device = self._initial_device
 
@@ -1652,8 +1652,8 @@ class Parameter(Variable):
         super(Parameter, self)._to_chainerx(allow_unchaining=True)
 
     def from_chainerx(self):
-        if isinstance(self.initializer, chainer.get_array_types()):
-            device = backend.get_device_from_array(self.initializer)
+        if self.array is not None:
+            device = backend.get_device_from_array(self.array)
         else:
             device = self._initial_device
 
