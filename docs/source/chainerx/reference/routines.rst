@@ -51,6 +51,15 @@ Indexing routines
 Linear algebra
 --------------
 
+Matrix and vector products
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.dot
+
 Logic functions
 ---------------
 
