@@ -53,7 +53,7 @@ def main():
     encoder = net.make_encoder(784, args.dim_z, args.dim_h)
     decoder = net.make_decoder(784, args.dim_z, args.dim_h,
                                binary_check=args.binary)
-    prior = net.make_prior(args.dim_z, device=args.gpu)
+    prior = net.make_prior(args.dim_z)
     avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
                                     beta=args.beta, k=args.k)
 

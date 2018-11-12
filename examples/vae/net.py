@@ -85,19 +85,14 @@ class Decoder(chainer.Chain):
         return D.Bernoulli(logit=h, binary_check=self.binary_check)
 
 
-class Prior(chainer.Chain):
+class Prior(chainer.Link):
 
-    def __init__(self, n_latent, dtype=np.float32, device=-1):
+    def __init__(self, n_latent):
         super(Prior, self).__init__()
 
-        loc = np.zeros(n_latent, dtype=dtype)
-        scale = np.ones(n_latent, dtype=dtype)
-        if device != -1:
-            loc = cuda.to_gpu(loc, device=device)
-            scale = cuda.to_gpu(scale, device=device)
-
-        self.loc = chainer.Variable(loc)
-        self.scale = chainer.Variable(scale)
+        with self.init_scope():
+            self.loc = chainer.Parameter(0, n_latent)
+            self.scale = chainer.Parameter(1, n_latent)
 
     def forward(self):
         return D.Normal(self.loc, scale=self.scale)
@@ -111,5 +106,5 @@ def make_decoder(n_in, n_latent, n_h, binary_check=False):
     return Decoder(n_in, n_latent, n_h, binary_check=binary_check)
 
 
-def make_prior(n_latent, dtype=np.float32, device=-1):
-    return Prior(n_latent, dtype=dtype, device=device)
+def make_prior(n_latent):
+    return Prior(n_latent)
