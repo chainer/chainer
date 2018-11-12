@@ -116,7 +116,7 @@ Args:
 
     _docs.set_doc(
         chainerx.average_pool,
-        """average_pool(x, ksize, stride=None, pad=0, pad_mode="ignore")
+        """average_pool(x, ksize, stride=None, pad=0, pad_mode='ignore')
 Spatial average pooling function.
 
 Args:
@@ -129,7 +129,7 @@ Args:
         window size.
     pad (int or tuple of ints): Spatial padding width for the input array.
         ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
-    pad_mode (str): If ``"zero"`` is specified, the values in the padded
-        region are treated as 0.  If ``"ignore"`` is specified, such region
+    pad_mode (str): If ``'zero'`` is specified, the values in the padded
+        region are treated as 0.  If ``'ignore'`` is specified, such region
         is ignored.
 """)
