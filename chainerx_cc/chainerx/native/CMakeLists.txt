@@ -34,7 +34,7 @@ if(${BLAS_FOUND})
         set(BLAS_INCLUDE_DIRS $ENV{BLAS_INCLUDE_DIRS})
     else()
         # Workaround for UNIX environments to guess the BLAS include directory from its library path (.so).
-        # This workaround is required since CMake does not set BLAS_INCLUDE_DIRS variable.
+        # This workaround is required since CMake does not set the BLAS_INCLUDE_DIRS variable.
         get_filename_component(BLAS_ROOT_DIR ${BLAS_LIBRARIES} DIRECTORY)  # Directory of .so.
         get_filename_component(BLAS_ROOT_DIR ${BLAS_ROOT_DIR} DIRECTORY)  # Directory of lib.
         find_path(BLAS_INCLUDE_DIRS cblas.h
