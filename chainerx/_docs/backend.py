@@ -7,8 +7,7 @@ def _set_docs_backend():
 
     _docs.set_doc(
         Backend,
-        """Pluggable entity that represents a set of homogeneous computing \
-faculties.
+        """Pluggable entity that abstracts various computing platforms.
 
 A backend holds one or more :class:`~chainerx.Device`\ s, each of which
 represents a physical computing unit.
