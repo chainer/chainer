@@ -269,6 +269,14 @@ class TestToBackend(unittest.TestCase):
         assert isinstance(converted, cuda.ndarray)
         assert converted.device.id == 0
 
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_cupy_from_chainerx_non_zero_index(self):
+        orig = self.orig_chainerx('cuda:1')
+        converted = self.from_chainerx_check_equal(orig)
+        assert isinstance(converted, cuda.ndarray)
+        assert converted.device.id == 1
+
     # TODO(niboshi): Add more test variants
 
 
