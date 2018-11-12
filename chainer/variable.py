@@ -40,13 +40,13 @@ def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x_grad), type(x_data)))
         typ = TypeError
-    elif x_grad.dtype != x.dtype:
+    elif gx.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x_grad.dtype, x.dtype))
+               (gx.dtype, x.dtype))
         typ = TypeError
-    elif x_grad.shape != x.shape:
+    elif gx.shape != x.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x_grad.shape, x.shape))
+               (gx.shape, x.shape))
         typ = ValueError
     else:
         return
