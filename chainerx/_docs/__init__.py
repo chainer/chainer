@@ -2,6 +2,7 @@ import inspect
 
 from chainerx import _core
 from chainerx._docs import array
+from chainerx._docs import context
 from chainerx._docs import routines
 
 
@@ -15,5 +16,5 @@ def set_doc(obj, docstring):
 
 
 def set_docs():
-    for m in (array, routines):
+    for m in (array, context, routines):
         m.set_docs()

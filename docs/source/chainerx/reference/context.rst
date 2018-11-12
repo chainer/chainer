@@ -1,4 +1,8 @@
 Context
 =======
 
-TODO
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.Context
