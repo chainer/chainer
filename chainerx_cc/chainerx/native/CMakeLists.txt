@@ -30,8 +30,8 @@ add_library(chainerx_native STATIC
     tensor_dot.cc)
 
 if(${BLAS_FOUND})
-    if(DEFINED ENV{BLAS_INCLUDE_DIRS})
-        set(BLAS_INCLUDE_DIRS $ENV{BLAS_INCLUDE_DIRS})
+    if(DEFINED ENV{CHAINERX_BLAS_INCLUDE_DIRS})
+        set(BLAS_INCLUDE_DIRS $ENV{CHAINERX_BLAS_INCLUDE_DIRS})
     else()
         # Workaround for UNIX environments to guess the BLAS include directory from its library path (.so).
         # This workaround is required since CMake does not set the BLAS_INCLUDE_DIRS variable.
