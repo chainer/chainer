@@ -44,6 +44,15 @@ Array manipulation routines
    :nosignatures:
 
    chainerx.reshape
+   chainerx.transpose
+   chainerx.broadcast_to
+   chainerx.squeeze
+   chainerx.asarray
+   chainerx.ascontiguousarray
+   chainerx.asscalar
+   chainerx.concatenate
+   chainerx.stack
+   chainerx.split
 
 Indexing routines
 -----------------
