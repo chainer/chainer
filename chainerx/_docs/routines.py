@@ -493,6 +493,52 @@ def _docs_connection():
 
 
 def _docs_normalization():
+    _docs.set_doc(
+        chainerx.batch_norm,
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5,
+decay=0.9, axis=None)
+Batch normalization function.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    gamma (~chainerx.ndarray): Scaling parameter of normalized data.
+    beta (~chainerx.ndarray): Shifting parameter of scaled normalized data.
+    running_mean (~chainerx.ndarray):
+        Running average of the mean. This is a running average of
+        the mean over several mini-batches using the decay parameter.
+        The function takes a previous running average, and updates
+        the array in-place by the new running average.
+    running_var (~chainerx.ndarray):
+        Running average of the variance. This is a running average of
+        the variance over several mini-batches using the decay parameter.
+        The function takes a previous running average, and updates
+        the array in-place by the new running average.
+    eps (float): Epsilon value for numerical stability.
+    decay (float): Decay rate of moving average. It is used during training.
+    axis (int, tuple of int or None):
+        Axis over which normalization is performed. When axis is ``None``,
+        the first axis is treated as the batch axis and will be reduced
+        during normalization.
+""")
+
+    _docs.set_doc(
+        chainerx.fixed_batch_norm,
+        """fixed_batch_norm(x, gamma, beta, running_mean, running_var,
+eps=2e-5, decay=0.9, axis=None)
+Batch normalization function with fixed statistics.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    gamma (~chainerx.ndarray): Scaling parameter of normalized data.
+    beta (~chainerx.ndarray): Shifting parameter of scaled normalized data.
+    mean (~chainerx.ndarray): Shifting parameter of input.
+    var (~chainerx.ndarray): Square of scaling parameter of input.
+    eps (float): Epsilon value for numerical stability.
+    axis (int, tuple of int or None):
+        Axis over which normalization is performed. When axis is ``None``,
+        the first axis is treated as the batch axis and will be reduced
+        during normalization.
+""")
     pass
 
 

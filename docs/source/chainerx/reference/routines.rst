@@ -100,6 +100,12 @@ Convolution
 
 Normalization
 -------------
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.batch_norm
+   chainerx.fixed_batch_norm
 
 Pooling
 -------
