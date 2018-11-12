@@ -176,8 +176,8 @@ private:
         temp_output_grads.reserve(op_node->output_array_nodes().size());
 
         std::vector<internal::GradRef*> output_grads;
-        for (const std::weak_ptr<ArrayNode>& maybe_output_array_node : op_node->output_array_nodes()) {
-            std::shared_ptr<ArrayNode> output_array_node = maybe_output_array_node.lock();
+        for (const nonstd::optional<std::weak_ptr<ArrayNode>>& maybe_output_array_node : op_node->output_array_nodes()) {
+            std::shared_ptr<ArrayNode> output_array_node = maybe_output_array_node.has_value() ? maybe_output_array_node->lock() : nullptr;
 
             // Get the pointer to the output gradient.
             if (output_array_node != nullptr) {

@@ -196,9 +196,10 @@ void AddEdgesFromOpNodeToOutputArrayNodesOfOuterGraph(
     // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
     for (size_t i = 0; i < output_retention_record.size(); ++i) {
         if (output_retention_record.IsRecorded(i)) {
-            const std::weak_ptr<ArrayNode>& array_node = outer_op_node.output_array_nodes()[i];
-            CHAINERX_ASSERT(!array_node.expired());
-            output_array_nodes.emplace_back(array_node.lock());
+            const nonstd::optional<std::weak_ptr<ArrayNode>>& array_node = outer_op_node.output_array_nodes()[i];
+            CHAINERX_ASSERT(array_node.has_value());
+            CHAINERX_ASSERT(!array_node->expired());
+            output_array_nodes.emplace_back(array_node->lock());
         } else {
             output_array_nodes.emplace_back(nullptr);
         }
