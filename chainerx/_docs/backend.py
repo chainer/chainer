@@ -34,7 +34,7 @@ Returns:
     _docs.set_doc(
         Backend.get_device,
         """get_device(index)
-Returns a device specified by given index.
+Returns a device specified by the given index.
 
 Args:
     index (int): Device index.
