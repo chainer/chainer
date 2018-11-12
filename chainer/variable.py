@@ -1022,9 +1022,6 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if not chainerx.is_available():
-            raise RuntimeError('ChainerX is not available.')
-
         if not self._is_chainerx:
             return
 
