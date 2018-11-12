@@ -92,6 +92,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("copy") = true,
           py::arg("device") = nullptr);
+    // TODO(niboshi): Rename `object` to `a` as per numpy.
     m.def("asarray",
           [](py::handle object, py::handle dtype, py::handle device) { return MakeArray(object, dtype, false, device); },
           py::arg("object"),
