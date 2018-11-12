@@ -39,6 +39,15 @@ Sorting routines
 Statistics
 ----------
 
+Order statistics
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.amax
+
 Convolution
 -----------
 

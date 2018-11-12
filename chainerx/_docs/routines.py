@@ -78,7 +78,32 @@ def _docs_math():
 
 
 def _docs_statistics():
-    pass
+    _docs.set_doc(
+        chainerx.amax,
+        """amax(a, axis=None, keepdims=False)
+Returns the maximum of an array or the maximum along an axis.
+
+Note:
+    When at least one element is NaN, the corresponding max value will be NaN.
+
+Args:
+    a (~chainerx.ndarray): Array to take the maximum.
+    axis (None or int or tuple of ints): Along which axis to take the maximum.
+        The flattened array is used by default.
+        If this is a tuple of ints, the maximum is selected over multiple
+        axes, instead of a single axis or all the axes.
+    keepdims (bool): If ``True``, the axis is remained as an axis of size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: The maximum of ``a``, along the axis if
+    specified.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.amax`
+""")
 
 
 def _docs_connection():
