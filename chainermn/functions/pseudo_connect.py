@@ -24,7 +24,7 @@ class PseudoConnect(chainer.Function):
             grad_delegate_variable = xp.array(0, dtype=xp.float32)
 
         # grad_outputs corresponds to grads of actual_variables.
-        return tuple([grad_delegate_variable] + list(grad_outputs))
+        return (grad_delegate_variable,) + grad_outputs
 
 
 def pseudo_connect(delegate_variable, *actual_variables):
@@ -140,4 +140,8 @@ rank_in=None, rank_out=1)
             A variable with the given values combined with delegating variable.
     """
     chainer.utils.experimental('chainermn.functions.pseudo_connect')
-    return PseudoConnect()(delegate_variable, *actual_variables)
+    if delegate_variable is None:
+        xp = backend.get_array_module(*actual_variables)
+        delegate_variable = xp.empty((0,), xp.float32)
+    return PseudoConnect()(
+        delegate_variable, *actual_variables)
