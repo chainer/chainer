@@ -34,19 +34,19 @@ if(${BLAS_FOUND})
         set(BLAS_INCLUDE_DIRS $ENV{BLAS_INCLUDE_DIRS})
     else()
         # Workaround for UNIX environments to guess the BLAS include directory from its library path (.so).
-        # This workaround is required since CMake does not set BLAS_INCLUDE_DIRS variable as expected.
+        # This workaround is required since CMake does not set BLAS_INCLUDE_DIRS variable.
         get_filename_component(BLAS_ROOT_DIR ${BLAS_LIBRARIES} DIRECTORY)  # Directory of .so.
         get_filename_component(BLAS_ROOT_DIR ${BLAS_ROOT_DIR} DIRECTORY)  # Directory of lib.
         find_path(BLAS_INCLUDE_DIRS cblas.h
             HINTS ${BLAS_ROOT_DIR}
             PATH_SUFFIXES include)
-        if(BLAS_INCLUDE_DIRS)
-            add_definitions(-DCHAINERX_ENABLE_BLAS=1)
-            include_directories(${BLAS_INCLUDE_DIRS})
-            target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
-        else()
-            message(WARNING "Found the BLAS library but not the include directory. Skipping BLAS.")
-        endif()
+    endif()
+    if(BLAS_INCLUDE_DIRS)
+        add_definitions(-DCHAINERX_ENABLE_BLAS=1)
+        include_directories(${BLAS_INCLUDE_DIRS})
+        target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
+    else()
+        message(WARNING "Found the BLAS library but not the include directory. Skipping BLAS.")
     endif()
 endif()
 
