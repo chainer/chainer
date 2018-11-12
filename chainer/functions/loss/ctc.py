@@ -360,35 +360,12 @@ class CudnnCTC(function.Function):
         handle = cudnn.get_handle()
         label_length = cuda.to_cpu(label_length.astype('i'))
         input_length = cuda.to_cpu(input_length.astype('i'))
-        # Flatten labels array in order to same length as label_length
-        # labels_flat = numpy.zeros((label_length.sum(),), 'i')
-        # index = 0
-        # for i, length in enumerate(label_length):
-        #     labels_flat[index:index+length] = labels[i, :length]
-        #     index += length
-        # labels = numpy.array(labels_flat).astype('i')
         # pre-compute softmax
         probs = _softmax(xs, xp)
         probs = cuda.cupy.ascontiguousarray(probs)
-        loss, gradients = cudnn.ctc_loss(probs, labels.ctypes.data, label_length.ctypes.data, input_length.ctypes.data, 0)
-        '''
-        probs_desc = cudnn.create_tensor_descriptor(probs)
-        gradients = cuda.cupy.empty_like(probs)
-        ctc_desc = cudnn.create_ctc_loss_descriptor(libcudnn.CUDNN_DATA_FLOAT)
-        gradients = cuda.cupy.ascontiguousarray(gradients)
-        gradients_desc = cudnn.create_tensor_descriptor(gradients)
-        loss = cuda.cupy.zeros((batch_size, ), 'f')
-        work_size = libcudnn.getCTCLossWorkspaceSize(
-                handle, probs_desc.value, gradients_desc.value,
-                labels.ctypes.data, label_length.ctypes.data,
-                input_length.ctypes.data, self.algo, ctc_desc.value)
-        workspace = cuda.cupy.empty((work_size,), dtype='b')
-        libcudnn.CTCLoss(handle, probs_desc.value, probs.data.ptr,
-            labels.ctypes.data, label_length.ctypes.data,
-            input_length.ctypes.data, loss.data.ptr, gradients_desc.value,
-            gradients.data.ptr, self.algo, ctc_desc.value,
-            workspace.data.ptr, work_size)
-        '''
+        loss, gradients = cudnn.ctc_loss(probs, labels.ctypes.data,
+                                         label_length.ctypes.data,
+                                         input_length.ctypes.data, self.algo)
         # NOTE(sato): Set 0.0 to compute correct gradients.
         # maybe this is the bug of cuDNN CTC.
         for batch_idx, _length in enumerate(input_length):
