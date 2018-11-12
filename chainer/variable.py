@@ -1035,7 +1035,7 @@ class Variable(object):
             self.to_device(backend.CpuDevice())
         elif backend_name == 'cuda':
             self.to_device(
-                cuda._get_device_or_current(self.array.device.index))
+                backend.GpuDevice.from_device_id(self.array.device.index))
         else:
             raise RuntimeError(
                 'Variable.from_chainerx only supports transfer from native or '
