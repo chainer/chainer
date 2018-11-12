@@ -17,10 +17,10 @@ class CTCTestBase(object):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (4, 2, 3)).astype(numpy.float32)
-        self.t = numpy.array([[0, 1], [1, 0]]).astype(numpy.int32)
-        self.l = numpy.array([[2, 0, 2, 1, 2],
-                              [2, 1, 2, 0, 2]]).astype(numpy.int32)
-        self.blank_symbol = 2
+        self.t = numpy.array([[2, 1], [1, 2]]).astype(numpy.int32)
+        self.l = numpy.array([[0, 2, 0, 1, 0],
+                              [0, 1, 0, 2, 0]]).astype(numpy.int32)
+        self.blank_symbol = 0
         self.x_length = numpy.full((len(self.x[0]),), len(self.x), dtype='i')
         self.l_length = numpy.full((len(self.t),), len(self.t[0]), dtype='i')
         self.use_length = True
@@ -97,7 +97,8 @@ class CTCTestBase(object):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.t),
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_forward(cuda.to_gpu(self.t),
                            tuple(cuda.to_gpu(x_data) for x_data in self.x),
                            cuda.to_gpu(self.l_length),
                            cuda.to_gpu(self.x_length))
@@ -188,7 +189,8 @@ class TestCTCWithAllPadding(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
-        self.x_length[...] = 3
+        # self.x_length[...] = 3
+        self.x_length[0] = 3
         self.l_length[...] = 1
 
 
@@ -200,9 +202,9 @@ class TestCTCWithRepeatedLabel(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
-        self.t = numpy.array([[0, 1, 1], [0, 1, 0]]).astype(numpy.int32)
-        self.l = numpy.array([[2, 0, 2, 1, 2, 1, 2],
-                              [2, 0, 2, 1, 2, 0, 2]]).astype(numpy.int32)
+        self.t = numpy.array([[2, 1, 1], [2, 1, 2]]).astype(numpy.int32)
+        self.l = numpy.array([[0, 2, 0, 1, 0, 1, 0],
+                              [0, 2, 0, 1, 0, 2, 0]]).astype(numpy.int32)
         self.l_length = numpy.full((len(self.t),), len(self.t[0]), dtype='i')
 
 
@@ -215,20 +217,21 @@ class TestCTCBlankSymbol(unittest.TestCase, CTCTestBase):
     def setUp(self):
         CTCTestBase.setUp(self)
         self.x = numpy.random.uniform(-1, 1, (4, 2, 4)).astype(numpy.float32)
-        self.l = numpy.array([[3, 0, 3, 1, 3],
-                              [3, 1, 3, 0, 3]]).astype(numpy.int32)
-        self.blank_symbol = 3
+        self.l = numpy.array([[0, 3, 0, 1, 0],
+                              [0, 1, 0, 3, 0]]).astype(numpy.int32)
+        self.t = numpy.array([[3, 1], [1, 3]]).astype(numpy.int32)
+        self.blank_symbol = 0
 
 
 class TestCTCUseNoBackpropMode(unittest.TestCase):
 
     def test_no_backprop_mode(self):
         xs_data = numpy.random.uniform(-1, 1, (4, 2, 3)).astype(numpy.float32)
-        t_data = numpy.array([[0, 1], [1, 0]]).astype(numpy.int32)
+        t_data = numpy.array([[2, 1], [1, 2]]).astype(numpy.int32)
         with chainer.no_backprop_mode():
             x = [chainer.Variable(x_data) for x_data in xs_data]
             t = chainer.Variable(t_data)
-            functions.connectionist_temporal_classification(x, t, 2)
+            functions.connectionist_temporal_classification(x, t, 0)
 
 
 class TestCTCError(unittest.TestCase):
