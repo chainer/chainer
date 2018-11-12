@@ -37,27 +37,20 @@ class AvgELBOLoss(chainer.Chain):
             self.decoder = decoder
             self.prior = prior
 
-        self.loss = None
-        self.rec = None
-        self.penalty = None
-
     def __call__(self, x):
         q_z = self.encoder(x)
         z = q_z.sample(self.k)
         p_x = self.decoder(z)
         p_z = self.prior()
 
-        self.loss = None
-        self.rec = None
-        self.penalty = None
-        self.rec = F.mean(F.sum(p_x.log_prob(
-          F.broadcast_to(x[None, :], (self.k,) + x.shape)), axis=-1))
-        self.penalty = F.mean(F.sum(chainer.kl_divergence(q_z, p_z), axis=-1))
-        self.loss = - (self.rec - self.beta * self.penalty)
-        reporter.report({'loss': self.loss}, self)
-        reporter.report({'rec': self.rec}, self)
-        reporter.report({'penalty': self.penalty}, self)
-        return self.loss
+        rec = F.mean(F.sum(p_x.log_prob(
+            F.broadcast_to(x[None, :], (self.k,) + x.shape)), axis=-1))
+        penalty = F.mean(F.sum(chainer.kl_divergence(q_z, p_z), axis=-1))
+        loss = - (rec - self.beta * penalty)
+        reporter.report({'loss': loss}, self)
+        reporter.report({'rec': rec}, self)
+        reporter.report({'penalty': penalty}, self)
+        return loss
 
 
 class Encoder(chainer.Chain):
