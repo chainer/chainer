@@ -481,7 +481,250 @@ Note:
 
 
 def _docs_math():
-    pass
+    _docs.set_doc(
+        chainerx.negative,
+        """negative(a)
+Numerical negative, element-wise.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.negative`
+""")
+
+    _docs.set_doc(
+        chainerx.add,
+        """add(x1, x2)
+Add arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and ``x2``.
+
+.. seealso:: :func:`numpy.add`
+""")
+
+    _docs.set_doc(
+        chainerx.subtract,
+        """subtract(x1, x2)
+Subtract arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and ``x2``.
+
+.. seealso:: :func:`numpy.subtract`
+""")
+
+    _docs.set_doc(
+        chainerx.multiply,
+        """multiply(x1, x2)
+Multiply arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and ``x2``.
+
+.. seealso:: :func:`numpy.multiply`
+""")
+
+    _docs.set_doc(
+        chainerx.divide,
+        """divide(x1, x2)
+Divide arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and ``x2``.
+
+.. seealso:: :func:`numpy.divide`
+""")
+
+    _docs.set_doc(
+        chainerx.sum,
+        """sum(a, axis=None, keepdims=False)
+Sum of array elements over a given axis.
+
+Args:
+    a (~chainerx.ndarry): Input arrays.
+    axis (None or int or tuple of ints):
+        Axis or axes along which a sum is performed.  If ``axis = None``,
+        returns the sum of all of the elements of the input array.
+    keepdims (bool):
+        If this is set to ``True``, the axes which are reduced are left in
+        the result as dimensions with size one.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.sum`
+""")
+
+    _docs.set_doc(
+        chainerx.maximum,
+        """maximum(x1, x2)
+Maximum arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and ``x2``.
+
+Note:
+    maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
+    not supported yet.
+
+.. seealso:: :func:`numpy.maximum`
+""")
+
+    _docs.set_doc(
+        chainerx.exp,
+        """exp(a)
+Numerical exponential, element-wise.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.exp`
+""")
+
+    _docs.set_doc(
+        chainerx.log,
+        """log(a)
+Numerical logarithm, element-wise.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.log`
+""")
+
+    _docs.set_doc(
+        chainerx.logsumexp,
+        """logsumexp(a, axis=None, keepdims=False)
+The log of the sum of exponentials of input array.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which a sum is performed.  If ``axis = None``,
+        returns the sum of all of the elements of the input array.
+    keepdims (bool):
+        If this is set to ``True``, the axes which are reduced are left in
+        the result as dimensions with size one.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`scipy.misc.logsumexp`
+""")
+
+    _docs.set_doc(
+        chainerx.log_softmax,
+        """log_softmax(a, axis=None)
+The log of the softmax of input array.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which a sum is performed.  If ``axis = None``,
+        returns the log of the sum of all of the elements of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+""")
+
+    _docs.set_doc(
+        chainerx.sqrt,
+        """sqrt(a)
+Non-negative square-root, element-wise
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.sqrt`
+""")
+
+    _docs.set_doc(
+        chainerx.tanh,
+        """tanh(a)
+Hyperbolic tangent, element-wise
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.tanh`
+""")
+
+    _docs.set_doc(
+        chainerx.isnan,
+        """isnan(a)
+Test element-wise for NaN and return result as a boolean array.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.isnan`
+""")
+
+    _docs.set_doc(
+        chainerx.isinf,
+        """isinf(a)
+Test element-wise for positive or negative infinity.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.isinf`
+""")
 
 
 def _docs_statistics():
