@@ -73,6 +73,7 @@ def main():
     # Set up a neural network to train
     model = L.Classifier(train_mnist.MLP(args.unit, 10))
     model.to_device(device)
+    device.use()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()

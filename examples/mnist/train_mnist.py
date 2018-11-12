@@ -85,6 +85,7 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
     model.to_device(device)
+    device.use()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
