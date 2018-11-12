@@ -95,7 +95,7 @@ def main():
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/rec', 'main/penalty', 'elapsed_time']))
+         'main/reconstr', 'main/kl_penalty', 'elapsed_time']))
     trainer.extend(extensions.ProgressBar())
 
     if args.resume:
