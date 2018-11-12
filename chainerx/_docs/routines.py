@@ -108,9 +108,6 @@ Args:
     cover_all (bool): If ``True``, all spatial locations are pooled into
         some output pixels. It may make the output size larger.
 
-    Returns:
-        ~chainerx.ndarray:  Returns the output array.
-
 .. note::
 
    This function currently does not support ``return_indices`` mode of
@@ -135,7 +132,4 @@ Args:
     pad_mode (str): If ``"zero"`` is specified, the values in the padded
         region are treated as 0.  If ``"ignore"`` is specified, such region
         is ignored.
-
-Returns:
-    ~chainerx.ndarray: Output array.
 """)
