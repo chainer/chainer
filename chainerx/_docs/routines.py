@@ -19,7 +19,7 @@ def _docs_creation():
     _docs.set_doc(
         chainerx.empty,
         """empty(shape, dtype, device=None)
-Creates an uninitialized array with given shape and dtype.
+Returns an array without initializing the elements.
 
 Args:
     shape (tuple of ints): Shape of the array.
@@ -28,7 +28,7 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    :class:`~chainerx.ndarray`: New uninitialized array.
+    :class:`~chainerx.ndarray`: New array with elements not initialized.
 
 .. seealso:: :func:`numpy.empty`
 """)
@@ -36,7 +36,7 @@ Returns:
     _docs.set_doc(
         chainerx.empty_like,
         """empty_like(a, device=None)
-Creates an uninitialized array with the same shape and dtype as a given array.
+Returns a new array with same shape and dtype of a given array.
 
 Args:
     a (~chainerx.ndarray): Prototype array.
@@ -44,7 +44,8 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    :class:`~chainerx.ndarray`: New uninitialized array.
+    :class:`~chainerx.ndarray`: New array with same shape and dtype as ``a`` \
+with elements not initialized.
 
 Warning:
     If ``device`` argument is omitted, the new array is created on the default
@@ -212,11 +213,12 @@ Warning:
 Creates an array.
 
 Args:
-    object: A :class:`chainerx.ndarray` object or any other object that can be
+    object: A :class:`~chainerx.ndarray` object or any other object that can be
         passed to :func:`numpy.array`.
     dtype: Data type. If omitted, it's inferred from the input.
-    copy (bool): If `False`, this function returns ``object`` if possible.
-        Otherwise this function always returns a new array.
+    copy (bool): If ``True``, the object is always copied. Otherwise, a copy
+        will only be made if it is needed to satisfy any of the other
+        requirements (dtype, device, etc.).
     device (~chainerx.Device): Device on which the array is allocated.
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
@@ -242,7 +244,8 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    ~chainerx.ndarray: Array interpretation of ``a``.
+    ~chainerx.ndarray: Array interpretation of ``a``. If ``a`` is already an \
+ndarray on the given device with matching dtype, no copy is performed.
 
 Warning:
     If ``device`` argument is omitted, the new array is created on the default
@@ -263,7 +266,7 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    ~chainerx.ndarray: Contiguous array.
+    ~chainerx.ndarray: C-contiguous array. A copy will be made only if needed.
 
 Warning:
     If ``device`` argument is omitted, the new array is created on the default
@@ -281,7 +284,7 @@ Args:
     a (~chainerx.ndarray): Source array.
 
 Returns:
-    ~chainerx.ndarray: A copy array.
+    ~chainerx.ndarray: A copy array on the same device as ``a``.
 
 Note:
     During backpropagation, this function propagates the gradient of the
