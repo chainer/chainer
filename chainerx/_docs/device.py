@@ -54,7 +54,7 @@ def set_docs():
     _docs.set_doc(
         chainerx.get_device,
         """get_device(*device)
-Returns a device specified by the argument.
+Returns a device specified by the arguments.
 
 If the argument is a :class:`~chainerx.Device` instance, it's simply returned.
 
