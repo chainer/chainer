@@ -109,9 +109,8 @@ Args:
         some output pixels. It may make the output size larger.
 
 .. note::
-
-   This function currently does not support ``return_indices`` mode of
-   `~chainer.functions.max_pooling_nd`.
+   In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
+   because cuDNN pooling supports 2 and 3 spatial dimensions.
 """)
 
     _docs.set_doc(
@@ -132,4 +131,8 @@ Args:
     pad_mode (str): If ``'zero'`` is specified, the values in the padded
         region are treated as 0.  If ``'ignore'`` is specified, such region
         is ignored.
+
+.. note::
+   In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
+   because cuDNN pooling supports 2 and 3 spatial dimensions.
 """)
