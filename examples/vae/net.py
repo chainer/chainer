@@ -93,6 +93,8 @@ class Prior(chainer.Link):
         with self.init_scope():
             self.loc = chainer.Parameter(0, n_latent)
             self.scale = chainer.Parameter(1, n_latent)
+        self.register_persistent('loc')
+        self.register_persistent('scale')
 
     def forward(self):
         return D.Normal(self.loc, scale=self.scale)
