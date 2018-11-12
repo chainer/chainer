@@ -97,7 +97,7 @@ class CTCTestBase(object):
 
     @attr.gpu
     def test_forward_gpu(self):
-        with chainer.using_config('use_cudnn', 'never'):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_forward(cuda.to_gpu(self.t),
                            tuple(cuda.to_gpu(x_data) for x_data in self.x),
                            cuda.to_gpu(self.l_length),
@@ -131,27 +131,28 @@ class CTCTestBase(object):
     @condition.retry(3)
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.t),
-                            tuple(cuda.to_gpu(x_data) for x_data in self.x),
-                            cuda.to_gpu(self.l_length),
-                            cuda.to_gpu(self.x_length),
-                            cuda.to_gpu(self.gy))
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.t),
+                                tuple(cuda.to_gpu(x_data) for x_data in self.x),
+                                cuda.to_gpu(self.l_length),
+                                cuda.to_gpu(self.x_length),
+                                cuda.to_gpu(self.gy))
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTC(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCWithoutLength(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
@@ -159,10 +160,10 @@ class TestCTCWithoutLength(unittest.TestCase, CTCTestBase):
         self.use_length = False
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCWithLabelPadding(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
@@ -170,10 +171,10 @@ class TestCTCWithLabelPadding(unittest.TestCase, CTCTestBase):
         self.l_length[0] = 1
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCWithInputPadding(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
@@ -181,23 +182,23 @@ class TestCTCWithInputPadding(unittest.TestCase, CTCTestBase):
         self.x_length[0] = 3
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCWithAllPadding(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
-        # self.x_length[...] = 3
-        self.x_length[0] = 3
+        self.x_length[...] = 3
+        # self.x_length[0] = 3
         self.l_length[...] = 1
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCWithRepeatedLabel(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
@@ -208,10 +209,10 @@ class TestCTCWithRepeatedLabel(unittest.TestCase, CTCTestBase):
         self.l_length = numpy.full((len(self.t),), len(self.t[0]), dtype='i')
 
 
-@testing.parameterize(
-    {'reduce': 'mean'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product({
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
 class TestCTCBlankSymbol(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
