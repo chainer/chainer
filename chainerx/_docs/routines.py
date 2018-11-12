@@ -42,7 +42,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.logical_not`
+.. seealso:: :data:`numpy.logical_not`
 """)
 
     _docs.set_doc(
@@ -60,7 +60,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.greater`
+.. seealso:: :data:`numpy.greater`
 """)
 
     _docs.set_doc(
@@ -78,7 +78,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.greater_equal`
+.. seealso:: :data:`numpy.greater_equal`
 """)
 
     _docs.set_doc(
@@ -96,7 +96,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.less`
+.. seealso:: :data:`numpy.less`
 """)
 
     _docs.set_doc(
@@ -114,7 +114,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.less_equal`
+.. seealso:: :data:`numpy.less_equal`
 """)
 
     _docs.set_doc(
@@ -132,7 +132,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.equal`
+.. seealso:: :data:`numpy.equal`
 """)
 
     _docs.set_doc(
@@ -150,7 +150,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.not_equal`
+.. seealso:: :data:`numpy.not_equal`
 """)
 
 
