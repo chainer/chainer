@@ -925,7 +925,66 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
 
 
 def _docs_normalization():
-    pass
+    _docs.set_doc(
+        chainerx.batch_norm,
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
+Batch normalization function.
+
+It takes the input array ``x`` and two parameter arrays ``gamma`` and
+``beta``. The parameter arrays must both have the same size.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    gamma (~chainerx.ndarray): Scaling parameter of normalized data.
+    beta (~chainerx.ndarray): Shifting parameter of scaled normalized data.
+    running_mean (~chainerx.ndarray):
+        Running average of the mean. This is a running average of
+        the mean over several mini-batches using the decay parameter.
+        The function takes a previous running average, and updates
+        the array in-place by the new running average.
+    running_var (~chainerx.ndarray):
+        Running average of the variance. This is a running average of
+        the variance over several mini-batches using the decay parameter.
+        The function takes a previous running average, and updates
+        the array in-place by the new running average.
+    eps (float): Epsilon value for numerical stability.
+    decay (float): Decay rate of moving average. It is used during training.
+    axis (int, tuple of int or None):
+        Axis over which normalization is performed. When axis is ``None``,
+        the first axis is treated as the batch axis and will be reduced
+        during normalization.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x``, ``gamma`` and ``beta``.
+
+See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
+      Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.fixed_batch_norm,
+        """fixed_batch_norm(x, gamma, beta, mean, var, eps=2e-5, axis=None)
+Batch normalization function with fixed statistics.
+
+This is a variant of :func:`~chainerx.batch_norm`, where the mean
+and array statistics are given by the caller as fixed variables.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    gamma (~chainerx.ndarray): Scaling parameter of normalized data.
+    beta (~chainerx.ndarray): Shifting parameter of scaled normalized data.
+    mean (~chainerx.ndarray): Shifting parameter of input.
+    var (~chainerx.ndarray): Square of scaling parameter of input.
+    eps (float): Epsilon value for numerical stability.
+    axis (int, tuple of int or None):
+        Axis over which normalization is performed. When axis is ``None``,
+        the first axis is treated as the batch axis and will be reduced
+        during normalization.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+""")
 
 
 def _docs_pooling():
