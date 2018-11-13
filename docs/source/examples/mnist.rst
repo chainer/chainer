@@ -145,7 +145,7 @@ The :class:`~chainer.training.Trainer` extensions provide the following capabili
 * Visualize the loss progress by plotting a graph periodically and save it as an image file (:class:`~chainer.training.extensions.PlotReport`)
 * Automatically serialize the state periodically (:meth:`~chainer.training.extensions.snapshot` / :meth:`~chainer.training.extensions.snapshot_object`)
 * Display a progress bar to the terminal to show the progress of training (:class:`~chainer.training.extensions.ProgressBar`)
-* Save the model architecture as a Graphviz's dot file (:meth:`~chainer.training.extensions.dump_graph`)
+* Save the model architecture as a Graphviz's dot file (:meth:`~chainer.training.extensions.DumpGraph`)
 
 To use these wide variety of tools for your training task, pass :class:`~chainer.training.Extension` objects to the :meth:`~chainer.training.Trainer.extend` method of your :class:`~chainer.training.Trainer` object.
 
@@ -172,7 +172,7 @@ To use these wide variety of tools for your training task, pass :class:`~chainer
     trainer.extend(extensions.PrintReport(['epoch', 'main/loss', 'main/accuracy', 'validation/main/loss', 'validation/main/accuracy', 'elapsed_time']))
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss'], x_key='epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/accuracy', 'validation/main/accuracy'], x_key='epoch', file_name='accuracy.png'))
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
 
 :class:`~chainer.training.extensions.LogReport`
 ...............................................
@@ -207,7 +207,7 @@ This is a list of commonly used trainer extensions:
      Taking the snapshot of :attr:`~chainer.links.Classifier.predictor` is enough to keep all the trained parameters, because
      :class:`~chainer.links.Classifier` (which is a subclass of :class:`~chainer.Chain`) keeps the model as its :attr:`~chainer.links.Classifier.predictor` property, and all the parameters are under this property.
 
-  :meth:`~chainer.training.extensions.dump_graph`
+  :meth:`~chainer.training.extensions.DumpGraph`
      This extension saves the structure of the computational graph of the model.
      The graph is saved in `Graphviz <http://www.graphviz.org/>`_ dot format under the output directory of the :class:`~chainer.training.Trainer`.
 
@@ -256,7 +256,7 @@ How about the accuracy?
 
 .. image:: ../../image/trainer/mnist_accuracy.png
 
-Furthermore, let's visualize the computational graph saved with :meth:`~chainer.training.extensions.dump_graph` using Graphviz.
+Furthermore, let's visualize the computational graph saved with :meth:`~chainer.training.extensions.DumpGraph` using Graphviz.
 
 ::
 

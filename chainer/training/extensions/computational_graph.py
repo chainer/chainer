@@ -40,7 +40,7 @@ class DumpGraph(extension.Extension):
        when an extension also uses a large amount of memory, e.g.
        :class:`~chainer.training.extensions.Evaluator`.
 
-       With the default setting, the ``dump_graph`` extension is called at the
+       With the default setting, the ``DumpGraph`` extension is called at the
        first iteration. Since :class:`~chainer.training.extensions.Evaluator`
        is not called at the first iteration in most cases, it does not cause
        any memory problem.
