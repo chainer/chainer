@@ -44,11 +44,11 @@ class LSTMBase(link.Chain):
         forget_bias_init = initializers._get_initializer(self.forget_bias_init)
 
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            lateral_init(self.lateral.W.data[i:i + self.state_size, :])
-            upward_init(self.upward.W.data[i:i + self.state_size, :])
+            lateral_init(self.lateral.W.array[i:i + self.state_size, :])
+            upward_init(self.upward.W.array[i:i + self.state_size, :])
 
         a, i, f, o = lstm._extract_gates(
-            self.upward.b.data.reshape(1, 4 * self.state_size, 1))
+            self.upward.b.array.reshape(1, 4 * self.state_size, 1))
 
         bias_init(a)
         bias_init(i)
@@ -129,7 +129,7 @@ class StatelessLSTM(LSTMBase):
             output of LSTM units.
 
         """
-        if self.upward.W.data is None:
+        if self.upward.W.array is None:
             in_size = x.size // x.shape[0]
             with cuda.get_device_from_id(self._device_id):
                 self.upward._initialize_params(in_size)
@@ -299,7 +299,7 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.W.data is None:
+        if self.upward.W.array is None:
             with cuda.get_device_from_id(self._device_id):
                 in_size = utils.size_of_shape(x.shape[1:])
                 self.upward._initialize_params(in_size)
@@ -331,7 +331,7 @@ class LSTM(LSTMBase):
 
         if h_rest is None:
             self.h = y
-        elif len(y.data) == 0:
+        elif len(y.array) == 0:
             self.h = h_rest
         else:
             self.h = concat.concat([y, h_rest], axis=0)

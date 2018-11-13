@@ -12,7 +12,7 @@ from chainer import variable
 
 
 def argsort_list_descent(lst):
-    return numpy.argsort([-len(x.data) for x in lst]).astype('i')
+    return numpy.argsort([-len(x.array) for x in lst]).astype('i')
 
 
 def permutate_list(lst, indices, inv):
