@@ -517,7 +517,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_O, c_I, h_K, w_K)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``

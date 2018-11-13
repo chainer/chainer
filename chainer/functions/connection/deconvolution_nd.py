@@ -300,7 +300,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):
@@ -310,7 +310,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             Spatial padding width for input arrays
             :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
             ``(p, p, ..., p)``.
-        outsize (:class:`tuple` of :class:`int` s):
+        outsize (None or :class:`tuple` of :class:`int` s):
             Expected output size of deconvolutional operation. It should be a
             tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
             ``None`` and the outsize is estimated by input size, stride and
