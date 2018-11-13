@@ -541,7 +541,7 @@ Joins arrays along an axis.
 
 Args:
     arrays (sequence of :class:`~chainerx.ndarray`\ s): Arrays to be joined.
-        All of these should have same dimensionalities except the specified
+        All of these should have the same dimensionalities except the specified
         axis.
     axis (int): The axis to join arrays along.
 
