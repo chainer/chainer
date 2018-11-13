@@ -66,7 +66,6 @@ only exception is when you run ChainerMN on CPU-only environments. See
 .. note::
 
    We reccomend NCCL 2 but NCCL 1 can be used.
-   When you use CUDA 7.0 and 7.5, please install NCCL 1 because NCCL 2 is not supported with CUDA 7.0 and 7.5.
    However, for NCCL 1, ``PureNcclCommunicator`` is not supported in ChainerMN.
    If you use NCCL 1, please properly configure environment variables to expose NCCL both when you install and use ChainerMN.
    Typical configurations should look like the following::
