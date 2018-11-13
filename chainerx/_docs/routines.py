@@ -552,7 +552,7 @@ See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
         """fixed_batch_norm(x, gamma, beta, mean, var, eps=2e-5, axis=None)
 Batch normalization function with fixed statistics.
 
-This is a variant of :func:`chainerx.batch_normalization`, where the mean
+This is a variant of :func:`~chainerx.batch_norm`, where the mean
 and array statistics are given by the caller as fixed variables. This is
 used on testing mode of the batch normalization layer, where batch statistics
 cannot be used for prediction consistency.
