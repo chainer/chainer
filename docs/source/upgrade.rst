@@ -7,8 +7,39 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v6
+==========
+
+CuPy Needs To Be Manually Updated
+---------------------------------
+
+Prior to Chainer v6, CuPy is automatically updated to the appropriate version when updating Chainer (i.e., ``pip install -U chainer`` updates CuPy package).
+In Chainer v6, Chainer does not perform this automatic update.
+You need to manually update CuPy package when updating Chainer package.
+
+This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
+See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
+
+CuPy v6
+-------
+
+Chainer v6 requires CuPy v6 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v6 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v6>`_ for details.
+
+
 Chainer v5
 ==========
+
+ChainerMN Became Part of Chainer
+--------------------------------
+
+ChainerMN, which enables multi-node distributed deep learning using Chainer, has been merged to Chainer v5.
+
+Prior to Chainer v4, ChainerMN was provided as a separate ``chainermn`` package.
+In Chainer v5, ChainerMN now became a part of Chainer; ChainerMN will be installed just by installing ``chainer`` package.
+If you are using ``chainermn`` package, make sure to remove it by ``pip uninstall chainermn`` before upgrading to Chainer v5 or later.
+
+For documentation of ChainerMN, see :doc:`chainermn/index`.
 
 FunctionNode Classes are Hidden from ``chainer.functions``
 ----------------------------------------------------------
@@ -82,6 +113,14 @@ In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device
     >>> x = cupy.array([])
     >>> chainer.backends.cuda.get_device_from_array(x)
     <CUDA Device 0>
+
+Update of Docker Images
+-----------------------
+
+Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 9.2 and cuDNN 7.
+
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
 
 CuPy v5
 -------
