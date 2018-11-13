@@ -495,8 +495,7 @@ def _docs_connection():
 def _docs_normalization():
     _docs.set_doc(
         chainerx.batch_norm,
-        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5,
-decay=0.9, axis=None)
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
 Batch normalization function.
 
 Args:
@@ -523,8 +522,7 @@ Args:
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,
-        """fixed_batch_norm(x, gamma, beta, running_mean, running_var,
-eps=2e-5, decay=0.9, axis=None)
+        """fixed_batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
 Batch normalization function with fixed statistics.
 
 Args:
