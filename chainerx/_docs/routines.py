@@ -113,7 +113,7 @@ Args:
         some output pixels. It may make the output size larger.
 
 Returns:
-    :class:`~chainerx.ndarray`:  Returns the output array.
+    :class:`~chainerx.ndarray`:  Output array.
 
 Note:
     During backpropagation, this function propagates the gradient of the
@@ -149,7 +149,7 @@ Args:
         * 'ignore' -- padded region is ignored (default)
 
 Returns:
-    :class:`~chainerx.ndarray`:  Returns the output array.
+    :class:`~chainerx.ndarray`:  Output array.
 
 Note:
     During backpropagation, this function propagates the gradient of the
