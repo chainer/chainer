@@ -1017,7 +1017,7 @@ class Variable(object):
 
         Does nothing if the array held by the Variable is not a ChainerX array.
 
-        Raises and error if no such copy is possible.
+        Raises an error if no such copy is possible.
         """
         self._from_chainerx(allow_unchaining=False)
 
