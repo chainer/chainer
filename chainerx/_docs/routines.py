@@ -509,7 +509,7 @@ Returns:
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``array``.
+    output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.squeeze`
 """)
