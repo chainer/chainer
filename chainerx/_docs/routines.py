@@ -306,6 +306,33 @@ Note:
 .. seealso:: :func:`numpy.copy`
 """)
 
+    _docs.set_doc(
+        chainerx.frombuffer,
+        """frombuffer(buffer, dtype=float32, count=-1, offset=0, device=None)
+Returns a 1-dimensional array interpretation of a buffer.
+
+Note:
+    The `native` backend requires a buffer of main memory, and
+    the `cuda` backend requires a buffer of CUDA memory. No copy is performed.
+
+Args:
+    buffer: An object that exposes the buffer interface.
+    dtype: Data-type of the returned array.
+    count (int): Number of items to read. -1 means all data in the buffer.
+    offset (int): Start reading the buffer from this offset (in bytes).
+    device (~chainerx.Device): Device of the returned array.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: 1-dimensional array interpretation of ``buffer``.
+
+Raises:
+    ChainerxError: If the given `buffer` memory is not usable on the given
+        device.
+
+.. seealso:: :func:`numpy.frombuffer`
+""")
+
 
 def _docs_indexing():
     pass
