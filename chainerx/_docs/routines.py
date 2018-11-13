@@ -498,6 +498,26 @@ def _docs_normalization():
         """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
 Batch normalization function.
 
+It takes the input array ``x`` and two parameter arrays ``gamma`` and
+``beta``. The parameter arrays must both have the same dimensionality,
+which is referred to as the channel shape. This channel shape corresponds
+to the dimensions in the input which are not averaged over. Since the
+first dimension of the input corresponds to the batch size, the second
+dimension of ``x`` will correspond to the first dimension of the channel
+shape, the third dimension of ``x`` will correspond to the second channel
+dimension (if it exists) and so on. Therefore, the dimensionality of the
+input must be at least one plus the number of channel dimensions. The
+total effective "batch size" will then be considered to be the product of
+all dimensions in ``x`` except for the channel dimensions.
+As an example, if the input is four dimensional and the parameter
+arrrys are one dimensional, then it is assumed that the first
+dimension of the input is the batch size, the second dimension is the
+channel size, and the remaining two dimensions are considered
+to be spatial dimensions that will be averaged over along with the
+batch size in the batch normalization computations. That is,
+the total batch size will be considered to be the product of all
+input dimensions except the second dimension.
+
 Args:
     x (~chainerx.ndarray): Input array.
     gamma (~chainerx.ndarray): Scaling parameter of normalized data.
@@ -518,12 +538,20 @@ Args:
         Axis over which normalization is performed. When axis is ``None``,
         the first axis is treated as the batch axis and will be reduced
         during normalization.
+
+See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
+      Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 """)  # NOQA
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,
         """fixed_batch_norm(x, gamma, beta, mean, var, eps=2e-5, axis=None)
 Batch normalization function with fixed statistics.
+
+This is a variant of :func:`chainerx.batch_normalization`, where the mean
+and array statistics are given by the caller as fixed variables. This is
+used on testing mode of the batch normalization layer, where batch statistics
+cannot be used for prediction consistency.
 
 Args:
     x (~chainerx.ndarray): Input array.
@@ -537,7 +565,6 @@ Args:
         the first axis is treated as the batch axis and will be reduced
         during normalization.
 """)
-    pass
 
 
 def _docs_pooling():
