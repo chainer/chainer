@@ -114,9 +114,7 @@ def main():
             ai.imshow(xi.reshape(28, 28))
         fig.savefig(filename)
 
-    encoder.to_cpu()
-    decoder.to_cpu()
-    prior.to_cpu()
+    avg_elbo_loss.to_cpu()
     train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
     x = chainer.Variable(np.asarray(train[train_ind]))
     with chainer.using_config('train', False), chainer.no_backprop_mode():
