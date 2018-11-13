@@ -1126,7 +1126,7 @@ def _extract_apply_in_data(inputs):
 
     # Unwrap arrays
     arrays = [
-        (x._data[0] if x._is_chainerx else x.array)
+        (x._data[0] if x._chainerx_device is not None else x.array)
         if isinstance(x, variable.Variable) else x for x in inputs]
 
     if (chainerx.is_available()

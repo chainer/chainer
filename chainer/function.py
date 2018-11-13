@@ -177,7 +177,7 @@ class FunctionAdapter(function_node.FunctionNode):
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
-                if not g._is_chainerx:
+                if g._chainerx_device is None:
                     g.node._old_style_grad_generator = self._function.label
             ret.append(g)
 

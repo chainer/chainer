@@ -939,7 +939,7 @@ class TestVariableToCpu(unittest.TestCase):
             assert x_var.data is not x
             assert not set_grad_var or x_var.grad is not gx
 
-        assert not x_var._is_chainerx
+        assert x_var._chainerx_device is None
 
     def test_to_cpu_from_cpu(self):
         self.check_to_cpu(self.x, self.gx)
@@ -1016,7 +1016,7 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.data is not x
             assert not set_grad_var or x_var.grad is not gx
 
-        assert not x_var._is_chainerx
+        assert x_var._chainerx_device is None
 
     def test_to_gpu_from_cpu(self):
         self.check_to_gpu(self.x, self.gx)
@@ -1097,7 +1097,7 @@ class TestVariableToChainerX(unittest.TestCase):
             assert x_var.grad is None
             assert x_var.grad_var is None
 
-        assert x_var._is_chainerx
+        assert x_var._chainerx_device is not None
 
     def test_to_chainerx_from_numpy(self):
         self.check_to_chainerx(self.x, self.gx)

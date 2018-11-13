@@ -432,7 +432,8 @@ class Link(object):
         return self.to_device(intel64)
 
     def to_chainerx(self):
-        """Copies parameter variables and persistent values to ChainerX devices.
+        """Converts parameter variables and persistent values to ChainerX \
+without any copy.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to ChainerX, the link implementation must
@@ -454,19 +455,29 @@ class Link(object):
             if not numpy.isscalar(d[name]):
                 d[name] = backend.to_chainerx(d[name])
 
-        # TODO(niboshi): Fix this logic for updating self._device
-        if xp is numpy:
-            self._device = chainer.get_device('native:0')
-        elif xp is cuda.cupy:
-            self._device = chainer.get_device(
-                'cuda:{}'.format(self._device.device.id))
-        else:
-            assert False
+        self._device = (
+            backend.ChainerxDevice.from_fallback_device(self._device))
+
+        return self
+
+    def from_chainerx(self):
+        """Converts parameter variables and persistent values from ChainerX \
+to NumPy/CuPy devices without any copy."""
+        d = self.__dict__
+        for name in self._params:
+            d[name].from_chainerx()
+        for name in self._persistent:
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.from_chainerx(d[name])
+
+        if isinstance(self._device, backend.ChainerxDevice):
+            self._device = self._device.fallback_device
 
         return self
 
     def to_device(self, device):
-        """Copies parameter variables and persistent values to the specified device.
+        """Copies parameter variables and persistent values to the specified \
+device.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to the device, the link implementation must
@@ -950,6 +961,13 @@ class Chain(Link):
         d = self.__dict__
         for name in self._children:
             d[name].to_chainerx()
+        return self
+
+    def from_chainerx(self):
+        super(Chain, self).from_chainerx()
+        d = self.__dict__
+        for name in self._children:
+            d[name].from_chainerx()
         return self
 
     def to_device(self, device):

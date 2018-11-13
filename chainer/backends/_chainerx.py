@@ -25,6 +25,19 @@ class ChainerxDevice(_backend.Device):
             return ChainerxDevice(array.device)
         return None
 
+    @staticmethod
+    def from_fallback_device(device):
+        # TODO(niboshi): Write unit test
+        assert isinstance(device, _backend.Device)
+        if isinstance(device, _cpu.CpuDevice):
+            return ChainerxDevice(chainerx.get_device('native', 0))
+        if isinstance(device, cuda.GpuDevice):
+            return ChainerxDevice(
+                chainerx.get_device('cuda', device.device.id))
+        raise RuntimeError(
+            'Only CPU or GPU devices are allowed. '
+            'Actual: {}'.format(device))
+
     @property
     def fallback_device(self):
         # TODO(niboshi): Write unit test
