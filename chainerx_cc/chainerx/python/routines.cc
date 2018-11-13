@@ -386,10 +386,6 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& array, py::tuple shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
-    m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
-          py::arg("array"),
-          py::arg("shape"));
     m.def("concatenate",
           [](py::sequence arrays, nonstd::optional<int8_t> axis) {
               std::vector<Array> xs;

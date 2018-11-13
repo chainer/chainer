@@ -479,6 +479,148 @@ Note:
 .. seealso:: :func:`numpy.reshape`
 """)
 
+    _docs.set_doc(
+        chainerx.transpose,
+        """transpose(a, axes=None)
+Permutes the dimensions of an array.
+
+Args:
+    a (~chainerx.ndarray): Array to permute the dimensions.
+    axes (tuple of ints): Permutation of the dimensions. This function reverses
+        the shape by default.
+
+Returns:
+    ~chainerx.ndarray: A view of ``a`` with the dimensions permuted.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.transpose`
+""")
+
+    _docs.set_doc(
+        chainerx.broadcast_to,
+        """broadcast_to(array, shape)
+Broadcasts an array to a given shape.
+
+Args:
+    array (~chainerx.ndarray): Array to broadcast.
+    shape (tuple of ints): The shape of the desired array.
+
+Returns:
+    ~chainerx.ndarray: Broadcasted view.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``array``.
+
+.. seealso:: :func:`numpy.broadcast_to`
+""")
+
+    _docs.set_doc(
+        chainerx.squeeze,
+        """squeeze(a, axis=None)
+Removes size-one axes from the shape of an array.
+
+Args:
+    a (~chainerx.ndarray): Array to be reshaped.
+    axis (int or tuple of ints): Axes to be removed. This function removes all
+        size-one axes by default. If one of the specified axes is not of size
+        one, an exception is raised.
+
+Returns:
+    ~chainerx.ndarray: An array without (specified) size-one axes.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.squeeze`
+""")
+
+    _docs.set_doc(
+        chainerx.asscalar,
+        """asscalar(a)
+Converts an array of size 1 to its scalar equivalent.
+
+Args:
+    a (~chainerx.ndarray): Input array of size 1.
+
+Returns:
+    scalar: Scalar representation of ``a``. The output type is one of the \
+Python scalar types (such as :class:`int` and :class:`float`) which \
+corresponds to the dtype of ``a``.
+
+.. seealso:: :func:`numpy.asscalar`
+""")
+
+    _docs.set_doc(
+        chainerx.concatenate,
+        """concatenate(arrays, axis=0)
+Joins arrays along an axis.
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be joined.
+        All of these should have the same dimensionalities except the specified
+        axis.
+    axis (int): The axis to join arrays along.
+
+
+Returns:
+    ~chainerx.ndarray: Joined array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.concatenate`
+""")
+
+    _docs.set_doc(
+        chainerx.stack,
+        """stack(arrays, axis=0)
+Stacks arrays along a new axis.
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+    axis (int): Axis along which the arrays are stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.stack`
+""")
+
+    _docs.set_doc(
+        chainerx.split,
+        """split(ary, indices_or_sections, axis=0)
+Splits an array into multiple sub arrays along a given axis.
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+    axis (int): Axis along which the array is split.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.split`
+""")
+
 
 def _docs_math():
     pass
