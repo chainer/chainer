@@ -1,3 +1,6 @@
+from typing import Optional
+
+from chainer import types
 from chainer import utils
 
 
@@ -13,9 +16,13 @@ class Initializer(object):
     """
 
     def __init__(self, dtype=None):
+        # type: (Optional[types.DTypeLike]) -> None
+
         self.dtype = dtype
 
     def __call__(self, array):
+        # type: (types.NdArray) -> None
+
         """Initializes given array.
 
         This method destructively changes the value of array.

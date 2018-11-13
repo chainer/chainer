@@ -100,10 +100,12 @@ class FunctionAdapter(function_node.FunctionNode):
 
     """
 
-    _function = None
-    _weak_function = None
+    _function = None  # type: Function
+    _weak_function = None  # type: weakref.ReferenceType[Function]
 
     def __init__(self, function):
+        # type: (Function) -> None
+
         super(FunctionAdapter, self).__init__()
         self._weak_function = weakref.ref(function)
         function._owned_node = self

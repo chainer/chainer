@@ -1,3 +1,5 @@
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast, overload
+
 import collections
 import contextlib
 import copy
@@ -13,10 +15,13 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
 from chainer.utils import collections_abc
+from chainer import types
 from chainer import variable
 
 
 def _is_shape(value):
+    # type: (Optional[Any]) -> bool
+
     if value is None:
         return True
     elif isinstance(value, collections_abc.Sequence):
@@ -25,18 +30,20 @@ def _is_shape(value):
         except TypeError:
             return False
     try:
-        return int(value)
+        return cast(bool, int(value))
     except TypeError:
         return False
 
 
 def _ensure_shape_dtype(value):
+    # type: (Optional[Any]) -> Tuple[Optional[types.ShapeLike], types.DTypeLike]
+
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return value, numpy.float32
+        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike], (value, numpy.float32))
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
-        return value
+        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike], value)
 
 
 class Link(object):
@@ -132,9 +139,12 @@ class Link(object):
 
     """
 
-    _local_link_hooks = None
+    _params = None  # type: Set[str]
+    _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]]
 
     def __init__(self, **params):
+        # (**Any) -> None
+
         self._params = set()
         self._persistent = set()
         self._cpu = True
@@ -148,6 +158,8 @@ class Link(object):
 
     @property
     def local_link_hooks(self):
+        # type: () -> collections.OrderedDict[str, chainer.LinkHook]
+
         """Ordered dictionary of registered link hooks.
 
         Contrary to ``chainer.thread_local.link_hooks``,
@@ -161,11 +173,15 @@ class Link(object):
 
     @property
     def _n_local_link_hooks(self):
+        # type: () -> int
+
         return (0 if self._local_link_hooks is None
                 else len(self._local_link_hooks))
 
     @property
     def xp(self):
+        # type: () -> numpy
+
         """Array module for this link.
 
         Depending on which of CPU/GPU this link is on, this property returns
@@ -176,6 +192,8 @@ class Link(object):
 
     @property
     def within_init_scope(self):
+        # type: () -> bool
+
         """True if the current code is inside of an initialization scope.
 
         See :meth:`init_scope` for the details of the initialization scope.
@@ -185,6 +203,8 @@ class Link(object):
 
     @contextlib.contextmanager
     def init_scope(self):
+        # type: () -> Iterator[None]
+
         """Creates an initialization scope.
 
         This method returns a context manager object that enables registration
@@ -217,6 +237,7 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> types.VariableLike
 
         # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer._get_link_hooks()
@@ -227,10 +248,10 @@ class Link(object):
 
         # Call forward_preprocess hook
         if hooks:
-            cb_args = link_hook._ForwardPreprocessCallbackArgs(
+            pre_cb_args = link_hook._ForwardPreprocessCallbackArgs(
                 self, 'forward', args, kwargs)
             for hook in hooks:
-                hook.forward_preprocess(cb_args)
+                hook.forward_preprocess(pre_cb_args)
 
         # Call the forward function
         # (See #5078) super().__call__ is used when the method is injected by a
@@ -238,19 +259,21 @@ class Link(object):
         # prioritized over forward().
         forward = getattr(super(Link, self), '__call__', None)
         if forward is None:
-            forward = self.forward
-        out = forward(*args, **kwargs)
+            forward = self.forward  # type: ignore # forward is implemented in the child classes
+        out = forward(*args, **kwargs)  # type: types.VariableLike
 
         # Call forward_postprocess hook
         if hooks:
-            cb_args = link_hook._ForwardPostprocessCallbackArgs(
+            post_cb_args = link_hook._ForwardPostprocessCallbackArgs(
                 self, 'forward', args, kwargs, out)
             for hook in hooks:
-                hook.forward_postprocess(cb_args)
+                hook.forward_postprocess(post_cb_args)
 
         return out
 
     def __setattr__(self, name, value):
+        # type: (str, Any) -> None
+
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
             if not self._cpu:
@@ -260,12 +283,16 @@ class Link(object):
         super(Link, self).__setattr__(name, value)
 
     def __delattr__(self, name):
+        # type: (str) -> None
+
         self._params.discard(name)
         self._persistent.discard(name)
         super(Link, self).__delattr__(name)
 
     def add_param(self, name, shape=None, dtype=numpy.float32,
                   initializer=None):
+        # type: (str, Optional[types.ShapeLike], types.DTypeLike, Optional[types.InitializerLike]) -> None
+
         """Registers a parameter to the link.
 
         Args:
@@ -292,6 +319,8 @@ class Link(object):
             setattr(self, name, param)
 
     def add_persistent(self, name, value):
+        # type: (str, Any) -> None
+
         """Registers a persistent value to the link.
 
         The registered value is saved and loaded on serialization and
@@ -313,6 +342,8 @@ class Link(object):
         d[name] = value
 
     def register_persistent(self, name):
+        # type: (str) -> None
+
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
@@ -332,6 +363,8 @@ class Link(object):
         self._params.discard(name)
 
     def copy(self, mode='share'):
+        # type: (str) -> 'Link'
+
         """Copies the link hierarchy to new one.
 
         The whole hierarchy rooted by this link is copied. There are three
@@ -369,7 +402,8 @@ class Link(object):
             d = ret.__dict__
             for name in ret._params:
                 d[name] = copy.copy(d[name])
-                d[name].grad = None
+                param = d[name]  # type: variable.Parameter
+                param.grad = None
             return ret
         elif mode == 'copy':
             return copy.deepcopy(self)
@@ -384,6 +418,8 @@ class Link(object):
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
     def to_cpu(self):
+        # type: () -> 'Link'
+
         """Copies parameter variables and persistent values to CPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -395,7 +431,8 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            d[name].to_cpu()
+            param = d[name]  # type: variable.Parameter
+            param.to_cpu()
         for name in self._persistent:
             value = d[name]
             if isinstance(value, cuda.ndarray):
@@ -407,6 +444,8 @@ class Link(object):
         return self
 
     def to_gpu(self, device=None):
+        # type: (Optional[types.DeviceLike]) -> 'Link'
+
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -426,7 +465,8 @@ class Link(object):
         d = self.__dict__
         with cuda._get_device(device):
             for name in self._params:
-                d[name].to_gpu()
+                param = d[name]  # type: variable.Parameter
+                param.to_gpu()
             for name in self._persistent:
                 value = d[name]
                 if isinstance(value, intel64.mdarray):
@@ -438,11 +478,14 @@ class Link(object):
         return self
 
     def to_intel64(self):
+        # type: () -> 'Link'
+
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
         d = self.__dict__
         for name in self._params:
-            d[name].to_intel64()
+            param = d[name]  # type: variable.Parameter
+            param.to_intel64()
         for name in self._persistent:
             value = d[name]
             if isinstance(value, cuda.ndarray):
@@ -460,6 +503,8 @@ class Link(object):
         return self
 
     def params(self, include_uninit=True):
+        # type: (bool) -> Iterator[chainer.Parameter]
+
         """Returns a generator of all parameters under the link hierarchy.
 
         Args:
@@ -470,12 +515,15 @@ class Link(object):
             A generator object that generates all parameters.
 
         """
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            if include_uninit or d[name].data is not None:
-                yield d[name]
+            param = d[name]  # type: variable.Parameter
+            if include_uninit or param.data is not None:
+                yield param
 
     def namedparams(self, include_uninit=True):
+        # type: (bool) -> Iterator[Tuple[str, chainer.Parameter]]
+
         """Returns a generator of all (path, param) pairs under the hierarchy.
 
         Args:
@@ -489,10 +537,13 @@ class Link(object):
         """
         d = self.__dict__
         for name in sorted(self._params):
-            if include_uninit or d[name].data is not None:
-                yield '/' + name, d[name]
+            param = d[name]  # type: variable.Parameter
+            if include_uninit or param.data is not None:
+                yield '/' + name, param
 
     def links(self, skipself=False):
+        # type: (bool) -> Iterator['Link']
+
         """Returns a generator of all links under the hierarchy.
 
         Args:
@@ -507,6 +558,8 @@ class Link(object):
             yield self
 
     def namedlinks(self, skipself=False):
+        # type: (bool) -> Iterator[Tuple[str, 'Link']]
+
         """Returns a generator of all (path, link) pairs under the hierarchy.
 
         Args:
@@ -521,6 +574,8 @@ class Link(object):
             yield '/', self
 
     def children(self):
+        # type: () -> Iterator['Link']
+
         """Returns a generator of all child links.
 
         Returns:
@@ -531,6 +586,8 @@ class Link(object):
             yield
 
     def copyparams(self, link, copy_persistent=True):
+        # type: ('Link', bool) -> None
+
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
@@ -564,6 +621,8 @@ class Link(object):
                     dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
+        # type: () -> None
+
         """Clears all gradient arrays.
 
         This method should be called before the backward computation at every
@@ -574,6 +633,8 @@ class Link(object):
             param.cleargrad()
 
     def zerograds(self):
+        # type: () -> None
+
         """Initializes all gradient arrays by zero.
 
         This method can be used for the same purpose of cleargrads, but less
@@ -590,6 +651,8 @@ class Link(object):
             param.zerograd()
 
     def addgrads(self, link):
+        # type: ('Link') -> None
+
         """Accumulates gradient values from given link.
 
         This method adds each gradient array of the given link to corresponding
@@ -606,6 +669,8 @@ class Link(object):
             dst[name].addgrad(src[name])
 
     def enable_update(self):
+        # type: () -> None
+
         """Enables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -618,6 +683,8 @@ class Link(object):
                 rule.enabled = True
 
     def disable_update(self):
+        # type: () -> None
+
         """Disables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -631,6 +698,8 @@ class Link(object):
 
     @property
     def update_enabled(self):
+        # type: () -> bool
+
         """``True`` if at least one parameter has an update rule enabled."""
         for param in self.params():
             rule = param.update_rule
@@ -639,6 +708,8 @@ class Link(object):
         return False
 
     def serialize(self, serializer):
+        # type: (chainer.AbstractSerializer) -> None
+
         """Serializes the link object.
 
         Args:
@@ -647,19 +718,21 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            param = d[name]
-            data = serializer(name, param.data)
+            param = d[name]  # type: variable.Parameter
+            data = serializer(name, param.data)  # type: types.NdArray
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
                 if isinstance(param.data, numpy.ndarray):
                     numpy.copyto(param.data, data)
                 else:
-                    param.data.set(numpy.asarray(data))
+                    cast(cuda.ndarray, param.data).set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
     def repeat(self, n_repeat, mode='init'):
+        # type: (int, str) -> chainer.Sequential
+
         """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
 
         This method returns a :class:`~chainer.Sequential` object which has
@@ -725,6 +798,8 @@ class Link(object):
         return ret
 
     def count_params(self):
+        # type: () -> int
+
         """Counts the total number of parameters.
 
         This method counts the total number of scalar values included in all
@@ -751,6 +826,8 @@ class Link(object):
         return size
 
     def add_hook(self, hook, name=None):
+        # type: (chainer.LinkHook, Optional[str]) -> None
+
         """Registers a link hook.
 
         Args:
@@ -771,6 +848,8 @@ class Link(object):
         hook.added(self)
 
     def delete_hook(self, name):
+        # type: (str) -> None
+
         """Unregisters the link hook.
 
         Args:
@@ -861,7 +940,11 @@ class Chain(Link):
 
     """
 
+    _children = None  # type: Set[str]
+
     def __init__(self, **links):
+        # type: (**Link) -> None
+
         super(Chain, self).__init__()
         self._children = set()
 
@@ -869,10 +952,14 @@ class Chain(Link):
             self.add_link(name, link)
 
     def __getitem__(self, name):
+        # type: (str) -> Any
+
         """Equivalent to getattr."""
         return getattr(self, name)
 
     def __setattr__(self, name, value):
+        # type: (str, Any) -> None
+
         if self.within_init_scope and isinstance(value, Link):
             if hasattr(self, name):
                 raise AttributeError(
@@ -882,10 +969,14 @@ class Chain(Link):
         super(Chain, self).__setattr__(name, value)
 
     def __delattr__(self, name):
+        # type: (str) -> None
+
         self._children.discard(name)
         super(Chain, self).__delattr__(name)
 
     def add_link(self, name, link):
+        # type: (str, Link) -> None
+
         """Registers a child link to this chain.
 
         Args:
@@ -903,80 +994,108 @@ class Chain(Link):
             setattr(self, name, link)
 
     def copy(self, mode='share'):
-        ret = super(Chain, self).copy()
+        # type: (str) -> 'Chain'
+
+        ret = cast(Chain, super(Chain, self).copy())
         ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
+            child = d[name]  # type: Link
             # copy child links recursively
-            copied = d[name].copy(mode)
+            copied = child.copy(mode)
             copied.name = name
             d[name] = copied
         return ret
 
     def to_cpu(self):
+        # type: () -> 'Chain'
+
         super(Chain, self).to_cpu()
         d = self.__dict__
         for name in self._children:
-            d[name].to_cpu()
+            link = d[name]  # type: Link
+            link.to_cpu()
         return self
 
     def to_gpu(self, device=None):
+        # type: (types.DeviceLike) -> 'Chain'
+
         with cuda._get_device(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
-                d[name].to_gpu()
+                link = d[name]  # type: Link
+                link.to_gpu()
         return self
 
     def to_intel64(self):
+        # type: () -> 'Chain'
+
         super(Chain, self).to_intel64()
         d = self.__dict__
         for name in self._children:
-            d[name].to_intel64()
+            link = d[name]  # type: Link
+            link.to_intel64()
         return self
 
     def params(self, include_uninit=True):
+        # type: (bool) -> Iterator[chainer.Parameter]
+
         for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
         for name in sorted(self._children):
-            for param in d[name].params(include_uninit):
+            link = d[name]  # type: Link
+            for param in link.params(include_uninit):
                 yield param
 
     def namedparams(self, include_uninit=True):
+        # type: (bool) -> Iterator[Tuple[str, chainer.Parameter]]
+
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
         for name in sorted(self._children):
             prefix = '/' + name
-            for path, param in d[name].namedparams(include_uninit):
+            link = d[name]  # type: Link
+            for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):
+        # type: (bool) -> Iterator[Link]
+
         if not skipself:
             yield self
         d = self.__dict__
         for name in sorted(self._children):
-            for link in d[name].links():
+            child_link = d[name]  # type: Link
+            for link in child_link.links():
                 yield link
 
     def namedlinks(self, skipself=False):
+        # type: (bool) -> Iterator[Tuple[str, Link]]
+
         if not skipself:
             yield '/', self
         d = self.__dict__
         for name in sorted(self._children):
-            child = d[name]
+            child = d[name]  # type: Link
             prefix = '/' + name
             yield prefix, child
-            for path, link in d[name].namedlinks(True):
+            for path, link in child.namedlinks(True):
                 yield prefix + path, link
 
     def children(self):
+        # type: () -> Iterator[Link]
+
         d = self.__dict__
         for name in sorted(self._children):
-            yield d[name]
+            child_link = d[name]  # type: Link
+            yield child_link
 
     def copyparams(self, link, copy_persistent=True):
+        # type: (Link, bool) -> None
+
         super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
@@ -984,6 +1103,8 @@ class Chain(Link):
             dst[name].copyparams(src[name], copy_persistent)
 
     def addgrads(self, link):
+        # type: (Link) -> None
+
         super(Chain, self).addgrads(link)
         src = link.__dict__
         dst = self.__dict__
@@ -991,10 +1112,13 @@ class Chain(Link):
             dst[name].addgrads(src[name])
 
     def serialize(self, serializer):
+        # type: (chainer.AbstractSerializer) -> None
+
         super(Chain, self).serialize(serializer)
         d = self.__dict__
         for name in self._children:
-            d[name].serialize(serializer[name])
+            child_link = d[name]  # type: Link
+            child_link.serialize(serializer[name])
 
 
 class ChainList(Link, collections_abc.MutableSequence):
@@ -1017,7 +1141,11 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     """
 
+    _children = None  # type: List[Link]
+
     def __init__(self, *links):
+        # type: (*Link) -> None
+
         super(ChainList, self).__init__()
         self._children = []
 
@@ -1025,18 +1153,34 @@ class ChainList(Link, collections_abc.MutableSequence):
             self.add_link(link)
 
     def __setattr__(self, name, value):
+        # type: (str, Any) -> None
+
         if self.within_init_scope and isinstance(value, Link):
             raise TypeError(
                 'cannot register a new link'
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
+    @overload
+    def __setitem__(self, key, value):
+        # type: (int, Link) -> None
+        pass
+
+    @overload
+    def __setitem__(self, key, value):
+        # type: (slice, Iterable[Link]) -> None
+        pass
+
     def __setitem__(self, index, value):
+        # type: (Union[int, slice], Union[Link, Iterable[Link]]) -> None
+
         if isinstance(index, int):
-            value.name = str(index)
-            self._children[index] = value
+            link = cast(Link, value)
+            link.name = str(index)
+            self._children[index] = link
         elif isinstance(index, slice):
-            self._children[index] = value
+            links = cast(Iterable[Link], value)
+            self._children[index] = links
             for i, c in enumerate(self._children):
                 c.name = str(i)
         else:
@@ -1044,7 +1188,19 @@ class ChainList(Link, collections_abc.MutableSequence):
                 'ChainList indices must be integers or slices, not %s' %
                 type(index).__name__)
 
+    @overload
+    def __getitem__(self, key):
+        # type: (int) -> Link
+        pass
+
+    @overload
+    def __getitem__(self, key):
+        # type: (slice) -> collections_abc.MutableSequence[Link]
+        pass
+
     def __getitem__(self, index):
+        # type: (Union[int, slice]) -> Union[Link, collections_abc.MutableSequence[Link]]
+
         """Returns the child at given index.
 
         Args:
@@ -1057,11 +1213,15 @@ class ChainList(Link, collections_abc.MutableSequence):
         return self._children[index]
 
     def __delitem__(self, index):
+        # type: (Union[int, slice]) -> None
+
         del self._children[index]
         for i, c in enumerate(self._children):
             c.name = str(i)
 
     def insert(self, index, link):
+        # type: (int, Link) -> None
+
         """Insert a child link at the given index.
 
         Args:
@@ -1079,13 +1239,19 @@ class ChainList(Link, collections_abc.MutableSequence):
                 c.name = str(i)
 
     def __iter__(self):
+        # type: () -> Iterator[Link]
+
         return iter(self._children)
 
     def __len__(self):
+        # type: () -> int
+
         """Returns the number of children."""
         return len(self._children)
 
     def add_link(self, link):
+        # type: (Link) -> None
+
         """Registers a child link and adds it to the tail of the list.
 
         Args:
@@ -1095,8 +1261,10 @@ class ChainList(Link, collections_abc.MutableSequence):
         self.append(link)
 
     def copy(self, mode='share'):
+        # type: (str) -> 'ChainList'
+
         """Returns a deep copy of the chainlist."""
-        ret = super(ChainList, self).copy()
+        ret = cast(ChainList, super(ChainList, self).copy())
         ret._children = list(ret._children)  # copy
         children = ret._children
         for i, child in enumerate(children):
@@ -1106,12 +1274,16 @@ class ChainList(Link, collections_abc.MutableSequence):
         return ret
 
     def to_cpu(self):
+        # type: () -> 'ChainList'
+
         super(ChainList, self).to_cpu()
         for link in self._children:
             link.to_cpu()
         return self
 
     def to_gpu(self, device=None):
+        # type: (types.DeviceLike) -> 'ChainList'
+
         with cuda._get_device(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
@@ -1119,12 +1291,16 @@ class ChainList(Link, collections_abc.MutableSequence):
         return self
 
     def to_intel64(self):
+        # type: () -> 'ChainList'
+
         super(ChainList, self).to_intel64()
         for link in self._children:
             link.to_intel64()
         return self
 
     def params(self, include_uninit=True):
+        # type: (bool) -> Iterator[chainer.Parameter]
+
         for param in super(ChainList, self).params(include_uninit):
             yield param
         for link in self._children:
@@ -1132,6 +1308,8 @@ class ChainList(Link, collections_abc.MutableSequence):
                 yield param
 
     def namedparams(self, include_uninit=True):
+        # type: (bool) -> Iterator[Tuple[str, chainer.Parameter]]
+
         for ret in super(ChainList, self).namedparams(include_uninit):
             yield ret
         for idx, link in enumerate(self._children):
@@ -1140,6 +1318,8 @@ class ChainList(Link, collections_abc.MutableSequence):
                 yield prefix + path, param
 
     def links(self, skipself=False):
+        # type: (bool) -> Iterator[Link]
+
         if not skipself:
             yield self
         for child in self._children:
@@ -1147,6 +1327,8 @@ class ChainList(Link, collections_abc.MutableSequence):
                 yield link
 
     def namedlinks(self, skipself=False):
+        # type: (bool) -> Iterator[Tuple[str, Link]]
+
         if not skipself:
             yield '/', self
         for idx, child in enumerate(self._children):
@@ -1156,20 +1338,30 @@ class ChainList(Link, collections_abc.MutableSequence):
                 yield prefix + path, link
 
     def children(self):
+        # type: () -> Iterator[Link]
+
         for child in self._children:
             yield child
 
     def copyparams(self, link, copy_persistent=True):
+        # type: (Link, bool) -> None
+
         super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx], copy_persistent)
+            chain_list = cast(ChainList, link)
+            child.copyparams(chain_list[idx], copy_persistent)
 
     def addgrads(self, link):
+        # type: (Link) -> None
+
         super(ChainList, self).addgrads(link)
         for idx, child in enumerate(self._children):
-            child.addgrads(link[idx])
+            chain_list = cast(ChainList, link)
+            child.addgrads(chain_list[idx])
 
     def serialize(self, serializer):
+        # type: (chainer.AbstractSerializer) -> None
+
         super(ChainList, self).serialize(serializer)
         for idx, child in enumerate(self._children):
             child.serialize(serializer['%d' % idx])

@@ -1,3 +1,5 @@
+from typing import Callable, List, Optional
+
 import collections
 import copy
 import heapq
@@ -15,6 +17,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
+from chainer import types
 from chainer.utils import argument
 
 
@@ -155,11 +158,11 @@ class VariableNode(object):
     """
 
     _creator_node = None
-    _data = None
-    _rank = 0
+    _data = None  # type: types.NdArray
+    _rank = 0  # type: int
     # Name of the Function is assigned if this variable is a gradient generated
     # by an old-style Function
-    _old_style_grad_generator = None
+    _old_style_grad_generator = None  # type: str
 
     def __init__(self, variable, name, **kwargs):
         if kwargs:
@@ -474,6 +477,12 @@ class Variable(object):
 
     """  # NOQA
 
+    _data = None  # type: List[types.NdArray]
+    _requires_grad = None  # type: bool
+    _node = None  # type: VariableNode
+    _grad_var = None  # type: Optional[Variable]
+    _loss_scale = None  # type: float
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -640,6 +649,8 @@ Actual: {0}'''.format(type(data))
 
     @property
     def array(self):
+        # type: () -> Optional[types.NdArray]
+
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
@@ -650,11 +661,15 @@ Actual: {0}'''.format(type(data))
 
     @array.setter
     def array(self, d):
+        # type: (types.NdArray) -> None
+
         self._data[0] = d
         self._node._update_data_info(d)
 
     @property
     def data(self):
+        # type: () -> Optional[types.NdArray]
+
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use
@@ -668,6 +683,8 @@ Actual: {0}'''.format(type(data))
 
     @data.setter
     def data(self, d):
+        # type: (types.NdArray) -> None
+
         self._data[0] = d
         self._node._update_data_info(d)
 
@@ -1170,8 +1187,8 @@ Actual: {0}'''.format(type(data))
         """This operator is not defined for Variable."""
         raise NotImplementedError()
 
-    __array_priority__ = 200
-    __hash__ = None
+    __array_priority__ = 200  # type: int
+    __hash__ = None  # type: Callable[[object], int]
 
 
 class Parameter(Variable):
@@ -1217,12 +1234,14 @@ class Parameter(Variable):
 
     """
 
-    initializer = None
-    _grad_initializer = None
-    _initial_backend = None
-    _initial_device = None
+    initializer = None  # type: Optional[types.InitializerLike]
+    _grad_initializer = None  # type: Optional[types.InitializerLike]
+    _initial_backend = None  # type: str
+    _initial_device = None  # type: types.DeviceLike
 
     def __init__(self, initializer=None, shape=None, name=None):
+        # type: (Optional[types.InitializerLike], Optional[types.ShapeLike], Optional[str]) -> None
+
         if initializer is None:
             initializer = constant.NaN()
         elif numpy.isscalar(initializer):

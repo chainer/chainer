@@ -22,6 +22,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
+        'typing',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
@@ -176,6 +177,9 @@ setup(
               'chainermn.functions',
               'chainermn.iterators',
               'chainermn.links'],
+    package_data={
+        'chainer': ['py.typed'],
+    },
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

@@ -28,6 +28,8 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
+from typing import Optional, cast
+
 import binascii
 import functools
 import itertools
@@ -42,6 +44,7 @@ import six
 import chainer
 from chainer.backends import intel64
 from chainer.configuration import config
+from chainer import types
 
 available = False
 cudnn_enabled = False
@@ -54,18 +57,50 @@ try:
     import cupyx.scipy.linalg  # NOQA
     import cupyx.scipy.special  # NOQA
 
-    from cupy import ndarray  # NOQA
+    from cupy import ndarray  # type: ignore # NOQA
 
-    from cupy.cuda import Device  # NOQA
-    from cupy.cuda import Event  # NOQA
-    from cupy.cuda import Stream  # NOQA
+    from cupy.cuda import Device  # type: ignore # NOQA
+    from cupy.cuda import Event  # type: ignore # NOQA
+    from cupy.cuda import Stream  # type: ignore # NOQA
 
     available = True
 except Exception as e:
     _resolution_error = e
 
-    class ndarray(object):
-        pass  # for type testing
+    class ndarray(object):  # type: ignore # for type testing
+        shape = property(lambda self: object(), lambda self, v: None, lambda self: None)
+
+        @property
+        def device(self):
+            # type: () -> 'Device'
+            return DummyDevice
+
+        def get(self, stream=None):
+            # type: (Optional['Stream']) -> numpy.ndarray
+            pass
+
+        def set(self, arr, stream=None):
+            # type: (numpy.ndarray, Optional['Stream']) -> None
+            pass
+
+    class Device(object):  # type: ignore # for type testing
+        def __init__(self, device=None):
+            # type: (Optional[int]) -> None
+            pass
+
+        def __enter__(self):
+            # type: () -> 'Device'
+            pass
+
+        def __exit__(self, *args):
+            # type: (*Any) -> None
+            pass
+
+    class Event(object):  # type: ignore # for type testing
+        pass
+
+    class Stream(object):  # type: ignore # for type testing
+        pass
 
     # for `xp is cuda.cupy` to always work
     cupy = object()
@@ -102,7 +137,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(object):
+class DummyDeviceType(Device):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -111,6 +146,9 @@ class DummyDeviceType(object):
     """
 
     id = -1
+
+    def __init__(self):
+        pass
 
     def __int__(self):
         return -1
@@ -153,6 +191,8 @@ _integer_types = six.integer_types + (numpy.integer,)
 # Global states
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
+    # type: (Optional[int]) -> Device
+
     """Gets the device from an ID integer.
 
     Args:
@@ -167,6 +207,8 @@ def get_device_from_id(device_id):
 
 
 def get_device_from_array(*arrays):
+    # type: (*ndarray) -> Device
+
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     The device on which the given CuPy array reside is returned.
@@ -192,6 +234,8 @@ def get_device_from_array(*arrays):
 
 
 def get_device(*args):
+    # type: (*types.DeviceLike) -> Device
+
     """Gets the device from a device object, an ID integer or an array object.
 
     .. note::
@@ -227,10 +271,12 @@ def get_device(*args):
 
 
 def _get_device(*args):
+    # type: (*Optional[types.DeviceLike]) -> Device
+
     for arg in args:
         if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
-            return Device(arg)
+            return Device(cast(int, arg))
         if isinstance(arg, ndarray):
             if arg.device is None:
                 continue
