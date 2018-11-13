@@ -584,7 +584,7 @@ Args:
         `cover_all` needs to be ``False`` if you want to use ``cuda`` backend.
 
 Returns:
-    ~chainer.ndarray:
+    ~chainerx.ndarray:
         Output array of shape :math:`(n, c_O, l_1, l_2, ..., l_N)`.
 
 Note:
