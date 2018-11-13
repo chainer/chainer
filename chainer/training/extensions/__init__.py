@@ -1,7 +1,7 @@
 # import classes and functions
 from chainer.training.extensions._snapshot import snapshot  # NOQA
 from chainer.training.extensions._snapshot import snapshot_object  # NOQA
-from chainer.training.extensions.computational_graph import dump_graph  # NOQA
+from chainer.training.extensions.computational_graph import DumpGraph  # NOQA
 from chainer.training.extensions.evaluator import Evaluator  # NOQA
 from chainer.training.extensions.exponential_shift import ExponentialShift  # NOQA
 from chainer.training.extensions.fail_on_nonnumber import FailOnNonNumber  # NOQA
