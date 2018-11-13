@@ -563,8 +563,6 @@ the following equations:
 
    l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
-The N-dimensional convolution function is defined as follows.
-
 Args:
     x (:class:`~chainerx.ndarray`):
         Input array of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.

@@ -411,8 +411,6 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
 
        l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
-    The N-dimensional convolution function is defined as follows.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
