@@ -541,7 +541,7 @@ Args:
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input arrays ``gamma`` and ``beta``.
+    output array to the input arrays ``x``, ``gamma`` and ``beta``.
 
 See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
       Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
