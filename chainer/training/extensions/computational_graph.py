@@ -10,7 +10,7 @@ _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
 
-class dump_graph(extension.Extension):
+class DumpGraph(extension.Extension):
 
     """Trainer extension to dump a computational graph.
 
@@ -60,6 +60,7 @@ class dump_graph(extension.Extension):
        for the ``variable_style`` and ``function_style`` arguments.
 
     """
+    default_name = 'dump_graph'
 
     def __init__(self, root_name, out_name='cg.dot',
                  variable_style=None, function_style=None):
@@ -74,12 +75,12 @@ class dump_graph(extension.Extension):
         self._original_flag = None
         self._flag_called = False
 
-    def initialize(self, _):
+    def initialize(self, trainer):
         if not self._flag_called:
             self._original_flag = configuration.config.keep_graph_on_report
             configuration.config.keep_graph_on_report = True
 
-    def trigger(self, _):
+    def trigger(self, trainer):
         if self._flag_called:
             return False
         self._flag_called = True
