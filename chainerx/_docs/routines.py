@@ -338,24 +338,8 @@ Raises:
         """fromfile(file, dtype=float, count=-1, sep='', device=None)
 Constructs an array from data in a text or binary file.
 
-Data written using the :func:`numpy.tofile` method can be read using
-this function.
-
-Args:
-    file (file or str): Open file object or filename.
-    dtype: Data type of the returned array. For binary files, it is used to
-        determine the size and byte-order of the items in the file.
-    count (int): Number of items to read. -1 means all items
-        (i.e., the complete file).
-    sep (str): Separator between items if file is a text file. Empty ('')
-        separator means the file should be treated as binary. Spaces (' ') in
-        the separator match zero or more whitespace characters.  A separator
-        consisting only of spaces must match at least one whitespace.
-    device (~chainerx.Device): Device of the returned array.
-        If omitted, :ref:`the default device <chainerx_device>` is chosen.
-
-Returns:
-    ~chainerx.ndarray: Constructed array.
+This is currently equivalent to :func:`numpy.fromfile` wrapped with
+:func:`chainerx.array` given the device argument.
 
 .. seealso:: :func:`numpy.fromfile`
 """)
@@ -365,26 +349,8 @@ Returns:
         """fromfunction(function, shape, **kwargs)
 Constructs an array by executing a function over each coordinate.
 
-The resulting array therefore has a value ``fn(x, y, z)`` at coordinate
-``(x, y, z)``.
-
-Args:
-    function (callable): The function is called with N parameters,
-        where N is the rank of ``shape``. Each parameter represents the
-    coordinates of the array varying along a specific axis.
-        For example, if ``shape`` were ``(2, 2)``, then the parameters would
-        be ``array([[0, 0], [1, 1]])`` and ``array([[0, 1], [0, 1]])``.
-    shape (tuple of ints): Shape of the output array, which also
-        determines the shape of the coordinate arrays passed to ``function``.
-    dtype: Data-type of the coordinate arrays passed to function.
-    device (~chainerx.Device): Device of the returned array.
-        If omitted, :ref:`the default device <chainerx_device>` is chosen.
-
-Returns:
-    ~chainerx.ndarray: Constructed array. The result of the call to function
-    is passed back directly. Therefore the shape of ``fromfunction`` is
-    completely determined by ``function``. If function returns a scalar value,
-    the shape of ``fromfunction`` would match the shape parameter.
+This is currently equivalent to :func:`numpy.fromfunction` wrapped with
+:func:`chainerx.array` given the device argument.
 
 Note:
     Keywords other than ``dtype`` and ``device`` are passed to function.
@@ -397,21 +363,8 @@ Note:
         """fromiter(iterable, dtype, count=-1, device=None)
 Constructs a new 1-dimensional array from an iterable object.
 
-Args:
-    iterable (iterable object): An iterable object providing data
-        for the array.
-    dtype: The data-type of the returned array.
-    count (int): The number of items to read from iterable.
-        The default is -1, which means all data is read.
-    device (~chainerx.Device): Device of the returned array.
-        If omitted, :ref:`the default device <chainerx_device>` is chosen.
-
-Returns:
-    ~chainerx.ndarray: The constructed array.
-
-Note:
-    Specify ``count`` to improve performance. It allows ``fromiter`` to
-    pre-allocate the output array, instead of resizing it on demand.
+This is currently equivalent to :func:`numpy.fromiter` wrapped with
+:func:`chainerx.array` given the device argument.
 
 .. seealso:: :func:`numpy.fromiter`
 """)
@@ -421,24 +374,8 @@ Note:
         """fromstring(string, dtype=float, count=-1, sep='', device=None)
 Constructs a new 1-D array initialized from text data in a string.
 
-Args:
-    string (str): A string containing the data.
-        dtype: The data type of the array. For binary input data,
-        the data must be in exactly this format.
-    count (int): Read this number of dtype elements from the data.
-        If this is negative (the default), the count will be determined
-        from the length of the data.
-    sep (str): The string separating numbers in the data; extra whitespace
-        between elements is also ignored.
-    device (~chainerx.Device): Device of the returned array.
-        If omitted, :ref:`the default device <chainerx_device>` is chosen.
-
-Returns:
-    ~chainerx.ndarray: The constructed array.
-
-Raises:
-    ValueError: If the string is not the correct size to satisfy the requested
-        ``dtype`` and ``count``.
+This is currently equivalent to :func:`numpy.fromstring` wrapped with
+:func:`chainerx.array` given the device argument.
 
 .. seealso:: :func:`numpy.fromstring`
 """)
@@ -448,6 +385,11 @@ Raises:
         """loadtxt(fname, dtype=float, comments='#', delimiter=None,
 convertes=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
 encoding='bytes', device=None)
+
+This is currently equivalent to :func:`numpy.loadtxt` wrapped with
+:func:`chainerx.array` given the device argument.
+
+.. seealso:: :func:`numpy.loadtxt`
 """)
 
     _docs.set_doc(
