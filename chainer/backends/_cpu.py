@@ -1,6 +1,8 @@
 import numpy
 
 from chainer import _backend
+
+# TODO(kmaehashi) fix circular imports around `chainer.backends.*`
 import chainer.backends
 import chainerx
 
