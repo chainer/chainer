@@ -334,6 +334,59 @@ Raises:
 """)
 
 
+    _docs.set_doc(
+        chainerx.arange,
+        """arange(start, stop=None, step=1, dtype=None, device=None)
+Returns an array with evenly spaced values within a given interval.
+
+Values are generated within the half-open interval [start, stop). The first
+three arguments are mapped like the ``range`` built-in function, i.e. start
+and step are optional.
+
+Args:
+    start: Start of the interval.
+    stop: End of the interval.
+    step: Step width between each pair of consecutive values.
+    dtype: Data type specifier. It is inferred from other arguments by
+        default.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: The 1-D array of range values.
+
+.. seealso:: :func:`numpy.arange`
+""")
+
+    _docs.set_doc(
+        chainerx.linspace,
+        """linspace(start, stop, num=50, endpoint=True, dtype=None,
+device=None)
+Returns an array with evenly-spaced values within a given interval.
+
+Instead of specifying the step width like :func:`chainerx.arange()`,
+this function requires the total number of elements specified.
+
+Args:
+    start: Start of the interval.
+    stop: End of the interval.
+    num: Number of elements.
+    endpoint (bool): If ``True``, the stop value is included as the last
+        element. Otherwise, the stop value is omitted.
+    retstep (bool): If ``True``, this function returns (array, step).
+        Otherwise, it returns only the array.
+    dtype: Data type specifier. It is inferred from the start and stop
+        arguments by default.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: The 1-D array of ranged values.
+
+.. seealso:: :func:`numpy.linspace`
+""")
+
+
 def _docs_indexing():
     pass
 
