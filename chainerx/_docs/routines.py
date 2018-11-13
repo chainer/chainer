@@ -699,7 +699,7 @@ Args:
         Spatial padding width for input arrays
         :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
         ``(p, p, ..., p)``.
-    outsize (:class:`tuple` of :class:`int` s):
+    outsize (None or :class:`tuple` of :class:`int` s):
         Expected output size of deconvolutional operation. It should be a
         tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
         ``None`` and the outsize is estimated by input size, stride and
