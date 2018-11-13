@@ -477,7 +477,7 @@ Note:
     _docs.set_doc(
         chainerx.broadcast_to,
         """broadcast_to(array, shape)
-Broadcast an array to a given shape.
+Broadcasts an array to a given shape.
 
 Args:
     array (~chainerx.ndarray): Array to broadcast.
