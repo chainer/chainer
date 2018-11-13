@@ -536,7 +536,7 @@ corresponds to the dtype of ``a``.
 Joins arrays along an axis.
 
 Args:
-    arrays (sequence of :class:`~chainerx.ndarray`\ s): Arrays to be joined.
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be joined.
         All of these should have the same dimensionalities except the specified
         axis.
     axis (int): The axis to join arrays along.
@@ -558,7 +558,7 @@ Note:
 Stacks arrays along a new axis.
 
 Args:
-    arrays (sequence of :class:`~chainerx.ndarray`\ s): Arrays to be stacked.
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
     axis (int): Axis along which the arrays are stacked.
 
 Returns:
@@ -586,7 +586,7 @@ Args:
     axis (int): Axis along which the array is split.
 
 Returns:
-    list of :class:`~chainerx.ndarray`\ s: A list of sub arrays. Each array \
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
 is a partial view of the input array.
 
 Note:

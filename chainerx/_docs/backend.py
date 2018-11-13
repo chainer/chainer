@@ -9,7 +9,7 @@ def _set_docs_backend():
         Backend,
         """Pluggable entity that abstracts various computing platforms.
 
-A backend holds one or more :class:`~chainerx.Device`\ s, each of which
+A backend holds one or more :class:`~chainerx.Device`\\ s, each of which
 represents a physical computing unit.
 """)
 
