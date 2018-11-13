@@ -13,6 +13,7 @@ CUDA-Aware MPI, NVIDIA NCCL, and a few Python packages including CuPy and MPI4py
 
     In Chainer v5, ChainerMN became a part of Chainer package.
     Installing Chainer (``pip install chainer``) automatically makes ChainerMN available.
+    Note that you still need to separately install requirements described below to actually run code using ChainerMN.
 
     Before upgrading from Chainer v4 to v5 or later, make sure to remove existing ``chainermn`` package (``pip uninstall chainermn``).
 
@@ -84,28 +85,27 @@ only exception is when you run ChainerMN on CPU-only environments. See
 MPI4py
 ~~~~~~
 
-ChainerMN depends on a few Python packages, which are
-automatically installed when you install ChainerMN.
+You can install MPI4py by::
 
-However, among them, we need to be a little careful about MPI4py.
-It links to MPI at installation time, so please be sure
-to properly configure environment variables
-so that MPI is available at installation time.
-In particular, if you have multiple MPI implementations in your environment,
-please expose the implementation that you want to use
-both when you install and use ChainerMN.
+  $ pip install mpi4py
+
+Please make be sure to properly configure environment variables so that MPI is available at installation time, because MPI4py links to MPI library at installation time.
+In particular, if you have multiple MPI implementations installed in your environment, please expose the implementation that you want to use both when you install and use ChainerMN.
 
 .. _cupy-install:
 
 CuPy
 ~~~~
 
-Chainer and ChainerMN rely on CuPy to use GPUs. 
+Chainer and ChainerMN rely on CuPy to use GPUs.
 Please refer to `CuPy Installation Guide <https://docs-cupy.chainer.org/en/stable/install.html>`__ for the detailed steps to install CuPy.
-CuPy requires NCCL to be enabled.
-See :ref:`check-nccl`, if you want to check whether NCCL is enabled in CuPy.
 
-Chainer and ChainerMN can be installed without CuPy, in which case the corresponding features are not available. 
+In most cases it is recommended to install CuPy using wheel distribution (precompiled binary) rather than source distribution.
+If you are installing from source, NCCL library must be installed before installing CuPy to enable NCCL feature in CuPy.
+Refer to :ref:`nccl-install` for the installation steps of NCCL library.
+See :ref:`check-nccl`, if you want to check whether NCCL is enabled in your CuPy.
+
+Chainer and ChainerMN can be installed without CuPy, in which case the corresponding features are not available.
 See :ref:`non-gpu-env` for more details.
 
 
