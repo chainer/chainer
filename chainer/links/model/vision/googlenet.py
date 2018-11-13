@@ -342,8 +342,9 @@ class GoogLeNet(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
+                # n = y.array.shape[0] // 10
+                n = len(y) // 10
+                y_shape = y.array.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = average(y, axis=1)
         return y
@@ -397,30 +398,30 @@ def _transfer_inception(src, dst, names):
     for name in names:
         chain = getattr(dst, 'inc{}'.format(name))
         src_prefix = 'inception_{}/'.format(name)
-        chain.conv1.W.data[:] = src[src_prefix + '1x1'].W.data
-        chain.conv1.b.data[:] = src[src_prefix + '1x1'].b.data
-        chain.proj3.W.data[:] = src[src_prefix + '3x3_reduce'].W.data
-        chain.proj3.b.data[:] = src[src_prefix + '3x3_reduce'].b.data
-        chain.conv3.W.data[:] = src[src_prefix + '3x3'].W.data
-        chain.conv3.b.data[:] = src[src_prefix + '3x3'].b.data
-        chain.proj5.W.data[:] = src[src_prefix + '5x5_reduce'].W.data
-        chain.proj5.b.data[:] = src[src_prefix + '5x5_reduce'].b.data
-        chain.conv5.W.data[:] = src[src_prefix + '5x5'].W.data
-        chain.conv5.b.data[:] = src[src_prefix + '5x5'].b.data
-        chain.projp.W.data[:] = src[src_prefix + 'pool_proj'].W.data
-        chain.projp.b.data[:] = src[src_prefix + 'pool_proj'].b.data
+        chain.conv1.W.array[:] = src[src_prefix + '1x1'].W.array
+        chain.conv1.b.array[:] = src[src_prefix + '1x1'].b.array
+        chain.proj3.W.array[:] = src[src_prefix + '3x3_reduce'].W.array
+        chain.proj3.b.array[:] = src[src_prefix + '3x3_reduce'].b.array
+        chain.conv3.W.array[:] = src[src_prefix + '3x3'].W.array
+        chain.conv3.b.array[:] = src[src_prefix + '3x3'].b.array
+        chain.proj5.W.array[:] = src[src_prefix + '5x5_reduce'].W.array
+        chain.proj5.b.array[:] = src[src_prefix + '5x5_reduce'].b.array
+        chain.conv5.W.array[:] = src[src_prefix + '5x5'].W.array
+        chain.conv5.b.array[:] = src[src_prefix + '5x5'].b.array
+        chain.projp.W.array[:] = src[src_prefix + 'pool_proj'].W.array
+        chain.projp.b.array[:] = src[src_prefix + 'pool_proj'].b.array
 
 
 def _transfer_googlenet(src, dst):
     # 1 #################################################################
-    dst.conv1.W.data[:] = src['conv1/7x7_s2'].W.data
-    dst.conv1.b.data[:] = src['conv1/7x7_s2'].b.data
+    dst.conv1.W.array[:] = src['conv1/7x7_s2'].W.array
+    dst.conv1.b.array[:] = src['conv1/7x7_s2'].b.array
 
     # 2 #################################################################
-    dst.conv2_reduce.W.data[:] = src['conv2/3x3_reduce'].W.data
-    dst.conv2_reduce.b.data[:] = src['conv2/3x3_reduce'].b.data
-    dst.conv2.W.data[:] = src['conv2/3x3'].W.data
-    dst.conv2.b.data[:] = src['conv2/3x3'].b.data
+    dst.conv2_reduce.W.array[:] = src['conv2/3x3_reduce'].W.array
+    dst.conv2_reduce.b.array[:] = src['conv2/3x3_reduce'].b.array
+    dst.conv2.W.array[:] = src['conv2/3x3'].W.array
+    dst.conv2.b.array[:] = src['conv2/3x3'].b.array
 
     # 3, 4, 5 ###########################################################
     _transfer_inception(src, dst, ['3a', '3b',
@@ -428,22 +429,22 @@ def _transfer_googlenet(src, dst):
                                    '5a', '5b'])
 
     # outputs ############################################################
-    dst.loss1_conv.W.data[:] = src['loss1/conv'].W.data
-    dst.loss1_conv.b.data[:] = src['loss1/conv'].b.data
-    dst.loss1_fc1.W.data[:] = src['loss1/fc'].W.data
-    dst.loss1_fc1.b.data[:] = src['loss1/fc'].b.data
-    dst.loss1_fc2.W.data[:] = src['loss1/classifier'].W.data
-    dst.loss1_fc2.b.data[:] = src['loss1/classifier'].b.data
+    dst.loss1_conv.W.array[:] = src['loss1/conv'].W.array
+    dst.loss1_conv.b.array[:] = src['loss1/conv'].b.array
+    dst.loss1_fc1.W.array[:] = src['loss1/fc'].W.array
+    dst.loss1_fc1.b.array[:] = src['loss1/fc'].b.array
+    dst.loss1_fc2.W.array[:] = src['loss1/classifier'].W.array
+    dst.loss1_fc2.b.array[:] = src['loss1/classifier'].b.array
 
-    dst.loss2_conv.W.data[:] = src['loss2/conv'].W.data
-    dst.loss2_conv.b.data[:] = src['loss2/conv'].b.data
-    dst.loss2_fc1.W.data[:] = src['loss2/fc'].W.data
-    dst.loss2_fc1.b.data[:] = src['loss2/fc'].b.data
-    dst.loss2_fc2.W.data[:] = src['loss2/classifier'].W.data
-    dst.loss2_fc2.b.data[:] = src['loss2/classifier'].b.data
+    dst.loss2_conv.W.array[:] = src['loss2/conv'].W.array
+    dst.loss2_conv.b.array[:] = src['loss2/conv'].b.array
+    dst.loss2_fc1.W.array[:] = src['loss2/fc'].W.array
+    dst.loss2_fc1.b.array[:] = src['loss2/fc'].b.array
+    dst.loss2_fc2.W.array[:] = src['loss2/classifier'].W.array
+    dst.loss2_fc2.b.array[:] = src['loss2/classifier'].b.array
 
-    dst.loss3_fc.W.data[:] = src['loss3/classifier'].W.data
-    dst.loss3_fc.b.data[:] = src['loss3/classifier'].b.data
+    dst.loss3_fc.W.array[:] = src['loss3/classifier'].W.array
+    dst.loss3_fc.b.array[:] = src['loss3/classifier'].b.array
 
 
 def _max_pooling_2d(x):
