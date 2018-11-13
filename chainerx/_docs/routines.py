@@ -100,7 +100,7 @@ Args:
     ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
         ``ksize=(k, k, ..., k)`` are equivalent.
     stride (int or tuple of ints or None): Stride of pooling applications.
-        ``stride=s`` and ``stride=(s,s, ..., s)`` are equivalent. If
+        ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent. If
         ``None`` is specified, then it uses same stride as the pooling
         window size.
     pad (int or tuple of ints): Spatial padding width for the input array.
