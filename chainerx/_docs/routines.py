@@ -518,7 +518,7 @@ Args:
         Axis over which normalization is performed. When axis is ``None``,
         the first axis is treated as the batch axis and will be reduced
         during normalization.
-""")
+""")  # NOQA
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,
