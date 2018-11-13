@@ -6,6 +6,9 @@ Array Operations
 Array creation routines
 -----------------------
 
+Ones and zeros
+^^^^^^^^^^^^^^
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -20,8 +23,17 @@ Array creation routines
    chainerx.zeros_like
    chainerx.full
    chainerx.full_like
+
+From existing data
+^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainerx.array
    chainerx.asarray
+   chainerx.asanyarray
    chainerx.ascontiguousarray
    chainerx.copy
    chainerx.frombuffer
@@ -30,11 +42,26 @@ Array creation routines
    chainerx.fromiter
    chainerx.fromstring
    chainerx.loadtxt
+
+Numerical ranges
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainerx.arange
    chainerx.linspace
+
+Building matrices
+^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainerx.diag
    chainerx.diagflat
-
 
 Array manipulation routines
 ---------------------------
