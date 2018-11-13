@@ -95,6 +95,10 @@ def _docs_pooling():
         """max_pool(x, ksize, stride=None, pad=0, cover_all=False)
 Spatial max pooling function.
 
+This acts similarly to :func:`~chainerx.conv`, but it computes the maximum
+of input spatial patch for each channel without any parameter instead of
+computing the inner products.
+
 Args:
     x (~chainerx.ndarray): Input array.
     ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
@@ -124,6 +128,10 @@ Note:
         chainerx.average_pool,
         """average_pool(x, ksize, stride=None, pad=0, pad_mode='ignore')
 Spatial average pooling function.
+
+This acts similarly to :func:`~chainerx.conv`, but it computes the average
+of input spatial patch for each channel without any parameter instead of
+computing the inner products.
 
 Args:
     x (~chainerx.ndarray): Input array.
