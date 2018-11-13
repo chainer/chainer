@@ -505,8 +505,8 @@ Note:
 Add arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x1 (~chainerx.ndarry or scalar): Input array.
+    x2 (~chainerx.ndarry or scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 + x_2`.
@@ -524,8 +524,8 @@ Note:
 Subtract arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x1 (~chainerx.ndarry or scalar): Input array.
+    x2 (~chainerx.ndarry or scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 - x_2`.
@@ -543,8 +543,8 @@ Note:
 Multiply arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x1 (~chainerx.ndarry or scalar): Input array.
+    x2 (~chainerx.ndarry or scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\times x_2`.
@@ -562,8 +562,8 @@ Note:
 Divide arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x1 (~chainerx.ndarry or scalar): Input array.
+    x2 (~chainerx.ndarry or scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = \\frac{x_1}{x_2}`.
@@ -605,8 +605,8 @@ Note:
 Maximum arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x1 (~chainerx.ndarry or scalar): Input array.
+    x2 (~chainerx.ndarry or scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = max(\{x_1, x_2\})`.
