@@ -299,8 +299,9 @@ Note:
 Returns a 1-dimensional array interpretation of a buffer.
 
 Note:
-    The `native` backend requires a buffer of main memory, and
-    the `cuda` backend requires a buffer of CUDA memory. No copy is performed.
+    The ``native`` backend requires a buffer of main memory, and
+    the ``cuda`` backend requires a buffer of CUDA memory.
+    No copy is performed.
 
 Args:
     buffer: An object that exposes the buffer interface.
@@ -314,7 +315,7 @@ Returns:
     ~chainerx.ndarray: 1-dimensional array interpretation of ``buffer``.
 
 Raises:
-    ChainerxError: If the given `buffer` memory is not usable on the given
+    ChainerxError: If the given ``buffer`` memory is not usable on the given
         device.
 
 .. seealso:: :func:`numpy.frombuffer`
