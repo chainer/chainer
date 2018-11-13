@@ -539,6 +539,10 @@ Args:
         the first axis is treated as the batch axis and will be reduced
         during normalization.
 
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
 See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
       Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 """)  # NOQA
@@ -564,6 +568,10 @@ Args:
         Axis over which normalization is performed. When axis is ``None``,
         the first axis is treated as the batch axis and will be reduced
         during normalization.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
 """)
 
 
