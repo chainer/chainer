@@ -1,7 +1,6 @@
 import numpy as np
 
 import chainer
-from chainer import cuda
 import chainer.distributions as D
 import chainer.functions as F
 import chainer.links as L
@@ -90,11 +89,8 @@ class Prior(chainer.Link):
     def __init__(self, n_latent):
         super(Prior, self).__init__()
 
-        with self.init_scope():
-            self.loc = chainer.Parameter(0, n_latent)
-            self.scale = chainer.Parameter(1, n_latent)
-        self.register_persistent('loc')
-        self.register_persistent('scale')
+        self.loc = np.zeros(n_latent, np.float32)
+        self.scale = np.ones(n_latent, np.float32)
 
     def forward(self):
         return D.Normal(self.loc, scale=self.scale)
