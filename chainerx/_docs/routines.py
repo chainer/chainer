@@ -117,7 +117,8 @@ Returns:
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x``.
+    output array to the input array ``x``. This function is only
+    differentiable up to the second order.
 
 .. note::
    In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
