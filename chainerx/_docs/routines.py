@@ -527,10 +527,6 @@ Returns:
 Python scalar types (such as :class:`int` and :class:`float`) which \
 corresponds to the dtype of ``a``.
 
-Note:
-    During backpropagation, this function propagates the gradient of the
-    output array to the input array ``array``.
-
 .. seealso:: :func:`numpy.asscalar`
 """)
 
