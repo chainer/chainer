@@ -54,7 +54,9 @@ class Intel64Device(_backend.Device):
         if not isinstance(array, numpy.ndarray):
             array = _cpu._to_numpy(array)  # to numpy.ndarray
 
-        if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
+        if (isinstance(array, numpy.ndarray) and
+                array.ndim in (1, 2, 4) and
+                0 not in array.shape):
             # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
             # Currently iDeep only supports (1, 2, 4)-dim arrays.
             # Note that array returned from `ideep.array` may not be an
