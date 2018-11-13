@@ -56,6 +56,8 @@ def main():
     prior = net.make_prior(args.dim_z)
     avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
                                     beta=args.beta, k=args.k)
+    if args.gpu >= 0:
+        avg_elbo_loss.to_gpu(args.gpu)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
