@@ -3,9 +3,9 @@ Backend and Device
 
 .. module:: chainerx
 
-ChainerX adds a level of abstraction between the higher level array operations and the lower level computes and resource management.
+ChainerX adds a level of abstraction between the higher level array operations and the lower level computations and resource management.
 This abstraction is managed by the :class:`~chainerx.Backend` and the :class:`~chainerx.Device` classes.
-Native (CPU) and CUDA backends are two concrete implementations and are both a part of ChainerX but the abstraction allows you to plug any backend into the framework.
+Native (CPU) and CUDA backends are two concrete implementations currently provided by ChainerX but the abstraction allows you to plug any backend into the framework.
 
 Backend
 -------
