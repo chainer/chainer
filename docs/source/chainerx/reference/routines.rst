@@ -100,6 +100,7 @@ Convolution
 
 Normalization
 -------------
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
