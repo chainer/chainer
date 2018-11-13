@@ -94,10 +94,12 @@ class TestFromToChainerx(unittest.TestCase):
         # Check that the two arrays share the internal memory.
         numpy.testing.assert_array_equal(
             backend.to_numpy(arr1), backend.to_numpy(arr2))
-        arr1[:] += 2
+        with chainer.using_device(backend.get_device_from_array(arr1)):
+            arr1[:] += 2
         numpy.testing.assert_array_equal(
             backend.to_numpy(arr1), backend.to_numpy(arr2))
-        arr1[:] -= 2
+        with chainer.using_device(backend.get_device_from_array(arr1)):
+            arr1[:] -= 2
 
     def test_from_chainerx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
@@ -112,7 +114,8 @@ class TestFromToChainerx(unittest.TestCase):
         else:
             assert arr is arr_converted
 
-        self.check_equal_memory_shared(arr, arr_converted)
+        with backend_config:
+            self.check_equal_memory_shared(arr, arr_converted)
 
     def test_to_chainerx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
