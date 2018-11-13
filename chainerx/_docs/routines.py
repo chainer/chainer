@@ -746,7 +746,7 @@ Args:
     x (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: True where x is NaN, false otherwise
+    :class:`~chainerx.ndarray`: True where ``x`` is NaN, false otherwise
 
 Note:
     During backpropagation, this function does not propagate gradients.
@@ -763,7 +763,7 @@ Args:
     x (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: True where x is positive or negative
+    :class:`~chainerx.ndarray`: True where ``x`` is positive or negative
     infinity, false otherwise.
 
 Note:
