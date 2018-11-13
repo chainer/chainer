@@ -131,3 +131,10 @@ Normalization
 
 Pooling
 -------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.max_pool
+   chainerx.average_pool

@@ -929,4 +929,73 @@ def _docs_normalization():
 
 
 def _docs_pooling():
-    pass
+    _docs.set_doc(
+        chainerx.max_pool,
+        """max_pool(x, ksize, stride=None, pad=0, cover_all=False)
+Spatial max pooling function.
+
+This acts similarly to :func:`~chainerx.conv`, but it computes the maximum
+of input spatial patch for each channel without any parameter instead of
+computing the inner products.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
+        ``ksize=(k, k, ..., k)`` are equivalent.
+    stride (int or tuple of ints or None): Stride of pooling applications.
+        ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent. If
+        ``None`` is specified, then it uses same stride as the pooling
+        window size.
+    pad (int or tuple of ints): Spatial padding width for the input array.
+        ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+    cover_all (bool): If ``True``, all spatial locations are pooled into
+        some output pixels. It may make the output size larger.
+
+Returns:
+    :class:`~chainerx.ndarray`:  Output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``. This function is only
+    differentiable up to the second order.
+
+.. note::
+   In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
+   because cuDNN pooling supports 2 and 3 spatial dimensions.
+""")
+
+    _docs.set_doc(
+        chainerx.average_pool,
+        """average_pool(x, ksize, stride=None, pad=0, pad_mode='ignore')
+Spatial average pooling function.
+
+This acts similarly to :func:`~chainerx.conv`, but it computes the average
+of input spatial patch for each channel without any parameter instead of
+computing the inner products.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    ksize (int or tuple of ints): Size of pooling window. ``ksize=k`` and
+        ``ksize=(k, k, ..., k)`` are equivalent.
+    stride (int or tuple of ints or None): Stride of pooling applications.
+        ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent. If
+        ``None`` is specified, then it uses same stride as the pooling
+        window size.
+    pad (int or tuple of ints): Spatial padding width for the input array.
+        ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+    pad_mode ({'zero', 'ignore'}): Specifies how padded region is treated.
+
+        * 'zero' -- the values in the padded region are treated as 0
+        * 'ignore' -- padded region is ignored (default)
+
+Returns:
+    :class:`~chainerx.ndarray`:  Output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. note::
+   In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
+   because cuDNN pooling supports 2 and 3 spatial dimensions.
+""")
