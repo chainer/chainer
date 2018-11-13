@@ -1,8 +1,9 @@
 import numpy
 
 from chainer import _backend
-
-# TODO(kmaehashi) fix circular imports around `chainer.backends.*`
+# TODO(kmaehashi): `from chainer.backends import cuda` causes circular imports.
+# Surprisingly, `import chianer.backends` works as a workaround to avoid, but
+# we should fix circular dependencies themselves around `chainer.backends.*`.
 import chainer.backends
 import chainerx
 
