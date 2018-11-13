@@ -1,8 +1,10 @@
 import numpy
 
 from chainer import _backend
-from chainer.backends import cuda
-from chainer.backends import intel64
+# TODO(kmaehashi): `from chainer.backends import cuda` causes circular imports.
+# Surprisingly, `import chianer.backends` works as a workaround to avoid, but
+# we should fix circular dependencies themselves around `chainer.backends.*`.
+import chainer.backends
 import chainerx
 
 
@@ -44,12 +46,12 @@ def _array_to_numpy(array):
         return None
     if isinstance(array, numpy.ndarray):
         return array
-    if isinstance(array, intel64.mdarray):
+    if isinstance(array, chainer.backends.intel64.mdarray):
         return numpy.asarray(array)
     if isinstance(array, chainerx.ndarray):
         return chainerx.to_numpy(array, copy=False)
-    if isinstance(array, cuda.ndarray):
-        with cuda.get_device_from_array(array):
+    if isinstance(array, chainer.backends.cuda.ndarray):
+        with chainer.backends.cuda.get_device_from_array(array):
             return array.get()
     if numpy.isscalar(array):
         return numpy.asarray(array)
