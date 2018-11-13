@@ -143,9 +143,10 @@ Args:
         window size.
     pad (int or tuple of ints): Spatial padding width for the input array.
         ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
-    pad_mode (str): If ``'zero'`` is specified, the values in the padded
-        region are treated as 0.  If ``'ignore'`` is specified, such region
-        is ignored.
+    pad_mode ({'zero', 'ignore'}): Specifies how padded region is treated.
+
+        * 'zero' -- the values in the padded region are treated as 0
+        * 'ignore' -- padded region is ignored (default)
 
 Returns:
     :class:`~chainerx.ndarray`:  Returns the output array.
