@@ -514,7 +514,274 @@ Note:
 
 
 def _docs_connection():
-    pass
+    _docs.set_doc(
+        chainerx.conv,
+        """conv(x, w, b=None, stride=1, pad=0, cover_all=False)
+N-dimensional convolution.
+
+This is an implementation of N-dimensional convolution which is generalized
+two-dimensional convolution in ConvNets. It takes three variables: the
+input ``x``, the filter weight ``w`` and the bias vector ``b``.
+
+Notation: here is a notation for dimensionalities.
+
+- :math:`N` is the number of spatial dimensions.
+- :math:`n` is the batch size.
+- :math:`c_I` and :math:`c_O` are the number of the input and output
+  channels, respectively.
+- :math:`d_1, d_2, ..., d_N` are the size of each axis of the input's
+  spatial dimensions, respectively.
+- :math:`k_1, k_2, ..., k_N` are the size of each axis of the filters,
+  respectively.
+- :math:`l_1, l_2, ..., l_N` are the size of each axis of the output's
+  spatial dimensions, respectively.
+- :math:`p_1, p_2, ..., p_N` are the size of each axis of the spatial
+  padding size, respectively.
+
+Then the ``conv`` function computes correlations between filters
+and patches of size :math:`(k_1, k_2, ..., k_N)` in ``x``.
+Note that correlation here is equivalent to the inner product between
+expanded tensors.
+Patches are extracted at positions shifted by multiples of ``stride`` from
+the first position ``(-p_1, -p_2, ..., -p_N)`` for each spatial axis.
+
+Let :math:`(s_1, s_2, ..., s_N)` be the stride of filter application.
+Then, the output size :math:`(l_1, l_2, ..., l_N)` is determined by the
+following equations:
+
+.. math::
+
+   l_n = (d_n + 2p_n - k_n) / s_n + 1 \\ \\ (n = 1, ..., N)
+
+If ``cover_all`` option is ``True``, the filter will cover the all
+spatial locations. So, if the last stride of filter does not cover the
+end of spatial locations, an addtional stride will be applied to the end
+part of spatial locations. In this case, the output size is determined by
+the following equations:
+
+.. math::
+
+   l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
+
+The N-dimensional convolution function is defined as follows.
+
+Args:
+    x (:class:`~chainerx.ndarray`):
+        Input array of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
+    w (:class:`~chainerx.ndarray`):
+        Weight array of shape :math:`(c_O, c_I, k_1, k_2, ..., k_N)`.
+    b (None or :class:`~chainerx.ndarray`):
+        One-dimensional bias array with length :math:`c_O` (optional).
+    stride (:class:`int` or :class:`tuple` of :class:`int` s):
+        Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.
+        ``stride=s`` is equivalent to ``(s, s, ..., s)``.
+    pad (:class:`int` or :class:`tuple` of :class:`int` s):
+        Spatial padding width for input arrays
+        :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
+        ``(p, p, ..., p)``.
+    cover_all (bool): If ``True``, all spatial locations are convoluted
+        into some output pixels. It may make the output size larger.
+        `cover_all` needs to be ``False`` if you want to use ``cuda`` backend.
+
+Returns:
+    ~chainer.ndarray:
+        Output array of shape :math:`(n, c_O, l_1, l_2, ..., l_N)`.
+
+Note:
+
+    In ``cuda`` backend, this function uses cuDNN implementation for its
+    forward and backward computation.
+
+Note:
+
+    In ``cuda`` backend, this function has following limitations yet:
+
+    - The ``cover_all=True`` option is not supported yet.
+    - The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+
+Note:
+
+    During backpropagation, this function propagates the gradient of the
+    output array to input arrays ``x``, ``w``, and ``b``.
+
+.. seealso:: :func:`~chainer.functions.convolution_nd`
+
+.. admonition:: Example
+
+    >>> n = 10
+    >>> c_i, c_o = 3, 1
+    >>> d1, d2, d3 = 30, 40, 50
+    >>> k1, k2, k3 = 10, 10, 10
+    >>> p1, p2, p3 = 5, 5, 5
+    >>> x = chainerx.array(np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32))
+    >>> x.shape
+    (10, 3, 30, 40, 50)
+    >>> w = chainerx.array(np.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).\
+astype(np.float32))
+    >>> w.shape
+    (1, 3, 10, 10, 10)
+    >>> b = chainerx.array(np.random.uniform(0, 1, (c_o)).astype(np.float32))
+    >>> b.shape
+    (1,)
+    >>> s1, s2, s3 = 2, 4, 6
+    >>> y = chainerx.conv(x, w, b, stride=(s1, s2, s3),\
+ pad=(p1, p2, p3))
+    >>> y.shape
+    (10, 1, 16, 11, 9)
+    >>> l1 = int((d1 + 2 * p1 - k1) / s1 + 1)
+    >>> l2 = int((d2 + 2 * p2 - k2) / s2 + 1)
+    >>> l3 = int((d3 + 2 * p3 - k3) / s3 + 1)
+    >>> y.shape == (n, c_o, l1, l2, l3)
+    True
+    >>> y = chainerx.conv(x, w, b, stride=(s1, s2, s3),\
+ pad=(p1, p2, p3), cover_all=True)
+    >>> y.shape == (n, c_o, l1, l2, l3 + 1)
+    True
+""")
+
+    _docs.set_doc(
+        chainerx.conv_transpose,
+        """conv_transpose(x, w, b=None, stride=1, pad=0, outsize=None)
+N-dimensional transposed convolution.
+
+This is an implementation of N-dimensional transposed convolution, which is
+previously known as **deconvolution** in Chainer.
+
+.. _Deconvolutional Networks: \
+://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
+
+It takes three variables: the input ``x``, the filter weight ``w``, and the
+bias vector ``b``.
+
+Notation: here is a notation for dimensionalities.
+
+- :math:`N` is the number of spatial dimensions.
+- :math:`n` is the batch size.
+- :math:`c_I` and :math:`c_O` are the number of the input and output
+  channels, respectively.
+- :math:`d_1, d_2, ..., d_N` are the size of each axis of the input's
+  spatial dimensions, respectively.
+- :math:`k_1, k_2, ..., k_N` are the size of each axis of the filters,
+  respectively.
+- :math:`p_1, p_2, ..., p_N` are the size of each axis of the spatial
+  padding size, respectively.
+- :math:`s_1, s_2, ..., s_N` are the stride of each axis of filter
+  application, respectively.
+
+If ``outsize`` option is ``None``, the output size
+:math:`(l_1, l_2, ..., l_N)` is determined by the following equations with
+the items in the above list:
+
+.. math::
+
+   l_n = s_n (d_n - 1)  + k_n - 2 p_n \\ \\ (n = 1, ..., N)
+
+If ``outsize`` option is given, the output size is determined by
+``outsize``. In this case, the ``outsize`` :math:`(l_1, l_2, ..., l_N)`
+must satisfy the following equations:
+
+.. math::
+
+   d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
+   (n = 1, ..., N)
+
+Args:
+    x (:class:`~chainerx.ndarray`):
+        Input array of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
+    w (:class:`~chainerx.ndarray`):
+        Weight array of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
+    b (None or :class:`~chainerx.ndarray`):
+        One-dimensional bias variable with length :math:`c_O` (optional).
+    stride (:class:`int` or :class:`tuple` of :class:`int` s):
+        Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.
+        ``stride=s`` is equivalent to ``(s, s, ..., s)``.
+    pad (:class:`int` or :class:`tuple` of :class:`int` s):
+        Spatial padding width for input arrays
+        :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
+        ``(p, p, ..., p)``.
+    outsize (:class:`tuple` of :class:`int` s):
+        Expected output size of deconvolutional operation. It should be a
+        tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
+        ``None`` and the outsize is estimated by input size, stride and
+        pad.
+
+Returns:
+    ~chainerx.ndarray:
+        Output array of shape :math:`(n, c_O, l_1, l_2, ..., l_N)`.
+
+Note:
+
+    During backpropagation, this function propagates the gradient of the
+    output array to input arrays ``x``, ``w``, and ``b``.
+
+.. seealso:: :func:`~chainer.functions.deconvolution_nd`
+
+.. admonition:: Example
+
+    **Example1**: the case when ``outsize`` is not given.
+
+    >>> n = 10
+    >>> c_i, c_o = 3, 1
+    >>> d1, d2, d3 = 5, 10, 15
+    >>> k1, k2, k3 = 10, 10, 10
+    >>> p1, p2, p3 = 5, 5, 5
+    >>> x = chainerx.array(np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32))
+    >>> x.shape
+    (10, 3, 5, 10, 15)
+    >>> w = chainerx.array(np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32))
+    >>> w.shape
+    (3, 1, 10, 10, 10)
+    >>> b = chainerx.array(np.random.uniform(0, 1, (c_o)).astype(np.float32))
+    >>> b.shape
+    (1,)
+    >>> s1, s2, s3 = 2, 4, 6
+    >>> y = chainerx.conv_transpose(x, w, b, stride=(s1, s2, s3), \
+pad=(p1, p2, p3))
+    >>> y.shape
+    (10, 1, 8, 36, 84)
+    >>> l1 = s1 * (d1 - 1) + k1 - 2 * p1
+    >>> l2 = s2 * (d2 - 1) + k2 - 2 * p2
+    >>> l3 = s3 * (d3 - 1) + k3 - 2 * p3
+    >>> y.shape == (n, c_o, l1, l2, l3)
+    True
+
+    **Example2**: the case when ``outsize`` is given.
+
+    >>> n = 10
+    >>> c_i, c_o = 3, 1
+    >>> d1, d2, d3 = 5, 10, 15
+    >>> k1, k2, k3 = 10, 10, 10
+    >>> p1, p2, p3 = 5, 5, 5
+    >>> x = chainerx.array(np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32))
+    >>> x.shape
+    (10, 3, 5, 10, 15)
+    >>> w = chainerx.array(np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32))
+    >>> w.shape
+    (3, 1, 10, 10, 10)
+    >>> b = chainerx.array(np.random.uniform(0, 1, (c_o)).astype(np.float32))
+    >>> b.shape
+    (1,)
+    >>> s1, s2, s3 = 2, 4, 6
+    >>> l1, l2, l3 = 9, 38, 87
+    >>> d1 == int((l1 + 2 * p1 - k1) / s1) + 1
+    True
+    >>> d2 == int((l2 + 2 * p2 - k2) / s2) + 1
+    True
+    >>> d3 == int((l3 + 2 * p3 - k3) / s3) + 1
+    True
+    >>> y = chainerx.conv_transpose(x, w, b, stride=(s1, s2, s3), \
+pad=(p1, p2, p3), outsize=(l1, l2, l3))
+    >>> y.shape
+    (10, 1, 9, 38, 87)
+    >>> y.shape == (n, c_o, l1, l2, l3)
+    True
+""")
 
 
 def _docs_normalization():

@@ -104,8 +104,18 @@ Order statistics
 
    chainerx.amax
 
+Connection
+----------
+
 Convolution
------------
+^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.conv
+   chainerx.conv_transpose
 
 Normalization
 -------------
