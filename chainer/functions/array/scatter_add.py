@@ -38,14 +38,15 @@ class ScatterAdd(function_node.FunctionNode):
         b = xs[1]
         y = a.copy()
         xp = backend.get_array_module(a)
-        if y[self.slices].shape != b.shape:
+        slices = backend.from_chainerx(self.slices)
+        if y[slices].shape != b.shape:
             raise ValueError(
                 'Chainer does not support automatic broadcasting '
                 'of variables.')
         if xp is numpy:
-            numpy.add.at(y, self.slices, b),
+            numpy.add.at(y, slices, b),
         else:
-            cuda.cupyx.scatter_add(y, self.slices, b),
+            cuda.cupyx.scatter_add(y, slices, b),
         return y,
 
     def backward(self, indexes, grad_outputs):

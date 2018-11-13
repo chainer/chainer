@@ -38,7 +38,7 @@ class GetItem(function_node.FunctionNode):
         type_check._argname(in_types, ('x',))
 
     def forward(self, xs):
-        return utils.force_array(xs[0][self.slices]),
+        return utils.force_array(xs[0][backend.from_chainerx(self.slices)]),
 
     def backward(self, indexes, gy):
         return GetItemGrad(
