@@ -132,7 +132,7 @@ def main():
     # draw images from randomly sampled z
     z = prior().sample(9)
     x = decoder(z, inference=True).mean
-    save_images(x.data, os.path.join(args.out, 'sampled'))
+    save_images(x.array, os.path.join(args.out, 'sampled'))
 
 
 if __name__ == '__main__':
