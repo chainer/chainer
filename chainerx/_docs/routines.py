@@ -520,7 +520,7 @@ def _docs_connection():
 N-dimensional convolution.
 
 This is an implementation of N-dimensional convolution which is generalized
-two-dimensional convolution in ConvNets. It takes three variables: the
+two-dimensional convolution in ConvNets. It takes three arrays: the
 input ``x``, the filter weight ``w`` and the bias vector ``b``.
 
 Notation: here is a notation for dimensionalities.
@@ -652,7 +652,7 @@ previously known as **deconvolution** in Chainer.
 .. _Deconvolutional Networks: \
 ://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
-It takes three variables: the input ``x``, the filter weight ``w``, and the
+It takes three arrays: the input ``x``, the filter weight ``w``, and the
 bias vector ``b``.
 
 Notation: here is a notation for dimensionalities.
@@ -693,7 +693,7 @@ Args:
     w (:class:`~chainerx.ndarray`):
         Weight array of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
     b (None or :class:`~chainerx.ndarray`):
-        One-dimensional bias variable with length :math:`c_O` (optional).
+        One-dimensional bias array with length :math:`c_O` (optional).
     stride (:class:`int` or :class:`tuple` of :class:`int` s):
         Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.
         ``stride=s`` is equivalent to ``(s, s, ..., s)``.
