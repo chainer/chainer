@@ -6,9 +6,6 @@ class OnceTrigger(object):
     are two ways to specify the starting point: only starting point in whole
     iteration or recalled when training resumed.
 
-    .. note::
-        `initialize` method should executed only when `_flag_called` is False.
-
     Args:
         recall_on_resume (bool): Whether the extension is recalled or not when
             restored from a snapshot. It is set to ``False`` by default.
@@ -16,13 +13,23 @@ class OnceTrigger(object):
 
     def __init__(self, recall_on_resume=False):
         self._recall_on_resume = recall_on_resume
-        self._flag_called = True
+        self._flag_called = False
 
     def trigger(self, trainer):
         if self._flag_called:
             return False
         self._flag_called = True
         return True
+
+    @property
+    def not_to_initialize(self):
+        """The flag decide to call `Extension.initialize` or not.
+
+            If this flag is exist and set `True`, `Extension.initialize` is not
+            to be called.
+
+        """
+        return self._flag_called
 
     def serialize(self, serializer):
         if not self._recall_on_resume:
