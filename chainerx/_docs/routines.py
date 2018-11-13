@@ -591,7 +591,7 @@ Args:
 
 Returns:
     list of :class:`~chainerx.ndarray`\ s: A list of sub arrays. Each array \
-is a view of the corresponding input array.
+is a partial view of the input array.
 
 Note:
     During backpropagation, this function propagates the gradients of the
