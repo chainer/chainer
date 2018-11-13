@@ -496,7 +496,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 
-.. seealso:: :func:`numpy.negative`
+.. seealso:: :data:`numpy.negative`
 """)
 
     _docs.set_doc(
@@ -515,7 +515,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x1`` and ``x2``.
 
-.. seealso:: :func:`numpy.add`
+.. seealso:: :data:`numpy.add`
 """)
 
     _docs.set_doc(
@@ -534,7 +534,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x1`` and ``x2``.
 
-.. seealso:: :func:`numpy.subtract`
+.. seealso:: :data:`numpy.subtract`
 """)
 
     _docs.set_doc(
@@ -553,7 +553,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x1`` and ``x2``.
 
-.. seealso:: :func:`numpy.multiply`
+.. seealso:: :data:`numpy.multiply`
 """)
 
     _docs.set_doc(
@@ -572,7 +572,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x1`` and ``x2``.
 
-.. seealso:: :func:`numpy.divide`
+.. seealso:: :data:`numpy.divide`
 """)
 
     _docs.set_doc(
@@ -619,7 +619,7 @@ Note:
     maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
     not supported yet.
 
-.. seealso:: :func:`numpy.maximum`
+.. seealso:: :data:`numpy.maximum`
 """)
 
     _docs.set_doc(
@@ -637,7 +637,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 
-.. seealso:: :func:`numpy.exp`
+.. seealso:: :data:`numpy.exp`
 """)
 
     _docs.set_doc(
@@ -655,7 +655,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 
-.. seealso:: :func:`numpy.log`
+.. seealso:: :data:`numpy.log`
 """)
 
     _docs.set_doc(
@@ -679,8 +679,6 @@ Returns:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
-
-.. seealso:: :func:`scipy.misc.logsumexp`
 """)
 
     _docs.set_doc(
@@ -718,7 +716,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 
-.. seealso:: :func:`numpy.sqrt`
+.. seealso:: :data:`numpy.sqrt`
 """)
 
     _docs.set_doc(
@@ -736,7 +734,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 
-.. seealso:: :func:`numpy.tanh`
+.. seealso:: :data:`numpy.tanh`
 """)
 
     _docs.set_doc(
@@ -753,7 +751,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.isnan`
+.. seealso:: :data:`numpy.isnan`
 """)
 
     _docs.set_doc(
@@ -771,7 +769,7 @@ Returns:
 Note:
     During backpropagation, this function does not propagate gradients.
 
-.. seealso:: :func:`numpy.isinf`
+.. seealso:: :data:`numpy.isinf`
 """)
 
 
