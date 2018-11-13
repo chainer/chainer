@@ -614,15 +614,15 @@ Note:
     >>> d1, d2, d3 = 30, 40, 50
     >>> k1, k2, k3 = 10, 10, 10
     >>> p1, p2, p3 = 5, 5, 5
-    >>> x = chainerx.array(np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
-astype(np.float32))
+    >>> x = chainerx.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
     >>> x.shape
     (10, 3, 30, 40, 50)
-    >>> w = chainerx.array(np.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).\
-astype(np.float32))
+    >>> w = chainerx.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).\
+astype(np.float32)
     >>> w.shape
     (1, 3, 10, 10, 10)
-    >>> b = chainerx.array(np.random.uniform(0, 1, (c_o)).astype(np.float32))
+    >>> b = chainerx.random.uniform(0, 1, (c_o)).astype(np.float32)
     >>> b.shape
     (1,)
     >>> s1, s2, s3 = 2, 4, 6
@@ -727,15 +727,15 @@ Note:
     >>> d1, d2, d3 = 5, 10, 15
     >>> k1, k2, k3 = 10, 10, 10
     >>> p1, p2, p3 = 5, 5, 5
-    >>> x = chainerx.array(np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
-astype(np.float32))
+    >>> x = chainerx.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
     >>> x.shape
     (10, 3, 5, 10, 15)
-    >>> w = chainerx.array(np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
-astype(np.float32))
+    >>> w = chainerx.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32)
     >>> w.shape
     (3, 1, 10, 10, 10)
-    >>> b = chainerx.array(np.random.uniform(0, 1, (c_o)).astype(np.float32))
+    >>> b = chainerx.random.uniform(0, 1, (c_o)).astype(np.float32)
     >>> b.shape
     (1,)
     >>> s1, s2, s3 = 2, 4, 6
