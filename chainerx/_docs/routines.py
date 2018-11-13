@@ -295,7 +295,30 @@ Note:
 
 
 def _docs_indexing():
-    pass
+    _docs.set_doc(
+        chainerx.take,
+        """take(a, indices, axis=None)
+Take elements from an array along an axis.
+
+Args:
+    a (~chainerx.ndarray): Source array.
+    indices (~chainerx.ndarray):
+        The indices of the values to extract. When Indices are out of bounds,
+        they are wrapped around.
+    axis (int): The axis over which to select values.
+
+Returns:
+    :func:`~chainerx.ndarray`: Output array.
+
+Note:
+    This function currently support only indices of int64 ndarray.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.take`
+""")
 
 
 def _docs_linalg():
