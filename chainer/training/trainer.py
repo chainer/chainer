@@ -300,9 +300,8 @@ class Trainer(object):
         # invoke initializer of each extension
         for _, entry in extensions:
             initializer = getattr(entry.extension, 'initialize', None)
-            not_to_initialize = getattr(entry.trigger, 'not_to_initialize',
-                                        False)
-            if initializer and not not_to_initialize:
+            skip_initialize = getattr(entry.trigger, 'skip_initialize', False)
+            if initializer and not skip_initialize:
                 initializer(self)
 
         update = self.updater.update

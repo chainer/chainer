@@ -22,11 +22,11 @@ class OnceTrigger(object):
         return True
 
     @property
-    def not_to_initialize(self):
+    def skip_initialize(self):
         """The flag decide to call `Extension.initialize` or not.
 
-            If this flag is exist and set `True`, `Extension.initialize` is not
-            to be called.
+            If this flag is exist and set `True`, `Extension.initialize` is
+            skipped.
 
         """
         return self._flag_called
