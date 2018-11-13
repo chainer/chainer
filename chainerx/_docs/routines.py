@@ -643,13 +643,13 @@ Note:
     _docs.set_doc(
         chainerx.log,
         """log(x)
-Numerical logarithm, element-wise.
+Natural logarithm, element-wise.
 
 Args:
     x (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log x`.
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\ln x`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
