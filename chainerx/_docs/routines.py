@@ -334,65 +334,6 @@ Raises:
 """)
 
     _docs.set_doc(
-        chainerx.fromfile,
-        """fromfile(file, dtype=float, count=-1, sep='', device=None)
-Constructs an array from data in a text or binary file.
-
-This is currently equivalent to :func:`numpy.fromfile` wrapped with
-:func:`chainerx.array` given the device argument.
-
-.. seealso:: :func:`numpy.fromfile`
-""")
-
-    _docs.set_doc(
-        chainerx.fromfunction,
-        """fromfunction(function, shape, **kwargs)
-Constructs an array by executing a function over each coordinate.
-
-This is currently equivalent to :func:`numpy.fromfunction` wrapped with
-:func:`chainerx.array` given the device argument.
-
-Note:
-    Keywords other than ``dtype`` and ``device`` are passed to function.
-
-.. seealso:: :func:`numpy.fromfunction`
-""")
-
-    _docs.set_doc(
-        chainerx.fromiter,
-        """fromiter(iterable, dtype, count=-1, device=None)
-Constructs a new 1-dimensional array from an iterable object.
-
-This is currently equivalent to :func:`numpy.fromiter` wrapped with
-:func:`chainerx.array` given the device argument.
-
-.. seealso:: :func:`numpy.fromiter`
-""")
-
-    _docs.set_doc(
-        chainerx.fromstring,
-        """fromstring(string, dtype=float, count=-1, sep='', device=None)
-Constructs a new 1-D array initialized from text data in a string.
-
-This is currently equivalent to :func:`numpy.fromstring` wrapped with
-:func:`chainerx.array` given the device argument.
-
-.. seealso:: :func:`numpy.fromstring`
-""")
-
-    _docs.set_doc(
-        chainerx.loadtxt,
-        """loadtxt(fname, dtype=float, comments='#', delimiter=None,
-convertes=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
-encoding='bytes', device=None)
-
-This is currently equivalent to :func:`numpy.loadtxt` wrapped with
-:func:`chainerx.array` given the device argument.
-
-.. seealso:: :func:`numpy.loadtxt`
-""")
-
-    _docs.set_doc(
         chainerx.arange,
         """arange(start, stop=None, step=1, dtype=None, device=None)
 Returns an array with evenly spaced values within a given interval.
