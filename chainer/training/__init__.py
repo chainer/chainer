@@ -5,7 +5,6 @@ from chainer.training import util  # NOQA
 
 # import classes and functions
 from chainer.training.extension import Extension  # NOQA
-from chainer.training.extension import ExtensionOnce  # NOQA
 from chainer.training.extension import make_extension  # NOQA
 from chainer.training.extension import PRIORITY_EDITOR  # NOQA
 from chainer.training.extension import PRIORITY_READER  # NOQA

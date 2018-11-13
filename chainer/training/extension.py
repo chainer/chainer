@@ -129,36 +129,6 @@ class Extension(object):
         pass
 
 
-class ExtensionOnce(Extension):
-
-    """Base class of trainer extensions executed only once.
-
-    See :class:`Extension` for details of trainer extensions. Most of the
-    default values of arguments also follow those for this class.
-
-    .. note::
-        `initialize` method should executed only when `_to_be_called` is True.
-
-    Args:
-        recall_on_resume (bool): Whether the extension is recalled or not when
-            restored from a snapshot. It is set to ``False`` by default.
-    """
-
-    def __init__(self, recall_on_resume=False):
-        self._recall_on_resume = recall_on_resume
-        self._flag_called = True
-
-    def trigger(self, trainer):
-        if self._flag_called:
-            return False
-        self._flag_called = True
-        return True
-
-    def serialize(self, serializer):
-        if not self._recall_on_resume:
-            self._flag_called = serializer('_flag_called', self._flag_called)
-
-
 def make_extension(trigger=None, default_name=None, priority=None,
                    finalizer=None, initializer=None, on_error=None, **kwargs):
     """Decorator to make given functions into trainer extensions.
