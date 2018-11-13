@@ -517,7 +517,7 @@ Note:
     _docs.set_doc(
         chainerx.asscalar,
         """asscalar(a)
-Convert an array of size 1 to its scalar equivalent.
+Converts an array of size 1 to its scalar equivalent.
 
 Args:
     a (~chainerx.ndarray): Input array of size 1.
