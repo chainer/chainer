@@ -49,6 +49,23 @@ class ChainerxDevice(_backend.Device):
         chainerx.set_default_device(self.device)
 
 
+def to_chainerx(array):
+    """Converts an array or arrays to ChainerX.
+
+    Destination ChainerX devices are chosen according to the types of input
+    arrays.
+    """
+    return _backend._convert_arrays(array, _array_to_chainerx)
+
+
+def from_chainerx(array):
+    """Converts an array or arrays from ChainerX to NumPy or CuPy ones.
+
+    Destination array types are chosen such that no copies occur.
+    """
+    return _backend._convert_arrays(array, _array_from_chainerx)
+
+
 def _get_device(device_spec):
     # Called from chainer.backend.get_device
     if not chainerx.is_available():
@@ -70,17 +87,7 @@ def _get_chainerx_device(device_spec):
     return chainerx.get_device(device_spec)
 
 
-def _to_chainerx(array):
-    """Converts an array or arrays to ChainerX.
-
-    Destination ChainerX devices are chosen according to the types of input
-    arrays.
-    """
-    return _backend._convert_arrays(
-        array, lambda arr: _array_to_chainerx(arr, None))
-
-
-def _array_to_chainerx(array, device):
+def _array_to_chainerx(array, device=None):
     # If device is None, appropriate device is chosen according to the input
     # arrays.
     assert device is None or isinstance(device, chainerx.Device)
@@ -126,3 +133,18 @@ def _array_to_chainerx(array, device):
     raise TypeError(
         'Array cannot be converted into chainerx.ndarray'
         '\nActual type: {0}.'.format(type(array)))
+
+
+def _array_from_chainerx(array):
+    if not isinstance(array, chainerx.ndarray):
+        raise TypeError('Source must be a ChainerX array.')
+
+    backend_name = array.device.backend.name
+    if backend_name == 'native':
+        return _cpu._to_numpy(array)
+    if backend_name == 'cuda':
+        return cuda.to_gpu(array, array.device.index)
+
+    raise ValueError(
+        'Only ChainerX arrays with native or cuda backends can be converted '
+        'to non-ChainerX arrays.\nActual: {0}.'.format(backend_name))
