@@ -505,15 +505,15 @@ Note:
 Add arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 + x_2`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x1`` and ``x2``.
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.add`
 """)
@@ -524,15 +524,15 @@ Note:
 Subtract arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 - x_2`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x1`` and ``x2``.
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.subtract`
 """)
@@ -543,15 +543,15 @@ Note:
 Multiply arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\times x_2`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x1`` and ``x2``.
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.multiply`
 """)
@@ -562,15 +562,15 @@ Note:
 Divide arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = \\frac{x_1}{x_2}`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x1`` and ``x2``.
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.divide`
 """)
@@ -581,7 +581,7 @@ Note:
 Sum of array elements over a given axis.
 
 Args:
-    a (~chainerx.ndarry): Input arrays.
+    a (~chainerx.ndarry): Input array.
     axis (None or int or tuple of ints):
         Axis or axes along which a sum is performed.  If ``axis = None``,
         returns the sum of all of the elements of the input array.
@@ -605,15 +605,15 @@ Note:
 Maximum arguments, element-wise.
 
 Args:
-    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
-    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input arrays.
+    x1 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
+    x2 (~chainerx.ndarry or ~chainerx.Scalar): Input array.
 
 Returns:
     :class:`~chainerx.ndarray`: Returned array: :math:`y = max(\{x_1, x_2\})`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
-    output array to the input array ``x1`` and ``x2``.
+    output array to the input arrays ``x1`` and ``x2``.
 
 Note:
     maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
