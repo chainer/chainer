@@ -108,6 +108,13 @@ Args:
     cover_all (bool): If ``True``, all spatial locations are pooled into
         some output pixels. It may make the output size larger.
 
+Returns:
+    :class:`~chainerx.ndarray`:  Returns the output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
 .. note::
    In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
    because cuDNN pooling supports 2 and 3 spatial dimensions.
@@ -131,6 +138,13 @@ Args:
     pad_mode (str): If ``'zero'`` is specified, the values in the padded
         region are treated as 0.  If ``'ignore'`` is specified, such region
         is ignored.
+
+Returns:
+    :class:`~chainerx.ndarray`:  Returns the output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
 
 .. note::
    In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
