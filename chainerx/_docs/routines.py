@@ -605,7 +605,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to input arrays ``x``, ``w``, and ``b``.
 
-.. seealso:: :func:`~chainer.functions.convolution_nd`
+.. seealso:: :func:`chainer.functions.convolution_nd`
 
 .. admonition:: Example
 
@@ -716,7 +716,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to input arrays ``x``, ``w``, and ``b``.
 
-.. seealso:: :func:`~chainer.functions.deconvolution_nd`
+.. seealso:: :func:`chainer.functions.deconvolution_nd`
 
 .. admonition:: Example
 
