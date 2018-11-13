@@ -28,7 +28,7 @@ requirements = {
         'six>=1.9.0',
     ],
     'stylecheck': [
-        'autopep8>=1.4,<1.5',
+        'autopep8>=1.4.1,<1.5',
         'flake8>=3.6,<3.7',
         'pbr==4.0.4',
         'pycodestyle>=2.4,<2.5',
