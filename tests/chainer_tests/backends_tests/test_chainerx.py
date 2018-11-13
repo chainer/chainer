@@ -2,13 +2,15 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import backend
+from chainer.backends import cuda
 from chainer import testing
-import chainer.testing.backend  # NOQA
+from chainer.testing import attr
 import chainerx
 
 
-@testing.backend.inject_backend_tests(
+@testing.inject_backend_tests(
     None,
     [
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
@@ -31,7 +33,7 @@ class TestChainerxDeviceFromArray(unittest.TestCase):
         assert device == expected_device
 
 
-@testing.backend.inject_backend_tests(
+@testing.inject_backend_tests(
     None,
     [
         {},
@@ -56,7 +58,7 @@ class TestChainerxDeviceFromArrayInvalidValue(unittest.TestCase):
         assert device is None
 
 
-@testing.backend.inject_backend_tests(
+@testing.inject_backend_tests(
     None,
     [
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
@@ -70,6 +72,60 @@ class TestChainerxDeviceUse(unittest.TestCase):
         with chainerx.device_scope('native:1'):
             device.use()
             assert device.device is chainerx.get_default_device()
+
+
+@chainer.testing.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestFromToChainerx(unittest.TestCase):
+
+    def check_equal_memory_shared(self, arr1, arr2):
+        # Check that the two arrays share the internal memory.
+        numpy.testing.assert_array_equal(
+            backend.to_numpy(arr1), backend.to_numpy(arr2))
+        arr1[:] += 2
+        numpy.testing.assert_array_equal(
+            backend.to_numpy(arr1), backend.to_numpy(arr2))
+        arr1[:] -= 2
+
+    def test_from_chainerx(self, backend_config):
+        arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
+        arr_converted = backend.from_chainerx(arr)
+
+        src_device = backend_config.device
+        if src_device.xp is chainerx:
+            dst_xp = src_device.fallback_device.xp
+            assert isinstance(arr_converted, dst_xp.ndarray)
+            if dst_xp is cuda.cupy:
+                assert arr_converted.device.id == src_device.device.index
+        else:
+            assert arr is arr_converted
+
+        self.check_equal_memory_shared(arr, arr_converted)
+
+    def test_to_chainerx(self, backend_config):
+        arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
+        arr_converted = backend.to_chainerx(arr)
+
+        src_device = backend_config.device
+        assert isinstance(arr_converted, chainerx.ndarray)
+        if src_device.xp is chainerx:
+            assert arr is arr_converted
+        elif src_device.xp is cuda.cupy:
+            assert arr.device.id == arr_converted.device.index
+
+        self.check_equal_memory_shared(arr, arr_converted)
 
 
 testing.run_module(__name__, __file__)

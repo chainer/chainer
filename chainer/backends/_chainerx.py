@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -23,6 +24,18 @@ class ChainerxDevice(_backend.Device):
         if isinstance(array, chainerx.ndarray) and array.device is not None:
             return ChainerxDevice(array.device)
         return None
+
+    @property
+    def fallback_device(self):
+        # TODO(niboshi): Write unit test
+        backend_name = self.device.backend.name
+        if backend_name == 'native':
+            return _cpu.CpuDevice()
+        if backend_name == 'cuda':
+            return cuda.GpuDevice.from_device_id(self.device.index)
+        raise RuntimeError(
+            'Only \'native\' or \'cuda\' devices have corresponding fallback '
+            'devices. Actual: {}'.format(backend_name))
 
     def __eq__(self, other):
         return (
@@ -137,7 +150,9 @@ def _array_to_chainerx(array, device=None):
 
 def _array_from_chainerx(array):
     if not isinstance(array, chainerx.ndarray):
-        raise TypeError('Source must be a ChainerX array.')
+        if isinstance(array, chainer.get_array_types()):
+            return array
+        raise TypeError('Invalid value: {}'.format(array))
 
     backend_name = array.device.backend.name
     if backend_name == 'native':
