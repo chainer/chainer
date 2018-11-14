@@ -285,7 +285,7 @@ void InitChainerxIndexing(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("indices"),
-          py::arg("axis") = nullptr);
+          py::arg("axis"));
 }
 
 void InitChainerxLinalg(pybind11::module& m) {

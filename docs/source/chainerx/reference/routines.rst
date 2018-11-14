@@ -84,6 +84,12 @@ Array manipulation routines
 Indexing routines
 -----------------
 
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.take
+
 Linear algebra
 --------------
 
