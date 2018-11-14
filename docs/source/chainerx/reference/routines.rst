@@ -105,8 +105,18 @@ Matrix and vector products
 Logic functions
 ---------------
 
-Logic operations
-^^^^^^^^^^^^^^^^
+Array contents
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.isinf
+   chainerx.isnan
+
+Logical operations
+^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: generated/
@@ -114,8 +124,8 @@ Logic operations
 
    chainerx.logical_not
 
-Comparison operations
-^^^^^^^^^^^^^^^^^^^^^
+Comparison
+^^^^^^^^^^
 
 .. autosummary::
    :toctree: generated/
@@ -148,8 +158,6 @@ Mathematical functions
    chainerx.log_softmax
    chainerx.sqrt
    chainerx.tanh
-   chainerx.isnan
-   chainerx.isinf
 
 Sorting routines
 ----------------
