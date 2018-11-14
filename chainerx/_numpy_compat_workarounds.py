@@ -268,7 +268,7 @@ def _populate_random():
         This is currently equivalent to :func:`numpy.random.normal`
         wrapped by :func:`chainerx.array`, given the device argument.
 
-        .. seealso:: :func:`numpy.random.normal`
+        .. seealso:: :func:`numpy.random.uniform`
         """
         a = numpy.random.uniform(*args, **kwargs)
         return chainerx.array(a, device=device, copy=False)
