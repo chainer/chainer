@@ -385,7 +385,7 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    ~chainerx.ndarray: If ``v`` indicates a 1-D array, then it returns a 2-D
+    ~chainerx.ndarray: If ``v`` is a 1-D array, then it returns a 2-D
     array with the specified diagonal filled by ``v``. If ``v`` indicates a
     2-D array, then it returns the specified diagonal of ``v``. In latter
     case, if ``v`` is a :class:`chainerx.ndarray` object, then its view is
