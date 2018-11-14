@@ -85,7 +85,7 @@ def _populate_chainerx():
             During backpropagation, this function propagates the gradient
             of the output array to the input array ``x``.
 
-        .. seealso:: :func:`numpy.square`
+        .. seealso:: :data:`numpy.square`
         """
         return x * x
 
