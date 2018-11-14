@@ -386,7 +386,7 @@ Args:
 
 Returns:
     ~chainerx.ndarray: If ``v`` is a 1-D array, then it returns a 2-D
-    array with the specified diagonal filled by ``v``. If ``v`` indicates a
+    array with the specified diagonal filled by ``v``. If ``v`` is a
     2-D array, then it returns the specified diagonal of ``v``. In latter
     case, if ``v`` is a :class:`chainerx.ndarray` object, then its view is
     returned.
