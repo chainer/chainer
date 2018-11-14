@@ -9,7 +9,7 @@ def asanyarray(a, dtype=None, device=None):
 
     This is currently equivalent to :func:`~chainerx.asarray`, since there is
     no subclass of ndarray in ChainerX. Note that the original
-    :func:`numpy.asanyarray` returns the input array as is if it is an
+    :func:`numpy.asanyarray` returns the input array as is, if it is an
     instance of a subtype of :class:`numpy.ndarray`.
 
     .. seealso:: :func:`chainerx.asarray`, :func:`numpy.asanyarray`
