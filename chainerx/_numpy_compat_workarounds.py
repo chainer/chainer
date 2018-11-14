@@ -72,14 +72,20 @@ def _populate_chainerx():
     # Populates chainerx toplevel functions
 
     def square(x):
-        """Returns the element-wise square of the input.
+        """Square of the input, element-wise.
 
         Args:
             x (~chainerx.ndarray or scalar): Input data
 
         Returns:
-            ~chainerx.ndarray: Element-wise ``x`` * ``x``, of the same shape
-            and dtype as ``x``. This is a scalar if ``x`` is a scalar.
+            ~chainerx.ndarray: Returned array: :math:`y = x * x`.
+            A scalar is returned if ``x`` is a scalar.
+
+        Note:
+            During backpropagation, this function propagates the gradient
+            of the output array to the input array ``x``.
+
+        .. seealso:: :func:`numpy.square`
         """
         return x * x
 
