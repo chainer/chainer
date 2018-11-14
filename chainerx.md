@@ -121,7 +121,7 @@ The [train_mnist.py example](examples/mnist/train_mnist.py) now runs with Chaine
 
 ## Known Issues
 
-See: [ChainerX limitation](docs/source/chainerx/limitation.rst)
+See: [ChainerX limitations](docs/source/chainerx/limitations.rst)
 
 ## FAQ
 
