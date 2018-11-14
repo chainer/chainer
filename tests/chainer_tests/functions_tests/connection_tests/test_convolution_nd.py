@@ -107,6 +107,7 @@ class TestConvolutionND(unittest.TestCase):
         self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(backend.to_chainerx, nobias=False)
 
+    @attr.chainerx
     def test_forward_chainerx_native_nobias(self):
         self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(backend.to_chainerx, nobias=True)

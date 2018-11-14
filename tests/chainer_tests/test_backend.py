@@ -10,7 +10,10 @@ from chainer.backends import intel64
 from chainer import testing
 from chainer.testing import attr
 import chainerx
-import chainerx.testing
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 class _TestCopyToBase(object):
