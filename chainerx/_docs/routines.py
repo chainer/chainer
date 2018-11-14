@@ -297,7 +297,7 @@ Note:
 def _docs_indexing():
     _docs.set_doc(
         chainerx.take,
-        """take(a, indices, axis=None)
+        """take(a, indices, axis)
 Take elements from an array along an axis.
 
 Args:
@@ -312,6 +312,9 @@ Returns:
 
 Note:
     This function currently support only indices of int64 ndarray.
+
+Note:
+    This function currently does not support ``axis=None``
 
 Note:
     During backpropagation, this function propagates the gradient of the
