@@ -30,13 +30,13 @@ Simply run ``pip install .`` from the root directory of the project tree after c
 Example
 ~~~~~~~
 
-For instance, to install ChainerX with CUDA support (using 8 parallel jobs), run the following:
+For instance, to install ChainerX with CUDA support, run the following:
 
 .. code-block:: console
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
-    $ export MAKEFLAGS=-j8
+    $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
     $ pip install .
 
 CUDA support
