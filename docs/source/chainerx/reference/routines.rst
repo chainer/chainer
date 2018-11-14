@@ -150,6 +150,17 @@ Mathematical functions
    chainerx.tanh
    chainerx.isnan
    chainerx.isinf
+   chainerx.square
+
+Random sampling
+---------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.random.normal
+   chainerx.random.uniform
 
 Sorting routines
 ----------------
