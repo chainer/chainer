@@ -296,7 +296,7 @@ Note:
     _docs.set_doc(
         chainerx.frombuffer,
         """frombuffer(buffer, dtype=float, count=-1, offset=0, device=None)
-Returns a 1-dimensional array interpretation of a buffer.
+Returns a 1-D array interpretation of a buffer.
 
 Note:
     The ``native`` backend requires a buffer of main memory, and
@@ -312,7 +312,7 @@ Args:
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
 Returns:
-    ~chainerx.ndarray: 1-dimensional array interpretation of ``buffer``.
+    ~chainerx.ndarray: 1-D array interpretation of ``buffer``.
 
 Raises:
     ~chainerx.ChainerxError: If the given ``buffer`` memory is not usable on

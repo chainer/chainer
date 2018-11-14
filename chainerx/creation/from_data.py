@@ -56,7 +56,7 @@ def fromfunction(function, shape, **kwargs):
 # TODO(hvy): Optimize with pre-allocated memory using count for non-native
 # devices.
 def fromiter(iterable, dtype, count=-1, device=None):
-    """Constructs a new 1-dimensional array from an iterable object.
+    """Constructs a new 1-D array from an iterable object.
 
     This is currently equivalent to :func:`numpy.fromiter`
     wrapped by :func:`chainerx.array`, given the device argument.
