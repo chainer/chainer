@@ -1,5 +1,5 @@
-Limitation
-==========
+Limitations
+===========
 
 There are some non-obvious limitations in ChainerX:
 
