@@ -404,7 +404,7 @@ Creates a diagonal array from the flattened input.
 
 Args:
     v (~chainerx.ndarray): Array object.
-    k (int): Index of diagonals. See :func:`chainerx.diag` for detail.
+    k (int): Index of diagonals. See :func:`chainerx.diag`.
     device (~chainerx.Device): Device on which the array is allocated.
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
 
