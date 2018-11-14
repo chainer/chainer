@@ -8,7 +8,7 @@ There are some non-obvious limitations in ChainerX:
 
 * Operations with mixed dtypes are not supported. You need to explicitly convert dtypes using either :func:`chainerx.astype` or :func:`F.cast() <chainer.functions.cast>`.
 
-* Only a limited set of Chainer :mod:`function <chainer.functions>`\ s are well tested with ChainerX integration.
+* Only a limited set of Chainer :mod:`function <chainer.functions>`\ s are well tested with the ChainerX integration.
 
 * ChainerX CUDA backend requires cuDNN. See :ref:`installation <chainerx_install>` for details.
 
