@@ -15,27 +15,7 @@ It explains how to install it, the motivation behind it and how to modify your e
 
 ## Installation
 
-Note that although ChainerX won't be replacing Chainer, this repository must replace your existing Chainer installation (or be installed in a different environment).
-This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
-
-From the root of this repository, run the following.
-
-```shell-session
-$ export CUDNN_ROOT_DIR=path/to/cudnn
-$ export MAKEFLAGS=-j8
-$ pip install .
-```
-
-| Environment variable | Description |
-|---|---|
-| `CHAINER_BUILD_CHAINERX` | `1` to build the `chainerx` package along with `chainer`. `0` to skip. Default is `1`. |
-| `CHAINERX_BUILD_CUDA` | `1` to build `chainerx` with CUDA support. `0` to skip. Default is `1`. |
-| `CUDNN_ROOT_DIR` | Path to your cuDNN installation. Required when `CHAINERX_BUILD_CUDA=1`. |
-| `MAKEFLAGS` | Flags passed to `make`. E.g. `MAKEFLAGS=-j8` to run parallel jobs. |
-
-### CUDA support
-
-When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA without cuDNN is currently not supported.
+See [ChainerX installation](docs/source/chainerx/install/index.rst).
 
 ## About ChainerX
 
