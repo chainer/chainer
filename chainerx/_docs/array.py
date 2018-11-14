@@ -141,8 +141,9 @@ Args:
         of the original array.
 
 Returns:
-    ~chainerx.ndarray: A view or a copy of the array without propagating the
-        gradient on backprop.
+    ~chainerx.ndarray:
+        A view or a copy of the array without propagating the  gradient on
+        backprop.
 """)
 
     _docs.set_doc(
@@ -330,7 +331,8 @@ Args:
     index (int): Index of the device for the backend specified by ``device``.
 
 Returns:
-    ~chainerx.ndarray: An array on the target device.
+    ~chainerx.ndarray:
+        An array on the target device.
         If the original array is already on the device, it is a view of that.
         Otherwise, it is a copy of the array on the target device.
 """)
