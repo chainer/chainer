@@ -583,11 +583,11 @@ Sum of array elements over a given axis.
 Args:
     a (~chainerx.ndarray): Input array.
     axis (None or int or tuple of ints):
-        Axis or axes along which a sum is performed.  If ``axis = None``,
-        returns the sum of all of the elements of the input array.
+        Axis or axes along which a sum is performed.
+        The flattened array is used by default.
     keepdims (bool):
-        If this is set to ``True``, the axes which are reduced are left in
-        the result as dimensions with size one.
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
 
 Returns:
     :class:`~chainerx.ndarray`: The sum of input elements over a given axis.
@@ -666,11 +666,11 @@ The log of the sum of exponentials of input array.
 Args:
     x (~chainerx.ndarray): Input array.
     axis (None or int or tuple of ints):
-        Axis or axes along which a sum is performed.  If ``axis = None``,
-        returns the sum of all of the elements of the input array.
+        Axis or axes along which a sum is performed.
+        The flattened array is used by default.
     keepdims (bool):
-        If this is set to ``True``, the axes which are reduced are left in
-        the result as dimensions with size one.
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
 
 Returns:
     :class:`~chainerx.ndarray`: The log of the sum of exponentials of
@@ -689,8 +689,8 @@ The log of the softmax of input array.
 Args:
     x (~chainerx.ndarray): Input array.
     axis (None or int or tuple of ints):
-        Axis or axes along which a sum is performed.  If ``axis = None``,
-        returns the log of the sum of all of the elements of the input array.
+        Axis or axes along which a sum is performed.
+        The flattened array is used by default.
 
 Returns:
     :class:`~chainerx.ndarray`: The log of the softmax of input elements
