@@ -303,7 +303,7 @@ Take elements from an array along an axis.
 Args:
     a (~chainerx.ndarray): Source array.
     indices (~chainerx.ndarray):
-        The indices of the values to extract. When Indices are out of bounds,
+        The indices of the values to extract. When indices are out of bounds,
         they are wrapped around.
     axis (int): The axis over which to select values.
 
