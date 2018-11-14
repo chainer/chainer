@@ -91,7 +91,7 @@ def loadtxt(
         fname, dtype=float, comments='#', delimiter=None, converters=None,
         skiprows=0, usecols=None, unpack=False, ndmin=0, encoding='bytes',
         device=None):
-    """Constructs an array loading data from a text file.
+    """Constructs an array by loading data from a text file.
 
     This is currently equivalent to :func:`numpy.loadtxt`
     wrapped by :func:`chainerx.array`, given the device argument.
