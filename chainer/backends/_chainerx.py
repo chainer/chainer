@@ -152,7 +152,9 @@ def _array_from_chainerx(array):
     if not isinstance(array, chainerx.ndarray):
         if isinstance(array, chainer.get_array_types()):
             return array
-        raise TypeError('Invalid value: {}'.format(array))
+        raise TypeError(
+            'Tried to convert to a non-ChainerX array from an invalid type: '
+            '{}'.format(type(array)))
 
     backend_name = array.device.backend.name
     if backend_name == 'native':
