@@ -39,7 +39,8 @@ def fromfunction(function, shape, **kwargs):
     wrapped by :func:`chainerx.array`, given the device argument.
 
     Note:
-        Keywords other than ``dtype`` and ``device`` are passed to function.
+        Keywords other than ``dtype`` and ``device`` are passed to
+        ```function```.
 
     .. seealso:: :func:`numpy.fromfunction`
 
