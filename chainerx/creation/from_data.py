@@ -8,7 +8,7 @@ def asanyarray(a, dtype=None, device=None):
     """Converts an object to an array.
 
     This is currently equivalent to :func:`~chainerx.asarray`, since there are
-    not subclasses of ndarray in ChainerX. Note that the original
+    no subclasses of ndarray in ChainerX. Note that the original
     :func:`numpy.asanyarray` returns the input array as is, if it is an
     instance of a subtype of :class:`numpy.ndarray`.
 
