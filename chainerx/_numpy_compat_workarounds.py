@@ -107,7 +107,7 @@ def _populate_chainerx():
             and those > ``a_max`` with ``a_max``.
 
         Note:
-            The :class:`~chainerx.ndarray` typed ``a_min` and ``a_max`` are
+            The :class:`~chainerx.ndarray` typed ``a_min`` and ``a_max`` are
             not supported yet.
 
         Note:
