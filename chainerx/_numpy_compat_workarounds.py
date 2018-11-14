@@ -72,7 +72,7 @@ def _populate_chainerx():
     # Populates chainerx toplevel functions
 
     def square(x):
-        """Square of the input, element-wise.
+        """Returns the element-wise square of the input.
 
         Args:
             x (~chainerx.ndarray or scalar): Input data
