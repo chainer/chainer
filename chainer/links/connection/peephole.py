@@ -104,15 +104,14 @@ class StatefulPeepholeLSTM(link.Chain):
             xp = self.xp
             with cuda.get_device_from_id(self._device_id):
                 self.c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
-        lstm_in = reshape.reshape(lstm_in, (len(lstm_in.array),
-                                            lstm_in.shape[1] // 4,
-                                            4))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
+        lstm_in = reshape.reshape(
+            lstm_in, (len(lstm_in), lstm_in.shape[1] // 4, 4))
         a, i, f, o = split_axis.split_axis(lstm_in, 4, 2)
-        a = reshape.reshape(a, (len(a.array), a.shape[1]))
-        i = reshape.reshape(i, (len(i.array), i.shape[1]))
-        f = reshape.reshape(f, (len(f.array), f.shape[1]))
-        o = reshape.reshape(o, (len(o.array), o.shape[1]))
+        a = reshape.reshape(a, a.shape[:2])
+        i = reshape.reshape(i, i.shape[:2])
+        f = reshape.reshape(f, f.shape[:2])
+        o = reshape.reshape(o, o.shape[:2])
         peep_in_i = self.peep_i(self.c)
         peep_in_f = self.peep_f(self.c)
         a = tanh.tanh(a)

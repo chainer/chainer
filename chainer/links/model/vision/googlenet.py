@@ -342,9 +342,8 @@ class GoogLeNet(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                # n = y.array.shape[0] // 10
                 n = len(y) // 10
-                y_shape = y.array.shape[1:]
+                y_shape = y.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = average(y, axis=1)
         return y
