@@ -315,8 +315,8 @@ Returns:
     ~chainerx.ndarray: 1-dimensional array interpretation of ``buffer``.
 
 Raises:
-    ChainerxError: If the given ``buffer`` memory is not usable on the given
-        device.
+    ~chainerx.ChainerxError: If the given ``buffer`` memory is not usable on
+        the given device.
 
 .. seealso:: :func:`numpy.frombuffer`
 """)
