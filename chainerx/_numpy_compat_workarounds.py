@@ -150,6 +150,10 @@ def _populate_ndarray():
     old_getitem = ndarray.__getitem__
 
     def __getitem__(self, key):
+        """Returns self[key].
+
+        Supports both basic and advanced indexing.
+        """
         try:
             return old_getitem(self, key)
         except (IndexError, chainerx.DimensionError) as e:
@@ -170,14 +174,50 @@ def _populate_ndarray():
                 'native and cuda backend.')
 
     def __setitem__(self, key, value):
+        """Sets self[key] to value.
+
+        Supports both basic and advanced indexing.
+
+        Note:
+
+            In ``cuda`` backend, the behavior differs from NumPy when integer
+            arrays in ``slices`` reference the same location multiple times.
+            In that case, the value that is actually stored is undefined.
+
+            >>> import chainerx
+            >>> chainerx.set_default_device('cuda:0')
+            >>> a = chainerx.zeros((2,), dtype=chainerx.float)
+            >>> i = chainerx.array([0, 1, 0, 1, 0, 1])
+            >>> v = chainerx.arange(6).astype(chainerx.float)
+            >>> a[i] = v
+            >>> a  # doctest: +SKIP
+            array([2., 3.], shape=(2,), dtype=float64, device='cuda:0')
+
+            On the other hand, NumPy and ``native`` backend stores the value
+            corresponding to the last index among the indices referencing
+            duplicate locations.
+
+            >>> import numpy
+            >>> a_cpu = numpy.zeros((2,), dtype=numpy.float)
+            >>> i_cpu = numpy.array([0, 1, 0, 1, 0, 1])
+            >>> v_cpu = numpy.arange(6).astype(numpy.float)
+            >>> a_cpu[i_cpu] = v_cpu
+            >>> a_cpu
+            array([4., 5.])
+
+        """
         if self.device.backend.name == 'native':
             if isinstance(value, ndarray):
                 value = _to_numpy(value)
+            if isinstance(key, ndarray):
+                key = _to_numpy(key)
             _to_numpy(self).__setitem__(key, value)
         elif self.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
             if isinstance(value, ndarray):
                 value = _to_cupy(value)
+            if isinstance(key, ndarray):
+                key = _to_cupy(key)
             self_cupy = _to_cupy(self)
             with self_cupy.device:
                 self_cupy.__setitem__(key, value)
