@@ -1022,8 +1022,9 @@ class Variable(object):
     def from_chainerx(self):
         """Converts the array and gradient to non-ChainerX arrays without copy.
 
-        This method converts ChainerX array on a ``native`` or ``cuda`` device
-        to a NumPy or CuPy array on the same physical device. It does nothing
+        This method converts the underlying ChainerX array and gradient
+        residing in either a ``native`` or ``cuda`` device to NumPy or CuPy
+        arrays respectively, on their same physical device. It does nothing
         if the array held by the Variable object is not a ChainerX array. The
         new array is a view of the original one.
 
