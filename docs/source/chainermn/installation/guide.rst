@@ -121,7 +121,7 @@ We tested ChainerMN on all the following environments.
 * Python 2.7.13, 3.5.1, 3.6.1
 * MPI
 
-  * openmpi 1.10.7, 2.1.2
+  * openmpi 2.1.2
 
 * MPI4py 3.0.0
 * NCCL 2.2.13
