@@ -40,6 +40,8 @@ def main():
                         choices=['cnn', 'rnn', 'bow'],
                         help='Name of encoder model type.')
     parser.add_argument('--char-based', action='store_true')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.set_defaults(test=False)
 
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
@@ -56,6 +58,10 @@ def main():
                           'custrev', 'mpqa', 'rt-polarity', 'subj']:
         train, test, vocab = text_datasets.get_other_text_dataset(
             args.dataset, char_based=args.char_based)
+
+    if args.test:
+        train = train[:100]
+        test = test[:100]
 
     print('# train data: {}'.format(len(train)))
     print('# test  data: {}'.format(len(test)))
@@ -117,11 +123,11 @@ def main():
     # Save vocabulary and model's setting
     if not os.path.isdir(args.out):
         os.mkdir(args.out)
-    current = os.path.dirname(os.path.abspath(__file__))
-    vocab_path = os.path.join(current, args.out, 'vocab.json')
+    #current = os.path.dirname(os.path.abspath(__file__))
+    vocab_path = os.path.join(args.out, 'vocab.json')
     with open(vocab_path, 'w') as f:
         json.dump(vocab, f)
-    model_path = os.path.join(current, args.out, 'best_model.npz')
+    model_path = os.path.join(args.out, 'best_model.npz')
     model_setup = args.__dict__
     model_setup['vocab_path'] = vocab_path
     model_setup['model_path'] = model_path
