@@ -86,6 +86,7 @@ def _populate_chainerx():
             of the output array to the input array ``x``.
 
         .. seealso:: :data:`numpy.square`
+
         """
         return x * x
 
@@ -115,6 +116,7 @@ def _populate_chainerx():
             of the output array to the input array ``a``.
 
         .. seealso:: :func:`numpy.clip`
+
         """
         return -chainerx.maximum(-chainerx.maximum(a, a_min), -a_max)
 
@@ -135,6 +137,7 @@ def _populate_chainerx():
             of the output array to the input array ``a``.
 
         .. seealso:: :func:`numpy.ravel`
+
         """
         return a.reshape((a.size,))
 
@@ -229,16 +232,18 @@ def _populate_ndarray():
     def clip(self, a_min, a_max):
         """Returns an array with values limited to [``a_min``, ``a_max``].
 
-        ... seealso: :func:`chainerx.clip` for full documentation,
-        :func:`numpy.ndarray.clip`
+        .. seealso:: :func:`chainerx.clip` for full documentation,
+            :meth:`numpy.ndarray.clip`
+
         """
         return chainerx.clip(self, a_min, a_max)
 
     def ravel(self):
         """Returns an array flattened into one dimension.
 
-        ... seealso: :func:`chainerx.ravel` for full documentation,
-        :func:`numpy.ndarray.ravel`
+        .. seealso:: :func:`chainerx.ravel` for full documentation,
+            :meth:`numpy.ndarray.ravel`
+
         """
         return chainerx.ravel(self)
 
