@@ -360,8 +360,6 @@ Args:
     num: Number of elements.
     endpoint (bool): If ``True``, the stop value is included as the last
         element. Otherwise, the stop value is omitted.
-    retstep (bool): If ``True``, this function returns (array, step).
-        Otherwise, it returns only the array.
     dtype: Data type specifier. It is inferred from the start and stop
         arguments by default.
     device (~chainerx.Device): Device on which the array is allocated.
