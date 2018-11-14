@@ -177,11 +177,7 @@ setup_kwargs = dict(
               'chainermn.extensions',
               'chainermn.functions',
               'chainermn.iterators',
-              'chainermn.links',
-              'chainerx',
-              'chainerx._docs',
-              'chainerx.creation',
-              'chainerx.testing'],
+              'chainermn.links'],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
@@ -192,8 +188,7 @@ setup_kwargs = dict(
 
 # TODO(hvy): Default to 0 when merging with the main Chainer repository.
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '1'))
-if build_chainerx:
-    chainerx_build_helper.config_setup_kwargs(setup_kwargs)
+chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 
 
 setup(**setup_kwargs)
