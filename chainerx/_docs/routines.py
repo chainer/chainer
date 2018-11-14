@@ -347,8 +347,7 @@ Returns:
 
     _docs.set_doc(
         chainerx.linspace,
-        """linspace(start, stop, num=50, endpoint=True, dtype=None,
-device=None)
+        """linspace(start, stop, num=50, endpoint=True, dtype=None, device=None)
 Returns an array with evenly-spaced values within a given interval.
 
 Instead of specifying the step width like :func:`chainerx.arange()`,
@@ -369,7 +368,7 @@ Returns:
     ~chainerx.ndarray: The 1-D array of ranged values.
 
 .. seealso:: :func:`numpy.linspace`
-""")
+""")  # NOQA
 
     _docs.set_doc(
         chainerx.diag,
