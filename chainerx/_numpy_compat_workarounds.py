@@ -89,7 +89,58 @@ def _populate_chainerx():
         """
         return x * x
 
+    def clip(a, a_min, a_max):
+        """Clips the values of an array to a given interval.
+
+        Given an interval, values outside the interval are clipped to the
+        interval edges. For example, if an interval of ``[0, 1]`` is specified,
+        values smaller than 0 become 0, and values larger than 1 become 1.
+
+        Args:
+            a (~chainerx.ndarray): Array containing elements to clip.
+            a_min (scalar): Maximum value.
+            a_max (scalar): Minimum value.
+
+        Returns:
+            ~chainerx.ndarray: An array with the elements of ``a``, but where
+            values < ``a_min`` are replaced with ``a_min``,
+            and those > ``a_max`` with ``a_max``.
+
+        Note:
+            The :class:`~chainerx.ndarray` typed ``a_min` and ``a_max`` are
+            not supported yet.
+
+        Note:
+            During backpropagation, this function propagates the gradient
+            of the output array to the input array ``a``.
+
+        .. seealso:: :func:`numpy.clip`
+        """
+        return -chainerx.maximum(-chainerx.maximum(a, a_min), -a_max)
+
+    def ravel(a):
+        """Returns a flattened array.
+
+        It tries to return a view if possible, otherwise returns a copy.
+
+        Args:
+            a (~chainerx.ndarray): Array to be flattened.
+
+        Returns:
+            ~chainerx.ndarray: A flattened view of ``a`` if possible,
+            otherwise a copy.
+
+        Note:
+            During backpropagation, this function propagates the gradient
+            of the output array to the input array ``a``.
+
+        .. seealso:: :func:`numpy.ravel`
+        """
+        return a.reshape((a.size,))
+
     chainerx.square = square
+    chainerx.clip = clip
+    chainerx.ravel = ravel
 
 
 def _populate_ndarray():
@@ -135,15 +186,21 @@ def _populate_ndarray():
                 'Currently item assignment is supported only in native and '
                 'cuda backend.')
 
-    # TODO(niboshi): Write documentation
     def clip(self, a_min, a_max):
-        """TODO"""
-        return -chainerx.maximum(-chainerx.maximum(self, a_min), -a_max)
+        """Returns an array with values limited to [``a_min``, ``a_max``].
 
-    # TODO(niboshi): Write documentation
+        ... seealso: :func:`chainerx.clip` for full documentation,
+        :func:`numpy.ndarray.clip`
+        """
+        return chainerx.clip(self, a_min, a_max)
+
     def ravel(self):
-        """TODO"""
-        return self.reshape((self.size,))
+        """Returns an array flattened into one dimension.
+
+        ... seealso: :func:`chainerx.ravel` for full documentation,
+        :func:`numpy.ndarray.ravel`
+        """
+        return chainerx.ravel(self)
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__

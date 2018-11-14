@@ -71,6 +71,7 @@ Array manipulation routines
    :nosignatures:
 
    chainerx.reshape
+   chainerx.ravel
    chainerx.transpose
    chainerx.broadcast_to
    chainerx.squeeze
@@ -151,6 +152,7 @@ Mathematical functions
    chainerx.isnan
    chainerx.isinf
    chainerx.square
+   chainerx.clip
 
 Random sampling
 ---------------
