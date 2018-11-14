@@ -127,21 +127,6 @@ New array is created at every access to this property.
     binary_op("__rsub__", "Computes ``y - x`` elementwise.")
     binary_op("__rmul__", "Computes ``y * x`` elementwise.")
 
-    _docs.set_doc(
-        ndarray.__getitem__,
-        """__getitem__(slices)
-Creates a view into a slice of the array.
-
-The following values are currently supported for indexing.
-
-- Integers
-- :class:`slice` objects
-- ``None`` (or ``numpy.newaxis``)
-
-Combination of these values can be specified at once for indexing over multiple
-axes.
-""")
-
     # TODO(beam2d): Write about as_grad_stopped(backprop_ids, copy) overload.
     _docs.set_doc(
         ndarray.as_grad_stopped,
