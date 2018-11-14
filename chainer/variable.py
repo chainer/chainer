@@ -976,7 +976,14 @@ class Variable(object):
         self.to_device(intel64)
 
     def to_chainerx(self):
-        """Copies the data and gradient arrays to ChainerX devices."""
+        """Converts the array and gradient to ChainerX arrays without copy.
+
+        This method converts the underlying array and gradient to
+        :class:`chainerx.ndarray` on the same physical device. It does nothing
+        if the array held by the Variable object is already a ChainerX array.
+        The new array is a view of the original one.
+
+        """
         self._to_chainerx(allow_unchaining=False)
 
     def _to_chainerx(self, allow_unchaining):
@@ -1013,11 +1020,16 @@ class Variable(object):
         self._to_device(device, allow_unchaining)
 
     def from_chainerx(self):
-        """Converts arrays to ChainerX array without any copy.
+        """Converts the array and gradient to non-ChainerX arrays without copy.
 
-        Does nothing if the array held by the Variable is not a ChainerX array.
+        This method converts the underlying ChainerX array and gradient
+        residing in either a ``native`` or ``cuda`` device to NumPy or CuPy
+        arrays respectively, on their same physical device. It does nothing
+        if the array held by the Variable object is not a ChainerX array. The
+        new array is a view of the original one.
 
-        Raises an error if no such copy is possible.
+        Raises an error if such a conversion is not supported for the device.
+
         """
         self._from_chainerx(allow_unchaining=False)
 
