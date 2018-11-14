@@ -193,7 +193,7 @@ def _populate_ndarray():
             >>> a  # doctest: +SKIP
             array([2., 3.], shape=(2,), dtype=float64, device='cuda:0')
 
-            On the other hand, NumPy and ``native`` backend stores the value
+            On the other hand, NumPy and ``native`` backend store the value
             corresponding to the last index among the indices referencing
             duplicate locations.
 
