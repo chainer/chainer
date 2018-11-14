@@ -98,6 +98,26 @@ Comparison operations
 Mathematical functions
 ----------------------
 
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.negative
+   chainerx.add
+   chainerx.subtract
+   chainerx.multiply
+   chainerx.divide
+   chainerx.sum
+   chainerx.maximum
+   chainerx.exp
+   chainerx.log
+   chainerx.logsumexp
+   chainerx.log_softmax
+   chainerx.sqrt
+   chainerx.tanh
+   chainerx.isnan
+   chainerx.isinf
+
 Sorting routines
 ----------------
 
