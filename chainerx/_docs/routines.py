@@ -293,6 +293,130 @@ Note:
 .. seealso:: :func:`numpy.copy`
 """)
 
+    _docs.set_doc(
+        chainerx.frombuffer,
+        """frombuffer(buffer, dtype=float, count=-1, offset=0, device=None)
+Returns a 1-D array interpretation of a buffer.
+
+Note:
+    The ``native`` backend requires a buffer of main memory, and
+    the ``cuda`` backend requires a buffer of CUDA memory.
+    No copy is performed.
+
+Args:
+    buffer: An object that exposes the buffer interface.
+    dtype: Data type of the returned array.
+    count (int): Number of items to read. -1 means all data in the buffer.
+    offset (int): Start reading the buffer from this offset (in bytes).
+    device (~chainerx.Device): Device of the returned array.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: 1-D array interpretation of ``buffer``.
+
+Raises:
+    ~chainerx.ChainerxError: If the given ``buffer`` memory is not usable on
+        the given device.
+
+.. seealso:: :func:`numpy.frombuffer`
+""")
+
+    _docs.set_doc(
+        chainerx.arange,
+        """arange([start=0, ]stop, [step=1, ]dtype=None, device=None)
+Returns an array with  evenly spaced values within a given interval.
+
+Values are generated within the half-open interval [``start``, ``stop``).
+The first three arguments are mapped like the ``range`` built-in function,
+i.e. ``start`` and ``step`` are optional.
+
+Args:
+    start: Start of the interval.
+    stop: End of the interval.
+    step: Step width between each pair of consecutive values.
+    dtype: Data type specifier. It is inferred from other arguments by
+        default.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: The 1-D array of range values.
+
+.. seealso:: :func:`numpy.arange`
+""")
+
+    _docs.set_doc(
+        chainerx.linspace,
+        """linspace(start, stop, num=50, endpoint=True, dtype=None, device=None)
+Returns an array with evenly spaced numbers over a specified interval.
+
+Instead of specifying the step width like :func:`chainerx.arange()`,
+this function requires the total number of elements specified.
+
+Args:
+    start: Start of the interval.
+    stop: End of the interval.
+    num: Number of elements.
+    endpoint (bool): If ``True``, the stop value is included as the last
+        element. Otherwise, the stop value is omitted.
+    dtype: Data type specifier. It is inferred from the start and stop
+        arguments by default.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: The 1-D array of ranged values.
+
+.. seealso:: :func:`numpy.linspace`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.diag,
+        """diag(v, k=0, device=None)
+Returns a diagonal or a diagonal array.
+
+Args:
+    v (~chainerx.ndarray): Array object.
+    k (int): Index of diagonals. Zero indicates the main diagonal, a
+        positive value an upper diagonal, and a negative value a lower
+        diagonal.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: If ``v`` is a 1-D array, then it returns a 2-D
+    array with the specified diagonal filled by ``v``. If ``v`` is a
+    2-D array, then it returns the specified diagonal of ``v``. In latter
+    case, if ``v`` is a :class:`chainerx.ndarray` object, then its view is
+    returned.
+
+Note:
+    The argument ``v`` does not support array-like objects yet.
+
+.. seealso:: :func:`numpy.diag`
+""")
+
+    _docs.set_doc(
+        chainerx.diagflat,
+        """diagflat(v, k=0, device=None)
+Creates a diagonal array from the flattened input.
+
+Args:
+    v (~chainerx.ndarray): Array object.
+    k (int): Index of diagonals. See :func:`chainerx.diag`.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: A 2-D diagonal array with the diagonal copied
+    from ``v``.
+
+Note:
+    The argument ``v`` does not support array-like objects yet.
+
+.. seealso:: :func:`numpy.diagflat`
+""")
+
 
 def _docs_indexing():
     pass
