@@ -1,9 +1,12 @@
 Installation
 ============
 
+.. _chainerx_install:
+
 ChainerX, or ``chainerx``, can be installed as a top level Python package along with Chainer by configuring the environment variables below.
 
 .. note::
+
     Chainer must currently be installed from source in order to include ChainerX, but this is expected to change in the near future.
 
 Environment variables
@@ -27,7 +30,9 @@ Simply run ``pip install .`` from the root directory of the project tree after c
 Example
 ~~~~~~~
 
-For instance, to install ChainerX with CUDA support (using 8 parallel jobs), run the following::
+For instance, to install ChainerX with CUDA support (using 8 parallel jobs), run the following:
+
+.. code-block:: console
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
