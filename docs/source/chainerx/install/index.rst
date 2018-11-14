@@ -17,7 +17,6 @@ Environment variable       Description
 ``CHAINER_BUILD_CHAINERX`` ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
 ``CHAINERX_BUILD_CUDA``    ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``1``.
 ``CUDNN_ROOT_DIR``         Path to your cuDNN installation. Required when ``CHAINERX_BUILD_CUDA=1``.
-``MAKEFLAGS``              Flags passed to ``make``. E.g. ``MAKEFLAGS=-j8`` to run parallel jobs.
 ========================== ================================================================================================
 
 Installing from source
@@ -28,7 +27,7 @@ Simply run ``pip install .`` from the root directory of the project tree after c
 Example
 ~~~~~~~
 
-For instance, to install ChainerX with CUDA support, run the following::
+For instance, to install ChainerX with CUDA support (using 8 parallel jobs), run the following::
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
