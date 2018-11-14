@@ -328,7 +328,7 @@ Returns an array with evenly spaced values within a given interval.
 
 Values are generated within the half-open interval [``start``, ``stop``). The first
 three arguments are mapped like the ``range`` built-in function, i.e. ``start``
-and step are optional.
+and ``step`` are optional.
 
 Args:
     start: Start of the interval.
