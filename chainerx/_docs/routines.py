@@ -298,7 +298,7 @@ def _docs_indexing():
     _docs.set_doc(
         chainerx.take,
         """take(a, indices, axis)
-Take elements from an array along an axis.
+Takes elements from an array along an axis.
 
 Args:
     a (~chainerx.ndarray): Source array.
