@@ -72,6 +72,15 @@ def _populate_chainerx():
     # Populates chainerx toplevel functions
 
     def square(x):
+        """Returns the element-wise square of the input.
+
+        Args:
+            x (~chainerx.ndarray or scalar): Input data
+
+        Returns:
+            ~chainerx.ndarray: Element-wise ``x`` * ``x``, of the same shape
+            and dtype as ``x``. This is a scalar if ``x`` is a scalar.
+        """
         return x * x
 
     chainerx.square = square
@@ -140,10 +149,24 @@ def _populate_random():
     # Populates chainerx.random package
 
     def normal(*args, device=None, **kwargs):
+        """Draws random samples from a normal (Gaussian) distribution.
+
+        This is currently equivalent to :func:`numpy.random.normal`
+        wrapped by :func:`chainerx.array`, given the device argument.
+
+        .. seealso:: :func:`numpy.random.normal`
+        """
         a = numpy.random.normal(*args, **kwargs)
         return chainerx.array(a, device=device, copy=False)
 
     def uniform(*args, device=None, **kwargs):
+        """Draws samples from a uniform distribution.
+
+        This is currently equivalent to :func:`numpy.random.normal`
+        wrapped by :func:`chainerx.array`, given the device argument.
+
+        .. seealso:: :func:`numpy.random.normal`
+        """
         a = numpy.random.uniform(*args, **kwargs)
         return chainerx.array(a, device=device, copy=False)
 
