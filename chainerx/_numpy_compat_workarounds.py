@@ -180,7 +180,7 @@ def _populate_ndarray():
 
         Note:
 
-            In ``cuda`` backend, the behavior differs from NumPy when integer
+            With the ``cuda`` backend, the behavior differs from NumPy when integer
             arrays in ``slices`` reference the same location multiple times.
             In that case, the value that is actually stored is undefined.
 
