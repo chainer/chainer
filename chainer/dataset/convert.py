@@ -224,11 +224,11 @@ class ConcatWithAsyncTransfer(object):
             #   still being used by GPU kernels.
             # * event2 prevents a GPU kernel to read arrays that might be
             #   still being transfered to GPU.
-            self.event1 = cuda.Event()
-            self.event2 = cuda.Event()
-            self.sync_get = False
+            self._event1 = cuda.Event()
+            self._event2 = cuda.Event()
+            self._sync_get = False
         else:
-            self.sync_get = True
+            self._sync_get = True
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -257,8 +257,8 @@ class ConcatWithAsyncTransfer(object):
             raise ValueError('device is different')
 
         if self.compute_stream is not None:
-            self.event1.synchronize()
-            self.event1.record(stream=self.compute_stream)
+            self._event1.synchronize()
+            self._event1.record(stream=self.compute_stream)
 
         with cuda.get_device_from_id(device):
             if isinstance(first_elem, tuple):
@@ -271,11 +271,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[i] for example in batch], padding[i]))
 
                 for i in six.moves.range(len(first_elem)):
-                    result.append(self._conveyor[i].get(sync=self.sync_get))
+                    result.append(self._conveyor[i].get(sync=self._sync_get))
 
                 if self.compute_stream is not None:
-                    self.event2.record(stream=self._stream)
-                    self.compute_stream.wait_event(self.event2)
+                    self._event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self._event2)
 
                 return tuple(result)
 
@@ -289,11 +289,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[key] for example in batch], padding[key]))
 
                 for key in first_elem:
-                    result[key] = self._conveyor[key].get(sync=self.sync_get)
+                    result[key] = self._conveyor[key].get(sync=self._sync_get)
 
                 if self.compute_stream is not None:
-                    self.event2.record(stream=self._stream)
-                    self.compute_stream.wait_event(self.event2)
+                    self._event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self._event2)
 
                 return result
 
