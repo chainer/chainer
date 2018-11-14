@@ -377,7 +377,7 @@ Returns:
 Returns a diagonal or a diagonal array.
 
 Args:
-    v (array-like): Array or array-like object.
+    v (~chainerx.ndarray): Array object.
     k (int): Index of diagonals. Zero indicates the main diagonal, a
         positive value an upper diagonal, and a negative value a lower
         diagonal.
@@ -388,8 +388,11 @@ Returns:
     ~chainerx.ndarray: If ``v`` indicates a 1-D array, then it returns a 2-D
     array with the specified diagonal filled by ``v``. If ``v`` indicates a
     2-D array, then it returns the specified diagonal of ``v``. In latter
-    case, if ``v`` is a :class:`cupy.ndarray` object, then its view is
+    case, if ``v`` is a :class:`chainerx.ndarray` object, then its view is
     returned.
+
+Note:
+    The argument ``v`` does not support array-like objects yet.
 
 .. seealso:: :func:`numpy.diag`
 """)
@@ -400,7 +403,7 @@ Returns:
 Creates a diagonal array from the flattened input.
 
 Args:
-    v (array-like): Array or array-like object.
+    v (~chainerx.ndarray): Array object.
     k (int): Index of diagonals. See :func:`chainerx.diag` for detail.
     device (~chainerx.Device): Device on which the array is allocated.
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
@@ -408,6 +411,9 @@ Args:
 Returns:
     ~chainerx.ndarray: A 2-D diagonal array with the diagonal copied
     from ``v``.
+
+Note:
+    The argument ``v`` does not support array-like objects yet.
 
 .. seealso:: :func:`numpy.diagflat`
 """)
