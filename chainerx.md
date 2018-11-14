@@ -121,9 +121,7 @@ The [train_mnist.py example](examples/mnist/train_mnist.py) now runs with Chaine
 
 ## Known Issues
 
-- Mixed dtypes are, in general, not supported. `FunctionNode`s will fall back to their NumPy/CuPy propagations.
-- `chainer.Function` is not supported.
-- ideep is not supported.
+See: [ChainerX limitation](docs/source/chainerx/limitation.rst)
 
 ## FAQ
 
