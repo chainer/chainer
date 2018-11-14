@@ -305,7 +305,7 @@ Note:
 
 Args:
     buffer: An object that exposes the buffer interface.
-    dtype: Data-type of the returned array.
+    dtype: Data type of the returned array.
     count (int): Number of items to read. -1 means all data in the buffer.
     offset (int): Start reading the buffer from this offset (in bytes).
     device (~chainerx.Device): Device of the returned array.
