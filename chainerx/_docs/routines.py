@@ -323,12 +323,12 @@ Raises:
 
     _docs.set_doc(
         chainerx.arange,
-        """arange(start, stop=None, step=1, dtype=None, device=None)
-Returns an array with evenly spaced values within a given interval.
+        """arange([start=0, ]stop, [step=1, ]dtype=None, device=None)
+Returns an array with  evenly spaced values within a given interval.
 
-Values are generated within the half-open interval [``start``, ``stop``). The first
-three arguments are mapped like the ``range`` built-in function, i.e. ``start``
-and ``step`` are optional.
+Values are generated within the half-open interval [``start``, ``stop``).
+The first three arguments are mapped like the ``range`` built-in function,
+i.e. ``start`` and ``step`` are optional.
 
 Args:
     start: Start of the interval.
@@ -348,7 +348,7 @@ Returns:
     _docs.set_doc(
         chainerx.linspace,
         """linspace(start, stop, num=50, endpoint=True, dtype=None, device=None)
-Returns an array with evenly-spaced values within a given interval.
+Returns an array with evenly spaced numbers over a specified interval.
 
 Instead of specifying the step width like :func:`chainerx.arange()`,
 this function requires the total number of elements specified.
