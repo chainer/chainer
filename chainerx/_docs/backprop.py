@@ -78,7 +78,7 @@ would be otherwise retained for backward propagation.
 Creates a context manager which temporarily enables backpropagation.
 
 This context re-enables backpropagation that is disabled by
-surrounding :func:`~chainerx.no_backprop_mode` context.
+any surrounding :func:`~chainerx.no_backprop_mode` context.
 
 .. code-block:: py
 
