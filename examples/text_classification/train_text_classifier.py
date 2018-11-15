@@ -123,7 +123,6 @@ def main():
     # Save vocabulary and model's setting
     if not os.path.isdir(args.out):
         os.mkdir(args.out)
-    #current = os.path.dirname(os.path.abspath(__file__))
     vocab_path = os.path.join(args.out, 'vocab.json')
     with open(vocab_path, 'w') as f:
         json.dump(vocab, f)
