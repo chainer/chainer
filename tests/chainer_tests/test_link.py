@@ -28,7 +28,7 @@ def _assert_arrays_equal(array, expected_array):
     assert (array == expected_array).all()
 
 
-class TestLinkBase(object):
+class LinkTestBase(object):
 
     def setUp(self):
         x_shape_0 = 2
@@ -76,7 +76,7 @@ class TestLinkBase(object):
             self.assertIs(var.initializer, initializer)
 
 
-class TestLink(TestLinkBase, unittest.TestCase):
+class TestLink(LinkTestBase, unittest.TestCase):
 
     def test_init(self):
         self.check_param_init('x', (2, 3), 'd')
@@ -584,7 +584,7 @@ class TestLink(TestLinkBase, unittest.TestCase):
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 @attr.chainerx
-class TestLinkFromToChainerx(TestLinkBase, unittest.TestCase):
+class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
 
     def test_from_chainerx(self, backend_config):
         self.link.to_device(backend_config.device)
@@ -733,7 +733,7 @@ class CountParameter(chainer.Parameter):
         super(CountParameter, self).zerograd()
 
 
-class TestChainBase(unittest.TestCase):
+class ChainTestBase(object):
 
     def setUp(self):
         # Schematic:
@@ -771,7 +771,7 @@ class TestChainBase(unittest.TestCase):
         self.l3.x = CountParameter(self.l3.x)
 
 
-class TestChain(TestChainBase, unittest.TestCase):
+class TestChain(ChainTestBase, unittest.TestCase):
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -1188,7 +1188,7 @@ class TestChain(TestChainBase, unittest.TestCase):
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 @attr.chainerx
-class TestChainFromToChainerx(TestChainBase, unittest.TestCase):
+class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
 
     def check_array_device(self, array, expected_device):
         expected_ndarray = expected_device.xp.ndarray
