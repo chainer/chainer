@@ -21,7 +21,7 @@ class EmbedIDFunction(function_node.FunctionNode):
             x_type.ndim >= 1,
         )
         type_check.expect(
-            w_type.dtype == numpy.float32,
+            w_type.dtype.kind == 'f',
             w_type.ndim == 2
         )
 
@@ -111,7 +111,7 @@ class EmbedIDGrad(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask, zero, _ = xp.broadcast_arrays(
-                mask[..., None], xp.zeros((), numpy.float32), ggy.data)
+                mask[..., None], xp.zeros((), ggy.dtype), ggy.data)
             ggy = chainer.functions.where(mask, zero, ggy)
         return None, ggy
 
@@ -122,7 +122,7 @@ def embed_id(x, W, ignore_label=None):
     This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
     vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
-    float32 matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
+    float matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
     column is the ``x[i]``-th column of ``W``.
 
     This function is only differentiable on the input ``W``.
