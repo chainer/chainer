@@ -6,5 +6,5 @@ ChainerX Documentation
 
    install/index
    tutorial/index
-   limitation
+   limitations
    reference/index

@@ -65,12 +65,14 @@ class TestBlackOut(unittest.TestCase):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
+    @attr.chainerx
     @condition.retry(3)
     def test_forward_chainerx_native(self):
         device = chainer.get_device('native:0')
         self.link.to_device(device)
         self.check_forward(device.send(self.x), device.send(self.t))
 
+    @attr.chainerx
     @condition.retry(3)
     def test_forward_chainerx_cuda(self):
         device = chainer.get_device('cuda:0')

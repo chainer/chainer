@@ -78,7 +78,13 @@ class CMakeBuild(build_ext.build_ext):
             ['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
-def config_setup_kwargs(setup_kwargs):
+def config_setup_kwargs(setup_kwargs, build_chainerx):
+    if not build_chainerx:
+        # `chainerx` package needs to be able to be imported even if ChainerX
+        # is unavailable.
+        setup_kwargs['packages'] += ['chainerx']
+        return
+
     if sys.version_info < (3, 5):
         raise RuntimeError(
             'ChainerX is only available for Python 3.5 or later.')
