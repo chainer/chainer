@@ -64,7 +64,7 @@ Setter of this property overwrites the gradient.
 
     _docs.set_doc(
         ndarray.nbytes,
-        """int: Size of whole elements in bytes.
+        """int: Total size of all elements in bytes.
 
 It does not count skips between elements.""")
 
@@ -189,7 +189,7 @@ Clears the gradient with respect to this array.
         """copy()
 Creates an array and copies all the elements to it.
 
-This method copies the array to new one on the same device.
+The copied array is allocated on the same device as ``self``.
 
 .. seealso:: :func:`chainerx.copy`
 """)
@@ -224,7 +224,7 @@ If the gradient is not available, it returns ``None``.
     _docs.set_doc(
         ndarray.is_backprop_required,
         """is_backprop_required()
-Returns ``True`` if gradient will propagates through this array on backprop.
+Returns ``True`` if gradient propagates through this array on backprop.
 
 See the note on :meth:`require_grad` for details.
 """)
