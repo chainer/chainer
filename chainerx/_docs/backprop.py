@@ -4,6 +4,43 @@ from chainerx import _docs
 
 def set_docs():
     _docs.set_doc(
+        chainerx.backward,
+        """backward(outputs, *, enable_double_backprop=False)
+Runs backpropagation.
+
+On backpropagation (a.k.a. backprop),
+the computational graph is traversed backward starting from the output arrays,
+up until the root arrays on which :func:`ndarray.require_grad()` have been
+called.
+
+Backpropagation uses :data:`ndarray.grad <chainerx.ndarray.grad>` held by
+the output arrays as the initial gradients.
+You can manually assign them before calling this function.
+Otherwise, they are assumed to be 1.
+
+To enable higher order differentiation, pass ``enable_double_backprop=True``
+so that you can further run backpropagation from the resulting gradient arrays.
+Note that enabling it results in larger memory consumption needed to store the
+gradients w.r.t intermediate arrays that are required for the second gradient
+computation.
+
+This process is basically done in C++ implementation, except those operations
+whose backward computation falls back to the corresponding Python
+implementation. Currently this function does not release the GIL at all.
+
+Args:
+    outputs (~chainerx.ndarray or list of ndarrays):
+        Output arrays from which backpropagation starts.
+    enable_double_backprop (bool): If ``True``,
+        computational trace of the whole backpropagation procedure is
+        recorded to the computational graph so that one can further do
+        backpropagation from the resulting gradients.
+
+.. seealso::
+    * :meth:`chainerx.ndarray.backward`
+""")
+
+    _docs.set_doc(
         chainerx.no_backprop_mode,
         """no_backprop_mode()
 Creates a context manager which temporarily disables backpropagation.
