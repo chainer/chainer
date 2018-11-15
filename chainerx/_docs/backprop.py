@@ -24,9 +24,11 @@ Note that enabling it results in larger memory consumption needed to store the
 gradients w.r.t intermediate arrays that are required for the second gradient
 computation.
 
-This process is basically done in C++ implementation, except those operations
-whose backward computation falls back to the corresponding Python
-implementation. Currently this function does not release the GIL at all.
+Note:
+    This process is basically done in C++ implementation, except those
+    operations whose backward computation falls back to the corresponding
+    Python implementation. Currently this function does not release the GIL at
+    all.
 
 Args:
     outputs (~chainerx.ndarray or list of ndarrays):
