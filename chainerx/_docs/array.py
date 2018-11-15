@@ -162,7 +162,7 @@ Casts each element to the specified data type.
 Args:
     dtype: Data type of the new array.
     copy (bool): If ``True``, this method always copies the data. Otherwise,
-        it creates a view of the array unless needed.
+        it creates a view of the array if possible.
 
 Returns:
     ~chainerx.ndarray: An array with the specified dtype.
