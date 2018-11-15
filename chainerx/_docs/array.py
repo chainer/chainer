@@ -79,7 +79,8 @@ It does not count skips between elements.""")
         ndarray.shape,
         """tuple of int: Lengths of axes.
 
-Currently, this property does not support setter.""")
+.. note::
+    Currently, this property does not support setter.""")
 
     _docs.set_doc(ndarray.size, "int: Number of elements in the array.")
 
@@ -151,7 +152,7 @@ Returns:
         """argmax(axis=None)
 Returns the indices of the maximum elements along a given axis.
 
-See :func:`chainerx.argmax` for full documentation.
+See :func:`chainerx.argmax` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -174,7 +175,7 @@ Returns:
 Performs backpropagation starting from this array.
 
 This method is equivalent to ``chainerx.backward([self], *args)``.
-See :func:`chainerx.backward` for full documentation.
+See :func:`chainerx.backward` for the full documentation.
 """)
 
     # TODO(beam2d): Write about backprop id.
@@ -199,7 +200,7 @@ The copied array is allocated on the same device as ``self``.
         """dot(b)
 Returns the dot product with a given array.
 
-See :func:`chainerx.dot` for full documentation.
+See :func:`chainerx.dot` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -240,10 +241,10 @@ See the note on :meth:`require_grad` for details.
 
     _docs.set_doc(
         ndarray.max,
-        """sum(axis=None, keepdims=False)
+        """max(axis=None, keepdims=False)
 Returns the maximum along a given axis.
 
-See :func:`chainerx.amax` for full documentation.
+See :func:`chainerx.amax` for the full documentation.
 """)
 
     # TODO(beam2d): Write about backprop_id argument.
@@ -253,17 +254,17 @@ See :func:`chainerx.amax` for full documentation.
 Declares that a gradient for this array will be made available after backprop.
 
 Once calling this method, any operations applied to this array are recorded for
-later backprop. After backprop finishes, the :attr:`grad` attribute is made
-available.
+later backprop. After backprop, the :attr:`grad` attribute holds the gradient
+array.
 
 .. note::
     ChainerX distinguishes *gradient requirements* and *backprop requirements*
     strictly. They are strongly related, but different concepts as follows.
 
-    - *Gradient requirements* indicates that the gradient array should be made
+    - *Gradient requirement* indicates that the gradient array should be made
       available after backprop. This attribute **is not propagated** through
-      any operations. It implicates the backprop requirements.
-    - *Backprop requirements* indicates that the gradient should be propagated
+      any operations. It implicates the backprop requirement.
+    - *Backprop requirement* indicates that the gradient should be propagated
       through the array during backprop. This attribute **is propagated**
       through differentiable operations.
 
@@ -281,7 +282,7 @@ Returns:
         """reshape(newshape)
 Creates an array with a new shape and the same data.
 
-See :func:`chainerx.reshape` for full documentation.
+See :func:`chainerx.reshape` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -300,7 +301,7 @@ Args:
         """squeeze(axis=None)
 Removes size-one axes from an array.
 
-See :func:`chainerx.squeeze` for full documentation.
+See :func:`chainerx.squeeze` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -308,7 +309,7 @@ See :func:`chainerx.squeeze` for full documentation.
         """sum(axis=None, keepdims=False)
 Returns the sum of an array along given axes.
 
-See :func:`chainerx.sum` for full documentation.
+See :func:`chainerx.sum` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -316,7 +317,7 @@ See :func:`chainerx.sum` for full documentation.
         """take(indices, axis)
 Takes elements from the array along an axis.
 
-See :func:`chainerx.take` for full documentation.
+See :func:`chainerx.take` for the full documentation.
 """)
 
     _docs.set_doc(
@@ -342,7 +343,7 @@ Returns:
         """transpose(axes=None)
 Creates a view of an array with permutated axes.
 
-See :func:`chainerx.transpose` for full documentation.
+See :func:`chainerx.transpose` for the full documentation.
 """)
 
     _docs.set_doc(
