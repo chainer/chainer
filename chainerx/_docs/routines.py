@@ -9,6 +9,7 @@ def set_docs():
     _docs_logic()
     _docs_manipulation()
     _docs_math()
+    _docs_sorting()
     _docs_statistics()
     _docs_connection()
     _docs_normalization()
@@ -1062,6 +1063,25 @@ Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.isinf`
+""")
+
+
+def _docs_sorting():
+    _docs.set_doc(
+        chainerx.argmax,
+        """argmax(a, axis=None)
+Returns the indices of the maximum along an axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the indices of the maximum of.
+    axis (None or int): Along which axis to compute the maximum. The flattened
+        array is used by default.
+
+Returns:
+    :class:`~chainerx.ndarray`: The indices of the maximum of ``a``, along the
+    axis if specified.
+
+.. seealso:: :func:`numpy.argmax`
 """)
 
 
