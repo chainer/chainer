@@ -21,7 +21,10 @@ from chainer.testing import attr
 import chainer.testing.backend
 from chainer import variable
 import chainerx
-import chainerx.testing
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 class Constant(chainer.Function):
@@ -861,7 +864,6 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
-@attr.chainerx
 @testing.parameterize(
     {'array_require_grad': False, 'requires_grad': 'default',
      'expected': True},
@@ -872,6 +874,7 @@ class TestVariable(unittest.TestCase):
     {'array_require_grad': True, 'requires_grad': False, 'expected': 'raise'},
     {'array_require_grad': True, 'requires_grad': True, 'expected': True},
 )
+@attr.chainerx
 class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
 
     def test_chainerx_init_requires_grad(self):

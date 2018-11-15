@@ -18,7 +18,10 @@ import chainer.testing.backend
 from chainer import utils
 from chainer.utils import type_check
 import chainerx
-import chainerx.testing
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 def make_array(start, shape, dtype, device):
