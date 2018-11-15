@@ -599,14 +599,14 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
         if source_device.xp is chainerx:
             backend_name = source_device.device.backend.name
             if backend_name == 'native':
-                self.assertEqual(self.link._device, backend.CpuDevice())
+                expected_device = backend.CpuDevice()
             elif backend_name == 'cuda':
-                self.assertEqual(
-                    self.link._device,
-                    backend.GpuDevice.from_device_id(
-                        source_device.device.index))
+                expected_device = backend.GpuDevice.from_device_id(
+                    source_device.device.index)
         else:
-            self.assertEqual(self.link._device, source_device)
+            expected_device = source_device
+
+        self.assertEqual(self.link._device, expected_device)
 
     def test_to_chainerx(self, backend_config):
         self.link.to_device(backend_config.device)
@@ -619,18 +619,17 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
         self.check_param_uninit('u')
 
         if source_device.xp is chainerx:
-            self.assertIs(self.link._device, source_device)
+            expected_device = source_device
         elif source_device.xp is numpy:
-            self.assertEqual(
-                self.link._device,
-                backend.ChainerxDevice(chainerx.get_device('native', 0)))
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('native', 0))
         elif source_device.xp is cuda.cupy:
-            self.assertEqual(
-                self.link._device,
-                backend.ChainerxDevice(
-                    chainerx.get_device('cuda', source_device.device.id)))
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('cuda', source_device.device.id))
         else:
             assert False
+
+        self.assertEqual(self.link._device, expected_device)
 
 
 class TestLinkRepeat(unittest.TestCase):
