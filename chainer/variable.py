@@ -479,7 +479,8 @@ class Variable(object):
 
     _chainerx_name = None
 
-    _is_chainerx = False
+    # A chainerx.Device instance if the variable holds a ChainerX array.
+    _chainerx_device = None
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
@@ -517,7 +518,7 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._is_chainerx = True
+            self._chainerx_device = data.device
             self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
@@ -547,7 +548,7 @@ class Variable(object):
         return variable_str(self)
 
     def _clear_chainerx(self):
-        self._is_chainerx = False
+        self._chainerx_device = None
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
@@ -559,7 +560,7 @@ class Variable(object):
         # _grad_var._data[0] and self._data[0].grad and recreates _grad_var
         # as necessary. (chainerx.ndarray.grad can be altered independently
         # from chainer)
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             self._grad = None
             # Update gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
@@ -587,7 +588,7 @@ class Variable(object):
     def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
-        assert self._is_chainerx
+        assert self._chainerx_device is not None
         requires_grad = self._requires_grad
 
         if (not requires_grad
@@ -629,13 +630,13 @@ class Variable(object):
 
     @property
     def name(self):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             return self._chainerx_name
         return self._node.name
 
     @name.setter
     def name(self, n):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             self._chainerx_name = n
             return
         self._node.name = n
@@ -703,7 +704,7 @@ class Variable(object):
     @property
     def label(self):
         """Short text that represents the variable."""
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node label.')
         return self._node.label
@@ -721,14 +722,14 @@ class Variable(object):
         property returns that node object.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.creator = func
@@ -752,14 +753,14 @@ class Variable(object):
            object.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
@@ -774,7 +775,7 @@ class Variable(object):
         """
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
@@ -785,7 +786,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()
@@ -819,7 +820,7 @@ class Variable(object):
 
     def _set_chainerx_grad(self, g):
         # Assigns chainerx.ndarray.grad
-        assert self._is_chainerx
+        assert self._chainerx_device is not None
         if not self._requires_grad and g is not None:
             raise RuntimeError(
                 'Cannot set the gradient of a variable that is flagged to not '
@@ -833,7 +834,7 @@ class Variable(object):
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             self._set_chainerx_grad(g)
             self._grad_var = None
             return
@@ -854,7 +855,7 @@ class Variable(object):
         and error.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             arr = self._data[0]
             if arr is None or not arr.is_backprop_required():
                 self._chainerx_grad_cache = None
@@ -891,7 +892,7 @@ class Variable(object):
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             self._set_chainerx_grad(None if gv is None else gv._data[0])
             self._grad_var = gv
             return
@@ -929,14 +930,14 @@ class Variable(object):
 
     @property
     def rank(self):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
     def node(self):
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node.')
         return self._node
@@ -990,7 +991,7 @@ class Variable(object):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             return
 
         if not allow_unchaining and self.creator is not None:
@@ -1006,18 +1007,10 @@ class Variable(object):
                 'A variable without data but with a gradient cannot be '
                 'transferred to a ChainerX device.')
 
-        xp = self.xp
-        assert xp is not chainerx
-        if xp is numpy:
-            device = chainer.get_device(('native', 0))
-        elif xp is cuda.cupy:
-            device = chainer.get_device(('cuda', self.array.device.id))
-        else:
-            raise RuntimeError(
-                'Variable.to_chainerx only supports transfer from native or '
-                'CUDA device.')
-
-        self._to_device(device, allow_unchaining)
+        self._to_device(
+            backend.ChainerxDevice.from_fallback_device(
+                backend.get_device_from_array(array)),
+            allow_unchaining)
 
     def from_chainerx(self):
         """Converts the array and gradient to non-ChainerX arrays without copy.
@@ -1034,7 +1027,7 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if not self._is_chainerx:
+        if self._chainerx_device is None:
             return
 
         if not allow_unchaining and self._data[0].is_backprop_required():
@@ -1042,16 +1035,8 @@ class Variable(object):
                 'Cannot convert from a Variable with a ChainerX array that is '
                 'connected to a graph.')
 
-        backend_name = self.array.device.backend.name
-        if backend_name == 'native':
-            self.to_device(backend.CpuDevice())
-        elif backend_name == 'cuda':
-            self.to_device(
-                backend.GpuDevice.from_device_id(self.array.device.index))
-        else:
-            raise RuntimeError(
-                'Variable.from_chainerx only supports transfer from native or '
-                'CUDA device.')
+        self.to_device(
+            backend.ChainerxDevice(self._chainerx_device).fallback_device)
 
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
@@ -1066,7 +1051,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self._is_chainerx
+        was_chainerx = self._chainerx_device is not None
         is_chainerx = device.xp is chainerx
 
         if not allow_unchaining:
@@ -1091,8 +1076,13 @@ class Variable(object):
         if was_chainerx and not is_chainerx:
             self._clear_chainerx()
             self._node = VariableNode(self, self._chainerx_name)
+        elif not was_chainerx and is_chainerx:
+            self._chainerx_name = self._node.name
 
-        self._is_chainerx = is_chainerx
+        if is_chainerx:
+            self._chainerx_device = device.device
+        else:
+            self._chainerx_device = None
 
         if arr is None:
             return
@@ -1148,10 +1138,11 @@ class Variable(object):
         if arr is None:
             return
 
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             gv = self.grad_var
             if gv is None:
-                self.grad = chainerx.zeros_like(arr, device=arr.device)
+                self.grad = chainerx.zeros_like(
+                    arr, device=self._chainerx_device)
             else:
                 gv._data[0].fill(0)
         else:
@@ -1208,10 +1199,10 @@ class Variable(object):
 
         """
         # TODO(sonots): Implement for ChainerX
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise NotImplementedError()
 
-        assert not var._is_chainerx
+        assert var._chainerx_device is None
         if var._grad is None:
             return
 
@@ -1238,7 +1229,7 @@ class Variable(object):
                 one of its outputs.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
@@ -1251,7 +1242,7 @@ class Variable(object):
                 output.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
@@ -1308,7 +1299,7 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
@@ -1326,7 +1317,7 @@ class Variable(object):
 
     def _backward_main(self, retain_grad, loss_scale):
         # TODO(sonots): Implement for ChainerX
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise NotImplementedError()
         self._node._check_old_style_gradient()
         if self.creator_node is None:
@@ -1470,7 +1461,7 @@ class Variable(object):
         This method is equivalent to ``self.creator_node = None``.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
@@ -1486,7 +1477,7 @@ class Variable(object):
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain_backward '
                 'method.')
@@ -1508,7 +1499,7 @@ class Variable(object):
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
-        if self._is_chainerx:
+        if self._chainerx_device is not None:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a retain_data '
                 'method.')

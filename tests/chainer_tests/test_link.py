@@ -28,7 +28,7 @@ def _assert_arrays_equal(array, expected_array):
     assert (array == expected_array).all()
 
 
-class TestLink(unittest.TestCase):
+class LinkTestBase(object):
 
     def setUp(self):
         x_shape_0 = 2
@@ -59,10 +59,12 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
-        numpy.testing.assert_array_equal(var.data, data_value)
+        numpy.testing.assert_array_equal(
+            backend.to_numpy(var.data), data_value)
         self.assertEqual(var.grad.shape, shape)
         self.assertEqual(var.grad.dtype, dtype)
-        numpy.testing.assert_array_equal(var.grad, numpy.nan)
+        numpy.testing.assert_array_equal(
+            backend.to_numpy(var.grad), numpy.nan)
 
     def check_param_uninit(self, name, initializer=None):
         self.assertTrue(hasattr(self.link, name))
@@ -72,6 +74,9 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(var.data)
         if initializer is not None:
             self.assertIs(var.initializer, initializer)
+
+
+class TestLink(LinkTestBase, unittest.TestCase):
 
     def test_init(self):
         self.check_param_init('x', (2, 3), 'd')
@@ -565,6 +570,68 @@ class TestLink(unittest.TestCase):
         assert not w
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
+
+    def test_from_chainerx(self, backend_config):
+        self.link.to_device(backend_config.device)
+        self.link.from_chainerx()
+
+        source_device = backend_config.device
+
+        self.check_param_init('x', (2, 3), 'd')
+        self.check_param_init('y', (2,), 'f')
+        self.check_param_uninit('u')
+
+        if source_device.xp is chainerx:
+            backend_name = source_device.device.backend.name
+            if backend_name == 'native':
+                expected_device = backend.CpuDevice()
+            elif backend_name == 'cuda':
+                expected_device = backend.GpuDevice.from_device_id(
+                    source_device.device.index)
+        else:
+            expected_device = source_device
+
+        self.assertEqual(self.link._device, expected_device)
+
+    def test_to_chainerx(self, backend_config):
+        self.link.to_device(backend_config.device)
+        self.link.to_chainerx()
+
+        source_device = backend_config.device
+
+        self.check_param_init('x', (2, 3), 'd')
+        self.check_param_init('y', (2,), 'f')
+        self.check_param_uninit('u')
+
+        if source_device.xp is chainerx:
+            expected_device = source_device
+        elif source_device.xp is numpy:
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('native', 0))
+        elif source_device.xp is cuda.cupy:
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('cuda', source_device.device.id))
+        else:
+            assert False
+
+        self.assertEqual(self.link._device, expected_device)
+
+
 class TestLinkRepeat(unittest.TestCase):
 
     def setUp(self):
@@ -645,7 +712,6 @@ class CountParameter(chainer.Parameter):
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
-        self.count_to_chainerx = 0
         self.count_to_device = 0
         self.count_zerograd = 0
 
@@ -657,10 +723,6 @@ class CountParameter(chainer.Parameter):
         self.count_to_gpu += 1
         return super(CountParameter, self).to_gpu(device)
 
-    def to_chainerx(self):
-        self.count_to_chainerx += 1
-        return super(CountParameter, self).to_chainerx()
-
     def to_device(self, device=None):
         self.count_to_device += 1
         return super(CountParameter, self).to_device(device)
@@ -670,7 +732,7 @@ class CountParameter(chainer.Parameter):
         super(CountParameter, self).zerograd()
 
 
-class TestChain(unittest.TestCase):
+class ChainTestBase(object):
 
     def setUp(self):
         # Schematic:
@@ -701,6 +763,14 @@ class TestChain(unittest.TestCase):
         with self.c2.init_scope():
             self.c2.c1 = self.c1
             self.c2.l3 = self.l3
+
+    def set_count_parameters(self):
+        self.l1.x = CountParameter(self.l1.x)
+        self.l2.x = CountParameter(self.l2.x)
+        self.l3.x = CountParameter(self.l3.x)
+
+
+class TestChain(ChainTestBase, unittest.TestCase):
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -865,11 +935,6 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.l3.x.data, x3)
         self.assertIs(self.l3.x.grad, gx3)
 
-    def set_count_parameters(self):
-        self.l1.x = CountParameter(self.l1.x)
-        self.l2.x = CountParameter(self.l2.x)
-        self.l3.x = CountParameter(self.l3.x)
-
     @attr.gpu
     def test_to_cpu(self):
         self.set_count_parameters()
@@ -926,33 +991,6 @@ class TestChain(unittest.TestCase):
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
-
-    @attr.chainerx
-    def test_to_chainerx(self):
-        self.c2.to_device(backend.CpuDevice())
-
-        self.set_count_parameters()
-        self.c2.to_chainerx()
-        self.assertIs(self.c2.xp, chainerx)
-        self.assertIs(self.c1.xp, chainerx)
-        self.assertIs(self.l1.xp, chainerx)
-        self.assertIs(self.l2.xp, chainerx)
-        self.assertIs(self.l3.xp, chainerx)
-        self.assertIsInstance(self.l1.x.data, chainerx.ndarray)
-        self.assertIsInstance(self.l1.x.grad, chainerx.ndarray)
-        self.assertIsInstance(self.l2.x.data, chainerx.ndarray)
-        self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
-        self.assertIsNone(self.l3.x.data)
-        self.assertEqual(self.l1.x.count_to_chainerx, 1)
-        self.assertEqual(self.l1.x.count_to_device, 0)
-        self.assertEqual(self.l2.x.count_to_chainerx, 1)
-        self.assertEqual(self.l2.x.count_to_device, 0)
-        self.assertEqual(self.l3.x.count_to_chainerx, 1)
-        self.assertEqual(self.l3.x.count_to_device, 0)
-
-        self.l3.x.initialize((3,))
-        self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
-        self.assertIsInstance(self.l3.x.grad, chainerx.ndarray)
 
     def test_to_device(self):
         self.set_count_parameters()
@@ -1133,6 +1171,71 @@ class TestChain(unittest.TestCase):
             warnings.simplefilter('always')
             self.c2.count_params()
         assert not w
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
+
+    def check_array_device(self, array, expected_device):
+        expected_ndarray = expected_device.xp.ndarray
+        self.assertIsInstance(array, expected_ndarray)
+        if expected_device.xp in (chainerx, cuda.cupy):
+            assert array.device == expected_device.device
+
+    def check_expected_device(self, expected_device):
+        expected_xp = expected_device.xp
+        self.assertIs(self.c2.xp, expected_xp)
+        self.assertIs(self.c1.xp, expected_xp)
+        self.assertIs(self.l1.xp, expected_xp)
+        self.assertIs(self.l2.xp, expected_xp)
+        self.assertIs(self.l3.xp, expected_xp)
+        self.check_array_device(self.l1.x.data, expected_device)
+        self.check_array_device(self.l1.x.grad, expected_device)
+        self.check_array_device(self.l2.x.data, expected_device)
+        self.check_array_device(self.l2.x.grad, expected_device)
+        self.assertIsNone(self.l3.x.data)
+
+        self.l3.x.initialize((3,))
+        self.check_array_device(self.l3.x.data, expected_device)
+        self.check_array_device(self.l3.x.grad, expected_device)
+
+    def test_to_chainerx(self, backend_config):
+        self.set_count_parameters()
+        self.c2.to_device(backend_config.device)
+        self.c2.to_chainerx()
+
+        src_device = backend_config.device
+        if src_device.xp is chainerx:
+            expected_device = src_device
+        else:
+            expected_device = (
+                backend.ChainerxDevice.from_fallback_device(src_device))
+        self.check_expected_device(expected_device)
+
+    def test_from_chainerx(self, backend_config):
+        self.set_count_parameters()
+        self.c2.to_device(backend_config.device)
+        self.c2.from_chainerx()
+
+        src_device = backend_config.device
+        if src_device.xp is chainerx:
+            expected_device = src_device.fallback_device
+        else:
+            expected_device = src_device
+        self.check_expected_device(expected_device)
 
 
 class TestChainRepeat(unittest.TestCase):
