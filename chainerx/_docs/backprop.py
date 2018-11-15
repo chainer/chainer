@@ -32,7 +32,7 @@ Args:
     outputs (~chainerx.ndarray or list of ndarrays):
         Output arrays from which backpropagation starts.
     enable_double_backprop (bool): If ``True``,
-        computational trace of the whole backpropagation procedure is
+        a computational trace of the whole backpropagation procedure is
         recorded to the computational graph so that one can further do
         backpropagation from the resulting gradients.
 
