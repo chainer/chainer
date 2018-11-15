@@ -61,5 +61,5 @@ class Orthogonal(initializer.Initializer):
             a = numpy.random.normal(size=flat_shape)
             # cupy.linalg.qr requires cusolver in CUDA 8+
             q, r = numpy.linalg.qr(a.T)
-            q *= self.scale * numpy.sign(numpy.diag(r))
+            q *= numpy.copysign(self.scale, numpy.diag(r))
             array[...] = xp.asarray(q.T.reshape(array.shape))
