@@ -62,7 +62,7 @@ arrays would result in an error.
 
     y.backward()  # ! error
 
-Benefits of ``no_backprop_mode`` include reduced CPU overhead for building
+Benefits of ``no_backprop_mode`` include reduced CPU overhead of building
 computational graphs, and reduced consumption of device memory that
 would be otherwise retained for backward propagation.
 
