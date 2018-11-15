@@ -183,9 +183,10 @@ def _populate_ndarray():
 
         Note:
 
-            With the ``cuda`` backend, the behavior differs from NumPy when integer
-            arrays in ``slices`` reference the same location multiple times.
-            In that case, the value that is actually stored is undefined.
+            With the ``cuda`` backend, the behavior differs from NumPy when
+            integer arrays in ``slices`` reference the same location
+            multiple times. In that case, the value that is actually stored
+            is undefined.
 
             >>> import chainerx
             >>> chainerx.set_default_device('cuda:0')
