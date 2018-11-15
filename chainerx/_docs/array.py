@@ -132,10 +132,12 @@ New array is created at every access to this property.
     _docs.set_doc(
         ndarray.as_grad_stopped,
         """as_grad_stopped(copy=False)
-Creates a view or a copy of the array with stopping gradient propagation.
+Creates a view or a copy of the array that stops gradient propagation.
 
 This method behaves similar to :meth:`view` and :meth:`copy`, except that
-the gradient is not propagated through this operation.
+the gradient is not propagated through this operation (internally, this
+method creates a copy or view of the array without connecting the computational
+graph for backprop).
 
 Args:
     copy (bool): If ``True``, it copies the array. Otherwise, it returns a view
