@@ -68,6 +68,7 @@ would be otherwise retained for backward propagation.
 
 .. seealso::
     * :func:`chainerx.force_backprop_mode`
+    * :func:`chainerx.is_backprop_required`
     * :func:`chainer.no_backprop_mode`
 """)
 
@@ -94,5 +95,19 @@ surrounding :func:`~chainerx.no_backprop_mode` context.
 
 .. seealso::
     * :func:`chainerx.no_backprop_mode`
+    * :func:`chainerx.is_backprop_required`
     * :func:`chainer.force_backprop_mode`
+""")
+
+    _docs.set_doc(
+        chainerx.is_backprop_required,
+        """is_backprop_required()
+Returns whether the backpropagation is enabled in the current thread.
+
+The result is affect by :func:`chainerx.no_backprop_mode` and
+:func:`chainerx.force_backprop_mode`.
+
+.. seealso::
+    * :func:`chainerx.no_backprop_mode`
+    * :func:`chainerx.force_backprop_mode`
 """)
