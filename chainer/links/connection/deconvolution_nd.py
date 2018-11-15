@@ -61,7 +61,7 @@ class DeconvolutionND(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(2 * 5 * 5 * 5, dtype=numpy.float32).reshape(1, 2, 5, 5, 5)
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype=np.float32).reshape(1, 2, 5, 5, 5)
 
         1. Give the first four arguments explicitly:
 
