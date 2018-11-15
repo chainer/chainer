@@ -1,6 +1,8 @@
 Array Operations
 ================
 
+.. _chainerx_routines:
+
 .. module:: chainerx
 
 Array creation routines
