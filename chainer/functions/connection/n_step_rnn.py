@@ -683,7 +683,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = cuda.get_cudnn_dropout_states()
-        states.set_ratio(cudnn.get_handle(), dropout_ratio)
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 
