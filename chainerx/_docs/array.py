@@ -50,7 +50,7 @@ The meaning of the address is device-dependent.
     # TODO(beam2d): Write about backprop id.
     _docs.set_doc(
         ndarray.grad,
-        """~chainerx.ndarray: Gradient with respect to the array.
+        """~chainerx.ndarray: Gradient held by the array.
 
 It is ``None`` if the gradient is not available.
 Setter of this property overwrites the gradient.
@@ -182,7 +182,7 @@ See :func:`chainerx.backward` for the full documentation.
     _docs.set_doc(
         ndarray.cleargrad,
         """cleargrad()
-Clears the gradient with respect to this array.
+Clears the gradient held by this array.
 """)
 
     _docs.set_doc(
@@ -216,7 +216,7 @@ Args:
     _docs.set_doc(
         ndarray.get_grad,
         """get_grad()
-Returns the gradient with respect to the array.
+Returns the gradient held by the array.
 
 If the gradient is not available, it returns ``None``.
 """)
@@ -288,7 +288,7 @@ See :func:`chainerx.reshape` for the full documentation.
     _docs.set_doc(
         ndarray.set_grad,
         """set_grad(grad)
-Sets a gradient with respect to the array.
+Sets a gradient to the array.
 
 This method overwrites the gradient with a given array.
 
