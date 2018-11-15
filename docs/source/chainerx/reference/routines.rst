@@ -172,8 +172,17 @@ Random sampling
    chainerx.random.normal
    chainerx.random.uniform
 
-Sorting routines
-----------------
+Sorting, searching, and counting
+--------------------------------
+
+Searching
+^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.argmax
 
 Statistics
 ----------
