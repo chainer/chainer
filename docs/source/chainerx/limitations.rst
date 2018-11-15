@@ -47,11 +47,11 @@ There are some non-obvious limitations in ChainerX:
        b = chainerx.zeros((2,), numpy.float32)
        var = chainer.Variable(a)
 
-       a.array = b  # ! error
+       var.array = b  # ! error
 
-    You may circumvent this by using in-place assignment on ``a.array``::
+    You may circumvent this by using in-place assignment on ``var.array``::
 
-       a.array[:] = b
+       var.array[:] = b
 
     This workaround may also be dangerous just as in the previous limitation.
 
