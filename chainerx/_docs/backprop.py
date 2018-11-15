@@ -48,7 +48,7 @@ Creates a context manager which temporarily disables backpropagation.
 Within this context, no computational graph will be formed unless
 :meth:`~chainerx.force_backprop_mode` is used.
 
-Arrays resulted from operations enclosed with the context will be disconnected
+Arrays resulting from operations enclosed with this context will be disconnected
 from the computational graph. Trying to perform backpropagation from such
 arrays would result in an error.
 
