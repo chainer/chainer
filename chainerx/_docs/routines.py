@@ -299,6 +299,9 @@ Note:
         """frombuffer(buffer, dtype=float, count=-1, offset=0, device=None)
 Returns a 1-D array interpretation of a buffer.
 
+The given ``buffer`` memory must be usable on the given device, otherwise,
+an error is raised.
+
 Note:
     The ``native`` backend requires a buffer of main memory, and
     the ``cuda`` backend requires a buffer of CUDA memory.
@@ -314,10 +317,6 @@ Args:
 
 Returns:
     ~chainerx.ndarray: 1-D array interpretation of ``buffer``.
-
-Raises:
-    ~chainerx.ChainerxError: If the given ``buffer`` memory is not usable on
-        the given device.
 
 .. seealso:: :func:`numpy.frombuffer`
 """)
