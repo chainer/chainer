@@ -28,7 +28,7 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
-from typing import Optional, cast  # NOQA
+from typing import Any, Optional, cast  # NOQA
 
 import binascii
 import functools

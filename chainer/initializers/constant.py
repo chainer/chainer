@@ -1,3 +1,5 @@
+from typing import Optional  # NOQA
+
 import numpy
 
 from chainer import backend
@@ -36,7 +38,7 @@ class Identity(initializer.Initializer):
 
 class _Constant(initializer.Initializer):
 
-    fill_value = None
+    fill_value = None  # type: Optional[float]
 
     def __init__(self, dtype=None):
         if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray)) or

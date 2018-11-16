@@ -21,9 +21,9 @@ from chainer.utils.walker_alias import WalkerAlias  # NOQA
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.
 # See: https://github.com/chainer/chainer/issues/5097
 try:
-    collections_abc = collections.abc
+    collections_abc = collections.abc  # type: ignore
 except AttributeError:  # python <3.3
-    collections_abc = collections
+    collections_abc = collections  # type: ignore
 
 
 def force_array(x, dtype=None):

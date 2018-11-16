@@ -141,6 +141,11 @@ class Link(object):
     """
 
     _params = None  # type: Set[str]
+    _persistent = None  # type: Set[str]
+    _cpu = None  # type: bool
+    _device_id = None  # type: Optional[int]
+    _within_init_scope = None  # type: bool
+    name = None  # type: Optional[str]
     _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
 
     def __init__(self, **params):
