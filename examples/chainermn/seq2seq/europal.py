@@ -80,7 +80,7 @@ def make_dataset(path, vocab):
 
 def make_array(word_id, words):
     ids = [word_id.get(word, 1) for word in words]
-    return numpy.array(ids, 'i')
+    return numpy.array(ids, numpy.int32)
 
 
 if __name__ == '__main__':

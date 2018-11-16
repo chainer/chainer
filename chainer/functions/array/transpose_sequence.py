@@ -11,7 +11,7 @@ def _transpose(xs, length):
         return ()
 
     xp = backend.get_array_module(*xs)
-    lengths = numpy.empty(length, dtype='i')
+    lengths = numpy.empty(length, dtype=numpy.int32)
     end = length
     for i, x in enumerate(xs):
         len_x = len(x)
@@ -31,13 +31,13 @@ def _transpose(xs, length):
                 outs[p][i] = xi
 
     else:
-        offsets1 = numpy.empty(len(xs) + 1, dtype='i')
+        offsets1 = numpy.empty(len(xs) + 1, dtype=numpy.int32)
         offsets1[0] = 0
         numpy.cumsum([len(x) for x in xs], out=offsets1[1:])
 
-        offsets2 = numpy.empty(length + 1, dtype='i')
+        offsets2 = numpy.empty(length + 1, dtype=numpy.int32)
         offsets2[0] = 0
-        numpy.cumsum(lengths, dtype='i', out=offsets2[1:])
+        numpy.cumsum(lengths, dtype=numpy.int32, out=offsets2[1:])
 
         x = xp.concatenate(xs, axis=0)
         o = xp.empty_like(x)

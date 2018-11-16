@@ -248,7 +248,7 @@ class _RetrieveAsCaffeModel(object):
                     setattr(layer.batch_norm_param, k, v)
                 _add_blob(layer, [mean.data.size], mean.data)
                 _add_blob(layer, [var.data.size], var.data)
-                _add_blob(layer, [1], numpy.ones((1,), dtype='f'))
+                _add_blob(layer, [1], numpy.ones((1,), dtype=numpy.float32))
 
             if gamma.data is None and beta.data is None:
                 pass
