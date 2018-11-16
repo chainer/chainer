@@ -6,9 +6,6 @@ Array Operations
 Array creation routines
 -----------------------
 
-Ones and zeros
-^^^^^^^^^^^^^^
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -23,14 +20,6 @@ Ones and zeros
    chainerx.zeros_like
    chainerx.full
    chainerx.full_like
-
-From existing data
-^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
    chainerx.array
    chainerx.asarray
    chainerx.asanyarray
@@ -42,24 +31,8 @@ From existing data
    chainerx.fromiter
    chainerx.fromstring
    chainerx.loadtxt
-
-Numerical ranges
-^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
    chainerx.arange
    chainerx.linspace
-
-Building matrices
-^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
    chainerx.diag
    chainerx.diagflat
 
@@ -94,9 +67,6 @@ Indexing routines
 Linear algebra
 --------------
 
-Matrix and vector products
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -106,9 +76,6 @@ Matrix and vector products
 Logic functions
 ---------------
 
-Array contents
-^^^^^^^^^^^^^^
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -116,21 +83,7 @@ Array contents
    chainerx.isinf
    chainerx.isnan
 
-Logical operations
-^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
    chainerx.logical_not
-
-Comparison
-^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
 
    chainerx.greater
    chainerx.greater_equal
@@ -175,9 +128,6 @@ Random sampling
 Sorting, searching, and counting
 --------------------------------
 
-Searching
-^^^^^^^^^
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -187,9 +137,6 @@ Searching
 Statistics
 ----------
 
-Order statistics
-^^^^^^^^^^^^^^^^
-
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -198,9 +145,6 @@ Order statistics
 
 Connection
 ----------
-
-Convolution
-^^^^^^^^^^^
 
 .. autosummary::
    :toctree: generated/
