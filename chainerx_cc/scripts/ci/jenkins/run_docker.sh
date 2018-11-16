@@ -18,6 +18,7 @@ fi
 
 
 # Variables
+container_name="chainerx-ci-${BUILD_ID}"
 container_workspace_dir=/workspace
 container_repo_dir=/repo
 container_work_dir="$container_workspace_dir"/work
@@ -43,7 +44,16 @@ docker build \
 # Boot docker and run test commands
 test_command=(bash "$container_repo_dir"/chainerx_cc/scripts/ci/jenkins/run.sh)
 
+# Kill the docker container upon receiving signal
+cleanup_container() {
+    echo "Terminating docker container: $container_name"
+    docker kill "$container_name"
+}
+
+trap cleanup_container SIGINT SIGTERM
+
 nvidia-docker run \
+     --name "$container_name" \
      --user "$UID" \
      --volume "$host_repo_dir":"$container_repo_dir" \
      --rm \
