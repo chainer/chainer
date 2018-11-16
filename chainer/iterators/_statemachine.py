@@ -17,9 +17,11 @@ def iterator_statemachine(state, batch_size, repeat, order_sampler,
     indices_list = []
 
     n = dataset_len if order is None else len(order)
+    if repeat and n == 0:
+        raise ValueError('Epoch size must be positive for an iterator '
+                         'that repeats.')
+
     i_end = i + batch_size
-    if not repeat:
-        i_end = min(i_end, n)
     is_new_epoch = False
 
     while i_end >= n:
@@ -35,10 +37,14 @@ def iterator_statemachine(state, batch_size, repeat, order_sampler,
                                  'the size of the previous order.')
             order = new_order
 
-        i = 0
-        i_end = i_end - n if repeat else 0
         epoch += 1
         is_new_epoch = True
+        i = 0
+        if repeat:
+            i_end -= n
+        else:
+            i_end = 0
+            break  # explicit break in case n == 0
 
     if order is None:
         indices_list.append(numpy.arange(i, i_end, dtype=numpy.intp))
