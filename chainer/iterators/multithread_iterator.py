@@ -138,6 +138,9 @@ class MultithreadIterator(iterator.Iterator):
                                     is_new_epoch, order)
         self._previous_epoch_detail = serializer(
             'previous_epoch_detail', self._previous_epoch_detail)
+        # Old version serialized ``None``.
+        if self._previous_epoch_detail is None:
+            self._previous_epoch_detail = -1.
         self._next = None
 
     @staticmethod
