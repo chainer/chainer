@@ -1,6 +1,8 @@
 # This file is heavily based on Chainer's batch normalization implementation.
 # See: chainer/functions/normalization/batch_normalization.py (dbb650)
 
+from abc import ABCMeta
+from abc import abstractmethod
 import chainer
 from chainer import backend
 from chainer import cuda
@@ -8,6 +10,7 @@ from chainer import function
 import chainer.utils
 from chainer.utils import type_check
 import numpy
+import six
 
 
 def _as4darray(arr):
@@ -25,9 +28,159 @@ def _xhat(x, mean, std, expander):
     return x_mu
 
 
+class _MultiNodeBatchNormalizationBackend(six.with_metaclass(ABCMeta)):
+
+    @abstractmethod
+    def forward(self, axis, gamma, x, xp):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def backward(self, axis, gamma, gy, x_hat, x, xp):
+        raise NotImplementedError()
+
+
+class _MpiBackend(_MultiNodeBatchNormalizationBackend):
+
+    def __init__(self, comm):
+        self.comm = comm
+
+        # We need to delay importing MPI4py (and momdules that import MPI4py)
+        import chainermn.communicators._memory_utility as memory_utility_module
+        from mpi4py import MPI as mpi4py_module
+        self.memory_utility_module = memory_utility_module
+        self.mpi4py_module = mpi4py_module
+
+    def forward(self, axis, gamma, x, xp):
+        mpi_comm = self.comm.mpi_comm
+        tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
+        x.mean(axis=axis, out=tmp[:gamma.size])
+        xp.square(x).mean(axis=axis, out=tmp[gamma.size:])
+        if xp is not numpy:
+            chainer.cuda.Stream.null.synchronize()
+        mpi_comm.Allreduce(
+            self.mpi4py_module.IN_PLACE,
+            self.memory_utility_module.array_to_buffer_object(tmp))
+        tmp *= 1.0 / mpi_comm.size
+        mean = tmp[:gamma.size]
+        sqmean = tmp[gamma.size:]
+        var = sqmean - xp.square(mean)
+        return mean, var
+
+    def backward(self, axis, gamma, gy, x_hat, x, xp):
+        mpi_comm = self.comm.mpi_comm
+        tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
+        gy.sum(axis=axis, out=tmp[:gamma.size])
+        (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:])
+        if xp is not numpy:
+            chainer.cuda.Stream.null.synchronize()
+        mpi_comm.Allreduce(
+            self.mpi4py_module.IN_PLACE,
+            self.memory_utility_module.array_to_buffer_object(tmp))
+        tmp *= 1.0 / mpi_comm.size
+        gbeta = tmp[:gamma.size]
+        ggamma = tmp[gamma.size:]
+        return gbeta, ggamma
+
+
+class _NcclBackend(_MultiNodeBatchNormalizationBackend):
+
+    def __init__(self, comm):
+        self.comm = comm
+
+        # We need to delay importing MPI4py (and momdules that import MPI4py)
+        import chainermn.communicators._memory_utility as memory_utility_module
+        from chainermn.communicators.pure_nccl_communicator import \
+            _get_nccl_type_id
+        from chainermn import nccl
+
+        self.memory_utility_module = memory_utility_module
+        self.get_nccl_type_id = _get_nccl_type_id
+        self.nccl = nccl
+
+    def forward(self, axis, gamma, x, xp):
+        gpu_buffer_n_elems = gamma.size * 2
+        gpu_buffer_size = x.dtype.itemsize * gpu_buffer_n_elems
+        gpu_buffer_a = self.memory_utility_module.DeviceMemory()
+        gpu_buffer_b = self.memory_utility_module.DeviceMemory()
+        gpu_buffer_a.assign(gpu_buffer_size)
+        gpu_buffer_b.assign(gpu_buffer_size)
+        gpu_buffer_a_array = gpu_buffer_a.array(
+            gpu_buffer_n_elems, dtype=x.dtype)
+        x.mean(axis=axis, out=gpu_buffer_a_array[:gamma.size])
+        xp.square(x).mean(axis=axis, out=gpu_buffer_a_array[gamma.size:])
+        stream = chainer.cuda.Stream.null
+        self.comm._init_comms()
+        self.comm.nccl_comm.allReduce(gpu_buffer_a.ptr(),
+                                      gpu_buffer_b.ptr(),
+                                      gpu_buffer_n_elems,
+                                      self.get_nccl_type_id(x.dtype),
+                                      self.nccl.NCCL_SUM,
+                                      stream.ptr)
+        gpu_buffer_b_array = gpu_buffer_b.array(
+            gpu_buffer_n_elems,
+            dtype=x.dtype)
+        gpu_buffer_b_array *= 1.0 / self.comm.size
+        mean = gpu_buffer_b_array[:gamma.size]
+        sqmean = gpu_buffer_b_array[gamma.size:]
+        var = sqmean - xp.square(mean)
+        return mean, var
+
+    def backward(self, axis, gamma, gy, x_hat, x, xp):
+        gpu_buffer_n_elems = gamma.size * 2
+        gpu_buffer_size = x.dtype.itemsize * gpu_buffer_n_elems
+        gpu_buffer_a = self.memory_utility_module.DeviceMemory()
+        gpu_buffer_b = self.memory_utility_module.DeviceMemory()
+        gpu_buffer_a.assign(gpu_buffer_size)
+        gpu_buffer_b.assign(gpu_buffer_size)
+        gpu_buffer_a_array = gpu_buffer_a.array(
+            gpu_buffer_n_elems,
+            dtype=x.dtype)
+        gy.sum(axis=axis, out=gpu_buffer_a_array[:gamma.size])
+        (gy * x_hat).sum(axis=axis, out=gpu_buffer_a_array[gamma.size:])
+        stream = chainer.cuda.Stream.null
+        self.comm._init_comms()
+        self.comm.nccl_comm.allReduce(gpu_buffer_a.ptr(),
+                                      gpu_buffer_b.ptr(),
+                                      gpu_buffer_n_elems,
+                                      self.get_nccl_type_id(x.dtype),
+                                      self.nccl.NCCL_SUM,
+                                      stream.ptr)
+        gpu_buffer_b_array = gpu_buffer_b.array(
+            gpu_buffer_n_elems,
+            dtype=x.dtype)
+        gpu_buffer_b_array *= 1.0 / self.comm.size
+        gbeta = gpu_buffer_b_array[:gamma.size]
+        ggamma = gpu_buffer_b_array[gamma.size:]
+
+        return gbeta, ggamma
+
+
+def get_communication_backend(comm, communication_backend='auto'):
+    if communication_backend not in ['mpi', 'nccl', 'auto']:
+        raise ValueError('MultiNodeBatchNormalization does not support '
+                         '{}.'.format(communication_backend))
+    from chainermn.communicators.pure_nccl_communicator \
+        import PureNcclCommunicator
+    if communication_backend != 'auto':
+        if 'nccl' == communication_backend:
+            if not isinstance(comm, PureNcclCommunicator):
+                raise ValueError('{} is not supported in '
+                                 'MultiNodeBatchNormalization when using '
+                                 '{}.'.format(communication_backend,
+                                              type(comm)))
+        selected_communication_backend = communication_backend
+    else:
+        if isinstance(comm, PureNcclCommunicator):
+            selected_communication_backend = 'nccl'
+        else:
+            selected_communication_backend = 'mpi'
+    return selected_communication_backend
+
+
 class MultiNodeBatchNormalizationFunction(function.Function):
 
-    def __init__(self, comm, eps=2e-5, mean=None, var=None, decay=0.9):
+    def __init__(self, comm, eps=2e-5, mean=None, var=None, decay=0.9,
+                 communication_backend='auto'):
         chainer.utils.experimental(
             'chainermn.functions.MultiNodeBatchNormalizationFunction')
 
@@ -47,11 +200,13 @@ class MultiNodeBatchNormalizationFunction(function.Function):
         self.mean_cache = None
         self.decay = decay
 
-        # We need to delay importing MPI4py (and momdules that import MPI4py)
-        import chainermn.communicators._memory_utility as memory_utility_module
-        from mpi4py import MPI as mpi4py_module
-        self.memory_utility_module = memory_utility_module
-        self.mpi4py_module = mpi4py_module
+        selected_communication_backend = \
+            get_communication_backend(comm, communication_backend)
+
+        if selected_communication_backend == 'nccl':
+            self._backend = _NcclBackend(comm)
+        else:
+            self._backend = _MpiBackend(comm)
 
     def check_type_forward(self, in_types):
         n_in = type_check.eval(in_types.size())
@@ -65,7 +220,6 @@ class MultiNodeBatchNormalizationFunction(function.Function):
             x_type.dtype.kind == 'f',
             x_type.ndim >= gamma_type.ndim + 1,
             x_type.shape[1:1 + M] == gamma_type.shape,
-            # TODO(beam2d): Check shape
             gamma_type.dtype == x_type.dtype,
             beta_type.dtype == x_type.dtype,
             gamma_type.shape == beta_type.shape,
@@ -113,27 +267,7 @@ class MultiNodeBatchNormalizationFunction(function.Function):
 
         if chainer.configuration.config.train:
             axis = (0,) + tuple(range(head_ndim, x.ndim))
-
-            # ChainerMN diff (1/2) begins
-            # This was intentionally left as MPI's allreduce because
-            # MPI was optimized for small messages, while earlier
-            # NCCL2 was optmized for larger messages.
-            mpi_comm = self.comm.mpi_comm
-            tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
-            x.mean(axis=axis, out=tmp[:gamma.size])
-            xp.square(x).mean(axis=axis, out=tmp[gamma.size:])
-            if xp is not numpy:
-                chainer.cuda.Stream.null.synchronize()
-            mpi_comm.Allreduce(
-                self.mpi4py_module.IN_PLACE,
-                self.memory_utility_module.array_to_buffer_object(tmp))
-            tmp *= 1.0 / mpi_comm.size
-
-            mean = tmp[:gamma.size]
-            sqmean = tmp[gamma.size:]
-            var = sqmean - xp.square(mean)
-            # ChainerMN diff (1/2) ends
-
+            mean, var = self._backend.forward(axis, gamma, x, xp)
             var += self.eps
         else:
             mean = self.fixed_mean
@@ -210,23 +344,8 @@ class MultiNodeBatchNormalizationFunction(function.Function):
 
         # Note: If length of inputs is not 5, we must be in train mode.
         assert chainer.configuration.config.train
-
-        # ChainerMN diff (2/2) begins
-        # Note: It is wrong to multiply m by mpi_comm.size
-        # (instead of multiplying 1/size to gbeta, ggamma)
-        mpi_comm = self.comm.mpi_comm
-        tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
-        gy.sum(axis=axis, out=tmp[:gamma.size])
-        (gy * self.x_hat).sum(axis=axis, out=tmp[gamma.size:])
-        if xp is not numpy:
-            chainer.cuda.Stream.null.synchronize()
-        mpi_comm.Allreduce(
-            self.mpi4py_module.IN_PLACE,
-            self.memory_utility_module.array_to_buffer_object(tmp))
-        tmp *= 1.0 / mpi_comm.size
-        gbeta = tmp[:gamma.size]
-        ggamma = tmp[gamma.size:]
-        # ChainerMN diff (2/2) ends
+        gbeta, ggamma = self._backend.backward(axis, gamma, gy,
+                                               self.x_hat, x, xp)
 
         if xp is numpy:
             gx = (gamma / self.std)[expander] * (

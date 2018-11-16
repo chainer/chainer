@@ -60,13 +60,10 @@ class BatchRenormalization(BatchNormalization):
             else:
                 decay = self.decay
 
-            func = batch_renormalization.BatchRenormalizationFunction(
+            ret = batch_renormalization.batch_renormalization(
+                x, gamma, beta, self.rmax, self.dmax,
                 self.eps, self.avg_mean, self.avg_var, decay,
-                self.rmax, self.dmax)
-            ret = func(x, gamma, beta)
-
-            self.avg_mean[:] = func.running_mean
-            self.avg_var[:] = func.running_var
+                update_statistics=True)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean
