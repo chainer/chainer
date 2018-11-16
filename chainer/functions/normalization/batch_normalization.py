@@ -271,7 +271,7 @@ class BatchNormalizationGrad(function.Function):
 
         elif self.use_cudnn:
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
-                x, gamma, gy,self.mean, self.inv_std, self.eps,
+                x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
                 configuration.config.debug)
         else:
