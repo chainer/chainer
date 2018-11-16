@@ -18,7 +18,7 @@ There are some non-obvious limitations in ChainerX:
 
     .. code-block:: py
 
-       a = chainerx.zeros((2,), numpy.float32)
+       a = chainerx.zeros((2,), chainerx.float32)
        a.require_grad()  # install the computational graph on `a`.
 
        a += 1  # ! error
@@ -43,8 +43,8 @@ There are some non-obvious limitations in ChainerX:
 
   * If an array is wrapped with a :class:`~chainer.Variable` with ``requires_grad=True`` (which is default), you won't be able to re-assign the array::
 
-       a = chainerx.zeros((2,), numpy.float32)
-       b = chainerx.zeros((2,), numpy.float32)
+       a = chainerx.zeros((2,), chainerx.float32)
+       b = chainerx.zeros((2,), chainerx.float32)
        var = chainer.Variable(a)
 
        var.array = b  # ! error
