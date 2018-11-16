@@ -18,7 +18,7 @@ fi
 
 
 # Variables
-container_name="chainerx-ci-${BUILD_ID}"
+container_name="chainerx-ci-${BUILD_ID}-${EXECUTOR_NUMBER}"
 container_workspace_dir=/workspace
 container_repo_dir=/repo
 container_work_dir="$container_workspace_dir"/work
