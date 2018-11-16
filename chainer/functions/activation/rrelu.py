@@ -1,9 +1,10 @@
+import numpy as np
+
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
-import numpy as np
 
 
 def _kern():
@@ -87,14 +88,14 @@ class _RReLUGrad(function_node.FunctionNode):
 def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
     """rrelu(x, l=1. / 8, u=1. / 3, *, r=None, return_r=False)
 
-        Randomized Leaky Rectified Liner Unit function.
+    Randomized Leaky Rectified Liner Unit function.
 
     This function is expressed as
 
     .. math:: f(x)=\\max(x, ax),
 
-    where :math:`a` is a random number sampled \
-                from a uniform distribution :math:`U(l, u)`.
+    where :math:`a` is a random number sampled from a uniform distribution
+    :math:`U(l, u)`.
 
     See: https://arxiv.org/pdf/1505.00853.pdf
 
