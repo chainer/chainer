@@ -1,5 +1,7 @@
 import copy
 
+from chainer.backends import cuda
+
 
 class Distribution(object):
 
@@ -79,7 +81,7 @@ class Distribution(object):
         """Returns the shape of a batch.
 
         Returns:
-            tuple: The shape of a sample that is not identical and indipendent.
+            tuple: The shape of a sample that is not identical and independent.
 
         """
         raise NotImplementedError
@@ -207,6 +209,16 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    @property
+    def params(self):
+        """Returns the parameters of the distribution.
+
+        Returns:
+            dict: The parameters of the distribution.
+
+        """
+        raise NotImplementedError
+
     def perplexity(self, x):
         """Evaluates the perplexity function at the given points.
 
@@ -322,6 +334,15 @@ class Distribution(object):
 
         """
         raise NotImplementedError
+
+    @property
+    def xp(self):
+        """Array module for the distribution.
+
+        Depending on which of CPU/GPU this distribution is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+        """
+        return cuda.get_array_module(*self.params.values())
 
 
 _KLDIVERGENCE = {}

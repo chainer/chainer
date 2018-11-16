@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
@@ -53,7 +54,7 @@ def _flip_path(path, path_length, xp):
     """
     n_batch, n_label = path.shape
     rotate = (xp.arange(n_label) + path_length[:, None]) % n_label
-    return path[xp.arange(n_batch, dtype='i')[:, None],
+    return path[xp.arange(n_batch, dtype=xp.int32)[:, None],
                 rotate][:, ::-1]
 
 
@@ -68,11 +69,11 @@ def _flip_label_probability(y, input_length, xp):
 
     """
     seq, n_batch, n_vocab = y.shape
-    rotate = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
+    rotate = (xp.arange(seq, dtype=xp.int32)[:, None] + input_length) % seq
     return y[
         rotate[:, :, None],
-        xp.arange(n_batch, dtype='i')[None, :, None],
-        xp.arange(n_vocab, dtype='i')[None, None, :]][::-1]
+        xp.arange(n_batch, dtype=xp.int32)[None, :, None],
+        xp.arange(n_vocab, dtype=xp.int32)[None, None, :]][::-1]
 
 
 def _flip_path_probability(prob, input_length, path_length, xp):
@@ -86,12 +87,13 @@ def _flip_path_probability(prob, input_length, path_length, xp):
 
     """
     seq, n_batch, n_label = prob.shape
-    rotate_input = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
-    rotate_label = (
-        xp.arange(n_label, dtype='i') + path_length[:, None]) % n_label
+    rotate_input = ((xp.arange(seq, dtype=xp.int32)[:, None] + input_length)
+                    % seq)
+    rotate_label = ((xp.arange(n_label, dtype=xp.int32) + path_length[:, None])
+                    % n_label)
     return prob[
         rotate_input[:, :, None],
-        xp.arange(n_batch, dtype='i')[None, :, None],
+        xp.arange(n_batch, dtype=xp.int32)[None, :, None],
         rotate_label][::-1, :, ::-1]
 
 
@@ -117,7 +119,7 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(
+        type_check._argname(
             in_types, ('input_length', 'label_length', 't', 'x'))
         input_length_type, label_length_type, t_type, x_type = in_types
         type_check.expect(
@@ -146,7 +148,7 @@ class ConnectionistTemporalClassification(function.Function):
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
             res = create_recurrence_relation(x, self.zero_padding)
-        return res.astype(numpy.float32)
+        return res.astype(numpy.float32, copy=False)
 
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
@@ -184,12 +186,13 @@ class ConnectionistTemporalClassification(function.Function):
 
     def _computes_transition(
             self, prev_prob, path, path_length, cum_prob, y):
-        xp = cuda.get_array_module(prev_prob)
+        xp = backend.get_array_module(prev_prob)
 
         if xp == numpy:
             n_batch, max_path_length = path.shape
             mat = xp.full(
-                (3, n_batch, max_path_length), self.zero_padding, 'f')
+                (3, n_batch, max_path_length), self.zero_padding,
+                numpy.float32)
             mat[0, :, :] = prev_prob
             mat[1, :, 1:] = prev_prob[:, :-1]
             mat[2, :, 2:] = prev_prob[:, :-2]
@@ -201,7 +204,7 @@ class ConnectionistTemporalClassification(function.Function):
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
             cum_prob += prob
-            batch_index = xp.arange(n_batch, dtype='i')
+            batch_index = xp.arange(n_batch, dtype=xp.int32)
             prob += y[batch_index[:, None], path]
         else:
             prob = xp.empty_like(prev_prob)
@@ -247,12 +250,12 @@ class ConnectionistTemporalClassification(function.Function):
         assert path.shape == (n_batch, max_label_length * 2 + 1)
 
         forward_prob = xp.full(
-            (n_batch, max_path_length), self.zero_padding, dtype='f')
+            (n_batch, max_path_length), self.zero_padding, dtype=numpy.float32)
         forward_prob[:, 0] = 0
         backward_prob = forward_prob
 
-        batch_index = xp.arange(n_batch, dtype='i')
-        seq_index = xp.arange(len(yseq), dtype='i')
+        batch_index = xp.arange(n_batch, dtype=xp.int32)
+        seq_index = xp.arange(len(yseq), dtype=xp.int32)
         prob = yseq[seq_index[:, None, None], batch_index[:, None], path]
         # forward computation.
         for i, y in enumerate(yseq):
@@ -271,7 +274,7 @@ class ConnectionistTemporalClassification(function.Function):
         return _flip_path_probability(prob, input_length, path_length, xp)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         self.input_length, label_length, t, xs = inputs
 
         if chainer.is_debug():
@@ -293,7 +296,7 @@ class ConnectionistTemporalClassification(function.Function):
         return loss,
 
     def backward(self, inputs, grad_output):
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         batch_size = len(inputs[2])
 
         total_probability = _logsumexp(self.prob_trans[0], xp, axis=1)
@@ -398,7 +401,7 @@ def connectionist_temporal_classification(
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
     assert x[0].ndim == 2
 
-    xp = cuda.get_array_module(x[0])
+    xp = backend.get_array_module(x[0])
     if input_length is None:
         input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
     if label_length is None:

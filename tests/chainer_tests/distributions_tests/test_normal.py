@@ -1,7 +1,8 @@
+import numpy
+
 from chainer import distributions
 from chainer import testing
 from chainer import utils
-import numpy
 
 
 @testing.parameterize(*testing.product({

@@ -5,6 +5,7 @@ import warnings
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
@@ -292,13 +293,20 @@ class UpdateRule(object):
                 self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
-                    self._state[key] = serializer(key, None)
+                    try:
+                        value = serializer(key, None)
+                    except KeyError:
+                        if self.enabled:
+                            raise
+                        value = None
                     # leave the update rule state as `None` if the keys are not
                     # contained in the snapshot, so that these states can be
                     # automatically initialized with the `_prepare` method
-                    if self._state[key] is None:
+                    if value is None:
                         self._state = None
                         break
+                    else:
+                        self._state[key] = value
         else:
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
@@ -637,7 +645,7 @@ class GradientMethod(Optimizer):
         for name, param in self.target.namedparams(False):
             if param.grad is None:
                 with cuda.get_device_from_array(param.data):
-                    xp = cuda.get_array_module(param.data)
+                    xp = backend.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):

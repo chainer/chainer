@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -30,7 +31,7 @@ class Hinge(function.Function):
                 'given' % reduce)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(
@@ -94,7 +95,7 @@ class Hinge(function.Function):
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
 
         if self.reduce == 'mean':

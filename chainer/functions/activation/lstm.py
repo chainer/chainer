@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function
@@ -61,7 +62,7 @@ class LSTM(function_node.FunctionNode):
     """
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('c', 'x'))
+        type_check._argname(in_types, ('c', 'x'))
         c_type, x_type = in_types
 
         type_check.expect(
@@ -123,7 +124,7 @@ class LSTM(function_node.FunctionNode):
 class LSTMGrad(function.Function):
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         c_prev, x, c_next, gc, gh = inputs
         batch = len(x)
 
@@ -183,7 +184,7 @@ class LSTMGrad(function.Function):
         return gc_prev, gx
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
@@ -228,7 +229,7 @@ class LSTMGrad(function.Function):
 def lstm_grad_grad(
         c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
         gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
     sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)

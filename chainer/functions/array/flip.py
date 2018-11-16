@@ -1,6 +1,6 @@
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -20,7 +20,7 @@ class Flip(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
 
         type_check.expect(x_type.ndim > 0)
@@ -30,7 +30,7 @@ class Flip(function_node.FunctionNode):
             type_check.expect(x_type.ndim >= -self.axis)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if hasattr(xp, 'flip'):  # numpy.flip is supported from version 1.12.0
             return xp.flip(inputs[0], self.axis),
         else:

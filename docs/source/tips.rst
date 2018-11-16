@@ -25,8 +25,7 @@ MNIST example does not converge in CPU mode on Mac OS X
 
 .. note::
 
-   Mac OS X is not officially supported.
-   Please use it at your own risk.
+   Mac OS X is not an officially supported OS.
 
 Many users have reported that MNIST example does not work correctly
 when using vecLib as NumPy backend on Mac OS X.
@@ -35,15 +34,64 @@ vecLib is the default BLAS library installed on Mac OS X.
 We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 
 To use an alternative BLAS library, it is necessary to reinstall NumPy.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
+Here are instructions to install NumPy with OpenBLAS using `Conda <https://conda.io/docs/user-guide/install/index.html>`_.
 
 ::
 
-   $ brew tap homebrew/science
-   $ brew install openblas
-   $ brew install numpy --with-openblas
+   $ conda install -c conda-forge numpy
 
-If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
+Otherwise, to install NumPy without Conda, you may need to install NumPy from source.
+
+Use `Homebrew <https://brew.sh/>`_ to install OpenBLAS.
+
+::
+
+   $ brew install openblas
+
+Uninstall existing NumPy installation
+
+::
+
+   $ pip uninstall numpy
+
+You'll to create a file called `.numpy-site.cfg` in your home (~/) directory with the following:
+
+::
+
+   [openblas]
+   libraries = openblas
+   library_dirs = /usr/local/opt/openblas/lib
+   include_dirs = /usr/local/opt/openblas/include
+
+Install NumPy from the source code
+
+::
+
+   pip install --no-binary :all: numpy
+
+Confirm NumPy has been installed with OpenBLAS by running this command:
+
+::
+
+   $ python -c "import numpy; print(numpy.show_config())"
+
+You should see the following information:
+
+::
+
+   blas_mkl_info:
+     NOT AVAILABLE
+   blis_info:
+     NOT AVAILABLE
+   openblas_info:
+     libraries = ['openblas', 'openblas']
+     library_dirs = ['/usr/local/opt/openblas/lib']
+     language = c
+     define_macros = [('HAVE_CBLAS', None)]
+     runtime_library_dirs = ['/usr/local/opt/openblas/lib']
+    ...
+
+Once this is done, you should be able to ``import chainer`` without OpenBLAS errors.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
@@ -111,13 +159,17 @@ Install Chainer Backend for Intel Architecture
 The following environments are recommended by `Chainer Backend for Intel Architecture <https://github.com/intel/ideep>`_.
 
 * Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
-* Python 2.7.5+, 3.5.2+, and 3.6.0+
+* Python 2.7.6+, 3.5.2+, and 3.6.0+
 
 On recommended systems, you can install Chainer Backend for Intel Architecture wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install 'ideep4py<2'
+    $ pip install 'ideep4py<2.1'
+
+.. note::
+
+    ``ideep4py`` v1.0.x is incompatible with v2.0.x, and is not supported in Chainer v5.0 or later.
 
 Enable Chainer Backend for Intel Architecture Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

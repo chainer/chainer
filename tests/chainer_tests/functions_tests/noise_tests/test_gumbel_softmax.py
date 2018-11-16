@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
@@ -28,8 +29,8 @@ class TestGumbelSoftmax(unittest.TestCase):
         self.assertEqual(y.dtype, numpy.float32)
         self.assertEqual(y.shape, log_pi.shape)
         self.assertEqual(
-            cuda.get_array_module(y),
-            cuda.get_array_module(log_pi))
+            backend.get_array_module(y),
+            backend.get_array_module(log_pi))
 
     def test_forward_cpu(self):
         self.check_forward(self.log_pi, self.tau)

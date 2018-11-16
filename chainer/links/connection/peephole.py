@@ -69,6 +69,7 @@ class StatefulPeepholeLSTM(link.Chain):
             self.c.to_cpu()
         if self.h is not None:
             self.h.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         super(StatefulPeepholeLSTM, self).to_gpu(device)
@@ -76,6 +77,7 @@ class StatefulPeepholeLSTM(link.Chain):
             self.c.to_gpu(device)
         if self.h is not None:
             self.h.to_gpu(device)
+        return self
 
     def reset_state(self):
         """Resets the internal states.

@@ -1,20 +1,24 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
+from chainer.graph_optimizations import static_code
+from chainer import utils
 from chainer.utils import type_check
 
 
 class LinearFunction(function_node.FunctionNode):
 
     _config_use_ideep = None
+    _supports_static_optimizations = True
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-        type_check.argname((x_type, w_type), ('x', 'W'))
+        type_check._argname((x_type, w_type), ('x', 'W'))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -25,12 +29,38 @@ class LinearFunction(function_node.FunctionNode):
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
-            type_check.argname((b_type,), ('b',))
+            type_check._argname((b_type,), ('b',))
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
+
+    @static_code
+    def static_linear_no_bias(self, xp, optimized, inputs, outputs):
+        x, W = inputs
+        y = outputs[0]
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (isinstance(x, numpy.ndarray) and
+                not (x.flags.c_contiguous or x.flags.f_contiguous) and
+                1 in x.shape):
+            x = numpy.ascontiguousarray(x)
+
+        if optimized:
+            # Note: We can only call this function when both x and W
+            # have the same dtype. Otherwise, the output type (for y)
+            # may not be as expected (i.e., not the same dtype as x).
+            xp.dot(x, W.T, out=y)
+        else:
+            y[:] = x.dot(W.T).astype(x.dtype, copy=False)
+
+    @static_code
+    def static_add_bias(self, inputs, outputs):
+        bias = inputs[0]
+        y = outputs[0]
+        y += bias
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
@@ -53,9 +83,24 @@ class LinearFunction(function_node.FunctionNode):
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
-        y = x.dot(W.T).astype(x.dtype, copy=False)
-        if b is not None:
-            y += b
+        # In order to be compatible with the "static graph" feature, it is
+        # required that all output arrays of this forward
+        # function be allocated explicitly:
+        xp = cuda.get_array_module(x)
+        y = xp.empty((x.shape[0], W.shape[0]), dtype=x.dtype)
+
+        # This is required because all of the "static_*()" functions
+        # use the convention that any output arrays are supplied
+        # as input arguments to the function. That is because it is
+        # not allowed for a "static_*()" function to return anything
+        # other than `None`. The reason is to prevent dynamic allocation
+        # of output arrays during execution of the static schedule
+        # because it would break the model.
+        self.static_linear_no_bias(xp, x.dtype == W.dtype, inputs=[x, W],
+                                   outputs=[y])
+        if len(inputs) == 3:
+            self.static_add_bias(inputs=[b], outputs=[y])
+
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
@@ -233,7 +278,7 @@ def linear(x, W, b=None, n_batch_axes=1):
         raise ValueError('n_batch_axes should be greater than 0.')
     if n_batch_axes > 1:
         batch_shape = x.shape[:n_batch_axes]
-        batch_size = numpy.prod(batch_shape)
+        batch_size = utils.size_of_shape(batch_shape)
         x = x.reshape(batch_size, -1)
     elif x.ndim > 2:
         x = x.reshape(x.shape[0], -1)

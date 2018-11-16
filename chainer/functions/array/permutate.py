@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -23,7 +24,7 @@ def _check_indices(indices):
 
 
 def _inverse_indices(indices):
-    xp = cuda.get_array_module(indices)
+    xp = backend.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
         r[indices] = numpy.arange(len(indices))
@@ -40,23 +41,18 @@ class Permutate(function_node.FunctionNode):
 
     """Permutate function."""
 
-    def __init__(self, axis=0, inv=False):
+    def __init__(self, indices, axis, inv):
+        self.indices = indices
         self.axis = axis
         self.inv = inv
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'indices'))
-        x_type, ind_type = in_types
+        type_check._argname(in_types, ('x',))
+        x_type, = in_types
         if self.axis < 0:
             type_check.expect(x_type.ndim >= -self.axis)
         else:
             type_check.expect(x_type.ndim > self.axis)
-
-        type_check.expect(
-            ind_type.dtype.kind == 'i',
-            ind_type.ndim == 1,
-            x_type.shape[self.axis] == ind_type.shape[0],
-        )
 
     def _permutate(self, x, indices, inv):
         if inv:
@@ -65,8 +61,8 @@ class Permutate(function_node.FunctionNode):
         return x[((slice(None),) * self.axis) + (indices,)]
 
     def forward(self, inputs):
-        self.retain_inputs((1,))
-        x, inds = inputs
+        x, = inputs
+        inds = self.indices
 
         if chainer.is_debug():
             _check_indices(inds)
@@ -74,10 +70,10 @@ class Permutate(function_node.FunctionNode):
         return self._permutate(x, inds, self.inv),
 
     def backward(self, indexes, grad_outputs):
-        inds = self.inputs[1]
         g, = grad_outputs
-        gx, = Permutate(self.axis, not self.inv).apply((g, inds.data))
-        return gx, None
+        inds = self.indices
+        gx, = Permutate(inds, self.axis, not self.inv).apply((g,))
+        return gx,
 
 
 def permutate(x, indices, axis=0, inv=False):
@@ -114,22 +110,27 @@ def permutate(x, indices, axis=0, inv=False):
                [4., 5.]], dtype=float32)
         >>> indices = np.array([2, 0, 1], np.int32)
         >>> y = F.permutate(x, indices)
-        >>> y.data
+        >>> y.array
         array([[4., 5.],
                [0., 1.],
                [2., 3.]], dtype=float32)
         >>> y = F.permutate(x, indices, inv=True)
-        >>> y.data
+        >>> y.array
         array([[2., 3.],
                [4., 5.],
                [0., 1.]], dtype=float32)
         >>> indices = np.array([1, 0], np.int32)
         >>> y = F.permutate(x, indices, axis=1)
-        >>> y.data
+        >>> y.array
         array([[1., 0.],
                [3., 2.],
                [5., 4.]], dtype=float32)
 
     """
-    y, = Permutate(axis, inv).apply((x, indices))
+    if indices.dtype.kind != 'i' or indices.ndim != 1:
+        raise ValueError(
+            'indices should be a one-dimensional int array')
+    if isinstance(indices, chainer.Variable):
+        indices = indices.array
+    y, = Permutate(indices, axis, inv).apply((x,))
     return y

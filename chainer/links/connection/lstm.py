@@ -1,6 +1,3 @@
-import functools
-import operator
-
 import numpy
 import six
 
@@ -11,6 +8,7 @@ from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
+from chainer import utils
 from chainer import variable
 
 
@@ -250,6 +248,7 @@ class LSTM(LSTMBase):
             self.c.to_cpu()
         if self.h is not None:
             self.h.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         super(LSTM, self).to_gpu(device)
@@ -257,6 +256,7 @@ class LSTM(LSTMBase):
             self.c.to_gpu(device)
         if self.h is not None:
             self.h.to_gpu(device)
+        return self
 
     def set_state(self, c, h):
         """Sets the internal state.
@@ -301,7 +301,7 @@ class LSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             with cuda.get_device_from_id(self._device_id):
-                in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+                in_size = utils.size_of_shape(x.shape[1:])
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 

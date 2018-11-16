@@ -1,3 +1,5 @@
+.. _creating_models:
+
 Creating Models
 ~~~~~~~~~~~~~~~
 

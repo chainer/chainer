@@ -51,7 +51,7 @@ class VAE(chainer.Chain):
         """
         def lf(x):
             mu, ln_var = self.encode(x)
-            batchsize = len(mu.data)
+            batchsize = len(mu)
             # reconstruction loss
             rec_loss = 0
             for l in six.moves.range(k):

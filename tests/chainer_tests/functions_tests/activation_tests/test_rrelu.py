@@ -3,12 +3,12 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -19,11 +19,11 @@ from chainer.testing import condition
 class TestRReLU(unittest.TestCase):
 
     def setUp(self):
-        # Avoid unstability of numeraical grad
+        # Avoid unstability of numerical grad
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        # Asummption l < u
+        # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
@@ -36,7 +36,7 @@ class TestRReLU(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         with chainer.using_config('train', self.train):
             y, r = functions.rrelu(x, l=self.l, u=self.u, return_r=True)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -44,19 +44,17 @@ class TestRReLU(unittest.TestCase):
         testing.assert_allclose(
             expected, y.data, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        xp = cuda.get_array_module(x_data)
-        r = xp.random.uniform(self.l, self.u, x_data[
-                              0].shape).astype(x_data[0].dtype)
+        xp = backend.get_array_module(x_data)
+        r = xp.random.uniform(self.l, self.u, x_data.shape).astype(
+            x_data.dtype)
 
         def f(x):
             return functions.rrelu(x, self.l, self.u, r=r)
@@ -66,12 +64,10 @@ class TestRReLU(unittest.TestCase):
                 f, x_data, y_grad, dtype=numpy.float64,
                 **self.check_backward_options)
 
-    @condition.retry(10)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(10)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -87,17 +83,17 @@ class TestRReLUR(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
-        # Asummption l < u
+        # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
             self.l, self.u = self.u, self.l
-        self.r = (numpy.random.uniform(
-            self.l, self.u, self.x[0].shape)).astype(self.x[0].dtype)
+        self.r = numpy.random.uniform(
+            self.l, self.u, self.x.shape).astype(self.x.dtype)
 
     def _check(self):
         r = self.r if self.specify_r else None
-        with chainer.using_config('tarin', self.train):
+        with chainer.using_config('train', self.train):
             out, out_r = functions.rrelu(
                 self.x, self.l, self.u, r=r, return_r=True)
 
@@ -105,7 +101,7 @@ class TestRReLUR(unittest.TestCase):
         if r is None:
             assert out_r.shape == out.array.shape
         else:
-            if chainer.config.train:
+            if self.train:
                 assert out_r is r
 
     def test_cpu(self):

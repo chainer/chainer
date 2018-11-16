@@ -61,8 +61,8 @@ class ResNetLayers(link.Chain):
             where ``$CHAINER_DATASET_ROOT`` is set as
             ``$HOME/.chainer/dataset`` unless you specify another value
             by modifying the environment variable and {n_layers} is replaced
-            with the specified number of layers given as the first argment to
-            this costructor. Note that in this case the converted chainer
+            with the specified number of layers given as the first argument to
+            this constructor. Note that in this case the converted chainer
             model is stored on the same directory and automatically used from
             the next time.
             If this argument is specified as ``None``, all the parameters
@@ -545,7 +545,7 @@ def prepare(image, size=(224, 224)):
     #       mean pixel (rather than mean image) as with VGG team. The mean
     #       value used in ResNet is slightly different from that of VGG16.
     image -= numpy.array(
-        [103.063,  115.903,  123.152], dtype=dtype)
+        [103.063, 115.903, 123.152], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 

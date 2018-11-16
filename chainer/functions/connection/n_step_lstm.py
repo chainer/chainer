@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import reshape
@@ -419,12 +420,11 @@ def n_step_lstm_base(
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-    xp = cuda.get_array_module(hx, hx.data)
+    xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        handle = cudnn.get_handle()
         states = cuda.get_cudnn_dropout_states()
-        cudnn.set_dropout_descriptor(states._desc, handle, dropout_ratio)
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 

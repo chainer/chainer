@@ -6,6 +6,7 @@ import operator
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -164,7 +165,7 @@ class TestAveragePoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional average pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
@@ -264,7 +265,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto') and
@@ -276,9 +277,43 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
+
+
+class TestAveragePoolingNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        x_shape = (2, 3) + (3,) * ndim
+        dtype = numpy.float32
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        ksize = (2,) * ndim
+
+        return x, ksize
+
+    def test_average_pooling_1d(self):
+        (x, ksize) = self._get_data(1)
+        testing.assert_allclose(
+            functions.average_pooling_nd(x, ksize).data,
+            functions.average_pooling_1d(x, ksize).data)
+
+    def test_average_pooling_1d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.average_pooling_1d(x, ksize)
+
+    def test_average_pooling_3d(self):
+        (x, ksize) = self._get_data(3)
+        testing.assert_allclose(
+            functions.average_pooling_nd(x, ksize).data,
+            functions.average_pooling_3d(x, ksize).data)
+
+    def test_average_pooling_3d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.average_pooling_3d(x, ksize)
 
 
 testing.run_module(__name__, __file__)

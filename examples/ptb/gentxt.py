@@ -80,11 +80,11 @@ def main():
     for i in six.moves.range(args.length):
         prob = F.softmax(model.predictor(prev_word))
         if args.sample > 0:
-            probability = cuda.to_cpu(prob.data)[0].astype(np.float64)
+            probability = cuda.to_cpu(prob.array)[0].astype(np.float64)
             probability /= np.sum(probability)
             index = np.random.choice(range(len(probability)), p=probability)
         else:
-            index = np.argmax(cuda.to_cpu(prob.data))
+            index = np.argmax(cuda.to_cpu(prob.array))
 
         if ivocab[index] == '<eos>':
             sys.stdout.write('.')

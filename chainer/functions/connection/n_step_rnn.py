@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
@@ -160,7 +161,7 @@ class CudnnRNNWeightConcat(function.Function):
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), 'f')
+        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(
@@ -794,12 +795,11 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
-    xp = cuda.get_array_module(hx)
+    xp = backend.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        handle = cudnn.get_handle()
         states = cuda.get_cudnn_dropout_states()
-        cudnn.set_dropout_descriptor(states._desc, handle, dropout_ratio)
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 

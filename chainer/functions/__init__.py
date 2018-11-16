@@ -66,8 +66,12 @@ from chainer.functions.array.where import where  # NOQA
 
 from chainer.functions.connection.bilinear import bilinear  # NOQA
 from chainer.functions.connection.convolution_2d import convolution_2d  # NOQA
+from chainer.functions.connection.convolution_nd import convolution_1d  # NOQA
+from chainer.functions.connection.convolution_nd import convolution_3d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
+from chainer.functions.connection.deconvolution_nd import deconvolution_1d  # NOQA
+from chainer.functions.connection.deconvolution_nd import deconvolution_3d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
 from chainer.functions.connection.deformable_convolution_2d_sampler import deformable_convolution_2d_sampler  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
@@ -99,6 +103,7 @@ from chainer.functions.loss.crf1d import crf1d  # NOQA
 from chainer.functions.loss.cross_covariance import cross_covariance  # NOQA
 from chainer.functions.loss.ctc import connectionist_temporal_classification  # NOQA
 from chainer.functions.loss.decov import decov  # NOQA
+from chainer.functions.loss.discriminative_loss import discriminative_margin_based_clustering_loss  # NOQA
 from chainer.functions.loss.hinge import hinge  # NOQA
 from chainer.functions.loss.huber_loss import huber_loss  # NOQA
 from chainer.functions.loss.mean_absolute_error import mean_absolute_error  # NOQA
@@ -196,15 +201,22 @@ from chainer.functions.normalization.layer_normalization import layer_normalizat
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
 
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
+from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA
+from chainer.functions.pooling.average_pooling_nd import average_pooling_3d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
+from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
+from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-# TODO(kmaehashi) this alias should be removed in
-# https://github.com/chainer/chainer/pull/5198
-from chainer.functions.pooling.roi_align_2d import roi_align_2d as roi_average_align_2d  # NOQA
+from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
+from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
+from chainer.functions.pooling.roi_max_align_2d import roi_max_align_2d  # NOQA
+from chainer.functions.pooling.roi_max_pooling_2d import roi_max_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
+from chainer.functions.pooling.unpooling_nd import unpooling_1d  # NOQA
+from chainer.functions.pooling.unpooling_nd import unpooling_3d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_nd  # NOQA
 from chainer.functions.pooling.upsampling_2d import upsampling_2d  # NOQA
 

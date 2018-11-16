@@ -1,6 +1,5 @@
 import functools
 import unittest
-import warnings
 
 import numpy
 
@@ -225,11 +224,9 @@ class TestEinSumUndefinedSemantics(unittest.TestCase):
             for shape in self.shapes
         ])
 
-    def test_warn(self):
-        with warnings.catch_warnings(record=True) as ws:
-            warnings.simplefilter("always")
+    def test_bad_ellipsis_sum(self):
+        with self.assertRaises(ValueError):
             einsum.einsum(self.subscripts, *self.inputs)
-            self.assertEqual(len(ws), 1)
 
 
 def diag_einsum(
