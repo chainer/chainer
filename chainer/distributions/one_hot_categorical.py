@@ -42,10 +42,15 @@ class OneHotCategorical(distribution.Distribution):
     def __init__(self, p):
         super(OneHotCategorical, self).__init__()
         self.__p = chainer.as_variable(p)
+        self.__log_p = exponential.log(self.__p)
 
     @property
     def p(self):
         return self.__p
+
+    @property
+    def log_p(self):
+        return self.__log_p
 
     @property
     def batch_shape(self):
@@ -69,7 +74,7 @@ class OneHotCategorical(distribution.Distribution):
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)
         obo_p = self.p.data.reshape((-1,) + self.event_shape)
-        eye = xp.eye(self.event_shape[0])
+        eye = xp.eye(self.event_shape[0], dtype=self.p.dtype)
         eps = [_random_choice(xp, one_p.shape[0], size=(n,), p=one_p)
                for one_p in obo_p]
         eps = _stack(xp, eps, axis=1).reshape((n,)+self.batch_shape)
@@ -80,3 +85,8 @@ class OneHotCategorical(distribution.Distribution):
     @property
     def variance(self):
         return self.p * (1. - self.p)
+
+
+@distribution.register_kl(OneHotCategorical, OneHotCategorical)
+def _kl_one_hot_categorical_one_hot_categorical(dist1, dist2):
+    return sum_mod.sum(dist1.p * (dist1.log_p - dist2.log_p), axis=-1)
