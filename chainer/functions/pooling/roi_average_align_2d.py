@@ -30,92 +30,66 @@ def _pair(x):
     return x, x
 
 
-def _get_bilinear_interp_params(y, x, height, width):
-    if y < -1 or y > height or x < -1 or x > width:
+def _get_bounds(i, limit):
+    if i < -1 or i > limit:
         # out of range, so it is empty
-        return (None,) * 8
-
-    if y <= 0:
-        y = 0
-    if x <= 0:
-        x = 0
-
-    y_low = int(y)
-    x_low = int(x)
-
-    if y_low >= height - 1:
-        y_high = y_low = height - 1
-        y = float(y_low)
+        return None, None, None
+    if i <= 0:
+        i = 0
+    i_low = int(numpy.floor(i))
+    if i_low >= limit - 1:
+        i_high = i_low = limit - 1
+        i = float(i_low)
     else:
-        y_high = y_low + 1
+        i_high = i_low + 1
+    return i, i_low, i_high
 
-    if x_low >= width - 1:
-        x_high = x_low = width - 1
-        x = float(x_low)
-    else:
-        x_high = x_low + 1
 
+def _get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high):
     ly = y - y_low
     lx = x - x_low
     hy = 1. - ly
     hx = 1. - lx
-
     w1 = hy * hx
     w2 = hy * lx
     w3 = ly * hx
     w4 = ly * lx
-
-    return y_low, x_low, y_high, x_high, w1, w2, w3, w4
+    return w1, w2, w3, w4
 
 
 _GET_BILINEAR_INTERP_KERNEL = '''
 __device__
-bool get_bilinear_interp_params(
-    T x, T y, const int height, const int width,
-    int &y_low, int &x_low, int &y_high, int &x_high,
-    T &w1, T &w2, T &w3, T &w4) {
-    // deal with cases that inverse elements are
-    // out of feature map boundary
-    if (y < -1. || y > height || x < -1. || x > width) {
+bool get_bounds(
+    T &i, const int limit, int &i_low, int &i_high) {
+    if (i < -1. || i > limit) {
         // empty
         return false;
     }
-
-    if (y <= 0) {
-        y = 0;
+    if (i <= 0) {
+        i = 0;
     }
-    if (x <= 0) {
-        x = 0;
-    }
-
-    y_low = (int)y;
-    x_low = (int)x;
-
-    if (y_low >= height - 1) {
-        y_high = y_low = height - 1;
-        y = (T)y_low;
+    i_low = (int)i;
+    if (i_low >= limit - 1) {
+        i_high = i_low = limit - 1;
+        i = (T)i_low;
     } else {
-        y_high = y_low + 1;
+        i_high = i_low + 1;
     }
+    return true;
+}
 
-    if (x_low >= width - 1) {
-        x_high = x_low = width - 1;
-        x = (T)x_low;
-    } else {
-        x_high = x_low + 1;
-    }
-
+__device__
+void get_bilinear_interp_params(
+    T y, T x, int y_low, int x_low, int y_high, int x_high,
+    T &w1, T &w2, T &w3, T &w4) {
     T ly = y - y_low;
     T lx = x - x_low;
     T hy = 1. - ly;
     T hx = 1. - lx;
-
     w1 = hy * hx;
     w2 = hy * lx;
     w3 = ly * hx;
     w4 = ly * lx;
-
-    return true;
 }
 '''
 
@@ -211,16 +185,19 @@ class ROIAverageAlign2D(function.Function):
             for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
+                y, y_low, y_high = _get_bounds(y, height)
+                if y is None or y_low is None or y_high is None:
+                    continue
                 for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
-
+                    x, x_low, x_high = _get_bounds(x, width)
+                    if x is None or x_low is None or x_high is None:
+                        continue
                     # bilinear interpolation {{
 
-                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                        _get_bilinear_interp_params(y, x, height, width)
-                    if y_low is None:
-                        continue
+                    w1, w2, w3, w4 = _get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high)
 
                     v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
                     v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
@@ -302,22 +279,21 @@ class ROIAverageAlign2D(function.Function):
                 T y = roi_start_h + ph * bin_size_h +
                     static_cast<T>(iy + .5f) * bin_size_h /
                         static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                int y_low, y_high;
+                bool y_ret = get_bounds(y, height, y_low, y_high);
+                if (!y_ret) continue;
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
                     T x = roi_start_w + pw * bin_size_w +
                         static_cast<T>(ix + .5f) * bin_size_w /
                             static_cast<T>(roi_bin_grid_w);
 
-                    // bilinear_interpolation {{
-                    int y_low, x_low, y_high, x_high;
+                    int x_low, x_high;
+                    bool x_ret = get_bounds(x, width, x_low, x_high);
+                    if (!x_ret) continue;
+                    // bilinear_interpolation_gradient {{
                     T w1, w2, w3, w4;
-                    bool ret = get_bilinear_interp_params(
-                        x, y, height, width,
-                        y_low, x_low, y_high, x_high,
-                        w1, w2, w3, w4
-                    );
-                    if (!ret) {
-                        continue;
-                    }
+                    get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
 
                     T v1 = bottom_data[bottom_data_offset +
                                        y_low * width + x_low];
@@ -388,16 +364,19 @@ class ROIAverageAlign2D(function.Function):
             for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
+                y, y_low, y_high = _get_bounds(y, height)
+                if y is None or y_low is None or y_high is None:
+                    continue
                 for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
-
+                    x, x_low, x_high = _get_bounds(x, width)
+                    if x is None or x_low is None or x_high is None:
+                        continue
                     # bilinear_interpolation_gradient {{
 
-                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                        _get_bilinear_interp_params(y, x, height, width)
-                    if y_low is None:
-                        continue
+                    w1, w2, w3, w4 = _get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high)
 
                     g1 = top_diff_this_bin * w1 / count
                     g2 = top_diff_this_bin * w2 / count
@@ -482,22 +461,21 @@ class ROIAverageAlign2D(function.Function):
                 T y = roi_start_h + ph * bin_size_h +
                     static_cast<T>(iy + .5f) * bin_size_h /
                         static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                int y_low, y_high;
+                bool y_ret = get_bounds(y, height, y_low, y_high);
+                if (!y_ret) continue;
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
                     T x = roi_start_w + pw * bin_size_w +
                         static_cast<T>(ix + .5f) * bin_size_w /
                             static_cast<T>(roi_bin_grid_w);
 
+                    int x_low, x_high;
+                    bool x_ret = get_bounds(x, width, x_low, x_high);
+                    if (!x_ret) continue;
                     // bilinear_interpolation_gradient {{
-                    int y_low, x_low, y_high, x_high;
                     T w1, w2, w3, w4;
-                    bool ret = get_bilinear_interp_params(
-                        x, y, height, width,
-                        y_low, x_low, y_high, x_high,
-                        w1, w2, w3, w4
-                    );
-                    if (!ret) {
-                        continue;
-                    }
+                    get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
 
                     T g1 = top_diff_this_bin * w1 / count;
                     T g2 = top_diff_this_bin * w2 / count;
