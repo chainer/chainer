@@ -91,6 +91,8 @@ class Prior(chainer.Link):
 
         self.loc = np.zeros(n_latent, np.float32)
         self.scale = np.ones(n_latent, np.float32)
+        self.register_persistent('loc')
+        self.register_persistent('scale')
 
     def forward(self):
         return D.Normal(self.loc, scale=self.scale)
