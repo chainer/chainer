@@ -229,6 +229,7 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_gamma_dist(True)
         self.check_kl(dist1, dist2)
 
+@testing.with_requires('scipy')
     def test_gumbel_gumbel_cpu(self):
         dist1 = self.make_gumbel_dist()
         dist2 = self.make_gumbel_dist()
