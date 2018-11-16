@@ -25,6 +25,8 @@ if _available:
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
 
+    from chainerx.activation import relu  # NOQA
+
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
