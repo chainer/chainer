@@ -28,7 +28,7 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
-from typing import Optional, cast
+from typing import Optional, cast  # NOQA
 
 import binascii
 import functools
@@ -44,7 +44,7 @@ import six
 import chainer
 from chainer.backends import intel64
 from chainer.configuration import config
-from chainer import types
+from chainer import types  # NOQA
 
 available = False
 cudnn_enabled = False
@@ -68,7 +68,11 @@ except Exception as e:
     _resolution_error = e
 
     class ndarray(object):  # type: ignore # for type testing
-        shape = property(lambda self: object(), lambda self, v: None, lambda self: None)
+        shape = property(
+            lambda self: object(),
+            lambda self, v: None,
+            lambda self: None
+        )
 
         @property
         def device(self):

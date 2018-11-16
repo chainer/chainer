@@ -1,7 +1,7 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple  # NOQA
 
 import chainer
-from chainer import types
+from chainer import types  # NOQA
 from chainer import utils
 
 
@@ -9,7 +9,7 @@ class _ForwardPreprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_preprocess"""
 
     def __init__(self, link, forward_name, args, kwargs):
-        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any]) -> None
+        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any]) -> None # NOQA
 
         self.link = link
         self.forward_name = forward_name
@@ -26,7 +26,7 @@ class _ForwardPostprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_postrocess"""
 
     def __init__(self, link, forward_name, args, kwargs, out):
-        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any], types.VariableLike) -> None
+        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any], types.VariableLike) -> None # NOQA
 
         self.link = link
         self.forward_name = forward_name

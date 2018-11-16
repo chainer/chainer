@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional  # NOQA
 
-from chainer import types
+from chainer import types  # NOQA
 from chainer import utils
 
 

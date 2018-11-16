@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast, overload
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast, overload  # NOQA
 
 import collections
 import contextlib
@@ -15,7 +15,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
 from chainer.utils import collections_abc
-from chainer import types
+from chainer import types  # NOQA
 from chainer import variable
 
 
@@ -36,11 +36,12 @@ def _is_shape(value):
 
 
 def _ensure_shape_dtype(value):
-    # type: (Optional[Any]) -> Tuple[Optional[types.ShapeLike], types.DTypeLike]
+    # type: (Optional[Any]) -> Tuple[Optional[types.ShapeLike], types.DTypeLike] # NOQA
 
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike], (value, numpy.float32))
+        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike],
+                    (value, numpy.float32))
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
         return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike], value)
@@ -140,7 +141,7 @@ class Link(object):
     """
 
     _params = None  # type: Set[str]
-    _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]]
+    _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
 
     def __init__(self, **params):
         # (**Any) -> None
@@ -259,7 +260,8 @@ class Link(object):
         # prioritized over forward().
         forward = getattr(super(Link, self), '__call__', None)
         if forward is None:
-            forward = self.forward  # type: ignore # forward is implemented in the child classes
+            # forward is implemented in the child classes
+            forward = self.forward  # type: ignore
         out = forward(*args, **kwargs)  # type: types.VariableLike
 
         # Call forward_postprocess hook
@@ -291,7 +293,7 @@ class Link(object):
 
     def add_param(self, name, shape=None, dtype=numpy.float32,
                   initializer=None):
-        # type: (str, Optional[types.ShapeLike], types.DTypeLike, Optional[types.InitializerLike]) -> None
+        # type: (str, Optional[types.ShapeLike], types.DTypeLike, Optional[types.InitializerLike]) -> None # NOQA
 
         """Registers a parameter to the link.
 
@@ -1161,17 +1163,17 @@ class ChainList(Link, collections_abc.MutableSequence):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
-    @overload
+    @overload  # NOQA
     def __setitem__(self, key, value):
         # type: (int, Link) -> None
         pass
 
-    @overload
+    @overload  # NOQA
     def __setitem__(self, key, value):
         # type: (slice, Iterable[Link]) -> None
         pass
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index, value):  # NOQA
         # type: (Union[int, slice], Union[Link, Iterable[Link]]) -> None
 
         if isinstance(index, int):
@@ -1188,18 +1190,18 @@ class ChainList(Link, collections_abc.MutableSequence):
                 'ChainList indices must be integers or slices, not %s' %
                 type(index).__name__)
 
-    @overload
+    @overload  # NOQA
     def __getitem__(self, key):
         # type: (int) -> Link
         pass
 
-    @overload
+    @overload  # NOQA
     def __getitem__(self, key):
         # type: (slice) -> collections_abc.MutableSequence[Link]
         pass
 
-    def __getitem__(self, index):
-        # type: (Union[int, slice]) -> Union[Link, collections_abc.MutableSequence[Link]]
+    def __getitem__(self, index):  # NOQA
+        # type: (Union[int, slice]) -> Union[Link, collections_abc.MutableSequence[Link]] # NOQA
 
         """Returns the child at given index.
 

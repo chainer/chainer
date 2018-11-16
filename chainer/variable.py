@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional  # NOQA
 
 import collections
 import copy
@@ -17,7 +17,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
-from chainer import types
+from chainer import types  # NOQA
 from chainer.utils import argument
 
 
@@ -1240,7 +1240,7 @@ class Parameter(Variable):
     _initial_device = None  # type: types.DeviceLike
 
     def __init__(self, initializer=None, shape=None, name=None):
-        # type: (Optional[types.InitializerLike], Optional[types.ShapeLike], Optional[str]) -> None
+        # type: (Optional[types.InitializerLike], Optional[types.ShapeLike], Optional[str]) -> None # NOQA
 
         if initializer is None:
             initializer = constant.NaN()
