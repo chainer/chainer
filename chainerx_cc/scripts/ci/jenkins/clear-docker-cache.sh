@@ -9,7 +9,7 @@ docker images \
        --all \
        --filter 'label=chainerx_test_image=1' \
        --format '{{.ID}}' \
-    | xargs docker rmi | true
+    | xargs docker rmi || true
 
 docker images \
        --all \
