@@ -434,20 +434,6 @@ if (BLA_VENDOR STREQUAL "FLAME" OR BLA_VENDOR STREQUAL "All")
   endif()
 endif ()
 
-if (BLA_VENDOR STREQUAL "ATLAS" OR BLA_VENDOR STREQUAL "All")
-  if(NOT BLAS_LIBRARIES)
-    # BLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
-    check_fortran_libraries(
-      BLAS_LIBRARIES
-      BLAS
-      dgemm
-      ""
-      "f77blas;atlas"
-      ""
-      )
-  endif()
-endif ()
-
 # BLAS in PhiPACK libraries? (requires generic BLAS lib, too)
 if (BLA_VENDOR STREQUAL "PhiPACK" OR BLA_VENDOR STREQUAL "All")
   if(NOT BLAS_LIBRARIES)
@@ -736,6 +722,26 @@ if(BLA_F95)
 else()
   find_package_handle_standard_args(BLAS REQUIRED_VARS BLAS_LIBRARIES)
 endif()
+
+# NOTE: ChainerX does not support ATLAS because we encountered
+# `undefined reference 'cblas_sgemm'` errors, at least on Ubuntu16.04.
+# Also, it is well known that ATLAS is significantly slower than OpenBLAS.
+if (BLA_VENDOR STREQUAL "ATLAS" OR BLA_VENDOR STREQUAL "All")
+  if(NOT BLAS_LIBRARIES)
+    # BLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
+    check_fortran_libraries(
+      BLAS_LIBRARIES
+      BLAS
+      dgemm
+      ""
+      "f77blas;atlas"
+      ""
+      )
+    if(BLAS_LIBRARIES)
+      message(FATAL_ERROR "ATLAS is found (library: ${BLAS_LIBRARIES}), but ChainerX does not support ATLAS.")
+    endif()
+  endif()
+endif ()
 
 # On compilers that implicitly link BLAS (such as ftn, cc, and CC on Cray HPC machines)
 # we used a placeholder for empty BLAS_LIBRARIES to get through our logic above.
