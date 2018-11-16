@@ -25,7 +25,7 @@ gradients w.r.t intermediate arrays that are required for the second gradient
 computation.
 
 Note:
-    This process is basically done in C++ implementation, except those
+    The whole process of backpropagation is executed in C++, except those
     operations whose backward computation falls back to the corresponding
     Python implementation. Currently this function does not release the GIL at
     all.
