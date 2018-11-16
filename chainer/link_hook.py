@@ -113,7 +113,6 @@ class LinkHook(object):
 
     def added(self, link):
         # type: (Optional['chainer.link.Link']) -> None
-
         """Callback function invoked when the link hook is registered
 
         Args:
@@ -125,7 +124,6 @@ class LinkHook(object):
 
     def deleted(self, link):
         # type: (Optional['chainer.link.Link']) -> None
-
         """Callback function invoked when the link hook is unregistered
 
         Args:
@@ -138,7 +136,6 @@ class LinkHook(object):
     # forward
     def forward_preprocess(self, args):
         # type: (_ForwardPreprocessCallbackArgs) -> None
-
         """Callback function invoked before a forward call of a link.
 
         Args:
@@ -157,7 +154,6 @@ class LinkHook(object):
 
     def forward_postprocess(self, args):
         # type: (_ForwardPostprocessCallbackArgs) -> None
-
         """Callback function invoked after a forward call of a link.
 
         Args:

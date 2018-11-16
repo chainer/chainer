@@ -650,7 +650,6 @@ Actual: {0}'''.format(type(data))
     @property
     def array(self):
         # type: () -> Optional[types.NdArray]
-
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
@@ -669,7 +668,6 @@ Actual: {0}'''.format(type(data))
     @property
     def data(self):
         # type: () -> Optional[types.NdArray]
-
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use

@@ -144,7 +144,7 @@ class Link(object):
     _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
 
     def __init__(self, **params):
-        # (**Any) -> None
+        # type: (**Any) -> None
 
         self._params = set()
         self._persistent = set()
@@ -160,7 +160,6 @@ class Link(object):
     @property
     def local_link_hooks(self):
         # type: () -> collections.OrderedDict[str, chainer.LinkHook]
-
         """Ordered dictionary of registered link hooks.
 
         Contrary to ``chainer.thread_local.link_hooks``,
@@ -182,7 +181,6 @@ class Link(object):
     @property
     def xp(self):
         # type: () -> numpy
-
         """Array module for this link.
 
         Depending on which of CPU/GPU this link is on, this property returns
@@ -194,7 +192,6 @@ class Link(object):
     @property
     def within_init_scope(self):
         # type: () -> bool
-
         """True if the current code is inside of an initialization scope.
 
         See :meth:`init_scope` for the details of the initialization scope.
@@ -205,7 +202,6 @@ class Link(object):
     @contextlib.contextmanager
     def init_scope(self):
         # type: () -> Iterator[None]
-
         """Creates an initialization scope.
 
         This method returns a context manager object that enables registration
@@ -294,7 +290,6 @@ class Link(object):
     def add_param(self, name, shape=None, dtype=numpy.float32,
                   initializer=None):
         # type: (str, Optional[types.ShapeLike], types.DTypeLike, Optional[types.InitializerLike]) -> None # NOQA
-
         """Registers a parameter to the link.
 
         Args:
@@ -322,7 +317,6 @@ class Link(object):
 
     def add_persistent(self, name, value):
         # type: (str, Any) -> None
-
         """Registers a persistent value to the link.
 
         The registered value is saved and loaded on serialization and
@@ -345,7 +339,6 @@ class Link(object):
 
     def register_persistent(self, name):
         # type: (str) -> None
-
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
@@ -366,7 +359,6 @@ class Link(object):
 
     def copy(self, mode='share'):
         # type: (str) -> 'Link'
-
         """Copies the link hierarchy to new one.
 
         The whole hierarchy rooted by this link is copied. There are three
@@ -421,7 +413,6 @@ class Link(object):
 
     def to_cpu(self):
         # type: () -> 'Link'
-
         """Copies parameter variables and persistent values to CPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -447,7 +438,6 @@ class Link(object):
 
     def to_gpu(self, device=None):
         # type: (Optional[types.DeviceLike]) -> 'Link'
-
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -481,7 +471,6 @@ class Link(object):
 
     def to_intel64(self):
         # type: () -> 'Link'
-
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
         d = self.__dict__
@@ -506,7 +495,6 @@ class Link(object):
 
     def params(self, include_uninit=True):
         # type: (bool) -> Iterator[chainer.Parameter]
-
         """Returns a generator of all parameters under the link hierarchy.
 
         Args:
@@ -525,7 +513,6 @@ class Link(object):
 
     def namedparams(self, include_uninit=True):
         # type: (bool) -> Iterator[Tuple[str, chainer.Parameter]]
-
         """Returns a generator of all (path, param) pairs under the hierarchy.
 
         Args:
@@ -545,7 +532,6 @@ class Link(object):
 
     def links(self, skipself=False):
         # type: (bool) -> Iterator['Link']
-
         """Returns a generator of all links under the hierarchy.
 
         Args:
@@ -561,7 +547,6 @@ class Link(object):
 
     def namedlinks(self, skipself=False):
         # type: (bool) -> Iterator[Tuple[str, 'Link']]
-
         """Returns a generator of all (path, link) pairs under the hierarchy.
 
         Args:
@@ -577,7 +562,6 @@ class Link(object):
 
     def children(self):
         # type: () -> Iterator['Link']
-
         """Returns a generator of all child links.
 
         Returns:
@@ -589,7 +573,6 @@ class Link(object):
 
     def copyparams(self, link, copy_persistent=True):
         # type: ('Link', bool) -> None
-
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
@@ -624,7 +607,6 @@ class Link(object):
 
     def cleargrads(self):
         # type: () -> None
-
         """Clears all gradient arrays.
 
         This method should be called before the backward computation at every
@@ -636,7 +618,6 @@ class Link(object):
 
     def zerograds(self):
         # type: () -> None
-
         """Initializes all gradient arrays by zero.
 
         This method can be used for the same purpose of cleargrads, but less
@@ -654,7 +635,6 @@ class Link(object):
 
     def addgrads(self, link):
         # type: ('Link') -> None
-
         """Accumulates gradient values from given link.
 
         This method adds each gradient array of the given link to corresponding
@@ -672,7 +652,6 @@ class Link(object):
 
     def enable_update(self):
         # type: () -> None
-
         """Enables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -686,7 +665,6 @@ class Link(object):
 
     def disable_update(self):
         # type: () -> None
-
         """Disables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -701,7 +679,6 @@ class Link(object):
     @property
     def update_enabled(self):
         # type: () -> bool
-
         """``True`` if at least one parameter has an update rule enabled."""
         for param in self.params():
             rule = param.update_rule
@@ -711,7 +688,6 @@ class Link(object):
 
     def serialize(self, serializer):
         # type: (chainer.AbstractSerializer) -> None
-
         """Serializes the link object.
 
         Args:
@@ -734,7 +710,6 @@ class Link(object):
 
     def repeat(self, n_repeat, mode='init'):
         # type: (int, str) -> chainer.Sequential
-
         """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
 
         This method returns a :class:`~chainer.Sequential` object which has
@@ -801,7 +776,6 @@ class Link(object):
 
     def count_params(self):
         # type: () -> int
-
         """Counts the total number of parameters.
 
         This method counts the total number of scalar values included in all
@@ -829,7 +803,6 @@ class Link(object):
 
     def add_hook(self, hook, name=None):
         # type: (chainer.LinkHook, Optional[str]) -> None
-
         """Registers a link hook.
 
         Args:
@@ -851,7 +824,6 @@ class Link(object):
 
     def delete_hook(self, name):
         # type: (str) -> None
-
         """Unregisters the link hook.
 
         Args:
@@ -955,7 +927,6 @@ class Chain(Link):
 
     def __getitem__(self, name):
         # type: (str) -> Any
-
         """Equivalent to getattr."""
         return getattr(self, name)
 
@@ -978,7 +949,6 @@ class Chain(Link):
 
     def add_link(self, name, link):
         # type: (str, Link) -> None
-
         """Registers a child link to this chain.
 
         Args:
@@ -1202,7 +1172,6 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     def __getitem__(self, index):  # NOQA
         # type: (Union[int, slice]) -> Union[Link, collections_abc.MutableSequence[Link]] # NOQA
-
         """Returns the child at given index.
 
         Args:
@@ -1223,7 +1192,6 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     def insert(self, index, link):
         # type: (int, Link) -> None
-
         """Insert a child link at the given index.
 
         Args:
@@ -1247,13 +1215,11 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     def __len__(self):
         # type: () -> int
-
         """Returns the number of children."""
         return len(self._children)
 
     def add_link(self, link):
         # type: (Link) -> None
-
         """Registers a child link and adds it to the tail of the list.
 
         Args:
@@ -1264,7 +1230,6 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     def copy(self, mode='share'):
         # type: (str) -> 'ChainList'
-
         """Returns a deep copy of the chainlist."""
         ret = cast(ChainList, super(ChainList, self).copy())
         ret._children = list(ret._children)  # copy

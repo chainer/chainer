@@ -196,7 +196,6 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
     # type: (Optional[int]) -> Device
-
     """Gets the device from an ID integer.
 
     Args:
@@ -212,7 +211,6 @@ def get_device_from_id(device_id):
 
 def get_device_from_array(*arrays):
     # type: (*ndarray) -> Device
-
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     The device on which the given CuPy array reside is returned.
@@ -239,7 +237,6 @@ def get_device_from_array(*arrays):
 
 def get_device(*args):
     # type: (*types.DeviceLike) -> Device
-
     """Gets the device from a device object, an ID integer or an array object.
 
     .. note::

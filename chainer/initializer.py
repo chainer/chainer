@@ -22,7 +22,6 @@ class Initializer(object):
 
     def __call__(self, array):
         # type: (types.NdArray) -> None
-
         """Initializes given array.
 
         This method destructively changes the value of array.
