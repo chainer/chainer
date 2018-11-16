@@ -7,6 +7,26 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v6
+==========
+
+CuPy Needs To Be Manually Updated
+---------------------------------
+
+Prior to Chainer v6, CuPy is automatically updated to the appropriate version when updating Chainer (i.e., ``pip install -U chainer`` updates CuPy package).
+In Chainer v6, Chainer does not perform this automatic update.
+You need to manually update CuPy package when updating Chainer package.
+
+This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
+See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
+
+CuPy v6
+-------
+
+Chainer v6 requires CuPy v6 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v6 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v6>`_ for details.
+
+
 Chainer v5
 ==========
 

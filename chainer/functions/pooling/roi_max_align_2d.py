@@ -21,6 +21,10 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import function
+from chainer.functions.pooling.roi_average_align_2d \
+    import _GET_BILINEAR_INTERP_KERNEL
+from chainer.functions.pooling.roi_average_align_2d \
+    import _get_bilinear_interp_params
 from chainer.utils import type_check
 
 
@@ -30,99 +34,9 @@ def _pair(x):
     return x, x
 
 
-def _get_bilinear_interp_params(y, x, height, width):
-    if y < -1 or y > height or x < -1 or x > width:
-        # out of range, so it is empty
-        return (None,) * 8
+class ROIMaxAlign2D(function.Function):
 
-    if y <= 0:
-        y = 0
-    if x <= 0:
-        x = 0
-
-    y_low = int(y)
-    x_low = int(x)
-
-    if y_low >= height - 1:
-        y_high = y_low = height - 1
-        y = float(y_low)
-    else:
-        y_high = y_low + 1
-
-    if x_low >= width - 1:
-        x_high = x_low = width - 1
-        x = float(x_low)
-    else:
-        x_high = x_low + 1
-
-    ly = y - y_low
-    lx = x - x_low
-    hy = 1. - ly
-    hx = 1. - lx
-
-    w1 = hy * hx
-    w2 = hy * lx
-    w3 = ly * hx
-    w4 = ly * lx
-
-    return y_low, x_low, y_high, x_high, w1, w2, w3, w4
-
-
-_GET_BILINEAR_INTERP_KERNEL = '''
-__device__
-bool get_bilinear_interp_params(
-    T x, T y, const int height, const int width,
-    int &y_low, int &x_low, int &y_high, int &x_high,
-    T &w1, T &w2, T &w3, T &w4) {
-    // deal with cases that inverse elements are
-    // out of feature map boundary
-    if (y < -1. || y > height || x < -1. || x > width) {
-        // empty
-        return false;
-    }
-
-    if (y <= 0) {
-        y = 0;
-    }
-    if (x <= 0) {
-        x = 0;
-    }
-
-    y_low = (int)y;
-    x_low = (int)x;
-
-    if (y_low >= height - 1) {
-        y_high = y_low = height - 1;
-        y = (T)y_low;
-    } else {
-        y_high = y_low + 1;
-    }
-
-    if (x_low >= width - 1) {
-        x_high = x_low = width - 1;
-        x = (T)x_low;
-    } else {
-        x_high = x_low + 1;
-    }
-
-    T ly = y - y_low;
-    T lx = x - x_low;
-    T hy = 1. - ly;
-    T hx = 1. - lx;
-
-    w1 = hy * hx;
-    w2 = hy * lx;
-    w3 = ly * hx;
-    w4 = ly * lx;
-
-    return true;
-}
-'''
-
-
-class ROIAverageAlign2D(function.Function):
-
-    """ROI average align over a set of 2d planes."""
+    """ROI max align over a set of 2d planes."""
 
     def __init__(self, outsize, spatial_scale, sampling_ratio=None):
         outh, outw = _pair(outsize)
@@ -175,6 +89,7 @@ class ROIAverageAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = numpy.empty((n_rois, channels, self.outh,
                                 self.outw), dtype=bottom_data.dtype)
+        self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
 
         pooled_width, pooled_height = self.outw, self.outh
         spatial_scale = self.spatial_scale
@@ -185,14 +100,14 @@ class ROIAverageAlign2D(function.Function):
             c = int(i / pooled_width / pooled_height) % channels
             n = int(i / pooled_width / pooled_height / channels)
 
-            roi_batch_ind = int(bottom_roi_indices[n])
+            roi_batch_ind = bottom_roi_indices[n]
             roi_start_h = bottom_rois[n, 0] * spatial_scale
             roi_start_w = bottom_rois[n, 1] * spatial_scale
             roi_end_h = bottom_rois[n, 2] * spatial_scale
             roi_end_w = bottom_rois[n, 3] * spatial_scale
 
-            roi_height = max(roi_end_h - roi_start_h, 1.)
             roi_width = max(roi_end_w - roi_start_w, 1.)
+            roi_height = max(roi_end_h - roi_start_h, 1.)
             bin_size_h = roi_height / pooled_height
             bin_size_w = roi_width / pooled_width
 
@@ -205,9 +120,8 @@ class ROIAverageAlign2D(function.Function):
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
-            count = roi_bin_grid_h * roi_bin_grid_w
-
-            output_val = 0.
+            max_val = None
+            max_index = None
             iy = 0
             while iy < roi_bin_grid_h:
                 y = roi_start_h + ph * bin_size_h + \
@@ -229,15 +143,20 @@ class ROIAverageAlign2D(function.Function):
                     v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
                     v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
 
-                    output_val += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
+                    tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
+                    tmp_index = iy * roi_bin_grid_w + ix
+                    if max_val is None or max_index is None \
+                            or (tmp_val > max_val):
+                        max_val = tmp_val
+                        max_index = tmp_index
 
                     # }}
 
                     ix += 1
                 iy += 1
 
-            output_val /= count
-            top_data[n, c, ph, pw] = output_val
+            top_data[n, c, ph, pw] = max_val
+            self.argmax_data[n, c, ph, pw] = max_index
 
         return top_data,
 
@@ -250,6 +169,8 @@ class ROIAverageAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=bottom_data.dtype)
+        self.argmax_data = cuda.cupy.zeros(top_data.shape, numpy.int32)
+
         if self.sampling_ratio[0] is None:
             sampling_ratio_h = 0
         else:
@@ -265,7 +186,7 @@ class ROIAverageAlign2D(function.Function):
             int32 sampling_ratio_h, int32 sampling_ratio_w,
             raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
-            'T top_data',
+            'T top_data, int32 argmax_data',
             '''
             int pw = i % pooled_width;
             int ph = (i / pooled_width) % pooled_height;
@@ -280,8 +201,8 @@ class ROIAverageAlign2D(function.Function):
             T roi_end_w = bottom_rois[n * 4 + 3] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
-            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
             T roi_width = max(roi_end_w - roi_start_w, (T)1.);
+            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
             T bin_size_h = static_cast<T>(roi_height)
                             / static_cast<T>(pooled_height);
             T bin_size_w = static_cast<T>(roi_width)
@@ -298,10 +219,8 @@ class ROIAverageAlign2D(function.Function):
                 ? sampling_ratio_w
                 : ceil(roi_width / pooled_width);
 
-            // We do average (integral) pooling inside a bin
-            T count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
-
-            T output_val = 0.;
+            T max_val = -1E20;
+            int max_index = -1;
             for (int iy = 0; iy < roi_bin_grid_h; iy++)  // e.g. iy = 0, 1
             {
                 T y = roi_start_h + ph * bin_size_h +
@@ -333,20 +252,25 @@ class ROIAverageAlign2D(function.Function):
                     T v4 = bottom_data[bottom_data_offset +
                                        y_high * width + x_high];
 
-                    output_val += (w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4);
+                    T tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+                    int tmp_index = iy * roi_bin_grid_w + ix;
+                    if (tmp_val > max_val) {
+                        max_val = tmp_val;
+                        max_index = tmp_index;
+                    }
 
                     // }}
                 }
             }
-            output_val /= count;
 
-            top_data = output_val;
+            top_data = max_val;
+            argmax_data = max_index;
             ''',
-            'roi_average_align_2d_fwd',
+            'roi_max_align_2d_fwd',
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(bottom_data, self.spatial_scale, channels, height, width,
           self.outh, self.outw, sampling_ratio_h, sampling_ratio_w,
-          bottom_rois, bottom_roi_indices, top_data)
+          bottom_rois, bottom_roi_indices, top_data, self.argmax_data)
 
         return top_data,
 
@@ -366,14 +290,14 @@ class ROIAverageAlign2D(function.Function):
             c = int(i / pooled_width / pooled_height) % channels
             n = int(i / pooled_width / pooled_height / channels)
 
-            roi_batch_ind = int(bottom_roi_indices[n])
+            roi_batch_ind = bottom_roi_indices[n]
             roi_start_h = bottom_rois[n, 0] * spatial_scale
             roi_start_w = bottom_rois[n, 1] * spatial_scale
             roi_end_h = bottom_rois[n, 2] * spatial_scale
             roi_end_w = bottom_rois[n, 3] * spatial_scale
 
-            roi_height = max(roi_end_h - roi_start_h, 1.)
             roi_width = max(roi_end_w - roi_start_w, 1.)
+            roi_height = max(roi_end_h - roi_start_h, 1.)
             bin_size_h = roi_height / pooled_height
             bin_size_w = roi_width / pooled_width
 
@@ -388,40 +312,35 @@ class ROIAverageAlign2D(function.Function):
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
-            count = roi_bin_grid_h * roi_bin_grid_w
+            max_index = self.argmax_data[n, c, ph, pw]
+            iy = int(max_index / roi_bin_grid_w)
+            ix = max_index % roi_bin_grid_w
 
-            iy = 0
-            while iy < roi_bin_grid_h:
-                y = roi_start_h + ph * bin_size_h + \
-                    (iy + .5) * bin_size_h / roi_bin_grid_h
-                ix = 0
-                while ix < roi_bin_grid_w:
-                    x = roi_start_w + pw * bin_size_w + \
-                        (ix + .5) * bin_size_w / roi_bin_grid_w
+            y = roi_start_h + ph * bin_size_h + \
+                (iy + .5) * bin_size_h / roi_bin_grid_h
+            x = roi_start_w + pw * bin_size_w + \
+                (ix + .5) * bin_size_w / roi_bin_grid_w
 
-                    # bilinear_interpolation_gradient {{
+            # bilinear_interpolation_gradient {{
 
-                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                        _get_bilinear_interp_params(y, x, height, width)
-                    if y_low is None:
-                        continue
+            y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
+                _get_bilinear_interp_params(y, x, height, width)
+            if y_low is None:
+                continue
 
-                    g1 = top_diff_this_bin * w1 / count
-                    g2 = top_diff_this_bin * w2 / count
-                    g3 = top_diff_this_bin * w3 / count
-                    g4 = top_diff_this_bin * w4 / count
+            g1 = top_diff_this_bin * w1
+            g2 = top_diff_this_bin * w2
+            g3 = top_diff_this_bin * w3
+            g4 = top_diff_this_bin * w4
 
-                    if (x_low >= 0 and x_high >= 0 and
-                            y_low >= 0 and y_high >= 0):
-                        bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
-                        bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
-                        bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
-                        bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
+            if (x_low >= 0 and x_high >= 0 and
+                    y_low >= 0 and y_high >= 0):
+                bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
+                bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
+                bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
+                bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
 
-                    # }}
-
-                    ix += 1
-                iy += 1
+            # }}
 
         return bottom_diff, None, None
 
@@ -438,16 +357,16 @@ class ROIAverageAlign2D(function.Function):
             sampling_ratio_w = 0
         else:
             sampling_ratio_w = self.sampling_ratio[1]
+
         cuda.elementwise(
             '''
-            raw T top_diff,
-            int32 num_rois, T spatial_scale,
+            raw T top_diff, T spatial_scale,
             int32 channels, int32 height, int32 width,
             int32 pooled_height, int32 pooled_width,
             int32 sampling_ratio_h, int32 sampling_ratio_w,
             raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
-            'raw T bottom_diff',
+            'raw T bottom_diff, raw int32 argmax_data',
             '''
             // (n, c, h, w) coords in bottom data
             int pw = i % pooled_width;
@@ -485,68 +404,64 @@ class ROIAverageAlign2D(function.Function):
                 ? sampling_ratio_w
                 : ceil(roi_width / pooled_width);
 
-            // We do average (integral) pooling inside a bin
-            T count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
+            int max_index = argmax_data[top_offset + ph * pooled_width + pw];
+            int iy = max_index / roi_bin_grid_w;
+            int ix = max_index % roi_bin_grid_w;
 
-            for (int iy = 0; iy < roi_bin_grid_h; iy++) {
-                T y = roi_start_h + ph * bin_size_h +
-                    static_cast<T>(iy + .5f) * bin_size_h /
-                        static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
-                for (int ix = 0; ix < roi_bin_grid_w; ix++) {
-                    T x = roi_start_w + pw * bin_size_w +
-                        static_cast<T>(ix + .5f) * bin_size_w /
-                            static_cast<T>(roi_bin_grid_w);
+            T y = roi_start_h + ph * bin_size_h +
+                static_cast<T>(iy + .5f) * bin_size_h /
+                    static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+            T x = roi_start_w + pw * bin_size_w +
+                static_cast<T>(ix + .5f) * bin_size_w /
+                    static_cast<T>(roi_bin_grid_w);
 
-                    // bilinear_interpolation_gradient {{
-                    int y_low, x_low, y_high, x_high;
-                    T w1, w2, w3, w4;
-                    bool ret = get_bilinear_interp_params(
-                        x, y, height, width,
-                        y_low, x_low, y_high, x_high,
-                        w1, w2, w3, w4
-                    );
-                    if (!ret) {
-                        continue;
-                    }
-
-                    T g1 = top_diff_this_bin * w1 / count;
-                    T g2 = top_diff_this_bin * w2 / count;
-                    T g3 = top_diff_this_bin * w3 / count;
-                    T g4 = top_diff_this_bin * w4 / count;
-
-                    if (x_low >= 0 && x_high >= 0 &&
-                            y_low >= 0 && y_high >= 0) {
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_low], g1);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_high], g2);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_low], g3);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_high], g4);
-                    }
-
-                    // }}
-                }
+            // bilinear_interpolation_gradient {{
+            int y_low, x_low, y_high, x_high;
+            T w1, w2, w3, w4;
+            bool ret = get_bilinear_interp_params(
+                x, y, height, width,
+                y_low, x_low, y_high, x_high,
+                w1, w2, w3, w4
+            );
+            if (!ret) {
+                continue;
             }
+
+            T g1 = top_diff_this_bin * w1;
+            T g2 = top_diff_this_bin * w2;
+            T g3 = top_diff_this_bin * w3;
+            T g4 = top_diff_this_bin * w4;
+
+            if (x_low >= 0 && x_high >= 0 &&
+                    y_low >= 0 && y_high >= 0) {
+                atomicAdd(&bottom_diff[bottom_diff_offset +
+                                       y_low * width + x_low], g1);
+                atomicAdd(&bottom_diff[bottom_diff_offset +
+                                       y_low * width + x_high], g2);
+                atomicAdd(&bottom_diff[bottom_diff_offset +
+                                       y_high * width + x_low], g3);
+                atomicAdd(&bottom_diff[bottom_diff_offset +
+                                       y_high * width + x_high], g4);
+            }
+            // }}
             ''',
-            'roi_average_align_2d_bwd',
+            'roi_max_align_2d_bwd',
             preamble=_GET_BILINEAR_INTERP_KERNEL,
-        )(gy[0], bottom_rois.shape[0],
-          self.spatial_scale, channels, height, width, self.outh, self.outw,
-          sampling_ratio_h, sampling_ratio_w, bottom_rois, bottom_roi_indices,
-          bottom_diff, size=gy[0].size)
+        )(gy[0], self.spatial_scale, channels, height, width,
+          self.outh, self.outw, sampling_ratio_h, sampling_ratio_w,
+          bottom_rois, bottom_roi_indices, bottom_diff, self.argmax_data,
+          size=gy[0].size)
 
         return bottom_diff, None, None
 
 
-def roi_average_align_2d(
+def roi_max_align_2d(
         x, rois, roi_indices, outsize, spatial_scale, sampling_ratio=None
 ):
-    """Spatial Region of Interest (ROI) average align function.
+    """Spatial Region of Interest (ROI) max align function.
 
     This function acts similarly to
-    :func:`~chainer.functions.roi_average_pooling_2d`, but it computes average
+    :func:`~chainer.functions.roi_max_pooling_2d`, but it computes maximum
     of input spatial patch with bilinear interpolation for each channel with
     the region of interest.
 
@@ -576,5 +491,5 @@ def roi_average_align_2d(
     `Mask R-CNN <https://arxiv.org/abs/1703.06870>`_.
 
     """
-    return ROIAverageAlign2D(outsize, spatial_scale, sampling_ratio)(
+    return ROIMaxAlign2D(outsize, spatial_scale, sampling_ratio)(
         x, rois, roi_indices)

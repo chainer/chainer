@@ -10,8 +10,10 @@ from chainer.utils import type_check
 
 def _fbeta_score(precision, recall, beta):
     beta_square = beta * beta
-    return ((1 + beta_square) * precision * recall /
-            (beta_square * precision + recall)).astype(precision.dtype)
+    return (
+        (1 + beta_square) * precision * recall
+        / (beta_square * precision + recall)
+    ).astype(precision.dtype, copy=False)
 
 
 class ClassificationSummary(function.Function):
