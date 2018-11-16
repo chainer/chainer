@@ -72,8 +72,8 @@ endif()
 # BLAS
 if(${CHAINERX_ENABLE_BLAS})
     # TODO(sonots): KNOWN ISSUE: At least on Ubuntu 16.04, FindBLAS.cmake (v3.5.0)
-    # has issues that # it does not detect openblas installed via `apt install libopenblas-dev`.
-    # TODO(sonots): We support only "Generic" now to avoid ATLAS which causes
+    # has an issues that it does not detect openblas installed via `apt install libopenblas-dev`.
+    # TODO(sonots): We only support "Generic" now to avoid ATLAS which causes
     # undefined reference to `cblas_sgemm', and works significantly slower than cblas.
     set(BLA_VENDOR "Generic")
     find_package(BLAS QUIET)
