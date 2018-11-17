@@ -17,14 +17,18 @@ class OnceTrigger(object):
     """
 
     def __init__(self, call_on_resume=False):
-        self.finished = False
-        self._flag_force = call_on_resume
+        self._flag_first = True
+        self._flag_resumed = call_on_resume
 
     def trigger(self, trainer):
-        flag = self._flag_force or not self.finished
-        self._flag_force = False
-        self.finished = True
+        flag = not self.finished
+        self._flag_resumed = False
+        self._flag_first = False
         return flag
 
+    @property
+    def finished(self):
+        return not (self._flag_first or self._flag_resumed)
+
     def serialize(self, serializer):
-        self.finished = serializer('finished', self.finished)
+        self._flag_first = serializer('_flag_first', self._flag_first)
