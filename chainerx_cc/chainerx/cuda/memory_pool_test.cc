@@ -28,7 +28,7 @@ public:
         (void)bytesize;  // unused
         return MallocStatus::kErrorMemoryAllocation;
     }
-    void Free(void* ptr) override {
+    void Free(void* ptr) noexcept override {
         (void)ptr;  // unused
     }
 };
@@ -44,7 +44,7 @@ public:
         }
         return MallocStatus::kSuccess;
     }
-    void Free(void* ptr) override {
+    void Free(void* ptr) noexcept override {
         (void)ptr;  // unused
     }
     int malloc_called() const { return malloc_called_; }
@@ -103,7 +103,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeForeignPointer) {
     EXPECT_THROW(memory_pool.Free(ptr), ChainerxError);
 }
 
-TEST_P(MemoryPoolTestForEachAllocator, FreeAllBlocks) {
+TEST_P(MemoryPoolTestForEachAllocator, FreeUnusedBlocks) {
     MemoryPool& memory_pool = *GetParam();
     const std::vector<std::vector<void*>>& free_bins = cuda_internal::MemoryPoolTest::GetFreeBins(memory_pool);
 
@@ -111,7 +111,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeAllBlocks) {
     memory_pool.Free(ptr1);
     EXPECT_FALSE(free_bins.empty());
 
-    memory_pool.FreeAllBlocks();
+    memory_pool.FreeUnusedBlocks();
     EXPECT_TRUE(free_bins.empty());
 }
 

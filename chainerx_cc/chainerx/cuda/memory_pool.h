@@ -37,23 +37,23 @@ public:
     virtual MallocStatus Malloc(void** ptr, size_t bytesize) = 0;
 
     // Frees allocated memory.
-    // This function does not throw, since it should be usable from within a destructor.
-    virtual void Free(void* ptr) = 0;
+    // This function must not throw, since it should be usable from within a destructor.
+    virtual void Free(void* ptr) noexcept = 0;
 };
 
 class DeviceMemoryAllocator : public Allocator {
 public:
     MallocStatus Malloc(void** ptr, size_t bytesize) override;
-    void Free(void* ptr) override { cudaFree(ptr); }
+    void Free(void* ptr) noexcept override { cudaFree(ptr); }
 };
 
 class PinnedMemoryAllocator : public Allocator {
 public:
     MallocStatus Malloc(void** ptr, size_t bytesize) override;
-    void Free(void* ptr) override { cudaFreeHost(ptr); }
+    void Free(void* ptr) noexcept override { cudaFreeHost(ptr); }
 };
 
-// Memory pool base.
+// Memory pool.
 // This class is thread safe.
 class MemoryPool {
 public:
@@ -62,11 +62,14 @@ public:
 
     ~MemoryPool();
 
-    void FreeAllBlocks();
+    void FreeUnusedBlocks();
 
     void* Malloc(size_t bytesize);
 
+    // ChainerxError is thrown if ptr is not an in-use memory pointer.
     void Free(void* ptr);
+
+    void FreeNoExcept(void* ptr) noexcept;
 
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
