@@ -4,15 +4,15 @@ class OnceTrigger(object):
 
     This trigger accepts only once at starting point of the iteration. There
     are two ways to specify the starting point: only starting point in whole
-    iteration or recalled when training resumed.
+    iteration or called again when training resumed.
 
     Args:
-        recall_on_resume (bool): Whether the extension is recalled or not when
-            restored from a snapshot. It is set to ``False`` by default.
+        call_on_resume (bool): Whether the extension is called again or not
+            when restored from a snapshot. It is set to ``False`` by default.
     """
 
-    def __init__(self, recall_on_resume=False):
-        self._recall_on_resume = recall_on_resume
+    def __init__(self, call_on_resume=False):
+        self._call_on_resume = call_on_resume
         self._flag_called = False
 
     def trigger(self, trainer):
@@ -32,5 +32,5 @@ class OnceTrigger(object):
         return self._flag_called
 
     def serialize(self, serializer):
-        if not self._recall_on_resume:
+        if not self._call_on_resume:
             self._flag_called = serializer('_flag_called', self._flag_called)
