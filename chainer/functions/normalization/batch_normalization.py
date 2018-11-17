@@ -199,7 +199,8 @@ class BatchNormalization(function_node.FunctionNode):
                 running_mean = self.running_mean
                 running_var = self.running_var
 
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)
@@ -350,7 +351,8 @@ class BatchNormalizationGrad(function.Function):
             dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
             if dtype_param is not dtype:
                 gamma = gamma.astype(dtype_param)
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             gx = cuda.cupy.empty_like(x)
@@ -557,7 +559,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 beta = beta.astype(dtype_param)
                 mean = mean.astype(dtype_param)
                 var = var.astype(dtype_param)
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)

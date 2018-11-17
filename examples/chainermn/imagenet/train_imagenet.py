@@ -39,7 +39,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 

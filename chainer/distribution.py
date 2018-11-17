@@ -81,7 +81,7 @@ class Distribution(object):
         """Returns the shape of a batch.
 
         Returns:
-            tuple: The shape of a sample that is not identical and indipendent.
+            tuple: The shape of a sample that is not identical and independent.
 
         """
         raise NotImplementedError

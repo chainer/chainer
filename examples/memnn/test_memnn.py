@@ -43,7 +43,7 @@ def main():
                 mem[i, 0:len(sent.sentence)] = sent.sentence
                 i += 1
             elif isinstance(sent, babi.Query):
-                query = numpy.array(sent.sentence, dtype='i')
+                query = numpy.array(sent.sentence, dtype=numpy.int32)
 
                 # networks assumes mini-batch data
                 score = network(mem[None], query[None])[0]

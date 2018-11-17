@@ -61,8 +61,8 @@ class ResNetLayers(link.Chain):
             where ``$CHAINER_DATASET_ROOT`` is set as
             ``$HOME/.chainer/dataset`` unless you specify another value
             by modifying the environment variable and {n_layers} is replaced
-            with the specified number of layers given as the first argment to
-            this costructor. Note that in this case the converted chainer
+            with the specified number of layers given as the first argument to
+            this constructor. Note that in this case the converted chainer
             model is stored on the same directory and automatically used from
             the next time.
             If this argument is specified as ``None``, all the parameters
