@@ -48,7 +48,7 @@ class TestNegativeSampling(unittest.TestCase):
 
         if self.dtype == numpy.float16:
             self.test_forward_options = {'atol': 1e-2}
-            self.test_backward_options = {'atol': 1e-3}
+            self.test_backward_options = {'atol': 5e-3}
         else:
             self.test_forward_options = {}
             self.test_backward_options = {'atol': 1e-4}
