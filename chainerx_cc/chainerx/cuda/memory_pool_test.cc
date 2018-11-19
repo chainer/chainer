@@ -23,7 +23,7 @@ namespace {
 // A dummy allocator to test OutOfMemoryError
 class FixedCapacityDummyAllocator : public Allocator {
 public:
-    FixedCapacityDummyAllocator(size_t capacity) : capacity_{capacity} {}
+    explicit FixedCapacityDummyAllocator(size_t capacity) : capacity_{capacity} {}
 
     MallocStatus Malloc(void** ptr, size_t bytesize) override {
         CHAINERX_ASSERT(bytesize > 0);
@@ -32,11 +32,15 @@ public:
             return MallocStatus::kErrorMemoryAllocation;
         }
         // bytesize is encoded in the dummy pointer.
-        *ptr = reinterpret_cast<void*>(static_cast<intptr_t>(bytesize));
+        intptr_t i = static_cast<intptr_t>(bytesize);
+        *ptr = reinterpret_cast<void*>(i);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         capacity_ -= bytesize;
         return MallocStatus::kSuccess;
     }
-    void Free(void* ptr) noexcept override { capacity_ += static_cast<size_t>(reinterpret_cast<intptr_t>(ptr)); }
+    void Free(void* ptr) noexcept override {
+        intptr_t i = reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        capacity_ += static_cast<size_t>(i);
+    }
 
     int malloc_called() const { return malloc_called_; }
 
