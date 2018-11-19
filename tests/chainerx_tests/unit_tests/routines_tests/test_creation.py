@@ -455,11 +455,11 @@ def test_asanyarray_with_device(device):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
-    'dtype_spec', additional_args=(None,))
+    'dtype_spec', additional_args=(Unspecified,))
 def test_empty(xp, shape_as_tuple_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if dtype_spec is None:
+    if dtype_spec is Unspecified:
         a = xp.empty(shape_as_tuple_or_int)
     else:
         a = xp.empty(shape_as_tuple_or_int, dtype_spec)
@@ -500,11 +500,11 @@ def test_empty_like_with_device(device):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
-    'dtype_spec', additional_args=(None,))
+    'dtype_spec', additional_args=(Unspecified,))
 def test_zeros(xp, shape_as_tuple_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if dtype_spec is None:
+    if dtype_spec is Unspecified:
         return xp.zeros(shape_as_tuple_or_int)
     else:
         return xp.zeros(shape_as_tuple_or_int, dtype_spec)
@@ -539,11 +539,11 @@ def test_zeros_like_with_device(device):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
-    'dtype_spec', additional_args=(None,))
+    'dtype_spec', additional_args=(Unspecified,))
 def test_ones(xp, shape_as_tuple_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if dtype_spec is None:
+    if dtype_spec is Unspecified:
         return xp.ones(shape_as_tuple_or_int)
     else:
         return xp.ones(shape_as_tuple_or_int, dtype_spec)
