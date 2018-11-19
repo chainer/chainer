@@ -14,7 +14,7 @@ include(cmake/third-party.cmake)
 
 # Configure options
 option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
-option(CHAINERX_BUILD_TEST "Build test" ON)
+option(CHAINERX_BUILD_TEST "Build test" OFF)
 option(CHAINERX_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 option(CHAINERX_ENABLE_THREAD_SANITIZER "Enable thread sanitizer." OFF)
 

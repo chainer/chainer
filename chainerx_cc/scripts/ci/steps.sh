@@ -139,6 +139,7 @@ step_cmake() {
     cmake \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCHAINERX_BUILD_CUDA=ON \
+        -DCHAINERX_BUILD_TEST=ON \
         -DCHAINERX_BUILD_PYTHON=OFF \
         -DCHAINERX_WARNINGS_AS_ERRORS=ON \
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
