@@ -99,9 +99,9 @@ class CTCTestBase(object):
     def test_forward_gpu(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_forward(cuda.to_gpu(self.t),
-                           tuple(cuda.to_gpu(x_data) for x_data in self.x),
-                           cuda.to_gpu(self.l_length),
-                           cuda.to_gpu(self.x_length))
+                               tuple(cuda.to_gpu(x_data) for x_data in self.x),
+                               cuda.to_gpu(self.l_length),
+                               cuda.to_gpu(self.x_length))
 
     @attr.gpu
     def test_forward_without_wrap_gpu(self):
@@ -133,7 +133,7 @@ class CTCTestBase(object):
     def test_backward_gpu(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.check_backward(cuda.to_gpu(self.t),
-                                tuple(cuda.to_gpu(x_data) for x_data in self.x),
+                                tuple(cuda.to_gpu(_x) for _x in self.x),
                                 cuda.to_gpu(self.l_length),
                                 cuda.to_gpu(self.x_length),
                                 cuda.to_gpu(self.gy))
