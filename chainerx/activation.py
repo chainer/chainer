@@ -14,6 +14,7 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
 """
+    # TODO(imanishi): The function should also be available to C++ users
     return chainerx.maximum(0, a)
 
 
@@ -31,5 +32,5 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
 """
-    # TODO(imanishi): Support C++ implementation
+    # TODO(imanishi): The function should also be available to C++ users
     return (chainerx.tanh(a / 2.0) + 1.0) / 2.0
