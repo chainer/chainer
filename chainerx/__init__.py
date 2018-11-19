@@ -25,6 +25,9 @@ if _available:
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
 
+    from chainerx.activation import relu  # NOQA
+    from chainerx.activation import sigmoid  # NOQA
+
     from chainerx.manipulation.shape import ravel  # NOQA
 
     from chainerx.math.misc import square  # NOQA

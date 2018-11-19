@@ -36,6 +36,18 @@ Array creation routines
    chainerx.diag
    chainerx.diagflat
 
+Activation functions
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.log_softmax
+   chainerx.tanh
+   chainerx.relu
+   chainerx.sigmoid
+
 Array manipulation routines
 ---------------------------
 
