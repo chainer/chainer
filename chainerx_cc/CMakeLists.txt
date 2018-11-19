@@ -14,7 +14,7 @@ include(cmake/third-party.cmake)
 
 # Configure options
 option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
-option(CHAINERX_BUILD_TEST "Build test" ON)
+option(CHAINERX_BUILD_TEST "Build test" OFF)
 option(CHAINERX_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 option(CHAINERX_ENABLE_THREAD_SANITIZER "Enable thread sanitizer." OFF)
 
@@ -43,9 +43,9 @@ else()
 endif()
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
 
-# defaults to cmake -DCMAKE_BUILD_TYPE=Debug
+# defaults to cmake -DCMAKE_BUILD_TYPE=Release
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
 
 # CUDA
