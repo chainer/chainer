@@ -492,6 +492,7 @@ Actual: {0}'''.format(type(data))
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
         self._loss_scale = None
+        self._post_backward_hooks = {}
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -969,6 +970,42 @@ Actual: {0}'''.format(type(data))
 
         cand_funcs = []
         seen_set = set()
+
+        def add_cand(cand):
+            if cand not in seen_set:
+                # Negate since heapq is min-heap
+                heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
+                seen_set.add(cand)
+
+        add_cand(self.creator_node)
+        leaf_node_to_id = {}
+        next_leaf_node_id = 0
+        leaf_node_id_to_hook_rank = []
+
+        while cand_funcs:
+            _, _, func = heapq.heappop(cand_funcs)
+            for x in func.inputs:
+                # Raise error here if x is created by Function.backward.
+                # In such case, we don't know exact inputs of the creator.
+                x._check_old_style_gradient()
+                if not x.requires_grad:
+                    continue
+                if x.creator_node is None:  # leaf
+                    if x not in leaf_node_to_id:
+                        leaf_node_to_id[x] = next_leaf_node_id
+                        next_leaf_node_id += 1
+                        leaf_node_id_to_hook_rank.append(func.rank)
+                    else:
+                        i = leaf_node_to_id[x]
+                        leaf_node_id_to_hook_rank = min(leaf_node_id_to_hook_rank[i], func.rank)
+                else:
+                    add_cand(x.creator_node)
+        hook_rank_to_leaf_node = [[] for _ in range(self.creator_node.rank + 2)]
+        for node, i in sorted(leaf_node_to_id.items(), key=lambda x:x[1]):
+            hook_rank_to_leaf_node[leaf_node_id_to_hook_rank[i]].append(node)
+
+        cand_funcs = []
+        seen_set = set()
         grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
@@ -990,18 +1027,22 @@ Actual: {0}'''.format(type(data))
             if loss_scale is not None:
                 self.grad *= loss_scale
         grads[self._node] = self._grad_var
-
-        def add_cand(cand):
-            if cand not in seen_set:
-                # Negate since heapq is min-heap
-                heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-                seen_set.add(cand)
-
         add_cand(self.creator_node)
         leaf_nodes = set()
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
+
+            for x in hook_rank_to_leaf_node[func.rank + 1]:
+                x_var = x.get_variable_or_none()
+                gx = grads.pop(x)
+                if x_var is not None:
+                    x_var._grad_var = gx
+                    x_var._loss_scale = loss_scale
+
+                for hook in six.itervalues(x_var._post_backward_hooks):
+                    hook(x_var)
+
             inputs = func.inputs
             target_input_indexes = tuple([
                 i for i, x in enumerate(inputs) if x.requires_grad
@@ -1062,12 +1103,16 @@ Actual: {0}'''.format(type(data))
                     add_cand(x.creator_node)
             del gx, in_grad  # to reduce memory usage
 
-        for x in leaf_nodes:
+        for x in hook_rank_to_leaf_node[0]:
             x_var = x.get_variable_or_none()
             gx = grads.pop(x)
             if x_var is not None:
                 x_var._grad_var = gx
                 x_var._loss_scale = loss_scale
+
+            for hook in six.itervalues(x_var._post_backward_hooks):
+                hook(x_var)
+
         grads.assert_no_grads()
 
     def reshape(self, *shape):
@@ -1137,6 +1182,48 @@ Actual: {0}'''.format(type(data))
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         self._node.data = self._data[0]
+
+    def add_hook(self, hook, name=None):
+        """Adds a hook function.
+
+        The hook function is called before or after any updates (see the timing
+        attribute).
+
+        Args:
+            hook (callable): Hook function to be added. It takes two
+                arguments: the update rule object and the parameter variable.
+            name (str): Name of the hook function. The name attribute of the
+                hook function is used by default.
+            timing (str): Specifies when the hook is called. If 'auto', the
+                timimg property of the hook will decide the timing.
+                If 'pre', the hook will be called before any updates.
+                If 'post', the hook will be called after any updates.
+                If 'auto' and the timing property of the hook is not
+                available, timing will default to 'pre'.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function must be callable')
+
+        if name is None:
+            name = getattr(hook, 'name', getattr(hook, '__name__', None))
+            if name is None:
+                raise ValueError(
+                    'the name of the hook function is not specified')
+        if name in self._post_backward_hooks:
+            raise ValueError('hook "{}" already exists'.format(name))
+
+        self._post_backward_hooks[name] = hook
+
+    def remove_hook(self, name):
+        """Removes the specified hook function.
+
+        Args:
+            name (str): Name of the hook function to be removed. The hook
+                function registered with this name will be removed.
+
+        """
+        del self._post_backward_hooks[name]
 
     def __lt__(self, other):
         """This operator is not defined for Variable."""

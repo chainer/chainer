@@ -132,6 +132,70 @@ class _DoubleBufferingOptimizer(object):
     def __setattr__(self, attr_name, value):
         setattr(self.actual_optimizer, attr_name, value)
 
+class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
+    def __init__(self, actual_optimizer, communicator):
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+            'communicator', communicator)
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+            'actual_optimizer', actual_optimizer)
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+            'target_params', [])
+
+    def update(self, lossfun=None, *args, **kwds):
+        target = self.target
+        if lossfun is not None:
+            loss = lossfun(*args, **kwds)
+            target.cleargrads()
+            loss.backward()
+            del loss
+
+        if self.is_changed(target):
+            self.communicator.bcast_data(target)
+        else:
+            self.communicator.allreduce_grad(target)
+            self.actual_optimizer.update(None, *args, **kwds)
+
+    def is_changed(self, target):
+        previous_params = self.target_params
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+            'target_params', [(name, param.data is not None)
+                              for name, param in
+                              sorted(target.namedparams())])
+        if len(previous_params) != len(self.target_params):
+            return True
+
+        for param1, param2 in zip(self.target_params, previous_params):
+            if (param1[0] != param2[0]) or param1[1] != param2[1]:
+                return True
+        return False
+
+    def setup(self, link):
+        for param in link.params():
+            param.add_hook(lambda x:
+            print('hello!'), name='allreduce')
+
+        target_param_lengths = {}
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+                'target_param_lengths', target_param_lengths)
+
+        self.actual_optimizer.setup(link)
+        return self
+
+    def append_to_buffer(param):
+        if param in target_param_lengths:
+            param_memory_size = get_memory_size(param)
+
+        l = target_param_lengths[param]
+
+    def get_memory_size(param):
+        pass
+
+    def __getattr__(self, attr_name):
+        return getattr(self.actual_optimizer, attr_name)
+
+    def __setattr__(self, attr_name, value):
+        setattr(self.actual_optimizer, attr_name, value)
+
 
 def create_multi_node_optimizer(actual_optimizer, communicator,
                                 double_buffering=False):
@@ -158,4 +222,5 @@ def create_multi_node_optimizer(actual_optimizer, communicator,
             raise ValueError(
                 'This communicator does not support double buffering.')
         return _DoubleBufferingOptimizer(actual_optimizer, communicator)
-    return _MultiNodeOptimizer(actual_optimizer, communicator)
+    #return _MultiNodeOptimizer(actual_optimizer, communicator)
+    return _MultiNodeOptimizerWithLayerWiseAllreduce(actual_optimizer, communicator)
