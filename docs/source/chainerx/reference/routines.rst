@@ -46,6 +46,7 @@ Activation functions
    chainerx.log_softmax
    chainerx.tanh
    chainerx.relu
+   chainerx.sigmoid
 
 Array manipulation routines
 ---------------------------
