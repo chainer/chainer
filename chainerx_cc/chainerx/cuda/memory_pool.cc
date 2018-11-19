@@ -60,7 +60,7 @@ MemoryPool::~MemoryPool() {
     cudaSetDevice(orig_device_index);
 }
 
-void MemoryPool::FreeAllBlocks() {
+void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
     std::lock_guard<std::mutex> lock{free_bins_mutex_};
     for (const std::vector<void*>& free_list : free_bins_) {
@@ -81,28 +81,30 @@ void* MemoryPool::Malloc(size_t bytesize) {
     void* ptr = nullptr;
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
-        if (free_bins_.size() <= index) {
-            free_bins_.resize(index + 1);
-        }
-        std::vector<void*>& free_list = free_bins_[index];
 
-        if (!free_list.empty()) {
-            ptr = free_list.back();
-            CHAINERX_ASSERT(ptr != nullptr);
-            free_list.pop_back();
+        if (index < free_bins_.size()) {
+            std::vector<void*>& free_list = free_bins_[index];
+            if (!free_list.empty()) {
+                ptr = free_list.back();
+                CHAINERX_ASSERT(ptr != nullptr);
+                free_list.pop_back();
+            }
         }
     }
 
+    // TODO(niboshi): Currently the deleter of allocated memory assumes that
+    // the memory is stored in the memory pool (in `in_use_`), but this may not hold if some exception is thrown before it is stored.
+    // `std::lock_guard` and `in_use_.emplace` are the sources of possible exceptions.
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
         CudaSetDeviceScope scope{device_index_};
         MallocStatus status = allocator_->Malloc(&ptr, allocation_size);
         if (status == MallocStatus::kErrorMemoryAllocation) {
-            FreeAllBlocks();
+            FreeUnusedBlocks();
             status = allocator_->Malloc(&ptr, allocation_size);
             if (status == MallocStatus::kErrorMemoryAllocation) {
                 // TODO(sonots): Include total pooled bytes in the error message
-                throw OutOfMemoryError{allocation_size};
+                throw OutOfMemoryError{bytesize};
             }
         }
     }
@@ -111,6 +113,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
         in_use_.emplace(ptr, index);
     }
+
     return ptr;
 }
 
@@ -132,8 +135,19 @@ void MemoryPool::Free(void* ptr) {
 
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
-        std::vector<void*>& free_list = free_bins_.at(index);
-        free_list.push_back(ptr);
+        if (free_bins_.size() <= index) {
+            free_bins_.resize(index + 1);
+        }
+        std::vector<void*>& free_list = free_bins_[index];
+        free_list.emplace_back(ptr);
+    }
+}
+
+void MemoryPool::FreeNoExcept(void* ptr) noexcept {
+    try {
+        Free(ptr);
+    } catch (...) {
+        CHAINERX_NEVER_REACH();
     }
 }
 
