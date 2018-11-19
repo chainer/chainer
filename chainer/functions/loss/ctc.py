@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 import six
 
@@ -356,17 +358,14 @@ class CudnnCTC(function.Function):
     def forward(self, inputs):
         xp = backend.get_array_module(inputs[0])
         input_length, label_length, t, xs = inputs
-        batch_size = len(xs[0])
         labels = cuda.to_cpu(t.astype('i'))
-        handle = cudnn.get_handle()
         label_length = cuda.to_cpu(label_length.astype('i'))
         input_length = cuda.to_cpu(input_length.astype('i'))
         # pre-compute softmax
         probs = _softmax(xs, xp)
         probs = cuda.cupy.ascontiguousarray(probs)
-        loss, gradients = cudnn.ctc_loss(probs, labels.ctypes.data,
-                                         label_length.ctypes.data,
-                                         input_length.ctypes.data, self.algo)
+        loss, gradients = cudnn.ctc_loss(probs, labels, label_length,
+                                         input_length, self.algo)
         # NOTE(sato): Set 0.0 to compute correct gradients.
         # maybe this is the bug of cuDNN CTC.
         for batch_idx, _length in enumerate(input_length):
@@ -375,7 +374,6 @@ class CudnnCTC(function.Function):
         return loss,
 
     def backward(self, inputs, grad_output):
-        batch_size = len(inputs[2])
         grads = self._gradients * grad_output[0][..., None]
         return None, None, None, grads
 
@@ -393,6 +391,11 @@ def connectionist_temporal_classification(
     the option ``reduce``. If it is ``'no'``, it holds the samplewise
     loss values. If it is ``'mean'``, it takes the mean of loss values.
 
+    .. warning::
+
+       For cuDNN CTC, you must use `blank_symbol` = 0.
+       If `blank_symbol` != 0, this function uses the original implementation \
+       instead of cuDNN.
 
     Args:
         x (list or tuple of :class:`~chainer.Variable`):
@@ -474,17 +477,19 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     x = chainer.functions.stack(x)
-    use_cudnn = chainer.should_use_cudnn('>=auto', 7000)
+    if blank_symbol != 0:
+        warnings.warn(
+            'For cuDNN CTC, you must use `blank_symbol` = 0', UserWarning)
+
     # when the length of labels is greater than 255, we cannot use cuDNN.
-    use_cudnn &= t.shape[1] <= 255
+    use_cudnn = chainer.should_use_cudnn('>=auto', 7000) \
+        and t.shape[1] <= 255 and blank_symbol == 0
+
     if xp is not numpy and use_cudnn:
         if reduce not in ('mean', 'no'):
             raise ValueError(
                 "only 'mean' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
-
-        if blank_symbol != 0:
-            raise ValueError("For cuDNN CTC, you must use 'blank_symbol' = 0")
 
         # For cuDNN CTC, you can set `deterministic`.
         deterministic = configuration.config.cudnn_deterministic
@@ -493,15 +498,16 @@ def connectionist_temporal_classification(
         if isinstance(label_length, chainer.Variable):
             label_length = label_length.data
 
-        if input_length.max() != len(x):
+        max_length = input_length.max()
+        if max_length != len(x):
             # Fix format according to input_length
-            max_length = input_length.max()
             x = x[:max_length]
 
         if label_length.sum() != len(t):
             # Fix format according to label_length
             t = chainer.functions.concat(
-                [_label[:_length] for _label, _length in zip(t, label_length)],
+                [_label[:_length]
+                 for _label, _length in six.moves.zip(t, label_length)],
                 axis=0)
 
         t_flatten = t.reshape(-1)
