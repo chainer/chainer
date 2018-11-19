@@ -32,7 +32,7 @@ public:
             return MallocStatus::kErrorMemoryAllocation;
         }
         // bytesize is encoded in the dummy pointer.
-        intptr_t i = static_cast<intptr_t>(bytesize);
+        auto i = static_cast<intptr_t>(bytesize);
         *ptr = reinterpret_cast<void*>(i);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         capacity_ -= bytesize;
         return MallocStatus::kSuccess;
