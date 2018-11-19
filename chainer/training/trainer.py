@@ -300,8 +300,7 @@ class Trainer(object):
         # invoke initializer of each extension
         for _, entry in extensions:
             initializer = getattr(entry.extension, 'initialize', None)
-            finished = getattr(entry.trigger, 'finished', False)
-            if initializer and not finished:
+            if initializer:
                 initializer(self)
 
         update = self.updater.update
