@@ -1,5 +1,5 @@
 # This file defines inefficient workaround implementation for
-# NumPy-compatibility functions. This file should ultimately be emptied by
+# NumPy ndarray-compatibility functions. This file should ultimately be emptied by
 # implementing those functions in more efficient manner.
 
 import sys
@@ -61,13 +61,8 @@ def _from_cupy(array):
         array)
 
 
+# Populates chainerx.ndarray methods in the chainerx namespace
 def populate():
-    # Populates workaround functions in the chainerx namespace
-    _populate_ndarray()
-
-
-def _populate_ndarray():
-    # Populates chainerx.ndarray methods
     ndarray = chainerx.ndarray
 
     old_getitem = ndarray.__getitem__
