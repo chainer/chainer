@@ -1,5 +1,3 @@
-import chainerx
-
 # TODO(sonots): Implement in C++
 def ravel(a):
     """Returns a flattened array.

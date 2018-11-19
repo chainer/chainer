@@ -1,9 +1,6 @@
 # This file defines inefficient workaround implementation for
-# NumPy ndarray-compatibility functions. This file should ultimately be emptied by
-# implementing those functions in more efficient manner.
-
-import sys
-import types
+# NumPy ndarray-compatibility functions. This file should ultimately be
+# emptied by implementing those functions in more efficient manner.
 
 import numpy
 
@@ -74,7 +71,7 @@ def populate():
         """
         try:
             return old_getitem(self, key)
-        except (IndexError, chainerx.DimensionError) as e:
+        except (IndexError, chainerx.DimensionError):
             pass
 
         # fallback
