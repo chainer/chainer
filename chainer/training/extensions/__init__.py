@@ -20,3 +20,6 @@ from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA
 from chainer.training.extensions.variable_statistics_plot import VariableStatisticsPlot  # NOQA
 from chainer.training.extensions.warmup_shift import WarmupShift  # NOQA
+
+# Aliase
+from chainer.training.extensions.computational_graph import DumpGraph as dump_graph  # NOQA
