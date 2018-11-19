@@ -20,36 +20,28 @@ public:
 
 namespace {
 
-// A dummy allocator to test throw OutOfMemoryError
-class AlwaysOutOfMemoryAllocator : public Allocator {
+// A dummy allocator to test OutOfMemoryError
+class FixedCapacityDummyAllocator : public Allocator {
 public:
-    MallocStatus Malloc(void** ptr, size_t bytesize) override {
-        (void)ptr;  // unused
-        (void)bytesize;  // unused
-        return MallocStatus::kErrorMemoryAllocation;
-    }
-    void Free(void* ptr) noexcept override {
-        (void)ptr;  // unused
-    }
-};
+    FixedCapacityDummyAllocator(size_t capacity) : capacity_{capacity} {}
 
-// A dummy allocator to test retry on out of memory
-class OnceOutOfMemoryAllocator : public Allocator {
-public:
     MallocStatus Malloc(void** ptr, size_t bytesize) override {
-        (void)ptr;  // unused
-        (void)bytesize;  // unused
-        if (malloc_called_++ == 0) {
+        CHAINERX_ASSERT(bytesize > 0);
+        ++malloc_called_;
+        if (capacity_ < bytesize) {
             return MallocStatus::kErrorMemoryAllocation;
         }
+        // bytesize is encoded in the dummy pointer.
+        *ptr = reinterpret_cast<void*>(static_cast<intptr_t>(bytesize));
+        capacity_ -= bytesize;
         return MallocStatus::kSuccess;
     }
-    void Free(void* ptr) noexcept override {
-        (void)ptr;  // unused
-    }
+    void Free(void* ptr) noexcept override { capacity_ += static_cast<size_t>(reinterpret_cast<intptr_t>(ptr)); }
+
     int malloc_called() const { return malloc_called_; }
 
 private:
+    size_t capacity_;
     int malloc_called_{0};
 };
 
@@ -123,16 +115,25 @@ INSTANTIATE_TEST_CASE_P(
                 std::make_shared<MemoryPool>(0, std::make_unique<PinnedMemoryAllocator>())));
 
 TEST(MemoryPoolTest, MallocThrowOutOfMemory) {
-    MemoryPool memory_pool{0, std::make_unique<AlwaysOutOfMemoryAllocator>()};
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0U)};
     EXPECT_THROW(memory_pool.Malloc(1), OutOfMemoryError);
 }
 
 TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
-    MemoryPool memory_pool{0, std::make_unique<OnceOutOfMemoryAllocator>()};
-    void* ptr = memory_pool.Malloc(1);  // no throw
-    auto allocator = dynamic_cast<const OnceOutOfMemoryAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
-    EXPECT_EQ(allocator->malloc_called(), 2);
-    memory_pool.Free(ptr);
+    static constexpr size_t kCapacity = cuda::kAllocationUnitSize * 4;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(kCapacity)};
+    auto allocator = dynamic_cast<const FixedCapacityDummyAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
+
+    size_t size1 = kCapacity;
+    size_t size2 = 1U;
+
+    void* ptr1 = memory_pool.Malloc(size1);  // no throw
+    memory_pool.Free(ptr1);
+
+    void* ptr2 = memory_pool.Malloc(size2);  // no throw
+    memory_pool.Free(ptr2);
+
+    EXPECT_EQ(allocator->malloc_called(), 3);
 }
 
 }  // namespace
