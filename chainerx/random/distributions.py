@@ -3,7 +3,7 @@ import numpy
 import chainerx
 
 
-# TODO(sonots): Implement in C++
+# TODO(sonots): Implement in C++, especially in CUDA
 def normal(*args, device=None, **kwargs):
     """Draws random samples from a normal (Gaussian) distribution.
 
@@ -16,7 +16,7 @@ def normal(*args, device=None, **kwargs):
     return chainerx.array(a, device=device, copy=False)
 
 
-# TODO(sonots): Implement in C++
+# TODO(sonots): Implement in C++, especially in CUDA
 def uniform(*args, device=None, **kwargs):
     """Draws samples from a uniform distribution.
 
