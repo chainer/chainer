@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -105,7 +106,7 @@ class SoftmaxCrossEntropyTestBase(object):
 
     def check_forward_with_reduce(self, loss_value, t_data, class_weight):
         loss_expect = self.expected_forward_with_reduce(
-            self.x, self.t, chainer.backend.to_numpy(class_weight))
+            self.x, self.t, _cpu._to_numpy(class_weight))
 
         testing.assert_allclose(
             loss_expect, loss_value, **self.check_forward_options)
@@ -131,7 +132,7 @@ class SoftmaxCrossEntropyTestBase(object):
 
     def check_forward_without_reduce(self, loss_value, t_data, class_weight):
         loss_expect = self.expected_forward_without_reduce(
-            self.x, self.t, chainer.backend.to_numpy(class_weight))
+            self.x, self.t, _cpu._to_numpy(class_weight))
 
         testing.assert_allclose(
             loss_expect, loss_value, **self.check_forward_options)

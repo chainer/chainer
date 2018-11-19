@@ -3,6 +3,7 @@ import six
 
 import chainer
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -68,7 +69,7 @@ class Assign(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         # Workaround for ChainerX.
-        t = backend.to_numpy(self.t)
+        t = _cpu._to_numpy(self.t)
 
         gx = numpy.zeros(self.shape, self.dtype)
         gx[six.moves.range(self.t.size), t] = inputs[0]

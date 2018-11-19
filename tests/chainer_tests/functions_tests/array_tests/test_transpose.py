@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
@@ -27,7 +27,7 @@ class TestTranspose(unittest.TestCase):
         y = functions.transpose(x, axes)
         self.assertEqual(y.data.dtype, self.dtype)
         self.assertTrue(
-            (self.x.transpose(axes) == backend.to_numpy(y.data)).all())
+            (self.x.transpose(axes) == _cpu._to_numpy(y.data)).all())
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

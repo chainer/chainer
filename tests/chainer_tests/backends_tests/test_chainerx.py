@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -93,11 +94,11 @@ class TestFromToChainerx(unittest.TestCase):
     def check_equal_memory_shared(self, arr1, arr2):
         # Check that the two arrays share the internal memory.
         numpy.testing.assert_array_equal(
-            backend.to_numpy(arr1), backend.to_numpy(arr2))
+            _cpu._to_numpy(arr1), _cpu._to_numpy(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
             arr1[:] += 2
         numpy.testing.assert_array_equal(
-            backend.to_numpy(arr1), backend.to_numpy(arr2))
+            _cpu._to_numpy(arr1), _cpu._to_numpy(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
             arr1[:] -= 2
 

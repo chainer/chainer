@@ -7,7 +7,7 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import link
@@ -43,7 +43,7 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
         self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, backend.to_numpy(data))
+        numpy.testing.assert_array_equal(dset, _cpu._to_numpy(data))
 
         self.assertIs(ret, data)
 
@@ -124,12 +124,12 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
+        numpy.testing.assert_array_equal(_cpu._to_numpy(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+        numpy.testing.assert_array_equal(_cpu._to_numpy(ret), self.data)
 
     @attr.chainerx
     def test_deserialize_chainerx(self):

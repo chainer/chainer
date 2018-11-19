@@ -12,6 +12,7 @@ import six
 
 import chainer
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions as F
@@ -301,11 +302,11 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         if len(self.x_shape) > 0:
             slices = slice(2, 5)
-            np.testing.assert_equal(backend.to_numpy(x[slices].data),
-                                    backend.to_numpy(self.x[slices]))
+            np.testing.assert_equal(_cpu._to_numpy(x[slices].data),
+                                    _cpu._to_numpy(self.x[slices]))
             slices = slice(2, 5),
-            np.testing.assert_equal(backend.to_numpy(x[slices].data),
-                                    backend.to_numpy(self.x[slices]))
+            np.testing.assert_equal(_cpu._to_numpy(x[slices].data),
+                                    _cpu._to_numpy(self.x[slices]))
 
     def test_get_item_cpu(self):
         self.check_get_item(self.x)
@@ -920,14 +921,14 @@ class TestVariableToCpu(unittest.TestCase):
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
         np.testing.assert_array_equal(
-            backend.to_numpy(x_var.data), backend.to_numpy(x))
+            _cpu._to_numpy(x_var.data), _cpu._to_numpy(x))
 
         if set_grad_var:
             assert isinstance(x_var.grad, np.ndarray)
             assert gx.shape == x_var.grad.shape
             assert gx.dtype == x_var.grad.dtype
             np.testing.assert_array_equal(
-                backend.to_numpy(x_var.grad), backend.to_numpy(gx))
+                _cpu._to_numpy(x_var.grad), _cpu._to_numpy(gx))
             assert x_var.grad_var is not None
             assert x_var.grad_var.node is not None
         else:
@@ -995,7 +996,7 @@ class TestVariableToGpu(unittest.TestCase):
         device = cuda.Device(device)
         assert cuda.get_device_from_array(x_var.data) == device
         np.testing.assert_array_equal(
-            backend.to_numpy(x_var.data), backend.to_numpy(x))
+            _cpu._to_numpy(x_var.data), _cpu._to_numpy(x))
 
         if set_grad_var:
             assert isinstance(x_var.grad, cuda.cupy.ndarray)
@@ -1003,7 +1004,7 @@ class TestVariableToGpu(unittest.TestCase):
             assert gx.dtype == x_var.grad.dtype
             assert cuda.get_device_from_array(x_var.grad) == device
             np.testing.assert_array_equal(
-                backend.to_numpy(x_var.grad), backend.to_numpy(gx))
+                _cpu._to_numpy(x_var.grad), _cpu._to_numpy(gx))
             assert x_var.grad_var is not None
             assert x_var.grad_var.node is not None
         else:
@@ -1084,7 +1085,7 @@ class TestVariableToChainerX(unittest.TestCase):
         assert x.dtype == x_var.dtype
         assert x_var.data.device is expected_device
         np.testing.assert_array_equal(
-            backend.to_numpy(x_var.data), backend.to_numpy(x))
+            _cpu._to_numpy(x_var.data), _cpu._to_numpy(x))
 
         if requires_grad:
             assert isinstance(x_var.grad, chainerx.ndarray)
@@ -1092,7 +1093,7 @@ class TestVariableToChainerX(unittest.TestCase):
             assert gx.dtype == x_var.grad.dtype
             assert x_var.grad.device is expected_device
             np.testing.assert_array_equal(
-                backend.to_numpy(x_var.grad), backend.to_numpy(gx))
+                _cpu._to_numpy(x_var.grad), _cpu._to_numpy(gx))
             assert x_var.grad_var is not None
             with pytest.raises(RuntimeError):
                 x_var.grad_var.node
@@ -1185,7 +1186,7 @@ class TestVariableFromChainerX(unittest.TestCase):
         assert x_var.grad is None
         assert x_var.grad_var is None
         np.testing.assert_array_equal(
-            backend.to_numpy(x_var.array), backend.to_numpy(x))
+            _cpu._to_numpy(x_var.array), _cpu._to_numpy(x))
 
     def test_invalid_from_chainerx_requires_grad(self):
         x = chainer.Variable(self.x, requires_grad=True)
@@ -1285,7 +1286,7 @@ class TestVariableToDeviceTwice(unittest.TestCase):
                 assert backend.get_device_from_array(var.array) == device2
                 np.testing.assert_array_equal(
                     self.x,
-                    backend.to_numpy(var.array))
+                    _cpu._to_numpy(var.array))
 
 
 class TestVariableBasic(unittest.TestCase):
@@ -2209,7 +2210,7 @@ class TestReshape(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.reshape(shape)
         assert y.data.dtype == self.dtype
-        assert (self.x.reshape(shape) == backend.to_numpy(y.data)).all()
+        assert (self.x.reshape(shape) == _cpu._to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -2230,8 +2231,8 @@ class TestReshape(unittest.TestCase):
         y = x.reshape(self.out_shape)
         y.grad = y.data
         y.backward()
-        testing.assert_allclose(backend.to_numpy(x.data),
-                                backend.to_numpy(x.grad), atol=0, rtol=0)
+        testing.assert_allclose(_cpu._to_numpy(x.data),
+                                _cpu._to_numpy(x.grad), atol=0, rtol=0)
 
     def test_backward_cpu(self):
         self.check_backward(self.x)
@@ -2263,7 +2264,7 @@ class TestTranspose(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.transpose(*axes)
         assert y.data.dtype == self.dtype
-        assert (self.x.transpose(*axes) == backend.to_numpy(y.data)).all()
+        assert (self.x.transpose(*axes) == _cpu._to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

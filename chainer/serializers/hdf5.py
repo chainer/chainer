@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import serializer
@@ -55,7 +55,7 @@ class HDF5Serializer(serializer.Serializer):
             arr = h5py.Empty('f')
             compression = None
         else:
-            arr = backend.to_numpy(value)
+            arr = _cpu._to_numpy(value)
             compression = None if arr.size <= 1 else self.compression
         self.group.create_dataset(key, data=arr, compression=compression)
         return value

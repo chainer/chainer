@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 import chainerx
 
@@ -73,7 +73,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         chx_device = device.device
         array = chainerx.empty(shape, dtype=dtype, device=chx_device)
         if chx_device.backend.name == 'native':
-            temp_array = backend.to_numpy(array)
+            temp_array = _cpu._to_numpy(array)
             temp_device = cuda.DummyDevice
         elif chx_device.backend.name == 'cuda':
             temp_array = cuda.to_gpu(array, chx_device.index)

@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -298,7 +299,7 @@ class BatchNormalization(function_node.FunctionNode):
             if xp is chainerx:
                 backend_name = self.running_mean.device.backend.name
                 if backend_name == 'native':
-                    to_module = backend.to_numpy
+                    to_module = _cpu._to_numpy
                 elif backend_name == 'cuda':
                     to_module = cuda.to_gpu
                 else:

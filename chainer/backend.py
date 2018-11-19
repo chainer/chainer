@@ -69,11 +69,6 @@ def copyto(dst, src):
             type(dst)))
 
 
-# TODO(niboshi): Revisit API
-def to_numpy(array):
-    return _cpu._to_numpy(array)
-
-
 def get_device(device_spec):
     """Returns a device object.
 
