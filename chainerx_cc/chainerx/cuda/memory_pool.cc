@@ -92,6 +92,9 @@ void* MemoryPool::Malloc(size_t bytesize) {
         }
     }
 
+    // TODO(niboshi): Currently the deleter of allocated memory assumes
+    // the memory is store in the memory pool (in `in_use_`), but this may not hold if some exception is thrown before it is stored.
+    // `std::lock_guard` and `in_use_.emplace` are the sources of possible exceptions.
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
         CudaSetDeviceScope scope{device_index_};
