@@ -25,6 +25,13 @@ if _available:
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
 
+    from chainerx.manipulation.shape import ravel  # NOQA
+
+    from chainerx.math.misc import square  # NOQA
+    from chainerx.math.misc import clip  # NOQA
+
+    from chainerx import random
+
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
