@@ -108,17 +108,17 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(Shape{dim}, GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
@@ -150,31 +150,31 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Zeros(Shape{dim}, GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Ones(ToShape(shape), GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Ones(Shape{dim}, GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Ones(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
-          py::arg("dtype") = "float64",
+          py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("arange",
           [](Scalar start_or_stop,
