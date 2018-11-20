@@ -13,8 +13,8 @@ It for instance provides :func:`chainerx.conv` for N-dimensional convolutions an
 Additionally, and most importantly, the array in ChainerX :class:`chainerx.ndarray`, distinguishes itself from NumPy and CuPy arrays in the following two aspects.
 
 Automatic differentiation
-    Graph construction and backpropagation is built into the array meaning that any function, including the NumPy-like functions can be backpropagated through.
-    It is in Chainer terms, a NumPy/CuPy array with :class:`chainer.Variable` properties.
+    Graph construction and backpropagation is built into the array, meaning that any function, including the NumPy-like functions, can be backpropagated through.
+    In Chainer terms, it is a NumPy/CuPy array with :class:`chainer.Variable` properties.
 
 Device agnosticism
     Arrays can be allocated on any device belonging to any backend, in contrast to NumPy/CuPy arrays which are implemented for specific computing platforms (i.e. CPUs/GPUs respectively).
@@ -76,7 +76,7 @@ If you do not want to specify the device each time you create an array, it is po
     1. The ``native`` backend, which is built by default.
     2. The ``cuda`` backend which is optional (See :ref:`installation <chainerx_install>`).
 
-    This backend abstraction of allows developers to implement their own backends and plug them into ChainerX to perform computations on basically any other platform.
+    This backend abstraction allows developers to implement their own backends and plug them into ChainerX to perform computations on basically any other platform.
 
 Array operations and backpropagation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -101,7 +101,7 @@ The following code shows how you could implement an affine transformation and ba
 
 .. note::
 
-    The code above is device agnostic meaning that you can exectute it on any backend by simply wrapping the code with a device scope.
+    The code above is device agnostic, meaning that you can exectute it on any backend by simply wrapping the code with a device scope.
 
 Relation to Chainer
 -------------------
@@ -129,7 +129,7 @@ Similar fallback conversions are found throughout the code outside the `Function
 Run you Chainer code with ChainerX
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order to utilize :data:`chainerx`, you first need to allocate your model on a ChainerX device using :meth:`chainer.Chain.to_device` or :meth:`chainer.Link.to_device`.
+In order to utilize :data:`chainerx`, you first need to transfer your model to a ChainerX device using :meth:`chainer.Chain.to_device` or :meth:`chainer.Link.to_device`.
 These are new methods that have been introduced to replace :meth:`chainer.Chain.to_cpu` and :meth:`chainer.Chain.to_gpu`, extending device transfer to arbitrary devices.
 Similarly, you have to transfer the data (:class:`chainer.Variable`\ s) to the same device before feeding them to the model.
 
