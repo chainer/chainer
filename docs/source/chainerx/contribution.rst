@@ -53,7 +53,6 @@ Coding standards
 ----------------
 
 The ChainerX C++ coding standard is mostly based on the `Google C++ Style Guide <https://google.github.io/styleguide/cppguide.html>`_ and principles.
-You can automatically format the code to follow the standard or check whether your code complies with the following tools.
 
 Formatting
 ~~~~~~~~~~
