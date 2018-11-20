@@ -20,7 +20,7 @@ Run the following command from the root of the project to generate a ``chainerx_
     $ cd chainerx_cc
     $ mkdir -p build
     $ cd build
-    $ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
+    $ cmake -DCUDNN_ROOT_DIR=/path/to/cudnn ..
     $ make
 
 The CUDA support is enabled by default and ``-DCUDNN_ROOT_DIR`` is required to locate the cuDNN installation path.
@@ -29,10 +29,6 @@ To disable the CUDA support, either set ``CHAINERX_BUILD_CUDA=0`` as an environm
 .. note::
 
     CUDA without cuDNN is currently not supported.
-
-.. note::
-
-    The example cuDNN path is based on using `cudnnenv <https://github.com/unnonouno/cudnnenv>`_, which is highly recommended.
 
 To then install the headers and the library, run:
 
