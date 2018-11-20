@@ -162,6 +162,8 @@ def _array_to_chainerx(array, device=None):
 
 
 def _array_from_chainerx(array):
+    if array is None:
+        return None
     if not isinstance(array, chainerx.ndarray):
         if isinstance(array, chainer.get_array_types()):
             return array
