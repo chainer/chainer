@@ -3,10 +3,33 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import testing
 import chainer.testing.backend
 import chainerx
+
+
+def _get_expected_xp(backend_config, is_function):
+    # Returns a pair of xp's exected in forward() and backward() respectively.
+    xp = backend_config.xp
+
+    if is_function:
+        # chainer.Function
+        if xp is chainerx:
+            forward_xp = backend_config.device.fallback_device.xp
+        else:
+            forward_xp = xp
+        backward_xp = forward_xp
+
+    else:
+        # chainer.FunctionNode
+        if xp is chainerx:
+            forward_xp = backend_config.device.fallback_device.xp
+            backward_xp = chainerx
+        else:
+            forward_xp = xp
+            backward_xp = xp
+
+    return forward_xp, backward_xp
 
 
 @testing.parameterize(*testing.product({
@@ -28,22 +51,7 @@ import chainerx
 class TestFunctionBackprop(unittest.TestCase):
 
     def call_func_function(self, backend_config, x1, x2, x3):
-        xp = backend_config.xp
-
-        if xp is chainerx:
-            backend_name, device_index = (
-                backend_config.chainerx_device.split(':'))
-            if backend_name == 'native':
-                forward_xp = numpy
-                backward_xp = numpy
-            elif backend_name == 'cuda':
-                forward_xp = cuda.cupy
-                backward_xp = cuda.cupy
-            else:
-                assert False
-        else:
-            forward_xp = xp
-            backward_xp = xp
+        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
 
         class Func(chainer.Function):
             def forward(self, inputs):
@@ -101,21 +109,7 @@ class TestFunctionBackprop(unittest.TestCase):
         return Func()(x1, x2, x3)
 
     def call_func_function_node(self, backend_config, x1, x2, x3):
-        xp = backend_config.xp
-
-        if xp is chainerx:
-            backend_name, device_index = (
-                backend_config.chainerx_device.split(':'))
-            if backend_name == 'native':
-                forward_xp = numpy
-            elif backend_name == 'cuda':
-                forward_xp = cuda.cupy
-            else:
-                assert False
-            backward_xp = chainerx
-        else:
-            forward_xp = xp
-            backward_xp = xp
+        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
 
         class Func(chainer.FunctionNode):
             def forward(self, inputs):
@@ -229,22 +223,7 @@ class TestFunctionBackprop(unittest.TestCase):
 class TestFunctionOutputNone(unittest.TestCase):
 
     def call_func_function(self, backend_config, x1):
-        xp = backend_config.xp
-
-        if xp is chainerx:
-            backend_name, device_index = (
-                backend_config.chainerx_device.split(':'))
-            if backend_name == 'native':
-                forward_xp = numpy
-                backward_xp = numpy
-            elif backend_name == 'cuda':
-                forward_xp = cuda.cupy
-                backward_xp = cuda.cupy
-            else:
-                assert False
-        else:
-            forward_xp = xp
-            backward_xp = xp
+        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
 
         class Func(chainer.Function):
             def forward(self, inputs):
@@ -288,21 +267,7 @@ class TestFunctionOutputNone(unittest.TestCase):
         return Func()(x1)
 
     def call_func_function_node(self, backend_config, x1):
-        xp = backend_config.xp
-
-        if xp is chainerx:
-            backend_name, device_index = (
-                backend_config.chainerx_device.split(':'))
-            if backend_name == 'native':
-                forward_xp = numpy
-            elif backend_name == 'cuda':
-                forward_xp = cuda.cupy
-            else:
-                assert False
-            backward_xp = chainerx
-        else:
-            forward_xp = xp
-            backward_xp = xp
+        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
 
         class Func(chainer.FunctionNode):
             def forward(self, inputs):
