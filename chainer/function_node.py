@@ -21,9 +21,12 @@ import chainerx
 
 
 def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+    # chainerx_array can be None.
     var = variable.Variable(
         chainerx_array,
-        requires_grad=chainerx_array.is_backprop_required())
+        requires_grad=(
+            False if chainerx_array is None
+            else chainerx_array.is_backprop_required()))
     var._chainerx_fallback_array = fallback_array
     return var
 
@@ -685,7 +688,8 @@ Use apply() method instead.\
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
             variable.Variable(
-                array, requires_grad=array.is_backprop_required())
+                array, requires_grad=(
+                    False if array is None else array.is_backprop_required()))
             for array in retained_outputs])
 
         device = backend.get_device_from_array(
@@ -754,7 +758,7 @@ Use apply() method instead.\
             return self._chainerx_retained_inputs
 
         if self._input_indexes_to_retain is None or self.inputs is None:
-            return
+            return ()
 
         # TODO(hvy): It should be safe to remove this check.
         if self._input_indexes_to_retain is None:

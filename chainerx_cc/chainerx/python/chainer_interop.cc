@@ -31,32 +31,36 @@ void InitChainerxChainerInterop(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& outputs,
              const std::vector<size_t>& input_indexes_to_retain,
              const std::vector<size_t>& output_indexes_to_retain) {
-              CHAINERX_ASSERT(std::all_of(
-                      outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) { return array_body->nodes().empty(); }));
+              CHAINERX_ASSERT(std::all_of(outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) {
+                  return array_body == nullptr || array_body->nodes().empty();
+              }));
 
               // Prepare input arrays for BackwardBuilder
               std::vector<Array> input_arrays;
               std::vector<ConstArrayRef> input_array_refs;
               input_arrays.reserve(inputs.size());
               input_array_refs.reserve(inputs.size());
-              std::transform(inputs.begin(), inputs.end(), std::back_inserter(input_arrays), [](const ArrayBodyPtr& array_body) {
-                  return Array{array_body};
-              });
-              std::transform(input_arrays.begin(), input_arrays.end(), std::back_inserter(input_array_refs), [](const Array& array) {
-                  return ConstArrayRef{array};
-              });
+              for (const ArrayBodyPtr& array_body : inputs) {
+                  input_arrays.emplace_back(array_body);
+                  input_array_refs.emplace_back(input_arrays.back());
+              }
 
               // Prepare output arrays for BackwardBuilder
               std::vector<Array> output_arrays;
               std::vector<ConstArrayRef> output_array_refs;
+              std::vector<nonstd::optional<size_t>> output_index_map;  // maps original output index to reduced index
               output_arrays.reserve(outputs.size());
               output_array_refs.reserve(outputs.size());
-              std::transform(outputs.begin(), outputs.end(), std::back_inserter(output_arrays), [](const ArrayBodyPtr& array_body) {
-                  return Array{array_body};
-              });
-              std::transform(output_arrays.begin(), output_arrays.end(), std::back_inserter(output_array_refs), [](const Array& array) {
-                  return ConstArrayRef{array};
-              });
+              output_index_map.reserve(outputs.size());
+              for (const ArrayBodyPtr& array_body : outputs) {
+                  if (array_body != nullptr) {
+                      output_index_map.emplace_back(output_array_refs.size());
+                      output_arrays.emplace_back(array_body);
+                      output_array_refs.emplace_back(output_arrays.back());
+                  } else {
+                      output_index_map.emplace_back(nonstd::nullopt);
+                  }
+              }
 
               // Insert backward function
               BackwardBuilder bb{"chainer_function", std::move(input_array_refs), std::move(output_array_refs)};
@@ -72,14 +76,18 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                           input_indexes_to_retain.end(),
                           std::back_inserter(retained_input_tokens),
                           [&bb](size_t i) { return bb.RetainInput(i); });
-                  std::vector<RetainedOutputToken> retained_output_tokens;
-                  std::transform(
-                          output_indexes_to_retain.begin(),
-                          output_indexes_to_retain.end(),
-                          std::back_inserter(retained_output_tokens),
-                          [&bb](size_t i) { return bb.RetainOutput(i); });
+                  std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens;
+                  retained_output_tokens.reserve(output_indexes_to_retain.size());
+                  for (size_t i : output_indexes_to_retain) {
+                      if (nonstd::optional<size_t> i_out_reduced = gsl::at(output_index_map, i)) {
+                          retained_output_tokens.emplace_back(bb.RetainOutput(*i_out_reduced));
+                      } else {
+                          retained_output_tokens.emplace_back(nonstd::nullopt);
+                      }
+                  }
 
                   bt.Define([function_node_ptr = std::move(function_node_ptr),
+                             output_index_map = std::move(output_index_map),
                              in_toks = std::move(retained_input_tokens),
                              out_toks = std::move(retained_output_tokens)](BackwardContext& bctx) {
                       // Target input indexes
@@ -94,9 +102,15 @@ void InitChainerxChainerInterop(pybind11::module& m) {
 
                       // Collect incoming output gradients
                       std::vector<ArrayBodyPtr> grad_outputs;
-                      for (size_t i_out = 0; i_out < bctx.output_count(); ++i_out) {
-                          if (auto gy = bctx.output_grad(i_out)) {
-                              grad_outputs.emplace_back(internal::GetArrayBody(*gy));
+                      grad_outputs.reserve(output_index_map.size());
+                      for (const nonstd::optional<size_t>& i_out : output_index_map) {
+                          if (i_out.has_value()) {
+                              CHAINERX_ASSERT(*i_out < bctx.output_count());
+                              if (auto gy = bctx.output_grad(*i_out)) {
+                                  grad_outputs.emplace_back(internal::GetArrayBody(*gy));
+                              } else {
+                                  grad_outputs.emplace_back(nullptr);
+                              }
                           } else {
                               grad_outputs.emplace_back(nullptr);
                           }
@@ -109,11 +123,14 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                                   return internal::GetArrayBody(bctx.GetRetainedInput(tok));
                               });
                       std::vector<ArrayBodyPtr> retained_outputs;
-                      std::transform(
-                              out_toks.begin(),
-                              out_toks.end(),
-                              std::back_inserter(retained_outputs),
-                              [&bctx](const RetainedOutputToken& tok) { return internal::GetArrayBody(bctx.GetRetainedOutput(tok)); });
+                      retained_outputs.reserve(out_toks.size());
+                      for (const nonstd::optional<RetainedOutputToken>& tok : out_toks) {
+                          if (tok.has_value()) {
+                              retained_outputs.emplace_back(internal::GetArrayBody(bctx.GetRetainedOutput(*tok)));
+                          } else {
+                              retained_outputs.emplace_back(nullptr);
+                          }
+                      }
 
                       // Call FunctionNode._backward_chainerx()
                       std::vector<ArrayBodyPtr> grad_inputs;
