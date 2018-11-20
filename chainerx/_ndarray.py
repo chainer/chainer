@@ -64,15 +64,11 @@ def populate():
 
     old_getitem = ndarray.__getitem__
 
-    # TODO(sonots): Implement in C++ and support backprop for advanced indexing
+    # TODO(sonots): Move advanced indexing fallback to another method
     def __getitem__(self, key):
         """Returns self[key].
 
         Supports both basic and advanced indexing.
-
-        NOTE:
-
-            Backpropagation is not supported for advanced indexing yet.
         """
         try:
             return old_getitem(self, key)
@@ -93,7 +89,7 @@ def populate():
                 'Currently __getitem__ fallback is supported only in '
                 'native and cuda backend.')
 
-    # TODO(sonots): Implement in C++
+    # TODO(sonots): Move advanced indexing fallback to another method
     def __setitem__(self, key, value):
         """Sets self[key] to value.
 
