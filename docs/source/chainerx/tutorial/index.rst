@@ -8,7 +8,7 @@ This section will guide you through the essential APIs of ChainerX to do so, and
 Introduction to ChainerX
 ------------------------
 
-The module :data:`chainerx` aims to support a *NumPy compatible interface with additional operations specific to neural networks*.
+The module :data:`chainerx` aims to support a NumPy compatible interface with additional operations specific to neural networks.
 It for instance provides :func:`chainerx.conv` for N-dimensional convolutions and :func:`chainerx.batch_norm` for batch normalization.
 Additionally, and most importantly, the array in ChainerX :class:`chainerx.ndarray`, distinguishes itself from NumPy and CuPy arrays in the following two aspects.
 
