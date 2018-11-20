@@ -617,13 +617,12 @@ class Variable(object):
 
     @property
     def device(self):
-        """Returns the device on which the data array of this variable reside.
-        """
+        """Device on which the data array of this variable reside."""
         return self._device
 
     @property
     def xp(self):
-        """Returns the data array's module of this variable."""
+        """Array module for the data array of this variable."""
         return self._device.xp
 
     @property
