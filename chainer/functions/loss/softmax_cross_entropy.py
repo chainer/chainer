@@ -3,7 +3,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.activation import log_softmax
@@ -113,7 +112,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         return y,
 
     def forward_cpu(self, inputs):
-        class_weight = _cpu._to_numpy(self.class_weight)
+        class_weight = backend.from_chainerx(self.class_weight)
 
         self.retain_inputs((0, 1))
         x, t = inputs
@@ -148,7 +147,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
-        class_weight = cuda.to_gpu(self.class_weight)
+        class_weight = backend.from_chainerx(self.class_weight)
 
         self.retain_inputs((0, 1))
         cupy = cuda.cupy
