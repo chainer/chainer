@@ -123,9 +123,20 @@ def numerical_grad(
 
     # Evaluate func at a single input
     def eval_func(x, i, delta, orig):
-        x[i] = orig + delta
+        # TODO(hvy): Remove ChainerX workaround when
+        # chaienrx.ndarray.__setitem__ is supported.
+        if isinstance(x, chainerx.ndarray):
+            x._setitem(i, orig + delta)
+        else:
+            x[i] = orig + delta
+
         y = _copy_arrays(f())
-        x[i] = orig
+
+        if isinstance(x, chainerx.ndarray):
+            x._setitem(i, orig)
+        else:
+            x[i] = orig
+
         return y
 
     # An iteration on a single input displacement
@@ -257,7 +268,14 @@ def numerical_grad(
                         y1, y0, xp.asarray(gy), eps, gx[i])
                 else:
                     dot = ((y1 - y0) * gy).sum()
-                    gx[i] += dot / (2 * eps)
+
+                    # TODO(hvy): Remove ChainerX workaround when
+                    # chaienrx.ndarray.__{get,set}item__ are supported.
+                    if isinstance(gx, chainerx.ndarray):
+                        gx._setitem(i, gx._getitem(i) + dot / (2 * eps))
+                    else:
+                        gx[i] += dot / (2 * eps)
+
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
                 y1 = yss[1][i_out]
@@ -269,7 +287,13 @@ def numerical_grad(
                 else:
                     num = -y3 + 8 * y2 - 8 * y1 + y0
                     dot = (num * gy).sum()
-                    gx[i] += dot / (6 * eps)
+
+                    # TODO(hvy): Remove ChainerX workaround when
+                    # chaienrx.ndarray.__{get,set}item__ are supported.
+                    if isinstance(gx, chainerx.ndarray):
+                        gx._setitem(i, gx._getitem(i) + dot / (6 * eps))
+                    else:
+                        gx[i] += dot / (6 * eps)
             else:
                 assert False
 

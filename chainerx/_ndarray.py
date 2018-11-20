@@ -20,7 +20,7 @@ def _to_numpy(array):
 
 
 def _from_numpy(array):
-    assert isinstance(array, numpy.ndarray)
+    assert isinstance(array, numpy.ndarray) or numpy.isscalar(array)
     return chainerx.array(array, copy=False)
 
 
@@ -62,20 +62,12 @@ def _from_cupy(array):
 def populate():
     ndarray = chainerx.ndarray
 
-    old_getitem = ndarray.__getitem__
-
-    # TODO(sonots): Move advanced indexing fallback to another method
-    def __getitem__(self, key):
-        """Returns self[key].
+    def _fallback_getitem(self, key):
+        """Returns self[key] by falling back to a non-ChainerX array.
 
         Supports both basic and advanced indexing.
-        """
-        try:
-            return old_getitem(self, key)
-        except (IndexError, chainerx.DimensionError):
-            pass
 
-        # fallback
+        """
         if self.device.backend.name == 'native':
             if isinstance(key, chainerx.ndarray):
                 key = _to_numpy(key)
@@ -89,9 +81,8 @@ def populate():
                 'Currently __getitem__ fallback is supported only in '
                 'native and cuda backend.')
 
-    # TODO(sonots): Move advanced indexing fallback to another method
-    def __setitem__(self, key, value):
-        """Sets self[key] to value.
+    def _fallback_setitem(self, key, value):
+        """Sets self[key] to value by falling back to a non-ChainerX array.
 
         Supports both basic and advanced indexing.
 
@@ -162,7 +153,7 @@ def populate():
         """
         return chainerx.ravel(self)
 
-    ndarray.__setitem__ = __setitem__
-    ndarray.__getitem__ = __getitem__
+    ndarray._setitem = _fallback_setitem
+    ndarray._getitem = _fallback_getitem
     ndarray.clip = clip
     ndarray.ravel = ravel
