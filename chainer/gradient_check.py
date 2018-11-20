@@ -123,8 +123,6 @@ def numerical_grad(
 
     # Evaluate func at a single input
     def eval_func(x, i, delta, orig):
-        # TODO(hvy): Remove ChainerX workaround when
-        # chaienrx.ndarray.__setitem__ is supported.
         if isinstance(x, chainerx.ndarray):
             x._setitem(i, orig + delta)
         else:
@@ -269,10 +267,8 @@ def numerical_grad(
                 else:
                     dot = ((y1 - y0) * gy).sum()
 
-                    # TODO(hvy): Remove ChainerX workaround when
-                    # chaienrx.ndarray.__{get,set}item__ are supported.
                     if isinstance(gx, chainerx.ndarray):
-                        gx._setitem(i, gx._getitem(i) + dot / (2 * eps))
+                        gx._setitem(i, gx[i] + dot / (2 * eps))
                     else:
                         gx[i] += dot / (2 * eps)
 
@@ -288,10 +284,8 @@ def numerical_grad(
                     num = -y3 + 8 * y2 - 8 * y1 + y0
                     dot = (num * gy).sum()
 
-                    # TODO(hvy): Remove ChainerX workaround when
-                    # chaienrx.ndarray.__{get,set}item__ are supported.
                     if isinstance(gx, chainerx.ndarray):
-                        gx._setitem(i, gx._getitem(i) + dot / (6 * eps))
+                        gx._setitem(i, gx[i] + dot / (6 * eps))
                     else:
                         gx[i] += dot / (6 * eps)
             else:
