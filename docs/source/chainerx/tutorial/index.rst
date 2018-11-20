@@ -128,8 +128,8 @@ For a complete list of supported ChainerX functions please refer to the :ref:`Ch
 Run you Chainer code with ChainerX
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order to utilize :data:`chainerx`, you first need to transfer your model to a ChainerX device using :meth:`chainer.Chain.to_device` or :meth:`chainer.Link.to_device`.
-These are new methods that have been introduced to replace :meth:`chainer.Chain.to_cpu` and :meth:`chainer.Chain.to_gpu`, extending device transfer to arbitrary devices.
+In order to utilize :data:`chainerx`, you first need to transfer your model to a ChainerX device using :meth:`chainer.Link.to_device`.
+These are new methods that have been introduced to replace :meth:`chainer.Link.to_cpu` and :meth:`chainer.Link.to_gpu`, extending device transfer to arbitrary devices.
 Similarly, you have to transfer the data (:class:`chainer.Variable`\ s) to the same device before feeding them to the model.
 
 Note that no breaking changes should have been introduced and any existing Chainer code (that works with the current master branch of Chainer) is expected to work.
