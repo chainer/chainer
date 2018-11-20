@@ -335,7 +335,7 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
         initial_p = np.array([1., 2., 3.], np.float32)
         x = chainerx.array([2., 4., 6.], np.float32)
 
-        expected_p = 4. * initial_p - 6. * backend.to_numpy(x)
+        expected_p = 4. * initial_p - 6. * backend.CpuDevice().send(x)
 
         class ChainerxUpdateRule(optimizer.UpdateRule):
             call_count = 0
@@ -372,7 +372,7 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
 
         assert link.p.update_rule.call_count == 1
         np.testing.assert_array_equal(
-            backend.to_numpy(link.p.array), expected_p)
+            backend.CpuDevice().send(link.p.array), expected_p)
 
 
 class TestOptimizerHook(unittest.TestCase):

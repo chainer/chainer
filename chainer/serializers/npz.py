@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import serializer
@@ -49,7 +49,7 @@ class DictionarySerializer(serializer.Serializer):
     def __call__(self, key, value):
         key = key.lstrip('/')
         self.target[self.path + key] = (
-            backend.to_numpy(value) if value is not None
+            _cpu._to_numpy(value) if value is not None
             else numpy.asarray(None))
         return value
 

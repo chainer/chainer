@@ -57,7 +57,7 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertEqual(dset.dtype, data.dtype)
         read = numpy.empty((2, 3), dtype=numpy.float32)
         dset.read_direct(read)
-        numpy.testing.assert_array_equal(read, backend.to_numpy(data))
+        numpy.testing.assert_array_equal(read, backend.CpuDevice().send(data))
 
         self.assertEqual(dset.compression_opts, 3)
 
@@ -135,12 +135,14 @@ class TestHDF5Deserializer(unittest.TestCase):
 
     def check_deserialize(self, y):
         ret = self.deserializer('y', y)
-        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
+        numpy.testing.assert_array_equal(backend.CpuDevice().send(y),
+                                         self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_none_value(self, y):
         ret = self.deserializer('y', None)
-        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+        numpy.testing.assert_array_equal(backend.CpuDevice().send(ret),
+                                         self.data)
 
     @attr.chainerx
     def test_deserialize_chainerx(self):

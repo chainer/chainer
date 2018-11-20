@@ -11,6 +11,7 @@ import six
 import chainer
 from chainer import _backprop_utils
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -63,7 +64,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    arr = backend.to_numpy(var.array)
+    arr = _cpu._to_numpy(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
@@ -87,7 +88,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    arr = backend.to_numpy(var.array)
+    arr = _cpu._to_numpy(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name

@@ -366,7 +366,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
 
         assert isinstance(y.array, chainerx.ndarray)
         chainerx.testing.assert_array_equal(
-            backend.to_numpy(xp_x1 * xp_x2), y.array)
+            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
 
     @attr.chainerx
     def test_mix_numpy(self):

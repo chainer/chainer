@@ -102,12 +102,12 @@ class ReLUGrad2(function_node.FunctionNode):
         self.b = b.data
 
     def forward_cpu(self, inputs):
-        b = backend.to_numpy(self.b)  # Workaround for ChainerX
+        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
         y = (b > 0) * inputs[0]
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        b = cuda.to_gpu(self.b)  # Workaround for ChainerX
+        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
         gx = _relu_grad2_kernel(b, inputs[0])
         return gx,
 

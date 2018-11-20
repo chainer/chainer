@@ -51,7 +51,7 @@ class TestStack(unittest.TestCase):
             expect = numpy.stack(self.xs, axis=self.axis)
             testing.assert_allclose(y.data, expect)
 
-        y_data = backend.to_numpy(y.data)
+        y_data = backend.CpuDevice().send(y.data)
         self.assertEqual(y_data.shape[self.axis], 2)
         numpy.testing.assert_array_equal(
             y_data.take(0, axis=self.axis), self.xs[0])

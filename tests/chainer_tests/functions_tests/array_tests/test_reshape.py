@@ -27,7 +27,7 @@ class TestReshape(unittest.TestCase):
         y = functions.reshape(x, shape)
         self.assertEqual(y.data.dtype, self.dtype)
         self.assertTrue(
-            (self.x.reshape(shape) == backend.to_numpy(y.data)).all())
+            (self.x.reshape(shape) == backend.CpuDevice().send(y.data)).all())
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

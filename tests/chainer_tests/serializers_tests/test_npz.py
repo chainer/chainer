@@ -43,7 +43,7 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
         self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, backend.to_numpy(data))
+        numpy.testing.assert_array_equal(dset, backend.CpuDevice().send(data))
 
         self.assertIs(ret, data)
 
@@ -124,12 +124,14 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(ret), self.data)
 
     @attr.chainerx
     def test_deserialize_chainerx(self):

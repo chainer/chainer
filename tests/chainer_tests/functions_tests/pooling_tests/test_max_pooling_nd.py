@@ -69,7 +69,7 @@ class TestMaxPoolingND(unittest.TestCase):
             y = functions.max_pooling_nd(x, ksize, stride=stride, pad=pad,
                                          cover_all=self.cover_all)
         self.assertEqual(y.data.dtype, self.dtype)
-        y_data = backend.to_numpy(y.data)
+        y_data = backend.CpuDevice().send(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(

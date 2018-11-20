@@ -27,7 +27,7 @@ class TestTranspose(unittest.TestCase):
         y = functions.transpose(x, axes)
         self.assertEqual(y.data.dtype, self.dtype)
         self.assertTrue(
-            (self.x.transpose(axes) == backend.to_numpy(y.data)).all())
+            (self.x.transpose(axes) == backend.CpuDevice().send(y.data)).all())
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

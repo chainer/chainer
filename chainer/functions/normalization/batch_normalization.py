@@ -296,17 +296,7 @@ class BatchNormalization(function_node.FunctionNode):
 
             xp = backend.get_array_module(self.running_mean, self.running_var)
             if xp is chainerx:
-                backend_name = self.running_mean.device.backend.name
-                if backend_name == 'native':
-                    to_module = backend.to_numpy
-                elif backend_name == 'cuda':
-                    to_module = cuda.to_gpu
-                else:
-                    raise RuntimeError(
-                        'Only native and cuda backends are supported for '
-                        'ChainerX arrays')
-
-                self.running_mean, self.running_var = to_module(
+                self.running_mean, self.running_var = backend.from_chainerx(
                     (self.running_mean, self.running_var))
 
             self.running_mean *= self.decay
