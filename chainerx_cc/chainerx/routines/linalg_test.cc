@@ -118,6 +118,59 @@ TEST_P(LinalgTest, DotDoubleBackward) {
             {a_eps, b_eps, go_eps});
 }
 
+TEST_P(LinalgTest, Linear) {
+    Array x = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 3}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({4}).WithData<float>({3.f, 2.f, 1.f, -1.f}).WithPadding(2);
+    Array a = Linear(x, w, b);
+    Array e = Dot(x, w.Transpose()) + b;
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearBackward) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array b = (*testing::BuildArray({4}).WithLinearData(3.f)).RequireGrad();
+
+    Array go = testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
+
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Linear(xs[0], xs[1], xs[2])}; },
+            {x, w, b},
+            {go},
+            {x_eps, w_eps, b_eps});
+}
+
+TEST_P(LinalgTest, LinearDoubleBackward) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array b = (*testing::BuildArray({4}).WithLinearData(-3.f)).RequireGrad();
+    Array go = (*testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
+
+    Array ggx = testing::BuildArray(x.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);
+    Array ggw = testing::BuildArray(w.shape()).WithLinearData(-0.2f, 0.1f).WithPadding(1);
+    Array ggb = testing::BuildArray(b.shape()).WithLinearData(-0.4f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Linear(xs[0], xs[1], xs[2]);
+                return {y * y};
+            },
+            {x, w, b},
+            {go},
+            {ggx, ggw, ggb},
+            {x_eps, w_eps, b_eps, go_eps},
+            1e-5,
+            1e-3);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         LinalgTest,
