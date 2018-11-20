@@ -114,7 +114,8 @@ A :class:`chainerx.ndarray` can be wrapped in a :class:`chainer.Variable` and pa
 
     # Your Chainer code...
 
-Following :data:`chainer.functions` functions operating on the ``var`` resulting in an extension of the graph will call the corresponding graph constructions APIs defined in the C++ layer, working around the Python function calls.
+When further applying functions to the ``var``, the computational graph is recorded in the underlying ndarray in the C++ implementation, not in the :class:`chainer.Variable` or the :class:`chainer.FunctionNode`, as in the conventional Chainer.
+This eliminates the heavy Python overhead of the graph construction.
 Similarly, calling :meth:`chainer.Variable.backward` on any resulting variable will delegate the work to C++ by calling :meth:`chainerx.ndarray.backward` spending no time in the Python world.
 
 NumPy/CuPy fallback
