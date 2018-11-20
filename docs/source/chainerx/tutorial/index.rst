@@ -61,11 +61,11 @@ The left-hand-side of the colon shows the name of the backend to which the devic
 The integer on the right-hand-side shows the device index.
 Together, they uniquely identify a physical device on which an array is allocated.
 
-If you do not want to specify the device each time you create an array, it is possible to change the default device using :func:`chainerx.device_scope`.
+If you do not want to specify the device each time you create an array, it is possible to change the default device using :func:`chainerx.using_device`.
 
 .. code-block:: python
 
-    with chx.device_scope('cuda:0')
+    with chx.using_device('cuda:0')
         x = chx.array([1, 2, 3])
     x.device  # cuda:0
 
@@ -101,7 +101,7 @@ The following code shows how you could implement an affine transformation and ba
 
 .. note::
 
-    The code above is device agnostic, meaning that you can execute it on any backend by simply wrapping the code with a :func:`chainerx.device_scope`.
+    The code above is device agnostic, meaning that you can execute it on any backend by simply wrapping the code with a :func:`chainerx.using_device`.
 
 Relation to Chainer
 -------------------

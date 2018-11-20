@@ -69,7 +69,7 @@ class TestChainerxDeviceUse(unittest.TestCase):
 
     def test_use(self, backend_config):
         device = chainer.get_device(backend_config.chainerx_device)
-        with chainerx.device_scope('native:1'):
+        with chainerx.using_device('native:1'):
             device.use()
             assert device.device is chainerx.get_default_device()
 

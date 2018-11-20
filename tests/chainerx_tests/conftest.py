@@ -74,7 +74,7 @@ def device(request):
         pytest.skip()
 
     device = chainerx.get_device(device_name)
-    device_scope = chainerx.device_scope(device)
+    device_scope = chainerx.using_device(device)
 
     def finalize():
         device_scope.__exit__()

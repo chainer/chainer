@@ -90,7 +90,7 @@ Returns:
 
 .. seealso::
     * :func:`chainerx.set_default_device`
-    * :func:`chainerx.device_scope`
+    * :func:`chainerx.using_device`
 """)
 
     _docs.set_doc(
@@ -104,12 +104,12 @@ Args:
 
 .. seealso::
     * :func:`chainerx.get_default_device`
-    * :func:`chainerx.device_scope`
+    * :func:`chainerx.using_device`
 """)
 
     _docs.set_doc(
-        chainerx.device_scope,
-        """device_scope(device)
+        chainerx.using_device,
+        """using_device(device)
 Creates a context manager to temporarily set the default device.
 
 Args:

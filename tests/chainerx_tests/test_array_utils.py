@@ -160,6 +160,6 @@ def test_check_device_fail(shape, device, compare_device_spec):
     dtype = 'float32'
     a = chainerx.empty(shape, dtype, device=device)
 
-    with chainerx.device_scope('native:1'):
+    with chainerx.using_device('native:1'):
         with pytest.raises(AssertionError):
             array_utils.check_device(a, compare_device_spec)

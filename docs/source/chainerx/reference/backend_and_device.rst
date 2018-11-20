@@ -29,5 +29,5 @@ Device
    chainerx.get_device
    chainerx.get_default_device
    chainerx.set_default_device
-   chainerx.device_scope
+   chainerx.using_device
 

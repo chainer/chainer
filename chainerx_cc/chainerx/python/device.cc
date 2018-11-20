@@ -74,9 +74,9 @@ void InitChainerxDeviceScope(pybind11::module& m) {
     c.def("__enter__", &PyDeviceScope::Enter);
     c.def("__exit__", &PyDeviceScope::Exit);
 
-    m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });
-    m.def("device_scope", [](const std::string& device_name) { return PyDeviceScope(GetDefaultContext().GetDevice(device_name)); });
-    m.def("device_scope", [](const std::string& backend_name, int index) {
+    m.def("using_device", [](Device& device) { return PyDeviceScope(device); });
+    m.def("using_device", [](const std::string& device_name) { return PyDeviceScope(GetDefaultContext().GetDevice(device_name)); });
+    m.def("using_device", [](const std::string& backend_name, int index) {
         return PyDeviceScope(GetDefaultContext().GetDevice({backend_name, index}));
     });
 }

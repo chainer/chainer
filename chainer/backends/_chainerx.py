@@ -61,7 +61,7 @@ class ChainerxDevice(_backend.Device):
 
     def create_context(self):
         # Returns a context that sets the default device.
-        return chainerx.device_scope(self.device)
+        return chainerx.using_device(self.device)
 
     def send_array(self, array):
         device = self.device
