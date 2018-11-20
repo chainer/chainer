@@ -3,7 +3,6 @@ import unittest
 import numpy
 
 from chainer import backend
-from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
@@ -38,9 +37,9 @@ class TestConcatExamples(unittest.TestCase):
 
         assert backend.get_device_from_array(array) == expected_device
 
-        np_array = _cpu._to_numpy(array)
+        np_array = backend.CpuDevice().send(array)
         for x, y in zip(np_array, arrays):
-            numpy.testing.assert_array_equal(x, _cpu._to_numpy(y))
+            numpy.testing.assert_array_equal(x, backend.CpuDevice().send(y))
 
     def test_concat_arrays(self, backend_config):
         arrays = self.get_arrays_to_concat(backend_config)
@@ -74,9 +73,10 @@ class TestConcatExamples(unittest.TestCase):
 
             assert backend.get_device_from_array(arrays[i]) == expected_device
 
-            arr = _cpu._to_numpy(arrays[i])
+            arr = backend.CpuDevice().send(arrays[i])
             for x, y in zip(arr, tuples):
-                numpy.testing.assert_array_equal(x, _cpu._to_numpy(y[i]))
+                numpy.testing.assert_array_equal(
+                    x, backend.CpuDevice().send(y[i]))
 
     def test_concat_tuples(self, backend_config):
         tuples = self.get_tuple_arrays_to_concat(backend_config)
@@ -110,9 +110,10 @@ class TestConcatExamples(unittest.TestCase):
             self.assertEqual(
                 backend.get_device_from_array(arrays[key]), expected_device)
 
-            arr = _cpu._to_numpy(arrays[key])
+            arr = backend.CpuDevice().send(arrays[key])
             for x, y in zip(arr, dicts):
-                numpy.testing.assert_array_equal(x, _cpu._to_numpy(y[key]))
+                numpy.testing.assert_array_equal(
+                    x, backend.CpuDevice().send(y[key]))
 
     def test_concat_dicts(self, backend_config):
         dicts = self.get_dict_arrays_to_concat(backend_config)
@@ -156,8 +157,8 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         self.assertEqual(array.shape, (3, 4, 5))
         self.assertEqual(type(array), type(arrays[0]))
 
-        arrays = [_cpu._to_numpy(a) for a in arrays]
-        array = _cpu._to_numpy(array)
+        arrays = [backend.CpuDevice().send(a) for a in arrays]
+        array = backend.CpuDevice().send(array)
         numpy.testing.assert_array_equal(array[0, :3, :4], arrays[0])
         numpy.testing.assert_array_equal(array[0, 3:, :], 0)
         numpy.testing.assert_array_equal(array[0, :, 4:], 0)
@@ -184,9 +185,9 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
 
         for i in range(len(tuples)):
             tuples[i] = (
-                _cpu._to_numpy(tuples[i][0]),
-                _cpu._to_numpy(tuples[i][1]))
-        arrays = tuple(_cpu._to_numpy(array) for array in arrays)
+                backend.CpuDevice().send(tuples[i][0]),
+                backend.CpuDevice().send(tuples[i][1]))
+        arrays = tuple(backend.CpuDevice().send(array) for array in arrays)
         numpy.testing.assert_array_equal(arrays[0][0, :3, :4], tuples[0][0])
         numpy.testing.assert_array_equal(arrays[0][0, 3:, :], 0)
         numpy.testing.assert_array_equal(arrays[0][0, :, 4:], 0)
@@ -221,11 +222,11 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         self.assertEqual(type(arrays['y']), type(dicts[0]['y']))
 
         for d in dicts:
-            d['x'] = _cpu._to_numpy(d['x'])
-            d['y'] = _cpu._to_numpy(d['y'])
+            d['x'] = backend.CpuDevice().send(d['x'])
+            d['y'] = backend.CpuDevice().send(d['y'])
         arrays = {
-            'x': _cpu._to_numpy(arrays['x']),
-            'y': _cpu._to_numpy(arrays['y'])}
+            'x': backend.CpuDevice().send(arrays['x']),
+            'y': backend.CpuDevice().send(arrays['y'])}
         numpy.testing.assert_array_equal(arrays['x'][0, :3, :4], dicts[0]['x'])
         numpy.testing.assert_array_equal(arrays['x'][0, 3:, :], 0)
         numpy.testing.assert_array_equal(arrays['x'][0, :, 4:], 0)
@@ -263,7 +264,7 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
         self.assertEqual(array.shape, (len(arrays),))
         self.check_device(array, device, expected_device)
 
-        np_array = _cpu._to_numpy(array)
+        np_array = backend.CpuDevice().send(array)
         for x, y in zip(np_array, arrays):
             assert x.dtype == expected_dtype
             numpy.testing.assert_array_equal(

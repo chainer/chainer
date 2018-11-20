@@ -9,7 +9,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -367,7 +366,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
 
         assert isinstance(y.array, chainerx.ndarray)
         chainerx.testing.assert_array_equal(
-            _cpu._to_numpy(xp_x1 * xp_x2), y.array)
+            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
 
     @attr.chainerx
     def test_mix_numpy(self):

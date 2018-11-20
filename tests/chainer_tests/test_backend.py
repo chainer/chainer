@@ -5,7 +5,6 @@ import pytest
 
 import chainer
 from chainer import backend
-from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import testing
@@ -315,8 +314,8 @@ class TestDeviceSend(unittest.TestCase):
         device = backend.get_device(device_spec)
         converted = device.send(orig)
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig),
-            _cpu._to_numpy(converted))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted))
         return converted
 
     def test_numpy_to_numpy(self):
@@ -341,7 +340,7 @@ class TestDeviceSend(unittest.TestCase):
         # memory must be shared
         orig[:] *= 2
         numpy.testing.assert_array_equal(
-            orig, _cpu._to_numpy(converted))
+            orig, backend.CpuDevice().send(converted))
 
     @attr.chainerx
     @attr.gpu
@@ -367,7 +366,8 @@ class TestDeviceSend(unittest.TestCase):
         # memory must be shared
         orig[:] *= 2
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig), _cpu._to_numpy(converted))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted))
 
     @attr.chainerx
     @attr.gpu
@@ -380,7 +380,8 @@ class TestDeviceSend(unittest.TestCase):
         # memory must be shared
         orig[:] *= 2
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig), _cpu._to_numpy(converted))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted))
 
     @attr.multi_gpu(2)
     def test_cupy_to_cupy_multigpu(self):
@@ -413,7 +414,8 @@ class TestDeviceSend(unittest.TestCase):
         # memory must be shared
         converted[:] *= 2
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig), _cpu._to_numpy(converted))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted))
 
     @attr.chainerx
     @attr.gpu
@@ -426,7 +428,8 @@ class TestDeviceSend(unittest.TestCase):
         # memory must be shared
         converted[:] *= 2
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig), _cpu._to_numpy(converted))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted))
 
     @attr.chainerx
     @attr.multi_gpu(2)
@@ -441,7 +444,8 @@ class TestDeviceSend(unittest.TestCase):
         with cuda.Device(1):
             converted[:] *= 2
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(orig), _cpu._to_numpy(converted_copy))
+            backend.CpuDevice().send(orig),
+            backend.CpuDevice().send(converted_copy))
 
     @attr.chainerx
     @attr.gpu

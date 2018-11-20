@@ -7,7 +7,6 @@ import numpy
 
 import chainer
 from chainer import backend
-from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -23,7 +22,7 @@ def _assert_variable_array_equal(var, expected_array):
 
 
 def _assert_arrays_equal(array, expected_array):
-    array = _cpu._to_numpy(array)
+    array = backend.CpuDevice().send(array)
     assert array.shape == expected_array.shape
     assert array.dtype == expected_array.dtype
     assert (array == expected_array).all()
@@ -61,11 +60,11 @@ class LinkTestBase(object):
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(var.data), data_value)
+            backend.CpuDevice().send(var.data), data_value)
         self.assertEqual(var.grad.shape, shape)
         self.assertEqual(var.grad.dtype, dtype)
         numpy.testing.assert_array_equal(
-            _cpu._to_numpy(var.grad), numpy.nan)
+            backend.CpuDevice().send(var.grad), numpy.nan)
 
     def check_param_uninit(self, name, initializer=None):
         self.assertTrue(hasattr(self.link, name))
