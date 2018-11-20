@@ -71,7 +71,7 @@ If you do not want to specify the device each time you create an array, it is po
 
 .. note::
 
-    Currently, two backends are built with and included in ChainerX.
+    Currently, two backends are built into ChainerX.
 
     1. The ``native`` backend, which is built by default.
     2. The ``cuda`` backend which is optional (See :ref:`installation <chainerx_install>`).
