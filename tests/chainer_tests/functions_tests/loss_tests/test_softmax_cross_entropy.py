@@ -590,7 +590,7 @@ class BaseSoftTarget(object):
             self.check_backward_options = {}
 
     def check_forward(self, xp):
-        pass
+        raise NotImplementedError
 
     def test_forward_cpu(self):
         self.check_forward(numpy)
@@ -635,7 +635,7 @@ class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
         t_hard_shape = (self.nb,) + self.shape[1:]
         self.t_hard = numpy.random.randint(
             0, self.shape[0], t_hard_shape).astype(numpy.int32)
-        t = numpy.zeros(numpy.prod(self.x.shape)).astype(self.dtype)
+        t = numpy.zeros(self.x.size).astype(self.dtype)
         t = t.reshape(self.shape[0], -1)
         t[[self.t_hard.ravel()], [range(t.shape[1])]] = 1.0
         t = t.reshape((self.shape[0], self.nb,) + self.shape[1:])

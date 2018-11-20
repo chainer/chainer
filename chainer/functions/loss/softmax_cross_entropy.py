@@ -72,21 +72,21 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
-        if x_type.ndim == t_type.ndim and x_type.shape == t_type.shape:
-            # assume t is soft_target
-            self.soft_target = True
-            type_check.expect(
-                x_type.dtype.kind == 'f',
-                t_type.dtype.kind == 'f',
-            )
-        else:
+        if t_type.dtype.kind == 'i':
             type_check.expect(
                 x_type.dtype.kind == 'f',
                 t_type.dtype.kind == 'i',
                 t_type.ndim == x_type.ndim - 1,
-
                 x_type.shape[0] == t_type.shape[0],
                 x_type.shape[2:] == t_type.shape[1:],
+            )
+        else:
+            # assume t is soft_target
+            type_check.expect(
+                x_type.dtype.kind == 'f',
+                t_type.dtype.kind == 'f',
+                t_type.ndim == x_type.ndim,
+                x_type.shape == t_type.shape,
             )
 
     def forward_cpu(self, inputs):
@@ -190,12 +190,11 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
     def _soft_target_loss(self, xp, x, t, log_y):
         kl_d = xp.sum(t * (xp.log(t + self.eps) - log_y), axis=1)
         if self.reduce == 'mean':
-            self._coeff = 1.0 / (numpy.prod(x.shape) / x.shape[1])
+            self._coeff = 1.0 / (x.size / x.shape[1])
             kl_d = kl_d.sum(keepdims=True) * self._coeff
             return kl_d.reshape(()),
         else:
-            shape = (x.shape[0],) + x.shape[2:]
-            return kl_d.reshape(shape),
+            return kl_d,
 
     def backward(self, input_indexes, grad_outputs):
         func_grad = _SoftmaxCrossEntropyGrad_NoDoubleBackprop(
