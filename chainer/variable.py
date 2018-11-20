@@ -480,9 +480,6 @@ class Variable(object):
 
     _chainerx_name = None
 
-    # A chainerx.Device instance if the variable holds a ChainerX array.
-    _chainerx_device = None
-
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
     # TODO(hvy): Avoid modifying this variable from outside this class.
@@ -520,7 +517,6 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._chainerx_device = data.device
             self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
@@ -550,7 +546,6 @@ class Variable(object):
         return variable_str(self)
 
     def _clear_chainerx(self):
-        self._chainerx_device = None
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
@@ -1011,8 +1006,7 @@ class Variable(object):
                 'transferred to a ChainerX device.')
 
         self._to_device(
-            backend.ChainerxDevice.from_fallback_device(
-                backend.get_device_from_array(array)),
+            backend.ChainerxDevice.from_fallback_device(self._device),
             allow_unchaining)
 
     def from_chainerx(self):
@@ -1030,7 +1024,7 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if self._chainerx_device is None:
+        if self.xp is not chainerx:
             return
 
         if not allow_unchaining and self._data[0].is_backprop_required():
@@ -1038,8 +1032,7 @@ class Variable(object):
                 'Cannot convert from a Variable with a ChainerX array that is '
                 'connected to a graph.')
 
-        self.to_device(
-            backend.ChainerxDevice(self._chainerx_device).fallback_device)
+        self.to_device(self._device.fallback_device)
 
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
@@ -1082,10 +1075,6 @@ class Variable(object):
         elif not was_chainerx and is_chainerx:
             self._chainerx_name = self._node.name
 
-        if is_chainerx:
-            self._chainerx_device = device.device
-        else:
-            self._chainerx_device = None
         self._device = device
 
         if arr is None:
@@ -1146,7 +1135,7 @@ class Variable(object):
             gv = self.grad_var
             if gv is None:
                 self.grad = chainerx.zeros_like(
-                    arr, device=self._chainerx_device)
+                    arr, device=self._device.device)
             else:
                 gv._data[0].fill(0)
         else:
@@ -1206,7 +1195,7 @@ class Variable(object):
         if self.xp is chainerx:
             raise NotImplementedError()
 
-        assert var._chainerx_device is None
+        assert var.xp is not chainerx
         if var._grad is None:
             return
 
