@@ -137,7 +137,8 @@ Note that no breaking changes should have been introduced and any existing Chain
 Will my FunctionNode work with ChainerX?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It will not break because of the fallback mechanism explained above, but you will not see any performance improvements (but most likely a degradation because of the additional conversions).
+Our expectation is that is should work because of the fallback mechanism explained above, but in practice you may need some occasional fixes, depending on how the function was implemented.
+Also, you will not see any performance improvements from the fallback (but most likely a degradation because of the additional conversions).
 
 To support ChainerX with your :class:`chainer.FunctionNode`, you need to implement :meth:`chainer.FunctionNode.forward_chainerx` with the same signature as :meth:`chainer.FunctionNode.forward`, but where given inputs are of type :class:`chainerx.ndarray`.
 It is expected to return a ``tuple`` just like :meth:`chainer.FunctionNode.forward`.
