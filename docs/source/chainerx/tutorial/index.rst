@@ -101,7 +101,7 @@ The following code shows how you could implement an affine transformation and ba
 
 .. note::
 
-    The code above is device agnostic, meaning that you can execute it on any backend by simply wrapping the code with a device scope.
+    The code above is device agnostic, meaning that you can execute it on any backend by simply wrapping the code with a :func:`chainerx.device_scope`.
 
 Relation to Chainer
 -------------------
