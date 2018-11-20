@@ -7,7 +7,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
@@ -232,7 +231,7 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        device = backend.get_device_from_array(param.data)
+        device = param.device
         with chainer.using_device(device):
             if device.xp is chainerx:
                 self.update_core_chainerx(param)
@@ -373,7 +372,7 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        device = backend.get_device_from_array(param.data)
+        device = param.device
         with chainer.using_device(device):
             state = self.state
             if state is None:
@@ -701,9 +700,9 @@ class GradientMethod(Optimizer):
         """
         for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device_from_array(param.data):
-                    xp = backend.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+                device = param.device
+                with chainer.using_device(device):
+                    param.grad = device.xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
