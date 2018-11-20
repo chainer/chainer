@@ -120,8 +120,8 @@ Similarly, calling :meth:`chainer.Variable.backward` on any resulting variable w
 NumPy/CuPy fallback
 ^^^^^^^^^^^^^^^^^^^
 
-As the features above require ChainerX to provide an implementation corresponding to every :class:`chainer.FunctionNode` implementation in Chainer, ChainerX utilizes a fallback mechanism while gradually extending the support, instead of e.g. raising an unsupported error.
-This approach is taken because the integration with Chainer takes time and we *do not want existing Chainer users to have to make severe changes to their code bases in order to try ChainerX*.
+As the features above require ChainerX to provide an implementation corresponding to every :class:`chainer.FunctionNode` implementation in Chainer, ChainerX utilizes a fallback mechanism while gradually extending the support.
+This approach is taken because the integration with Chainer takes time and we do not want existing Chainer users to have to make severe changes to their code bases in order to try ChainerX.
 The fallback logic simply casts the :class:`chainerx.ndarray`\ s inside the :class:`chainer.Variable` to :class:`numpy.ndarray`\ s or :class:`cupy.ndarray`\ s (without copy) and calls the forward and backward methods respectively.
 For a complete list of supported ChainerX functions please refer to the :ref:`ChainerX routines <chainerx_routines>` as those in many cases have corresponding :data:`chainer.functions` functions.
 Similar fallback conversions are found throughout the code outside the `FunctionNode` as well during the integration.
