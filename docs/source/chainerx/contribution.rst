@@ -68,6 +68,7 @@ Lint checking
 ~~~~~~~~~~~~~
 
 ChainerX uses the `cpplint <https://github.com/cpplint/cpplint>`_ and `clang-tidy <http://clang.llvm.org/extra/clang-tidy/>`_ for lint checking.
+Note that clang-tidy requires that you've finished running ``cmake``.
 To run them, run the following commands from the repository root:
 
 .. code-block:: console
