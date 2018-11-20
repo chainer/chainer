@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-ChainerX, or :data:`chainerx`, is a swap in replacement for NumPy and CuPy, with additional operations specific to neural networks.
+ChainerX, or :data:`chainerx`, is a drop-in replacement for NumPy and CuPy, with additional operations specific to neural networks.
 Coming from Chainer, you can *reduce the Python overhead* for both the forward and backward passes, delegating the heavy work to C++, speeding up your training and inference.
 This section will guide you through the essential APIs of ChainerX to do so, and also how to use ChainerX on its own.
 
