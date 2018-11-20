@@ -90,13 +90,7 @@ In such case, disable the thread leak detection using environment variable ``TSA
 Python contributions and unit tests
 -----------------------------------
 
-ChainerX is mostly implemented in C++ except certain temporary workaround, such as not yet implemented functions.
-In other words, you will most likely be working in C++ when contributing to ChainerX.
-
-However, it could be useful to build the Python package in order to make use of the already existing unit tests written in Python, since they also test ChainerX functionalities if the package is installed.
-You can use ``pip`` for that. It is explained in the :ref:`Installation guide <chainerx_install>`.
-
-After installing, run tests with the following command at the repository root:
+To test the Python binding, run the following command at the repository root:
 
 .. code-block:: console
 
