@@ -8,3 +8,4 @@ ChainerX Documentation
    tutorial/index
    limitations
    reference/index
+   contribution
