@@ -60,9 +60,7 @@ class TestFunctionBackprop(unittest.TestCase):
                 y2 = x1 * x3 + x2.astype(x1.dtype)
                 y3 = x1 + x3
                 self.retain_inputs((0, 2))
-                # TODO(niboshi): Include 0 in retain_outputs to test integer
-                # array retention
-                self.retain_outputs((1,))
+                self.retain_outputs((0, 1,))
                 return y1, y2, y3
 
             def backward(self, inputs, grad_outputs):
@@ -77,9 +75,9 @@ class TestFunctionBackprop(unittest.TestCase):
                 output_data = self.output_data
                 assert isinstance(output_data, tuple)
                 assert len(output_data) == 3
-                assert output_data[0] is None
                 assert output_data[2] is None
-                _, y2, _ = output_data
+                y1, y2, _ = output_data
+                assert isinstance(y1, backward_xp.ndarray)
                 assert isinstance(y2, backward_xp.ndarray)
 
                 # y3 is disconnected
@@ -132,9 +130,7 @@ class TestFunctionBackprop(unittest.TestCase):
                 y2 = x1 * x3 + x2.astype(x1.dtype)
                 y3 = x1 + x3
                 self.retain_inputs((0, 2))
-                # TODO(niboshi): Include 0 in retain_outputs to test integer
-                # array retention
-                self.retain_outputs((1,))
+                self.retain_outputs((0, 1,))
                 return y1, y2, y3
 
             def backward(self, input_indexes, grad_outputs):
@@ -152,7 +148,8 @@ class TestFunctionBackprop(unittest.TestCase):
 
                 retained_outputs = self.get_retained_outputs()
                 assert isinstance(retained_outputs, tuple)
-                y2, = retained_outputs
+                y1, y2, = retained_outputs
+                assert isinstance(y1.array, backward_xp.ndarray)
                 assert isinstance(y2.array, backward_xp.ndarray)
 
                 # y3 is disconnected
