@@ -143,7 +143,7 @@ Also, you will not see any performance improvements from the fallback (but most 
 To support ChainerX with your :class:`chainer.FunctionNode`, you need to implement :meth:`chainer.FunctionNode.forward_chainerx` with the same signature as :meth:`chainer.FunctionNode.forward`, but where given inputs are of type :class:`chainerx.ndarray`.
 It is expected to return a ``tuple`` just like :meth:`chainer.FunctionNode.forward`.
 
-The example below shows how :func:`chainer.functions.matmul` is extended to support ChainerX. Note that :class:`chainer.Fallback` can be returned in case the function is not supported by ChainerX or cannot be achieved by a combination of ChainerX functions.
+The example below shows how :func:`chainer.functions.matmul` is extended to support ChainerX. Note that :class:`chainer.Fallback` can be returned in case the function cannot be implemented using ChainerX functions.
 This is also the default behavior in case the method is not implemented at all.
 
 .. code-block:: python
