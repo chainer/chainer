@@ -1,9 +1,6 @@
 # This file defines inefficient workaround implementation for
-# NumPy-compatibility functions. This file should ultimately be emptied by
-# implementing those functions in more efficient manner.
-
-import sys
-import types
+# NumPy ndarray-compatibility functions. This file should ultimately be
+# emptied by implementing those functions in more efficient manner.
 
 import numpy
 
@@ -61,97 +58,13 @@ def _from_cupy(array):
         array)
 
 
+# Populates chainerx.ndarray methods in the chainerx namespace
 def populate():
-    # Populates workaround functions in the chainerx namespace
-    _populate_chainerx()
-    _populate_ndarray()
-    _populate_random()
-
-
-def _populate_chainerx():
-    # Populates chainerx toplevel functions
-
-    def square(x):
-        """Returns the element-wise square of the input.
-
-        Args:
-            x (~chainerx.ndarray or scalar): Input data
-
-        Returns:
-            ~chainerx.ndarray: Returned array: :math:`y = x * x`.
-            A scalar is returned if ``x`` is a scalar.
-
-        Note:
-            During backpropagation, this function propagates the gradient
-            of the output array to the input array ``x``.
-
-        .. seealso:: :data:`numpy.square`
-
-        """
-        return x * x
-
-    def clip(a, a_min, a_max):
-        """Clips the values of an array to a given interval.
-
-        Given an interval, values outside the interval are clipped to the
-        interval edges. For example, if an interval of ``[0, 1]`` is specified,
-        values smaller than 0 become 0, and values larger than 1 become 1.
-
-        Args:
-            a (~chainerx.ndarray): Array containing elements to clip.
-            a_min (scalar): Maximum value.
-            a_max (scalar): Minimum value.
-
-        Returns:
-            ~chainerx.ndarray: An array with the elements of ``a``, but where
-            values < ``a_min`` are replaced with ``a_min``,
-            and those > ``a_max`` with ``a_max``.
-
-        Note:
-            The :class:`~chainerx.ndarray` typed ``a_min`` and ``a_max`` are
-            not supported yet.
-
-        Note:
-            During backpropagation, this function propagates the gradient
-            of the output array to the input array ``a``.
-
-        .. seealso:: :func:`numpy.clip`
-
-        """
-        return -chainerx.maximum(-chainerx.maximum(a, a_min), -a_max)
-
-    def ravel(a):
-        """Returns a flattened array.
-
-        It tries to return a view if possible, otherwise returns a copy.
-
-        Args:
-            a (~chainerx.ndarray): Array to be flattened.
-
-        Returns:
-            ~chainerx.ndarray: A flattened view of ``a`` if possible,
-            otherwise a copy.
-
-        Note:
-            During backpropagation, this function propagates the gradient
-            of the output array to the input array ``a``.
-
-        .. seealso:: :func:`numpy.ravel`
-
-        """
-        return a.reshape((a.size,))
-
-    chainerx.square = square
-    chainerx.clip = clip
-    chainerx.ravel = ravel
-
-
-def _populate_ndarray():
-    # Populates chainerx.ndarray methods
     ndarray = chainerx.ndarray
 
     old_getitem = ndarray.__getitem__
 
+    # TODO(sonots): Move advanced indexing fallback to another method
     def __getitem__(self, key):
         """Returns self[key].
 
@@ -159,7 +72,7 @@ def _populate_ndarray():
         """
         try:
             return old_getitem(self, key)
-        except (IndexError, chainerx.DimensionError) as e:
+        except (IndexError, chainerx.DimensionError):
             pass
 
         # fallback
@@ -176,6 +89,7 @@ def _populate_ndarray():
                 'Currently __getitem__ fallback is supported only in '
                 'native and cuda backend.')
 
+    # TODO(sonots): Move advanced indexing fallback to another method
     def __setitem__(self, key, value):
         """Sets self[key] to value.
 
@@ -252,35 +166,3 @@ def _populate_ndarray():
     ndarray.__getitem__ = __getitem__
     ndarray.clip = clip
     ndarray.ravel = ravel
-
-
-def _populate_random():
-    # Populates chainerx.random package
-
-    def normal(*args, device=None, **kwargs):
-        """Draws random samples from a normal (Gaussian) distribution.
-
-        This is currently equivalent to :func:`numpy.random.normal`
-        wrapped by :func:`chainerx.array`, given the device argument.
-
-        .. seealso:: :func:`numpy.random.normal`
-        """
-        a = numpy.random.normal(*args, **kwargs)
-        return chainerx.array(a, device=device, copy=False)
-
-    def uniform(*args, device=None, **kwargs):
-        """Draws samples from a uniform distribution.
-
-        This is currently equivalent to :func:`numpy.random.normal`
-        wrapped by :func:`chainerx.array`, given the device argument.
-
-        .. seealso:: :func:`numpy.random.uniform`
-        """
-        a = numpy.random.uniform(*args, **kwargs)
-        return chainerx.array(a, device=device, copy=False)
-
-    random_ = types.ModuleType('random')
-    random_.__dict__['normal'] = normal
-    random_.__dict__['uniform'] = uniform
-    sys.modules['chainerx.random'] = random_
-    chainerx.random = random_

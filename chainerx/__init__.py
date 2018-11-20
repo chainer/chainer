@@ -28,14 +28,21 @@ if _available:
     from chainerx.activation import relu  # NOQA
     from chainerx.activation import sigmoid  # NOQA
 
+    from chainerx.manipulation.shape import ravel  # NOQA
+
+    from chainerx.math.misc import square  # NOQA
+    from chainerx.math.misc import clip  # NOQA
+
+    from chainerx import random  # NOQA
+
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
-    from chainerx import _numpy_compat_workarounds
+    from chainerx import _ndarray
     from chainerx import _docs
 
-    # Add workaround implementation for NumPy-compatible functions
-    _numpy_compat_workarounds.populate()
+    # Add workaround implementation for NumPy ndarray-compatible functions
+    _ndarray.populate()
 
     # Dynamically inject docstrings
     _docs.set_docs()

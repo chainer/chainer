@@ -92,6 +92,9 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx',
         'chainerx._docs',
         'chainerx.creation',
+        'chainerx.manipulation',
+        'chainerx.math',
+        'chainerx.random',
         'chainerx.testing',
     ]
     setup_kwargs.update(dict(
