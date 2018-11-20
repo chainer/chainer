@@ -3,7 +3,7 @@ Tutorial
 
 ChainerX, or :data:`chainerx`, is meant to be a drop-in replacement for NumPy and CuPy, with additional operations specific to neural networks.
 As its core is implemented in C++, you can reduce the Python overhead for both the forward and backward passes compared to Chainer, speeding up your training and inference.
-This section will guide you through the essential APIs of ChainerX to do so, and also how to use ChainerX on its own.
+This section will guide you through the essential APIs of Chainer to utilize ChainerX, but also how to use ChainerX on its own.
 
 Introduction to ChainerX
 ------------------------
