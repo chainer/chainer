@@ -59,9 +59,9 @@ You can specify the device during instantiation or transfer the array to a diffe
 The left-hand-side of the colon shows the name of the backend to which the device belongs.
 ``native`` in this case refers to the CPU and ``cuda`` to CUDA GPUs.
 The integer on the right-hand-side shows the device index.
-Together, they uniquely identify a physical device on which an arrays is allocated.
+Together, they uniquely identify a physical device on which an array is allocated.
 
-If you do not want to specify the device each time you create an array, it is possible to change the default device using the :func:`chainerx.device_scope`.
+If you do not want to specify the device each time you create an array, it is possible to change the default device using :func:`chainerx.device_scope`.
 
 .. code-block:: python
 
@@ -114,7 +114,7 @@ A :class:`chainerx.ndarray` can be wrapped in a :class:`chainer.Variable` and pa
 
     # Your Chainer code...
 
-When further applying functions to the ``var``, the computational graph is recorded in the underlying ndarray in the C++ implementation, not in the :class:`chainer.Variable` or the :class:`chainer.FunctionNode`, as in the conventional Chainer.
+When further applying functions to the ``var``, the computational graph is recorded in the underlying ndarray in C++ implementation, not in the :class:`chainer.Variable` or the :class:`chainer.FunctionNode`, as in the conventional Chainer.
 This eliminates the heavy Python overhead of the graph construction.
 Similarly, calling :meth:`chainer.Variable.backward` on any resulting variable will delegate the work to C++ by calling :meth:`chainerx.ndarray.backward` spending no time in the Python world.
 
@@ -129,13 +129,13 @@ Run you Chainer code with ChainerX
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to utilize :data:`chainerx`, you first need to transfer your model to a ChainerX device using :meth:`chainer.Link.to_device`.
-These are new methods that have been introduced to replace :meth:`chainer.Link.to_cpu` and :meth:`chainer.Link.to_gpu`, extending device transfer to arbitrary devices.
+This is a new method that has been introduced to replace :meth:`chainer.Link.to_cpu` and :meth:`chainer.Link.to_gpu`, extending device transfer to arbitrary devices.
 Similarly, you have to transfer the data (:class:`chainer.Variable`\ s) to the same device before feeding them to the model.
 
 Will my FunctionNode work with ChainerX?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Our expectation is that is should work because of the fallback mechanism explained above, but in practice you may need some occasional fixes, depending on how the function was implemented.
+Our expectation is that it should work because of the fallback mechanism explained above, but in practice you may need some occasional fixes, depending on how the function was implemented.
 Also, you will not see any performance improvements from the fallback (but most likely a degradation because of the additional conversions).
 
 To support ChainerX with your :class:`chainer.FunctionNode`, you need to implement :meth:`chainer.FunctionNode.forward_chainerx` with the same signature as :meth:`chainer.FunctionNode.forward`, but where given inputs are of type :class:`chainerx.ndarray`.
