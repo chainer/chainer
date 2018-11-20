@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+import chainerx
 
 
 class WalkerAlias(object):
@@ -107,9 +108,17 @@ class WalkerAlias(object):
         ps = xp.random.uniform(0, 1, shape).astype(thr_dtype)
         pb = ps * len(self.threshold)
         index = pb.astype(numpy.int32)
-        left_right = self.threshold[index] < (pb - index.astype(thr_dtype))
+        if isinstance(self.threshold, chainerx.ndarray):
+            thr = self.threshold._getitem(index)
+        else:
+            thr = self.threshold[index]
+        left_right = thr < (pb - index.astype(thr_dtype))
         left_right = left_right.astype(numpy.int32)
-        return self.values[index * 2 + left_right]
+        if isinstance(self.threshold, chainerx.ndarray):
+            val = self.values._getitem(index * 2 + left_right)
+        else:
+            val = self.values[index * 2 + left_right]
+        return val
 
     def sample_gpu(self, shape):
         ps = cuda.cupy.random.uniform(size=shape, dtype=numpy.float32)
