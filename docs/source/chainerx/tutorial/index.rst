@@ -16,7 +16,7 @@ Automatic differentiation
     Graph construction and backpropagation is built into the array, meaning that any function, including the NumPy-like functions, can be backpropagated through.
     In Chainer terms, it is a NumPy/CuPy array with :class:`chainer.Variable` properties.
 
-Device agnosticism
+Device agnostic
     Arrays can be allocated on any device belonging to any backend, in contrast to NumPy/CuPy arrays which are implemented for specific computing platforms (i.e. CPUs/GPUs respectively).
 
 These differences are explained more in details by the sections further down.
