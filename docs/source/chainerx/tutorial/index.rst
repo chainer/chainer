@@ -118,6 +118,8 @@ When further applying functions to the ``var``, the computational graph is recor
 This eliminates the heavy Python overhead of the graph construction.
 Similarly, calling :meth:`chainer.Variable.backward` on any resulting variable will delegate the work to C++ by calling :meth:`chainerx.ndarray.backward` spending no time in the Python world.
 
+.. _chainerx-tutorial-numpy-cupy-fallback:
+
 NumPy/CuPy fallback
 ^^^^^^^^^^^^^^^^^^^
 

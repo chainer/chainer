@@ -25,21 +25,35 @@ Environment variable       Description
 Installing from source
 ----------------------
 
-Simply run ``pip install .`` from the root directory of the project tree after configuring the above environment variables.
+Simply run ``pip install 'chainer>=6.0.0b1'`` after configuring the above environment variables.
 
 Example
 ~~~~~~~
 
-For instance, to install ChainerX with CUDA support, run the following:
+For instance, to install ChainerX without CUDA support, run the following:
+
+.. code-block:: console
+
+    $ export CHAINER_BUILD_CHAINERX=0
+    $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
+    $ pip install 'chainer>=6.0.0b1'
+
+CUDA support
+------------
+
+When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA without cuDNN is currently not supported.
+
+To support :ref:`NumPy/CuPy Fallback <chainerx-tutorial-numpy-cupy-fallback>` mechanism, currently ChainerX with the CUDA support requires to install CuPy together.
+
+.. note::
+
+    For ChainerX, we recommend to avoid installing CuPy with a CuPy wheel (precompiled binary) package because it contains a cuDNN library.
+    Installation fails if versions of the cuDNN library contained in the CuPy wheel package and the one specified in `CUDNN_ROOT_DIR` are different.
 
 .. code-block:: console
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install .
-
-CUDA support
-------------
-
-When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA without cuDNN is currently not supported.
+    $ pip install 'cupy>=6.0.0b1'
+    $ pip install 'chainer>=6.0.0b1'
