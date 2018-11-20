@@ -13,7 +13,7 @@ Building the shared library
 ---------------------------
 
 You can build the C++ ChainerX project to generate a shared library similar to any other cmake project.
-Run the following command from the root of the project to generate a ``chainerx_cc/build/chainerx/libchainerx.so``,
+Run the following command from the root of the project to generate ``chainerx_cc/build/chainerx/libchainerx.so``,
 
 .. code-block:: console
 
@@ -30,7 +30,7 @@ To disable the CUDA support, either set ``CHAINERX_BUILD_CUDA=0`` as an environm
 
     CUDA without cuDNN is currently not supported.
 
-To then install the headers and the library, run:
+Then, to install the headers and the library, run:
 
 .. code-block:: console
 
