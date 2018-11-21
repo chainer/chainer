@@ -10,7 +10,7 @@ Using two backends in one script
 >>> a
 array([1., 1., 1.], shape=(3,), dtype=float32, device='native:0')
 
->>> with chx.device_scope('cuda:0'):
+>>> with chx.using_device('cuda:0'):
 ...     b = chx.ones_like(a)
 ...     b
 array([1., 1., 1.], shape=(3,), dtype=float32, device='cuda:0')
@@ -20,14 +20,14 @@ array([2., 2., 2.], shape=(3,), dtype=float32, device='native:0')
 >>> b + b
 array([2., 2., 2.], shape=(3,), dtype=float32, device='cuda:0')
 
->>> with chx.device_scope('native'):
+>>> with chx.using_device('native'):
 ...     chx.ones_like(b)
 array([1., 1., 1.], shape=(3,), dtype=float32, device='native:0')
 
 Transfer array onto a different device
 --------------------------------------
 
->>> with chx.device_scope('native'):  # Allocate arrays on CPU
+>>> with chx.using_device('native'):  # Allocate arrays on CPU
 ...     a = chx.array([[0, 1, 2], [3, 4, 5]], chx.float32).require_grad()
 >>> a.device
 native:0
@@ -40,7 +40,7 @@ True
 Backward on a graph with multiple devices
 -----------------------------------------
 
->>> with chx.device_scope('native'):  # Allocate arrays on CPU
+>>> with chx.using_device('native'):  # Allocate arrays on CPU
 ...     a = chx.array([[0, 1, 2], [3, 4, 5]], chx.float32).require_grad()
 ...     b = chx.array([[0, 1, 2], [3, 4, 5]], chx.float32).require_grad()
 ...

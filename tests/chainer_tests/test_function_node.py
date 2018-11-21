@@ -1197,7 +1197,7 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
         def backward_call_callback(call_arg):
             backward_call_new_array.append(chainerx.empty(shape, dtype))
 
-        with chainerx.device_scope('native:0'):
+        with chainerx.using_device('native:0'):
             # forward
             func = self.SimpleFunctionNode(backward_call_callback)
             y1, y2 = func.apply((x1, x2))

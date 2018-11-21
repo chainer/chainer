@@ -40,12 +40,12 @@ array([29., 42., 57.], shape=(3,), dtype=float32, device='cuda:0')
 ndarray.copy() copies the array on the same device
 --------------------------------------------------
 
->>> with chx.device_scope('native'):  # Allocate arrays on CPU
+>>> with chx.using_device('native'):  # Allocate arrays on CPU
 ...     a = chx.array([[0, 1, 2], [3, 4, 5]], chx.float32).require_grad()
 ...
 >>> a.device
 native:0
->>> with chx.device_scope('cuda'):
+>>> with chx.using_device('cuda'):
 ...     a = a.copy()
 ...
 >>> a.device

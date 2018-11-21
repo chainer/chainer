@@ -65,7 +65,7 @@ class TestGenerateArray(unittest.TestCase):
     @attr.chainerx
     def test_init_chainerx_with_default_device(self):
         device = chainerx.get_device('native:1')
-        with chainerx.device_scope(device):
+        with chainerx.using_device(device):
             array = self._generate_array(chainerx, 'float64')
         assert array.device is device
 

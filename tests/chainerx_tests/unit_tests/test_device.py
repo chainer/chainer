@@ -95,7 +95,7 @@ def test_eq(device_instance1, device_instance2):
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_device_scope(device_instance1, device_instance2):
+def test_using_device(device_instance1, device_instance2):
     if device_instance1 == device_instance2:
         return
 
@@ -103,11 +103,11 @@ def test_device_scope(device_instance1, device_instance2):
     device2 = device_instance2
 
     chainerx.set_default_device(device1)
-    with chainerx.device_scope(device2) as scope:
+    with chainerx.using_device(device2) as scope:
         assert chainerx.get_default_device() is device2
         assert scope.device is device2
 
-    scope = chainerx.device_scope(device2)
+    scope = chainerx.using_device(device2)
     assert chainerx.get_default_device() == device1
     assert scope.device is device2
     with scope:
@@ -118,7 +118,7 @@ def test_device_scope(device_instance1, device_instance2):
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_device_scope_with_name(device_instance1, device_instance2):
+def test_using_device_with_name(device_instance1, device_instance2):
     if device_instance1 == device_instance2:
         return
 
@@ -126,10 +126,10 @@ def test_device_scope_with_name(device_instance1, device_instance2):
     device2 = device_instance2
 
     chainerx.set_default_device(device1)
-    with chainerx.device_scope(device2.name) as scope:
+    with chainerx.using_device(device2.name) as scope:
         assert chainerx.get_default_device() == device2
         assert scope.device is device2
 
-    with chainerx.device_scope(device2.backend.name, device2.index) as scope:
+    with chainerx.using_device(device2.backend.name, device2.index) as scope:
         assert chainerx.get_default_device() == device2
         assert scope.device is device2
