@@ -9,7 +9,7 @@ import chainerx
 
 
 def _get_expected_xp(backend_config, is_function):
-    # Returns a pair of xp's, expected in forward() and backward() respectively.
+    # Returns a pair of xp's expected in forward() and backward() respectively.
     xp = backend_config.xp
 
     if is_function:
