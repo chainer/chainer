@@ -64,7 +64,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    arr = _cpu._to_numpy(var.array)
+    arr = _cpu._to_cpu(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
@@ -88,7 +88,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    arr = _cpu._to_numpy(var.array)
+    arr = _cpu._to_cpu(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name

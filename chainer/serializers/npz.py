@@ -49,7 +49,7 @@ class DictionarySerializer(serializer.Serializer):
     def __call__(self, key, value):
         key = key.lstrip('/')
         self.target[self.path + key] = (
-            _cpu._to_numpy(value) if value is not None
+            _cpu._to_cpu(value) if value is not None
             else numpy.asarray(None))
         return value
 

@@ -52,7 +52,7 @@ class Intel64Device(_backend.Device):
             return array
 
         if not isinstance(array, numpy.ndarray):
-            array = _cpu._to_numpy(array)  # to numpy.ndarray
+            array = _cpu._to_cpu(array)  # to numpy.ndarray
 
         if (isinstance(array, numpy.ndarray) and
                 array.ndim in (1, 2, 4) and

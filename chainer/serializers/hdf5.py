@@ -55,7 +55,7 @@ class HDF5Serializer(serializer.Serializer):
             arr = h5py.Empty('f')
             compression = None
         else:
-            arr = _cpu._to_numpy(value)
+            arr = _cpu._to_cpu(value)
             compression = None if arr.size <= 1 else self.compression
         self.group.create_dataset(key, data=arr, compression=compression)
         return value
