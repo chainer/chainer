@@ -74,6 +74,9 @@ def sum_to(x, shape):
 def _getitem(arr, key):
     if isinstance(arr, chainerx.ndarray):
         arr = backend.from_chainerx(arr)
+        is_arr_chainerx = True
+    else:
+        is_arr_chainerx = False
     if isinstance(key, chainerx.ndarray):
         key = backend.from_chainerx(key)
     if isinstance(arr, cuda.ndarray):
@@ -81,6 +84,8 @@ def _getitem(arr, key):
             ret = arr[key]
     else:
         ret = arr[key]
+    if is_arr_chainerx:
+        ret = backend.to_chainerx(ret)
     return ret
 
 
