@@ -48,7 +48,7 @@ To support the :ref:`NumPy/CuPy fallback <chainerx-tutorial-numpy-cupy-fallback>
 
 .. note::
 
-    For ChainerX, we recommend to avoid installing CuPy with a CuPy wheel (precompiled binary) package because it contains a cuDNN library.
+    For ChainerX, we suggest that you do not install CuPy with a CuPy wheel (precompiled binary) package because it contains a cuDNN library.
     Installation would fail if the versions of the cuDNN library contained in the CuPy wheel package and the one specified in `CUDNN_ROOT_DIR` were different.
 
 .. code-block:: console
