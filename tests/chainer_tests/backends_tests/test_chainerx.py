@@ -7,6 +7,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
+from chainer import utils
 import chainerx
 
 
@@ -95,17 +96,11 @@ class TestFromToChainerx(unittest.TestCase):
         numpy.testing.assert_array_equal(
             backend.CpuDevice().send(arr1), backend.CpuDevice().send(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
-            if isinstance(arr1, chainerx.ndarray):
-                arr1._setitem(slice(None, None, None), arr1[:] + 2)
-            else:
-                arr1[:] += 1
+            utils.array._setitem(arr1, slice(None, None, None), arr1[:] + 2)
         numpy.testing.assert_array_equal(
             backend.CpuDevice().send(arr1), backend.CpuDevice().send(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
-            if isinstance(arr1, chainerx.ndarray):
-                arr1._setitem(slice(None, None, None), arr1[:] - 2)
-            else:
-                arr1[:] -= 2
+            utils.array._setitem(arr1, slice(None, None, None), arr1[:] - 2)
 
     def test_from_chainerx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))

@@ -5,6 +5,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
+import chainerx
 
 
 def as_vec(x):
@@ -63,3 +64,23 @@ def sum_to(x, shape):
     if lead > 0:
         y = y.squeeze(lead_axis)
     return y
+
+
+# Workaround for chainerx.ndarray advanced indexing.
+# TODO(hvy): Remove this function when chainerx.ndarray.__getitem__ supports
+# advanced indexing.
+def _getitem(arr, key):
+    if isinstance(arr, chainerx.ndarray):
+        return arr._getitem(key)
+    else:
+        return arr[key]
+
+
+# Workaround for chainerx.ndarray advanced indexing.
+# TODO(hvy): Remove this function when chainer.ndarray.__setitem__ supports
+# advanced indexing.
+def _setitem(arr, key, value):
+    if isinstance(arr, chainerx.ndarray):
+        arr._setitem(key, value)
+    else:
+        arr[key] = value
