@@ -18,7 +18,7 @@ Configure the following environment variables before installing Chainer.
 Environment variable       Description
 ========================== ================================================================================================
 ``CHAINER_BUILD_CHAINERX`` ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
-``CHAINERX_BUILD_CUDA``    ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``1``.
+``CHAINERX_BUILD_CUDA``    ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``0``.
 ``CUDNN_ROOT_DIR``         Path to your cuDNN installation. Required when ``CHAINERX_BUILD_CUDA=1``.
 ========================== ================================================================================================
 
@@ -35,14 +35,13 @@ For instance, to install ChainerX without CUDA support, run the following:
 .. code-block:: console
 
     $ export CHAINER_BUILD_CHAINERX=1
-    $ export CHAINERX_BUILD_CUDA=0
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
     $ pip install --pre chainer
 
 CUDA support
 ------------
 
-When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA without cuDNN is currently not supported.
+When installing with the CUDA support, you also need to specify the cuDNN installation path since CUDA without cuDNN is currently not supported.
 
 To support the :ref:`NumPy/CuPy fallback <chainerx-tutorial-numpy-cupy-fallback>` mechanism, currently ChainerX with the CUDA support requires CuPy to be installed together.
 
