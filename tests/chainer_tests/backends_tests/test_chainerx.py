@@ -96,11 +96,11 @@ class TestFromToChainerx(unittest.TestCase):
         numpy.testing.assert_array_equal(
             backend.CpuDevice().send(arr1), backend.CpuDevice().send(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
-            utils.array._setitem(arr1, slice(None), arr1[:] + 2)
+            utils._setitem(arr1, slice(None), arr1[:] + 2)
         numpy.testing.assert_array_equal(
             backend.CpuDevice().send(arr1), backend.CpuDevice().send(arr2))
         with chainer.using_device(backend.get_device_from_array(arr1)):
-            utils.array._setitem(arr1, slice(None), arr1[:] - 2)
+            utils._setitem(arr1, slice(None), arr1[:] - 2)
 
     def test_from_chainerx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))

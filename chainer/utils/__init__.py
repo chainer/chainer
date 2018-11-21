@@ -8,6 +8,8 @@ import six
 
 import chainer
 # import classes and functions
+from chainer.utils.array import _getitem  # NOQA
+from chainer.utils.array import _setitem  # NOQA
 from chainer.utils.array import size_of_shape  # NOQA
 from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
