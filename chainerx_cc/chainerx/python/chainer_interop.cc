@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
