@@ -268,24 +268,8 @@ Use apply() method instead.\
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()
-            chainerx_in_data = in_data
-            in_data = []
-            for i in six.moves.range(len(inputs)):
-                # Use the cached fallback arrays as inputs if they exist.
-                x = inputs[i]
-                x_is_variable = isinstance(x, variable.Variable)
-                if x_is_variable and x._chainerx_fallback_array is not None:
-                    x_data = x._chainerx_fallback_array
-                else:
-                    x_data = backend.from_chainerx(chainerx_in_data[i])
-
-                    # Update the fallback cache if possible.
-                    if x_is_variable:
-                        x._chainerx_fallback_array = x_data
-
-                in_data.append(x_data)
-
-            in_data = tuple(in_data)
+            chainerx_in_data, in_data = (
+                self._chainerx_apply_fallback_preprocess(in_data, inputs))
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -343,27 +327,8 @@ Use apply() method instead.\
         self._output_count = len(outputs)
 
         if self._is_chainerx:
-            # TODO(hvy): Take configuration.config.enable_backprop into
-            # account?
-            chainerx_out_data = backend.to_chainerx(outputs)
-
-            # Insert a ChainerX op-node that calls FunctionNode.backward in
-            # backprop. Note that chainerx_out_data may not require gradients.
-            chainerx._core._function_node_forward(
-                self, chainerx_in_data, chainerx_out_data,
-                [] if self._input_indexes_to_retain is None
-                else self._input_indexes_to_retain,
-                [] if self._output_indexes_to_retain is None
-                else self._output_indexes_to_retain)
-
-            self.inputs = tuple(
-                [variable._ChainerxVariableNodeProps(x) for x in inputs])
-
-            ret = tuple([
-                _to_variable_with_chainerx_fallback_array(
-                    chainerx_out_array, out_array)
-                for chainerx_out_array, out_array
-                in six.moves.zip(chainerx_out_data, outputs)])
+            ret = self._chainerx_apply_fallback_postprocess(
+                chainerx_in_data, inputs, outputs)
 
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
@@ -426,6 +391,53 @@ Use apply() method instead.\
 
         """
         pass
+
+    def _chainerx_apply_fallback_preprocess(self, in_data, inputs):
+        chainerx_in_data = in_data
+        in_data = []
+        for i in six.moves.range(len(inputs)):
+            # Use the cached fallback arrays as inputs if they exist.
+            x = inputs[i]
+            x_is_variable = isinstance(x, variable.Variable)
+            if x_is_variable and x._chainerx_fallback_array is not None:
+                x_data = x._chainerx_fallback_array
+            else:
+                x_data = backend.from_chainerx(chainerx_in_data[i])
+
+                # Update the fallback cache if possible.
+                if x_is_variable:
+                    x._chainerx_fallback_array = x_data
+
+            in_data.append(x_data)
+
+        in_data = tuple(in_data)
+        return chainerx_in_data, in_data
+
+    def _chainerx_apply_fallback_postprocess(
+            self, chainerx_in_data, inputs, outputs):
+
+        # TODO(hvy): Take configuration.config.enable_backprop into
+        # account?
+        chainerx_out_data = backend.to_chainerx(outputs)
+
+        # Insert a ChainerX op-node that calls FunctionNode.backward in
+        # backprop. Note that chainerx_out_data may not require gradients.
+        chainerx._core._function_node_forward(
+            self, chainerx_in_data, chainerx_out_data,
+            [] if self._input_indexes_to_retain is None
+            else self._input_indexes_to_retain,
+            [] if self._output_indexes_to_retain is None
+            else self._output_indexes_to_retain)
+
+        self.inputs = tuple(
+            [variable._ChainerxVariableNodeProps(x) for x in inputs])
+
+        ret = tuple([
+            _to_variable_with_chainerx_fallback_array(
+                chainerx_out_array, out_array)
+            for chainerx_out_array, out_array
+            in six.moves.zip(chainerx_out_data, outputs)])
+        return ret
 
     def forward_chainerx(self, inputs):
         """Computes the output arrays from the input ChainerX arrays.
