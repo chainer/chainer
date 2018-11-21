@@ -12,22 +12,17 @@ def _get_expected_xp(backend_config, is_function):
     # Returns a pair of xp's expected in forward() and backward() respectively.
     xp = backend_config.xp
 
+    if xp is chainerx:
+        forward_xp = backend_config.device.fallback_device.xp
+    else:
+        forward_xp = xp
+
     if is_function:
         # chainer.Function
-        if xp is chainerx:
-            forward_xp = backend_config.device.fallback_device.xp
-        else:
-            forward_xp = xp
         backward_xp = forward_xp
-
     else:
         # chainer.FunctionNode
-        if xp is chainerx:
-            forward_xp = backend_config.device.fallback_device.xp
-            backward_xp = chainerx
-        else:
-            forward_xp = xp
-            backward_xp = xp
+        backward_xp = xp
 
     return forward_xp, backward_xp
 
