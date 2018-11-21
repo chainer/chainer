@@ -48,10 +48,10 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, _cpu._to_numpy(src))
+        numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
-            dst, _cpu._to_numpy(src))
+            dst, _cpu._to_cpu(src))
     elif isinstance(dst, cuda.ndarray):
         if isinstance(src, chainer.get_cpu_array_types()):
             src = numpy.asarray(src)
