@@ -68,6 +68,7 @@ def sum_to(x, shape):
 
 
 # Workaround for chainerx.ndarray advanced indexing.
+# This function is not differentiable.
 # TODO(hvy): Remove this function when chainerx.ndarray.__getitem__ supports
 # advanced indexing.
 def _getitem(arr, key):
@@ -84,6 +85,7 @@ def _getitem(arr, key):
 
 
 # Workaround for chainerx.ndarray advanced indexing.
+# This function is not differentiable.
 # TODO(hvy): Remove this function when chainer.ndarray.__setitem__ supports
 # advanced indexing.
 def _setitem(arr, key, value):
