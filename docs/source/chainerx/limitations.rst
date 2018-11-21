@@ -8,7 +8,7 @@ There are some non-obvious limitations in ChainerX:
 
 * Operations with mixed dtypes are not supported. You need to explicitly convert dtypes using either :func:`chainerx.astype` or :func:`F.cast() <chainer.functions.cast>`.
 
-* The so-called "true" division of Python, where 2/3 returns .66 rather than 0, is not supported yet. Given an ndarray ``a`` of the dtype :data:`~chainerx.int32`, ``a / a`` does not return an array of :data:`~chainerx.float64`, but returns an array of :data:`~chainerx.int32`.
+* True division of Python, where 2/3 returns .66 rather than 0, is not supported yet. Given an ndarray ``a`` of the dtype :data:`~chainerx.int32`, ``a / a`` does not return an array of :data:`~chainerx.float64`, but returns an array of :data:`~chainerx.int32`.
 
 * Only a limited set of Chainer :mod:`function <chainer.functions>`\ s are well tested with the ChainerX integration.
 
