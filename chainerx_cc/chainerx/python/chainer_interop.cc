@@ -109,7 +109,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       for (const nonstd::optional<size_t>& i_out : output_index_map) {
                           if (i_out.has_value()) {
                               CHAINERX_ASSERT(*i_out < bctx.output_count());
-                              if (auto gy = bctx.output_grad(*i_out)) {
+                              if (auto& gy = bctx.output_grad(*i_out)) {
                                   grad_outputs.emplace_back(internal::GetArrayBody(*gy));
                               } else {
                                   grad_outputs.emplace_back(nullptr);
