@@ -53,6 +53,7 @@ To support the :ref:`NumPy/CuPy fallback <chainerx-tutorial-numpy-cupy-fallback>
 .. code-block:: console
 
     $ export CHAINER_BUILD_CHAINERX=1
+    $ export CHAINERX_BUILD_CUDA=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
     $ pip install --pre cupy
