@@ -179,8 +179,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("copy") = true);
     c.def("copy", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Copy()); });
-    c.def("__getitem__",
-          [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
+    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
