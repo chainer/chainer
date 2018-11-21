@@ -71,13 +71,12 @@ class LinearFunction(function_node.FunctionNode):
         # Generic implementation
         if len(inputs) == 3:
             x, W, b = inputs
+            if x.dtype != b.dtype:
+                return chainer.Fallback
+            return chainerx.linear(x, W, b),
         else:
-            (x, W), b = inputs, None
-
-        y = chainerx.dot(x, W.T)
-        if b is not None:
-            y = y + b
-        return y,
+            x, W = inputs
+            return chainerx.linear(x, W),
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
