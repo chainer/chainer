@@ -75,7 +75,12 @@ def _getitem(arr, key):
         arr = backend.from_chainerx(arr)
     if isinstance(key, chainerx.ndarray):
         key = backend.from_chainerx(key)
-    return arr[key]
+    if isinstance(arr, cuda.ndarray):
+        with arr.device:
+            ret = arr[key]
+    else:
+        ret = arr[key]
+    return ret
 
 
 # Workaround for chainerx.ndarray advanced indexing.
