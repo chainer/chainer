@@ -48,9 +48,10 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               }
 
               // Prepare output arrays for BackwardBuilder
+              // output_index_map maps original output indices to reduced indices where None outputs are omitted
               std::vector<Array> output_arrays;
               std::vector<ConstArrayRef> output_array_refs;
-              std::vector<nonstd::optional<size_t>> output_index_map;  // maps original output index to reduced index
+              std::vector<nonstd::optional<size_t>> output_index_map;
               output_arrays.reserve(outputs.size());
               output_array_refs.reserve(outputs.size());
               output_index_map.reserve(outputs.size());
