@@ -72,6 +72,11 @@ def sum_to(x, shape):
 # TODO(hvy): Remove this function when chainerx.ndarray.__getitem__ supports
 # advanced indexing.
 def _getitem(arr, key):
+    try:
+        return arr[key]
+    except (IndexError, chainerx.DimensionError):
+        pass
+
     if isinstance(arr, chainerx.ndarray):
         arr = backend.from_chainerx(arr)
         is_arr_chainerx = True
