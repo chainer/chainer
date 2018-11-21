@@ -38,7 +38,7 @@ LeNet5
 Here, let's start by defining LeNet5 [LeCun98]_ in Chainer.
 In this example, we show 
 `a simplified version of LeNet5 <http://deeplearning.net/tutorial/lenet.html#lenet>`_
-that is explained in DeepLearning 0.1 documentation.
+introduced in Deep Learning Tutorials.
 This is a ConvNet model that has 5 layers comprised of 3 convolutional layers
 and 2 fully-connected layers. This was proposed to classify hand-written
 digit images in 1998. In Chainer, the model can be written as follows:
