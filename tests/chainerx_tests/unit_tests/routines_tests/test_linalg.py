@@ -45,3 +45,25 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return xp.dot(a, b)
     else:
         return a.dot(b)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
+@pytest.mark.parametrize('a_shape,b_shape,c_shape', [
+    ((2, 3), (4, 3), (4,)),
+    ((2, 0), (3, 0), (3,)),
+    ((0, 2), (0, 2), (0,)),
+    ((0, 0), (0, 0), (0,)),
+    # TODO(imanishi): Add test cases for more than 2 ndim
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_linear(xp, device, a_shape, b_shape, c_shape, dtype):
+    # TODO(imanishi): Remove the skip after supporting non-float dot on CUDA
+    if device.name == 'cuda:0' and numpy.dtype(dtype).kind != 'f':
+        return chainerx.testing.ignore()
+    x = array_utils.create_dummy_ndarray(xp, a_shape, dtype)
+    w = array_utils.create_dummy_ndarray(xp, b_shape, dtype)
+    b = array_utils.create_dummy_ndarray(xp, c_shape, dtype)
+    if xp is chainerx:
+        return chainerx.linear(x, w, b)
+    else:
+        return x.dot(w.T) + b

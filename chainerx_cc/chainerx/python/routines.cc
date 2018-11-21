@@ -294,6 +294,15 @@ void InitChainerxLinalg(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); },
           py::arg("a"),
           py::arg("b"));
+    m.def("linear",
+          [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const nonstd::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {
+              return MoveArrayBody(
+                      Linear(Array{x}, Array{w}, b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt, n_batch_axes));
+          },
+          py::arg("x"),
+          py::arg("w"),
+          py::arg("b") = nullptr,
+          py::arg("n_batch_axes") = 1);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
