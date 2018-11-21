@@ -259,7 +259,6 @@ def numerical_grad(
                 else:
                     dot = ((y1 - y0) * gy).sum()
                     utils.array._setitem(gx, i, gx[i] + dot / (2 * eps))
-
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
                 y1 = yss[1][i_out]
