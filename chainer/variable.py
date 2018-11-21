@@ -510,7 +510,7 @@ class Variable(object):
         self._requires_grad = requires_grad
         self._loss_scale = None
         self._grad_var = None
-        self._device = backend.get_device_from_array(data)
+        self._device = None
 
         if isinstance(data, chainerx.ndarray):
             if not requires_grad and grad is not None:
@@ -585,7 +585,6 @@ class Variable(object):
     def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
-        assert self.xp is chainerx
         requires_grad = self._requires_grad
 
         if (not requires_grad
@@ -618,12 +617,19 @@ class Variable(object):
     @property
     def device(self):
         """Device on which the data array of this variable reside."""
+        # lazy initialization for performance
+        if self._device is None:
+            if self._data[0] is None:
+                self._device = backend.CpuDevice()
+            else:
+                self._device = backend.get_device_from_array(self._data[0])
         return self._device
 
     @property
     def xp(self):
         """Array module for the data array of this variable."""
-        return self._device.xp
+        device = self.device
+        return None if device is None else device.xp
 
     @property
     def name(self):
@@ -1005,7 +1011,7 @@ class Variable(object):
                 'transferred to a ChainerX device.')
 
         self._to_device(
-            backend.ChainerxDevice.from_fallback_device(self._device),
+            backend.ChainerxDevice.from_fallback_device(self.device),
             allow_unchaining)
 
     def from_chainerx(self):
@@ -1031,7 +1037,7 @@ class Variable(object):
                 'Cannot convert from a Variable with a ChainerX array that is '
                 'connected to a graph.')
 
-        self.to_device(self._device.fallback_device)
+        self.to_device(self.device.fallback_device)
 
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
@@ -1046,7 +1052,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self._device.xp is chainerx
+        was_chainerx = self.device.xp is chainerx
         is_chainerx = device.xp is chainerx
 
         if not allow_unchaining:
@@ -1134,7 +1140,7 @@ class Variable(object):
             gv = self.grad_var
             if gv is None:
                 self.grad = chainerx.zeros_like(
-                    arr, device=self._device.device)
+                    arr, device=self.device.device)
             else:
                 gv._data[0].fill(0)
         else:
