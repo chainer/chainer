@@ -117,7 +117,7 @@ def _setitem(arr, key, value):
     """
     if isinstance(arr, chainerx.ndarray):
         arr = backend.from_chainerx(arr)
-    if isinstance(arr, chainerx.ndarray):
+    if isinstance(key, chainerx.ndarray):
         key = backend.from_chainerx(key)
     if isinstance(value, chainerx.ndarray):
         value = backend.from_chainerx(value)
