@@ -74,11 +74,10 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                   });
 
                   std::vector<RetainedInputToken> retained_input_tokens;
-                  std::transform(
-                          input_indexes_to_retain.begin(),
-                          input_indexes_to_retain.end(),
-                          std::back_inserter(retained_input_tokens),
-                          [&bb](size_t i) { return bb.RetainInput(i); });
+                  retained_input_tokens.reserve(input_indexes_to_retain.size());
+                  for (size_t i : input_indexes_to_retain) {
+                      retained_input_tokens.emplace_back(bb.RetainInput(i));
+                  }
                   std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens;
                   retained_output_tokens.reserve(output_indexes_to_retain.size());
                   for (size_t i : output_indexes_to_retain) {
@@ -121,10 +120,10 @@ void InitChainerxChainerInterop(pybind11::module& m) {
 
                       // Get retained inputs and outputs
                       std::vector<ArrayBodyPtr> retained_inputs;
-                      std::transform(
-                              in_toks.begin(), in_toks.end(), std::back_inserter(retained_inputs), [&bctx](const RetainedInputToken& tok) {
-                                  return internal::GetArrayBody(bctx.GetRetainedInput(tok));
-                              });
+                      retained_inputs.reserve(in_toks.size());
+                      for (const RetainedInputToken& tok : in_toks) {
+                          retained_inputs.emplace_back(internal::GetArrayBody(bctx.GetRetainedInput(tok)));
+                      }
                       std::vector<ArrayBodyPtr> retained_outputs;
                       retained_outputs.reserve(out_toks.size());
                       for (const nonstd::optional<RetainedOutputToken>& tok : out_toks) {
