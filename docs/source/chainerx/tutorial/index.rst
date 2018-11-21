@@ -61,7 +61,7 @@ The left-hand-side of the colon shows the name of the backend to which the devic
 The integer on the right-hand-side shows the device index.
 Together, they uniquely identify a physical device on which an array is allocated.
 
-If you do not want to specify the device each time you create an array, it is possible to change the default device using :func:`chainerx.using_device`.
+If you do not want to specify the device each time you create an array, it is possible to change the default device with :func:`chainerx.using_device`.
 
 .. code-block:: python
 
