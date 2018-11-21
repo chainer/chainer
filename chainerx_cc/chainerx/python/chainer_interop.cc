@@ -73,11 +73,14 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       delete ptr;
                   });
 
+                  // Retain inputs
                   std::vector<RetainedInputToken> retained_input_tokens;
                   retained_input_tokens.reserve(input_indexes_to_retain.size());
                   for (size_t i : input_indexes_to_retain) {
                       retained_input_tokens.emplace_back(bb.RetainInput(i));
                   }
+
+                  // Retain outputs
                   std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens;
                   retained_output_tokens.reserve(output_indexes_to_retain.size());
                   for (size_t i : output_indexes_to_retain) {
