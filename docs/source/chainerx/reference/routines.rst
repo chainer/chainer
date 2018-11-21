@@ -86,6 +86,7 @@ Linear algebra
    :nosignatures:
 
    chainerx.dot
+   chainerx.linear
 
 Logic functions
 ---------------
