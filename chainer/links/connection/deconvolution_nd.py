@@ -143,7 +143,7 @@ class DeconvolutionND(link.Link):
         self.W.initialize(W_shape)
 
     def forward(self, x):
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
