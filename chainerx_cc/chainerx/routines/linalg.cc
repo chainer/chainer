@@ -78,6 +78,25 @@ Array Dot(const Array& a, const Array& b) {
     return out_matrix.Reshape(out_shape);
 }
 
+namespace {
+void LinearGradWeight(BackwardBuilder& bb) {
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            const Array& w_matrix = bctx.GetRetainedInput(w_matrix_tok);
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Dot(gout, w_matrix);
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Dot(gout.Transpose(), x_matrix);
+        });
+    }
+}
+}  // namespace
+
 Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, uint8_t n_batch_axes) {
     n_batch_axes = internal::NormalizeAxis(n_batch_axes, x.ndim());
 
@@ -87,6 +106,9 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         CheckEqual(x.dtype(), b->dtype());
     }
 
+    if (w.ndim() < 1) {
+        throw DimensionError{"x.ndim should be greater than or equal to 1"};
+    }
     if (w.ndim() != 2) {
         throw DimensionError{"w.ndim should be 2"};
     }
@@ -121,20 +143,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         }
         BackwardBuilder bb{"linear", {x_matrix, w, b_matrix}, out_matrix};
         {
-            if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-                bt.Define([w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
-                    const Array& w_matrix = bctx.GetRetainedInput(w_matrix_tok);
-                    const Array& gout = *bctx.output_grad();
-                    bctx.input_grad() = Dot(gout, w_matrix);
-                });
-            }
-            if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-                bt.Define([x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-                    const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
-                    const Array& gout = *bctx.output_grad();
-                    bctx.input_grad() = Dot(gout.Transpose(), x_matrix);
-                });
-            }
+            LinearGradWeight(bb);
             if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
                 bt.Define([](BackwardContext& bctx) {
                     const Array& gout = *bctx.output_grad();
@@ -150,21 +159,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         }
         BackwardBuilder bb{"linear_nobias", {x_matrix, w}, out_matrix};
         {
-            if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-                bt.Define([w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
-                    const Array& w_matrix = bctx.GetRetainedInput(w_matrix_tok);
-                    const Array& gout = *bctx.output_grad();
-                    bctx.input_grad() = Dot(gout, w_matrix);
-                });
-            }
-            if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-                bt.Define([x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-                    const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
-                    const Array& gout = *bctx.output_grad();
-                    bctx.input_grad() = Dot(gout.Transpose(), x_matrix);
-                });
-            }
-            // LinearGradWeight(bb);
+            LinearGradWeight(bb);
             bb.Finalize();
         }
     }
