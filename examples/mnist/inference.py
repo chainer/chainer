@@ -42,7 +42,8 @@ def main():
     x, answer = test[0]
     if args.gpu >= 0:
         x = chainer.cuda.cupy.asarray(x)
-    prediction = model(x[None, ...])[0].array.argmax()
+    with chainer.using_config('train', False):
+        prediction = model(x[None, ...])[0].array.argmax()
 
     print('Prediction:', prediction)
     print('Answer:', answer)
