@@ -127,6 +127,56 @@ TEST_P(LinalgTest, Linear) {
     EXPECT_ARRAY_EQ(e, a);
 }
 
+TEST_P(LinalgTest, LinearNoBias) {
+    Array x = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 3}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w);
+    Array e = Dot(x, w.Transpose());
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearSpecifyNBatchAxes) {
+    Array x = testing::BuildArray({5, 4, 3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({7}).WithData<float>({3.f, 2.f, -1.f, 3.f, 3.f, 7.f, 9.f}).WithPadding(2);
+    Array a = Linear(x, w, b, 2);
+    Array e = Dot(x.Reshape({20, 6}), w.Transpose()).Reshape({5, 4, 7}) + b.BroadcastTo({5, 4, 7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearSpecifyNBatchAxesNoBias) {
+    Array x = testing::BuildArray({5, 4, 3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w, nonstd::nullopt, 2);
+    Array e = Dot(x.Reshape({20, 6}), w.Transpose()).Reshape({5, 4, 7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearSpecifyNBatchAxesEqualsZero) {
+    Array x = testing::BuildArray({3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w, nonstd::nullopt, 0);
+    Array e = Dot(x.Reshape({6}), w.Transpose()).Reshape({7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearReturnsZeros) {
+    Array x = testing::BuildArray({2, 0}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 0}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w);
+    Array e = Zeros({2, 4}, x.dtype(), x.device());
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(LinalgTest, LinearReturnsBias) {
+    Array x = testing::BuildArray({2, 0}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 0}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({4}).WithData<float>({3.f, 2.f, -1.f, 3.f}).WithPadding(2);
+    Array a = Linear(x, w, b);
+    Array e = b.BroadcastTo({2, 4});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
 TEST_P(LinalgTest, LinearBackward) {
     Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
     Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
@@ -142,6 +192,17 @@ TEST_P(LinalgTest, LinearBackward) {
             {x, w, b},
             {go},
             {x_eps, w_eps, b_eps});
+}
+
+TEST_P(LinalgTest, LinearBackwardNoBias) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+
+    Array go = testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Linear(xs[0], xs[1])}; }, {x, w}, {go}, {x_eps, w_eps});
 }
 
 TEST_P(LinalgTest, LinearDoubleBackward) {
@@ -167,6 +228,30 @@ TEST_P(LinalgTest, LinearDoubleBackward) {
             {go},
             {ggx, ggw, ggb},
             {x_eps, w_eps, b_eps, go_eps},
+            1e-5,
+            1e-3);
+}
+
+TEST_P(LinalgTest, LinearDoubleBackwardNoBias) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array go = (*testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
+
+    Array ggx = testing::BuildArray(x.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);
+    Array ggw = testing::BuildArray(w.shape()).WithLinearData(-0.2f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Linear(xs[0], xs[1]);
+                return {y * y};
+            },
+            {x, w},
+            {go},
+            {ggx, ggw},
+            {x_eps, w_eps, go_eps},
             1e-5,
             1e-3);
 }
