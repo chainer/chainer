@@ -78,6 +78,7 @@ def backprop_step(
     :func:`chainer.grad`.
 
     Args:
+        func (FunctionNode): Function node to compute backprop along.
         target_input_indexes (tuple of int): Sorted indices of the input
             variables w.r.t. which the gradients are required. It is
             guaranteed that this tuple contains at least one element.
