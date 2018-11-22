@@ -125,8 +125,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     const Array& x_mean = *x_mean_;
     const Array& x_inv_std = *x_inv_std_;
 
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-    double inv_n = 1.0 / n;
+    double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
     Array x_hat = (x - x_mean) * x_inv_std;
     Array ggamma = (gout * x_hat).Sum(axis_, true);
     Array gbeta = gout.Sum(axis_, true);

@@ -23,9 +23,7 @@ constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
 namespace cuda_internal {
 
-CudaDevice* CreateDevice(CudaBackend& backend, int index) {
-    return new CudaDevice{backend, index};  // NOLINT(cppcoreguidelines-owning-memory)
-}
+CudaDevice* CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
 
 }  // namespace cuda_internal
 
