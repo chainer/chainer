@@ -6,6 +6,7 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+from chainer import utils
 
 
 def to_device(device, x):
@@ -190,7 +191,7 @@ def _concat_arrays_with_padding(arrays, padding):
         for i in six.moves.range(len(arrays)):
             src = arrays[i]
             slices = tuple(slice(dim) for dim in src.shape)
-            result[(i,) + slices] = src
+            utils._setitem(result, (i,) + slices, src)
 
     return result
 

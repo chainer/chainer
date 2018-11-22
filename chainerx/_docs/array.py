@@ -94,6 +94,15 @@ New array is created at every access to this property.
 ``x.T`` is just a shorthand of ``x.transpose()``.
 """)
 
+    _docs.set_doc(
+        ndarray.__getitem__,
+        """___getitem__(self, key)
+Returns self[key].
+
+.. note::
+    Currently, only basic indexing is supported not advanced indexing.
+""")
+
     def unary_op(name, s):
         _docs.set_doc(getattr(ndarray, name), "{}()\n{}".format(name, s))
 
