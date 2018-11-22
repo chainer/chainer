@@ -105,7 +105,7 @@ class TestUniform(unittest.TestCase):
                 assert False
 
         sampless = cuda.to_cpu(ws.reshape(n, -1).T)
-        alpha = 0.05 / len(sampless)
+        alpha = 0.01 / len(sampless)
         for samples in sampless:
             _, p = stats.kstest(
                 samples,
