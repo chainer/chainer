@@ -345,10 +345,27 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIsInstance(self.link.p, cupy.ndarray)
 
     @attr.multi_gpu(2)
-    def test_to_gpu_different_device(self):
+    def test_to_gpu_different_current_device(self):
         cuda.Device(1).use()
         self.link.to_gpu(0)
         self.assertEqual(self.link.device.device, cuda.Device(0))
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_different_device(self):
+        self.link.to_gpu(0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
+        self.link.to_gpu(1)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
     def test_to_gpu_current_device(self):
