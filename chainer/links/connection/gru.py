@@ -1,4 +1,5 @@
 import chainer
+from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
@@ -200,11 +201,17 @@ class StatefulGRU(GRUBase):
         self.state_size = out_size
         self.reset_state()
 
-    def to_device(self, device):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
         device = chainer.get_device(device)
-        super(StatefulGRU, self).to_device(device)
+        super(StatefulGRU, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.h is not None:
-            self.h.to_device(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
         return self
 
     def set_state(self, h):

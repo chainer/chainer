@@ -114,11 +114,16 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def to_device(self, device):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # TODO(niboshi): Avoid forcing concrete implementations to handle
+        # skip_between_cupy_devices
         device = chainer.get_device(device)
-        self.paths = device.send(self.paths)
-        self.codes = device.send(self.codes)
-        self.begins = device.send(self.begins)
+        if not (skip_between_cupy_devices
+                and device.xp is cuda.cupy
+                and isinstance(self.paths, cuda.ndarray)):
+            self.paths = device.send(self.paths)
+            self.codes = device.send(self.codes)
+            self.begins = device.send(self.begins)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -300,10 +305,14 @@ class BinaryHierarchicalSoftmax(link.Link):
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def to_device(self, device):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
         device = chainer.get_device(device)
-        self._func.to_device(device)
-        return super(BinaryHierarchicalSoftmax, self).to_device(device)
+        self._func._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
+        return super(BinaryHierarchicalSoftmax, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
 
     @staticmethod
     def create_huffman_tree(word_counts):
