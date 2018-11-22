@@ -78,8 +78,8 @@ def backprop_step(
     :func:`chainer.grad`.
 
     Args:
-        func (:class:`~chainer.FunctionNode`): The function for which gradients
-            are accumulated.
+        func (~chainer.FunctionNode): The function for which gradients are
+            accumulated.
         target_input_indexes (tuple of int): Sorted indices of the inputs
             that require gradients. It is guaranteed that this tuple contains
             at least one element.
