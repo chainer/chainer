@@ -552,8 +552,8 @@ class _CheckBackward(object):
             # See the document of `numerical_grad`.
 
             def perturb(data, direction):
-                data = (
-                    data.astype(numpy.float64) + delta * direction).astype(data.dtype)
+                data = (data.astype(numpy.float64)
+                        + delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
                     data = xp.array(data)
                 return data
