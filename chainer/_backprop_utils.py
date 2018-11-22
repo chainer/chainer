@@ -194,10 +194,10 @@ def _reraise_forward_stack(func):
             # - NumPy raises FloatingPointError for invalid values.
 
             # TODO(kataoka): unify variable._check_grad_type and below
+            import shutil
             try:
-                import shutil
                 columns = shutil.get_terminal_size()[0]
-            except ImportError:
+            except AttributeError:
                 import os
                 columns = os.getenv('COLUMNS', 80)
             additional_message = \
