@@ -17,4 +17,6 @@ public:
 
 extern "C" chainerx::Backend* CreateBackend(chainerx::Context& ctx) { return new Backend1{ctx}; }
 
-extern "C" void DestroyBackend(chainerx::Backend* backend) { delete backend; }
+extern "C" void DestroyBackend(chainerx::Backend* backend) {
+    delete backend;  // NOLINT(cppcoreguidelines-owning-memory)
+}

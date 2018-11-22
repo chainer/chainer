@@ -151,7 +151,8 @@ Array BatchNorm(
                         const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok);
 
                         // Auxiliary values
-                        double inv_n = 1.0 / (x.GetTotalSize() / gamma_reshaped.GetTotalSize());
+                        int64_t n = x.GetTotalSize() / gamma_reshaped.GetTotalSize();
+                        double inv_n = 1.0 / n;
                         Array r = (gx * ggx).Sum(sorted_axis);
                         Array coeff = gamma_reshaped * x_inv_std;
                         Array coeff_m = coeff * inv_n;

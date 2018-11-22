@@ -73,12 +73,16 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     // Lock is released here to avoid any deadlocks.
     std::unique_ptr<Backend, context_detail::BackendDeleter> backend;
     if (backend_name == native::NativeBackend::kDefaultName) {
-        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{new native::NativeBackend{*this},
+                                                                           context_detail::BackendDeleter{[](Backend* ptr) {
+                                                                               delete ptr;  // NOLINT(cppcoreguidelines-owning-memory)
+                                                                           }}};
 #ifdef CHAINERX_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
-        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{new cuda::CudaBackend{*this},
+                                                                           context_detail::BackendDeleter{[](Backend* ptr) {
+                                                                               delete ptr;  // NOLINT(cppcoreguidelines-owning-memory)
+                                                                           }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
         // Load .so file
