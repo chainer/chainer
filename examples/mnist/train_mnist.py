@@ -54,7 +54,7 @@ def main():
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--frequency', '-f', type=int, default=-1,
                         help='Frequency of taking a snapshot')
-    parser.add_argument('--device', '-d', type=str, default='native',
+    parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '

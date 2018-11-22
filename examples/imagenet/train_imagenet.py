@@ -110,7 +110,7 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--device', '-d', type=str, default='native',
+    parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
