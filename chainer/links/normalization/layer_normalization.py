@@ -76,7 +76,7 @@ class LayerNormalization(link.Link):
             ~chainer.Variable: Output of the layer normalization.
 
         """
-        if self.gamma.data is None:
+        if self.gamma.array is None:
             in_size = functools.reduce(operator.mul, x.shape[1:], 1)
             self._initialize_params(in_size)
 
