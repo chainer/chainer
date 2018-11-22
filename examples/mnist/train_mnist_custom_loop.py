@@ -45,7 +45,7 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--device', '-d', type=str, default='native',
+    parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
