@@ -80,24 +80,21 @@ class StatefulZoneoutLSTM(link.Chain):
             xp = self.xp
             with chainer.using_device(self.device):
                 self.h = variable.Variable(
-                    xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
         if self.c is None:
             xp = self.xp
             with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
 
-        lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
-                                            lstm_in.data.shape[1] // 4,
-                                            4))
+        lstm_in = reshape.reshape(
+            lstm_in, (len(lstm_in), lstm_in.shape[1] // 4, 4))
 
         a, i, f, o = split_axis.split_axis(lstm_in, 4, 2)
-        a = reshape.reshape(a, (len(a.data), self.state_size))
-        i = reshape.reshape(i, (len(i.data), self.state_size))
-        f = reshape.reshape(f, (len(f.data), self.state_size))
-        o = reshape.reshape(o, (len(o.data), self.state_size))
+        a = reshape.reshape(a, (len(a), self.state_size))
+        i = reshape.reshape(i, (len(i), self.state_size))
+        f = reshape.reshape(f, (len(f), self.state_size))
+        o = reshape.reshape(o, (len(o), self.state_size))
 
         c_tmp = tanh.tanh(a) * sigmoid.sigmoid(i) + sigmoid.sigmoid(f) * self.c
         self.c = zoneout.zoneout(self.c, c_tmp, self.c_ratio)
