@@ -9,7 +9,6 @@ from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.array import diagonal
 from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
 from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
@@ -182,13 +181,8 @@ class MultivariateNormal(distribution.Distribution):
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape+(1,)).astype(numpy.float32)
 
-        noise = matmul.matmul(repeat.repeat(
-            expand_dims.expand_dims(self.scale_tril, axis=0), n, axis=0), eps)
-        noise = squeeze.squeeze(noise, axis=-1)
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
-
-        return noise
+        return self.loc + squeeze.squeeze(
+            matmul.matmul(self.scale_tril, eps), axis=-1)
 
     @property
     def support(self):

@@ -507,7 +507,7 @@ class _CheckBackward(object):
         assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
-                gx_accum += (g.astype('d') * direction).sum()
+                gx_accum += (g.astype(numpy.float64) * direction).sum()
 
         return gx_accum
 
@@ -542,9 +542,9 @@ class _CheckBackward(object):
 
         xp = backend.get_array_module(*x_data)
         if self.is_chainerx:
-            delta = xp.array(0., 'd', device=directions[0].device)
+            delta = xp.array(0., numpy.float64, device=directions[0].device)
         else:
-            delta = xp.array(0., 'd')
+            delta = xp.array(0., numpy.float64)
 
         def g():
             # This functions is called twice in `numerical_grad`.
@@ -552,8 +552,8 @@ class _CheckBackward(object):
             # See the document of `numerical_grad`.
 
             def perturb(data, direction):
-                data = (
-                    data.astype('d') + delta * direction).astype(data.dtype)
+                data = (data.astype(numpy.float64)
+                        + delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
                     data = xp.array(data)
                 return data
