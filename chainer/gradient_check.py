@@ -29,6 +29,34 @@ def _copy_arrays(xs):
         return [xp.array(x, dtype=numpy.float64, copy=True) for x in xs]
 
 
+def _ones_like(arr):
+    device = cuda.get_device_from_array(arr)
+    xp = backend.get_array_module(arr)
+    with device:
+        return xp.ones_like(arr)
+
+
+def _check_outputs_and_grad_outputs(outputs, grad_outputs):
+    if len(outputs) != len(grad_outputs):
+        raise ValueError(
+            'Output gradients must contain equally as many elements as '
+            'the number of output elements.\n'
+            'Output shapes         : {}\n'
+            'Output gradient shapes: {}'.format(
+                ', '.join(str(y.shape) for y in outputs),
+                ', '.join(str(None if gy is None else gy.shape)
+                          for gy in grad_outputs)))
+    if not all([gy is None or y.shape == gy.shape
+                for y, gy in zip(outputs, grad_outputs)]):
+        raise ValueError(
+            'Shapes of outputs and output gradients do not match.\n'
+            'Outputs shapes        : {}\n'
+            'Output gradient shapes: {}\n'.format(
+                ', '.join(str(y.shape) for y in outputs),
+                ', '.join(str(None if gy is None else gy.shape)
+                          for gy in grad_outputs)))
+
+
 def numerical_grad(
         f, inputs, grad_outputs, eps=1e-3,
         detect_nondifferentiable=False, diff_atol=0, diff_rtol=1e-2,
@@ -79,6 +107,7 @@ def numerical_grad(
 
     """
     assert eps > 0
+    assert isinstance(inputs, (tuple, list))
     for x in inputs:
         if x.dtype.kind != 'f':
             raise RuntimeError(
@@ -376,21 +405,31 @@ class _CheckBackward(object):
         # This must be done before sampling a direction vector, because
         # otherwise the shapes of uninitialized parameters wouldn't be
         # determined.
-        xs_backward, y_backward, y0_data, y_grad = (
+        xs_backward, ys = (
             self._forward_for_backward_gradients())
-        self.y_grad = y_grad
+        # Keep output arrays to save computation in numerical gradients
+        y0_data = tuple([y.array for y in ys])
+
+        # If y_grad is not given, generate the all-1 gradients.
+        if self.y_grad is None:
+            if not (len(ys) == 1 and ys[0].shape == ()):
+                raise ValueError(
+                    'y_grad argument cannot be omitted if the target function '
+                    'is not a loss function, which has a single output with '
+                    'shape ().\n'
+                    'Actual output shapes: {}'.format(
+                        ', '.join([str(y.shape) for y in ys])))
+
+            self.y_grad = tuple([_ones_like(y.array) for y in ys])
+        else:
+            _check_outputs_and_grad_outputs(ys, self.y_grad)
 
         # Sample a direction vector.
         directions = self._sample_directions()
 
         # Compute backward gradients by running a backward pass.
         gx_backward = self._directional_backward_gradients(
-            xs_backward, y_backward, directions)
-
-        # If no input has a gradient, we don't need to compare with numeric
-        # gradient.
-        if len(self.x_data) + len(self.params) == self.no_grads.count(True):
-            return
+            xs_backward, ys, directions)
 
         # Compute numeric gradients
         gx_numeric = self._directional_numeric_gradients(directions, y0_data)
@@ -466,36 +505,35 @@ class _CheckBackward(object):
     def _forward_for_backward_gradients(self):
         func = self.func
         x_data = self.x_data
-        y_grad = self.y_grad
         params = self.params
 
         xs = [variable.Variable(x) for x in x_data]
         y = func(*xs)
         y = _as_tuple(y)
-        y0_data = [_.data for _ in y]
-
-        # All creators of `y` need to be the same because we only call
-        # `y[0].backward` to call `backward` method of the creator.
-        # To do so we need to insert a dummy function `_GradientSetter` to the
-        # computational graph.
-        # Note that `func` may not be a `Function` object.
-
-        y, y_grad = _set_y_grad(y, y_grad)
 
         # Clear gradients which may exist if func calls backward inside of
         # itself.
         self._clear_grads(xs)
         self._clear_grads(params)
+        return xs, y
 
-        return xs, y, y0_data, y_grad
-
-    def _directional_backward_gradients(self, xs, y, directions):
+    def _directional_backward_gradients(self, xs, ys, directions):
         params = self.params
         no_grads = self.no_grads
 
-        # We only need to call `backward` for one result `Variable`.
-        # `Variable.backward` method calls `Function.backward` of its creator.
-        y.backward()
+        # We need to start backprop from a single variable,
+        # so a dummy function `_GradientSetter` is inserted at the end of the
+        # computational graph.
+        y_backward = _apply_grad_setter_func(
+            ys,
+            [None if gy is None
+             # Copy is needed to avoid being updated during backprop, which
+             # would affect the numerical gradient.
+             else chainer.Variable(gy.copy(), requires_grad=False)
+             for gy in self.y_grad])
+
+        # Backward
+        y_backward.backward()
 
         for no_grad, x in six.moves.zip(no_grads, xs):
             if no_grad and x.grad is not None:
@@ -621,7 +659,7 @@ def check_backward(
         gy_data = xp.array(...)
         check_backward(func, (x1_data, x2_data), gy_data)
 
-    This method creates :class:`~chainer.Variable` objects with ``x_data``
+    This function creates :class:`~chainer.Variable` objects with ``x_data``
     and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
     result as :class:`~chainer.Variable`.
     Then, it sets ``y_grad`` array to ``grad`` attribute of the result and
@@ -802,10 +840,11 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         gys = inputs[n_x:]
 
         y = _as_tuple(func(*xs))
+        _check_outputs_and_grad_outputs(y, gys)
 
         # Let all elements of y share the same creator.
         # See the comment in check_backward.
-        y, _ = _set_y_grad(y, gys)
+        y = _apply_grad_setter_func(y, gys)
 
         y.backward(enable_double_backprop=True)
 
@@ -852,48 +891,26 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
 
 class _GradientSetter(FunctionNode):
-    input_shape = None
-    input_dtype = None
-
-    def __init__(self, xp, grad):
-        self.xp = xp
+    def __init__(self, grad):
         self.grad = grad
 
     def forward(self, inputs):
-        self.input_shape = inputs[0].shape
-        self.input_dtype = inputs[0].dtype
+        # output a dummy array.
+        xp = backend.get_array_module(inputs[0])
+        return xp.empty((0,), dtype=numpy.float32),
 
-        # output a 0-sized 1-dim array like inputs
-        # xp can be different from self.xp for ChainerX fallback.
-        xp = backend.get_array_module(*inputs)
-        return xp.empty((0,), dtype=inputs[0].dtype),
-
-    def backward(self, indexes, grad_outputs):
-        if self.grad is None:
-            grad = (self.xp.ones(self.input_shape, self.input_dtype),)
-        else:
-            grad = self.grad
-
-        return tuple(
-            None if g is None else variable.as_variable(g)
-            for g in grad)
+    def backward(self, inputs, grad_outputs):
+        return self.grad
 
 
-def _set_y_grad(y, y_grad):
-    xp = backend.get_array_module(*y)
-    if y_grad is not None:
-        if len(y) != len(y_grad):
-            raise ValueError(
-                'Upstream gradients must contain equally many elements as '
-                'number of output elements.\n'
-                'Actual: {} != {}'.format(len(y), len(y_grad)))
-        y, = _GradientSetter(xp, y_grad).apply(y)
-    else:
-        if len(y) != 1 or y[0].shape != ():
-            raise ValueError(
-                'Function must return a zero-dimensional array of length 1 '
-                'if the upstream gradient is `None`.\n'
-                'Actual: {} != 1'.format(len(y)))
-        y, = _GradientSetter(xp, None).apply(y)
-        y_grad = (1,)
-    return y, y_grad
+def _apply_grad_setter_func(y, y_grad):
+    # Applies the `_GradientSetter` function.
+    # The gradient setter function accepts any number of upstream outputs as
+    # its inputs, and returns a single output variable with dummy data.
+    # This variable will be later backward()ed and during backprop, this
+    # function returns the given gradients (`y_grad`) on its backward.
+    assert len(y) == len(y_grad)
+    assert all(isinstance(y_, chainer.Variable) for y_ in y)
+    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in y_grad)
+    y, = _GradientSetter(y_grad).apply(y)
+    return y
