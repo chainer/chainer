@@ -984,6 +984,147 @@ TEST_F(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
     }
 }
 
+TEST_F(BackpropTest, BackwardWithInputsOnlyRequiresGrad) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f);
+
+    Array y = x1 * x2;
+
+    Backward({x1}, {y}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsMixedRequiresGrad) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f);
+
+    Array y = x1 * x2;
+
+    Backward({x1, x2}, {y}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsOnlyRequiresGradButSpecifySubset) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f).RequireGrad(backprop_id_1);
+
+    Array y = x1 * x2;
+
+    Backward({x1}, {y}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.GetGrad(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsMultipleSameInputs) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f);
+
+    Array y = x1 * x1 * x2;
+
+    Backward({x1}, {y}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 12.0f), *x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsNoInputs) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f);
+
+    Array y = x1 * x2;
+
+    Backward({}, {y}, backprop_id_1);
+
+    EXPECT_FALSE(x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsNoOutputs) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f);
+
+    Array y = x1 * x2;
+
+    Backward({x1, x2}, {}, backprop_id_1);
+
+    EXPECT_FALSE(x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsNonTrivialGraph) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 1.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x3 = Full({1}, 3.0f).RequireGrad(backprop_id_1);
+    Array x4 = Full({1}, 4.0f);
+
+    Array y1 = x1 * x2;
+    Array y2 = x3 + 4;
+    Array y3 = x4 - 3;
+    Array z1 = y1 * 2;
+    Array z2 = y2 / y3;
+
+    Backward({x2, x3}, {z1, z2}, backprop_id_1);
+
+    EXPECT_FALSE(x1.GetGrad(backprop_id_1));
+    EXPECT_ARRAY_EQ(Full({1}, 2.0f), *x2.GetGrad(backprop_id_1));  // 2 * x1
+    EXPECT_ARRAY_EQ(Full({1}, 1.0f), *x3.GetGrad(backprop_id_1));  // 1 / (x4 - 3)
+    EXPECT_FALSE(x4.IsGradRequired(backprop_id_1));
+}
+
+TEST_F(BackpropTest, BackwardWithInputsSomeOutputsOmitted) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array y1{};
+    Array y2{};
+
+    auto forward = [](const Array& x1, Array& y1, Array& y2) {
+        y1 = x1.AsGradStopped() * x1.AsGradStopped();
+        y2 = x1.AsGradStopped() * x1.AsGradStopped();
+
+        BackwardBuilder bb{"func", x1, {y1, y2}};
+        BackwardBuilder::Target bt = bb.CreateTarget(0);
+        bt.Define([x1](BackwardContext& bctx) { bctx.input_grad() = 4 * x1 * (*bctx.output_grad(0) + *bctx.output_grad(1)); });
+        bb.Finalize();
+    };
+
+    forward(x1, y1, y2);
+
+    y1.SetGrad(FullLike(y1, 2), backprop_id_1);
+    y2.SetGrad(FullLike(y2, 3), backprop_id_1);
+
+    Backward({x1}, {y2}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 40.0f), *x1.GetGrad(backprop_id_1));
+}
+
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
 
 TEST_P(BackpropFunctionTest, OneToOneFunc) {

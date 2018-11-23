@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -68,10 +70,121 @@ struct OpNodeComparator {
     bool operator()(const std::shared_ptr<OpNode>& lhs, const std::shared_ptr<OpNode>& rhs) const { return lhs->rank() < rhs->rank(); }
 };
 
+// Pushes an ArrayNode or an OpNode to the given container if not already seen. Does nothing otherwise.
+// This function is called when traversing the graph to extract a subgraph when inputs are given to backward.
+template <typename T>
+void PushNodeIfNotSeen(std::vector<std::shared_ptr<T>>& nodes, const std::shared_ptr<T>& node, std::unordered_set<T*>& seen_nodes) {
+    static_assert(
+            std::is_same<T, ArrayNode>::value || std::is_same<T, OpNode>::value, "Only ArrayNodes or OpNodes are allowed to be pushed.");
+    CHAINERX_ASSERT(node != nullptr);
+
+    T* raw_node = node.get();
+    if (seen_nodes.find(raw_node) == seen_nodes.end()) {
+        nodes.emplace_back(node);
+        seen_nodes.emplace(raw_node);
+    }
+}
+
+// Returns a subgraph that contains only the nodes that are necessary for computing the gradients w.r.t. the given inputs.
+// The subgraph is represented by a mapping from op nodes to boolean flags corresponding their inputs.
+// The flags are true for inputs that require backprop and false otherwise.
+std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
+        const std::vector<ConstArrayRef>& inputs,
+        const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes,
+        const BackpropId& backprop_id) {
+    // To extract a subgraph, the graph must be traversed "forwards" starting from the inputs towards the outputs.
+
+    // A "forward" mapping of array nodes to op nodes of which the array nodes are inputs.
+    std::unordered_map<ArrayNode*, std::shared_ptr<OpNode>> forward_op_nodes;
+    std::unordered_set<OpNode*> seen_op_nodes;
+    std::vector<std::shared_ptr<OpNode>> candidate_op_nodes;
+    candidate_op_nodes.reserve(output_array_nodes.size());
+
+    // Initialize op node queue starting from outputs.
+    for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
+        forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
+        PushNodeIfNotSeen(candidate_op_nodes, array_node->creator_op_node(), seen_op_nodes);
+    }
+
+    // Traverse op node queue towards inputs.
+    while (!candidate_op_nodes.empty()) {
+        const std::shared_ptr<OpNode>& op_node = candidate_op_nodes.back();
+        candidate_op_nodes.pop_back();
+
+        for (const std::shared_ptr<ArrayNode>& array_node : op_node->input_array_nodes()) {
+            if (array_node != nullptr) {
+                forward_op_nodes.emplace(array_node.get(), op_node);
+                const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
+                if (op_node != nullptr) {  // Creator op node is nullptr for inputs which should be skipped.
+                    PushNodeIfNotSeen(candidate_op_nodes, op_node, seen_op_nodes);
+                }
+            }
+        }
+    }
+
+    // Create the subgraph.
+    std::unordered_map<OpNode*, std::vector<uint8_t>> input_required_flags;
+    std::unordered_set<ArrayNode*> seen_array_nodes;
+    std::vector<std::shared_ptr<ArrayNode>> candidate_input_array_nodes;
+    candidate_input_array_nodes.reserve(inputs.size());
+
+    // Initialize array node queue with inputs.
+    for (const Array& input : inputs) {
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
+        if (array_body->HasArrayNode(backprop_id)) {
+            PushNodeIfNotSeen(candidate_input_array_nodes, array_body->GetArrayNode(backprop_id), seen_array_nodes);
+        }
+    }
+
+    // "Forward" traverse array node queue towards outputs.
+    while (!candidate_input_array_nodes.empty()) {
+        const std::shared_ptr<ArrayNode>& array_node = candidate_input_array_nodes.back();
+        candidate_input_array_nodes.pop_back();
+
+        auto it_op_node = forward_op_nodes.find(array_node.get());
+        if (it_op_node == forward_op_nodes.end()) {
+            // Array node is not mapped. It could be an output of an op node that was not given as output.
+            continue;
+        }
+
+        const std::shared_ptr<OpNode>& op_node = it_op_node->second;
+        if (op_node == nullptr) {
+            continue;  // Array node is an output.
+        }
+
+        std::vector<uint8_t>& flags = input_required_flags[op_node.get()];
+        if (flags.empty()) {
+            flags.resize(op_node->input_array_node_count());
+        }
+
+        const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
+        for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
+            if (input_array_nodes[i_input].get() == array_node.get()) {
+                flags[i_input] = static_cast<int8_t>(true);
+                // Cannot break since the same inputs may appear more than once in an op node.
+            }
+        }
+
+        for (const nonstd::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
+            if (output_array_node.has_value()) {
+                if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
+                    PushNodeIfNotSeen(candidate_input_array_nodes, out, seen_array_nodes);
+                }
+            }
+        }
+    }
+
+    return input_required_flags;
+}
+
 class BackwardImpl {
 public:
-    BackwardImpl(const std::vector<ConstArrayRef>& outputs, const BackpropId& backprop_id, DoubleBackpropOption double_backprop)
-        : outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
+    BackwardImpl(
+            const std::vector<ConstArrayRef>& inputs,
+            const std::vector<ConstArrayRef>& outputs,
+            const BackpropId& backprop_id,
+            DoubleBackpropOption double_backprop)
+        : inputs_{inputs}, outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
         for (const Array& output : outputs) {
             if (!output.IsBackpropRequired(backprop_id)) {
                 throw ChainerxError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
@@ -90,11 +203,13 @@ public:
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
             backprop_ids_to_stop_gradient_.emplace_back(backprop_id_);
         }
+
+        if (!inputs.empty()) {
+            input_required_flags_ = CreateSubgraph(inputs, output_array_nodes_, backprop_id);
+        }
     }
 
     void Run() {
-        Context& context = backprop_id_.context();
-
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -152,7 +267,7 @@ public:
         }
 
         // Register this graph as backpropped.
-        context.SetBackpropDone(backprop_id_);
+        backprop_id_.context().SetBackpropDone(backprop_id_);
     }
 
 private:
@@ -207,9 +322,15 @@ private:
         std::vector<nonstd::optional<Array>> input_grads;
         input_grads.resize(op_node->input_array_node_count());
 
+        const std::vector<uint8_t>& requires_grad = input_required_flags_[op_node.get()];
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node->backward_entries()) {
             // Compute and set gradients at the appropriate indices.
-            CallBackwardForSubsetOfInputGradients(op_node, backward_entry, output_array_nodes, input_grads, output_grads);
+            if (inputs_.empty() || std::any_of(
+                                           backward_entry.input_array_node_indices().begin(),
+                                           backward_entry.input_array_node_indices().end(),
+                                           [&requires_grad](size_t i_input) { return static_cast<bool>(requires_grad[i_input]); })) {
+                CallBackwardForSubsetOfInputGradients(op_node, backward_entry, output_array_nodes, input_grads, output_grads);
+            }
         }
 
         // Make a view if the input gradient whose array body is identical to one of other output or input gradients.
@@ -249,7 +370,7 @@ private:
 
     // Calls a single backward function that computes a subset of the gradients and returns the result.
     void CallBackwardForSubsetOfInputGradients(
-            const std::shared_ptr<internal::OpNode>& op_node,
+            const std::shared_ptr<OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
             std::vector<std::shared_ptr<ArrayNode>>& output_array_nodes,
             std::vector<nonstd::optional<Array>>& input_grads,
@@ -257,7 +378,6 @@ private:
         // `computed_input_grads` holds the storage of gradients of all the inputs of the op node.
         // The given backward entry will compute and store a subset of those gradients.
         // The backward entry may compute and store the gradients of other inputs as well, which will be ignored.
-
         std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
@@ -268,8 +388,12 @@ private:
         }
 
         for (size_t i_input_grad : backward_entry.input_array_node_indices()) {
+            // Continue if input grad is not required.
             if (!op_node->HasInputArrayNode(i_input_grad)) {
-                // Input grad is not required
+                continue;
+            }
+            if (!inputs_.empty() && !static_cast<bool>(input_required_flags_[op_node.get()][i_input_grad])) {
+                // Traversing through subgraph but input is not a part of it.
                 continue;
             }
 
@@ -343,6 +467,11 @@ private:
                 double_backprop_ == DoubleBackpropOption::kEnable ? array_node->creator_op_node() : array_node->move_creator_op_node();
 
         if (creator_op_node) {
+            // If inputs are specified, only push back creator op nodes that are included in the subgraph.
+            if (!inputs_.empty() && input_required_flags_.find(creator_op_node.get()) == input_required_flags_.end()) {
+                return;
+            }
+
             auto range = output_array_node_keeper_.equal_range(creator_op_node.get());
             if (std::none_of(range.first, range.second, [&array_node](const auto& pair) { return pair.second == array_node; })) {
                 // First appearance of the combination of op node and input array node.
@@ -369,12 +498,17 @@ private:
 
     // Arguments to Backward().
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
+    const std::vector<ConstArrayRef>& inputs_;
     const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
     const BackpropId& backprop_id_;
     DoubleBackpropOption double_backprop_;
 
     std::vector<BackpropId> backprop_ids_to_stop_gradient_;
+
+    // Represents the subgraph required for backprop in case any inputs are specified.
+    // Specifically, stores for an op nodes a vector of boolean flags whether an input at that index is included in the subgraph.
+    std::unordered_map<OpNode*, std::vector<uint8_t>> input_required_flags_;
 };
 
 }  // namespace
@@ -382,7 +516,7 @@ private:
 void Backward(const Array& output, const nonstd::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
-    BackwardImpl{outputs, actual_backprop_id, double_backprop}.Run();
+    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
 }
 
 void Backward(
@@ -391,7 +525,19 @@ void Backward(
         return;
     }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
-    BackwardImpl{outputs, actual_backprop_id, double_backprop}.Run();
+    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
+}
+
+void Backward(
+        const std::vector<ConstArrayRef>& inputs,
+        const std::vector<ConstArrayRef>& outputs,
+        const nonstd::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop) {
+    if (inputs.empty() || outputs.empty()) {
+        return;
+    }
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
+    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop}.Run();
 }
 
 }  // namespace chainerx
