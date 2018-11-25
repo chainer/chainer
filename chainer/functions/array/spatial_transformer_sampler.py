@@ -23,8 +23,8 @@ class SpatialTransformerSampler(function.Function):
         x_type = in_types[0]
         grid_type = in_types[1]
         type_check.expect(
-            x_type.dtype.char == 'f',
-            grid_type.dtype.char == 'f',
+            x_type.dtype == numpy.float32,
+            grid_type.dtype == numpy.float32,
             x_type.ndim == 4,
             grid_type.ndim == 4,
             grid_type.shape[1] == 2,
