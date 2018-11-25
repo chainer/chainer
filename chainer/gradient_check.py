@@ -39,8 +39,8 @@ def numerical_grad(
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
             numerical gradient by finite differences.
-        grad_outputs (tuple of arrays): Tuple of arrays that are treated as
-            output gradients.
+        grad_outputs (tuple of arrays or scalars): Tuple of arrays or scalars
+            that are treated as output gradients.
         eps (float): Epsilon value of finite differences.
         detect_nondifferentiable (bool):
             ``False`` by default.
@@ -115,6 +115,10 @@ def numerical_grad(
     def eval_func(x, i, delta, orig):
         x[i] = orig + delta
         y = _copy_arrays(f())
+        assert len(y) == len(grad_outputs)
+        assert all([
+            gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
+            for y_, gy in zip(y, grad_outputs)])
         x[i] = orig
         return y
 
