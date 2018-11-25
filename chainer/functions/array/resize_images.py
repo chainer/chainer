@@ -17,7 +17,7 @@ class ResizeImages(function_node.FunctionNode):
 
         x_type = in_types[0]
         type_check.expect(
-            x_type.dtype.char == 'f',
+            x_type.dtype == numpy.float32,
             x_type.ndim == 4
         )
 
@@ -76,7 +76,7 @@ class ResizeImagesGrad(function_node.FunctionNode):
 
         gy_type = in_types[0]
         type_check.expect(
-            gy_type.dtype.char == 'f',
+            gy_type.dtype == numpy.float32,
             gy_type.ndim == 4
         )
 

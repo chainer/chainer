@@ -60,11 +60,11 @@ class ROIAveragePooling2D(function.Function):
                 .format(type(outw), outw))
         if isinstance(spatial_scale, int):
             spatial_scale = float(spatial_scale)
-        elif not (isinstance(spatial_scale, float) and spatial_scale > 0):
+        if not (isinstance(spatial_scale, float) and spatial_scale > 0):
             raise TypeError(
                 'spatial_scale must be a positive float number: {}, {}'
-                .format(type(spatial_scale), spatial_scale)
-            )
+                .format(type(spatial_scale), spatial_scale))
+
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
 

@@ -5,8 +5,6 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.math import exponential
 from chainer.functions.math import log_ndtr
 from chainer.functions.math import ndtr
@@ -122,12 +120,7 @@ class Normal(distribution.Distribution):
         else:
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape).astype(numpy.float32)
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
-
-        return noise
+        return self.loc + self.scale * eps
 
     @property
     def stddev(self):
