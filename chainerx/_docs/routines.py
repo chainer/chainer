@@ -476,39 +476,6 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
-    _docs.set_doc(
-        chainerx.linear,
-        """linear(x, W, b=None, n_batch_axis=1)
-Linear function, or affine transformation.
-
-It accepts two or three arguments: an input minibatch ``x``, a weight
-matrix ``W``, and optionally a bias vector ``b``. It computes
-
-.. math:: Y = xW^\\top + b.
-
-Args:
-    x (~chainerx.ndarray):
-        Input array, which is a :math:`(s_1, s_2, ..., s_n)`-shaped array.
-    W (~chainerx.ndarray):
-        Weight variable of shape :math:`(M, N)`,
-        where :math:`(N = s_{\\rm n\\_batch\\_axes} * ... * s_n)`.
-    b (~chainerx.ndarray):
-        Bias variable (optional) of shape :math:`(M,)`.
-    n_batch_axes (int):
-        The number of batch axes. The default is 1. The input variable is
-        reshaped into (:math:`{\\rm n\\_batch\\_axes} + 1`)-dimensional
-        tensor. This should be greater than 0.
-
-Returns:
-    :class:`~chainerx.ndarray`:
-        Output array with shape of
-        :math:`(s_1, ..., s_{\\rm n\\_batch\\_axes}, M)`.
-
-Note:
-    During backpropagation, this function propagates the gradient of the
-    output array to input arrays ``x``, ``W`` and ``b``.
-""")
-
 
 def _docs_logic():
     _docs.set_doc(
@@ -1412,6 +1379,39 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     (10, 1, 9, 38, 87)
     >>> y.shape == (n, c_o, l1, l2, l3)
     True
+""")
+
+    _docs.set_doc(
+        chainerx.linear,
+        """linear(x, W, b=None, n_batch_axis=1)
+Linear function, or affine transformation.
+
+It accepts two or three arguments: an input minibatch ``x``, a weight
+matrix ``W``, and optionally a bias vector ``b``. It computes
+
+.. math:: Y = xW^\\top + b.
+
+Args:
+    x (~chainerx.ndarray):
+        Input array, which is a :math:`(s_1, s_2, ..., s_n)`-shaped array.
+    W (~chainerx.ndarray):
+        Weight variable of shape :math:`(M, N)`,
+        where :math:`(N = s_{\\rm n\\_batch\\_axes} * ... * s_n)`.
+    b (~chainerx.ndarray):
+        Bias variable (optional) of shape :math:`(M,)`.
+    n_batch_axes (int):
+        The number of batch axes. The default is 1. The input variable is
+        reshaped into (:math:`{\\rm n\\_batch\\_axes} + 1`)-dimensional
+        tensor. This should be greater than 0.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Output array with shape of
+        :math:`(s_1, ..., s_{\\rm n\\_batch\\_axes}, M)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to input arrays ``x``, ``W`` and ``b``.
 """)
 
 

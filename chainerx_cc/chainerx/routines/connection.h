@@ -43,4 +43,6 @@ Array ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size = nonstd::nullopt);
 
+Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b = nonstd::nullopt, uint8_t n_batch_axes = 1);
+
 }  // namespace chainerx
