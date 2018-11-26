@@ -36,8 +36,8 @@ class NegativeSampling(link.Link):
         dtype = chainer.get_dtype(dtype)
         vocab_size = len(counts)
         self.sample_size = sample_size
-        power = dtype.type(power)
-        p = numpy.array(counts, power.dtype)
+        power = numpy.float32(power)
+        p = numpy.array(counts, dtype)
         numpy.power(p, power, p)
         self.sampler = walker_alias.WalkerAlias(p)
 
