@@ -107,12 +107,11 @@ class MultivariateNormal(distribution.Distribution):
             \\exp\\left(-\\frac{1}{2}(x-\\mu) V^{-1}(x-\\mu)\\right)
 
     Args:
-        loc (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the
-            location :math:`\\mu`.
-        scale_tril (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the
-            scale :math:`L` such that :math:`V=LL^T`.
+        loc (:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`.
+        scale_tril (:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`L` such that
+            :math:`V=LL^T`.
 
     """
 

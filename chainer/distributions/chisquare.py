@@ -18,8 +18,8 @@ class Chisquare(distribution.Distribution):
         p(x;k) = \\frac{1}{2^{k/2}\\Gamma(k/2)}x^{k/2-1}e^{-x/2}
 
     Args:
-        k(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        k(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
     """
 
     def __init__(self, k):
