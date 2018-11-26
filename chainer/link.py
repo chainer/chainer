@@ -423,8 +423,9 @@ class Link(object):
 
         """
         cuda.check_cuda_available()
-        return self.to_device(
-            cuda._get_device_or_current(device))
+        return self._to_device(
+            cuda._get_device_or_current(device),
+            skip_between_cupy_devices=True)
 
     def to_intel64(self):
         """Copies parameter variables and persistent values to CPU."""
@@ -490,14 +491,26 @@ device.
         Returns: self
 
         """  # NOQA
+        return self._to_device(device, skip_between_cupy_devices=False)
+
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # `skip_between_cupy_devices` argument is a workaround
+        # for `Link.to_gpu` which does not transfer cupy parameters to
+        # a different CUDA device.
         device = chainer.get_device(device)
 
         d = self.__dict__
         for name in self._params:
-            d[name].to_device(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and d[name].device.xp is cuda.cupy):
+                d[name].to_device(device)
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = device.send(d[name])
+                if not (skip_between_cupy_devices
+                        and device.xp is cuda.cupy
+                        and isinstance(d[name], cuda.ndarray)):
+                    d[name] = device.send(d[name])
 
         self._device = device
         return self
@@ -970,12 +983,16 @@ class Chain(Link):
             d[name].from_chainerx()
         return self
 
-    def to_device(self, device):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+
         device = chainer.get_device(device)
-        super(Chain, self).to_device(device)
+        super(Chain, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         d = self.__dict__
         for name in self._children:
-            d[name].to_device(device)
+            d[name]._to_device(
+                device, skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):
@@ -1154,11 +1171,15 @@ class ChainList(Link, collections_abc.MutableSequence):
             link.to_chainerx()
         return self
 
-    def to_device(self, device=None):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+
         device = chainer.get_device(device)
-        super(ChainList, self).to_device(device)
+        super(ChainList, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         for link in self._children:
-            link.to_device(device)
+            link._to_device(
+                device, skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):

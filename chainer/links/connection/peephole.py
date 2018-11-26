@@ -1,4 +1,5 @@
 import chainer
+from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -63,13 +64,22 @@ class StatefulPeepholeLSTM(link.Chain):
             self.peep_f = linear.Linear(out_size, out_size, nobias=True)
             self.peep_o = linear.Linear(out_size, out_size, nobias=True)
 
-    def to_device(self, device):
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
         device = chainer.get_device(device)
-        super(StatefulPeepholeLSTM, self).to_device(device)
+        super(StatefulPeepholeLSTM, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.c is not None:
-            self.c.to_device(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.c, cuda.ndarray)):
+                self.c.to_device(device)
         if self.h is not None:
-            self.h.to_device(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
         return self
 
     def reset_state(self):
