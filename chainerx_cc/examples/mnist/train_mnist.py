@@ -22,9 +22,9 @@ class MLP:
         return self.W1, self.b1, self.W2, self.b2, self.W3, self.b3
 
     def forward(self, x):
-        h = chx.maximum(0, x.dot(self.W1) + self.b1)
-        h = chx.maximum(0, h.dot(self.W2) + self.b2)
-        return h.dot(self.W3) + self.b3
+        h = chx.relu(chx.linear(x, self.W1, self.b1))
+        h = chx.relu(chx.linear(h, self.W2, self.b2))
+        return chx.linear(h, self.W3, self.b3)
 
     def update(self, lr):
         for param in self.params:
@@ -40,7 +40,7 @@ class MLP:
 
 
 def new_linear_params(n_in, n_out):
-    W = np.random.randn(n_in, n_out).astype(
+    W = np.random.randn(n_out, n_in).astype(
         np.float32)  # TODO(beam2d): not supported in chx
     W /= np.sqrt(n_in)  # TODO(beam2d): not supported in chx
     W = chx.array(W)

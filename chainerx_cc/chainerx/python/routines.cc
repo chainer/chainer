@@ -581,6 +581,15 @@ void InitChainerxConnection(pybind11::module& m) {
           py::arg("stride") = 1,
           py::arg("pad") = 0,
           py::arg("outsize") = nullptr);
+    m.def("linear",
+          [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const nonstd::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {
+              return MoveArrayBody(
+                      Linear(Array{x}, Array{w}, b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt, n_batch_axes));
+          },
+          py::arg("x"),
+          py::arg("w"),
+          py::arg("b") = nullptr,
+          py::arg("n_batch_axes") = 1);
 }
 
 void InitChainerxNormalization(pybind11::module& m) {

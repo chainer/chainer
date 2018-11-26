@@ -166,6 +166,7 @@ Connection
 
    chainerx.conv
    chainerx.conv_transpose
+   chainerx.linear
 
 Normalization
 -------------

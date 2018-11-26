@@ -12,6 +12,7 @@
 #include "chainerx/check_backward.h"
 #include "chainerx/constant.h"
 #include "chainerx/device_id.h"
+#include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
 #include "chainerx/testing/array.h"
@@ -589,6 +590,144 @@ TEST_P(ConnectionTest, ConvTransposeDoubleBackward) {
             {x_eps, w_eps, b_eps, go_eps},
             2,
             1e-2,
+            1e-3);
+}
+
+TEST_P(ConnectionTest, Linear) {
+    Array x = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 3}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({4}).WithData<float>({3.f, 2.f, 1.f, -1.f}).WithPadding(2);
+    Array a = Linear(x, w, b);
+    Array e = Dot(x, w.Transpose()) + b;
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearNoBias) {
+    Array x = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 3}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w);
+    Array e = Dot(x, w.Transpose());
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearSpecifyNBatchAxes) {
+    Array x = testing::BuildArray({5, 4, 3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({7}).WithData<float>({3.f, 2.f, -1.f, 3.f, 3.f, 7.f, 9.f}).WithPadding(2);
+    Array a = Linear(x, w, b, 2);
+    Array e = Dot(x.Reshape({20, 6}), w.Transpose()).Reshape({5, 4, 7}) + b.BroadcastTo({5, 4, 7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearSpecifyNBatchAxesNoBias) {
+    Array x = testing::BuildArray({5, 4, 3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w, nonstd::nullopt, 2);
+    Array e = Dot(x.Reshape({20, 6}), w.Transpose()).Reshape({5, 4, 7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearSpecifyNBatchAxesEqualsZero) {
+    Array x = testing::BuildArray({3, 2}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({7, 6}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w, nonstd::nullopt, 0);
+    Array e = Dot(x.Reshape({6}), w.Transpose()).Reshape({7});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearReturnsZeros) {
+    Array x = testing::BuildArray({2, 0}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 0}).WithLinearData(1.f).WithPadding(1);
+    Array a = Linear(x, w);
+    Array e = Zeros({2, 4}, x.dtype(), x.device());
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearReturnsBias) {
+    Array x = testing::BuildArray({2, 0}).WithLinearData(1.f).WithPadding(1);
+    Array w = testing::BuildArray({4, 0}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray({4}).WithData<float>({3.f, 2.f, -1.f, 3.f}).WithPadding(2);
+    Array a = Linear(x, w, b);
+    Array e = b.BroadcastTo({2, 4});
+    EXPECT_ARRAY_EQ(e, a);
+}
+
+TEST_P(ConnectionTest, LinearBackward) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array b = (*testing::BuildArray({4}).WithLinearData(3.f)).RequireGrad();
+
+    Array go = testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
+
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Linear(xs[0], xs[1], xs[2])}; },
+            {x, w, b},
+            {go},
+            {x_eps, w_eps, b_eps});
+}
+
+TEST_P(ConnectionTest, LinearBackwardNoBias) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+
+    Array go = testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Linear(xs[0], xs[1])}; }, {x, w}, {go}, {x_eps, w_eps});
+}
+
+TEST_P(ConnectionTest, LinearDoubleBackward) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array b = (*testing::BuildArray({4}).WithLinearData(-3.f)).RequireGrad();
+    Array go = (*testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
+
+    Array ggx = testing::BuildArray(x.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);
+    Array ggw = testing::BuildArray(w.shape()).WithLinearData(-0.2f, 0.1f).WithPadding(1);
+    Array ggb = testing::BuildArray(b.shape()).WithLinearData(-0.4f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Linear(xs[0], xs[1], xs[2]);
+                return {y * y};
+            },
+            {x, w, b},
+            {go},
+            {ggx, ggw, ggb},
+            {x_eps, w_eps, b_eps, go_eps},
+            1e-5,
+            1e-3);
+}
+
+TEST_P(ConnectionTest, LinearDoubleBackwardNoBias) {
+    Array x = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array w = (*testing::BuildArray({4, 3}).WithLinearData(2.f)).RequireGrad();
+    Array go = (*testing::BuildArray({2, 4}).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
+
+    Array ggx = testing::BuildArray(x.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);
+    Array ggw = testing::BuildArray(w.shape()).WithLinearData(-0.2f, 0.1f).WithPadding(1);
+    Array x_eps = Full(x.shape(), 1e-1f);
+    Array w_eps = Full(w.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Linear(xs[0], xs[1]);
+                return {y * y};
+            },
+            {x, w},
+            {go},
+            {ggx, ggw},
+            {x_eps, w_eps, go_eps},
+            1e-5,
             1e-3);
 }
 
