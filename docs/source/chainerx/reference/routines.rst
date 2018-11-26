@@ -86,7 +86,6 @@ Linear algebra
    :nosignatures:
 
    chainerx.dot
-   chainerx.linear
 
 Logic functions
 ---------------
@@ -167,6 +166,7 @@ Connection
 
    chainerx.conv
    chainerx.conv_transpose
+   chainerx.linear
 
 Normalization
 -------------
