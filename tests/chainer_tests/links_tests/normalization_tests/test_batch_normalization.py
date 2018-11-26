@@ -471,7 +471,6 @@ class TestChannalSizeInference(unittest.TestCase):
         assert bn.avg_var.shape == self.expected_size
 
     @attr.gpu
-    @condition.retry(3)
     def test_inference_gpu(self):
         bn = links.BatchNormalization(axis=self.axis)
         bn.to_gpu()
