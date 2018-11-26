@@ -1,4 +1,6 @@
 import contextlib
+import os
+import shutil
 import traceback
 
 import six
@@ -181,6 +183,14 @@ def backprop_step(
             _reduce(gx)
 
 
+def _get_columns():
+    try:
+        get_terminal_size = shutil.get_terminal_size
+    except AttributeError:
+        return os.getenv('COLUMNS', 80)
+    return get_terminal_size()[0]
+
+
 @contextlib.contextmanager
 def _reraise_forward_stack(func):
     if func.stack is None:
@@ -194,15 +204,9 @@ def _reraise_forward_stack(func):
             # - NumPy raises FloatingPointError for invalid values.
 
             # TODO(kataoka): unify variable._check_grad_type and below
-            import shutil
-            try:
-                columns = shutil.get_terminal_size()[0]
-            except AttributeError:
-                import os
-                columns = os.getenv('COLUMNS', 80)
             additional_message = \
                 '\n{}\nStacktrace of the function is below:\n{}'.format(
-                    '-' * columns,
+                    '-' * _get_columns(),
                     ''.join(traceback.format_list(func.stack[:-1])))
             if e.args:
                 e.args = (e.args[0] + additional_message,) + e.args[1:]
