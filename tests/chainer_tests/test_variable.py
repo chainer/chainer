@@ -1732,7 +1732,8 @@ class TestVariableDoubleBackward(unittest.TestCase):
         y.backward()
         assert x.grad_var is not y.grad_var
         assert x.grad_var.creator is None
-        x.grad_var.backward()
+        with pytest.raises(RuntimeError):
+            x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
