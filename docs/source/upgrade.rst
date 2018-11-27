@@ -20,6 +20,32 @@ You need to manually update CuPy package when updating Chainer package.
 This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
 See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
 
+Functions with Disabled Backprop are Detected on Backward
+---------------------------------------------------------
+
+Prior to Chainer v6, backpropagation also stops at :class:`~chainer.Variable`\ s that were computed when :obj:`chainer.config.enable_backprop` was set to ``False`` (e.g. :func:`chainer.no_backprop_mode`).
+In Chainer v6, such backpropagation raises ``RuntimeError``.
+
+For example, your existing code needs a partial gradient::
+
+    h1 = func1(x)
+    with chainer.no_backprop_mode():
+        h2 = func2(x)
+    y = F.sum(abs(h1 - h2))
+    y.backward()
+
+The above code raises an error in Chainer v6::
+
+    RuntimeError: backward is unavailable: Func2 with enable_backprop=False config
+
+You can rewrite the above code using :attr:`chainer.Variable.array`::
+
+    h1 = func1(x)
+    with chainer.no_backprop_mode():
+        h2 = func2(x)
+    y = F.sum(abs(h1 - h2.array))
+    y.backward()
+
 CuPy v6
 -------
 
