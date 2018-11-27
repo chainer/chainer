@@ -25,7 +25,6 @@ class AdaDeltaRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
-    _kernel = None
 
     def __init__(self, parent_hyperparam=None, rho=None, eps=None):
         super(AdaDeltaRule, self).__init__(
@@ -60,16 +59,15 @@ class AdaDeltaRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        if AdaDeltaRule._kernel is None:
-            AdaDeltaRule._kernel = cuda.elementwise(
-                'T grad, T one_minus_rho, T eps',
-                'T param, T msg, T msdx',
-                '''msg   = msg + one_minus_rho * (grad * grad - msg);
-                   T dx  = sqrt((msdx + eps) / (msg + eps)) * grad;
-                   msdx  += one_minus_rho * (dx * dx - msdx);
-                   param -= dx;''',
-                'adadelta')
-        AdaDeltaRule._kernel(
+        cuda.elementwise(
+            'T grad, T one_minus_rho, T eps',
+            'T param, T msg, T msdx',
+            '''msg   = msg + one_minus_rho * (grad * grad - msg);
+               T dx  = sqrt((msdx + eps) / (msg + eps)) * grad;
+               msdx  += one_minus_rho * (dx * dx - msdx);
+               param -= dx;''',
+            'adadelta'
+        )(
             grad, 1 - self.hyperparam.rho, self.hyperparam.eps, param.data,
             self.state['msg'], self.state['msdx'])
 
