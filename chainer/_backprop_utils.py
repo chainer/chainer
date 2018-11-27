@@ -47,7 +47,7 @@ class GradTable(object):
         grads = self.grads
         if node not in grads:
             if self._load_if_new and node.creator_node is None:
-                node._check_old_style_gradient()
+                node._check_disabled_gradient()
                 # accumulate the gradient only if the node is a leaf
                 grads[node] = _pure(node.grad_var)
             else:

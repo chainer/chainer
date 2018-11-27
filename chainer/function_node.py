@@ -314,7 +314,7 @@ Use apply() method instead.\
             self.lazy_grad_sum = configuration.config.lazy_grad_sum
         else:
             for y in ret:
-                y._disabled_grad_generator = (
+                y.node._disabled_grad_generator = (
                     '{} with enable_backprop=False config'.format(
                         self.label))
 
