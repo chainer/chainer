@@ -166,7 +166,7 @@ class Convolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,

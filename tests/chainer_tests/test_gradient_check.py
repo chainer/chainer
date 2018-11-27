@@ -34,6 +34,8 @@ def _dot(x, y):
 
 class NumericalGradientTest(unittest.TestCase):
 
+    in_shapes = ((2, 1),)
+    gout_shapes = ((2, 1),)
     eps = None
     atol = 1e-3
     rtol = 1e-3
@@ -45,8 +47,9 @@ class NumericalGradientTest(unittest.TestCase):
         return (2 * xs[0],),
 
     def setUp(self):
-        self.xs = (_uniform(2, 1),)
-        self.gys = (_uniform(2, 1),)
+        self.xs = tuple([_uniform(*s) for s in self.in_shapes])
+        self.gys = tuple([
+            None if s is None else _uniform(*s) for s in self.gout_shapes])
 
     def check_numerical_grad_one(self, f, df, xs, gys, eps):
         dfxs = df(xs)
@@ -88,6 +91,9 @@ class NumericalGradientTest(unittest.TestCase):
 
 class NumericalGradientTest2(NumericalGradientTest):
 
+    in_shapes = ((),)
+    gout_shapes = ((),)
+
     def f(self, xs):
         return 1,
 
@@ -97,6 +103,8 @@ class NumericalGradientTest2(NumericalGradientTest):
 
 class NumericalGradientTest3(NumericalGradientTest):
 
+    in_shapes = ((2, 1),)
+    gout_shapes = ((2, 1),)
     # Too small eps causes cancellation of significant digits
     eps = (1e-2, 1e-3)
 
@@ -115,6 +123,8 @@ class NumericalGradientTest3(NumericalGradientTest):
 
 class NumericalGradientTest4(NumericalGradientTest):
 
+    in_shapes = ((2, 1), (2, 1))
+    gout_shapes = ((2, 1), (2, 1), (2, 1))
     atol = 1e-2
     rtol = 1e-2
 
@@ -130,12 +140,11 @@ class NumericalGradientTest4(NumericalGradientTest):
             (_full_like(xs[0], 2), _full_like(xs[0], 4), _full_like(xs[0], 6)),
             (_full_like(xs[1], 3), _full_like(xs[1], 5), _full_like(xs[1], 7)))
 
-    def setUp(self):
-        self.xs = tuple(_uniform(2, 1) for _ in six.moves.range(2))
-        self.gys = tuple(_uniform(2, 1) for _ in six.moves.range(3))
 
+class NumericalGradientTest5(NumericalGradientTest):
 
-class NumericalGradientTest5(NumericalGradientTest4):
+    in_shapes = ((2, 1), (2, 1))
+    gout_shapes = ((2, 1), None, (2, 1))
 
     def f(self, xs):
         assert len(xs) == 2
@@ -149,16 +158,11 @@ class NumericalGradientTest5(NumericalGradientTest4):
             (_full_like(xs[0], 2), _zeros_like(xs[0]), _full_like(xs[0], 6)),
             (_full_like(xs[1], 3), _zeros_like(xs[1]), _full_like(xs[1], 7)))
 
-    def setUp(self):
-        super(NumericalGradientTest5, self).setUp()
-        self.gys = (_uniform(2, 1), None, _uniform(2, 1))
-
 
 class NumericalGradientTest6(NumericalGradientTest):
 
-    def setUp(self):
-        self.xs = (_uniform(2, 1),)
-        self.gys = (None,)
+    in_shapes = ((2, 1),)
+    gout_shapes = (None,)
 
 
 class NumericalGradientReferenceTest(unittest.TestCase):
@@ -394,18 +398,19 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         y[-1 < x < 1] = numpy.nan
         return y,
 
-    def check_positive(self, xp, func_name, inputs, eps, nout):
+    def check_positive(self, xp, func_name, input, eps, nout):
         # Should be non-differentiable
         func = getattr(self, '_func_{}'.format(func_name))
         grad_outputs = [
-            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+            xp.random.uniform(-1, 1, input.shape).astype(input.dtype)
+            for _ in range(nout)]
 
         def f():
-            return func(*inputs) * nout
+            return func(input) * nout
 
         try:
             gradient_check.numerical_grad(
-                f, inputs, grad_outputs, eps=eps,
+                f, (input,), grad_outputs, eps=eps,
                 detect_nondifferentiable=True)
         except gradient_check.NondifferentiableError:
             pass
@@ -414,46 +419,47 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
                 'Function `{}` is expected to be non-differentiable, '
                 'but determined to be differentiable.\n\n'
                 'eps: {}\n'
-                'inputs: {}\n'
+                'input: {}\n'
                 'xp: {}\n'
                 ''.format(
-                    func_name, eps, inputs, xp.__name__))
+                    func_name, eps, input, xp.__name__))
 
-    def check_negative(self, xp, func_name, inputs, eps, nout):
+    def check_negative(self, xp, func_name, input, eps, nout):
         # Should be differentiable
         func = getattr(self, '_func_{}'.format(func_name))
         grad_outputs = [
-            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+            xp.random.uniform(-1, 1, input.shape).astype(input.dtype)
+            for _ in range(nout)]
 
         def f():
-            return func(*inputs) * nout
+            return func(input) * nout
 
         try:
             gradient_check.numerical_grad(
-                f, inputs, grad_outputs, eps=eps,
+                f, (input,), grad_outputs, eps=eps,
                 detect_nondifferentiable=True)
         except gradient_check.NondifferentiableError as e:
             raise AssertionError(
                 'Function `{}` is expected to be differentiable, '
                 'but determined to be non-differentiable.\n\n'
                 'eps: {}\n'
-                'inputs: {}\n'
+                'input: {}\n'
                 'xp: {}\n\n'
                 '{}: {}'
                 ''.format(
-                    func_name, eps, inputs, xp.__name__,
+                    func_name, eps, input, xp.__name__,
                     e.__class__.__name__, e))
 
     def check(self, xp, nout):
-        inputs = [xp.asarray(self.x).astype(numpy.float32)]
+        input = xp.asarray(self.x).astype(numpy.float32)
         with warnings.catch_warnings():
             if self.ignore_warning:
                 warnings.simplefilter('ignore', self.ignore_warning)
 
             if self.result:
-                self.check_positive(xp, self.func, inputs, self.eps, nout)
+                self.check_positive(xp, self.func, input, self.eps, nout)
             else:
-                self.check_negative(xp, self.func, inputs, self.eps, nout)
+                self.check_negative(xp, self.func, input, self.eps, nout)
 
     def test_cpu(self):
         self.check(numpy, 1)
