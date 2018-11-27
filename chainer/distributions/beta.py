@@ -24,12 +24,10 @@ class Beta(distribution.Distribution):
     for :math:`0 < x < 1`, :math:`\\alpha > 0`, :math:`\\beta > 0`.
 
     Args:
-        a(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`\\alpha`.
-        b(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`\\beta`.
+        a(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing :math:`\\alpha`.
+        b(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing :math:`\\beta`.
 
     """
 

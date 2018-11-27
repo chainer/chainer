@@ -3,9 +3,9 @@ Static Subgraph Optimizations: Design Notes
 
 .. module:: chainer.graph_optimizations
 
-This document is intended provide information on the architecture and design 
+This documentation is intended provide information on the architecture and design 
 of the static subgraph optimizations feature for those who are interested in 
-contributing to its development. This document also describes how existing
+contributing to its development. This documentation also describes how existing
 Chainer functions can be modified to run more efficiently when static
 subgraph optimizations are enabled.
 

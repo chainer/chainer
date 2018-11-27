@@ -12,7 +12,7 @@ import argparse
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
-from chainer.iterators import MultiprocessIterator
+from chainer.iterators import SerialIterator
 import chainer.links as L
 from chainer import serializers
 
@@ -64,9 +64,9 @@ def main():
     train_count = len(train)
     test_count = len(test)
 
-    with MultiprocessIterator(train, args.batchsize) as train_iter, \
-        MultiprocessIterator(test, args.batchsize,
-                             repeat=False, shuffle=False) as test_iter:
+    with SerialIterator(train, args.batchsize) as train_iter, \
+        SerialIterator(
+            test, args.batchsize, repeat=False, shuffle=False) as test_iter:
 
         sum_accuracy = 0
         sum_loss = 0

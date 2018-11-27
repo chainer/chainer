@@ -39,8 +39,8 @@ def numerical_grad(
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
             numerical gradient by finite differences.
-        grad_outputs (tuple of arrays): Tuple of arrays that are treated as
-            output gradients.
+        grad_outputs (tuple of arrays or scalars): Tuple of arrays or scalars
+            that are treated as output gradients.
         eps (float): Epsilon value of finite differences.
         detect_nondifferentiable (bool):
             ``False`` by default.
@@ -115,6 +115,10 @@ def numerical_grad(
     def eval_func(x, i, delta, orig):
         x[i] = orig + delta
         y = _copy_arrays(f())
+        assert len(y) == len(grad_outputs)
+        assert all([
+            gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
+            for y_, gy in zip(y, grad_outputs)])
         x[i] = orig
         return y
 
@@ -474,7 +478,7 @@ class _CheckBackward(object):
         assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
-                gx_accum += (g.astype('d') * direction).sum()
+                gx_accum += (g.astype(numpy.float64) * direction).sum()
 
         return gx_accum
 
@@ -508,7 +512,7 @@ class _CheckBackward(object):
                     x.array = x.array.astype(dtype, copy=False)
 
         xp = backend.get_array_module(*x_data)
-        delta = xp.array(0., 'd')
+        delta = xp.array(0., numpy.float64)
 
         def g():
             # This functions is called twice in `numerical_grad`.
@@ -518,7 +522,7 @@ class _CheckBackward(object):
             for x, data, direction in six.moves.zip(
                     variables, casted_data, directions):
                 # astype is require to store data with the given type
-                data = (data.astype('d') +
+                data = (data.astype(numpy.float64) +
                         delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
                     data = xp.array(data)

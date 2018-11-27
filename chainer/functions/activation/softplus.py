@@ -16,7 +16,7 @@ class Softplus(function_node.FunctionNode):
         self.beta_inv = float(1.0 / beta)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 

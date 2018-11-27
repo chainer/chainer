@@ -117,10 +117,8 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     def backward(self, indexes, gy):
         return MaxPooling2DGrad(self).apply(gy)
 
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
-            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            cuda.cuda.cudnn.CUDNN_POOLING_MAX)
+    def _get_pool_mode(self):
+        return cuda.cuda.cudnn.CUDNN_POOLING_MAX
 
 
 class MaxPooling2DGrad(function_node.FunctionNode):

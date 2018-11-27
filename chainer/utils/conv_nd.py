@@ -78,6 +78,11 @@ def im2col_nd_gpu(img, ksize, stride, pad, cover_all=False, dilate=1):
     return col
 
 
+def im2col_nd(img, ksize, stride, pad, cover_all=False, dilate=1):
+    fn = im2col_nd_gpu if isinstance(img, cuda.ndarray) else im2col_nd_cpu
+    return fn(img, ksize, stride, pad, cover_all=cover_all, dilate=dilate)
+
+
 def col2im_nd_cpu(col, stride, pad, dims, dilate=1):
     n, c = col.shape[:2]  # (n, c, kx_1, ..., kx_N, out_1, ..., out_N)
     mid = (len(col.shape) - 2) // 2 + 2
@@ -130,3 +135,8 @@ def col2im_nd_gpu(col, stride, pad, dims, dilate=1):
         *(dims + outs + ksize + stride + pad + dilate + (img,)))
 
     return img
+
+
+def col2im_nd(col, stride, pad, dims, dilate=1):
+    fn = col2im_nd_gpu if isinstance(col, cuda.ndarray) else col2im_nd_cpu
+    return fn(col, stride, pad, dims, dilate)

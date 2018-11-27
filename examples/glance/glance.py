@@ -1,3 +1,8 @@
+# Note for contributors:
+# This example code is referred to from "Chainer at a Glance" tutorial.
+# If this file is to be modified, please also update the line numbers in
+# `docs/source/glance.rst` accordingly.
+
 import chainer as ch
 from chainer import datasets
 import chainer.functions as F

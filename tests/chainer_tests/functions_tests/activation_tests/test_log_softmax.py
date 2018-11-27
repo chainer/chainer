@@ -143,7 +143,7 @@ class TestLogSoftmaxCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cudnn.softmax_forward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -151,7 +151,7 @@ class TestLogSoftmaxCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with testing.patch('cupy.cuda.cudnn.softmaxBackward') as func:
+            with testing.patch('cupy.cudnn.softmax_backward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

@@ -8,7 +8,7 @@ class FlipLR(function_node.FunctionNode):
     """Flip array in the left/right direction."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a',))
+        type_check._argname(in_types, ('a',))
         a_type = in_types[0]
 
         type_check.expect(

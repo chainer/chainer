@@ -32,17 +32,35 @@ class TestHuffmanTree(unittest.TestCase):
                         ('z', ('x', 'y')) == tree)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestBinaryHierarchicalSoftmax(unittest.TestCase):
 
     def setUp(self):
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         tree = ((0, 1), ((2, 3), 4))
         self.link = links.BinaryHierarchicalSoftmax(3, tree)
         self.link.cleargrads()
-        self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
         self.t = numpy.array([0, 2]).astype(numpy.int32)
-        self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
 
         self.W = self.link.W.data.copy()
+
+        if self.dtype == numpy.float16:
+            self.check_sum_options = {'delta': 1e-3}
+            self.test_forward_options = {'atol': 0.005}
+            self.check_backward_options = {'dtype': numpy.float64}
+        else:
+            self.check_sum_options = {'delta': 1e-5}
+            self.test_forward_options = {}
+            self.check_backward_options = {}
+
+    def tearDown(self):
+        self._config_user.__exit__(None, None, None)
 
     def check_sum(self, x, gpu=False):
         total = 0
@@ -51,20 +69,20 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
             if gpu:
                 t = cuda.to_gpu(t)
             loss = self.link(chainer.Variable(x), chainer.Variable(t)).data
-            self.assertEqual(loss.dtype, numpy.float32)
+            self.assertEqual(loss.dtype, self.dtype)
             self.assertEqual(loss.shape, ())
             total += numpy.exp(-cuda.to_cpu(loss))
-        self.assertAlmostEqual(1.0, float(total), delta=1.0e-5)
+        self.assertAlmostEqual(1.0, float(total), **self.check_sum_options)
 
     @condition.retry(3)
     def test_sum_cpu(self):
-        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
+        x = numpy.array([[1.0, 2.0, 3.0]], self.dtype)
         self.check_sum(x)
 
     @attr.gpu
     @condition.retry(3)
     def test_sum_gpu(self):
-        x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
+        x = numpy.array([[1.0, 2.0, 3.0]], self.dtype)
         self.link.to_gpu()
         self.check_sum(cuda.to_gpu(x), gpu=True)
 
@@ -77,12 +95,20 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         gpu_loss = self.link(chainer.Variable(cuda.to_gpu(self.x)),
                              chainer.Variable(cuda.to_gpu(self.t))).data
         testing.assert_allclose(
-            cpu_loss, cuda.to_cpu(gpu_loss))
+            cpu_loss, cuda.to_cpu(gpu_loss), **self.test_forward_options)
 
     def check_backward(self, x_data, t_data, y_grad):
+
+        def f(x, t):
+            # Force to cast the dtype of an internal state so that we can
+            # perform numerical gradient in higher precision.
+            if self.dtype == numpy.float16 and x.dtype == numpy.float64:
+                self.link._func.codes = self.link._func.codes.astype(x.dtype)
+            return self.link(x, t)
+
         gradient_check.check_backward(
-            self.link, (x_data, t_data), y_grad, self.link.W,
-            atol=1e-4, rtol=1e-3)
+            f, (x_data, t_data), y_grad, self.link.W,
+            atol=1e-4, rtol=1e-3, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):

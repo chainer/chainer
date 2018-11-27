@@ -14,7 +14,7 @@ class CReLU(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim > self.axis,

@@ -13,10 +13,10 @@ class Gamma(distribution.Distribution):
     """Gamma Distribution.
 
     Args:
-        k(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
-        theta(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        k(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
+        theta(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
     """
 
     def __init__(self, k, theta):

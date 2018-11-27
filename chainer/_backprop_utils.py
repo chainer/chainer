@@ -78,14 +78,17 @@ def backprop_step(
     :func:`chainer.grad`.
 
     Args:
-        target_input_indexes (tuple of int): Sorted indices of the input
-            variables w.r.t. which the gradients are required. It is
-            guaranteed that this tuple contains at least one element.
+        func (~chainer.FunctionNode): The function for which gradients are
+            accumulated.
+        target_input_indexes (tuple of int): Sorted indices of the inputs
+            that require gradients. It is guaranteed that this tuple contains
+            at least one element.
         grad_outputs (list of Variable): Gradients w.r.t. the output
             variables. If the gradient w.r.t. an output variable is not
             given, the corresponding element is ``None``. The gradients
             are removed from the list to reduce memory consumption.
-        grad_inputs (dict): References of gradients w.r.t. the input variables.
+        grad_inputs (dict): References of the gradients w.r.t. the input
+            variables.
 
     """
     is_debug = chainer.is_debug()

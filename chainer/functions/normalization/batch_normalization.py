@@ -9,6 +9,7 @@ from chainer.backends import intel64
 from chainer import configuration
 from chainer import function
 from chainer import function_node
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -198,7 +199,8 @@ class BatchNormalization(function_node.FunctionNode):
                 running_mean = self.running_mean
                 running_var = self.running_var
 
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)
@@ -349,7 +351,8 @@ class BatchNormalizationGrad(function.Function):
             dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
             if dtype_param is not dtype:
                 gamma = gamma.astype(dtype_param)
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             gx = cuda.cupy.empty_like(x)
@@ -556,7 +559,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 beta = beta.astype(dtype_param)
                 mean = mean.astype(dtype_param)
                 var = var.astype(dtype_param)
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
+            oz_dtype = (
+                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
             one = numpy.array(1, dtype=oz_dtype).ctypes
             zero = numpy.array(0, dtype=oz_dtype).ctypes
             y = cuda.cupy.empty_like(x)
@@ -703,7 +707,7 @@ def _as4darray(arr, mode):
         assert arr.ndim == 4
         return arr
     else:  # is_for_linear
-        return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
+        return arr.reshape(utils.size_of_shape(arr.shape[0:-1]), -1, 1, 1)
 
 
 def _x_hat(x, mean, inv_std):

@@ -21,16 +21,17 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 requirements = {
     'install': [
+        'setuptools',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
         'six>=1.9.0',
     ],
     'stylecheck': [
-        'autopep8==1.3.5',
-        'flake8==3.5.0',
+        'autopep8>=1.4.1,<1.5',
+        'flake8>=3.6,<3.7',
         'pbr==4.0.4',
-        'pycodestyle==2.3.1',
+        'pycodestyle>=2.4,<2.5',
     ],
     'test': [
         'pytest',
