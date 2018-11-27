@@ -223,6 +223,10 @@ Use apply() method instead.\
             A tuple of output :class:`~chainer.Variable` objects.
 
         """
+        if any([x is None for x in inputs]):
+            raise TypeError(
+                'inputs to FunctionNode.apply contain None')
+
         input_vars = [chainer.as_variable(x) for x in inputs]
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
