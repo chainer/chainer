@@ -126,12 +126,6 @@ void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
     internal::SetGrad(*target_grad, std::move(grad), shape_, dtype_, device_);
 }
 
-void ArrayBody::AccumulateGrad(Array partial_grad, const BackpropId& backprop_id) {
-    nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
-    CHAINERX_ASSERT(target_grad != nullptr);
-    internal::AccumulateGrad(*target_grad, std::move(partial_grad), shape_, dtype_, device_);
-}
-
 void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
     nonstd::optional<Array>* grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(grad != nullptr);

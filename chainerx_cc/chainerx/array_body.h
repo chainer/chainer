@@ -130,10 +130,6 @@ public:
     // The behavior is undefined if there is no array node for the specified graph.
     void SetGrad(Array grad, const BackpropId& backprop_id);
 
-    // Accumulates a gradient array.
-    // The behavior is undefined if there is no array node for the specified graph.
-    void AccumulateGrad(Array partial_grad, const BackpropId& backprop_id);
-
     // Clears a gradient array.
     // The behavior is undefined if there is no array node for the specified graph.
     void ClearGrad(const BackpropId& backprop_id);
