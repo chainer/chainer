@@ -153,7 +153,9 @@ class FunctionAdapter(function_node.FunctionNode):
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
-                g.node._old_style_grad_generator = self._function.label
+                g.node._disabled_grad_generator = (
+                    'backward of an old style Function "{}"'.format(
+                        self._function.label))
             ret.append(g)
 
         return tuple(ret)

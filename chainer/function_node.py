@@ -312,6 +312,11 @@ Use apply() method instead.\
                 self._retained_output_data = tuple(retained_data)
 
             self.lazy_grad_sum = configuration.config.lazy_grad_sum
+        else:
+            for y in ret:
+                y._disabled_grad_generator = (
+                    '{} with enable_backprop=False config'.format(
+                        self.label))
 
         return ret
 
@@ -780,7 +785,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     for v in outputs:
         # Raise error here if v is created by Function.backward.
         # In such case, we don't know exact inputs of the creator.
-        v.node._check_old_style_gradient()
+        v.node._check_disabled_gradient()
 
     # The implementation consists of three steps.
 
@@ -800,7 +805,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         for x in func.inputs:
             # Raise error here if x is created by Function.backward.
             # In such case, we don't know exact inputs of the creator.
-            x._check_old_style_gradient()
+            x._check_disabled_gradient()
 
             if not x.requires_grad:
                 continue

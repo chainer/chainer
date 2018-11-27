@@ -159,7 +159,7 @@ class VariableNode(object):
     _rank = 0
     # Name of the Function is assigned if this variable is a gradient generated
     # by an old-style Function
-    _old_style_grad_generator = None
+    _disabled_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
         if kwargs:
@@ -405,11 +405,11 @@ class VariableNode(object):
         if self._data is not None:
             self._data = d
 
-    def _check_old_style_gradient(self):
-        if self._old_style_grad_generator is not None:
+    def _check_disabled_gradient(self):
+        if self._disabled_grad_generator is not None:
             raise RuntimeError(
-                'cannot twice-differentiate an old style Function "%s"' %
-                self._old_style_grad_generator)
+                'backward is unavailable: {}'.format(
+                    self._disabled_grad_generator))
 
 
 def _create_variable(data, name, grad, requires_grad):
@@ -963,7 +963,7 @@ Actual: {0}'''.format(type(data))
             self._backward_main(retain_grad, loss_scale)
 
     def _backward_main(self, retain_grad, loss_scale):
-        self._node._check_old_style_gradient()
+        self._node._check_disabled_gradient()
         if self.creator_node is None:
             return
 
