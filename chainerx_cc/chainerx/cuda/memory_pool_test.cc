@@ -64,52 +64,48 @@ TEST(ChunkTest, Split) {
     EXPECT_EQ(tail_of_tail->next(), nullptr);
 }
 
-#if 0
-TEST(MemoryPoolTest, Merge) {
-    auto mem = std::make_shared<Memory>(kAllocationUnitSize * 4);
-    auto chunk = std::make_shared<Chunk>(mem, 0, mem->size(), stream_ptr_);
+TEST(ChunkTest, MergeWithNext) {
+    size_t mem_bytesize = kAllocationUnitSize * 4;
+    std::shared_ptr<void> mem = std::make_unique<uint8_t[]>(mem_bytesize);
+    Chunk chunk{mem, 0, mem_bytesize};
 
-    auto chunk_ptr = chunk->ptr();
-    auto chunk_offset = chunk->offset();
-    auto chunk_size = chunk->size();
+    void* chunk_ptr = chunk.ptr();
+    size_t chunk_offset = chunk.offset();
+    size_t chunk_bytesize = chunk.bytesize();
 
-    auto tail = Split(chunk, kAllocationUnitSize * 2);
-    auto head = chunk;
-    auto head_ptr = head->ptr();
-    auto head_offset = head->offset();
-    auto head_size = head->size();
-    auto tail_ptr = tail->ptr();
-    auto tail_offset = tail->offset();
-    auto tail_size = tail->size();
+    std::unique_ptr<Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
+    std::unique_ptr<Chunk> head = std::make_unique<Chunk>(chunk);
+    void* head_ptr = head->ptr();
+    size_t head_offset = head->offset();
+    size_t head_bytesize = head->bytesize();
+    void* tail_ptr = tail->ptr();
+    size_t tail_offset = tail->offset();
+    size_t tail_bytesize = tail->bytesize();
 
-    auto tail_of_head = Split(head, kAllocationUnitSize);
-    auto tail_of_tail = Split(tail, kAllocationUnitSize);
+    head->Split(kAllocationUnitSize);
+    tail->Split(kAllocationUnitSize);
 
-    Merge(head, tail_of_head);
+    head->MergeWithNext();
     EXPECT_EQ(head->ptr(), head_ptr);
     EXPECT_EQ(head->offset(), head_offset);
-    EXPECT_EQ(head->size(), head_size);
+    EXPECT_EQ(head->bytesize(), head_bytesize);
     EXPECT_EQ(head->prev(), nullptr);
     EXPECT_EQ(head->next()->ptr(), tail_ptr);
-    EXPECT_EQ(head->stream_ptr(), stream_ptr_);
 
-    Merge(tail, tail_of_tail);
+    tail->MergeWithNext();
     EXPECT_EQ(tail->ptr(), tail_ptr);
     EXPECT_EQ(tail->offset(), tail_offset);
-    EXPECT_EQ(tail->size(), tail_size);
+    EXPECT_EQ(tail->bytesize(), tail_bytesize);
     EXPECT_EQ(tail->prev()->ptr(), head_ptr);
     EXPECT_EQ(tail->next(), nullptr);
-    EXPECT_EQ(tail->stream_ptr(), stream_ptr_);
 
-    Merge(head, tail);
+    head->MergeWithNext();
     EXPECT_EQ(head->ptr(), chunk_ptr);
     EXPECT_EQ(head->offset(), chunk_offset);
-    EXPECT_EQ(head->size(), chunk_size);
+    EXPECT_EQ(head->bytesize(), chunk_bytesize);
     EXPECT_EQ(head->prev(), nullptr);
     EXPECT_EQ(head->next(), nullptr);
-    EXPECT_EQ(head->stream_ptr(), stream_ptr_);
 }
-#endif
 
 // A dummy allocator to test OutOfMemoryError
 class FixedCapacityDummyAllocator : public Allocator {

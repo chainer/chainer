@@ -60,26 +60,24 @@ public:
 // sorted by base address that must be contiguous.
 class Chunk {
 public:
-    // TODO(sonots): Reconsider ptr type, and reinterpret_cast
-    Chunk(const std::shared_ptr<void>& mem, size_t offset, size_t bytesize)
-        : mem_(mem), ptr_(reinterpret_cast<intptr_t>(mem.get()) + offset), offset_(offset), bytesize_(bytesize) {}
+    Chunk(void* ptr, size_t offset, size_t bytesize)
+        : ptr_{reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset)}, bytesize_(bytesize) {}
     Chunk(const Chunk&) = default;
     ~Chunk() {}
 
-    // Split this chunk to a chunk of a given bytesize and a chunk of the remaining.
+    // Splits this chunk to a chunk of a given bytesize and a chunk of the remaining.
     //
-    // The bytesize and next of this chunk are modified, and returns the remaining.
+    // Modifies the bytesize and next of this, and returns the remaining.
     std::unique_ptr<Chunk> Split(size_t bytesize);
 
-    // Merge with next chunk
+    // Merges with the next chunk
     void MergeWithNext();
 
     void SetPrev(Chunk* prev) { prev_ = prev; }
     void SetNext(Chunk* next) { next_ = next; }
     void SetInUse(bool in_use) { in_use_ = in_use; }
 
-    void* ptr() const { return reinterpret_cast<void*>(ptr_); }
-    size_t offset() const { return offset_; }
+    void* ptr() const { return ptr_; }
     size_t bytesize() const { return bytesize_; }
     const Chunk* prev() const { return prev_; }
     Chunk* prev() { return prev_; }
@@ -88,11 +86,8 @@ public:
     bool in_use() const { return in_use_; }
 
 private:
-    std::shared_ptr<void> mem_;  // The memory buffer.
-    intptr_t ptr_{0};  // Memory address.
-    size_t offset_{0};  // An offset bytes from the head of the buffer.
-    size_t bytesize_{0};  // Chunk bytesize in bytes.
-    int device_index_{-1};  // GPU device id whose memory the pointer refers to.
+    void* ptr_{nullptr};  // Memory address.
+    size_t bytesize_{0};  // Chunk bytesize.
     Chunk* prev_{nullptr};  // Prev memory pointer if splitted from a larger allocation
     Chunk* next_{nullptr};  // Next memory pointer if splitted from a larger allocation
     bool in_use_{false};  // Chunk is in use
