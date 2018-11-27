@@ -1,7 +1,7 @@
 ChainerX Documentation
 ======================
 
-ChainerX is an ndarray implementation with Define-by-Run automatic differentiation capabiliity.
+ChainerX is an ndarray implementation with Define-by-Run automatic differentiation capability.
 It roughly corresponds to "NumPy/CuPy + Chainer Variable", while some additional features follow:
 
 - **Speed**: The whole ndarray and autograd implementation is written in C++, with a thin Python binding. It lowers the overhead existing in the pure Python implementation of Chainer.
