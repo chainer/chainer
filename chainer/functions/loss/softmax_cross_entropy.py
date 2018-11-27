@@ -377,6 +377,11 @@ def softmax_cross_entropy(
             Variable holding a signed integer vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
+            When the dtype is float, this function treats ``t`` as an array
+            holding probability distribution of labels, in other words, soft
+            targets. In this case, the shape of ``t`` must be the same as the
+            shape of ``x``. Note that the loss is calculated using KL
+            divergence, not cross entropy.
         normalize (bool): If ``True``, this function normalizes the cross
             entropy loss across all instances. If ``False``, it only
             normalizes along a batch size.
