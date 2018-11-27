@@ -23,10 +23,10 @@ class Gumbel(distribution.Distribution):
            \\right\\}\\right],
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\mu`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\eta`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\mu`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\eta`.
     """
 
     def __init__(self, loc, scale):

@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import configuration
 from chainer import functions
@@ -226,17 +224,23 @@ class BatchNormalization(link.Link):
             self._initialize_params(size)
 
     def _initialize_params(self, shape):
-        dtype = self._dtype
-        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        self.avg_mean = self._init_array(self._initial_avg_mean, 0, shape)
         self._initial_avg_mean = None
         self.register_persistent('avg_mean')
-        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        self.avg_var = self._init_array(self._initial_avg_var, 1, shape)
         self._initial_avg_var = None
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
             self.beta.initialize(shape)
+
+    def _init_array(self, initializer, default_value, size):
+        if initializer is None:
+            initializer = default_value
+        initializer = initializers._get_initializer(initializer)
+        return initializers.generate_array(
+            initializer, size, self.xp, dtype=self._dtype)
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
@@ -313,10 +317,3 @@ class BatchNormalization(link.Link):
 
         """
         self.N = 0
-
-
-def _init_array(initializer, default_value, size, dtype):
-    if initializer is None:
-        initializer = default_value
-    initializer = initializers._get_initializer(initializer)
-    return initializers.generate_array(initializer, size, numpy, dtype=dtype)

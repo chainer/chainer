@@ -7,9 +7,11 @@ from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
 class TestBlackOut(unittest.TestCase):
 
     batch_size = 5
@@ -18,15 +20,25 @@ class TestBlackOut(unittest.TestCase):
     n_samples = 7
 
     def setUp(self):
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         x_shape = (self.batch_size, self.in_size)
-        self.x = numpy.random.uniform(
-            -1, 1, x_shape).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         self.t = numpy.random.randint(
             len(self.count), size=self.batch_size).astype(numpy.int32)
 
         self.link = links.BlackOut(self.in_size, self.count, self.n_samples)
         self.w = numpy.random.uniform(-1, 1, self.link.W.data.shape)
         self.link.W.data[:] = self.w
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 5e-3}
+        else:
+            self.check_forward_options = {'atol': 1e-4}
+
+    def tearDown(self):
+        self._config_user.__exit__(None, None, None)
 
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
@@ -36,7 +48,7 @@ class TestBlackOut(unittest.TestCase):
             (self.batch_size, self.n_samples))
         y = self.link(x, t)
 
-        expect_y = numpy.empty((self.batch_size), dtype=numpy.float32)
+        expect_y = numpy.empty((self.batch_size), dtype=self.dtype)
         samples = cuda.to_cpu(self.link.sample_data)
         for b in range(self.batch_size):
             z = 0
@@ -53,27 +65,23 @@ class TestBlackOut(unittest.TestCase):
             expect_y[b] = l
 
         loss = -numpy.sum(expect_y) / self.batch_size
-        testing.assert_allclose(y.data, loss, atol=1.e-4)
+        testing.assert_allclose(y.data, loss, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.chainerx
-    @condition.retry(3)
     def test_forward_chainerx_native(self):
         device = chainer.get_device('native:0')
         self.link.to_device(device)
         self.check_forward(device.send(self.x), device.send(self.t))
 
     @attr.chainerx
-    @condition.retry(3)
     def test_forward_chainerx_cuda(self):
         device = chainer.get_device('cuda:0')
         self.link.to_device(device)
