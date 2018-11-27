@@ -17,19 +17,21 @@ def no_backprop_mode():
     In this context, Chainer does not make a computational graph. It has the
     benefit of reducing memory consumption. However, a
     :class:`~chainer.Variable` created in this context does not hold a
-    reference to the :class:`~chainer.FunctionNode` that created itself so no
-    gradients are accumulated by :func:`~chainer.Variable.backward`.
+    reference to the :class:`~chainer.FunctionNode` that created itself.
+
+    *From v6.0.0:* Accumulating gradients from an :class:`~chainer.Variable`
+    by :func:`~chainer.Variable.backward` raises `RuntimeError`.
 
     In the following example, ``y`` is created in this context, which means
-    that calling :func:`~chainer.Variable.backward` on ``y`` has no effect on
-    the gradients of ``x``.
+    that calling :func:`~chainer.Variable.backward` on ``y`` fails.
 
     >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
     ...     y = x + 1
-    >>> y.backward()
-    >>> x.grad is None
-    True
+    >>> y.backward()  # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+        ...
+    RuntimeError: backward is unavailable:... _ + 1 ...
 
     .. seealso::
 
