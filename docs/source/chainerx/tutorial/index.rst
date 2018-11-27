@@ -1,5 +1,7 @@
-Tutorial
-========
+.. _chainerx_tutorial:
+
+ChainerX Tutorial
+=================
 
 ChainerX, or :data:`chainerx`, is meant to be a drop-in replacement for `NumPy <https://docs.scipy.org/doc/>`_ and `CuPy <https://docs-cupy.chainer.org/en/stable/>`_, with additional operations specific to neural networks.
 As its core is implemented in C++, you can reduce the Python overhead for both the forward and backward passes compared to Chainer, speeding up your training and inference.
