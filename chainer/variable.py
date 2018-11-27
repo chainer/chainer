@@ -40,6 +40,10 @@ def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x_grad), type(x_data)))
         typ = TypeError
+    elif x.dtype is None or x.shape is None:
+        # unretained Variable(None)
+        # TODO(kataoka): This should be an error.
+        return
     elif gx.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
                (gx.dtype, x.dtype))
