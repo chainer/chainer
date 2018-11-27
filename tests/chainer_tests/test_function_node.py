@@ -285,6 +285,11 @@ Actual: 1 < 2"""
                                    msg):
             f.apply((v,))
 
+    def test_apply_none(self):
+        f = chainer.FunctionNode()
+        with six.assertRaisesRegex(self, TypeError, 'None'):
+            f.apply((None,))
+
 
 class TestFunctionNodeInconsistentBackends(unittest.TestCase):
 
