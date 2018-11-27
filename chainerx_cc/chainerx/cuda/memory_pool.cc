@@ -37,6 +37,34 @@ MallocStatus PinnedMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
     CHAINERX_NEVER_REACH();
 }
 
+std::unique_ptr<Chunk> Chunk::Split(size_t bytesize) {
+    CHAINERX_ASSERT(bytesize_ >= bytesize);
+    if (bytesize_ == bytesize) {
+        return nullptr;
+    }
+
+    auto remaining = std::make_unique<Chunk>(mem_, offset_ + bytesize, bytesize_ - bytesize);
+    bytesize_ = bytesize;
+
+    if (next_ != nullptr) {
+        remaining->SetNext(next_);
+        remaining->next()->SetPrev(remaining.get());
+    }
+    next_ = remaining.get();
+    remaining->SetPrev(this);
+
+    return remaining;
+}
+
+void Chunk::MergeWithNext() {
+    CHAINERX_ASSERT(next_ != nullptr);
+    bytesize_ += next_->bytesize();
+    if (next_->next() != nullptr) {
+        next_->next()->SetPrev(this);
+    }
+    next_ = next_->next();
+}
+
 MemoryPool::~MemoryPool() {
     // NOTE: CudaSetDeviceScope is not available at dtor because it may throw
     int orig_device_index{0};

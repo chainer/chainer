@@ -61,39 +61,41 @@ public:
 class Chunk {
 public:
     // TODO(sonots): Reconsider ptr type, and reinterpret_cast
-    Chunk(const std::shared_ptr<void>& mem, size_t offset, size_t size)
-        : mem_(mem), ptr_(reinterpret_cast<intptr_t>(mem.get()) + offset), offset_(offset), size_(size) {}
+    Chunk(const std::shared_ptr<void>& mem, size_t offset, size_t bytesize)
+        : mem_(mem), ptr_(reinterpret_cast<intptr_t>(mem.get()) + offset), offset_(offset), bytesize_(bytesize) {}
     Chunk(const Chunk&) = default;
     ~Chunk() {}
 
-    // Split contiguous block of a larger allocation
-    friend std::shared_ptr<Chunk> Split(std::shared_ptr<Chunk>& self, size_t size);
+    // Split this chunk to a chunk of a given bytesize and a chunk of the remaining.
+    //
+    // The bytesize and next of this chunk are modified, and returns the remaining.
+    std::unique_ptr<Chunk> Split(size_t bytesize);
 
-    // Merge previously splitted block (chunk)
-    friend void Merge(std::shared_ptr<Chunk>& self, std::shared_ptr<Chunk> remaining);
+    // Merge with next chunk
+    void MergeWithNext();
+
+    void SetPrev(Chunk* prev) { prev_ = prev; }
+    void SetNext(Chunk* next) { next_ = next; }
+    void SetInUse(bool in_use) { in_use_ = in_use; }
 
     void* ptr() const { return reinterpret_cast<void*>(ptr_); }
     size_t offset() const { return offset_; }
-    size_t size() const { return size_; }
-    const std::shared_ptr<Chunk>& prev() const { return prev_; }
-    std::shared_ptr<Chunk>& prev() { return prev_; }
-    const std::shared_ptr<Chunk>& next() const { return next_; }
-    std::shared_ptr<Chunk>& next() { return next_; }
+    size_t bytesize() const { return bytesize_; }
+    const Chunk* prev() const { return prev_; }
+    Chunk* prev() { return prev_; }
+    const Chunk* next() const { return next_; }
+    Chunk* next() { return next_; }
     bool in_use() const { return in_use_; }
-
-    void SetPrev(const std::shared_ptr<Chunk>& prev) { prev_ = prev; }
-    void SetNext(const std::shared_ptr<Chunk>& next) { next_ = next; }
-    void SetInUse(bool in_use) { in_use_ = in_use; }
 
 private:
     std::shared_ptr<void> mem_;  // The memory buffer.
-    intptr_t ptr_ = 0;  // Memory address.
-    size_t offset_ = 0;  // An offset bytes from the head of the buffer.
-    size_t size_ = 0;  // Chunk size in bytes.
-    int device_index_;  // GPU device id whose memory the pointer refers to.
-    std::shared_ptr<Chunk> prev_;  // prev memory pointer if split from a larger allocation
-    std::shared_ptr<Chunk> next_;  // next memory pointer if split from a larger allocation
-    bool in_use_ = false;  // chunk is in use
+    intptr_t ptr_{0};  // Memory address.
+    size_t offset_{0};  // An offset bytes from the head of the buffer.
+    size_t bytesize_{0};  // Chunk bytesize in bytes.
+    int device_index_{-1};  // GPU device id whose memory the pointer refers to.
+    Chunk* prev_{nullptr};  // Prev memory pointer if splitted from a larger allocation
+    Chunk* next_{nullptr};  // Next memory pointer if splitted from a larger allocation
+    bool in_use_{false};  // Chunk is in use
 };
 
 // Memory pool.
