@@ -82,6 +82,7 @@ class TestBlackOut(unittest.TestCase):
         self.check_forward(device.send(self.x), device.send(self.t))
 
     @attr.chainerx
+    @attr.gpu
     def test_forward_chainerx_cuda(self):
         device = chainer.get_device('cuda:0')
         self.link.to_device(device)
