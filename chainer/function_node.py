@@ -728,9 +728,6 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grad_outputs (tuple or list of :class:`~chainer.Variable` or None):
             A sequence of variables that gives the initial value of each output
             gradient.
-            If an element is set to ``None``, an array filled with 1 is used.
-            If this argument itself is ``None``, it is treated as a sequence of
-            ``None``\\ s.
         grad_inputs (tuple or list of :class:`~chainer.Variable` or None):
             A sequence of variables that gives the initial value of each input
             gradient. The gradients computed by the backprop
@@ -837,6 +834,10 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grad_outputs = (None,) * len(outputs)
     for y, gy in zip(outputs, grad_outputs):
         if gy is None:
+            if len(outputs) != 1 or y.ndim != 0:
+                raise ValueError(
+                    'wip'
+                )
             with cuda.get_device_from_array(y.data) as device:
                 if device is cuda.DummyDevice:
                     gy_data = numpy.ones_like(y.data)
