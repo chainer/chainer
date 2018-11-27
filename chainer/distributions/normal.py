@@ -28,17 +28,15 @@ class Normal(distribution.Distribution):
             \\exp\\left(-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`. This is the mean parameter.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\sigma`. Either `scale` or `log_scale` (not both) must \
-        have a value.
-        log_scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma)`. Either `scale` or `log_scale` (not \
-        both) must have a value.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`. This is the
+            mean parameter.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\sigma`. Either `scale`
+            or `log_scale` (not both) must have a value.
+        log_scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\log(\\sigma)`. Either
+            `scale` or `log_scale` (not both) must have a value.
 
     """
 

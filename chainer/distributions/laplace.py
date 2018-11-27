@@ -61,12 +61,10 @@ class Laplace(distribution.Distribution):
             \\exp\\left(-\\frac{|x-\\mu|}{b}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`b`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter
+            of distribution representing the scale :math:`b`.
     """
 
     def __init__(self, loc, scale):

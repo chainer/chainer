@@ -35,8 +35,8 @@ class OneHotCategorical(distribution.Distribution):
     """OneHotCategorical Distribution.
 
     Args:
-        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        p(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
     """
 
     def __init__(self, p):
