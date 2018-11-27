@@ -43,7 +43,7 @@ std::unique_ptr<Chunk> Chunk::Split(size_t bytesize) {
         return nullptr;
     }
 
-    auto remaining = std::make_unique<Chunk>(mem_, offset_ + bytesize, bytesize_ - bytesize);
+    std::unique_ptr<Chunk> remaining = std::make_unique<Chunk>(ptr(), bytesize, bytesize_ - bytesize);
     bytesize_ = bytesize;
 
     if (next_ != nullptr) {
@@ -65,15 +65,71 @@ void Chunk::MergeWithNext() {
     next_ = next_->next();
 }
 
+// Pushes a chunk into an appropriate free list
+//
+// Not thread-safe
+void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
+    FreeList& free_list = free_bins_[chunk->bytesize()];
+    free_list.emplace_back(std::move(chunk));
+}
+
+// Finds best-fit, or a smallest larger allocation if available
+//
+// Not thread-safe
+std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
+    auto it_start = free_bins_.lower_bound(allocation_size);
+    for (auto it = it_start; it != free_bins_.end(); ++it) {
+        FreeList& free_list = it->second;
+        if (free_list.empty()) {
+            continue;
+        }
+        std::unique_ptr<Chunk> chunk = std::move(free_list.back());
+        CHAINERX_ASSERT(chunk != nullptr);
+        free_list.pop_back();
+        // TODO(sonots): Compact free_bins_ if it - it_start > threshold
+        return chunk;
+    }
+
+    return nullptr;
+}
+
+// Removes a chunk from an appropriate free list.
+//
+// @return true if the chunk can successfully be removed from
+//         the free list. false` otherwise (e.g., the chunk could not
+//         be found in the free list as the chunk is allocated.)
+//
+// Not thread-safe
+bool MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
+    CHAINERX_ASSERT(chunk != nullptr && !chunk->in_use());
+
+    // Find an appropriate free list
+    auto free_bins_it = free_bins_.find(chunk->bytesize());
+    if (free_bins_it == free_bins_.end()) {
+        return false;
+    }
+    FreeList& free_list = free_bins_it->second;
+
+    // Remove the given chunk from the found free list
+    for (auto it = free_list.begin(); it != free_list.end(); ++it) {
+        if (it->get() == chunk) {
+            free_list.erase(it);
+        }
+        return true;
+    }
+    return false;
+}
+
 MemoryPool::~MemoryPool() {
     // NOTE: CudaSetDeviceScope is not available at dtor because it may throw
     int orig_device_index{0};
     cudaGetDevice(&orig_device_index);
     cudaSetDevice(device_index_);
 
-    for (const std::vector<void*>& free_list : free_bins_) {
-        for (void* ptr : free_list) {
-            allocator_->Free(ptr);
+    for (auto it = free_bins_.begin(); it != free_bins_.end(); ++it) {
+        FreeList& free_list = it->second;
+        for (const std::unique_ptr<Chunk>& ptr : free_list) {
+            allocator_->Free(ptr.get());
         }
     }
     // Ideally, in_use_ should be empty, but it could happen that shared ptrs to memories allocated
@@ -91,9 +147,9 @@ MemoryPool::~MemoryPool() {
 void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
     std::lock_guard<std::mutex> lock{free_bins_mutex_};
-    for (const std::vector<void*>& free_list : free_bins_) {
-        for (void* ptr : free_list) {
-            allocator_->Free(ptr);
+    for (auto it = free_bins_.begin(); it != free_bins_.end(); ++it) {
+        for (std::unique_ptr<Chunk>& ptr : it->second) {
+            allocator_->Free(ptr.get());
         }
     }
     free_bins_.clear();
@@ -104,27 +160,26 @@ void* MemoryPool::Malloc(size_t bytesize) {
         return nullptr;
     }
 
-    size_t index = (bytesize - 1) / kAllocationUnitSize;
-
-    void* ptr = nullptr;
-    {
-        std::lock_guard<std::mutex> lock{free_bins_mutex_};
-
-        if (index < free_bins_.size()) {
-            std::vector<void*>& free_list = free_bins_[index];
-            if (!free_list.empty()) {
-                ptr = free_list.back();
-                CHAINERX_ASSERT(ptr != nullptr);
-                free_list.pop_back();
-            }
-        }
-    }
-
     // TODO(niboshi): Currently the deleter of allocated memory assumes that
     // the memory is stored in the memory pool (in `in_use_`), but this may not hold if some exception is thrown before it is stored.
     // `std::lock_guard` and `in_use_.emplace` are the sources of possible exceptions.
-    if (ptr == nullptr) {
-        size_t allocation_size = (index + 1) * kAllocationUnitSize;
+
+    size_t allocation_size = GetAllocationSize(bytesize);
+    std::unique_ptr<Chunk> chunk{nullptr};
+
+    {
+        std::lock_guard<std::mutex> lock{free_bins_mutex_};
+        chunk = PopFromFreeList(allocation_size);
+    }
+
+    if (chunk != nullptr) {
+        std::unique_ptr<Chunk> remaining = chunk->Split(allocation_size);
+        if (remaining != nullptr) {
+            std::lock_guard<std::mutex> lock{free_bins_mutex_};
+            PushIntoFreeList(std::move(remaining));
+        }
+    } else {
+        void* ptr{nullptr};
         CudaSetDeviceScope scope{device_index_};
         MallocStatus status = allocator_->Malloc(&ptr, allocation_size);
         if (status == MallocStatus::kErrorMemoryAllocation) {
@@ -132,16 +187,19 @@ void* MemoryPool::Malloc(size_t bytesize) {
             status = allocator_->Malloc(&ptr, allocation_size);
             if (status == MallocStatus::kErrorMemoryAllocation) {
                 // TODO(sonots): Include total pooled bytes in the error message
-                throw OutOfMemoryError{bytesize};
+                throw OutOfMemoryError{allocation_size};
             }
         }
+        chunk = std::make_unique<Chunk>(ptr, 0, allocation_size);
     }
 
+    CHAINERX_ASSERT(chunk != nullptr);
+    void* ptr = chunk->ptr();
     {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
-        in_use_.emplace(ptr, index);
+        chunk->SetInUse(true);
+        in_use_.emplace(ptr, std::move(chunk));
     }
-
     return ptr;
 }
 
@@ -149,7 +207,7 @@ void MemoryPool::Free(void* ptr) {
     if (ptr == nullptr) {
         return;
     }
-    size_t index{};
+    std::unique_ptr<Chunk> chunk{nullptr};
 
     {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
@@ -157,17 +215,26 @@ void MemoryPool::Free(void* ptr) {
         if (it == in_use_.end()) {
             throw ChainerxError{"Cannot free out-of-pool memory"};
         }
-        index = it->second;
+        chunk = std::move(it->second);
         in_use_.erase(it);
+        chunk->SetInUse(false);
     }
 
+    CHAINERX_ASSERT(chunk != nullptr);
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
-        if (free_bins_.size() <= index) {
-            free_bins_.resize(index + 1);
+
+        if (chunk->next() != nullptr && !chunk->next()->in_use()) {
+            if (RemoveChunkFromFreeList(chunk->next())) {
+                chunk->MergeWithNext();
+            }
         }
-        std::vector<void*>& free_list = free_bins_[index];
-        free_list.emplace_back(ptr);
+        if (chunk->prev() != nullptr && !chunk->prev()->in_use()) {
+            if (RemoveChunkFromFreeList(chunk->prev())) {
+                chunk->prev()->MergeWithNext();
+            }
+        }
+        PushIntoFreeList(std::move(chunk));
     }
 }
 

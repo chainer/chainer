@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -90,8 +91,10 @@ private:
     size_t bytesize_{0};  // Chunk bytesize.
     Chunk* prev_{nullptr};  // Prev memory pointer if splitted from a larger allocation
     Chunk* next_{nullptr};  // Next memory pointer if splitted from a larger allocation
-    bool in_use_{false};  // Chunk is in use
+    bool in_use_{false};  // Chunk is in use or not.
 };
+
+using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks w.r.t. same sizes
 
 // Memory pool.
 // This class is thread safe.
@@ -99,6 +102,8 @@ class MemoryPool {
 public:
     explicit MemoryPool(int device_index, std::unique_ptr<Allocator> allocator)
         : device_index_{device_index}, allocator_{std::move(allocator)} {}
+
+    MemoryPool(const MemoryPool&) = delete;
 
     ~MemoryPool();
 
@@ -114,10 +119,16 @@ public:
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
 
+    // Rounds up the memory size to fit memory alignment of cudaMalloc.
+    size_t GetAllocationSize(size_t bytesize) { return ((bytesize + kAllocationUnitSize - 1) / kAllocationUnitSize) * kAllocationUnitSize; }
+    void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
+    std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
+    bool RemoveChunkFromFreeList(Chunk* chunk);
+
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
-    std::unordered_map<void*, size_t> in_use_;
-    std::vector<std::vector<void*>> free_bins_;
+    std::unordered_map<void*, std::unique_ptr<Chunk>> in_use_;  // ptr => Chunk
+    std::map<size_t, FreeList> free_bins_;  // allocation size => FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
 };

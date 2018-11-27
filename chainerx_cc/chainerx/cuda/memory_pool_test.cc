@@ -12,7 +12,7 @@ namespace cuda_internal {
 
 class MemoryPoolTest {
 public:
-    static const std::vector<std::vector<void*>>& GetFreeBins(const MemoryPool& pool) { return pool.free_bins_; }
+    static const std::map<size_t, FreeList>& GetFreeBins(const MemoryPool& pool) { return pool.free_bins_; }
     static const Allocator* GetAllocator(const MemoryPool& pool) { return pool.allocator_.get(); }
 };
 
@@ -25,40 +25,34 @@ void* AddOffset(void* ptr, size_t offset) { return reinterpret_cast<void*>(reint
 TEST(ChunkTest, Split) {
     size_t mem_bytesize = kAllocationUnitSize * 4;
     std::shared_ptr<void> mem = std::make_unique<uint8_t[]>(mem_bytesize);
-    Chunk chunk{mem, 0, mem_bytesize};
+    Chunk chunk{mem.get(), 0, mem_bytesize};
 
     std::unique_ptr<Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
     EXPECT_EQ(chunk.ptr(), mem.get());
-    EXPECT_EQ(chunk.offset(), size_t{0});
     EXPECT_EQ(chunk.bytesize(), kAllocationUnitSize * 2);
     EXPECT_EQ(chunk.prev(), nullptr);
     EXPECT_EQ(chunk.next()->ptr(), tail->ptr());
     EXPECT_EQ(tail->ptr(), AddOffset(mem.get(), kAllocationUnitSize * 2));
-    EXPECT_EQ(tail->offset(), kAllocationUnitSize * 2);
     EXPECT_EQ(tail->bytesize(), kAllocationUnitSize * 2);
     EXPECT_EQ(tail->prev()->ptr(), chunk.ptr());
     EXPECT_EQ(tail->next(), nullptr);
 
     std::unique_ptr<Chunk> tail_of_head = chunk.Split(kAllocationUnitSize);
     EXPECT_EQ(chunk.ptr(), mem.get());
-    EXPECT_EQ(chunk.offset(), size_t{0});
     EXPECT_EQ(chunk.bytesize(), kAllocationUnitSize);
     EXPECT_EQ(chunk.prev(), nullptr);
     EXPECT_EQ(chunk.next()->ptr(), tail_of_head->ptr());
     EXPECT_EQ(tail_of_head->ptr(), AddOffset(mem.get(), kAllocationUnitSize));
-    EXPECT_EQ(tail_of_head->offset(), kAllocationUnitSize);
     EXPECT_EQ(tail_of_head->bytesize(), kAllocationUnitSize);
     EXPECT_EQ(tail_of_head->prev()->ptr(), chunk.ptr());
     EXPECT_EQ(tail_of_head->next()->ptr(), tail->ptr());
 
     std::unique_ptr<Chunk> tail_of_tail = tail->Split(kAllocationUnitSize);
     EXPECT_EQ(tail->ptr(), AddOffset(chunk.ptr(), kAllocationUnitSize * 2));
-    EXPECT_EQ(tail->offset(), kAllocationUnitSize * 2);
     EXPECT_EQ(tail->bytesize(), kAllocationUnitSize);
     EXPECT_EQ(tail->prev()->ptr(), tail_of_head->ptr());
     EXPECT_EQ(tail->next()->ptr(), tail_of_tail->ptr());
     EXPECT_EQ(tail_of_tail->ptr(), AddOffset(mem.get(), kAllocationUnitSize * 3));
-    EXPECT_EQ(tail_of_tail->offset(), kAllocationUnitSize * 3);
     EXPECT_EQ(tail_of_tail->bytesize(), kAllocationUnitSize);
     EXPECT_EQ(tail_of_tail->prev()->ptr(), tail->ptr());
     EXPECT_EQ(tail_of_tail->next(), nullptr);
@@ -67,44 +61,41 @@ TEST(ChunkTest, Split) {
 TEST(ChunkTest, MergeWithNext) {
     size_t mem_bytesize = kAllocationUnitSize * 4;
     std::shared_ptr<void> mem = std::make_unique<uint8_t[]>(mem_bytesize);
-    Chunk chunk{mem, 0, mem_bytesize};
+    Chunk chunk{mem.get(), 0, mem_bytesize};
 
     void* chunk_ptr = chunk.ptr();
-    size_t chunk_offset = chunk.offset();
     size_t chunk_bytesize = chunk.bytesize();
 
     std::unique_ptr<Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
     std::unique_ptr<Chunk> head = std::make_unique<Chunk>(chunk);
     void* head_ptr = head->ptr();
-    size_t head_offset = head->offset();
     size_t head_bytesize = head->bytesize();
     void* tail_ptr = tail->ptr();
-    size_t tail_offset = tail->offset();
     size_t tail_bytesize = tail->bytesize();
 
-    head->Split(kAllocationUnitSize);
-    tail->Split(kAllocationUnitSize);
+    std::unique_ptr<Chunk> tail_next = tail->Split(kAllocationUnitSize);
+    std::unique_ptr<Chunk> head_next = head->Split(kAllocationUnitSize);
 
     head->MergeWithNext();
     EXPECT_EQ(head->ptr(), head_ptr);
-    EXPECT_EQ(head->offset(), head_offset);
     EXPECT_EQ(head->bytesize(), head_bytesize);
     EXPECT_EQ(head->prev(), nullptr);
     EXPECT_EQ(head->next()->ptr(), tail_ptr);
 
     tail->MergeWithNext();
     EXPECT_EQ(tail->ptr(), tail_ptr);
-    EXPECT_EQ(tail->offset(), tail_offset);
     EXPECT_EQ(tail->bytesize(), tail_bytesize);
     EXPECT_EQ(tail->prev()->ptr(), head_ptr);
     EXPECT_EQ(tail->next(), nullptr);
 
     head->MergeWithNext();
     EXPECT_EQ(head->ptr(), chunk_ptr);
-    EXPECT_EQ(head->offset(), chunk_offset);
     EXPECT_EQ(head->bytesize(), chunk_bytesize);
     EXPECT_EQ(head->prev(), nullptr);
     EXPECT_EQ(head->next(), nullptr);
+
+    (void)head_next;
+    (void)tail_next;
 }
 
 // A dummy allocator to test OutOfMemoryError
@@ -188,7 +179,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeForeignPointer) {
 
 TEST_P(MemoryPoolTestForEachAllocator, FreeUnusedBlocks) {
     MemoryPool& memory_pool = *GetParam();
-    const std::vector<std::vector<void*>>& free_bins = cuda_internal::MemoryPoolTest::GetFreeBins(memory_pool);
+    const std::map<size_t, FreeList>& free_bins = cuda_internal::MemoryPoolTest::GetFreeBins(memory_pool);
 
     void* ptr1 = memory_pool.Malloc(1);
     memory_pool.Free(ptr1);
