@@ -20,7 +20,9 @@ public:
 
 namespace {
 
-void* AddOffset(void* ptr, size_t offset) { return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset); }
+void* AddOffset(void* ptr, size_t offset) {
+    return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+}
 
 TEST(ChunkTest, Split) {
     size_t mem_bytesize = kAllocationUnitSize * 4;
