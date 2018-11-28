@@ -163,8 +163,8 @@ def concat_examples(batch, device=None, padding=None):
 
 
 def _concat_arrays(arrays, padding):
-    # Convert `arrays` to a numpy.ndarray if `arrays` does not already contain
-    # numpy.ndarrays.
+    # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
+    # types such as int, float or list.
     if not isinstance(arrays[0], chainer.get_array_types()):
         arrays = numpy.asarray(arrays)
 
