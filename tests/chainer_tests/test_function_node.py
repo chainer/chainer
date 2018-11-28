@@ -668,8 +668,7 @@ class GradTestBase(object):
         self.gxs = self._init_attrs(self._to_grad_names(self.x_names))
         self.gys = self._init_attrs(self._to_grad_names(self.y_names))
         if self.loss_scale is not None:
-            self._init_ones(self._to_grad_names(self.y_names))
-            self.gys = None
+            self.gys = self._init_ones(self._to_grad_names(self.y_names))
 
     def use_gpu(self):
         for value in six.itervalues(self.__dict__):
@@ -699,7 +698,13 @@ class GradTestBase(object):
         ys = [getattr(self, name) for name in self.y_names]
         if self.extend_graph_y:
             self._ys = [v * 1. for v in ys]
-        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
+
+        gys = self.gys
+        if self.loss_scale is not None:
+            ys = chainer.functions.sum(chainer.functions.add(*ys)),
+            gys = None
+
+        gxs = chainer.grad(ys, self.xs, gys, self.gxs,
                            loss_scale=self.loss_scale)
 
         expected = self.expected_grad()
@@ -773,8 +778,6 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
 
     def expected_double_grad(self):
         ggrad = 2 * self.gy
-        if self.loss_scale is not None:
-            ggrad *= self.loss_scale
         return [ggrad]
 
 
