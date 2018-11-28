@@ -901,7 +901,8 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = max(\{x_1, x_2\})`.
+    :class:`~chainerx.ndarray`:
+        Returned array: :math:`y = max(\\{x_1, x_2\\})`.
 
 Note:
     During backpropagation, this function propagates the gradient of the

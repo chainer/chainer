@@ -4,7 +4,7 @@ import chainerx
 
 
 # TODO(sonots): Implement in C++, especially in CUDA
-def normal(*args, device=None, **kwargs):
+def normal(loc=0.0, scale=1.0, size=None, device=None):
     """Draws random samples from a normal (Gaussian) distribution.
 
     This is currently equivalent to :func:`numpy.random.normal`
@@ -12,12 +12,12 @@ def normal(*args, device=None, **kwargs):
 
     .. seealso:: :func:`numpy.random.normal`
     """
-    a = numpy.random.normal(*args, **kwargs)
+    a = numpy.random.normal(loc, scale, size)
     return chainerx.array(a, device=device, copy=False)
 
 
 # TODO(sonots): Implement in C++, especially in CUDA
-def uniform(*args, device=None, **kwargs):
+def uniform(low=0.0, high=1.0, size=None, device=None):
     """Draws samples from a uniform distribution.
 
     This is currently equivalent to :func:`numpy.random.normal`
@@ -25,5 +25,5 @@ def uniform(*args, device=None, **kwargs):
 
     .. seealso:: :func:`numpy.random.uniform`
     """
-    a = numpy.random.uniform(*args, **kwargs)
+    a = numpy.random.uniform(low, high, size)
     return chainerx.array(a, device=device, copy=False)

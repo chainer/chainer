@@ -215,10 +215,10 @@ def _make_decorator(check_result_func, name, accept_error):
 
 
 def numpy_chainerx_allclose(
-        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
+        rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
         name='xp', dtype_check=None, strides_check=None, accept_error=()):
     """numpy_chainerx_allclose(
-           *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
+           rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
            name='xp', dtype_check=True, strides_check=True, accept_error=())
 
     Decorator that checks that NumPy and ChainerX results are equal up to a
@@ -259,7 +259,7 @@ def numpy_chainerx_allclose(
 
 
 def numpy_chainerx_array_equal(
-        *, err_msg='', verbose=True, name='xp', dtype_check=None,
+        err_msg='', verbose=True, name='xp', dtype_check=None,
         strides_check=None, accept_error=()):
     """numpy_chainerx_array_equal(
            *, err_msg='', verbose=True, name='xp', dtype_check=True,
