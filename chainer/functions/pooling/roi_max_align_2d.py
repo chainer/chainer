@@ -121,7 +121,7 @@ class ROIMaxAlign2D(function.Function):
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
-            max_val = -1e20
+            max_val = None
             max_index = -1
             for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
@@ -147,13 +147,12 @@ class ROIMaxAlign2D(function.Function):
 
                     tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
                     tmp_index = iy * roi_bin_grid_w + ix
-                    if tmp_val > max_val:
+                    if max_val is None or tmp_val > max_val:
                         max_val = tmp_val
                         max_index = tmp_index
 
                     # }}
-
-            top_data[n, c, ph, pw] = max_val
+            top_data[n, c, ph, pw] = 0 if max_val is None else max_val
             self.argmax_data[n, c, ph, pw] = max_index
 
         return top_data,
@@ -217,7 +216,7 @@ class ROIMaxAlign2D(function.Function):
                 ? sampling_ratio_w
                 : ceil(roi_width / pooled_width);
 
-            T max_val = -1E20;
+            T max_val = (T) (0.0 / 0.0);
             int max_index = -1;
             for (int iy = 0; iy < roi_bin_grid_h; iy++)  // e.g. iy = 0, 1
             {
@@ -251,7 +250,7 @@ class ROIMaxAlign2D(function.Function):
 
                     T tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                     int tmp_index = iy * roi_bin_grid_w + ix;
-                    if (tmp_val > max_val) {
+                    if (isnan(max_val) || tmp_val > max_val) {
                         max_val = tmp_val;
                         max_index = tmp_index;
                     }
@@ -260,7 +259,7 @@ class ROIMaxAlign2D(function.Function):
                 }
             }
 
-            top_data = max_val;
+            top_data = isnan(max_val) ? (T) 0 : max_val;
             argmax_data = max_index;
             ''',
             'roi_max_align_2d_fwd',
