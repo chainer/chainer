@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -271,12 +272,16 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
                 x, numpy.array(y, dtype=expected_dtype))
 
     def test_concat_arrays_to_cpu(self):
+        if sys.platform == 'win32':
+            expected_int_dtype = numpy.int32
+        else:
+            expected_int_dtype = numpy.int64
         for device in (-1, None):
             self.check_concat_arrays(
                 self.int_arrays,
                 device,
                 backend.CpuDevice(),
-                numpy.int64)
+                expected_int_dtype)
             self.check_concat_arrays(
                 self.float_arrays,
                 device,
@@ -286,11 +291,15 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
     @attr.gpu
     def test_concat_arrays_to_gpu(self):
         device = 0
+        if sys.platform == 'win32':
+            expected_int_dtype = numpy.int32
+        else:
+            expected_int_dtype = numpy.int64
         self.check_concat_arrays(
             self.int_arrays,
             device,
             backend.GpuDevice.from_device_id(0),
-            numpy.int64)
+            expected_int_dtype)
         self.check_concat_arrays(
             self.float_arrays,
             device,
