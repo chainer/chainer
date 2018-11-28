@@ -147,8 +147,8 @@ MemoryPool::~MemoryPool() {
     cudaGetDevice(&orig_device_index);
     cudaSetDevice(device_index_);
 
-    for (auto it = free_bins_.begin(); it != free_bins_.end(); ++it) {
-        FreeList& free_list = it->second;
+    for (auto& item : free_bins_) {
+        FreeList& free_list = item.second;
         for (const std::unique_ptr<Chunk>& chunk : free_list) {
             if (chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
