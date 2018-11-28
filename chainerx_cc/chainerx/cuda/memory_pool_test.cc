@@ -189,6 +189,50 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeUnusedBlocks) {
     EXPECT_TRUE(free_bins.empty());
 }
 
+TEST_P(MemoryPoolTestForEachAllocator, MallocSplit) {
+    MemoryPool& memory_pool = *GetParam();
+    void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr);
+    void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
+    void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
+    EXPECT_EQ(ptr, head);
+    EXPECT_EQ(AddOffset(ptr, kAllocationUnitSize * 2), tail);
+    memory_pool.Free(head);
+    memory_pool.Free(tail);
+}
+
+TEST_P(MemoryPoolTestForEachAllocator, FreeMerge) {
+    MemoryPool& memory_pool = *GetParam();
+    void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr);
+
+    // merge head into tail
+    {
+        void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
+        void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
+        EXPECT_EQ(ptr, head);
+        EXPECT_EQ(AddOffset(ptr, kAllocationUnitSize * 2), tail);
+        memory_pool.Free(tail);
+        memory_pool.Free(head);
+        void* p = memory_pool.Malloc(kAllocationUnitSize * 4);
+        EXPECT_EQ(ptr, p);
+        memory_pool.Free(p);
+    }
+
+    // merge tail into head
+    {
+        void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
+        void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
+        EXPECT_EQ(ptr, head);
+        EXPECT_EQ(AddOffset(ptr, kAllocationUnitSize * 2), tail);
+        memory_pool.Free(head);
+        memory_pool.Free(tail);
+        void* p = memory_pool.Malloc(kAllocationUnitSize * 4);
+        EXPECT_EQ(ptr, p);
+        memory_pool.Free(p);
+    }
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachAllocator,
         MemoryPoolTestForEachAllocator,

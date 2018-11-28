@@ -96,31 +96,29 @@ std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
     return nullptr;
 }
 
-// Removes a chunk from an appropriate free list.
-//
-// @return true if the chunk can successfully be removed from
-//         the free list. false` otherwise (e.g., the chunk could not
-//         be found in the free list as the chunk is allocated.)
+// Removes a chunk from an appropriate free list, and returns the removed chunk
 //
 // Not thread-safe
-bool MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
+std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
     CHAINERX_ASSERT(chunk != nullptr && !chunk->in_use());
 
     // Find an appropriate free list
     auto free_bins_it = free_bins_.find(chunk->bytesize());
     if (free_bins_it == free_bins_.end()) {
-        return false;
+        return nullptr;
     }
     FreeList& free_list = free_bins_it->second;
 
     // Remove the given chunk from the found free list
     for (auto it = free_list.begin(); it != free_list.end(); ++it) {
         if (it->get() == chunk) {
+            std::unique_ptr<Chunk> chunk = std::move(*it);
+            CHAINERX_ASSERT(chunk != nullptr);
             free_list.erase(it);
+            return chunk;
         }
-        return true;
     }
-    return false;
+    return nullptr;
 }
 
 MemoryPool::~MemoryPool() {
@@ -247,14 +245,17 @@ void MemoryPool::Free(void* ptr) {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
 
         if (chunk->next() != nullptr && !chunk->next()->in_use()) {
-            if (RemoveChunkFromFreeList(chunk->next())) {
+            std::unique_ptr<Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
+            if (chunk_next != nullptr) {
                 chunk->MergeWithNext();
             }
         }
         if (chunk->prev() != nullptr && !chunk->prev()->in_use()) {
-            if (RemoveChunkFromFreeList(chunk->prev())) {
-                chunk->prev()->MergeWithNext();
+            std::unique_ptr<Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
+            if (chunk_prev != nullptr) {
+                chunk_prev->MergeWithNext();
             }
+            chunk = std::move(chunk_prev);
         }
         PushIntoFreeList(std::move(chunk));
     }

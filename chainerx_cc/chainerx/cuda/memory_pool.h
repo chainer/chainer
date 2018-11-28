@@ -123,7 +123,7 @@ private:
     size_t GetAllocationSize(size_t bytesize) { return ((bytesize + kAllocationUnitSize - 1) / kAllocationUnitSize) * kAllocationUnitSize; }
     void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
     std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
-    bool RemoveChunkFromFreeList(Chunk* chunk);
+    std::unique_ptr<Chunk> RemoveChunkFromFreeList(Chunk* chunk);
 
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
