@@ -391,6 +391,7 @@ class TestDeviceSend(unittest.TestCase):
         assert converted.device.id == 1
 
     @attr.chainerx
+    @attr.gpu
     def test_cupy_to_chainerx_native(self):
         orig = self.orig_cupy()
         converted = self.send_check_equal(orig, 'native:0')

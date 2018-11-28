@@ -120,6 +120,7 @@ class TestUpdateRule(unittest.TestCase):
         self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
 
     @attr.chainerx
+    @attr.gpu
     def test_update_chainerx_gpu(self):
         self.var.to_gpu()
         self.var.to_chainerx()
