@@ -30,19 +30,19 @@ def _pair(x):
     return x, x
 
 
-def _get_bounds(i, limit):
-    if i < -1 or i > limit:
+def _get_bounds(p, limit):
+    if p < -1 or p > limit:
         # out of range, so it is empty
         return None, None, None
-    if i <= 0:
-        i = 0
-    i_low = int(numpy.floor(i))
-    if i_low >= limit - 1:
-        i_high = i_low = limit - 1
-        i = float(i_low)
+    if p <= 0:
+        p = 0
+    low = int(numpy.floor(p))
+    if low >= limit - 1:
+        high = low = limit - 1
+        p = float(low)
     else:
-        i_high = i_low + 1
-    return i, i_low, i_high
+        high = low + 1
+    return p, low, high
 
 
 def _get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high):
@@ -60,20 +60,20 @@ def _get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high):
 _GET_BILINEAR_INTERP_KERNEL = '''
 __device__
 bool get_bounds(
-    T &i, const int limit, int &i_low, int &i_high) {
-    if (i < -1. || i > limit) {
+    T &p, const int limit, int &low, int &high) {
+    if (p < -1. || p > limit) {
         // empty
         return false;
     }
-    if (i <= 0) {
-        i = 0;
+    if (p <= 0) {
+        p = 0;
     }
-    i_low = (int)i;
-    if (i_low >= limit - 1) {
-        i_high = i_low = limit - 1;
-        i = (T)i_low;
+    low = (int)p;
+    if (low >= limit - 1) {
+        high = low = limit - 1;
+        p = (T)low;
     } else {
-        i_high = i_low + 1;
+        high = low + 1;
     }
     return true;
 }
