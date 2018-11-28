@@ -6,22 +6,18 @@ cache:
 
 matrix:
   include:
-    - os: linux
+    - dist: trusty
       python: "2.7"
       env:
       - SKIP_CHAINERX=1
-    - os: linux
+    - dist: trusty
       python: "3.4"
       env:
       - SKIP_CHAINERX=1
-    - os: linux
+    - dist: xenial
       python: "3.5"
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
+      env:
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
     - os: osx
       language: generic
@@ -45,7 +41,7 @@ matrix:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      - MATRIX_EVAL="brew install gcc5"
+      - MATRIX_EVAL="brew install gcc5 && CC=gcc-5 && CXX=g++-5"
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
@@ -71,9 +67,9 @@ install:
   - if [[ $SKIP_CHAINERX != 1 ]]; then
       export CHAINER_BUILD_CHAINERX=1;
     fi
-  - CC=gcc-5 CXX=g++-5 MAKEFLAGS=-j2
+  - MAKEFLAGS=-j2
       pip install dist/*.tar.gz
-  - CC=gcc-5 CXX=g++-5 MAKEFLAGS=-j2
+  - MAKEFLAGS=-j2
       travis_wait pip install -U -e .[travis]
 
 script:
