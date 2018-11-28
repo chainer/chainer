@@ -20,6 +20,7 @@ class MemoryPoolTest;  // for unit-tests
 }  // namespace cuda_internal
 
 constexpr size_t kAllocationUnitSize = 512;
+constexpr size_t kCompactionThreashold = 512;
 
 enum class MallocStatus { kSuccess = 0, kErrorMemoryAllocation };
 
@@ -124,6 +125,7 @@ private:
     void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
     std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
     std::unique_ptr<Chunk> RemoveChunkFromFreeList(Chunk* chunk);
+    void CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end);
 
     int device_index_;
     std::unique_ptr<Allocator> allocator_;

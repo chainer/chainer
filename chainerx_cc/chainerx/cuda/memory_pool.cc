@@ -73,12 +73,33 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
     free_list.emplace_back(std::move(chunk));
 }
 
+void MemoryPool::CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end) {
+    for (;; --it_start) {
+        FreeList& free_list = it_start->second;
+        if (!free_list.empty()) {
+            ++it_start;
+            break;
+        }
+        if (it_start == free_bins_.begin()) {
+            break;
+        }
+    }
+    for (; it_end != free_bins_.end(); ++it_end) {
+        FreeList& free_list = it_end->second;
+        if (!free_list.empty()) {
+            break;
+        }
+    }
+    free_bins_.erase(it_start, it_end);
+}
+
 // Finds best-fit, or a smallest larger allocation if available
 //
 // Not thread-safe
 std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
-    auto it = free_bins_.lower_bound(allocation_size);
-    for (; it != free_bins_.end(); ++it) {
+    auto it_start = free_bins_.lower_bound(allocation_size);
+    size_t distance{0};
+    for (auto it = it_start; it != free_bins_.end(); ++it, ++distance) {
         FreeList& free_list = it->second;
         if (free_list.empty()) {
             continue;
@@ -86,9 +107,8 @@ std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
         std::unique_ptr<Chunk> chunk = std::move(free_list.back());
         CHAINERX_ASSERT(chunk != nullptr);
         free_list.pop_back();
-        // Compact free_bins
-        if (free_list.empty()) {
-            free_bins_.erase(it);
+        if (distance > kCompactionThreashold) {
+            CompactFreeBins(it_start, it);
         }
         return chunk;
     }
