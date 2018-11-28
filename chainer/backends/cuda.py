@@ -166,8 +166,11 @@ class GpuDevice(_backend.Device):
 
     @staticmethod
     def from_device_id(device_id):
+        check_cuda_available()
+
         if not (isinstance(device_id, _integer_types) and device_id >= 0):
             raise ValueError('Invalid CUDA device ID: {}'.format(device_id))
+
         return GpuDevice(Device(device_id))
 
     @staticmethod

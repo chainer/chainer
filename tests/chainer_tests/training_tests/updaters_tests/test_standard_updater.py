@@ -8,6 +8,7 @@ from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
+from chainer.testing import attr
 from chainer import training
 
 
@@ -217,8 +218,9 @@ class TestUpdaterCustomConverter(unittest.TestCase):
     def test_converter_given_int_negative(self):
         self.check_converter_all(-1)
 
+    @attr.gpu
     def test_converter_given_int_positive(self):
-        self.check_converter_all(2)
+        self.check_converter_all(9999)
 
     def check_converter_all(self, device):
         self.check_converter_in_arrays(device)
