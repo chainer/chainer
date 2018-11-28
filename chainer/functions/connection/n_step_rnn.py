@@ -25,32 +25,6 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
 
 
-class PointerArray(object):
-
-    def __init__(self, lst, back_pointer):
-        self._value = numpy.array(lst, dtype=numpy.intp)
-        # Store back_pointer to prevent the GC removes the original variable
-        self._back_pointer = back_pointer
-
-    @property
-    def data(self):
-        return self._value.ctypes.data
-
-
-def _make_tensor_descriptor_array(xs):
-    """Make an array of pointers denoting pointers of tensor descriptors.
-
-    """
-    descs = []
-    for x in xs:
-        if x.ndim < 3:
-            shape = x.shape + (1,) * (3 - x.ndim)
-            x = x.reshape(shape)
-        desc = cudnn.create_tensor_nd_descriptor(x)
-        descs.append(desc)
-    return PointerArray([d.value for d in descs], descs)
-
-
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Define RNN parameters using dict.
     _rnn_dirs = {
