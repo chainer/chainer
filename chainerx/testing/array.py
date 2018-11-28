@@ -86,9 +86,7 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     numpy.testing.assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
 
-def assert_allclose_ex(
-        x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
-        dtype_check=None, strides_check=None):
+def assert_allclose_ex(x, y, *args, **kwargs):
     """assert_allclose_ex(
            x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
            dtype_check=True, strides_check=True)
@@ -112,12 +110,14 @@ def assert_allclose_ex(
              checked.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
-    assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose)
+    dtype_check = kwargs.pop('dtype_check', None)
+    strides_check = kwargs.pop('strides_check', None)
+
+    assert_allclose(x, y, *args, **kwargs)
     _check_dtype_and_strides(x, y, dtype_check, strides_check)
 
 
-def assert_array_equal_ex(
-        x, y, err_msg='', verbose=True, dtype_check=None, strides_check=None):
+def assert_array_equal_ex(x, y, *args, **kwargs):
     """assert_array_equal_ex(
            x, y, err_msg='', verbose=True, dtype_check=True,
            strides_check=True)
@@ -137,5 +137,8 @@ def assert_array_equal_ex(
     .. seealso::
        :func:`numpy.testing.assert_array_equal`
     """
-    assert_array_equal(x, y, err_msg, verbose)
+    dtype_check = kwargs.pop('dtype_check', None)
+    strides_check = kwargs.pop('strides_check', None)
+
+    assert_array_equal(x, y, *args, **kwargs)
     _check_dtype_and_strides(x, y, dtype_check, strides_check)
