@@ -214,9 +214,7 @@ def _make_decorator(check_result_func, name, accept_error):
     return decorator
 
 
-def numpy_chainerx_allclose(
-        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
-        name='xp', dtype_check=None, strides_check=None, accept_error=()):
+def numpy_chainerx_allclose(**kwargs):
     """numpy_chainerx_allclose(
            *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
            name='xp', dtype_check=True, strides_check=True, accept_error=())
@@ -250,6 +248,16 @@ def numpy_chainerx_allclose(
 
     .. seealso:: :func:`chainerx.testing.assert_allclose_ex`
     """  # NOQA
+    rtol = kwargs.pop('rtol', 1e-7)
+    atol = kwargs.pop('atol', 0)
+    equal_nan = kwargs.pop('equal_nan', True)
+    err_msg = kwargs.pop('err_msg', '')
+    verbose = kwargs.pop('verbose', True)
+    name = kwargs.pop('name', 'xp')
+    dtype_check = kwargs.pop('dtype_check', None)
+    strides_check = kwargs.pop('strides_check', None)
+    accept_error = kwargs.pop('accept_error', ())
+
     def check_result_func(x, y):
         array.assert_allclose_ex(
             x, y, rtol, atol, equal_nan, err_msg, verbose,
@@ -258,9 +266,7 @@ def numpy_chainerx_allclose(
     return _make_decorator(check_result_func, name, accept_error)
 
 
-def numpy_chainerx_array_equal(
-        *, err_msg='', verbose=True, name='xp', dtype_check=None,
-        strides_check=None, accept_error=()):
+def numpy_chainerx_array_equal(**kwargs):
     """numpy_chainerx_array_equal(
            *, err_msg='', verbose=True, name='xp', dtype_check=True,
            strides_check=True, accept_error=()):
@@ -289,6 +295,13 @@ def numpy_chainerx_array_equal(
 
     .. seealso:: :func:`chainerx.testing.assert_array_equal_ex`
     """
+    err_msg = kwargs.pop('err_msg', '')
+    verbose = kwargs.pop('verbose', True)
+    name = kwargs.pop('name', 'xp')
+    dtype_check = kwargs.pop('dtype_check', None)
+    strides_check = kwargs.pop('strides_check', None)
+    accept_error = kwargs.pop('accept_error', ())
+
     def check_result_func(x, y):
         array.assert_array_equal_ex(
             x, y, err_msg, verbose, dtype_check=dtype_check,
