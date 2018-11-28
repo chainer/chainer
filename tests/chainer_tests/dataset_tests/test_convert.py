@@ -266,7 +266,6 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
 
         np_array = backend.CpuDevice().send(array)
         for x, y in zip(np_array, arrays):
-            assert x.dtype == expected_dtype
             numpy.testing.assert_array_equal(
                 x, numpy.array(y, dtype=expected_dtype))
 
