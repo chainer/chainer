@@ -118,13 +118,16 @@ public:
     void Free(void* ptr) noexcept override {
         intptr_t i = reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         capacity_ += static_cast<size_t>(i);
+        ++free_called_;
     }
 
     int malloc_called() const { return malloc_called_; }
+    int free_called() const { return free_called_; }
 
 private:
     size_t capacity_;
     int malloc_called_{0};
+    int free_called_{0};
 };
 
 class MemoryPoolTestForEachAllocator : public ::testing::TestWithParam<std::shared_ptr<MemoryPool>> {};
@@ -233,6 +236,26 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeMerge) {
     }
 }
 
+TEST_P(MemoryPoolTestForEachAllocator, MallocSizeIncreasing) {
+    MemoryPool& memory_pool = *GetParam();
+    void* ptr1 = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr1);
+
+    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 8);
+    memory_pool.Free(ptr2);
+    EXPECT_NE(ptr1, ptr2);
+}
+
+TEST_P(MemoryPoolTestForEachAllocator, MallocSizeDecreasing) {
+    MemoryPool& memory_pool = *GetParam();
+    void* ptr1 = memory_pool.Malloc(kAllocationUnitSize * 8);
+    memory_pool.Free(ptr1);
+
+    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr2);
+    EXPECT_EQ(ptr1, ptr2);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachAllocator,
         MemoryPoolTestForEachAllocator,
@@ -260,6 +283,42 @@ TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
     memory_pool.Free(ptr2);
 
     EXPECT_EQ(allocator->malloc_called(), 3);
+}
+
+TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeTail) {
+    // Do not free splitted blocks
+    static constexpr size_t kCapacity = cuda::kAllocationUnitSize * 4;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(kCapacity)};
+    auto allocator = dynamic_cast<const FixedCapacityDummyAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
+
+    void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr);
+
+    memory_pool.Malloc(kAllocationUnitSize * 2);
+    void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
+    memory_pool.Free(tail);
+    memory_pool.FreeUnusedBlocks();
+    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 2);
+    EXPECT_EQ(tail, ptr2);
+    EXPECT_EQ(allocator->free_called(), 0);
+}
+
+TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeHead) {
+    // Do not free splitted blocks
+    static constexpr size_t kCapacity = cuda::kAllocationUnitSize * 4;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(kCapacity)};
+    auto allocator = dynamic_cast<const FixedCapacityDummyAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
+
+    void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
+    memory_pool.Free(ptr);
+
+    void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
+    memory_pool.Malloc(kAllocationUnitSize * 2);
+    memory_pool.Free(head);
+    memory_pool.FreeUnusedBlocks();
+    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 2);
+    EXPECT_EQ(head, ptr2);
+    EXPECT_EQ(allocator->free_called(), 0);
 }
 
 }  // namespace
