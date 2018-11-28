@@ -730,7 +730,7 @@ class GradTestBase(object):
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            enable_double_backprop=True,
                            loss_scale=self.loss_scale)
-        y = sum(gxs)
+        y = chainer.functions.sum(chainer.functions.add(*gxs))
         ggxs = chainer.grad([y], self.xs)
 
         expected = self.expected_double_grad()
