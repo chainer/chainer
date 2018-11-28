@@ -29,14 +29,14 @@ class GradTable(object):
     lazily.
 
     Args:
-        load_if_new (bool): read ``grad_var`` of node when the node has not
-            been added.
+        load_if_new_leaf (bool): read ``grad_var`` of input node when the node
+            has not been added.
 
     """
 
-    def __init__(self, load_if_new=False):
+    def __init__(self, load_if_new_leaf=False):
         self.grads = {}
-        self._load_if_new = load_if_new
+        self._load_if_new_leaf = load_if_new_leaf
 
     def __setitem__(self, node, grad):
         assert node is not None
@@ -46,7 +46,7 @@ class GradTable(object):
         assert node is not None
         grads = self.grads
         if node not in grads:
-            if self._load_if_new and node.creator_node is None:
+            if self._load_if_new_leaf and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
                 grads[node] = _pure(node.grad_var)
@@ -60,7 +60,8 @@ class GradTable(object):
         grads = self.grads
         if node in grads:
             return _reduce(grads.pop(node))
-        if self._load_if_new:
+        if self._load_if_new_leaf and node.creator_node is None:
+            node._check_old_style_gradient()
             return node.grad_var
         else:
             return None

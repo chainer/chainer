@@ -969,7 +969,7 @@ Actual: {0}'''.format(type(data))
 
         cand_funcs = []
         seen_set = set()
-        grads = _backprop_utils.GradTable()
+        grads = _backprop_utils.GradTable(load_if_new_leaf=True)
 
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self._grad_var is None:
