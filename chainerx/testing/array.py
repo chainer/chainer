@@ -89,7 +89,7 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
 def assert_allclose_ex(x, y, *args, **kwargs):
     """assert_allclose_ex(
            x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
-           dtype_check=True, strides_check=True)
+           *, dtype_check=True, strides_check=True)
 
     Raises an AssertionError if two array_like objects are not equal up to a
     tolerance.
@@ -119,7 +119,7 @@ def assert_allclose_ex(x, y, *args, **kwargs):
 
 def assert_array_equal_ex(x, y, *args, **kwargs):
     """assert_array_equal_ex(
-           x, y, err_msg='', verbose=True, dtype_check=True,
+           x, y, err_msg='', verbose=True, *, dtype_check=True,
            strides_check=True)
 
     Raises an AssertionError if two array_like objects are not equal.
