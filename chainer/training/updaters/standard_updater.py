@@ -81,7 +81,8 @@ class StandardUpdater(_updater.Updater):
 
         if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target.to_device(device)
+                optimizer.target._to_device(
+                    device, skip_between_cupy_devices=True)
 
         self.converter = converter
         self.loss_func = loss_func
