@@ -67,8 +67,6 @@ Otherwise, there are three ways to specify a device:
 
 .. testcode::
 
-    import chainerx
-
     # Specify a backend name and a device index separately.
     chainerx.get_device('native', 0)
 
