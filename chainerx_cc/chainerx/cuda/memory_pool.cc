@@ -120,7 +120,7 @@ std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
 //
 // Not thread-safe
 std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
-    CHAINERX_ASSERT(chunk != nullptr && !chunk->in_use());
+    CHAINERX_ASSERT(chunk != nullptr);
 
     // Find an appropriate free list
     auto free_bins_it = free_bins_.find(chunk->bytesize());
@@ -237,7 +237,6 @@ void* MemoryPool::Malloc(size_t bytesize) {
     void* ptr = chunk->ptr();
     {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
-        chunk->SetInUse(true);
         in_use_.emplace(ptr, std::move(chunk));
     }
     return ptr;
@@ -257,25 +256,24 @@ void MemoryPool::Free(void* ptr) {
         }
         chunk = std::move(it->second);
         in_use_.erase(it);
-        chunk->SetInUse(false);
     }
 
     CHAINERX_ASSERT(chunk != nullptr);
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
 
-        if (chunk->next() != nullptr && !chunk->next()->in_use()) {
+        if (chunk->next() != nullptr) {
             std::unique_ptr<Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
             if (chunk_next != nullptr) {
                 chunk->MergeWithNext();
             }
         }
-        if (chunk->prev() != nullptr && !chunk->prev()->in_use()) {
+        if (chunk->prev() != nullptr) {
             std::unique_ptr<Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
             if (chunk_prev != nullptr) {
                 chunk_prev->MergeWithNext();
+                chunk = std::move(chunk_prev);
             }
-            chunk = std::move(chunk_prev);
         }
         PushIntoFreeList(std::move(chunk));
     }

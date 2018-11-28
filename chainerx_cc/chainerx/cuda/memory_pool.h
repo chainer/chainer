@@ -77,7 +77,6 @@ public:
 
     void SetPrev(Chunk* prev) { prev_ = prev; }
     void SetNext(Chunk* next) { next_ = next; }
-    void SetInUse(bool in_use) { in_use_ = in_use; }
 
     void* ptr() const { return ptr_; }
     size_t bytesize() const { return bytesize_; }
@@ -85,14 +84,12 @@ public:
     Chunk* prev() { return prev_; }
     const Chunk* next() const { return next_; }
     Chunk* next() { return next_; }
-    bool in_use() const { return in_use_; }
 
 private:
     void* ptr_{nullptr};  // Memory address.
     size_t bytesize_{0};  // Chunk bytesize.
     Chunk* prev_{nullptr};  // Prev memory pointer if splitted from a larger allocation
     Chunk* next_{nullptr};  // Next memory pointer if splitted from a larger allocation
-    bool in_use_{false};  // Chunk is in use or not.
 };
 
 using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks w.r.t. same sizes
