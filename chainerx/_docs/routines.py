@@ -1207,6 +1207,7 @@ Note:
 
 .. admonition:: Example
 
+    >>> import chainerx
     >>> n = 10
     >>> c_i, c_o = 3, 1
     >>> d1, d2, d3 = 30, 40, 50
@@ -1320,6 +1321,7 @@ Note:
 
     **Example1**: the case when ``outsize`` is not given.
 
+    >>> import chainerx
     >>> n = 10
     >>> c_i, c_o = 3, 1
     >>> d1, d2, d3 = 5, 10, 15
