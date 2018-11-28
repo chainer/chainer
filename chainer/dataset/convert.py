@@ -49,6 +49,7 @@ def to_device(device, x):
     return device.send(x)
 
 
+# TODO(hvy): Write unit tests where batch elements contain Python lists.
 def concat_examples(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
@@ -162,8 +163,8 @@ def concat_examples(batch, device=None, padding=None):
 
 
 def _concat_arrays(arrays, padding):
-    # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
-    # types such as int or float.
+    # Convert `arrays` to a numpy.ndarray if `arrays` does not already contain
+    # numpy.ndarrays.
     if not isinstance(arrays[0], chainer.get_array_types()):
         arrays = numpy.asarray(arrays)
 
