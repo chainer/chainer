@@ -206,8 +206,8 @@ TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
     MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(kCapacity)};
     auto allocator = dynamic_cast<const FixedCapacityDummyAllocator*>(cuda_internal::MemoryPoolTest::GetAllocator(memory_pool));
 
-    size_t size1 = kCapacity;
-    size_t size2 = 1U;
+    size_t size1 = 1U;
+    size_t size2 = kCapacity;
 
     void* ptr1 = memory_pool.Malloc(size1);  // no throw
     memory_pool.Free(ptr1);

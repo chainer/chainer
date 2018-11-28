@@ -77,8 +77,8 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
 //
 // Not thread-safe
 std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
-    auto it_start = free_bins_.lower_bound(allocation_size);
-    for (auto it = it_start; it != free_bins_.end(); ++it) {
+    auto it = free_bins_.lower_bound(allocation_size);
+    for (; it != free_bins_.end(); ++it) {
         FreeList& free_list = it->second;
         if (free_list.empty()) {
             continue;
@@ -86,7 +86,10 @@ std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
         std::unique_ptr<Chunk> chunk = std::move(free_list.back());
         CHAINERX_ASSERT(chunk != nullptr);
         free_list.pop_back();
-        // TODO(sonots): Compact free_bins_ if it - it_start > threshold
+        // Compact free_bins
+        if (free_list.empty()) {
+            free_bins_.erase(it);
+        }
         return chunk;
     }
 
@@ -128,8 +131,10 @@ MemoryPool::~MemoryPool() {
 
     for (auto it = free_bins_.begin(); it != free_bins_.end(); ++it) {
         FreeList& free_list = it->second;
-        for (const std::unique_ptr<Chunk>& ptr : free_list) {
-            allocator_->Free(ptr.get());
+        for (const std::unique_ptr<Chunk>& chunk : free_list) {
+            if (chunk->prev() == nullptr) {
+                allocator_->Free(chunk->ptr());
+            }
         }
     }
     // Ideally, in_use_ should be empty, but it could happen that shared ptrs to memories allocated
@@ -137,8 +142,10 @@ MemoryPool::~MemoryPool() {
     // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
     // Operators of arrays holding such memories will be broken, but are not supported.
     for (const auto& item : in_use_) {
-        void* ptr = item.first;
-        allocator_->Free(ptr);
+        const std::unique_ptr<Chunk>& chunk = item.second;
+        if (chunk->prev() == nullptr) {
+            allocator_->Free(chunk->ptr());
+        }
     }
 
     cudaSetDevice(orig_device_index);
@@ -146,13 +153,28 @@ MemoryPool::~MemoryPool() {
 
 void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
-    std::lock_guard<std::mutex> lock{free_bins_mutex_};
-    for (auto it = free_bins_.begin(); it != free_bins_.end(); ++it) {
-        for (std::unique_ptr<Chunk>& ptr : it->second) {
-            allocator_->Free(ptr.get());
+
+    for (auto free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
+        FreeList& free_list = free_bins_it->second;
+        for (auto free_list_it = free_list.begin(); free_list_it != free_list.end();) {
+            std::unique_ptr<Chunk>& chunk = *free_list_it;
+            if (chunk->next() == nullptr && chunk->prev() == nullptr) {
+                allocator_->Free(chunk->ptr());
+                free_list_it = free_list.erase(free_list_it);
+            } else {
+                ++free_list_it;
+            }
+        }
+        // Compact free_bins
+        if (free_list.empty()) {
+            free_bins_it = free_bins_.erase(free_bins_it);
+        } else {
+            ++free_bins_it;
         }
     }
-    free_bins_.clear();
+    if (free_bins_.empty()) {
+        free_bins_.clear();
+    }
 }
 
 void* MemoryPool::Malloc(size_t bytesize) {
