@@ -1,5 +1,7 @@
 name: chainer
 type: sphinx
 base: docs/source
+conda:
+  file: docs/environment.yml
 python:
   setup_py_install: true
