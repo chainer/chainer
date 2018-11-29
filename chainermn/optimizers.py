@@ -167,7 +167,9 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
         else:
             buffers_i = self.buffers_i
             buffer = self.buffers[buffers_i]
+            print('rank {} aggregate buffer'.format(self.communicator.rank))
             buffer.aggregate_grads(self.communicator)
+            print('rank {} sync and clear'.format(self.communicator.rank))
             self.synchronize()
             self.clear_buffers()
             self.actual_optimizer.update(None, *args, **kwds)
@@ -187,7 +189,7 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
 
 
     def post_backward_hook(self, param):
-        print('call post backward hook')
+        print('rank {} call post backward hook'.format(self.communicator.rank))
         if not self.needs_bcast:
             self.append_to_buffer(param)
 
@@ -195,6 +197,7 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
         buffers_i = self.buffers_i
         buffer = self.buffers[buffers_i]
         if not buffer.can_append_param(param):
+            print('rank {} aggregate buffer'.format(self.communicator.rank))
             buffer.aggregate_grads(self.communicator)
             buffers_i += 1
             if len(self.buffers) == buffers_i:
@@ -202,6 +205,7 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
                 self.buffers.append(buffer)
             super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
                 'buffers_i', buffers_i)
+        print('rank {} append buffer'.format(self.communicator.rank))
         buffer.append_param(param)
 
 
@@ -238,6 +242,9 @@ class GradBuffer(object):
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
         self.allreduce_grad_dtype = allreduce_grad_dtype
+        self.grad_dtype_to_allreduce_dtype_kernel = None
+        self.allreduce_dtype_to_grad_dtype_kernel = None
+        self.div_by_size = None
 
     def can_append_param(self, param):
         data_dtype = self.allreduce_grad_dtype
@@ -276,7 +283,7 @@ class GradBuffer(object):
 
         self._pack_params_to_buffer(self.params, grad_dtype, allreduce_grad_dtype,
                                     n_elems, stream)
-        self.nccl_comm.allReduce(self.gpu_buffer_a.ptr(),
+        communicator.nccl_comm.allReduce(self.gpu_buffer_a.ptr(),
                                  self.gpu_buffer_b.ptr(), n_elems,
                                  _get_nccl_type_id(allreduce_grad_dtype),
                                  nccl.NCCL_SUM,
@@ -285,7 +292,7 @@ class GradBuffer(object):
             self.div_by_size = chainer.cuda.cupy.ElementwiseKernel(
                 '{} x'.format(allreduce_grad_dtype.name),
                 '{} y'.format(allreduce_grad_dtype.name),
-                'y = x*(1.0/{})'.format(self.size), 'div_by_size')
+                'y = x*(1.0/{})'.format(communicator.size), 'div_by_size')
         self.div_by_size(
             self.gpu_buffer_b.array(n_elems,
                                     dtype=allreduce_grad_dtype),
