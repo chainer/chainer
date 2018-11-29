@@ -1112,6 +1112,10 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         else:
             add_cand(func)
 
+    # Fix F812 (Python 2)
+    y = None
+    del y
+
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
