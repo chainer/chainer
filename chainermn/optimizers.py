@@ -234,8 +234,9 @@ class GradBuffer(object):
         self.memory_size = 0
         self.max_memory_size = max_memory_size
         self.params = []
-        self.src_array = _memory_utility.DeviceMemory()
-        self.dest_array = _memory_utility.DeviceMemory()
+        self.gpu_tmp_buffer = _memory_utility.DeviceMemory()
+        self.gpu_buffer_a = _memory_utility.DeviceMemory()
+        self.gpu_buffer_b = _memory_utility.DeviceMemory()
         self.allreduce_grad_dtype = allreduce_grad_dtype
 
     def can_append_param(self, param):
@@ -294,7 +295,23 @@ class GradBuffer(object):
         self._unpack_params_from_buffer(self.params, grad_dtype,
                                         allreduce_grad_dtype, n_elems, stream)
 
+    def _assign_for_allreduce_grad(self, grad_dtype, allreduce_grad_dtype,
+                                   n_elems):
+        allreduce_grad_n_bytes = allreduce_grad_dtype.itemsize * n_elems
+        needs_sync = False
+        if self.gpu_buffer_a.size != allreduce_grad_n_bytes:
+            self.gpu_buffer_a.assign(allreduce_grad_n_bytes)
+            needs_sync = True
+        if self.gpu_buffer_b.size != allreduce_grad_n_bytes:
+            self.gpu_buffer_b.assign(allreduce_grad_n_bytes)
+            needs_sync = True
 
+        if grad_dtype != allreduce_grad_dtype:
+            grad_n_bytes = grad_dtype.itemsize * n_elems
+            if self.gpu_tmp_buffer.size != grad_n_bytes:
+                self.gpu_tmp_buffer.assign(grad_n_bytes)
+                needs_sync = True
+        return needs_sync
         
     def _pack_params_to_buffer(self, params, grad_dtype, allreduce_grad_dtype,
                                n_elems, stream):
