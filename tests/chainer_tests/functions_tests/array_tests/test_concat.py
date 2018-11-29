@@ -68,6 +68,9 @@ class TestConcat(unittest.TestCase):
 
         self.y_expected = y
         self.inputs = xs
+        self.grad_outputs = [
+            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
+        ]
         self.check_backward_options = {
             'dtype': numpy.float64,
             'atol': 1e-4, 'rtol': 1e-4,
@@ -101,12 +104,7 @@ class TestConcat(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_backward(self, backend_config):
-        grad_outputs = [
-            numpy.random.uniform(
-                -1, 1, self.y_expected.shape
-            ).astype(self.dtype)
-        ]
-        self.check_backward(self.inputs, grad_outputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
 
 class TestConcatInvalidAxisType(unittest.TestCase):

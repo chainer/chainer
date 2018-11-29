@@ -141,6 +141,10 @@ class TestSplitAxis(unittest.TestCase):
         x = numpy.arange(numpy.prod(shape), dtype=dtype).reshape(shape)
         self.ys_expected = [x[s] for s in self.slices]
         self.inputs = [x]
+        self.grad_outputs = [
+            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
+            for y in self.ys_expected
+        ]
         self.check_backward_options = {
             'dtype': numpy.float64,
             'atol': 1e-4, 'rtol': 1e-4,
@@ -179,11 +183,7 @@ class TestSplitAxis(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_backward(self, backend_config):
-        grad_outputs = [
-            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
-            for y in self.ys_expected
-        ]
-        self.check_backward(self.inputs, grad_outputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
 
 @inject_backend_tests(['test_backward'])
