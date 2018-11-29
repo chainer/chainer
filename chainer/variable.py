@@ -907,9 +907,7 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g)
-
+        _check_grad_type(None, self, False, g, False)
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
