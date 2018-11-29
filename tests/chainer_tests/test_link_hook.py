@@ -179,11 +179,11 @@ class TestLinkHook(unittest.TestCase):
     def test_local_hook_unnamed(self):
         self._check_local_hook(None, 'MyLinkHook')
 
-    def test_link_addhook(self):
+    def test_addhook_returns_self(self):
         model, x, dot = self._create_model_and_data()
         hook = MyLinkHook()
-        model = model.add_hook(hook)
-        assert model is not None and isinstance(model, chainer.Chain)
+        ret = model.add_hook(hook)
+        assert ret is model
 
     def test_global_hook_delete(self):
         # Deleted hook should not be called
