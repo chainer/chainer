@@ -334,13 +334,7 @@ class BaseNStepRNN(function.Function):
 
 class BaseNStepRNNEx(function.Function):
 
-    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
-        if kwargs:
-            argument.check_unexpected_kwargs(
-                kwargs, train='train argument is not supported anymore. '
-                'Use chainer.using_config')
-            argument.assert_kwargs_empty(kwargs)
-
+    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode):
         if rnn_dir not in _rnn_dirs:
             candidate_list = ','.join(_rnn_dirs.keys())
             raise ValueError('Invalid rnn_dir: "%s". Please select from [%s]'
