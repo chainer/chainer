@@ -1,6 +1,7 @@
 install(FILES
     native_device.h
     native_backend.h
+    native_float16.h
     elementwise.h
     reduce.h
     col2im.h
@@ -25,6 +26,7 @@ add_library(chainerx_native STATIC
     native_device/pool.cc
     native_device/reduction.cc
     native_backend.cc
+    native_float16.cc
     col2im.cc
     im2col.cc
     tensor_dot.cc)
@@ -56,6 +58,7 @@ if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_native_test
       native_backend_test.cc
       native_device_test.cc
+      native_float16_test.cc
   )
   target_link_libraries(chainerx_native_test
       chainerx
