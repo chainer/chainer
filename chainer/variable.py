@@ -1086,17 +1086,8 @@ Actual: {0}'''.format(type(data))
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    self, = outputs
-
-    self._node._check_old_style_gradient()
-    if self.creator_node is None:
-        return
-
     cand_funcs = []
     seen_set = set()
-    grads = _backprop_utils.GradTable(load_if_new=True)
-
-    grads[self._node] = self._grad_var
 
     def add_cand(cand):
         if cand not in seen_set:
@@ -1104,8 +1095,22 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
             seen_set.add(cand)
 
-    add_cand(self.creator_node)
+    grads = _backprop_utils.GradTable(load_if_new=True)
+
+    root_nodes = set()
     leaf_nodes = set()
+
+    for y_var in outputs:
+        y = y_var.node
+        root_nodes.add(y)
+        grads[y] = y_var.grad_var
+
+        y._check_old_style_gradient()
+        func = y.creator_node
+        if func is None:  # leaf
+            leaf_nodes.add(y)
+        else:
+            add_cand(func)
 
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
@@ -1150,7 +1155,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 hook.backward_postprocess(func, in_data, out_grad_array)
 
         for y, gy in six.moves.zip(outputs, out_grad):
-            if y is not None and y is not self.node:
+            if y is not None and y not in root_nodes:
                 y._set_grad_var_if_available(
                     gy if retain_grad else None)
         del gy, out_grad  # to reduce memory usage

@@ -54,13 +54,11 @@ class Forget(function_node.FunctionNode):
         with function.force_backprop_mode():
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
-            if len(outs) > 1:
-                # Avoid doing backward multiple times when `outs` is a tuple
-                outs = chainer.functions.identity(*outs)
 
         for out, grad_output in zip(outs, grad_outputs):
             out.grad_var = grad_output
-        outs[0].backward()
+        # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
+        chainer.variable._backprop_to_all(outs, False, None)
 
         return tuple([inp.grad_var for inp in dummy_inputs])
 
