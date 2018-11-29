@@ -11,11 +11,6 @@ from chainer.testing import attr
 from chainer.testing import backend
 
 
-def _to_noncontiguous(arrays):
-    xp = chainer.backend.get_array_module(*arrays)
-    return [xp.asfortranarray(a) for a in arrays]
-
-
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -33,7 +28,12 @@ def _to_noncontiguous(arrays):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
-    }))
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestReLU(unittest.TestCase):
 
     def setUp(self):
@@ -56,13 +56,18 @@ class TestReLU(unittest.TestCase):
         expected[expected < 0] = 0
         return expected,
 
-    def check_forward(self, inputs, backend_config):
+    def test_forward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = self.inputs
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
+
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
+            inputs = testing.array._as_noncontiguous_array(inputs)
 
         x_data, = inputs
         x = chainer.Variable(x_data)
@@ -72,35 +77,44 @@ class TestReLU(unittest.TestCase):
 
         testing.assert_allclose(y_expected, y.data)
 
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
+    def test_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        inputs = self.inputs
+        grad_outputs = self.grad_outputs
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
+            inputs = testing.array._as_noncontiguous_array(inputs)
+            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
 
         with backend_config:
             gradient_check.check_backward(
                 functions.relu, inputs, grad_outputs, dtype=numpy.float64,
                 **self.check_backward_options)
 
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
+    def test_double_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        inputs = self.inputs
+        grad_outputs = self.grad_outputs
+        grad_grad_inputs = self.grad_grad_inputs
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
+
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
-            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+            inputs = testing.array._as_noncontiguous_array(inputs)
+            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
+            grad_grad_inputs = (
+                testing.array._as_noncontiguous_array(grad_grad_inputs))
 
         x, = inputs
         gy, = grad_outputs
@@ -109,11 +123,6 @@ class TestReLU(unittest.TestCase):
             gradient_check.check_double_backward(
                 functions.relu, x, gy, ggx, dtype=numpy.float64,
                 **self.check_double_backward_options)
-
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
 
 
 @testing.parameterize(*testing.product({
