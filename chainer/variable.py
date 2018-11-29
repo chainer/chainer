@@ -959,10 +959,6 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        self._node._check_old_style_gradient()
-        if self.creator_node is None:
-            return
-
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self._grad_var is None:
             if self.array.ndim != 0:
@@ -1091,6 +1087,10 @@ Actual: {0}'''.format(type(data))
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
     self, = outputs
+
+    self._node._check_old_style_gradient()
+    if self.creator_node is None:
+        return
 
     cand_funcs = []
     seen_set = set()
