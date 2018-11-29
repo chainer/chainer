@@ -6,12 +6,13 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.testing import condition
+import chainerx
 
 
 def _uniform(*shape):
@@ -19,12 +20,12 @@ def _uniform(*shape):
 
 
 def _full_like(x, val):
-    xp = backend.get_array_module(x)
+    xp = chainer.backend.get_array_module(x)
     return xp.full_like(x, val)
 
 
 def _zeros_like(x):
-    xp = backend.get_array_module(x)
+    xp = chainer.backend.get_array_module(x)
     return xp.zeros_like(x)
 
 
@@ -109,11 +110,11 @@ class NumericalGradientTest3(NumericalGradientTest):
     eps = (1e-2, 1e-3)
 
     def f(self, xs):
-        xp = backend.get_array_module(*xs)
+        xp = chainer.backend.get_array_module(*xs)
         return xp.exp(xs[0]),
 
     def df(self, xs):
-        xp = backend.get_array_module(*xs)
+        xp = chainer.backend.get_array_module(*xs)
         return (xp.exp(xs[0]),),
 
     def setUp(self):
@@ -351,7 +352,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         self.ignore_warning = getattr(self, 'ignore_warning', None)
 
     def _func_zero(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         return xp.zeros_like(x),
 
     def _func_linear(self, x):
@@ -367,7 +368,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         return abs(x),
 
     def _func_step(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         y = xp.zeros_like(x)
         y[x > 0] = 1
         return y,
@@ -377,23 +378,23 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         return y,
 
     def _func_floor(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         return xp.floor(x),
 
     def _func_exp(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         return xp.exp(x),
 
     def _func_log(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         return xp.log(x),
 
     def _func_tan(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         return xp.tan(x),
 
     def _func_nan_segment(self, x):
-        xp = backend.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         y = xp.ones_like(x)
         y[-1 < x < 1] = numpy.nan
         return y,
@@ -549,13 +550,19 @@ class Ident(chainer.Function):
 @testing.parameterize(*testing.product({
     'dtype': [None, numpy.float32, numpy.float64],
 }))
+@backend.inject_backend_tests(None, [
+    {},
+    {'use_cuda': True},
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+])
 class TestCheckBackward(unittest.TestCase):
 
-    def test_multiple_output(self):
-        x1 = numpy.array([1], dtype='f')
-        x2 = numpy.array([1], dtype='f')
-        g1 = numpy.array([1], dtype='f')
-        g2 = numpy.array([1], dtype='f')
+    def test_multiple_output(self, backend_config):
+        x1 = backend_config.get_array(numpy.array([1], dtype='f'))
+        x2 = backend_config.get_array(numpy.array([1], dtype='f'))
+        g1 = backend_config.get_array(numpy.array([1], dtype='f'))
+        g2 = backend_config.get_array(numpy.array([1], dtype='f'))
 
         def f(x, y):
             s, t = Ident()(x, y)
@@ -565,10 +572,14 @@ class TestCheckBackward(unittest.TestCase):
         gradient_check.check_backward(
             f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
-    def test_no_grads_for_not_float(self):
-        x1 = numpy.array([1], dtype='f')
-        x2 = numpy.array([0, 1], dtype='i')  # grad check for this is skipped
-        g1 = numpy.array([1], dtype='f')
+    def test_no_grads_for_not_float(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'gradient_check does not support no_grad option for ChainerX')
+        x1 = backend_config.get_array(numpy.array([1], dtype='f'))
+        # grad check for this is skipped
+        x2 = backend_config.get_array(numpy.array([0, 1], dtype='i'))
+        g1 = backend_config.get_array(numpy.array([1], dtype='f'))
 
         def f(x, y):
             # Integer data is not casted even when dtype is given
@@ -578,29 +589,54 @@ class TestCheckBackward(unittest.TestCase):
 
         gradient_check.check_backward(f, (x1, x2), g1, dtype=self.dtype)
 
-    def test_no_grads_option(self):
-        x1 = numpy.array([1], dtype='f')
-        x2 = numpy.array([1], dtype='f')  # grad check for this is skipped
-        g1 = numpy.array([1], dtype='f')
+    def test_no_grads_option(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'gradient_check does not support no_grad option for ChainerX')
+        x1 = backend_config.get_array(numpy.array([2], dtype='f'))
+        # grad check for this is skipped
+        x2 = backend_config.get_array(numpy.array([3], dtype='f'))
+        g1 = backend_config.get_array(numpy.array([5], dtype='f'))
 
         def f(x, y):
-            s = x + y.array
+            y_array = y.array
+            if (backend_config.xp is chainerx
+                    and isinstance(y_array, chainerx.ndarray)):
+                y_array = y_array.as_grad_stopped()
+            s = x + y_array
             return s,
 
         self.assertRaises(
             RuntimeError,  # backward computes x1.grad
             gradient_check.check_backward,
             f, (x1, x2), g1, no_grads=[True, True])
+
+    def test_const_input(self, backend_config):
+        x1 = backend_config.get_array(numpy.array([2], dtype='f'))
+        # grad check for this is skipped
+        x2 = backend_config.get_array(numpy.array([3], dtype='f'))
+        g1 = backend_config.get_array(numpy.array([5], dtype='f'))
+
+        def f(x, y):
+            y_array = y.array
+            if (backend_config.xp is chainerx
+                    and isinstance(y_array, chainerx.ndarray)):
+                y_array = y_array.as_grad_stopped()
+            s = x + y_array
+            return s,
+
         self.assertRaises(
             AssertionError,  # numerical backward to x2 is nonzero
             gradient_check.check_backward,
             f, (x1, x2), g1, no_grads=[False, False])
-        gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
-    def test_no_grads_option_with_dtype(self):
-        x1 = numpy.array([1], dtype='f')
-        x2 = numpy.array([1], dtype='f')
-        g1 = numpy.array([1], dtype='f')
+    def test_no_grads_option_with_dtype(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'gradient_check does not support no_grad option for ChainerX')
+        x1 = backend_config.get_array(numpy.array([1], dtype='f'))
+        x2 = backend_config.get_array(numpy.array([1], dtype='f'))
+        g1 = backend_config.get_array(numpy.array([1], dtype='f'))
         eps = 1e-3
 
         def f(x, y):
@@ -755,11 +791,18 @@ class NewIdent(chainer.FunctionNode):
         return NewIdent().apply(grad_outputs)
 
 
+@backend.inject_backend_tests(None, [
+    {},
+    {'use_cuda': True},
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+])
 class TestCheckDoubleBackward(unittest.TestCase):
 
-    def check_multiple_input_output(self, xp):
-        arrays = xp.ones((6, 1), dtype='f')
-        x1, x2, gy1, gy2, ggx1, ggx2 = arrays
+    def check_multiple_input_output(self, backend_config):
+        x1, x2, gy1, gy2, ggx1, ggx2 = [
+            backend_config.get_array(numpy.ones((2, 3), 'f'))
+            for _ in range(6)]
 
         def f(x, y):
             w1 = x + y
@@ -770,16 +813,17 @@ class TestCheckDoubleBackward(unittest.TestCase):
             f, (x1, x2), (gy1, gy2),
             (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
-    def test_multiple_input_output_cpu(self):
-        self.check_multiple_input_output(numpy)
+    def test_multiple_input_output(self, backend_config):
+        self.check_multiple_input_output(backend_config)
 
-    @attr.gpu
-    def test_multiple_input_output_gpu(self):
-        self.check_multiple_input_output(cuda.cupy)
-
-    def check_double_backward_with_params(self, xp):
-        arrays = xp.ones((5, 1), dtype='f')
-        x, gy, ggx, param_a, ggparam = arrays
+    def check_double_backward_with_params(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'ChainerX does not support params argument of '
+                'gradient_check.check_double_backward().')
+        x, gy, ggx, param_a, ggparam = [
+            backend_config.get_array(numpy.ones((2, 3), 'f'))
+            for _ in range(5)]
 
         param = chainer.Variable(param_a)
 
@@ -789,12 +833,8 @@ class TestCheckDoubleBackward(unittest.TestCase):
         gradient_check.check_double_backward(
             f, x, gy, ggx, param, ggparam, atol=1e-3, rtol=1e-3)
 
-    def test_double_backward_with_params_cpu(self):
-        self.check_double_backward_with_params(numpy)
-
-    @attr.gpu
-    def test_double_backward_with_params_gpu(self):
-        self.check_double_backward_with_params(cuda.cupy)
+    def test_double_backward_with_params(self, backend_config):
+        self.check_double_backward_with_params(backend_config)
 
 
 testing.run_module(__name__, __file__)

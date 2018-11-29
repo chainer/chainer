@@ -2,6 +2,7 @@ import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Stack(function_node.FunctionNode):
@@ -33,6 +34,9 @@ class Stack(function_node.FunctionNode):
             # Old numpy does not have numpy.stack.
             return xp.concatenate(
                 [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
+
+    def forward_chainerx(self, xs):
+        return chainerx.stack(xs, self.axis),
 
     def backward(self, inputs, grads):
         return chainer.functions.separate(grads[0], self.axis)
