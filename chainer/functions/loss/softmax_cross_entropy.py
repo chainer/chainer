@@ -2,11 +2,13 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 def _broadcast_to(array, shape):
@@ -79,7 +81,39 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             x_type.shape[2:] == t_type.shape[1:],
         )
 
+    def _is_chainerx_supported(self, input_arrays):
+        # Determines if the specified configuration of inputs and parameters
+        # are supported in `forward_chainerx` implementation.
+        # TODO(niboshi): Support these conditions.
+        if self.class_weight is not None:
+            return False
+        if self.ignore_label != -1:
+            return False
+        if self.reduce != 'mean':
+            return False
+
+        x, t = input_arrays
+
+        if x.ndim != 2:
+            return False
+
+        return True
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Current implementation is only intended to support
+        # MNIST example.
+        x, t = inputs
+        num_classes = x.shape[1]
+        score = chainerx.log_softmax(x, axis=1)
+        mask = (t[:, chainerx.newaxis] == chainerx.arange(
+            num_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
+        # TODO(beam2d): implement mean
+        y = -(score * mask).sum() * (1 / x.shape[0])
+        return y,
+
     def forward_cpu(self, inputs):
+        class_weight = backend.from_chainerx(self.class_weight)
+
         self.retain_inputs((0, 1))
         x, t = inputs
         if chainer.is_debug():
@@ -88,9 +122,9 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
-        if self.class_weight is not None:
+        if class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-            log_y *= _broadcast_to(self.class_weight.reshape(shape), x.shape)
+            log_y *= _broadcast_to(class_weight.reshape(shape), x.shape)
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
         t_valid = t != self.ignore_label
@@ -113,6 +147,8 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
+        class_weight = backend.from_chainerx(self.class_weight)
+
         self.retain_inputs((0, 1))
         cupy = cuda.cupy
         x, t = inputs
@@ -130,10 +166,9 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
-        if self.class_weight is not None:
+        if class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-            log_y *= cupy.broadcast_to(
-                self.class_weight.reshape(shape), x.shape)
+            log_y *= cupy.broadcast_to(class_weight.reshape(shape), x.shape)
         if self.normalize:
             coeff = cupy.maximum(1, (t != self.ignore_label).sum())
         else:
@@ -228,6 +263,8 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
         return gx,
 
     def forward_gpu(self, inputs_and_grad_outputs):
+        class_weight = cuda.to_gpu(self.class_weight)
+
         cupy = cuda.cupy
         x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
@@ -264,7 +301,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
                     gx = t == ignore_label ? 0 : coeff * (y - (c == t)) * w[t];
                 ''',
                 'softmax_crossent_weight_bwd')(
-                    y, self.class_weight, cupy.expand_dims(t, 1), coeff,
+                    y, class_weight, cupy.expand_dims(t, 1), coeff,
                     x.shape[1], n_unit, self.ignore_label)
 
         return gx,
@@ -278,7 +315,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
 
 
 def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
-                                           ignore_label, reduce):
+                                           ignore_label, reduce, is_chainerx):
     if isinstance(t, variable.Variable):
         t = t.data
 
@@ -293,6 +330,10 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
         shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
         class_weight = chainer.functions.broadcast_to(
             class_weight.reshape(shape), x.shape)
+        # TODO(niboshi): Remove this workaround after ChainerX supports
+        # type promotion.
+        if is_chainerx:
+            class_weight = chainer.functions.cast(class_weight, x.dtype)
         loss = loss * class_weight
 
     in_use = (t != ignore_label).astype(x.dtype)
@@ -403,11 +444,23 @@ for row, column in enumerate(t)])
 
     """
 
-    if enable_double_backprop:
-        return _double_backward_softmax_cross_entropy(
-            x, t, normalize, class_weight, ignore_label, reduce)
-    else:
+    is_chainerx = (
+        chainerx.is_available() and backend.get_array_module(x) is chainerx)
+
+    if is_chainerx or not enable_double_backprop:
+        # Optimized implementation.
+        # For non-ChainerX, forward and backward are supported but
+        # double-backprop is not supported.
+        # For ChainerX, even forward is supported for only specific
+        # configuration of inputs and parameters, which is tested with
+        # `SoftmaxCrossEntropy._is_chainerx_supported()`.
         func = SoftmaxCrossEntropy(
             normalize, cache_score, class_weight, ignore_label, reduce)
-        loss, = func.apply((x, t))
-        return loss
+
+        if not is_chainerx or func._is_chainerx_supported((x, t)):
+            loss, = func.apply((x, t))
+            return loss
+
+    # Generic double-backprop-enabled but unoptimized implementation
+    return _double_backward_softmax_cross_entropy(
+        x, t, normalize, class_weight, ignore_label, reduce, is_chainerx)
