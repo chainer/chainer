@@ -135,6 +135,7 @@ class _DoubleBufferingOptimizer(object):
 from chainermn.communicators.pure_nccl_communicator import _get_converting_kernel
 from chainermn.communicators.pure_nccl_communicator import _get_nccl_type_id
 from chainermn import nccl
+import numpy as np
 
 class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
     def __init__(self, actual_optimizer, communicator):
@@ -175,17 +176,18 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
 
     def setup(self, link):
         for param in link.params():
-            param.add_hook(lambda x:
-            print('hello!'), name='allreduce')
+            param.add_hook(self.post_backward_hook, name='append_to_buffer')
 
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
             'needs_bcast', True)
-
+        buffer = GradBuffer(max_memory_size=32*1024*1024, allreduce_grad_dtype=np.dtype('float32'))
+        self.buffers.append(buffer)
         self.actual_optimizer.setup(link)
         return self
 
 
     def post_backward_hook(self, param):
+        print('call post backward hook')
         if not self.needs_bcast:
             self.append_to_buffer(param)
 
@@ -196,7 +198,7 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
             buffer.aggregate_grads(self.communicator)
             buffers_i += 1
             if len(self.buffers) == buffers_i:
-                buffer = GradBuffer()
+                buffer = GradBuffer(max_memory_size=32*1024*1024, allreduce_grad_dtype=np.dtype('float32'))
                 self.buffers.append(buffer)
             super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
                 'buffers_i', buffers_i)
@@ -208,6 +210,9 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
             b.synchronize()
 
     def clear_buffers(self):
+        for b in self.buffers:
+            b.clear()
+
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
             'buffers_i', 0)
 
@@ -236,12 +241,14 @@ class GradBuffer(object):
     def can_append_param(self, param):
         data_dtype = self.allreduce_grad_dtype
         memory_size = param.data.size * data_dtype.itemsize
+        print(self.memory_size + memory_size, self.max_memory_size)
         return (self.memory_size + memory_size) <= self.max_memory_size
 
     def append_param(self, param):
         self.length += param.data.size
         data_dtype = self.allreduce_grad_dtype
         self.memory_size = self.length * data_dtype.itemsize
+        self.params.append(param)
 
     def get_memory_max_size(self):
         return self.max_memory_size
@@ -254,6 +261,7 @@ class GradBuffer(object):
 
     def aggregate_grads(self, communicator):
         communicator._init_comms()
+        assert len(self.params)
         grad_dtype = self.params[0].grad.dtype
         allreduce_grad_dtype = self.allreduce_grad_dtype
         assert grad_dtype == allreduce_grad_dtype
@@ -286,6 +294,8 @@ class GradBuffer(object):
         self._unpack_params_from_buffer(self.params, grad_dtype,
                                         allreduce_grad_dtype, n_elems, stream)
 
+
+        
     def _pack_params_to_buffer(self, params, grad_dtype, allreduce_grad_dtype,
                                n_elems, stream):
         if grad_dtype == allreduce_grad_dtype:
@@ -332,9 +342,14 @@ class GradBuffer(object):
                 params, grad_dtype.itemsize, 'grad', self.gpu_tmp_buffer,
                 stream=stream)
 
+    def clear(self):
+        self.params.clear()
+        self.length = 0
+        self.memory_size = 0
+        
     def synchronize(self):
         self.cuda_stream.synchronize()
-
+        
 
 def create_multi_node_optimizer(actual_optimizer, communicator,
                                 double_buffering=False):
