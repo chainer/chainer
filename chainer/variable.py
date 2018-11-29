@@ -969,10 +969,6 @@ Actual: {0}'''.format(type(data))
                 ('_assert_refs', assert_refs),
             )
 
-        self._node._check_old_style_gradient()
-        if self.creator_node is None:
-            return
-
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self._grad_var is None:
             if self.array.ndim != 0:
@@ -995,7 +991,7 @@ Actual: {0}'''.format(type(data))
         if not return_cont:
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
-                _backward_main([self], retain_grad, loss_scale)
+                _backprop_to_all([self], retain_grad, loss_scale)
             return
 
         ref_self = [self]
@@ -1015,7 +1011,7 @@ Actual: {0}'''.format(type(data))
                     outputs = list(outputs)
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
-                _backward_main(outputs, retain_grad, loss_scale)
+                _backprop_to_all(outputs, retain_grad, loss_scale)
 
         return cont
 
@@ -1150,7 +1146,7 @@ else:
             return self.dict.values()
 
 
-def _backward_main(outputs, retain_grad, loss_scale):
+def _backprop_to_all(outputs, retain_grad, loss_scale):
     cand_funcs = []
     seen_set = set()
 
@@ -1164,21 +1160,26 @@ def _backward_main(outputs, retain_grad, loss_scale):
     grads = _backprop_utils.GradTable(load_if_new=True)
 
     root_nodes = set()
+    leaf_nodes = set()
+
     for y_var in outputs:
         y = y_var.node
+        root_nodes.add(weakref.ref(y))
         grads[y] = y_var.grad_var
 
-        add_cand(y.creator_node)
-        root_nodes.add(weakref.ref(y))
-        del y_var, y
+        y._check_old_style_gradient()
+        func = y.creator_node
+        if func is None:  # leaf
+            leaf_nodes.add(y)
+        else:
+            add_cand(func)
+        del y_var, y, func
 
     if len(root_nodes) != len(outputs):
         raise RuntimeError('output variables should be distinct')
 
     # remove references
     del outputs[:]
-
-    leaf_nodes = set()
 
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
