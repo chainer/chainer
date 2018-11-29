@@ -2,4 +2,5 @@
 
 name: chainer-docs
 dependencies:
+  - python=3.5
   - cmake
