@@ -2,8 +2,8 @@ import unittest
 
 import numpy
 
-import chainer
 from chainer import functions
+from chainer import gradient_check
 from chainer import testing
 from chainer.testing import backend
 
@@ -72,6 +72,16 @@ class TestConcat(unittest.TestCase):
 
         self.y_expected = y
         self.inputs = xs
+        self.grad_outputs = [
+            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
+        ]
+        self.check_backward_options = {
+            'dtype': numpy.float64,
+            'atol': 1e-4, 'rtol': 1e-4,
+        }
+
+    def _forward(self, *inputs):
+        return functions.concat(inputs, self.axis)
 
     def check_forward(self, inputs, backend_config):
         # TODO(niboshi): Support it
@@ -81,7 +91,7 @@ class TestConcat(unittest.TestCase):
         inputs = backend_config.get_array(inputs)
 
         with backend_config:
-            y = functions.concat(inputs, axis=self.axis)
+            y = self._forward(*inputs)
 
         assert y.data.dtype == self.dtype
         testing.assert_allclose(self.y_expected, y.data, atol=0, rtol=0)
@@ -90,25 +100,21 @@ class TestConcat(unittest.TestCase):
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
 
-    def check_backward(self, inputs, backend_config):
+    def check_backward(self, inputs, grad_outputs, backend_config):
         # TODO(niboshi): Support it
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
         inputs = backend_config.get_array(inputs)
-
-        inputs = [chainer.Variable(x) for x in inputs]
+        grad_outputs = backend_config.get_array(grad_outputs)
 
         with backend_config:
-            y = functions.concat(inputs, axis=self.axis)
-            y.grad = y.data
-            y.backward()
-
-        for x in inputs:
-            testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+            gradient_check.check_backward(
+                self._forward, inputs, grad_outputs,
+                **self.check_backward_options)
 
     def test_backward(self, backend_config):
-        self.check_backward(self.inputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
 
 class TestConcatInvalidAxisType(unittest.TestCase):
