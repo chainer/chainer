@@ -108,6 +108,21 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
     endif()
 endif()
+
+# Compiler-specific workarounds
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    EXECUTE_PROCESS(COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string)
+    string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+
+    if(CLANG_VERSION_STRING VERSION_LESS 6.0)
+        # clang<6.0 suggests superfluous braces for std::array initialization.
+        # https://bugs.llvm.org/show_bug.cgi?id=21629
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
+    endif()
+endif()
+
+
 include_directories("${PROJECT_SOURCE_DIR}")
 
 # dl libs
