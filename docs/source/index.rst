@@ -17,6 +17,7 @@ Chainer -- A flexible framework of neural networks
    guides/index
    examples/index
    reference/index
+   chainerx/index
    chainermn/index
 
 .. toctree::

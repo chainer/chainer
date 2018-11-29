@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
+import chainerx
 
 
 def _matmul_tol(x1_dtype, x2_dtype):
@@ -129,6 +130,14 @@ class TestMatMul(unittest.TestCase):
     def test_matmul_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
 
+    @attr.chainerx
+    def test_matmul_forward_chainerx(self):
+        # TODO(sonots): Support it
+        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x1), chainerx.array(self.x2))
+
     def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
         gradient_check.check_backward(
             self.op, (x1_data, x2_data), y_grad, atol=atol, rtol=rtol,
@@ -142,6 +151,16 @@ class TestMatMul(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
             cuda.to_gpu(self.gy), atol=1e-2, rtol=1e-2)
+
+    @attr.chainerx
+    def test_matmul_backward_chainerx(self):
+        # TODO(sonots): Support it
+        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(
+            chainerx.array(self.x1), chainerx.array(self.x2),
+            chainerx.array(self.gy), atol=1e-2, rtol=1e-2)
 
     def check_double_backward(
             self, x1_data, x2_data, y_grad, x1_grad_grad, x2_grad_grad,
@@ -161,6 +180,17 @@ class TestMatMul(unittest.TestCase):
             cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
             cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx1),
             cuda.to_gpu(self.ggx2), atol=1e-2, rtol=1e-2)
+
+    @attr.chainerx
+    def test_matmul_double_backward_chainerx(self):
+        # TODO(sonots): Support it
+        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            chainerx.array(self.x1), chainerx.array(self.x2),
+            chainerx.array(self.gy), chainerx.array(self.ggx1),
+            chainerx.array(self.ggx2), atol=1e-2, rtol=1e-2)
 
 
 @testing.parameterize(*testing.product_dict(

@@ -4,6 +4,7 @@ import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Broadcast(function_node.FunctionNode):
@@ -84,6 +85,10 @@ class BroadcastTo(function_node.FunctionNode):
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
 
+    def broadcast_to(self, inputs):
+        x, = inputs
+        return chainerx.broadcast_to(x, self.shape),
+
     def forward(self, inputs):
         x, = inputs
         xp = backend.get_array_module(x)
@@ -129,5 +134,6 @@ def broadcast_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
+
     y, = BroadcastTo(shape).apply((x,))
     return y

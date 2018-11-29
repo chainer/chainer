@@ -1,9 +1,11 @@
 import numpy
 import six
 
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import serializer
+import chainerx
 
 
 class DictionarySerializer(serializer.Serializer):
@@ -46,12 +48,10 @@ class DictionarySerializer(serializer.Serializer):
 
     def __call__(self, key, value):
         key = key.lstrip('/')
-        ret = value
-        if isinstance(value, cuda.ndarray):
-            value = value.get()
-        arr = numpy.asarray(value)
-        self.target[self.path + key] = arr
-        return ret
+        self.target[self.path + key] = (
+            _cpu._to_cpu(value) if value is not None
+            else numpy.asarray(None))
+        return value
 
 
 def save_npz(file, obj, compression=True):
@@ -143,9 +143,11 @@ class NpzDeserializer(serializer.Deserializer):
         dataset = self.npz[key]
         if dataset[()] is None:
             return None
-
         if value is None:
             return dataset
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.to_numpy(value, copy=False)
+            numpy.copyto(value_view, dataset)
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):

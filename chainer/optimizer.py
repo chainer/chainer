@@ -5,12 +5,13 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 class Hyperparameter(object):
@@ -230,8 +231,11 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device_from_array(param.data) as dev:
-            if int(dev) == -1:
+        device = param.device
+        with chainer.using_device(device):
+            if device.xp is chainerx:
+                self.update_core_chainerx(param)
+            elif device.xp is numpy:
                 self.update_core_cpu(param)
             else:
                 self.update_core_gpu(param)
@@ -257,6 +261,62 @@ class UpdateRule(object):
 
         """
         raise NotImplementedError
+
+    def update_core_chainerx(self, param):
+        """Updates the ChainerX parameter.
+
+        This method can be overridden to implement custom update logic.
+        The default implementation is to convert the parameter to a
+        memory-shared NumPy/CuPy parameter and call the corresponding update
+        method.
+
+        See :meth:`update_core` for details.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        grad_array = param.grad
+        backend_name = param.array.device.backend.name
+        if backend_name == 'native':
+            update_core = self.update_core_cpu
+        elif backend_name == 'cuda':
+            update_core = self.update_core_gpu
+        else:
+            raise RuntimeError(
+                'Default implementation of Optimizer.update_core_chainerx is '
+                'only provided for native or cuda backends (actual: {}). '
+                'Override Optimizer.update_core_chainerx() to implement '
+                'custom update logic.'.format(backend_name))
+
+        # Convert state arrays to NumPy/CuPy
+        chainerx_state_arrays = {}
+        for state_name, st in self.state.items():
+            st = self.state[state_name]
+            if isinstance(st, chainerx.ndarray):
+                self.state[state_name] = backend.from_chainerx(st)
+                chainerx_state_arrays[state_name] = st
+
+        # Create a temporary parameter with memory-shared NumPy/CuPy array
+        # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
+        # cache and avoid redundant conversion. Else, create the cache here
+        # and use it.
+        if param._chainerx_fallback_array is None:
+            param._chainerx_fallback_array = backend.from_chainerx(
+                param.array)
+
+        temp_param = variable.Variable(param._chainerx_fallback_array)
+
+        if grad_array is not None:
+            temp_param._set_grad_without_check(
+                backend.from_chainerx(grad_array))
+
+        # Update
+        update_core(temp_param)
+
+        # Restore state arrays
+        for state_name, arr in chainerx_state_arrays.items():
+            self.state[state_name] = arr
 
     def init_state(self, param):
         """Initializes the state.
@@ -312,21 +372,17 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        with cuda.get_device_from_array(param.data) as device:
+        device = param.device
+        with chainer.using_device(device):
             state = self.state
             if state is None:
                 state = self._state = {}
                 self.init_state(param)
 
             for name, value in six.iteritems(state):
-                if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
+                if not isinstance(value, chainer.get_array_types()):
                     continue
-                value_device = cuda.get_device_from_array(value)
-                if value_device.id != device.id:
-                    if device.id >= 0:
-                        state[name] = cuda.to_gpu(value)
-                    else:
-                        state[name] = cuda.to_cpu(value)
+                state[name] = device.send(value)
 
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32.
@@ -644,9 +700,9 @@ class GradientMethod(Optimizer):
         """
         for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device_from_array(param.data):
-                    xp = backend.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+                device = param.device
+                with chainer.using_device(device):
+                    param.grad = device.xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""

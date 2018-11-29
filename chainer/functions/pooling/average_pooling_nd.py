@@ -11,6 +11,7 @@ from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
+import chainerx
 
 
 def _get_conv_slices(
@@ -72,6 +73,21 @@ class AveragePoolingND(pooling_nd._PoolingND):
         if xp is not numpy:
             width = cuda.cupy.array(width)
         return width
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        if x.device.backend.name == 'cuda' and self.ndim not in (2, 3):
+            return chainer.Fallback
+
+        if self.pad_value == 0:
+            pad_mode = 'zero'
+        elif self.pad_value is None:
+            pad_mode = 'ignore'
+        else:
+            assert False
+
+        return chainerx.average_pool(
+            x, self.ksize, self.stride, self.pad, pad_mode),
 
     def forward_cpu(self, inputs):
         x, = inputs

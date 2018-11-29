@@ -1,0 +1,164 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: ubuntu:xenial
+    working_directory: ~/work
+    steps:
+
+      - run:
+          name: Preparation
+          command: |
+            echo 'export WORK_DIR=~/work' >> $BASH_ENV
+            echo 'export REPO_DIR=~/repo' >> $BASH_ENV
+            echo 'export RUN_STEP="bash $REPO_DIR/chainerx_cc/scripts/ci/run-step.sh"' >> $BASH_ENV
+            echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx_cc' >> $BASH_ENV
+
+            # To avoid warning on checkout
+            apt-get update
+            apt-get install -y git openssh-client
+
+      # Checkout
+      - checkout:
+          path: ~/repo
+
+      # Setup
+      - run:
+          name: Setup
+          command: |
+            $RUN_STEP setup
+
+      # Checkout postprocess
+      - run:
+          name: Checkout postprocess
+          command: |
+            pushd "$REPO_DIR"
+
+            if [[ -n "${CIRCLE_PULL_REQUEST}" ]]
+            then
+                # CIRCLE_PR_NUMBER is available only if PR is created from a fork (unavailable if created from a branch).
+                # So, manually construct it from CIRCLE_PULL_REQUEST environment variable.
+                CIRCLE_PR_NUMBER=$(basename "${CIRCLE_PULL_REQUEST}")
+
+                # Update PR refs for testing.
+                FETCH_REFS="+master:master"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/head:pr/${CIRCLE_PR_NUMBER}/head"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/merge:pr/${CIRCLE_PR_NUMBER}/merge"
+
+                # Retrieve the refs
+                echo "git fetch -u origin ${FETCH_REFS}"
+                git fetch -u origin ${FETCH_REFS}
+
+                # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
+                echo "git checkout master"
+                git checkout master
+                git config user.name 'chainerx' # need to configure something to git merge
+                git config user.email 'chainerx@chainerx.org'
+                echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
+                git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
+            fi
+
+            popd
+
+      # Setup conda
+      - run:
+          name: Setup conda
+          command: |
+            $RUN_STEP setup_conda
+
+      # Environment info
+      - run:
+          name: Environment info
+          command: |
+            $RUN_STEP show_environment_info
+
+      # Setup conda environment
+      - run:
+          name: Setup conda environment
+          command: |
+            $RUN_STEP setup_conda_environment
+
+      # Python PEP-8 check
+      - run:
+          name: Python PEP-8 check
+          command: |
+            $RUN_STEP python_style_check
+
+      # ClangFormat
+      - run:
+          name: ClangFormat
+          command: |
+            $RUN_STEP clang_format
+
+      # cpplint
+      - run:
+          name: cpplint
+          command: |
+            $RUN_STEP cpplint
+
+      # Setup openblas
+      - run:
+          name: Setup openblas
+          command: |
+            $RUN_STEP setup_openblas
+
+      # cmake
+      - run:
+          name: cmake
+          command: |
+            $RUN_STEP cmake
+
+      # clang-tidy (normal source files)
+      # NOTE: We runs this only on master branch because it takes much time.
+      - run:
+          name: clang-tidy (normal source files)
+          command: |
+            if [[ "$CIRCLE_BRANCH" = "master" ]]; then
+              $RUN_STEP clang_tidy normal
+            fi
+
+      # clang-tidy (test source files)
+      # NOTE: We runs this only on master branch because it takes much time.
+      - run:
+          name: clang-tidy (test source files)
+          command: |
+            if [[ "$CIRCLE_BRANCH" = "master" ]]; then
+              $RUN_STEP clang_tidy test
+            fi
+
+      # make
+      - run:
+          name: make
+          command: |
+            MAKEFLAGS=-j2 $RUN_STEP make
+
+      # make install
+      - run:
+          name: make install
+          command: |
+            $RUN_STEP make_install
+
+      # C++ test
+      - run:
+          name: C++ test
+          command: |
+            $RUN_STEP ctest
+
+      # Python build
+      - run:
+          name: Python build
+          command: |
+            MAKEFLAGS=-j2 $RUN_STEP python_build
+
+      # Python test
+      - run:
+          name: Python test
+          command: |
+            $RUN_STEP python_test_chainerx_nocuda
+
+experimental:
+  notify:
+    branches:
+      only:
+        - nightly
+        - master
