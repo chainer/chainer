@@ -22,6 +22,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+      env:
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
     - os: osx
       language: generic
@@ -45,11 +47,14 @@ matrix:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      - MATRIX_EVAL="brew install gcc5"
+      - MATRIX_EVAL="brew install gcc5 && CC=gcc-5 && CXX=g++-5"
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
   - eval "${MATRIX_EVAL}"
+  - sudo apt-get install -y openmpi-bin
+  - sudo apt-get install -y openmpi-common
+  - sudo apt-get install -y libopenmpi-dev
   # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
   - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
       brew update >/dev/null;
@@ -77,6 +82,7 @@ install:
       travis_wait pip install -U -e .[travis]
 
 script:
+  - python -c 'from chainer import cuda; cuda.get_device_from_id'
   - flake8
   - autopep8 -r . --diff --exit-code
   # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
@@ -106,6 +112,3 @@ addons:
       - gfortran
       - libhdf5-serial-dev
       - liblapack-dev
-      - openmpi-bin
-      - openmpi-common
-      - libopenmpi-dev
