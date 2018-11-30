@@ -23,8 +23,8 @@ class SpatialTransformerSampler(function.Function):
         x_type = in_types[0]
         grid_type = in_types[1]
         type_check.expect(
-            x_type.dtype == numpy.float32,
-            grid_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
+            grid_type.dtype == x_type.dtype,
             x_type.ndim == 4,
             grid_type.ndim == 4,
             grid_type.shape[1] == 2,
@@ -53,8 +53,9 @@ class SpatialTransformerSampler(function.Function):
             cuda.cupy.cudnn.create_spatial_transformer_descriptor(
                 _sampler_type, grid.dtype, len(shape), shape.ctypes.data)
 
-        one = numpy.array(1, dtype=x.dtype).ctypes
-        zero = numpy.array(0, dtype=x.dtype).ctypes
+        dtype = numpy.float64 if x.dtype == numpy.float64 else numpy.float32
+        one = numpy.array(1, dtype=dtype).ctypes
+        zero = numpy.array(0, dtype=dtype).ctypes
         libcudnn.spatialTfSamplerForward(
             handle, self.st_desc.value, one.data,
             x_desc.value, x.data.ptr, grid_t.data.ptr, zero.data,
@@ -131,16 +132,17 @@ class SpatialTransformerSampler(function.Function):
         grid_t = cuda.cupy.ascontiguousarray(grid_t)
         x = cuda.cupy.ascontiguousarray(x)
         gy = cuda.cupy.ascontiguousarray(gy)
-        gx = cuda.cupy.empty_like(x)
-        ggrid_t = cuda.cupy.empty_like(grid_t)
+        gx = cuda.cupy.zeros_like(x)
+        ggrid_t = cuda.cupy.zeros_like(grid_t)
 
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
         dx_desc = cudnn.create_tensor_descriptor(gx)
         dy_desc = cudnn.create_tensor_descriptor(gy)
 
-        one = numpy.array(1, dtype=x.dtype).ctypes
-        zero = numpy.array(0, dtype=x.dtype).ctypes
+        dtype = numpy.float64 if x.dtype == numpy.float64 else numpy.float32
+        one = numpy.array(1, dtype=dtype).ctypes
+        zero = numpy.array(0, dtype=dtype).ctypes
         libcudnn.spatialTfSamplerBackward(
             handle, self.st_desc.value,
             one.data,

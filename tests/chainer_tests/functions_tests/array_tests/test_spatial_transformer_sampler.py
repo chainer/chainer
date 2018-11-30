@@ -42,6 +42,7 @@ def _rotate_BCHW(x):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerSampler(unittest.TestCase):
@@ -52,11 +53,11 @@ class TestSpatialTransformerSampler(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(
-            size=self.in_shape).astype(numpy.float32)
+            size=self.in_shape).astype(self.dtype)
         self.grid = numpy.random.uniform(
-            low=-2., high=2., size=self.grid_shape).astype(numpy.float32)
+            low=-2., high=2., size=self.grid_shape).astype(self.dtype)
         self.grads = numpy.random.uniform(
-            size=self.out_shape).astype(numpy.float32)
+            size=self.out_shape).astype(self.dtype)
 
     def check_forward(self, x, grid):
         y = functions.spatial_transformer_sampler(x, grid)
@@ -90,6 +91,10 @@ class TestSpatialTransformerSampler(unittest.TestCase):
                                 cuda.to_gpu(self.grads))
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_cudnn': ['always', 'never'],
+}))
 class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
 
     in_shape = (2, 2, 4, 4)
@@ -97,12 +102,16 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
     grid_shape = (2, 2, 3, 3)
 
     def setUp(self):
-        self.x = numpy.random.uniform(
-            size=self.in_shape).astype(numpy.float32)
+        self.x = numpy.random.uniform(size=self.in_shape).astype(self.dtype)
         self.grid = numpy.random.uniform(
-            low=-2, high=2, size=self.grid_shape).astype(numpy.float32)
+            low=-2, high=2, size=self.grid_shape).astype(self.dtype)
         self.grads = numpy.random.uniform(
-            size=self.out_shape).astype(numpy.float32)
+            size=self.out_shape).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.assert_options = {'atol': 5e-3}
+        else:
+            self.assert_options = {}
 
     def _apply_backward(self, x, grid, grads):
         x = Variable(x)
@@ -125,9 +134,12 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
                 cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
                 cuda.to_gpu(self.grads))
 
-        testing.assert_allclose(y_cpu.data, y_cudnn.data)
-        testing.assert_allclose(x_cpu.grad, x_cudnn.grad)
-        testing.assert_allclose(grid_cpu.grad, grid_cudnn.grad)
+        testing.assert_allclose(
+            y_cpu.data, y_cudnn.data, **self.assert_options)
+        testing.assert_allclose(
+            x_cpu.grad, x_cudnn.grad, **self.assert_options)
+        testing.assert_allclose(
+            grid_cpu.grad, grid_cudnn.grad, **self.assert_options)
 
     @attr.gpu
     @attr.cudnn
@@ -141,9 +153,12 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
                 cuda.to_gpu(self.x), cuda.to_gpu(self.grid),
                 cuda.to_gpu(self.grads))
 
-        testing.assert_allclose(y_gpu.data, y_cudnn.data)
-        testing.assert_allclose(x_gpu.grad, x_cudnn.grad)
-        testing.assert_allclose(grid_gpu.grad, grid_cudnn.grad)
+        testing.assert_allclose(
+            y_gpu.data, y_cudnn.data, **self.assert_options)
+        testing.assert_allclose(
+            x_gpu.grad, x_cudnn.grad, **self.assert_options)
+        testing.assert_allclose(
+            grid_gpu.grad, grid_cudnn.grad, **self.assert_options)
 
 
 @testing.parameterize(
