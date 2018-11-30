@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 import threading
 import warnings
 
@@ -23,12 +24,9 @@ from chainer import variable  # NOQA
 
 
 # import class and function
-# These functions from backends.cuda are kept for backward compatibility
 from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backend import get_device  # NOQA
 from chainer.backend import using_device  # NOQA
-from chainer.backends.cuda import should_use_cudnn  # NOQA
-from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
@@ -70,14 +68,33 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
-# Alias for backward compatibility
-from chainer import cuda  # NOQA
-
+import chainer as _chainer
 
 from chainer import _environment_check
 
 
 import chainerx
+
+
+# Aliases for backward compatibility
+from chainer.backends import cuda  # NOQA
+sys.modules['chainer.cuda'] = _chainer.backends.cuda
+
+_chainer.should_use_cudnn = _chainer.backends.cuda.should_use_cudnn
+_chainer.should_use_cudnn_tensor_core = \
+    _chainer.backends.cuda.should_use_cudnn_tensor_core
+_chainer.function.FunctionHook = _chainer.FunctionHook
+_chainer.training.trigger.IntervalTrigger = \
+    _chainer.training.triggers.IntervalTrigger
+_chainer.training.trigger.get_trigger = _chainer.training.util.get_trigger
+_chainer.training.trigger._never_fire_trigger = \
+    _chainer.training.util._never_fire_trigger
+_chainer.training.updater.ParallelUpdater = \
+    _chainer.training.updaters.ParallelUpdater
+_chainer.training.updater.StandardUpdater = \
+    _chainer.training.updaters.StandardUpdater
+_chainer.training.extensions.dump_graph = \
+    _chainer.training.extensions.computational_graph.DumpGraph
 
 
 # Check environment conditions

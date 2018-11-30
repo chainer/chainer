@@ -1,5 +1,5 @@
 from chainer import backend
-from chainer import cuda
+from chainer.backends import cuda
 
 
 class Lasso(object):

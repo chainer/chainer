@@ -1,6 +1,3 @@
-from chainer.training.triggers import interval_trigger
-
-
 def get_trigger(trigger):
     """Gets a trigger object.
 
@@ -31,6 +28,8 @@ def get_trigger(trigger):
         object made from ``trigger``.
 
     """
+    from chainer.training.triggers import interval_trigger
+
     if callable(trigger):
         return trigger
     elif trigger is None:

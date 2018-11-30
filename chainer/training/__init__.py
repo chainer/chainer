@@ -10,8 +10,8 @@ from chainer.training.extension import PRIORITY_EDITOR  # NOQA
 from chainer.training.extension import PRIORITY_READER  # NOQA
 from chainer.training.extension import PRIORITY_WRITER  # NOQA
 from chainer.training.trainer import Trainer  # NOQA
-from chainer.training.trigger import get_trigger  # NOQA
-from chainer.training.trigger import IntervalTrigger  # NOQA
-from chainer.training.updater import ParallelUpdater  # NOQA
-from chainer.training.updater import StandardUpdater  # NOQA
+from chainer.training.triggers import IntervalTrigger  # NOQA
 from chainer.training.updater import Updater  # NOQA
+from chainer.training.updaters import ParallelUpdater  # NOQA
+from chainer.training.updaters import StandardUpdater  # NOQA
+from chainer.training.util import get_trigger  # NOQA

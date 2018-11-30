@@ -6,8 +6,6 @@ import six
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
-# for backward compatibility
-from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
 from chainer import variable
 import chainerx

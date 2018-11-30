@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer.backends import cuda
 
 
 class WeightDecay(object):
