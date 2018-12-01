@@ -1,6 +1,10 @@
 ChainerX Documentation
 ======================
 
+.. Warning::
+
+   This feature is still in the earliest stage of its development. The behavior and interface are subject to change.
+
 ChainerX is an ndarray implementation with Define-by-Run automatic differentiation capability.
 It roughly corresponds to "NumPy/CuPy + Chainer Variable", while some additional features follow:
 
