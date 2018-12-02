@@ -84,7 +84,7 @@ script:
   - (for NP in 1 2; do mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
   - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      READTHEDOCS=True python setup.py develop;
+      python setup.py develop;
     fi
   - if [[ $SKIP_CHAINERX != 1 ]]; then
       pushd docs;
