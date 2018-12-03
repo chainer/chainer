@@ -4,7 +4,9 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
+import chainerx
 
 
 def as_vec(x):
@@ -63,3 +65,81 @@ def sum_to(x, shape):
     if lead > 0:
         y = y.squeeze(lead_axis)
     return y
+
+
+# Workaround for chainerx.ndarray advanced indexing.
+# This function is not differentiable.
+# TODO(hvy): Remove this function when chainerx.ndarray.__getitem__ supports
+# advanced indexing.
+def _getitem(arr, key):
+    try:
+        return arr[key]
+    except (IndexError, chainerx.DimensionError):
+        pass
+
+    if isinstance(arr, chainerx.ndarray):
+        arr = backend.from_chainerx(arr)
+        is_arr_chainerx = True
+    else:
+        is_arr_chainerx = False
+    if isinstance(key, chainerx.ndarray):
+        key = backend.from_chainerx(key)
+    if isinstance(arr, cuda.ndarray):
+        with arr.device:
+            ret = arr[key]
+    else:
+        ret = arr[key]
+    if is_arr_chainerx:
+        ret = backend.to_chainerx(ret)
+    return ret
+
+
+# Workaround for chainerx.ndarray advanced indexing.
+# This function is not differentiable.
+# TODO(hvy): Remove this function when chainer.ndarray.__setitem__ supports
+# advanced indexing.
+def _setitem(arr, key, value):
+    """Sets arr[key] to value by falling back to a non-ChainerX arrays.
+
+    Supports both basic and advanced indexing.
+
+    Note:
+
+        With the ``cuda`` backend, the behavior differs from NumPy when
+        integer arrays in ``slices`` reference the same location
+        multiple times. In that case, the value that is actually stored
+        is undefined.
+
+        >>> import chainerx
+        >>> chainerx.set_default_device('cuda:0')
+        >>> a = chainerx.zeros((2,), dtype=chainerx.float)
+        >>> i = chainerx.array([0, 1, 0, 1, 0, 1])
+        >>> v = chainerx.arange(6).astype(chainerx.float)
+        >>> a[i] = v
+        >>> a  # doctest: +SKIP
+        array([2., 3.], shape=(2,), dtype=float64, device='cuda:0')
+
+        On the other hand, NumPy and ``native`` backend store the value
+        corresponding to the last index among the indices referencing
+        duplicate locations.
+
+        >>> import numpy
+        >>> a_cpu = numpy.zeros((2,), dtype=numpy.float)
+        >>> i_cpu = numpy.array([0, 1, 0, 1, 0, 1])
+        >>> v_cpu = numpy.arange(6).astype(numpy.float)
+        >>> a_cpu[i_cpu] = v_cpu
+        >>> a_cpu
+        array([4., 5.])
+
+    """
+    if isinstance(arr, chainerx.ndarray):
+        arr = backend.from_chainerx(arr)
+    if isinstance(key, chainerx.ndarray):
+        key = backend.from_chainerx(key)
+    if isinstance(value, chainerx.ndarray):
+        value = backend.from_chainerx(value)
+    if isinstance(arr, cuda.ndarray):
+        with arr.device:
+            arr[key] = value
+    else:
+        arr[key] = value

@@ -74,6 +74,13 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"k": k, "theta": theta}, is_gpu)
         return distributions.Gamma(**params)
 
+    def make_gumbel_dist(self, is_gpu=False):
+        loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        scale = numpy.exp(
+            numpy.random.uniform(0, 1, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        return distributions.Gumbel(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -220,6 +227,18 @@ class TestKLDivergence(unittest.TestCase):
     def test_gamma_gamma_gpu(self):
         dist1 = self.make_gamma_dist(True)
         dist2 = self.make_gamma_dist(True)
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    def test_gumbel_gumbel_cpu(self):
+        dist1 = self.make_gumbel_dist()
+        dist2 = self.make_gumbel_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_gumbel_gumbel_gpu(self):
+        dist1 = self.make_gumbel_dist(True)
+        dist2 = self.make_gumbel_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):

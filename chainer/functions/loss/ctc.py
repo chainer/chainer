@@ -110,7 +110,8 @@ class ConnectionistTemporalClassification(function.Function):
 
     def __init__(self, blank_symbol, reduce='mean'):
         self.blank_symbol = blank_symbol
-        self.zero_padding = -10000000000.0
+        # Lazily initialized in the first forward computation for dtype
+        self.zero_padding = None
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
@@ -130,7 +131,7 @@ class ConnectionistTemporalClassification(function.Function):
             t_type.ndim == 2,
             t_type.dtype == numpy.int32,
             x_type.ndim == 3,
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
         )
         n_batch = x_type.shape[1]
         type_check.expect(
@@ -145,10 +146,10 @@ class ConnectionistTemporalClassification(function.Function):
         else:
             create_recurrence_relation = cuda.elementwise(
                 'T x, T e', 'T y',
-                'y = x == 0 ? e : log(x)',
+                'y = x == 0 ? e : (T)log(x)',
                 'create_recurrence_relation')
             res = create_recurrence_relation(x, self.zero_padding)
-        return res.astype(numpy.float32, copy=False)
+        return res.astype(x.dtype, copy=False)
 
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
@@ -191,8 +192,7 @@ class ConnectionistTemporalClassification(function.Function):
         if xp == numpy:
             n_batch, max_path_length = path.shape
             mat = xp.full(
-                (3, n_batch, max_path_length), self.zero_padding,
-                numpy.float32)
+                (3, n_batch, max_path_length), self.zero_padding, y.dtype)
             mat[0, :, :] = prev_prob
             mat[1, :, 1:] = prev_prob[:, :-1]
             mat[2, :, 2:] = prev_prob[:, :-2]
@@ -223,13 +223,13 @@ class ConnectionistTemporalClassification(function.Function):
                 int ind1[] = {b, t};
                 int ind2[] = {b, t - 1};
                 int ind3[] = {b, t - 2};
-                float f1 = prob[ind1];
-                float f2 = (0 <= t - 1) ? prob[ind2] : zero;
-                float f3 = (0 <= t - 2 && path[ind3] != path[ind1]) ?
+                T f1 = prob[ind1];
+                T f2 = (0 <= t - 1) ? prob[ind2] : zero;
+                T f3 = (0 <= t - 2 && path[ind3] != path[ind1]) ?
                   prob[ind3] : zero;
 
                 // calculates log-sum-exp
-                float m = max(f1, max(f2, f3));
+                T m = max(f1, max(f2, f3));
                 z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
 
                 cum_prob += z;
@@ -250,7 +250,7 @@ class ConnectionistTemporalClassification(function.Function):
         assert path.shape == (n_batch, max_label_length * 2 + 1)
 
         forward_prob = xp.full(
-            (n_batch, max_path_length), self.zero_padding, dtype=numpy.float32)
+            (n_batch, max_path_length), self.zero_padding, dtype=yseq.dtype)
         forward_prob[:, 0] = 0
         backward_prob = forward_prob
 
@@ -276,6 +276,12 @@ class ConnectionistTemporalClassification(function.Function):
     def forward(self, inputs):
         xp = backend.get_array_module(inputs[0])
         self.input_length, label_length, t, xs = inputs
+
+        if self.zero_padding is None:
+            if xs.dtype == numpy.float16:
+                self.zero_padding = -10000.0
+            else:
+                self.zero_padding = -10000000000.0
 
         if chainer.is_debug():
             assert len(xs) >= xp.max(self.input_length)

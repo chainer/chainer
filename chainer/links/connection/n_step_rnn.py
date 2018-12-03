@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
@@ -12,7 +12,7 @@ from chainer import variable
 
 
 def argsort_list_descent(lst):
-    return numpy.argsort([-len(x.data) for x in lst]).astype(numpy.int32)
+    return numpy.argsort([-len(x) for x in lst]).astype(numpy.int32)
 
 
 def permutate_list(lst, indices, inv):
@@ -107,7 +107,7 @@ class NStepRNNBase(link.ChainList):
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
-        with cuda.get_device_from_id(self._device_id):
+        with chainer.using_device(self.device):
             hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 

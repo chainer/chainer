@@ -3,6 +3,7 @@ import copy
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.initializers import uniform
@@ -13,8 +14,9 @@ from chainer import variable
 
 class TreeParser(object):
 
-    def __init__(self):
+    def __init__(self, dtype):
         self.next_id = 0
+        self.dtype = dtype
 
     def size(self):
         return self.next_id
@@ -58,7 +60,7 @@ class TreeParser(object):
         else:
             # leaf node
             self.paths[node] = numpy.array(self.path, dtype=numpy.int32)
-            self.codes[node] = numpy.array(self.code, dtype=numpy.float32)
+            self.codes[node] = numpy.array(self.code, dtype=self.dtype)
 
 
 class BinaryHierarchicalSoftmaxFunction(function.Function):
@@ -77,8 +79,8 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
 
     """
 
-    def __init__(self, tree):
-        parser = TreeParser()
+    def __init__(self, tree, dtype):
+        parser = TreeParser(dtype)
         parser.parse(tree)
         paths = parser.get_paths()
         codes = parser.get_codes()
@@ -102,34 +104,32 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         x_type, t_type, w_type = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 2,
             t_type.dtype == numpy.int32,
             t_type.ndim == 1,
             x_type.shape[0] == t_type.shape[0],
-            w_type.dtype == numpy.float32,
+            w_type.dtype == x_type.dtype,
             w_type.ndim == 2,
             w_type.shape[0] == self.parser_size,
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            self.paths = cuda.to_gpu(self.paths)
-            self.codes = cuda.to_gpu(self.codes)
-            self.begins = cuda.to_gpu(self.begins)
-        return self
-
-    def to_cpu(self):
-        self.paths = cuda.to_cpu(self.paths)
-        self.codes = cuda.to_cpu(self.codes)
-        self.begins = cuda.to_cpu(self.begins)
-        return self
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # TODO(niboshi): Avoid forcing concrete implementations to handle
+        # skip_between_cupy_devices
+        device = chainer.get_device(device)
+        if not (skip_between_cupy_devices
+                and device.xp is cuda.cupy
+                and isinstance(self.paths, cuda.ndarray)):
+            self.paths = device.send(self.paths)
+            self.codes = device.send(self.codes)
+            self.begins = device.send(self.begins)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
 
-        loss = numpy.float32(0.0)
+        loss = x.dtype.type(0.0)
         for ix, it in six.moves.zip(x, t):
             loss += self._forward_cpu_one(ix, it, W)
         return numpy.array(loss),
@@ -174,7 +174,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         max_length = cuda.to_cpu(max_length)[()]
 
         length = max_length * x.shape[0]
-        ls = cuda.cupy.empty((length,), dtype=numpy.float32)
+        ls = cuda.cupy.empty((length,), dtype=x.dtype)
         n_in = x.shape[1]
         wxy = cuda.cupy.empty_like(ls)
         cuda.elementwise(
@@ -262,7 +262,7 @@ class BinaryHierarchicalSoftmax(link.Link):
     It costs only :math:`O(\\log(n))` time where :math:`n` is the vocabulary
     size in average.
 
-    At first a user need to prepare a binary tree whose each leaf is
+    At first a user needs to prepare a binary tree whose each leaf is
     corresponding to a word in a vocabulary.
     When a word :math:`x` is given, exactly one path from the root of the tree
     to the leaf of the word exists.
@@ -288,6 +288,7 @@ class BinaryHierarchicalSoftmax(link.Link):
     Args:
         in_size (int): Dimension of input vectors.
         tree: A binary tree made with tuples like `((1, 2), 3)`.
+        dtype (numpy.dtype): Type to use in computing.
 
     Attributes:
         W (~chainer.Variable): Weight parameter matrix.
@@ -297,25 +298,24 @@ class BinaryHierarchicalSoftmax(link.Link):
 
     """
 
-    def __init__(self, in_size, tree):
+    def __init__(self, in_size, tree, dtype=None):
         # This function object is copied on every forward computation.
         super(BinaryHierarchicalSoftmax, self).__init__()
-        self._func = BinaryHierarchicalSoftmaxFunction(tree)
+        dtype = chainer.get_dtype(dtype)
+        self._func = BinaryHierarchicalSoftmaxFunction(tree, dtype)
 
         with self.init_scope():
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(BinaryHierarchicalSoftmax, self).to_gpu(device)
-            self._func.to_gpu(device)
-        return self
-
-    def to_cpu(self):
-        super(BinaryHierarchicalSoftmax, self).to_cpu()
-        self._func.to_cpu()
-        return self
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        self._func._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
+        return super(BinaryHierarchicalSoftmax, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
 
     @staticmethod
     def create_huffman_tree(word_counts):

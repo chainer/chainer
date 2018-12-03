@@ -6,11 +6,19 @@ from chainer.backends import intel64
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
+import chainerx
 
 
 class MaxPooling2D(pooling_2d.Pooling2D):
 
     """Max pooling over a set of 2d planes."""
+
+    def forward_chainerx(self, x):
+        # TODO(sonots): Support return_indices in ChainerX
+        if self.return_indices:
+            return chainer.Fallback
+        return chainerx.max_pool(x[0], (self.kh, self.kw), (self.sy, self.sx),
+                                 (self.ph, self.pw), self.cover_all),
 
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
@@ -60,7 +68,6 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
-            self.retain_inputs((0,))
             return super(MaxPooling2D, self).forward_gpu(x)
 
         self._in_shape = x[0].shape
@@ -192,8 +199,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
     def forward_gpu(self, gy):
         if self._used_cudnn:
-            x, = self.mpool2d.get_retained_inputs()
-            return self.mpool2d.backward_gpu((x.data,), gy)
+            x, = self.mpool2d._cudnn_inputs
+            return self.mpool2d.backward_gpu((x,), gy)
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
@@ -264,8 +271,8 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x, = self.mpool2d.get_retained_inputs()
-            return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
+            x, = self.mpool2d._cudnn_inputs
+            return self._forward_gpu_compute_indexes_again((x, inputs[0]))
         else:
             x, = inputs
             n, c, h, w = x.shape
@@ -374,7 +381,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             device as the input.
 
     """
-    func = MaxPooling2D(ksize, stride, pad, cover_all)
+    func = MaxPooling2D(ksize, stride, pad, cover_all, return_indices)
     if return_indices:
         with chainer.using_config('use_cudnn', 'never'):
             out = func.apply((x,))[0]

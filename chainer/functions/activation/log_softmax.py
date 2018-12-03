@@ -6,6 +6,7 @@ from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -48,6 +49,9 @@ class LogSoftmax(function_node.FunctionNode):
             x_type.dtype.kind == 'f',
             -x_type.ndim <= self.axis < x_type.ndim,
         )
+
+    def forward_chainerx(self, xs):
+        return chainerx.log_softmax(xs[0], axis=self.axis),
 
     def forward(self, xs):
         y = _log_softmax(xs[0], axis=self.axis)

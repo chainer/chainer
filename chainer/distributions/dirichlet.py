@@ -27,8 +27,8 @@ class Dirichlet(distribution.Distribution):
             \\prod_{i=1}^{K} {x_i}^{\\alpha_i-1}
 
     Args:
-        alpha(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        alpha(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
     """
 
     def __init__(self, alpha):

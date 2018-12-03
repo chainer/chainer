@@ -1,5 +1,4 @@
-import numpy
-
+import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -31,20 +30,22 @@ class StatefulZoneoutLSTM(link.Chain):
             self.upward = linear.Linear(in_size, 4 * out_size)
             self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
 
-    def to_cpu(self):
-        super(StatefulZoneoutLSTM, self).to_cpu()
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        super(StatefulZoneoutLSTM, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.c is not None:
-            self.c.to_cpu()
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.c, cuda.ndarray)):
+                self.c.to_device(device)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulZoneoutLSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
         return self
 
     def set_state(self, c, h):
@@ -59,16 +60,10 @@ class StatefulZoneoutLSTM(link.Chain):
         """
         assert isinstance(c, variable.Variable)
         assert isinstance(h, variable.Variable)
-        c_ = c
-        h_ = h
-        if self.xp is numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu(self._device_id)
-            h_.to_gpu(self._device_id)
-        self.c = c_
-        self.h = h_
+        c.to_device(self.device)
+        h.to_device(self.device)
+        self.c = c
+        self.h = h
 
     def reset_state(self):
         """Resets the internal state.
@@ -93,26 +88,23 @@ class StatefulZoneoutLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         else:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.h = variable.Variable(
-                    xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
         if self.c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((len(x.data), self.state_size),
-                             dtype=x.data.dtype))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
 
-        lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
-                                            lstm_in.data.shape[1] // 4,
-                                            4))
+        lstm_in = reshape.reshape(
+            lstm_in, (len(lstm_in), lstm_in.shape[1] // 4, 4))
 
         a, i, f, o = split_axis.split_axis(lstm_in, 4, 2)
-        a = reshape.reshape(a, (len(a.data), self.state_size))
-        i = reshape.reshape(i, (len(i.data), self.state_size))
-        f = reshape.reshape(f, (len(f.data), self.state_size))
-        o = reshape.reshape(o, (len(o.data), self.state_size))
+        a = reshape.reshape(a, (len(a), self.state_size))
+        i = reshape.reshape(i, (len(i), self.state_size))
+        f = reshape.reshape(f, (len(f), self.state_size))
+        o = reshape.reshape(o, (len(o), self.state_size))
 
         c_tmp = tanh.tanh(a) * sigmoid.sigmoid(i) + sigmoid.sigmoid(f) * self.c
         self.c = zoneout.zoneout(self.c, c_tmp, self.c_ratio)

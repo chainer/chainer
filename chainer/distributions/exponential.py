@@ -17,8 +17,8 @@ class Exponential(distribution.Distribution):
         p(x;\\lambda) = \\lambda e^{-\\lambda x}
 
     Args:
-        lam(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\lambda`.
+        lam(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\lambda`.
     """
 
     def __init__(self, lam):

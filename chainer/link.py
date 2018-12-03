@@ -17,6 +17,7 @@ from chainer import link_hook
 from chainer.utils import collections_abc
 from chainer import types  # NOQA
 from chainer import variable
+import chainerx
 
 
 def _is_shape(value):
@@ -153,8 +154,7 @@ class Link(object):
 
         self._params = set()
         self._persistent = set()
-        self._cpu = True
-        self._device_id = None
+        self._device = backend.CpuDevice()
         self._within_init_scope = False
         self.name = None
 
@@ -184,6 +184,20 @@ class Link(object):
                 else len(self._local_link_hooks))
 
     @property
+    def device(self):
+        return self._device
+
+    @property
+    def _device_id(self):
+        warnings.warn(
+            'Link._device_id is left only for backward compatibility and '
+            'likely to be removed. Use Link.device instead.',
+            DeprecationWarning)
+        if self._device.xp is cuda.cupy:
+            return self._device.device.id
+        return None
+
+    @property
     def xp(self):
         # type: () -> numpy
         """Array module for this link.
@@ -192,7 +206,7 @@ class Link(object):
         :mod:`numpy` or :mod:`cupy`.
 
         """
-        return numpy if self._cpu else cuda.cupy
+        return self._device.xp
 
     @property
     def within_init_scope(self):
@@ -279,8 +293,7 @@ class Link(object):
 
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
-            if not self._cpu:
-                value.to_gpu(self._device_id)
+            value.to_device(self._device)
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
@@ -422,24 +435,12 @@ class Link(object):
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to CPU, the link implementation must
-        override this method to do so.
+        override :meth:`Link.to_device` to do so.
 
         Returns: self
 
         """
-        d = self.__dict__
-        for name in self._params:
-            param = d[name]  # type: variable.Parameter
-            param.to_cpu()
-        for name in self._persistent:
-            value = d[name]
-            if isinstance(value, cuda.ndarray):
-                d[name] = value.get()
-            elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.array(value)
-        self._cpu = True
-        self._device_id = None
-        return self
+        return self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
         # type: (Optional[types.DeviceLike]) -> 'Link'
@@ -447,7 +448,7 @@ class Link(object):
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
-        override this method to do so.
+        override :meth:`Link.to_device` to do so.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -457,45 +458,97 @@ class Link(object):
 
         """
         cuda.check_cuda_available()
-        if not self._cpu:
-            return self
-        d = self.__dict__
-        with cuda._get_device(device):
-            for name in self._params:
-                param = d[name]  # type: variable.Parameter
-                param.to_gpu()
-            for name in self._persistent:
-                value = d[name]
-                if isinstance(value, intel64.mdarray):
-                    value = numpy.array(value)
-                if isinstance(value, numpy.ndarray):
-                    d[name] = cuda.to_gpu(value)
-            self._device_id = cuda.cupy.cuda.get_device_id()
-        self._cpu = False
-        return self
+        return self._to_device(
+            cuda._get_device_or_current(device),
+            skip_between_cupy_devices=True)
 
     def to_intel64(self):
         # type: () -> 'Link'
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
+        return self.to_device(intel64)
+
+    def to_chainerx(self):
+        """Converts parameter variables and persistent values to ChainerX \
+without any copy.
+
+        This method does not handle non-registered attributes. If some of such
+        attributes must be copied to ChainerX, the link implementation must
+        override this method to do so.
+
+        Returns: self
+        """  # NOQA
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+
+        xp = self._device.xp
+        if xp is chainerx:
+            return self
+
         d = self.__dict__
         for name in self._params:
-            param = d[name]  # type: variable.Parameter
-            param.to_intel64()
+            d[name].to_chainerx()
         for name in self._persistent:
-            value = d[name]
-            if isinstance(value, cuda.ndarray):
-                value = value.get()  # to numpy.ndarray
-            if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
-                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
-                # Currently iDeep only supports (1, 2, 4)-dim arrays.
-                # Note that array returned from `ideep.array` may not be an
-                # iDeep mdarray, e.g., when the dtype is not float32.
-                value = intel64.ideep.array(
-                    value, itype=intel64.ideep.wgt_array)
-            d[name] = value
-        self._cpu = True
-        self._device_id = None
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_chainerx(d[name])
+
+        self._device = (
+            backend.ChainerxDevice.from_fallback_device(self._device))
+
+        return self
+
+    def from_chainerx(self):
+        """Converts parameter variables and persistent values from ChainerX \
+to NumPy/CuPy devices without any copy."""
+        d = self.__dict__
+        for name in self._params:
+            d[name].from_chainerx()
+        for name in self._persistent:
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.from_chainerx(d[name])
+
+        if isinstance(self._device, backend.ChainerxDevice):
+            self._device = self._device.fallback_device
+
+        return self
+
+    def to_device(self, device):
+        """Copies parameter variables and persistent values to the specified \
+device.
+
+        This method does not handle non-registered attributes. If some of such
+        attributes must be copied to the device, the link implementation must
+        override this method to do so.
+
+        Args:
+            device: Target device specifier. See
+                :func:`~chainer.get_device` for available values.
+
+        Returns: self
+
+        """  # NOQA
+        return self._to_device(device, skip_between_cupy_devices=False)
+
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # `skip_between_cupy_devices` argument is a workaround
+        # for `Link.to_gpu` which does not transfer cupy parameters to
+        # a different CUDA device.
+        device = chainer.get_device(device)
+
+        d = self.__dict__
+        for name in self._params:
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and d[name].device.xp is cuda.cupy):
+                d[name].to_device(device)
+        for name in self._persistent:
+            if not numpy.isscalar(d[name]):
+                if not (skip_between_cupy_devices
+                        and device.xp is cuda.cupy
+                        and isinstance(d[name], cuda.ndarray)):
+                    d[name] = device.send(d[name])
+
+        self._device = device
         return self
 
     def params(self, include_uninit=True):
@@ -816,6 +869,9 @@ class Link(object):
                 among link hooks registered to this link. If ``None``,
                 the default name of the link hook is used.
 
+        Returns:
+            self
+
         """
         if not isinstance(hook, link_hook.LinkHook):
             raise TypeError('Hook must be of type LinkHook')
@@ -826,6 +882,7 @@ class Link(object):
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
         hook.added(self)
+        return self
 
     def delete_hook(self, name):
         # type: (str) -> None
@@ -984,35 +1041,36 @@ class Chain(Link):
             d[name] = copied
         return ret
 
-    def to_cpu(self):
+    def to_chainerx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).to_cpu()
+        super(Chain, self).to_chainerx()
         d = self.__dict__
         for name in self._children:
-            link = d[name]  # type: Link
-            link.to_cpu()
+            d[name].to_chainerx()
         return self
 
-    def to_gpu(self, device=None):
-        # type: (types.DeviceLike) -> 'Chain'
-
-        with cuda._get_device(device):
-            super(Chain, self).to_gpu()
-            d = self.__dict__
-            for name in self._children:
-                link = d[name]  # type: Link
-                link.to_gpu()
-        return self
-
-    def to_intel64(self):
+    def from_chainerx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).to_intel64()
+        super(Chain, self).from_chainerx()
         d = self.__dict__
         for name in self._children:
-            link = d[name]  # type: Link
-            link.to_intel64()
+            d[name].from_chainerx()
+        return self
+
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # type: (types.DeviceLike, bool) -> 'Chain'
+
+        # Overrides Link._to_device
+
+        device = chainer.get_device(device)
+        super(Chain, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
+        d = self.__dict__
+        for name in self._children:
+            d[name]._to_device(
+                device, skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):
@@ -1245,29 +1303,25 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret
 
-    def to_cpu(self):
+    def to_chainerx(self):
         # type: () -> 'ChainList'
 
-        super(ChainList, self).to_cpu()
+        super(ChainList, self).to_chainerx()
         for link in self._children:
-            link.to_cpu()
+            link.to_chainerx()
         return self
 
-    def to_gpu(self, device=None):
-        # type: (types.DeviceLike) -> 'ChainList'
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # type: (types.DeviceLike, bool) -> 'ChainList'
 
-        with cuda._get_device(device):
-            super(ChainList, self).to_gpu()
-            for link in self._children:
-                link.to_gpu()
-        return self
+        # Overrides Link._to_device
 
-    def to_intel64(self):
-        # type: () -> 'ChainList'
-
-        super(ChainList, self).to_intel64()
+        device = chainer.get_device(device)
+        super(ChainList, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         for link in self._children:
-            link.to_intel64()
+            link._to_device(
+                device, skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):

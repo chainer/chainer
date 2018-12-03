@@ -307,8 +307,8 @@ class VGGLayers(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
+                n = len(y) // 10
+                y_shape = y.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = sum(y, axis=1) / 10
         return y
