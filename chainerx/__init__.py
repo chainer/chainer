@@ -30,16 +30,16 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import square  # NOQA
     from chainerx.math.misc import clip  # NOQA
+    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
-    from chainerx import _ndarray
     from chainerx import _docs
+    from chainerx import _ndarray
 
     # Add workaround implementation for NumPy ndarray-compatible functions
     _ndarray.populate()

@@ -8,8 +8,8 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer.backends import cuda
 from chainer import backend
+from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
