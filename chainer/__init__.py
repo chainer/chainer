@@ -19,11 +19,14 @@ from chainer import links  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
+from chainer import variable  # NOQA
 
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
 from chainer._runtime_info import print_runtime_info  # NOQA
+from chainer.backend import get_device  # NOQA
+from chainer.backend import using_device  # NOQA
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
@@ -74,6 +77,9 @@ from chainer import cuda  # NOQA
 from chainer import _environment_check
 
 
+import chainerx
+
+
 # Check environment conditions
 _environment_check.check()
 
@@ -83,6 +89,18 @@ __version__ = _version.__version__
 _thread_local = threading.local()
 _array_types = None
 _cpu_array_types = None
+
+
+# Used in chainer.FunctionNode.forward_chainerx().
+# This value is returned to indicate that the function does not support forward
+# computation in ChainerX implementation with given input arrays and other
+# arguments.
+class _FallbackType(object):
+    def __repr__(self):
+        return 'Fallback'
+
+
+Fallback = _FallbackType()
 
 
 def get_function_hooks():
@@ -119,6 +137,10 @@ def _load_array_types():
             array_types.append(backends.intel64.mdarray)
             cpu_array_types.append(backends.intel64.mdarray)
 
+        if chainerx.is_available():
+            array_types.append(chainerx.ndarray)
+            cpu_array_types.append(chainerx.ndarray)
+
         array_types = tuple(array_types)
         cpu_array_types = tuple(cpu_array_types)
 
@@ -136,11 +158,23 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
+# TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
     arrays = [a for a in arrays if a is not None]
+
     if len(arrays) == 0:
         return True
-    if type(arrays[0]) is backends.cuda.ndarray:
+
+    # If there's at least one chainerx.ndarray, all other arrays
+    # will be converted to memory-shared chainerx.ndarrays.
+    # TODO(niboshi): intel64.mdarray is not supported yet.
+    # TODO(niboshi): Delegate array compatibility check to chainerx.
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
+        return not any([
+            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+
+    if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()

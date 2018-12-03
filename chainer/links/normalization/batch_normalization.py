@@ -1,7 +1,4 @@
-import numpy
-
 import chainer
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
 from chainer import initializers
@@ -227,17 +224,23 @@ class BatchNormalization(link.Link):
             self._initialize_params(size)
 
     def _initialize_params(self, shape):
-        dtype = self._dtype
-        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        self.avg_mean = self._init_array(self._initial_avg_mean, 0, shape)
         self._initial_avg_mean = None
         self.register_persistent('avg_mean')
-        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        self.avg_var = self._init_array(self._initial_avg_var, 1, shape)
         self._initial_avg_var = None
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
             self.beta.initialize(shape)
+
+    def _init_array(self, initializer, default_value, size):
+        if initializer is None:
+            initializer = default_value
+        initializer = initializers._get_initializer(initializer)
+        return initializers.generate_array(
+            initializer, size, self.xp, dtype=self._dtype)
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
@@ -277,13 +280,13 @@ class BatchNormalization(link.Link):
 
         gamma = self.gamma
         if gamma is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
         beta = self.beta
         if beta is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
 
@@ -323,10 +326,3 @@ class BatchNormalization(link.Link):
 
         """
         self.N = 0
-
-
-def _init_array(initializer, default_value, size, dtype):
-    if initializer is None:
-        initializer = default_value
-    initializer = initializers._get_initializer(initializer)
-    return initializers.generate_array(initializer, size, numpy, dtype=dtype)

@@ -6,12 +6,18 @@ cache:
 
 matrix:
   include:
-    - os: linux
+    - dist: trusty
       python: "2.7"
-    - os: linux
+      env:
+      - SKIP_CHAINERX=1
+    - dist: trusty
       python: "3.4"
-    - os: linux
+      env:
+      - SKIP_CHAINERX=1
+    - dist: xenial
       python: "3.5"
+      env:
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
     - os: osx
       language: generic
@@ -19,6 +25,7 @@ matrix:
       - PYTHON_VERSION=2.7.10
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - SKIP_CHAINERX=1
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
@@ -26,6 +33,7 @@ matrix:
       - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - SKIP_CHAINERX=1
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
@@ -33,9 +41,11 @@ matrix:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - MATRIX_EVAL="brew install gcc5 && CC=gcc-5 && CXX=g++-5"
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
+  - eval "${MATRIX_EVAL}"
   # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
   - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
       brew update >/dev/null;
@@ -54,13 +64,17 @@ install:
   - pip install -U pip wheel
   - pip install mpi4py
   - python setup.py sdist
-  - pip install dist/*.tar.gz
-  - travis_wait pip install -U -e .[travis]
+  - if [[ $SKIP_CHAINERX != 1 ]]; then
+      export CHAINER_BUILD_CHAINERX=1;
+    fi
+  - MAKEFLAGS=-j2
+      pip install dist/*.tar.gz
+  - MAKEFLAGS=-j2
+      travis_wait pip install -U -e .[travis]
 
 script:
   - flake8
-  - autopep8 -r . --diff | tee check_autopep8
-  - test ! -s check_autopep8
+  - autopep8 -r . --diff --exit-code
   # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
   # ignore DeprecationWarning raised in `site.py`.
   - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer chainermn examples tests docs
@@ -72,9 +86,13 @@ script:
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       READTHEDOCS=True python setup.py develop;
     fi
-  - pushd docs
-  - make html
-  - popd
+  - if [[ $SKIP_CHAINERX != 1 ]]; then
+      pushd docs;
+      make html;
+      popd;
+    else
+      echo "Documentation build is skipped as ChainerX is not available.";
+    fi
 
 sudo: false
 

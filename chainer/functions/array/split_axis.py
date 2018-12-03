@@ -7,6 +7,7 @@ from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import collections_abc
 from chainer.utils import type_check
+import chainerx
 
 
 _numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'
@@ -98,6 +99,14 @@ class SplitAxis(function_node.FunctionNode):
             sections = type_check.make_variable(self.sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
+    @property
+    def indices_or_sections(self):
+        return self.indices if self.indices is not None else self.sections
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return tuple(chainerx.split(x, self.indices_or_sections, self.axis))
+
     def forward(self, inputs):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
@@ -107,10 +116,7 @@ class SplitAxis(function_node.FunctionNode):
 
         x, = inputs
         self._xp = backend.get_array_module(x)
-        if self.indices is not None:
-            indices_or_sections = self.indices
-        else:
-            indices_or_sections = self.sections
+        indices_or_sections = self.indices_or_sections
         ret = self._xp.split(x, indices_or_sections, self.axis)
         if self._xp == numpy and not _numpy_split_ok:
             ret = _fix_numpy_split(ret, x, indices_or_sections, self.axis)

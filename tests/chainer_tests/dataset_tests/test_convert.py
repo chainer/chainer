@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -7,114 +8,158 @@ from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
 from chainer.testing import attr
+import chainer.testing.backend  # NOQA
+import chainerx
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestConcatExamples(unittest.TestCase):
 
-    def get_arrays_to_concat(self, xp):
-        return [xp.random.rand(2, 3) for _ in range(5)]
+    def get_arrays_to_concat(self, backend_config):
+        return [
+            backend_config.get_array(numpy.random.rand(2, 3))
+            for _ in range(5)]
 
-    def check_device(self, array, device):
-        if device is not None:
-            self.assertIsInstance(array, cuda.ndarray)
-            self.assertEqual(array.device.id, device)
-
-    def check_concat_arrays(self, arrays, device=None):
+    def check_concat_arrays(self, arrays, device, expected_device):
         array = dataset.concat_examples(arrays, device)
         self.assertEqual(array.shape, (len(arrays),) + arrays[0].shape)
-        self.check_device(array, device)
 
-        for x, y in zip(array, arrays):
-            numpy.testing.assert_array_equal(
-                cuda.to_cpu(x), cuda.to_cpu(y))
+        assert backend.get_device_from_array(array) == expected_device
 
-    def test_concat_arrays_cpu(self):
-        arrays = self.get_arrays_to_concat(numpy)
-        self.check_concat_arrays(arrays)
+        np_array = backend.CpuDevice().send(array)
+        for x, y in zip(np_array, arrays):
+            numpy.testing.assert_array_equal(x, backend.CpuDevice().send(y))
 
-    @attr.gpu
-    def test_concat_arrays_gpu(self):
-        arrays = self.get_arrays_to_concat(cuda.cupy)
-        self.check_concat_arrays(arrays)
+    def test_concat_arrays(self, backend_config):
+        arrays = self.get_arrays_to_concat(backend_config)
+        self.check_concat_arrays(arrays, None, backend_config.device)
 
     @attr.gpu
-    def test_concat_arrays_to_gpu(self):
-        arrays = self.get_arrays_to_concat(numpy)
-        self.check_concat_arrays(arrays, cuda.Device().id)
+    def test_concat_arrays_to_gpu(self, backend_config):
+        arrays = self.get_arrays_to_concat(backend_config)
+        self.check_concat_arrays(
+            arrays, 0, backend.GpuDevice.from_device_id(0))
 
-    def get_tuple_arrays_to_concat(self, xp):
-        return [(xp.random.rand(2, 3), xp.random.rand(3, 4))
-                for _ in range(5)]
+    @attr.chainerx
+    def test_concat_arrays_to_chainerx(self, backend_config):
+        device = chainerx.get_device('native:0')
+        arrays = self.get_arrays_to_concat(backend_config)
+        self.check_concat_arrays(
+            arrays, device, backend.ChainerxDevice(device))
 
-    def check_concat_tuples(self, tuples, device=None):
+    def get_tuple_arrays_to_concat(self, backend_config):
+        return [
+            (backend_config.get_array(numpy.random.rand(2, 3)),
+             backend_config.get_array(numpy.random.rand(3, 4)))
+            for _ in range(5)]
+
+    def check_concat_tuples(self, tuples, device, expected_device):
         arrays = dataset.concat_examples(tuples, device)
         self.assertEqual(len(arrays), len(tuples[0]))
         for i in range(len(arrays)):
             shape = (len(tuples),) + tuples[0][i].shape
             self.assertEqual(arrays[i].shape, shape)
-            self.check_device(arrays[i], device)
 
-            for x, y in zip(arrays[i], tuples):
+            assert backend.get_device_from_array(arrays[i]) == expected_device
+
+            arr = backend.CpuDevice().send(arrays[i])
+            for x, y in zip(arr, tuples):
                 numpy.testing.assert_array_equal(
-                    cuda.to_cpu(x), cuda.to_cpu(y[i]))
+                    x, backend.CpuDevice().send(y[i]))
 
-    def test_concat_tuples_cpu(self):
-        tuples = self.get_tuple_arrays_to_concat(numpy)
-        self.check_concat_tuples(tuples)
-
-    @attr.gpu
-    def test_concat_tuples_gpu(self):
-        tuples = self.get_tuple_arrays_to_concat(cuda.cupy)
-        self.check_concat_tuples(tuples)
+    def test_concat_tuples(self, backend_config):
+        tuples = self.get_tuple_arrays_to_concat(backend_config)
+        self.check_concat_tuples(tuples, None, backend_config.device)
 
     @attr.gpu
-    def test_concat_tuples_to_gpu(self):
-        tuples = self.get_tuple_arrays_to_concat(numpy)
-        self.check_concat_tuples(tuples, cuda.Device().id)
+    def test_concat_tuples_to_gpu(self, backend_config):
+        tuples = self.get_tuple_arrays_to_concat(backend_config)
+        self.check_concat_tuples(
+            tuples, 0, backend.GpuDevice.from_device_id(0))
 
-    def get_dict_arrays_to_concat(self, xp):
-        return [{'x': xp.random.rand(2, 3), 'y': xp.random.rand(3, 4)}
-                for _ in range(5)]
+    @attr.chainerx
+    def test_concat_tuples_to_chainerx(self, backend_config):
+        device = chainerx.get_device('native:0')
+        arrays = self.get_tuple_arrays_to_concat(backend_config)
+        self.check_concat_tuples(
+            arrays, device, backend.ChainerxDevice(device))
 
-    def check_concat_dicts(self, dicts, device=None):
+    def get_dict_arrays_to_concat(self, backend_config):
+        return [
+            {'x': backend_config.get_array(numpy.random.rand(2, 3)),
+             'y': backend_config.get_array(numpy.random.rand(3, 4))}
+            for _ in range(5)]
+
+    def check_concat_dicts(self, dicts, device, expected_device):
         arrays = dataset.concat_examples(dicts, device)
         self.assertEqual(frozenset(arrays.keys()), frozenset(dicts[0].keys()))
         for key in arrays:
             shape = (len(dicts),) + dicts[0][key].shape
             self.assertEqual(arrays[key].shape, shape)
-            self.check_device(arrays[key], device)
+            self.assertEqual(
+                backend.get_device_from_array(arrays[key]), expected_device)
 
-            for x, y in zip(arrays[key], dicts):
+            arr = backend.CpuDevice().send(arrays[key])
+            for x, y in zip(arr, dicts):
                 numpy.testing.assert_array_equal(
-                    cuda.to_cpu(x), cuda.to_cpu(y[key]))
+                    x, backend.CpuDevice().send(y[key]))
 
-    def test_concat_dicts_cpu(self):
-        dicts = self.get_dict_arrays_to_concat(numpy)
-        self.check_concat_dicts(dicts)
-
-    @attr.gpu
-    def test_concat_dicts_gpu(self):
-        dicts = self.get_dict_arrays_to_concat(cuda.cupy)
-        self.check_concat_dicts(dicts)
+    def test_concat_dicts(self, backend_config):
+        dicts = self.get_dict_arrays_to_concat(backend_config)
+        self.check_concat_dicts(dicts, None, backend_config.device)
 
     @attr.gpu
-    def test_concat_dicts_to_gpu(self):
-        dicts = self.get_dict_arrays_to_concat(numpy)
-        self.check_concat_dicts(dicts, cuda.Device().id)
+    def test_concat_dicts_to_gpu(self, backend_config):
+        dicts = self.get_dict_arrays_to_concat(backend_config)
+        self.check_concat_dicts(
+            dicts, 0, backend.GpuDevice.from_device_id(0))
+
+    @attr.chainerx
+    def test_concat_dicts_to_chainerx(self, backend_config):
+        device = chainerx.get_device('native:0')
+        arrays = self.get_dict_arrays_to_concat(backend_config)
+        self.check_concat_dicts(
+            arrays, device, backend.ChainerxDevice(device))
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestConcatExamplesWithPadding(unittest.TestCase):
 
-    def check_concat_arrays_padding(self, xp):
-        arrays = [xp.random.rand(3, 4),
-                  xp.random.rand(2, 5),
-                  xp.random.rand(4, 3)]
+    def test_concat_arrays_padding(self, backend_config):
+        arrays = backend_config.get_array(
+            [numpy.random.rand(3, 4),
+             numpy.random.rand(2, 5),
+             numpy.random.rand(4, 3)])
         array = dataset.concat_examples(arrays, padding=0)
         self.assertEqual(array.shape, (3, 4, 5))
         self.assertEqual(type(array), type(arrays[0]))
 
-        arrays = [cuda.to_cpu(a) for a in arrays]
-        array = cuda.to_cpu(array)
+        arrays = [backend.CpuDevice().send(a) for a in arrays]
+        array = backend.CpuDevice().send(array)
         numpy.testing.assert_array_equal(array[0, :3, :4], arrays[0])
         numpy.testing.assert_array_equal(array[0, 3:, :], 0)
         numpy.testing.assert_array_equal(array[0, :, 4:], 0)
@@ -123,18 +168,14 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         numpy.testing.assert_array_equal(array[2, :4, :3], arrays[2])
         numpy.testing.assert_array_equal(array[2, :, 3:], 0)
 
-    def test_concat_arrays_padding_cpu(self):
-        self.check_concat_arrays_padding(numpy)
-
-    @attr.gpu
-    def test_concat_arrays_padding_gpu(self):
-        self.check_concat_arrays_padding(cuda.cupy)
-
-    def check_concat_tuples_padding(self, xp):
+    def test_concat_tuples_padding(self, backend_config):
         tuples = [
-            (xp.random.rand(3, 4), xp.random.rand(2, 5)),
-            (xp.random.rand(4, 4), xp.random.rand(3, 4)),
-            (xp.random.rand(2, 5), xp.random.rand(2, 6)),
+            backend_config.get_array(
+                (numpy.random.rand(3, 4), numpy.random.rand(2, 5))),
+            backend_config.get_array(
+                (numpy.random.rand(4, 4), numpy.random.rand(3, 4))),
+            backend_config.get_array(
+                (numpy.random.rand(2, 5), numpy.random.rand(2, 6))),
         ]
         arrays = dataset.concat_examples(tuples, padding=0)
         self.assertEqual(len(arrays), 2)
@@ -144,8 +185,10 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         self.assertEqual(type(arrays[1]), type(tuples[0][1]))
 
         for i in range(len(tuples)):
-            tuples[i] = cuda.to_cpu(tuples[i][0]), cuda.to_cpu(tuples[i][1])
-        arrays = tuple(cuda.to_cpu(array) for array in arrays)
+            tuples[i] = (
+                backend.CpuDevice().send(tuples[i][0]),
+                backend.CpuDevice().send(tuples[i][1]))
+        arrays = tuple(backend.CpuDevice().send(array) for array in arrays)
         numpy.testing.assert_array_equal(arrays[0][0, :3, :4], tuples[0][0])
         numpy.testing.assert_array_equal(arrays[0][0, 3:, :], 0)
         numpy.testing.assert_array_equal(arrays[0][0, :, 4:], 0)
@@ -162,19 +205,15 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         numpy.testing.assert_array_equal(arrays[1][2, :2, :6], tuples[2][1])
         numpy.testing.assert_array_equal(arrays[1][2, 2:, :], 0)
 
-    def test_concat_tuples_padding_cpu(self):
-        self.check_concat_tuples_padding(numpy)
-
-    @attr.gpu
-    def test_concat_tuples_padding_gpu(self):
-        self.check_concat_tuples_padding(cuda.cupy)
-
-    def check_concat_dicts_padding(self, xp):
+    def test_concat_dicts_padding(self, backend_config):
         dicts = [
-            {'x': xp.random.rand(3, 4), 'y': xp.random.rand(2, 5)},
-            {'x': xp.random.rand(4, 4), 'y': xp.random.rand(3, 4)},
-            {'x': xp.random.rand(2, 5), 'y': xp.random.rand(2, 6)},
+            {'x': numpy.random.rand(3, 4), 'y': numpy.random.rand(2, 5)},
+            {'x': numpy.random.rand(4, 4), 'y': numpy.random.rand(3, 4)},
+            {'x': numpy.random.rand(2, 5), 'y': numpy.random.rand(2, 6)},
         ]
+        dicts = [
+            {key: backend_config.get_array(arr) for key, arr in d.items()}
+            for d in dicts]
         arrays = dataset.concat_examples(dicts, padding=0)
         self.assertIn('x', arrays)
         self.assertIn('y', arrays)
@@ -184,9 +223,11 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         self.assertEqual(type(arrays['y']), type(dicts[0]['y']))
 
         for d in dicts:
-            d['x'] = cuda.to_cpu(d['x'])
-            d['y'] = cuda.to_cpu(d['y'])
-        arrays = {'x': cuda.to_cpu(arrays['x']), 'y': cuda.to_cpu(arrays['y'])}
+            d['x'] = backend.CpuDevice().send(d['x'])
+            d['y'] = backend.CpuDevice().send(d['y'])
+        arrays = {
+            'x': backend.CpuDevice().send(arrays['x']),
+            'y': backend.CpuDevice().send(arrays['y'])}
         numpy.testing.assert_array_equal(arrays['x'][0, :3, :4], dicts[0]['x'])
         numpy.testing.assert_array_equal(arrays['x'][0, 3:, :], 0)
         numpy.testing.assert_array_equal(arrays['x'][0, :, 4:], 0)
@@ -203,13 +244,6 @@ class TestConcatExamplesWithPadding(unittest.TestCase):
         numpy.testing.assert_array_equal(arrays['y'][2, :2, :6], dicts[2]['y'])
         numpy.testing.assert_array_equal(arrays['y'][2, 2:, :], 0)
 
-    def test_concat_dicts_padding_cpu(self):
-        self.check_concat_dicts_padding(numpy)
-
-    @attr.gpu
-    def test_concat_dicts_padding_gpu(self):
-        self.check_concat_dicts_padding(cuda.cupy)
-
 
 @testing.parameterize(
     {'padding': None},
@@ -220,45 +254,71 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
     int_arrays = [1, 2, 3]
     float_arrays = [1.0, 2.0, 3.0]
 
-    def check_device(self, array, device):
-        if device is not None and device >= 0:
-            self.assertIsInstance(array, cuda.ndarray)
-            self.assertEqual(array.device.id, device)
-        else:
-            self.assertIsInstance(array, numpy.ndarray)
+    def check_device(self, array, device, expected_device):
+        self.assertIsInstance(array, expected_device.xp.ndarray)
+        self.assertEqual(
+            backend.get_device_from_array(array), expected_device)
 
-    def check_concat_arrays(self, arrays, device, expected_type):
+    def check_concat_arrays(
+            self, arrays, device, expected_device, expected_dtype):
         array = dataset.concat_examples(arrays, device, self.padding)
         self.assertEqual(array.shape, (len(arrays),))
-        self.check_device(array, device)
+        self.check_device(array, device, expected_device)
 
-        for x, y in zip(array, arrays):
-            if backend.get_array_module(x) == numpy:
-                numpy.testing.assert_array_equal(
-                    numpy.array(x),
-                    numpy.array(y, dtype=expected_type))
-            else:
-                numpy.testing.assert_array_equal(
-                    cuda.to_cpu(x),
-                    numpy.array(y, dtype=expected_type))
+        np_array = backend.CpuDevice().send(array)
+        for x, y in zip(np_array, arrays):
+            assert x.dtype == expected_dtype
+            numpy.testing.assert_array_equal(
+                x, numpy.array(y, dtype=expected_dtype))
 
-    def test_concat_arrays_cpu(self):
+    def test_concat_arrays_to_cpu(self):
+        if sys.platform == 'win32':
+            expected_int_dtype = numpy.int32
+        else:
+            expected_int_dtype = numpy.int64
         for device in (-1, None):
-            self.check_concat_arrays(self.int_arrays,
-                                     device=device,
-                                     expected_type=numpy.int64)
-            self.check_concat_arrays(self.float_arrays,
-                                     device=device,
-                                     expected_type=numpy.float64)
+            self.check_concat_arrays(
+                self.int_arrays,
+                device,
+                backend.CpuDevice(),
+                expected_int_dtype)
+            self.check_concat_arrays(
+                self.float_arrays,
+                device,
+                backend.CpuDevice(),
+                numpy.float64)
 
     @attr.gpu
-    def test_concat_arrays_gpu(self):
-        self.check_concat_arrays(self.int_arrays,
-                                 device=cuda.Device().id,
-                                 expected_type=numpy.int64)
-        self.check_concat_arrays(self.float_arrays,
-                                 device=cuda.Device().id,
-                                 expected_type=numpy.float64)
+    def test_concat_arrays_to_gpu(self):
+        device = 0
+        if sys.platform == 'win32':
+            expected_int_dtype = numpy.int32
+        else:
+            expected_int_dtype = numpy.int64
+        self.check_concat_arrays(
+            self.int_arrays,
+            device,
+            backend.GpuDevice.from_device_id(0),
+            expected_int_dtype)
+        self.check_concat_arrays(
+            self.float_arrays,
+            device,
+            backend.GpuDevice.from_device_id(0),
+            numpy.float64)
+
+    @attr.chainerx
+    def test_concat_arrays_to_chainerx(self):
+        device = 'native:0'
+        self.check_concat_arrays(
+            self.int_arrays,
+            device,
+            backend.ChainerxDevice(chainerx.get_device(device)),
+            numpy.int64)
+        self.check_concat_arrays(
+            self.float_arrays,
+            device,
+            backend.ChainerxDevice(chainerx.get_device(device)),
+            numpy.float64)
 
 
 def get_xp(gpu):

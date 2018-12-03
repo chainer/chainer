@@ -1,11 +1,13 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 if cuda.available:
@@ -25,8 +27,12 @@ class ReLU(function_node.FunctionNode):
     _use_ideep = False
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return chainerx.maximum(x, 0),
 
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
@@ -96,11 +102,13 @@ class ReLUGrad2(function_node.FunctionNode):
         self.b = b.data
 
     def forward_cpu(self, inputs):
-        y = (self.b > 0) * inputs[0]
+        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
+        y = (b > 0) * inputs[0]
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        gx = _relu_grad2_kernel(self.b, inputs[0])
+        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
+        gx = _relu_grad2_kernel(b, inputs[0])
         return gx,
 
     def backward(self, indexes, gy):
