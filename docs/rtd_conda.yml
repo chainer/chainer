@@ -1,0 +1,10 @@
+# Conda environment definition to build documentation on RTD
+
+name: chainer-docs
+dependencies:
+  - python=3.5
+  - cmake
+  - libopenblas
+  - libgfortran
+  - pip:
+    - 'https://github.com/kmaehashi/rtd-chainerx/releases/download/v6.0.0b1/chainer-6.0.0b1-cp35-cp35m-linux_x86_64.whl'
