@@ -39,6 +39,39 @@ def _ensure_shape_dtype(value):
         return value
 
 
+def _warn_legacy_to_gpu(src, dst, legacy):
+    if src is not None:
+        # The link is already on GPU.
+        if src == dst:
+            # The link is already on the requested device; nothing
+            # to do.
+            return True
+        elif legacy is None:
+            # Sticky option is omitted. As the default behavior is
+            # planned to be changed, raise a warning.
+            warnings.warn('''\
+You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
+`Link.to_gpu` in Chainer v4 and prior versions are "sticky" by default; \
+if the Link is already on GPU, `to_gpu` does nothing.
+
+In Chainer v4, `sticky` option has been introduced to `Link.to_gpu` to \
+control this behavior.
+You can specify `sticky=False` option to `to_gpu` to perform inter-GPU \
+transfer.
+If you don't want to perform inter-GPU transfer, explicitly specify \
+`sticky=True` so that you can disable this warning.
+
+The default behavior is planned to be changed to `sticky=False` in the future \
+release (possibly in Chainer v5).
+'''.format(dst=dst, src=src), FutureWarning)
+            return True
+        elif legacy is True:
+            # Sticky mode is explicitly requested. Do not perform
+            # inter-GPU transfer.
+            return True
+    return False
+
+
 class Link(object):
 
     """Building block of model definitions.
@@ -431,35 +464,10 @@ class Link(object):
         with cuda._get_device(device):
             device_id = cuda.cupy.cuda.get_device_id()
 
-            if not self._cpu:
-                # The link is already on GPU.
-                if self._device_id == device_id:
-                    # The link is already on the requested device; nothing
-                    # to do.
-                    return
-                elif sticky is None:
-                    # Sticky option is omitted. As the default behavior is
-                    # planned to be changed, raise a warning.
-                    warnings.warn('''\
-You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
-`Link.to_gpu` in Chainer v4 and prior versions are "sticky" by default; \
-if the Link is already on GPU, `to_gpu` does nothing.
-
-In Chainer v4, `sticky` option has been introduced to `Link.to_gpu` to \
-control this behavior.
-You can specify `sticky=False` option to `to_gpu` to perform inter-GPU \
-transfer.
-If you don't want to perform inter-GPU transfer, explicitly specify \
-`sticky=True` so that you can disable this warning.
-
-The default behavior is planned to be changed to `sticky=False` in the future \
-release (possibly in Chainer v5).
-'''.format(dst=device_id, src=self._device_id), FutureWarning)
-                    return
-                elif sticky is True:
-                    # Sticky mode is explicitly requested. Do not perform
-                    # inter-GPU transfer.
-                    return
+            skip = _warn_legacy_to_gpu(
+                src=self._device_id, dst=device_id, legacy=sticky)
+            if skip:
+                return self
 
             for name in self._params:
                 d[name].to_gpu()
