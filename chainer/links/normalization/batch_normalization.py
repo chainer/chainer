@@ -304,9 +304,7 @@ class BatchNormalization(link.Link):
                 # Do not update statistics when extra forward computation is
                 # called.
                 if finetune:
-                    # Revert the count
-                    # (TODO: mkusumoto) Test finetuning in recomputation.
-                    self.N -= 1
+                    self.N -= 1  # Revert the count
                 avg_mean = None
                 avg_var = None
 
