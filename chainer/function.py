@@ -160,8 +160,6 @@ class FunctionAdapter(function_node.FunctionNode):
             gxs = self._function.backward(in_data, grad_out_data)
 
         for x, gx in six.moves.zip(inputs, gxs):
-            if x is None:
-                continue
             variable._check_grad_type(self, x, True, gx, False)
 
         # Convert input gradients back to ChainerX
