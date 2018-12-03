@@ -303,6 +303,10 @@ class BatchNormalization(link.Link):
             if chainer.config.in_recomputing:
                 # Do not update statistics when extra forward computation is
                 # called.
+                if finetune:
+                    # Revert the count
+                    # (TODO: mkusumoto) Test finetuning in recomputation.
+                    self.N -= 1
                 avg_mean = None
                 avg_var = None
 
