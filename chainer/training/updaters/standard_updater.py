@@ -75,10 +75,7 @@ class StandardUpdater(_updater.Updater):
 
         if device is not None and device >= 0:
             for optimizer in six.itervalues(self._optimizers):
-                # Use sticky mode; if the target is manually transferred to
-                # the GPU by user (e.g., model-parallel use-case), we should
-                # not reloacte it.
-                optimizer.target.to_gpu(device, sticky=True)
+                optimizer.target.to_gpu(device)
 
         self.converter = converter
         self.loss_func = loss_func
