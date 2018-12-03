@@ -79,7 +79,7 @@ class TestCopiedSetItem(unittest.TestCase):
         self.ctx.__exit__(*sys.exc_info())
 
     def _forward(self, x0, x1):
-        return functions.copied_set_item(x0, self.slices, x1)
+        return functions.set_item(x0, self.slices, x1, inplace=False)
 
     def check_forward(self, x0_data, x1_data):
         y_expected = x0_data.copy()
@@ -168,7 +168,7 @@ class TestCopiedSetItemRaise(unittest.TestCase):
         x0_data, x1_data = x_data
         x0 = chainer.Variable(x0_data)
         x1 = chainer.Variable(x1_data)
-        y = functions.copied_set_item(x0, self.slices, x1)
+        y = functions.set_item(x0, self.slices, x1, inplace=False)
         y.grad = gy_data
         with chainer.using_config('debug', True):
             with self.assertRaises(ValueError):

@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -42,7 +43,7 @@ class CopiedSetItem(function_node.FunctionNode):
         xp = cuda.get_array_module(gy)
         ret = []
         if 0 in indexes:
-            ret.append(copied_set_item(
+            ret.append(_copied_set_item(
                 gy, self.slices, xp.array(0, dtype=gy.dtype)))
         if 1 in indexes:
             if chainer.is_debug():
@@ -56,8 +57,14 @@ class CopiedSetItem(function_node.FunctionNode):
         return tuple(ret)
 
 
-def copied_set_item(x, slices, rhs):
-    """Copies array and does setitem
+def _copied_set_item(x, slices, rhs):
+    return CopiedSetItem(slices).apply((x, rhs))[0]
+
+
+def set_item(x, slices, rhs, **kwargs):
+    """set_item(x, slices, rhs, *, inplace=True)
+
+    Copies array and does setitem
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -72,4 +79,10 @@ def copied_set_item(x, slices, rhs):
         A :class:`~chainer.Variable` object which contains the new array.
 
     """
-    return CopiedSetItem(slices).apply((x, rhs))[0]
+    inplace, = argument.parse_kwargs(
+        kwargs, ('inplace', True)
+    )
+    if inplace:
+        raise NotImplementedError(
+            'set_item currently supports only inplace=False')
+    return _copied_set_item(x, slices, rhs)
