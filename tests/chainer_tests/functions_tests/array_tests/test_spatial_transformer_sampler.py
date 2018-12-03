@@ -74,7 +74,7 @@ class TestSpatialTransformerSampler(unittest.TestCase):
 
     def check_backward(self, x, grid, grads):
         gradient_check.check_backward(
-            functions.SpatialTransformerSampler(),
+            functions.spatial_transformer_sampler,
             (x, grid), (grads,), dtype='d', atol=1e-2, rtol=1e-2, eps=1e-5)
 
     @condition.retry(3)

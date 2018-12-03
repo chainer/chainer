@@ -30,6 +30,11 @@ Base class
 
 .. module:: chainer.initializers
 
+..
+   This currentmodule directive is to avoid the reference error due to
+   initializers/__init__.py importing chainer.
+.. currentmodule:: chainer
+
 Concrete initializers
 ---------------------
 

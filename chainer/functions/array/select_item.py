@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -12,7 +13,7 @@ class SelectItem(function_node.FunctionNode):
     """Select elements stored in given indices."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(
@@ -33,7 +34,7 @@ class SelectItem(function_node.FunctionNode):
                 msg = 'Each label `t` need to satisfty `0 <= t < x.shape[1]`'
                 raise ValueError(msg)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         if xp is numpy:
             # This code is equivalent to `t.choose(x.T)`, but `numpy.choose`
             # does not work when `x.shape[1] > 32`.
@@ -109,7 +110,7 @@ def select_item(x, t):
         >>> y = F.select_item(x, t)
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([0., 5.], dtype=float32)
 
     """

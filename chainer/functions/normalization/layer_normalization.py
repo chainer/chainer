@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -49,7 +49,7 @@ class LayerNormalization(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gamma, beta = inputs
         x_mu, var, inv_std, x_hat = self._compute(xp, x)
         scaled_x = x_hat * gamma[None, ]
@@ -72,7 +72,7 @@ class LayerNormalization(function_node.FunctionNode):
         g_inv_std = F.sum(g_x_hat * x_mu, axis=1, keepdims=True)
         g_x_mu_1 = g_x_hat * F.broadcast_to(inv_std, g_x_hat.shape)
 
-        g_std = g_inv_std * (- 1. / var)
+        g_std = g_inv_std * (- 1. / (var + self.eps))
         g_var = g_std * 0.5 * inv_std
 
         n_units = x.shape[1]

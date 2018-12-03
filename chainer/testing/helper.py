@@ -24,8 +24,9 @@ def with_requires(*requirements):
 
        This test case runs only when `numpy>=1.10` is installed.
 
+       >>> import unittest
        >>> from chainer import testing
-       ... class Test(unittest.TestCase):
+       >>> class Test(unittest.TestCase):
        ...     @testing.with_requires('numpy>=1.10')
        ...     def test_for_numpy_1_10(self):
        ...         pass
@@ -41,6 +42,35 @@ def with_requires(*requirements):
         skip = False
     except pkg_resources.ResolutionError:
         skip = True
+
+    msg = 'requires: {}'.format(','.join(requirements))
+    return unittest.skipIf(skip, msg)
+
+
+def without_requires(*requirements):
+    """Run a test case only when given requirements are not satisfied.
+
+    .. admonition:: Example
+
+    This test case runs only when `numpy>=1.10` is not installed.
+
+    >>> from chainer import testing
+    ... class Test(unittest.TestCase):
+    ...     @testing.without_requires('numpy>=1.10')
+    ...     def test_without_numpy_1_10(self):
+    ...         pass
+
+    Args:
+    requirements: A list of string representing requirement condition to
+        run a given test case.
+
+    """
+    ws = pkg_resources.WorkingSet()
+    try:
+        ws.require(*requirements)
+        skip = True
+    except pkg_resources.ResolutionError:
+        skip = False
 
     msg = 'requires: {}'.format(','.join(requirements))
     return unittest.skipIf(skip, msg)

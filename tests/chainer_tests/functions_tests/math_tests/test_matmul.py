@@ -11,6 +11,13 @@ from chainer.testing import attr
 from chainer.utils import type_check
 
 
+def _matmul_tol(x1_dtype, x2_dtype):
+    if x1_dtype == numpy.float16 or x2_dtype == numpy.float16:
+        return {'atol': 2e-3, 'rtol': 2e-3}
+    else:
+        return {'atol': 1e-4, 'rtol': 1e-5}
+
+
 @testing.parameterize(*testing.product_dict(
     [
         # matmul
@@ -29,6 +36,20 @@ from chainer.utils import type_check
         {'x1_shape': (5,), 'x2_shape': (5,), 'gy_shape': (),
          'transa': False, 'transb': True},
 
+        # matrix-vector
+        {'x1_shape': (5,), 'x2_shape': (5, 2), 'gy_shape': (2,),
+         'transa': False, 'transb': False},
+        {'x1_shape': (5,), 'x2_shape': (5, 2), 'gy_shape': (2,),
+         'transa': True, 'transb': False},
+        {'x1_shape': (5,), 'x2_shape': (2, 5), 'gy_shape': (2,),
+         'transa': False, 'transb': True},
+        {'x1_shape': (2, 5), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': False, 'transb': False},
+        {'x1_shape': (5, 2), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': True, 'transb': False},
+        {'x1_shape': (2, 5), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': False, 'transb': True},
+
         # batched matmul
         {'x1_shape': (6, 2, 5), 'x2_shape': (6, 5, 10), 'gy_shape': (6, 2, 10),
          'transa': False, 'transb': False},
@@ -38,6 +59,10 @@ from chainer.utils import type_check
          'transa': False, 'transb': True},
         {'x1_shape': (6, 5, 2), 'x2_shape': (6, 10, 5), 'gy_shape': (6, 2, 10),
          'transa': True, 'transb': True},
+        {'x1_shape': (2, 3, 4), 'x2_shape': (4,), 'gy_shape': (2, 3),
+         'transa': False, 'transb': False},
+        {'x1_shape': (4,), 'x2_shape': (2, 4, 3), 'gy_shape': (2, 3),
+         'transa': False, 'transb': False},
 
         # batchsize = 1
         {'x1_shape': (1, 2, 5), 'x2_shape': (1, 5, 10), 'gy_shape': (1, 2, 10),
@@ -85,30 +110,24 @@ class TestMatMul(unittest.TestCase):
         if transb and x2.ndim >= 2:
             x2 = x2.swapaxes(-1, -2)
 
-        if x1.ndim <= 2:
+        if x1.ndim <= 2 or x2.ndim <= 2:
             return numpy.dot(x1, x2)
         else:
             return numpy.einsum('...ij,...jk->...ik', x1, x2)
 
-    def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
+    def check_forward(self, x1_data, x2_data):
+        tol = _matmul_tol(x1_data.dtype, x2_data.dtype)
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         y = self.op(x1, x2)
-        testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
+        testing.assert_allclose(self.forward_answer, y.data, **tol)
 
     def test_matmul_forward_cpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.x1, self.x2)
+        self.check_forward(self.x1, self.x2)
 
     @attr.gpu
     def test_matmul_forward_gpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
-                               atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
+        self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
 
     def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
         gradient_check.check_backward(
@@ -219,26 +238,20 @@ class TestBatchMatMul(unittest.TestCase):
 
         return numpy.einsum('...ij,...jk->...ik', x1, x2)
 
-    def check_forward(self, x1_data, x2_data, atol=1e-4, rtol=1e-5):
+    def check_forward(self, x1_data, x2_data):
+        tol = _matmul_tol(x1_data.dtype, x2_data.dtype)
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         with testing.assert_warns(DeprecationWarning):
             y = self.op(x1, x2)
-        testing.assert_allclose(self.forward_answer, y.data, atol, rtol)
+        testing.assert_allclose(self.forward_answer, y.data, **tol)
 
     def test_matmul_forward_cpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(self.x1, self.x2, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.x1, self.x2)
+        self.check_forward(self.x1, self.x2)
 
     @attr.gpu
     def test_matmul_forward_gpu(self):
-        if self.x1.dtype == numpy.float16 or self.x2.dtype == numpy.float16:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
-                               atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
+        self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
 
     def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
         with testing.assert_warns(DeprecationWarning):
@@ -281,7 +294,7 @@ class TestMatMulInvalid(unittest.TestCase):
 
     def test_invalid_shape(self):
         x_data = numpy.zeros((2, 3, 4), dtype=numpy.float32)
-        y_data = numpy.zeros((1, 4, 3), dtype=numpy.float32)
+        y_data = numpy.zeros((3, 4, 3), dtype=numpy.float32)
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
 

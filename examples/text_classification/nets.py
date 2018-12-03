@@ -86,23 +86,23 @@ class TextClassifier(chainer.Chain):
             self.output = L.Linear(encoder.out_units, n_class)
         self.dropout = dropout
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         concat_outputs = self.predict(xs)
         concat_truths = F.concat(ys, axis=0)
 
         loss = F.softmax_cross_entropy(concat_outputs, concat_truths)
         accuracy = F.accuracy(concat_outputs, concat_truths)
-        reporter.report({'loss': loss.data}, self)
-        reporter.report({'accuracy': accuracy.data}, self)
+        reporter.report({'loss': loss}, self)
+        reporter.report({'accuracy': accuracy}, self)
         return loss
 
     def predict(self, xs, softmax=False, argmax=False):
         concat_encodings = F.dropout(self.encoder(xs), ratio=self.dropout)
         concat_outputs = self.output(concat_encodings)
         if softmax:
-            return F.softmax(concat_outputs).data
+            return F.softmax(concat_outputs).array
         elif argmax:
-            return self.xp.argmax(concat_outputs.data, axis=1)
+            return self.xp.argmax(concat_outputs.array, axis=1)
         else:
             return concat_outputs
 
@@ -132,7 +132,7 @@ class RNNEncoder(chainer.Chain):
         self.out_units = n_units
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         exs = sequence_embed(self.embed, xs, self.dropout)
         last_h, last_c, ys = self.encoder(None, None, exs)
         assert(last_h.shape == (self.n_layers, len(xs), self.out_units))
@@ -177,7 +177,7 @@ class CNNEncoder(chainer.Chain):
         self.out_units = out_units * 3
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block, self.dropout)
         h_w3 = F.max(self.cnn_w3(ex_block), axis=2)
@@ -208,7 +208,7 @@ class MLP(chainer.ChainList):
         self.dropout = dropout
         self.out_units = n_units
 
-    def __call__(self, x):
+    def forward(self, x):
         for i, link in enumerate(self.children()):
             x = F.dropout(x, ratio=self.dropout)
             x = F.relu(link(x))
@@ -237,7 +237,7 @@ class BOWEncoder(chainer.Chain):
         self.out_units = n_units
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block)
         x_len = self.xp.array([len(x) for x in xs], numpy.int32)[:, None, None]
@@ -268,7 +268,7 @@ class BOWMLPEncoder(chainer.Chain):
 
         self.out_units = n_units
 
-    def __call__(self, xs):
+    def forward(self, xs):
         h = self.bow_encoder(xs)
         h = self.mlp_encoder(h)
         return h

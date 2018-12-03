@@ -2,7 +2,7 @@ import collections
 
 from chainer.functions.theano import theano_function
 from chainer import link
-from chainer import utils
+from chainer.utils import collections_abc
 
 
 def _to_var_tuple(vs):
@@ -12,7 +12,7 @@ def _to_var_tuple(vs):
 
     if isinstance(vs, theano.tensor.TensorVariable):
         return vs,
-    elif isinstance(vs, collections.Iterable):
+    elif isinstance(vs, collections_abc.Iterable):
         vs = tuple(vs)
         if not all(isinstance(v, theano.tensor.TensorVariable) for v in vs):
             raise TypeError(msg)
@@ -46,9 +46,9 @@ class TheanoFunction(link.Link):
        >>> a = chainer.Variable(np.array([1, 2], dtype=np.float32))
        >>> b = chainer.Variable(np.array([2, 3], dtype=np.float32))
        >>> c, d = f(a, b)
-       >>> c.data
+       >>> c.array
        array([3., 5.], dtype=float32)
-       >>> d.data
+       >>> d.array
        array([-1., -1.], dtype=float32)
 
     .. note::
@@ -67,7 +67,6 @@ class TheanoFunction(link.Link):
     """
 
     def __init__(self, inputs, outputs):
-        utils.experimental('chainer.links.TheanoFunction')
         try:
             # When Theano library is imported, it executes a lot of
             # initialization process. To minimize its side effect,
@@ -99,6 +98,6 @@ Please install theano to activate theano function.
             outputs=grad,
             on_unused_input='ignore')
 
-    def __call__(self, *args):
+    def forward(self, *args):
         return theano_function.theano_function(
             self.forward_func, self.backward_func, *args)

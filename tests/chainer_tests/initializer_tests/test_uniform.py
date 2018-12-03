@@ -1,5 +1,6 @@
 import unittest
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
@@ -39,7 +40,7 @@ class TestUniform(unittest.TestCase):
     def check_shaped_initializer(self, xp):
         initializer = self.target(scale=self.scale, dtype=self.dtype)
         w = initializers.generate_array(initializer, self.shape, xp)
-        self.assertIs(cuda.get_array_module(w), xp)
+        self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 

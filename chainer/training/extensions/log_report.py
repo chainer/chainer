@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import tempfile
 import warnings
 
 import six
@@ -10,6 +9,7 @@ from chainer import reporter
 from chainer import serializer as serializer_module
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
+from chainer import utils
 
 
 class LogReport(extension.Extension):
@@ -96,12 +96,13 @@ class LogReport(extension.Extension):
             # write to the log file
             if self._log_name is not None:
                 log_name = self._log_name.format(**stats_cpu)
-                fd, path = tempfile.mkstemp(prefix=log_name, dir=trainer.out)
-                with os.fdopen(fd, 'w') as f:
-                    json.dump(self._log, f, indent=4)
+                with utils.tempdir(prefix=log_name, dir=trainer.out) as tempd:
+                    path = os.path.join(tempd, 'log.json')
+                    with open(path, 'w') as f:
+                        json.dump(self._log, f, indent=4)
 
-                new_path = os.path.join(trainer.out, log_name)
-                shutil.move(path, new_path)
+                    new_path = os.path.join(trainer.out, log_name)
+                    shutil.move(path, new_path)
 
             # reset the summary for the next output
             self._init_summary()

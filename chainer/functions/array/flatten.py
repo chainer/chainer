@@ -24,7 +24,7 @@ def flatten(x):
         >>> y = F.flatten(x)
         >>> y.shape
         (4,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 4])
 
         >>> x = np.arange(8).reshape(2, 2, 2)
@@ -33,7 +33,7 @@ def flatten(x):
         >>> y = F.flatten(x)
         >>> y.shape
         (8,)
-        >>> y.data
+        >>> y.array
         array([0, 1, 2, 3, 4, 5, 6, 7])
 
     """

@@ -19,7 +19,7 @@ After reading this section, you will be able to:
 Differentiable Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer provides a collection of functions in the :mod:`~chainer.functions` module.
+Chainer provides a collection of functions in the :mod:`chainer.functions` module.
 It covers typical use cases in deep learning, so many existing works can be implemented with them.
 On the other hand, deep learning is evolving rapidly and we cannot cover all possible functions to define unseen architectures.
 So it is important to learn how to define your own functions.
@@ -251,7 +251,7 @@ It can be written straight-forward as follows
    Of course, the module in such environment is almost useless, but if the interpreter does not run through the code accessing CUDA-dedicated functions, the code is still valid.
 
 The CPU and GPU implementations are almost same, except that :mod:`numpy` is replaced by :mod:`cupy` in GPU methods.
-We can unify these functions using the :func:`chainer.backends.cuda.get_array_module` function.
+We can unify these functions using the :func:`chainer.backend.get_array_module` function.
 This function accepts arbitrary number of arrays, and returns an appropriate module for them.
 See the following code
 
@@ -259,13 +259,13 @@ See the following code
 
    class ExpAdd(Function):
        def forward(self, inputs):
-           xp = cuda.get_array_module(*inputs)
+           xp = backend.get_array_module(*inputs)
            x, y = inputs
            z = xp.exp(x) + xp.exp(y)
            return z,
 
        def backward(self, inputs, grad_outputs):
-           xp = cuda.get_array_module(*inputs)
+           xp = backend.get_array_module(*inputs)
            x, y = inputs
            gz, = grad_outputs
 
@@ -415,7 +415,7 @@ You will need to check the value of the boolean flag ``chainer.config.train`` an
 For example, consider the following simple dropout function::
 
   def dropout(x):
-      xp = cuda.get_array_module(x.data)
+      xp = backend.get_array_module(x.data)
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
@@ -427,7 +427,7 @@ We can fix it as follows::
       if not chainer.config.train:
           return x
 
-      xp = cuda.get_array_module(x.data)
+      xp = backend.get_array_module(x.data)
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
@@ -454,7 +454,7 @@ It can be defined as follows:
            with self.init_scope():
                self.W = chainer.Parameter(initializers.Normal(scale=1.), shape)
 
-       def __call__(self, x):
+       def forward(self, x):
            return self.W * x
 
 For another example, assume we want to define a simple linear layer.
@@ -496,7 +496,7 @@ In order to make a convenient module, let's wrap it into a link:
                    (out_size, in_size))
                self.b = chainer.Parameter(0, (out_size,))
 
-       def __call__(self, x):
+       def forward(self, x):
            return linear(x, self.W, self.b)
 
 This link hides the parameters of the linear layer.

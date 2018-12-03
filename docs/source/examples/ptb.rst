@@ -181,13 +181,13 @@ the above figure.
 * You can access all the parameters in those layers by calling ``self.params()``.
 * In the constructor, it initializes all parameters with values sampled from a
   uniform distribution :math:`U(-1, 1)`.
-* The ``__call__`` method takes an word ID ``x``, and calculates the word
+* The ``forward`` method takes an word ID ``x``, and calculates the word
   probability vector for the next word by forwarding it through the network,
   and returns the output.
 * Note that the word ID ``x`` is automatically converted to a
   :math:`|\mathcal{V}|`-dimensional one-hot vector and then multiplied with the
   input embedding matrix in ``self.embed(x)`` to obtain an embed vector ``h0``
-  at the first line of ``__call__``.
+  at the first line of ``forward``.
 
 2.2.4 Load the Penn Tree Bank Long Word Sequence Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -232,7 +232,7 @@ length of sequence :math:`T` to calculate the loss:
     \hat{P}({\bf x}_{t+1}^{(n)})
     \log P_{\rm model}({\bf x}_{t+1}^{(n)} \mid {\bf x}_t^{(n)})
 
-where :math`\hat{P}({\bf x}_t^n)` is a probability for :math:`n`-th word in the vocabulary at
+where :math:`\hat{P}({\bf x}_t^n)` is a probability for :math:`n`-th word in the vocabulary at
 the position :math:`t` in the training data sequence.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py

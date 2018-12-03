@@ -1,6 +1,6 @@
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -44,7 +44,7 @@ class Squeeze(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.squeeze(x, self.axis),
 
     def backward(self, indexes, grad_outputs):
@@ -86,20 +86,20 @@ def squeeze(x, axis=None):
         >>> y = F.squeeze(x)
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
         >>> y = F.squeeze(x, axis=1)
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)
         >>> y = F.squeeze(x, axis=(1, 2))
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
 

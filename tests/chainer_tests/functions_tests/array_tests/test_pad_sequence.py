@@ -104,9 +104,8 @@ class TestPadSequence(unittest.TestCase):
             return
 
         def f(*xs):
-            y = functions.pad_sequence(
+            return functions.pad_sequence(
                 xs, length=self.length, padding=self.pad)
-            return y * y
 
         gradient_check.check_double_backward(
             f, xs, gy, ggxs, dtype=numpy.float64,

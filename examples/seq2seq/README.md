@@ -5,7 +5,7 @@ This is a minimal example of sequence-to-sequence learning. Sequence-to-sequence
 In this simple example script, an input sequence is processed by a stacked LSTM-RNN and it is encoded as a fixed-size vector. The output sequence is also processed by another stacked LSTM-RNN. At decoding time, an output sequence is generated using argmax.
 
 
-## Requriement
+## Requirement
 
 This example requires additional libraries.
 

@@ -1,8 +1,7 @@
 import os
-import shutil
-import tempfile
 
 from chainer import serializers
+from chainer import utils
 
 
 def save_and_load(src, dst, filename, saver, loader):
@@ -21,13 +20,10 @@ def save_and_load(src, dst, filename, saver, loader):
             object.
 
     """
-    tempdir = tempfile.mkdtemp()
-    try:
+    with utils.tempdir() as tempdir:
         path = os.path.join(tempdir, filename)
         saver(path, src)
         loader(path, dst)
-    finally:
-        shutil.rmtree(tempdir)
 
 
 def save_and_load_npz(src, dst):

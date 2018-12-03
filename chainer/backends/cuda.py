@@ -28,8 +28,12 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
+import binascii
 import functools
+import itertools
 import os
+import threading
+import time
 import warnings
 
 import numpy
@@ -47,6 +51,8 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.linalg  # NOQA
+    import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -54,12 +60,9 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
-
     available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -95,7 +98,7 @@ def check_cuda_available():
             'cuDNN is not enabled.\n'
             'Please reinstall CuPy after you install cudnn\n'
             '(see https://docs-cupy.chainer.org/en/stable/install.html'
-            '#install-cupy-with-cudnn-and-nccl).')
+            '#install-cudnn).')
         check_cuda_available._already_warned = True
 
 
@@ -144,12 +147,6 @@ if available:
 
 
 _integer_types = six.integer_types + (numpy.integer,)
-if six.PY2:
-    try:
-        from future.types.newint import newint as _newint
-        _integer_types += (_newint,)
-    except ImportError:
-        pass
 
 
 # ------------------------------------------------------------------------------
@@ -174,8 +171,16 @@ def get_device_from_array(*arrays):
 
     The device on which the given CuPy array reside is returned.
 
+    .. note::
+
+        This method only recognizes :class:`cupy.ndarray`\\ s in arguments.
+        Especially note that, unlike :func:`get_array_module`, this method
+        does not recognize :class:`~chainer.Variable` objects.
+        If you need to get device from the :class:`~chainer.Variable` instance
+        ``v``, you need to use ``get_device_from_array(v.array)``.
+
     Args:
-        array (cupy.ndarray or list of cupy.ndarray):
+        arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
             A CuPy array which this function returns the device corresponding
             to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
@@ -464,7 +469,7 @@ def clear_memo():
 # ------------------------------------------------------------------------------
 # Kernel definition utility
 # ------------------------------------------------------------------------------
-@memoize(for_each_device=True)
+@memoize()
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
@@ -482,9 +487,9 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
         in_params, out_params, operation, name, **kwargs)
 
 
-@memoize(for_each_device=True)
+@memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
-           identity, name,  **kwargs):
+           identity, name, **kwargs):
     """Creates a global reduction kernel function.
 
     This function uses :func:`~chainer.backends.cuda.memoize` to cache the
@@ -502,6 +507,21 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
         identity, name, **kwargs)
 
 
+@memoize()
+def raw(code, name, *args, **kwargs):
+    """Creates a raw kernel function.
+
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
+
+    The arguments are the same as those for :class:`cupy.RawKernel`.
+
+    """
+    check_cuda_available()
+    return cupy.RawKernel(code, name, *args, **kwargs)
+
+
 # ------------------------------------------------------------------------------
 # numpy/cupy compatible coding
 # ------------------------------------------------------------------------------
@@ -513,6 +533,11 @@ def get_array_module(*args):
     it will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
+    .. deprecated:: v5.0.0
+
+        This API is deprecated. Please use
+        :func:`~chainer.backend.get_array_module` instead.
+
     Args:
         args: Values to determine whether NumPy or CuPy should be used.
 
@@ -521,15 +546,7 @@ def get_array_module(*args):
         the arguments.
 
     """
-    if available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
-        return cupy.get_array_module(*args)
-    else:
-        return numpy
-
-
-_max_workspace_size = 8 * 1024 * 1024
+    return chainer.backend.get_array_module(*args)
 
 
 def get_max_workspace_size():
@@ -541,7 +558,10 @@ def get_max_workspace_size():
         int: The workspace size for cuDNN.
 
     """
-    return _max_workspace_size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        return cudnn.get_max_workspace_size()
+    return 0
 
 
 def set_max_workspace_size(size):
@@ -553,8 +573,9 @@ def set_max_workspace_size(size):
         size: The workspace size for cuDNN.
 
     """
-    global _max_workspace_size
-    _max_workspace_size = size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        cudnn.set_max_workspace_size(size)
 
 
 def fuse(*args, **kwargs):
@@ -642,3 +663,35 @@ def should_use_cudnn_tensor_core(dtype):
     if use_tensor_core is None:
         use_tensor_core = cudnn.is_tensor_core_available(dtype)
     return use_tensor_core
+
+
+# ------------------------------------------------------------------------------
+# cupy.cudnn utility
+# ------------------------------------------------------------------------------
+
+def get_cudnn_dropout_states():
+    if not cudnn_enabled:
+        raise RuntimeError('cuDNN is not enabled.')
+
+    thread_id = threading.current_thread().ident
+    return get_cudnn_dropout_states_core(thread_id)
+
+
+_dropout_states_count = itertools.count()
+
+
+@memoize(for_each_device=True)
+def get_cudnn_dropout_states_core(thread_id):
+    states_id = next(_dropout_states_count)
+    seed = os.getenv('CHAINER_SEED')
+    if seed is None:
+        try:
+            seed_str = binascii.hexlify(os.urandom(8))
+            seed = numpy.uint64(int(seed_str, 16))
+        except NotImplementedError:
+            seed = numpy.uint64(time.clock() * 1000000)
+    else:
+        seed = numpy.uint64(seed)
+
+    seed += numpy.uint64(states_id)
+    return cudnn.DropoutStates(None, seed)

@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
@@ -232,7 +233,7 @@ class TestConcatExamplesWithBuiltInTypes(unittest.TestCase):
         self.check_device(array, device)
 
         for x, y in zip(array, arrays):
-            if cuda.get_array_module(x) == numpy:
+            if backend.get_array_module(x) == numpy:
                 numpy.testing.assert_array_equal(
                     numpy.array(x),
                     numpy.array(y, dtype=expected_type))

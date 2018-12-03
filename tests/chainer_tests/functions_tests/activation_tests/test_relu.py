@@ -12,7 +12,7 @@ from chainer.testing import backend
 
 
 def _to_noncontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -102,16 +102,12 @@ class TestReLU(unittest.TestCase):
             grad_outputs = _to_noncontiguous(grad_outputs)
             grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
-        def f(x):
-            x = functions.relu(x)
-            return x * x
-
         x, = inputs
         gy, = grad_outputs
         ggx, = grad_grad_inputs
         with backend_config:
             gradient_check.check_double_backward(
-                f, x, gy, ggx, dtype=numpy.float64,
+                functions.relu, x, gy, ggx, dtype=numpy.float64,
                 **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):

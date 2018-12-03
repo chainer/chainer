@@ -212,6 +212,10 @@ class TestGraphBuilderStylization(unittest.TestCase):
             for key, value in style.items():
                 self.assertIn('{0}="{1}"'.format(key, value), dotfile_content)
 
+    def test_unsupported_format(self):
+        with self.assertRaises(NotImplementedError):
+            self.g.dump('graphml')
+
 
 class TestGraphBuilderShowName(unittest.TestCase):
 

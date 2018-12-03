@@ -14,7 +14,7 @@ from chainer.testing import condition
 
 
 def _to_fcontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -118,8 +118,7 @@ class TestAveragePooling2D(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
-            y = functions.average_pooling_2d(x, 3, 2, 1)
-            return y * y
+            return functions.average_pooling_2d(x, 3, 2, 1)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -152,7 +151,7 @@ class TestAveragePooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -163,7 +162,7 @@ class TestAveragePooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

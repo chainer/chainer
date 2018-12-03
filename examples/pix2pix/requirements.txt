@@ -1,0 +1,3 @@
+cupy
+chainer
+scikit-image

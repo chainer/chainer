@@ -8,21 +8,24 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import random
 
 import numpy as np
 
 import chainer
+from chainer import dataset
 from chainer import training
 from chainer.training import extensions
+
+import dali_util
 
 import alex
 import googlenet
 import googlenetbn
 import nin
 import resnet50
+import resnext50
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -75,7 +78,7 @@ def main():
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
-        'resnext50': resnet50.ResNeXt50,
+        'resnext50': resnext50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -106,28 +109,53 @@ def main():
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
+    parser.add_argument('--dali', action='store_true')
+    parser.set_defaults(dali=False)
     args = parser.parse_args()
 
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
         chainer.backends.cuda.get_device_from_id(
             args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
-    # Load the datasets and mean file
+    # Load the mean file
     mean = np.load(args.mean)
-    train = PreprocessedDataset(args.train, args.root, mean, model.insize)
-    val = PreprocessedDataset(args.val, args.root, mean, model.insize, False)
-    # These iterators load the images with subprocesses running in parallel to
-    # the training/validation.
-    train_iter = chainer.iterators.MultiprocessIterator(
-        train, args.batchsize, n_processes=args.loaderjob)
-    val_iter = chainer.iterators.MultiprocessIterator(
-        val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
+    if args.dali:
+        if not dali_util._dali_available:
+            raise RuntimeError('DALI seems not available on your system.')
+        num_threads = args.loaderjob
+        if num_threads is None or num_threads <= 0:
+            num_threads = 1
+        ch_mean = list(np.average(mean, axis=(1, 2)))
+        ch_std = [255.0, 255.0, 255.0]
+        # Setup DALI pipelines
+        train_pipe = dali_util.DaliPipelineTrain(
+            args.train, args.root, model.insize, args.batchsize,
+            num_threads, args.gpu, True, mean=ch_mean, std=ch_std)
+        val_pipe = dali_util.DaliPipelineVal(
+            args.val, args.root, model.insize, args.val_batchsize,
+            num_threads, args.gpu, False, mean=ch_mean, std=ch_std)
+        train_iter = chainer.iterators.DaliIterator(train_pipe)
+        val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
+        # converter = dali_converter
+        converter = dali_util.DaliConverter(mean=mean, crop_size=model.insize)
+    else:
+        # Load the dataset files
+        train = PreprocessedDataset(args.train, args.root, mean, model.insize)
+        val = PreprocessedDataset(args.val, args.root, mean, model.insize,
+                                  False)
+        # These iterators load the images with subprocesses running in parallel
+        # to the training/validation.
+        train_iter = chainer.iterators.MultiprocessIterator(
+            train, args.batchsize, n_processes=args.loaderjob)
+        val_iter = chainer.iterators.MultiprocessIterator(
+            val, args.val_batchsize, repeat=False, n_processes=args.loaderjob)
+        converter = dataset.concat_examples
 
     # Set up an optimizer
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
@@ -135,14 +163,14 @@ def main():
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, device=args.gpu)
+        train_iter, optimizer, converter=converter, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (1 if args.test else 100000), 'iteration'
     log_interval = (1 if args.test else 1000), 'iteration'
 
-    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
-                   trigger=val_interval)
+    trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
+                                        device=args.gpu), trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(

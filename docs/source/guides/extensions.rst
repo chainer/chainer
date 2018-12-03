@@ -104,7 +104,7 @@ You can specify a function which takes a :class:`~chainer.training.Trainer` obje
 .. _class:
 
 Write a class inherited from the Extension class
---------------------------------------------
+------------------------------------------------
 
 This is the way to define your own extension with the maximum degree of freedom. You can keep any values inside of the extension and serialize them.
 
@@ -159,7 +159,7 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
             self._t = serializer('_t', self._t)
             self._last_value = serializer('_last_value', self._last_value)
             if isinstance(self._last_value, np.ndarray):
-                self._last_value = np.asscalar(self._last_value)
+                self._last_value = self._last_value.item()
 
 .. code-block:: python
 

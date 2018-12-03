@@ -17,10 +17,14 @@ from chainer.utils import conv_nd
 
 @testing.parameterize(*(testing.product({
     'dims': [(3, 4), (3, 4, 3)],
-    'dtype': [numpy.float32]
+    'dtype': [numpy.float32],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 }) + testing.product({
     'dims': [(5,)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 })))
 class TestConvolutionND(unittest.TestCase):
 
@@ -30,12 +34,19 @@ class TestConvolutionND(unittest.TestCase):
         self.stride = (2,) * ndim
         self.pad = (1,) * ndim
 
-        self.link = convolution_nd.ConvolutionND(
-            ndim, 3, 2, self.ksize, stride=self.stride, pad=self.pad,
-            initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
+        if self.in_channels == 'omit':
+            self.link = convolution_nd.ConvolutionND(
+                ndim, 2, self.ksize, stride=self.stride,
+                pad=self.pad, groups=self.groups,
+                initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
+        else:
+            self.link = convolution_nd.ConvolutionND(
+                ndim, self.in_channels, 2, self.ksize, stride=self.stride,
+                pad=self.pad, groups=self.groups,
+                initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
         self.link.cleargrads()
 
-        x_shape = (2, 3) + self.dims
+        x_shape = (2, 4) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         gy_shape = (2, 2) + tuple(
             conv.get_conv_outsize(d, k, s, p) for (d, k, s, p) in zip(
@@ -142,6 +153,31 @@ class TestConvolutionNDNoInitialBias(unittest.TestCase):
         link = convolution_nd.ConvolutionND(
             ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
+
+
+class TestConvolutionNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        in_channels = 3
+        out_channels = 2
+        dtype = numpy.float32
+
+        x_shape = (2, in_channels) + (3,) * ndim
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+
+        return in_channels, out_channels, x
+
+    def test_conv1d(self):
+        in_c, out_c, x = self._get_data(1)
+        link_nd = convolution_nd.ConvolutionND(1, in_c, out_c, 2, initialW=1)
+        link_1d = convolution_nd.Convolution1D(in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_1d(x).data)
+
+    def test_conv3d(self):
+        in_c, out_c, x = self._get_data(3)
+        link_nd = convolution_nd.ConvolutionND(3, in_c, out_c, 2, initialW=1)
+        link_3d = convolution_nd.Convolution3D(in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_3d(x).data)
 
 
 testing.run_module(__name__, __file__)

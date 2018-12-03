@@ -34,7 +34,7 @@ class TestPrintHookToFunction(unittest.TestCase):
         self.f.add_hook(self.h)
         self.f(chainer.Variable(self.x), chainer.Variable(self.x))
         # In some environments, shape is long.
-        expect = '''^function\tDummyFunction
+        expect = r'''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
@@ -59,7 +59,7 @@ input data
         self.f.add_hook(self.h)
         self.f(chainer.Variable(cuda.to_gpu(self.x)),
                chainer.Variable(cuda.to_gpu(self.x)))
-        expect = '''^function\tDummyFunction
+        expect = r'''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
@@ -84,7 +84,7 @@ input data
         y.grad = self.gy
         self.f.add_hook(self.h)
         y.backward()
-        expect = '''^function\tDummyFunction
+        expect = r'''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: CPU
@@ -113,7 +113,7 @@ output gradient
         y.grad = cuda.to_gpu(self.gy)
         self.f.add_hook(self.h)
         y.backward()
-        expect = '''^function\tDummyFunction
+        expect = r'''^function\tDummyFunction
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>

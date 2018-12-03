@@ -61,7 +61,7 @@ class Inception(link.Chain):
                 in_channels, proj_pool, 1, initialW=conv_init,
                 initial_bias=bias_init)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Computes the output of the Inception module.
 
         Args:

@@ -1,12 +1,10 @@
-import binascii
 import itertools
-import os
-import time
 
 import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
@@ -51,45 +49,6 @@ def _make_tensor_descriptor_array(xs):
         desc = cudnn.create_tensor_nd_descriptor(x)
         descs.append(desc)
     return PointerArray([d.value for d in descs], descs)
-
-
-class DropoutRandomStates(object):
-
-    def __init__(self, seed):
-        self._states = None
-
-        if seed is None:
-            try:
-                seed_str = binascii.hexlify(os.urandom(8))
-                seed = numpy.uint64(int(seed_str, 16))
-            except NotImplementedError:
-                seed = numpy.uint64(time.clock() * 1000000)
-        else:
-            seed = numpy.uint64(seed)
-
-        self._seed = seed
-
-    def create_dropout_states(self, dropout):
-        handle = cudnn.get_handle()
-        if self._states is None:
-            self._states = cudnn.DropoutStates(handle, self._seed)
-        # TODO(unno): Make a method to set dropout instead of calling API
-        cudnn.set_dropout_descriptor(self._states._desc, handle, dropout)
-
-        return self._states
-
-
-_random_states = {}
-
-
-def get_random_state():
-    global _random_states
-    dev = cuda.Device()
-    rs = _random_states.get(dev.id, None)
-    if rs is None:
-        rs = DropoutRandomStates(os.getenv('CHAINER_SEED'))
-        _random_states[dev.id] = rs
-    return rs
 
 
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
@@ -202,7 +161,7 @@ class CudnnRNNWeightConcat(function.Function):
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), 'f')
+        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(
@@ -272,10 +231,11 @@ def cudnn_rnn_weight_concat(
 class BaseNStepRNN(function.Function):
 
     def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         if rnn_dir not in _rnn_dirs:
             candidate_list = ','.join(_rnn_dirs.keys())
@@ -380,7 +340,6 @@ class BaseNStepRNN(function.Function):
 
         w_desc = cudnn.create_filter_descriptor(w)
 
-        self.w = w
         self.w_desc = w_desc
 
         y_list = cuda.cupy.split(ys, self.sections[:-1])
@@ -415,14 +374,15 @@ class BaseNStepRNN(function.Function):
                 self.reserve_space.data.ptr, reserve_size)
 
         self.c_y_descs = c_y_descs
-        self.ys = ys
         self.c_x_descs = c_x_descs
 
         if self.use_cell:
             # LSTM
+            self.retain_outputs((2,))
             return hy, cy, ys
         else:
             # GRU, RNN
+            self.retain_outputs((1,))
             return hy, ys
 
     def backward(self, inputs, grads):
@@ -454,6 +414,8 @@ class BaseNStepRNN(function.Function):
             cx_data_ptr = dcy_data_ptr = dcx_data_ptr = 0
             cx_desc_value = dcx_desc_value = dcy_desc_value = 0
 
+        ys = self.output_data[-1]
+
         xs = cuda.cupy.ascontiguousarray(xs)
         hx = cuda.cupy.ascontiguousarray(hx)
 
@@ -461,7 +423,7 @@ class BaseNStepRNN(function.Function):
             dhy = cuda.cupy.zeros_like(hx)
 
         if dys is None:
-            dys = cuda.cupy.zeros_like(self.ys)
+            dys = cuda.cupy.zeros_like(ys)
 
         length = len(self.lengths)
 
@@ -487,20 +449,20 @@ class BaseNStepRNN(function.Function):
 
         libcudnn.RNNBackwardData(
             handle, rnn_desc.value, length,
-            self.c_y_descs.data, self.ys.data.ptr,
+            self.c_y_descs.data, ys.data.ptr,
             c_dy_descs.data, dys.data.ptr, dhy_desc.value, dhy.data.ptr,
-            dcy_desc_value, dcy_data_ptr, self.w_desc.value, self.w.data.ptr,
+            dcy_desc_value, dcy_data_ptr, self.w_desc.value, w.data.ptr,
             hx_desc.value, hx.data.ptr, cx_desc_value, cx_data_ptr,
             c_dx_descs.data, dxs.data.ptr, dhx_desc.value, dhx.data.ptr,
             dcx_desc_value, dcx_data_ptr, workspace.data.ptr, work_size,
             self.reserve_space.data.ptr, self.reserve_space.size)
 
-        dw = cuda.cupy.zeros_like(self.w)
+        dw = cuda.cupy.zeros_like(w)
         dw_desc = cudnn.create_filter_descriptor(dw)
         libcudnn.RNNBackwardWeights(
             handle, rnn_desc.value, length,
             self.c_x_descs.data, xs.data.ptr,
-            hx_desc.value, hx.data.ptr, self.c_y_descs.data, self.ys.data.ptr,
+            hx_desc.value, hx.data.ptr, self.c_y_descs.data, ys.data.ptr,
             workspace.data.ptr, work_size, dw_desc.value, dw.data.ptr,
             self.reserve_space.data.ptr, self.reserve_space.size)
 
@@ -573,7 +535,7 @@ def n_step_rnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -612,7 +574,7 @@ def n_step_rnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -623,7 +585,7 @@ def n_step_rnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -676,7 +638,7 @@ def n_step_birnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -722,7 +684,7 @@ def n_step_birnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -733,7 +695,7 @@ def n_step_birnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -791,7 +753,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -804,7 +766,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             Bi-directional RNN.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
             ``hy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -819,13 +781,13 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_birnn`
 
     """  # NOQA
-
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config',
-        use_cudnn='use_cudnn argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
     activation_list = ['tanh', 'relu']
     if activation not in activation_list:
@@ -833,10 +795,11 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
-    xp = cuda.get_array_module(hx)
+    xp = backend.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = get_random_state().create_dropout_states(dropout_ratio)
+        states = cuda.get_cudnn_dropout_states()
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 

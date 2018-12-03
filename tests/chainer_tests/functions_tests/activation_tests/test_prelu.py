@@ -73,12 +73,9 @@ class TestPReLU(unittest.TestCase):
 
     def check_double_backward(self, x_data, W_data, y_grad, x_grad_grad,
                               W_grad_grad):
-        def f(x, W):
-            y = functions.prelu(x, W)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x_data, W_data), y_grad, (x_grad_grad, W_grad_grad),
+            functions.prelu, (x_data, W_data), y_grad,
+            (x_grad_grad, W_grad_grad),
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):

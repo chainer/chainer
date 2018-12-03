@@ -14,7 +14,7 @@ From the previous guide on :doc:`models`, let's use the ``MyChain`` class:
    ...             self.l1 = L.Linear(4, 3)
    ...             self.l2 = L.Linear(3, 2)
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
@@ -36,7 +36,7 @@ For example, we can set weight decay regularization by running the next line bef
 
 .. doctest::
 
-   >>> optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
+   >>> optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0005))
 
 Of course, you can write your own hook functions.
 It should be a function or a callable object.

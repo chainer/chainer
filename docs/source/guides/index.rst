@@ -15,3 +15,4 @@ Guides
    gpu
    type_checks
    serializers
+   report

@@ -6,7 +6,6 @@ https://github.com/tomsercu/lstm
 
 """
 from __future__ import division
-from __future__ import print_function
 import argparse
 
 import numpy as np
@@ -30,13 +29,13 @@ class RNNForLM(chainer.Chain):
             self.l3 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
-            param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
+            param.array[...] = np.random.uniform(-0.1, 0.1, param.shape)
 
     def reset_state(self):
         self.l1.reset_state()
         self.l2.reset_state()
 
-    def __call__(self, x):
+    def forward(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))
         h2 = self.l2(F.dropout(h1))
@@ -199,7 +198,7 @@ def main():
     # Load the Penn Tree Bank long word sequence dataset
     train, val, test = chainer.datasets.get_ptb_words()
     n_vocab = max(train) + 1  # train is just an array of integers
-    print('#vocab =', n_vocab)
+    print('#vocab = {}'.format(n_vocab))
 
     if args.test:
         train = train[:100]
@@ -222,7 +221,7 @@ def main():
     # Set up an optimizer
     optimizer = chainer.optimizers.SGD(lr=1.0)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
+    optimizer.add_hook(chainer.optimizer_hooks.GradientClipping(args.gradclip))
 
     # Set up a trainer
     updater = BPTTUpdater(train_iter, optimizer, args.bproplen, args.gpu)
@@ -256,7 +255,7 @@ def main():
     eval_rnn.reset_state()
     evaluator = extensions.Evaluator(test_iter, eval_model, device=args.gpu)
     result = evaluator()
-    print('test perplexity:', np.exp(float(result['main/loss'])))
+    print('test perplexity: {}'.format(np.exp(float(result['main/loss']))))
 
     # Serialize the final model
     chainer.serializers.save_npz(args.model, model)

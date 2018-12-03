@@ -61,8 +61,7 @@ class TestSoftplus(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.softplus(x, beta=self.beta)
-            return y * y
+            return functions.softplus(x, beta=self.beta)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(

@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import six
 
@@ -6,6 +7,7 @@ from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import function
+from chainer import iterators
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
@@ -89,6 +91,21 @@ class Evaluator(extension.Extension):
         self.eval_hook = eval_hook
         self.eval_func = eval_func
 
+        for key, iter in six.iteritems(iterator):
+            if (isinstance(iter, (iterators.SerialIterator,
+                                  iterators.MultiprocessIterator,
+                                  iterators.MultithreadIterator)) and
+                    getattr(iter, 'repeat', False)):
+                msg = 'The `repeat` property of the iterator {} '
+                'is set to `True`. Typically, the evaluator sweeps '
+                'over iterators until they stop, '
+                'but as the property being `True`, this iterator '
+                'might not stop and evaluation could go into '
+                'an infinite loop.'
+                'We recommend to check the configuration '
+                'of iterators'.format(key)
+                warnings.warn(msg)
+
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
         return self._iterators[name]
@@ -148,6 +165,11 @@ class Evaluator(extension.Extension):
         This method runs the evaluation loop over the validation dataset. It
         accumulates the reported values to :class:`~chainer.DictSummary` and
         returns a dictionary whose values are means computed by the summary.
+
+        Note that this function assumes that the main iterator raises
+        ``StopIteration`` or code in the evaluation loop raises an exception.
+        So, if this assumption is not held, the function could be caught in
+        an infinite loop.
 
         Users can override this method to customize the evaluation routine.
 

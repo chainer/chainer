@@ -106,9 +106,12 @@ class TestSqueezeInvalidType(unittest.TestCase):
 
 class TestSqueezeTypeError(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (1, 3, 1)).astype('f')
+
     def test_invalid_axis(self):
         with self.assertRaises(TypeError):
-            functions.Squeeze('a')
+            functions.squeeze(self.x, axis='a')
 
 
 testing.run_module(__name__, __file__)

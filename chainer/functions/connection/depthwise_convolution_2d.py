@@ -1,124 +1,4 @@
-import numpy
-
-from chainer.backends import cuda
-from chainer import function
-from chainer.utils import conv
-from chainer.utils import type_check
-
-
-def _pair(x):
-    if hasattr(x, '__getitem__'):
-        return x
-    return x, x
-
-
-def _matmul(a, b, xp):
-    if xp is numpy:
-        # numpy 1.9 does not support matmul.
-        # So we use numpy.einsum instead of numpy.matmul.
-        return xp.einsum('ijk,ikl->ijl', a, b)
-    else:
-        return xp.matmul(a, b)
-
-
-class DepthwiseConvolution2D(function.Function):
-
-    def __init__(self, stride=1, pad=0):
-        self.sy, self.sx = _pair(stride)
-        self.ph, self.pw = _pair(pad)
-
-    def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(2 <= n_in, n_in <= 3)
-
-        x_type = in_types[0]
-        w_type = in_types[1]
-        type_check.expect(
-            x_type.dtype.kind == 'f',
-            w_type.dtype.kind == 'f',
-            x_type.ndim == 4,
-            w_type.ndim == 4,
-            x_type.shape[1] == w_type.shape[1],
-        )
-
-        if type_check.eval(n_in) == 3:
-            b_type = in_types[2]
-            type_check.expect(
-                b_type.dtype == x_type.dtype,
-                b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[0] * w_type.shape[1],
-            )
-
-    def forward(self, inputs):
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
-        kh, kw = W.shape[2:]
-
-        xp = cuda.get_array_module(*x)
-        if xp is numpy:
-            self.col = conv.im2col_cpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw)
-        else:
-            self.col = conv.im2col_gpu(
-                x, kh, kw, self.sy, self.sx, self.ph, self.pw)
-
-        B, C, KY, KX, IY, IX = self.col.shape
-        D = W.shape[0]  # (D, C, KY, KX)
-        c_ = self.col.transpose(1, 0, 4, 5, 2, 3) \
-            .reshape((C, B * IY * IX, KY * KX))
-        w_ = W.transpose(1, 2, 3, 0).reshape((C, KY * KX, D))
-
-        # (C, B*IY*IX, KY*KX), (C, KY*KX, D)-> (C, B*IY*IX, D)
-        y = _matmul(c_, w_, xp).astype(x.dtype, copy=False)
-
-        # (C, B*IY*IX, D) -> (B, C*D, IY, IX)
-        y = y.reshape((C, B, IY * IX, D)).transpose(1, 0, 3, 2) \
-            .reshape((B, C * D, IY, IX))
-
-        if b is not None:
-            y += b[None, :, None, None]
-        return y,
-
-    def backward(self, inputs, grad_outputs):
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
-        gy = grad_outputs[0]
-        h, w = x.shape[2:]
-
-        xp = cuda.get_array_module(*x)
-
-        B, C, KY, KX, IY, IX = self.col.shape
-        D = W.shape[0]
-
-        # (B, C*D, IY, IX) -> (C, D, B*IY*IX, D)
-        gy_ = gy.reshape((B, C, D, IY * IX)).transpose(1, 2, 0, 3) \
-            .reshape((C, D, B * IY * IX))
-        c_ = self.col.transpose(1, 0, 4, 5, 2, 3) \
-            .reshape((C, B * IY * IX, KY * KX))
-        # (C, D, B*IY*IX), (C, B*IY*IX, KY*KX) -> (C, D, KY*KX)
-        gW_ = _matmul(gy_, c_, xp)
-        gW = gW_.reshape((C, D, KY, KX)).transpose(1, 0, 2, 3)
-        gW = gW.astype(W.dtype, copy=False)
-
-        w_ = W.transpose(1, 2, 3, 0).reshape((C, KY * KX, D))
-        # (C, KY*KX, D), (C, D, B*IY*IX) -> (C, KY*KX, B*IY*IX)
-        gcol = _matmul(w_, gy_, xp).reshape((C, KY, KX, B, IY, IX))
-        gcol = gcol.astype(x.dtype, copy=False)
-        gcol = xp.rollaxis(gcol, 3)
-
-        if xp is numpy:
-            gx = conv.col2im_cpu(gcol, self.sy, self.sx,
-                                 self.ph, self.pw, h, w)
-        else:
-            gx = conv.col2im_gpu(gcol, self.sy, self.sx,
-                                 self.ph, self.pw, h, w)
-
-        if b is None:
-            return gx, gW
-        else:
-            gy = xp.rollaxis(gy, 1, 4)
-            gb = gy.sum(axis=(0, 1, 2))
-            return gx, gW, gb
+import chainer
 
 
 def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
@@ -186,8 +66,8 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
         (2, 6, 2, 5)
 
     """
-    func = DepthwiseConvolution2D(stride, pad)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    multiplier, in_channels, kh, kw = W.shape
+    F = chainer.functions
+    W = F.transpose(W, (1, 0, 2, 3))
+    W = F.reshape(W, (multiplier * in_channels, 1, kh, kw))
+    return F.convolution_2d(x, W, b, stride, pad, groups=in_channels)

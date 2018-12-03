@@ -1,6 +1,4 @@
-import numpy
-
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
@@ -20,16 +18,16 @@ class DeCov(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check._argname(in_types, ('h',))
         h_type, = in_types
 
         type_check.expect(
-            h_type.dtype == numpy.float32,
+            h_type.dtype.kind == 'f',
             h_type.ndim == 2,
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         h, = inputs
 
         self.h_centered = h - h.mean(axis=0, keepdims=True)
@@ -44,7 +42,7 @@ class DeCov(function.Function):
             return self.covariance,
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         h, = inputs
         gcost, = grad_outputs
         gcost_div_n = gcost / gcost.dtype.type(len(h))
