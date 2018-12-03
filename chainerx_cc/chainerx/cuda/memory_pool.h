@@ -20,6 +20,8 @@ class MemoryPoolTest;  // for unit-tests
 }  // namespace cuda_internal
 
 constexpr size_t kAllocationUnitSize = 512;
+
+// If `kCompactionThreshold` or more consecutive empty free lists were found in free bins, executes `CompactFreebins`.
 constexpr size_t kCompactionThreashold = 512;
 
 enum class MallocStatus { kSuccess = 0, kErrorMemoryAllocation };
@@ -124,6 +126,9 @@ private:
     void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
     std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
     std::unique_ptr<Chunk> RemoveChunkFromFreeList(Chunk* chunk);
+
+    // Finds the longest consecutive empty free lists that include the section between `it_start` and `it_end`, and removes them from free
+    // bins.
     void CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end);
 
     int device_index_;
