@@ -41,9 +41,10 @@ def _ensure_shape_dtype(value):
 
 
 def _warn_legacy_to_gpu(src, dst, legacy):
-    if src is not None:
-        # The link is already on GPU.
-        if src == dst:
+    if src.xp is cuda.cupy and dst.xp is cuda.cupy:
+        src_id = src.device.id
+        dst_id = dst.device.id
+        if src_id == dst_id:
             # The link is already on the requested device; nothing
             # to do.
             return True
@@ -64,7 +65,7 @@ If you don't want to perform inter-GPU transfer, explicitly specify \
 
 The default behavior is planned to be changed to `sticky=False` in the future \
 release (possibly in Chainer v5).
-'''.format(dst=dst, src=src), FutureWarning)
+'''.format(dst=dst_id, src=src_id), FutureWarning)
             return True
         elif legacy is True:
             # Sticky mode is explicitly requested. Do not perform
