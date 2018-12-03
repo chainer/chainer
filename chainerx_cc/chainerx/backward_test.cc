@@ -2531,7 +2531,7 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
     y1.SetGrad(gy1_value, backprop_id);
 
     // The shape of the computed gradient of x1 is (2, 1) but the shape of x1 is (2,), thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DimensionError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), GradientError);
 }
 
 TEST(BackpropGradValidationTest, InvalidGradDtype) {
@@ -2568,7 +2568,7 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
     y1.SetGrad(gy1_value, backprop_id);
 
     // The dtype of the computed gradient of x1 is float but the dtype of x1 is double, thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DtypeError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), GradientError);
 }
 
 TEST(BackpropGradValidationTest, InvalidGradDevice) {
@@ -2606,7 +2606,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     y1.SetGrad(gy1_value, backprop_id);
 
     // The device of the computed gradient of x1 is on a different device from the device of x1, thus an exception should be throws.
-    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DeviceError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), GradientError);
 }
 
 }  // namespace
