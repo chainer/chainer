@@ -541,15 +541,13 @@ device.
 
         skip = _warn_legacy_to_gpu(
             self._device, device, legacy=skip_between_cupy_devices)
-        if skip:
-            return self
-
-        d = self.__dict__
-        for name in self._params:
-            d[name].to_device(device)
-        for name in self._persistent:
-            if not numpy.isscalar(d[name]):
-                d[name] = device.send(d[name])
+        if not skip:
+            d = self.__dict__
+            for name in self._params:
+                d[name].to_device(device)
+            for name in self._persistent:
+                if not numpy.isscalar(d[name]):
+                    d[name] = device.send(d[name])
 
         self._device = device
         return self
