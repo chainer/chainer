@@ -53,10 +53,10 @@ def _warn_legacy_to_gpu(src, dst, legacy):
             # planned to be changed, raise a warning.
             warnings.warn('''\
 You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
-`Link.to_gpu` in Chainer v4 and prior versions are "sticky" by default; \
+`Link.to_gpu` in Chainer v5 and prior versions are "sticky" by default; \
 if the Link is already on GPU, `to_gpu` does nothing.
 
-In Chainer v4, `sticky` option has been introduced to `Link.to_gpu` to \
+In Chainer v5, `sticky` option has been introduced to `Link.to_gpu` to \
 control this behavior.
 You can specify `sticky=False` option to `to_gpu` to perform inter-GPU \
 transfer.
@@ -64,7 +64,7 @@ If you don't want to perform inter-GPU transfer, explicitly specify \
 `sticky=True` so that you can disable this warning.
 
 The default behavior is planned to be changed to `sticky=False` in the future \
-release (possibly in Chainer v5).
+release (possibly in Chainer v6).
 '''.format(dst=dst_id, src=src_id), FutureWarning)
             return True
         elif legacy is True:
@@ -456,8 +456,8 @@ class Link(object):
                 specified GPU device even if the Link is already on another
                 GPU. If ``True``, ``to_gpu`` does nothing if the Link is
                 already on GPU. If omitted, ``True`` is used as the default
-                in Chainer v4. Note that the default is planned to be changed
-                to ``False`` in the future release (possibly in Chainer v5).
+                in Chainer v5. Note that the default is planned to be changed
+                to ``False`` in the future release (possibly in Chainer v6).
 
         Returns: self
 

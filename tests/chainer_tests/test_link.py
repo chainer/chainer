@@ -377,7 +377,7 @@ class TestLink(LinkTestBase, unittest.TestCase):
     def test_to_gpu_between_devices(self):
         self.link.to_gpu(0)
 
-        # sticky = default (True in Chainer v4)
+        # sticky = default (True in Chainer v5)
         with testing.assert_warns(FutureWarning):
             self.link.to_gpu(1)
         self.assertEqual(self.link.device.device, cuda.Device(0))
