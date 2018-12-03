@@ -1,5 +1,7 @@
 #include "chainerx/cuda/memory_pool.h"
 
+#include <algorithm>
+#include <iterator>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -74,22 +76,9 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
 }
 
 void MemoryPool::CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end) {
-    for (;; --it_start) {
-        FreeList& free_list = it_start->second;
-        if (!free_list.empty()) {
-            ++it_start;
-            break;
-        }
-        if (it_start == free_bins_.begin()) {
-            break;
-        }
-    }
-    for (; it_end != free_bins_.end(); ++it_end) {
-        FreeList& free_list = it_end->second;
-        if (!free_list.empty()) {
-            break;
-        }
-    }
+    auto it_start_rev = std::make_reverse_iterator(it_start);
+    it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const auto& p) { return !p.second.empty(); }).base();
+    it_end = std::find_if(it_end, free_bins_.end(), [](const auto& p) { return !p.second.empty(); });
     free_bins_.erase(it_start, it_end);
 }
 
@@ -130,15 +119,12 @@ std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
     FreeList& free_list = free_bins_it->second;
 
     // Remove the given chunk from the found free list
-    for (auto it = free_list.begin(); it != free_list.end(); ++it) {
-        if (it->get() == chunk) {
-            std::unique_ptr<Chunk> chunk = std::move(*it);
-            CHAINERX_ASSERT(chunk != nullptr);
-            free_list.erase(it);
-            return chunk;
-        }
-    }
-    return nullptr;
+    auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
+    if (it == free_list.end()) return nullptr;
+    std::unique_ptr<Chunk> chunk_uniq_ptr = std::move(*it);
+    CHAINERX_ASSERT(chunk_uniq_ptr != nullptr);
+    free_list.erase(it);
+    return chunk_uniq_ptr;
 }
 
 MemoryPool::~MemoryPool() {
