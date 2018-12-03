@@ -5,26 +5,38 @@
 namespace chainerx {
 namespace native {
 
-struct half {
+struct Half {
 public:
-    half() {}
-    half(const half& v) : data_(v.data_) {}
-    explicit half(float v);
+    Half() {}
+    Half(const Half& v) : data_(v.data_) {}
+    explicit Half(float v);
 
-    explicit half(double v);
-    explicit half(bool v);
-    explicit half(int16_t v);
-    explicit half(uint16_t v);
-    explicit half(int32_t v);
-    explicit half(uint32_t v);
-    explicit half(int64_t v);
-    explicit half(uint64_t v);
+    Half(double v);
+    Half(bool v);
+    Half(int16_t v);
+    Half(uint16_t v);
+    Half(int32_t v);
+    Half(uint32_t v);
+    Half(int64_t v);
+    Half(uint64_t v);
 
     operator float() const;
-    explicit operator double() const;
+    operator double() const;
+
+    friend bool operator==(const Half& lhs, const Half& rhs);
+    Half operator-() const;
+    Half operator+(const Half& r) const;
+    Half operator-(const Half& r) const;
+    Half operator*(const Half& r) const;
+    Half operator/(const Half& r) const;
+    Half& operator+=(const Half& r);
+    Half& operator-=(const Half& r);
+    Half& operator*=(const Half& r);
+    Half& operator/=(const Half& r);
 
 private:
     uint16_t data_;
 };
+
 }  // namespace native
 }  // namespace chainerx
