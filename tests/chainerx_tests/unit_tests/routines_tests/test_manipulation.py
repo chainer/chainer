@@ -10,7 +10,7 @@ from chainerx_tests import array_utils
 
 
 # Value for parameterization to represent an unspecified (default) argument.
-class _UnspecifiedType:
+class _UnspecifiedType(object):
     def __repr__(self):
         return '<Unspecified>'
 

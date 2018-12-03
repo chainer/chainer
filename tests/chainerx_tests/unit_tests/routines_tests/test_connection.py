@@ -8,7 +8,7 @@ from chainerx_tests import array_utils
 
 
 # A special parameter object used to represent an unspecified argument.
-class Unspecified:
+class Unspecified(object):
     pass
 
 
