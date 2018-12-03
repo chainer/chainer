@@ -157,27 +157,21 @@ MemoryPool::~MemoryPool() {
 
 void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
-
     for (auto free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
-        FreeList& free_list = free_bins_it->second;
-        for (auto free_list_it = free_list.begin(); free_list_it != free_list.end();) {
-            std::unique_ptr<Chunk>& chunk = *free_list_it;
+        FreeList new_free_list;
+        for (auto& chunk : free_bins_it->second) {
             if (chunk->next() == nullptr && chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
-                free_list_it = free_list.erase(free_list_it);
             } else {
-                ++free_list_it;
+                new_free_list.emplace_back(std::move(chunk));
             }
         }
-        // Compact free_bins
-        if (free_list.empty()) {
-            free_bins_it = free_bins_.erase(free_bins_it);
+        if (!new_free_list.empty()) {
+            free_bins_it->second = std::move(new_free_list);
+            free_bins_it++;
         } else {
-            ++free_bins_it;
+            free_bins_it = free_bins_.erase(free_bins_it);
         }
-    }
-    if (free_bins_.empty()) {
-        free_bins_.clear();
     }
 }
 
