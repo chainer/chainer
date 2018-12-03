@@ -103,6 +103,8 @@ public:
 
     MemoryPool(const MemoryPool&) = delete;
 
+    MemoryPool operator=(const MemoryPool&) = delete;
+
     ~MemoryPool();
 
     void FreeUnusedBlocks();
