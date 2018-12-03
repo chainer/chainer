@@ -36,6 +36,10 @@ class Reshape(function_node.FunctionNode):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
+
     def forward(self, inputs):
         x, = inputs
         return x.reshape(self.shape),

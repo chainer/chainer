@@ -8,19 +8,28 @@ import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend
+# TODO(hvy): Remove the following import once testing.backend is imported
+# in testing/__init__.py
+import chainer.testing.backend
+from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
-def make_array(start, shape, dtype):
+if chainerx.is_available():
+    import chainerx.testing
+
+
+def make_array(start, shape, dtype, device):
     size = numpy.product(shape, dtype='i')
     a = numpy.arange(start, start + size)
     a = a.reshape(shape)
     a = a.astype(dtype, copy=False)
-    return a
+    return device.send(a)
 
 
 @testing.parameterize(*testing.product({
@@ -33,34 +42,34 @@ class TestFunctionNode(unittest.TestCase):
         suffix = 'gpu' if gpu else 'cpu'
         return getattr(self.f, prefix + '_' + suffix)
 
-    def setUp(self):
+    def _setup(self, device):
         y_shape = self.y_shape
         x_shape = self.x_shape
-        y1 = make_array(1, y_shape, numpy.float32)
-        y2 = make_array(2, y_shape, numpy.float32)
+        y1 = make_array(1, y_shape, numpy.float32, device)
+        y2 = make_array(2, y_shape, numpy.float32, device)
         gx1 = chainer.Variable(
-            make_array(1, x_shape, numpy.float32))
+            make_array(1, x_shape, numpy.float32, device))
         gx2 = None
-        gy1 = make_array(1, y_shape, numpy.float32)
-        gy2 = make_array(1, y_shape, numpy.float32)
+        gy1 = make_array(1, y_shape, numpy.float32, device)
+        gy2 = make_array(1, y_shape, numpy.float32, device)
 
         f = chainer.FunctionNode()
         f.check_type_forward = mock.MagicMock()
-        f.forward_cpu = mock.MagicMock(return_value=(y1, y2))
+        f.forward_cpu = mock.MagicMock()
         f.forward_gpu = mock.MagicMock()
         f.backward = mock.MagicMock(return_value=(gx1, gx2))
         self.f = f
 
-        self.x1 = make_array(0, x_shape, numpy.float32)
-        self.x2 = make_array(0, x_shape, numpy.int32)
+        self.x1 = make_array(0, x_shape, numpy.float32, device)
+        self.x2 = make_array(0, x_shape, numpy.int32, device)
         self.y1 = y1
         self.y2 = y2
         self.gx1 = gx1
         self.gx2 = gx2
         self.gx1_orig = chainer.Variable(
-            make_array(3, x_shape, numpy.float32))
+            make_array(3, x_shape, numpy.float32, device))
         self.gx2_orig = chainer.Variable(
-            make_array(2, x_shape, numpy.float32))
+            make_array(2, x_shape, numpy.float32, device))
         self.gx1_accum = gx1 + self.gx1_orig
         self.gy1 = gy1
         self.gy2 = gy2
@@ -72,19 +81,19 @@ class TestFunctionNode(unittest.TestCase):
         self.y2 = None
         self.gx1 = None
 
+    def setup_cpu(self):
+        self._setup(backend.CpuDevice())
+        self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
+
     def setup_gpu(self):
-        self.x1 = cuda.to_gpu(self.x1)
-        self.x2 = cuda.to_gpu(self.x2)
-        self.y1 = cuda.to_gpu(self.y1)
-        self.y2 = cuda.to_gpu(self.y2)
-        self.gx1.to_gpu()
-        self.gx1_orig.to_gpu()
-        self.gx2_orig.to_gpu()
-        self.gx1_accum.to_gpu()
-        self.gy1 = cuda.to_gpu(self.gy1)
-        self.gy2 = cuda.to_gpu(self.gy2)
+        self._setup(chainer.get_device((cuda.cupy, 0)))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
-        self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
+
+    def setup_chainerx(self, device_name='native:0'):
+        self._setup(chainer.get_device(device_name))
+        self.f.forward = mock.MagicMock(side_effect=lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),
+            utils.force_array(inputs[0] + inputs[1])))
 
     def check_forward(self, gpu):
         y1, y2 = self.f.forward((self.x1, self.x2))
@@ -96,6 +105,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertTrue((cuda.to_cpu(y2) == cuda.to_cpu(self.y2)).all())
 
     def test_forward_cpu(self):
+        self.setup_cpu()
         self.check_forward(False)
 
     @attr.gpu
@@ -136,13 +146,46 @@ class TestFunctionNode(unittest.TestCase):
 
         self.assertIsInstance(y.creator_node.outputs, tuple)
 
+    def check_apply_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        # TODO(sonots): ChainerX does not support computing gradients for int32
+        x2 = chainer.Variable(self.x2, requires_grad=False)
+        ys = self.f.apply((x1, x2))
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            self.assertIsInstance(y.data, chainerx.ndarray)
+            self.assertIs(y.data.device, self.x1.device)
+            self.assertTrue(y.requires_grad)
+
     def test_apply_cpu(self):
+        self.setup_cpu()
         self.check_apply()
 
     @attr.gpu
     def test_apply_gpu(self):
         self.setup_gpu()
         self.check_apply()
+
+    @attr.chainerx
+    def test_apply_chainerx_cpu(self):
+        self.setup_chainerx()
+        self.check_apply_chainerx()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_apply_chainerx_gpu(self):
+        self.setup_chainerx('cuda:0')
+        self.check_apply_chainerx()
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_apply_chainerx_multi_gpu(self):
+        self.setup_chainerx('cuda:1')
+        self.check_apply_chainerx()
 
     def check_apply_all_ndarray(self):
         x1 = self.x1
@@ -152,7 +195,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
-        xp = chainer.backend.get_array_module(x1)
+        xp = backend.get_array_module(x1)
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
@@ -160,11 +203,23 @@ class TestFunctionNode(unittest.TestCase):
             self.assertFalse(y.requires_grad)
 
     def test_apply_all_ndarray_cpu(self):
+        self.setup_cpu()
         self.check_apply_all_ndarray()
 
     @attr.gpu
     def test_apply_all_ndarray_gpu(self):
         self.setup_gpu()
+        self.check_apply_all_ndarray()
+
+    @attr.chainerx
+    def test_apply_all_ndarray_chainerx_cpu(self):
+        self.setup_chainerx()
+        self.check_apply_all_ndarray()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_apply_all_ndarray_chainerx_gpu(self):
+        self.setup_chainerx('cuda:0')
         self.check_apply_all_ndarray()
 
     def check_apply_ndarray(self):
@@ -185,7 +240,22 @@ class TestFunctionNode(unittest.TestCase):
 
         self.assertIsInstance(y.creator_node.outputs, tuple)
 
+    def check_apply_ndarray_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        x2 = self.x2
+        ys = self.f.apply((x1, x2))
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            self.assertIsInstance(y.data, chainerx.ndarray)
+            self.assertIs(y.data.device, self.x1.device)
+            self.assertTrue(y.requires_grad)
+
     def test_apply_ndarray_cpu(self):
+        self.setup_cpu()
         self.check_apply_ndarray()
 
     @attr.gpu
@@ -193,21 +263,57 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_apply_ndarray()
 
+    @attr.chainerx
+    def test_apply_ndarray_chainerx_cpu(self):
+        self.setup_chainerx()
+        self.check_apply_ndarray_chainerx()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_apply_ndarray_chainerx_gpu(self):
+        self.setup_chainerx('cuda:0')
+        self.check_apply_ndarray_chainerx()
+
     def check_apply_single_return_value(self):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
         ret, = self.f.apply((x1, x2))
         self.assertIsInstance(ret, chainer.Variable)
 
+    def check_apply_single_return_value_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        # TODO(sonots): ChainerX does not support computing gradients for int32
+        x2 = chainer.Variable(self.x2, requires_grad=False)
+        ret, = self.f.apply((x1, x2))
+        self.assertIsInstance(ret, chainer.Variable)
+        self.assertIsInstance(ret.data, chainerx.ndarray)
+        self.assertIs(ret.data.device, self.x1.device)
+
     def test_apply_single_return_value_cpu(self):
-        self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
+        self.setup_cpu()
+        self.f.forward_cpu.return_value = (self.y1,)
         self.check_apply_single_return_value()
 
     @attr.gpu
     def test_apply_single_return_value_gpu(self):
         self.setup_gpu()
-        self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
+        self.f.forward_gpu.return_value = (self.y1,)
         self.check_apply_single_return_value()
+
+    @attr.chainerx
+    def test_apply_single_return_value_chainerx_cpu(self):
+        self.setup_chainerx()
+        self.f.forward.side_effect = lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),)
+        self.check_apply_single_return_value_chainerx()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_apply_single_return_value_chainerx_gpu(self):
+        self.setup_chainerx('cuda:0')
+        self.f.forward.side_effect = lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),)
+        self.check_apply_single_return_value_chainerx()
 
     def _get_f(self):
         x1 = chainer.Variable(self.x1)
@@ -220,6 +326,7 @@ class TestFunctionNode(unittest.TestCase):
         return f, x1, y1
 
     def test_unchain(self):
+        self.setup_cpu()
         f, _x1, _y1 = self._get_f()
         y1, y2 = f.outputs
         f.unchain()
@@ -235,7 +342,40 @@ class TestFunctionNode(unittest.TestCase):
         self.assertIsNone(f.inputs)
 
     def test_label(self):
+        self.setup_cpu()
         self.assertEqual(self.f.label, 'FunctionNode')
+
+
+class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
+
+    class SimpleFunctionNode(chainer.FunctionNode):
+        def __init__(self, xp):
+            self.xp = xp
+
+        def forward(self, inputs):
+            x1, x2 = inputs
+            assert isinstance(x1, self.xp.ndarray)
+            assert isinstance(x2, self.xp.ndarray)
+            return x1 * x2,
+
+    def check_mix_xp(self, xp):
+        xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
+        xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
+        x2 = backend.to_chainerx(xp_x2)
+        y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
+
+        assert isinstance(y.array, chainerx.ndarray)
+        chainerx.testing.assert_array_equal(
+            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
+
+    @attr.chainerx
+    def test_mix_numpy(self):
+        self.check_mix_xp(numpy)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy(self):
+        self.check_mix_xp(cuda.cupy)
 
 
 class TestFunctionNodeInvalidType(unittest.TestCase):
@@ -364,7 +504,7 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
         self.check_debug_forward(cuda.to_gpu(self.one))
 
 
-@backend.inject_backend_tests(
+@testing.backend.inject_backend_tests(
     None,
     testing.product({'use_cuda': [True, False]}))
 class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
@@ -558,44 +698,62 @@ class TestBackpropModeMultiThread(unittest.TestCase):
 
 class FunctionNodeWithRetaining(chainer.FunctionNode):
 
+    def __init__(self, input_indices, output_indices):
+        self.input_indices = input_indices
+        self.output_indices = output_indices
+
     def forward(self, inputs):
-        self.retain_inputs([1])
-        self.retain_outputs([1])
+        self.retain_inputs(self.input_indices)
+        self.retain_outputs(self.output_indices)
         return inputs
 
     def backward(self, _, grad_outputs):
-        self.backward_inputs = self.get_retained_inputs()
-        self.backward_outputs = self.get_retained_outputs()
+        self.retained_backward_inputs = self.get_retained_inputs()
+        self.retained_backward_outputs = self.get_retained_outputs()
         return grad_outputs
 
 
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def setUp(self):
-        inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
-                  chainer.Variable(numpy.array([1], dtype=numpy.float32))]
-        self.input_data = [x.data for x in inputs]
-        self.input_nodes = [x.node for x in inputs]
+    def check_function_node_retain(self, xp):
+        inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
+                  chainer.Variable(xp.array([-1], dtype=numpy.float32),
+                                   requires_grad=False)]
+        input_arrays = [x.array for x in inputs]
+        if xp is not chainerx:
+            input_nodes = [x.node for x in inputs]
 
-        self.f1 = FunctionNodeWithRetaining()
-        outputs = self.f1.apply(inputs)
-        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        f = FunctionNodeWithRetaining([1], [0, 1])
+        outputs = f.apply(inputs)
+        outputs[0].grad = xp.array([1], dtype=numpy.float32)
         outputs[0].backward()
-        self.f1_output_data = [y.data for y in outputs]
-        self.f1_output_nodes = [y.node for y in outputs]
+        output_arrays = [y.array for y in outputs]
 
         inputs = None  # release non-retained inputs
 
-    def test_retain_inputs(self):
-        self.assertEqual(len(self.f1.backward_inputs), 1)
-        self.assertIs(self.f1.backward_inputs[0].node, self.input_nodes[1])
-        numpy.testing.assert_array_equal(self.f1.backward_inputs[0].data,
-                                         self.input_data[1])
+        assert len(f.retained_backward_inputs) == 1
+        assert len(f.retained_backward_outputs) == 2
 
-    def test_retain_outputs_f1(self):
-        self.assertEqual(len(self.f1.backward_outputs), 1)
-        numpy.testing.assert_array_equal(self.f1.backward_outputs[0].data,
-                                         self.f1_output_data[1])
+        if xp is not chainerx:
+            assert f.retained_backward_inputs[0].node is input_nodes[1]
+
+        xp.testing.assert_array_equal(
+            f.retained_backward_inputs[0].array, input_arrays[1])
+        xp.testing.assert_array_equal(
+            f.retained_backward_outputs[0].array, output_arrays[0])
+        xp.testing.assert_array_equal(
+            f.retained_backward_outputs[1].array, output_arrays[1])
+
+    def test_retain_cpu(self):
+        self.check_function_node_retain(numpy)
+
+    @attr.gpu
+    def test_retain_gpu(self):
+        self.check_function_node_retain(cuda.cupy)
+
+    @attr.chainerx
+    def test_retain_chainerx(self):
+        self.check_function_node_retain(chainerx)
 
 
 def _get_value(x):
@@ -807,7 +965,7 @@ class ExpPair(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = chainer.backend.get_array_module(x)
+        xp = backend.get_array_module(x)
         self.retain_outputs((0, 1))
         return xp.exp(x), xp.exp(x)
 
@@ -847,7 +1005,7 @@ class ExpAndExpm1(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = chainer.backend.get_array_module()
+        xp = backend.get_array_module()
         y0 = xp.exp(x)
         y1 = xp.expm1(x)
         self.retain_outputs((0,))
@@ -955,6 +1113,99 @@ class TestGradV3Compat1(unittest.TestCase):
             # Before v5, the result was
             # [-1., 1248., 248., 124., 24., 12., 2., -1.]
         )
+
+
+@attr.chainerx
+class TestFunctionNodeBackwardChainerx(unittest.TestCase):
+
+    class SimpleFunctionNode(chainer.FunctionNode):
+
+        def __init__(self, backward_call_callback):
+            self.backward_call_callback = backward_call_callback
+
+        def forward(self, inputs):
+            return tuple([2 * x for x in inputs])
+
+        def backward(self, indexes, grad_outputs):
+            self.backward_call_callback({
+                'indexes': indexes, 'grad_outputs': grad_outputs})
+
+            gxs = []
+            for i_in in indexes:
+                gx = 2 * grad_outputs[i_in]
+                gxs.append(gx)
+            return gxs
+
+    def test_backward(self):
+        shape = (2, 3)
+        dtype = numpy.float32
+        x1 = chainerx.full(shape, 3, dtype)
+        x2 = chainerx.full(shape, 5, dtype).require_grad()
+        gx2_expected = numpy.full(shape, 2, dtype)
+
+        backward_call_args = []
+
+        def backward_call_callback(call_arg):
+            backward_call_args.append(call_arg)
+
+        # forward
+        func = self.SimpleFunctionNode(backward_call_callback)
+        y1, y2 = func.apply((x1, x2))
+
+        del func
+
+        assert y1.requires_grad
+        assert y2.requires_grad
+
+        # backward
+        y2.backward()
+
+        # check backward call arguments
+        assert len(backward_call_args) == 1
+        call_arg, = backward_call_args
+        assert isinstance(call_arg['indexes'], tuple)
+        assert call_arg['indexes'] == (1,)
+        assert isinstance(call_arg['grad_outputs'], tuple)
+        assert len(call_arg['grad_outputs']) == 2
+        assert call_arg['grad_outputs'][0] is None
+        chainerx.testing.assert_array_equal_ex(
+            call_arg['grad_outputs'][1].array, numpy.full(shape, 1, dtype),
+            strides_check=False)
+
+        # check grads
+        chainerx.testing.assert_array_equal_ex(
+            x2.grad, gx2_expected, strides_check=False)
+        assert not x2.grad.is_backprop_required()
+
+        with pytest.raises(chainerx.ChainerxError):
+            x1.grad
+
+    @attr.gpu
+    def test_backward_default_device(self):
+        # Default device in backward should be determined by arrays,
+        # otherwise, creation routines in backward do not create new arrays
+        # on the proper device.
+
+        device = chainerx.get_device('cuda:0')
+        shape = (2, 3)
+        dtype = numpy.float32
+        x1 = chainerx.full(shape, 3, dtype, device=device)
+        x2 = chainerx.full(shape, 5, dtype, device=device).require_grad()
+
+        backward_call_new_array = []
+
+        def backward_call_callback(call_arg):
+            backward_call_new_array.append(chainerx.empty(shape, dtype))
+
+        with chainerx.using_device('native:0'):
+            # forward
+            func = self.SimpleFunctionNode(backward_call_callback)
+            y1, y2 = func.apply((x1, x2))
+
+            # backward
+            y2.backward()
+
+        assert backward_call_new_array[0].device is device
 
 
 testing.run_module(__name__, __file__)
