@@ -55,7 +55,7 @@ public:
     void Free(void* ptr) noexcept override { cudaFreeHost(ptr); }
 };
 
-// A chunk points to a device memory.
+// A chunk that points to a device memory.
 //
 // A chunk might be a splitted memory block from a larger allocation.
 // The prev/next pointers contruct a doubly-linked list of memory addresses
@@ -67,12 +67,12 @@ public:
     Chunk(const Chunk&) = default;
     ~Chunk() {}
 
-    // Splits this chunk to a chunk of a given bytesize and a chunk of the remaining.
+    // Splits this chunk into a chunk with the given bytesize and one with the remaining.
     //
-    // Modifies the bytesize and next of this, and returns the remaining.
+    // Modifies the bytesize and the next pointer of this chunk, and returns the chunk for the remaining.
     std::unique_ptr<Chunk> Split(size_t bytesize);
 
-    // Merges with the next chunk
+    // Merges this chunk with the next.
     void MergeWithNext();
 
     void SetPrev(Chunk* prev) { prev_ = prev; }
