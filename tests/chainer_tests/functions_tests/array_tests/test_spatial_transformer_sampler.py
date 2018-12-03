@@ -109,7 +109,7 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
             size=self.out_shape).astype(self.dtype)
 
         if self.dtype == numpy.float16:
-            self.assert_options = {'atol': 5e-3}
+            self.assert_options = {'atol': 1e-2}
         else:
             self.assert_options = {}
 
