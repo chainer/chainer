@@ -1,7 +1,5 @@
-import numpy
-
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 import chainer.functions as F
 import chainer.links as L
@@ -21,17 +19,7 @@ def l2normalize(xp, v, eps=1e-12):
         :class:`numpy.ndarray` or :class:`cupy.ndarray`
 
     """
-    if xp is numpy:
-        return v / (numpy.linalg.norm(v) + eps)
-    else:
-        norm = cuda.reduce('T x', 'T out',
-                           'x * x', 'a + b', 'out = sqrt(a)', 0,
-                           'norm_sn')
-        div = cuda.elementwise('T x, T norm, T eps',
-                               'T out',
-                               'out = x / (norm + eps)',
-                               'div_sn')
-        return div(v, norm(v), eps)
+    return v / (xp.linalg.norm(v) + eps)
 
 
 def update_approximate_vectors(
@@ -42,7 +30,7 @@ def update_approximate_vectors(
     the first right singular vector `v`.
 
     Args:
-        weight_matrix (variable.Parameter): 2D weight.
+        weight_matrix (~chainer.Variable): 2D weight.
         u (numpy.ndarray, cupy.ndarray, or None):
             Vector that has the shape of (1, out_size).
         n_power_iteration (int): Number of iterations to approximate
@@ -67,7 +55,7 @@ def calculate_max_singular_value(weight_matrix, u, v):
     """Calculate max singular value by power iteration method.
 
     Args:
-        weight_matrix (chainer.Variable or chainer.Parameter):
+        weight_matrix (~chainer.Variable)
         u (numpy.ndarray or cupy.ndarray)
         v (numpy.ndarray or cupy.ndarray)
 
@@ -107,7 +95,7 @@ class SpectralNormalization(link_hook.LinkHook):
             The default value is 1e-12.
         use_gamma (bool): If ``True``, weight scaling parameter gamma which is
             initialized by initial weight's max singular value is introduced.
-        factor (float): Scaling parameter to divide maximum singular value.
+        factor (float, None): Scaling parameter to divide maximum singular value.
             The default value is 1.0.
         weight_name (str): Link's weight name to apply this hook. The default
             value is 'W'.
@@ -118,9 +106,9 @@ class SpectralNormalization(link_hook.LinkHook):
         vector_name (str): Name of the approximate first left singular vector
             registered in the target link.
             the target link.
-            axis (int): Axis of weight represents the numbef of output
-                feature maps or output units (``out_channels`` and
-                ``out_size``, respectively).
+        axis (int): Axis of weight represents the numbef of output
+            feature maps or output units (``out_channels`` and
+            ``out_size``, respectively).
 
     .. admonition:: Example
 
@@ -135,7 +123,7 @@ class SpectralNormalization(link_hook.LinkHook):
     name = 'SpectralNormalization'
 
     def __init__(self, n_power_iteration=1, eps=1e-12, use_gamma=False,
-                 factor=1.0, weight_name='W', name=None):
+                 factor=None, weight_name='W', name=None):
         assert n_power_iteration > 0
         self.n_power_iteration = n_power_iteration
         self.eps = eps
@@ -159,27 +147,28 @@ class SpectralNormalization(link_hook.LinkHook):
             self._prepare_parameters(link)
 
     def deleted(self, link):
+        with chainer.using_config('train', False), chainer.no_backprop_mode():
+            weight = getattr(link, self.weight_name)
+            normalized_weight = self.normalize_weight(link, weight)
+        link.xp.copyto(
+            getattr(link, self.weight_name).array, normalized_weight.array)
         delattr(link, self.vector_name)
         if self.use_gamma:
             del link.gamma
 
     def forward_preprocess(self, cb_args):
-        if configuration.config.train:
-            link = cb_args.link
-            input_variable = cb_args.args[0]
-            if not self._initialied:
-                self._prepare_parameters(link, input_variable)
-            weight = getattr(link, self.weight_name)
-            normalized_weight = self.normalize_weight(link, weight)
-            setattr(link, self.weight_name, normalized_weight)
+        link = cb_args.link
+        input_variable = cb_args.args[0]
+        if not self._initialied:
+            self._prepare_parameters(link, input_variable)
+        weight = getattr(link, self.weight_name)
+        self.original_weight = weight
+        normalized_weight = self.normalize_weight(link, weight)
+        setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):
-        if configuration.config.train:
-            link = cb_args.link
-            weight = getattr(link, self.weight_name)
-            delattr(link, self.weight_name)
-            link.add_param(self.weight_name, shape=weight.shape,
-                           dtype=weight.dtype, initializer=weight.array)
+        link = cb_args.link
+        setattr(link, self.weight_name, self.original_weight)
 
     def _prepare_parameters(self, link, input_variable=None):
         if getattr(link, self.weight_name).array is None:
@@ -206,12 +195,15 @@ class SpectralNormalization(link_hook.LinkHook):
         weight_matrix = self._reshape_W(W)
         u, v = update_approximate_vectors(
             weight_matrix, u, self.n_power_iteration, self.eps)
-        sigma = calculate_max_singular_value(weight_matrix, u, v) / self.factor
+        sigma = calculate_max_singular_value(weight_matrix, u, v)
+        if self.factor is not None:
+            sigma /= self.factor
         if self.use_gamma:
             W = F.broadcast_to(link.gamma, W.shape) * W / sigma
         else:
             W = W / sigma
-        link.xp.copyto(u, getattr(link, vector_name))
+        if configuration.config.train:
+            link.xp.copyto(getattr(link, vector_name), u, casting='no')
         return W
 
     def _reshape_W(self, W):
