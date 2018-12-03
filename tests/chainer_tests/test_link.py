@@ -380,21 +380,21 @@ class TestLink(LinkTestBase, unittest.TestCase):
         # sticky = default (True in Chainer v4)
         with testing.assert_warns(FutureWarning):
             self.link.to_gpu(1)
-        self.assertEqual(self.link._device_id, 0)
-        self.assertEqual(self.link.x.data.device.id, 0)
-        self.assertEqual(self.link.y.data.device.id, 0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
 
         # sticky = True
         self.link.to_gpu(1, sticky=True)
-        self.assertEqual(self.link._device_id, 0)
-        self.assertEqual(self.link.x.data.device.id, 0)
-        self.assertEqual(self.link.y.data.device.id, 0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
 
         # sticky = False
         self.link.to_gpu(1, sticky=False)
-        self.assertEqual(self.link._device_id, 1)
-        self.assertEqual(self.link.x.data.device.id, 1)
-        self.assertEqual(self.link.y.data.device.id, 1)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
+        self.assertEqual(self.link.x.data.device, cuda.Device(1))
+        self.assertEqual(self.link.y.data.device, cuda.Device(1))
 
     def test_params(self):
         params = list(self.link.params())
