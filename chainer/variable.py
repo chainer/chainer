@@ -24,7 +24,9 @@ def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
     if gx is None:
         return
     x_grad = gx.array if is_var_gx else gx
-    x_data = x.data
+
+    # FIXME: avoid `isinstance`
+    x_data = None if isinstance(x, _ChainerxVariableNodeProps) else x.data
 
     # TODO(kataoka): Make _update_data_info store the array module.
     # ``is_node_x and x_data is None`` implies that the data array is not
