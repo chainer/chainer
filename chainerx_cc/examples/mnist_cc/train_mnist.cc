@@ -24,13 +24,12 @@
 #include "chainerx/slice.h"
 #include "mnist.h"
 
-template <typename T>
-chainerx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<T>& dist, const chainerx::Shape& shape) {
+chainerx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<float>& dist, const chainerx::Shape& shape) {
     int64_t n = shape.GetTotalSize();
-    std::shared_ptr<T> data{new T[n], std::default_delete<T[]>{}};
+    std::shared_ptr<float> data{new float[n], std::default_delete<float[]>{}};
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
     return chainerx::FromContiguousHostData(
-            shape, chainerx::TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
+            shape, chainerx::TypeToDtype<float>, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
 }
 
 class Model {
@@ -51,15 +50,14 @@ public:
 
     const std::vector<chainerx::Array>& params() { return params_; }
 
-    template <typename T>
-    void Initialize(std::mt19937& gen, std::normal_distribution<T>& dist) {
+    void Initialize(std::mt19937& gen, std::normal_distribution<float>& dist) {
         params_.clear();
 
         for (int64_t i = 0; i < n_layers_; ++i) {
             int64_t n_in = i == 0 ? n_in_ : n_hidden_;
             int64_t n_out = i == n_layers_ - 1 ? n_out_ : n_hidden_;
             params_.emplace_back(GetRandomArray(gen, dist, {n_in, n_out}));
-            params_.emplace_back(chainerx::Zeros({n_out}, chainerx::TypeToDtype<T>));
+            params_.emplace_back(chainerx::Zeros({n_out}, chainerx::TypeToDtype<float>));
         }
 
         for (const chainerx::Array& param : params_) {
