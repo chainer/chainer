@@ -20,8 +20,10 @@ namespace internal {
 class ArrayBody;
 class ArrayNode;
 
+// Throws GradientError in case of mismatch in gradient array props.
 void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device);
 
+// Throws GradientError in case of mismatch in gradient array props.
 void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device);
 
 }  // namespace internal
