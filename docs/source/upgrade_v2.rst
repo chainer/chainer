@@ -188,7 +188,7 @@ Every :class:`Variable` object owns its own :class:`VariableNode` object.
 A computational graph consists of :class:`Function` objects and :class:`VariableNode` objects.
 When one applies a :class:`Function` to a :class:`Variable`, the :class:`VariableNode` object of the variable is extracted and set to one of the inputs of the function.
 
-Note that the underlying data array of the variable is till held by the :class:`Variable` object.
+Note that the underlying data array of the variable is still held by the :class:`Variable` object.
 It allows each :class:`Function` implementation to release unneeded arrays from the computational graph, resulting in greatly reduced memory consumption.
 
 **This change does not affect most users' code.**
