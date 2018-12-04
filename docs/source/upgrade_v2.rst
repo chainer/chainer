@@ -184,7 +184,7 @@ Variable is not a part of a computational graph anymore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :class:`Variable` class has been separated into two distinct classes, the :class:`Variable` class and the :class:`VariableNode` class, since Chainer v2.
-Every class:`Variable` object owns its own :class:`VariableNode` object.
+Every :class:`Variable` object owns its own :class:`VariableNode` object.
 A computational graph consists of :class:`Function` objects and :class:`VariableNode` objects.
 When one applies a :class:`Function` to a :class:`Variable`, the :class:`VariableNode` object of the variable is extracted and set to one of the inputs of the function.
 
