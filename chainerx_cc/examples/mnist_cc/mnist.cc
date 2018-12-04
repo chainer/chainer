@@ -1,6 +1,7 @@
 #include "mnist.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -13,15 +14,6 @@
 #include "chainerx/shape.h"
 
 namespace {
-
-int32_t ReverseInt(int32_t i) {
-    uint8_t c1 = i & 255;
-    uint8_t c2 = (i >> 8) & 255;
-    uint8_t c3 = (i >> 16) & 255;
-    uint8_t c4 = (i >> 24) & 255;
-
-    return (static_cast<int32_t>(c1) << 24) + (static_cast<int32_t>(c2) << 16) + (static_cast<int32_t>(c3) << 8) + c4;
-}
 
 std::unique_ptr<char[]> ReadFile(const std::string& filename) {
     std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
@@ -41,7 +33,15 @@ std::unique_ptr<char[]> ReadFile(const std::string& filename) {
 }
 
 int32_t ReadHeader(const std::unique_ptr<char[]>& buffer, size_t offset) {
-    return ReverseInt(*(reinterpret_cast<int32_t*>(buffer.get() + offset)));
+    uint32_t header = *reinterpret_cast<uint32_t*>(buffer.get() + offset);
+
+    // Swap byte order.
+    uint32_t b1 = header & 255;
+    uint32_t b2 = (header >> 8) & 255;
+    uint32_t b3 = (header >> 16) & 255;
+    uint32_t b4 = (header >> 24) & 255;
+
+    return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
 }
 
 chainerx::Array ReadArray(const std::unique_ptr<char[]>& buffer, const chainerx::Shape& shape, size_t offset) {
@@ -63,6 +63,10 @@ chainerx::Array ReadMnistImages(const std::string& filename) {
     int32_t height = ReadHeader(buffer, 8);
     int32_t width = ReadHeader(buffer, 12);
 
+    assert(n == 60000 || n == 10000);
+    assert(height == 28);
+    assert(width == 28);
+
     return ReadArray(buffer, {n, height * width}, 16);
 }
 
@@ -70,6 +74,8 @@ chainerx::Array ReadMnistLabels(const std::string& filename) {
     std::unique_ptr<char[]> buffer = ReadFile(filename);
 
     int32_t n = ReadHeader(buffer, 4);
+
+    assert(n == 60000 || n == 10000);
 
     return ReadArray(buffer, {n}, 8);
 }
