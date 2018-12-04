@@ -60,8 +60,8 @@ public:
 // A chunk that points to a device memory.
 //
 // A chunk might be a splitted memory block from a larger allocation.
-// The prev/next pointers contruct a doubly-linked list of memory addresses
-// sorted by base address that must be contiguous.
+// The prev/next pointers construct a doubly-linked list of contiguous memories
+// sorted by those base addresses.
 class Chunk {
 public:
     Chunk(void* ptr, size_t offset, size_t bytesize)
@@ -94,7 +94,7 @@ private:
     Chunk* next_{nullptr};  // Next memory pointer if splitted from a larger allocation
 };
 
-using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks w.r.t. same sizes
+using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks with the same size.
 
 // Memory pool.
 // This class is thread safe.
