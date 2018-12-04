@@ -214,7 +214,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
             status = allocator_->Malloc(&ptr, allocation_size);
             if (status == MallocStatus::kErrorMemoryAllocation) {
                 // TODO(sonots): Include total pooled bytes in the error message
-                throw OutOfMemoryError{allocation_size};
+                throw OutOfMemoryError{bytesize};
             }
         }
         chunk = std::make_unique<Chunk>(ptr, 0, allocation_size);
