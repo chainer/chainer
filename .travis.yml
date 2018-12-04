@@ -87,9 +87,7 @@ script:
       python setup.py develop;
     fi
   - if [[ $SKIP_CHAINERX != 1 ]]; then
-      pushd docs;
-      make html;
-      popd;
+      make -C docs html;
     else
       echo "Documentation build is skipped as ChainerX is not available.";
     fi
