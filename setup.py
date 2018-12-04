@@ -187,6 +187,12 @@ setup_kwargs = dict(
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
+if os.getenv('READTHEDOCS', None) == 'True':
+    # TODO(kmaehashi) build ChainerX documentation on RTD
+    build_chainerx = False
+    # os.environ['MAKEFLAGS'] = '-j4'
+    # build_chainerx = True
+
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 
 

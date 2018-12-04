@@ -815,6 +815,9 @@ device.
                 among link hooks registered to this link. If ``None``,
                 the default name of the link hook is used.
 
+        Returns:
+            self
+
         """
         if not isinstance(hook, link_hook.LinkHook):
             raise TypeError('Hook must be of type LinkHook')
@@ -825,6 +828,7 @@ device.
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
         hook.added(self)
+        return self
 
     def delete_hook(self, name):
         """Unregisters the link hook.

@@ -1,5 +1,7 @@
 name: chainer
 type: sphinx
 base: docs/source
+conda:
+  file: docs/rtd_conda.yml
 python:
-  setup_py_install: true
+  setup_py_install: false
