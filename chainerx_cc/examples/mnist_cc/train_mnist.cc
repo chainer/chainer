@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
-#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -23,15 +22,7 @@
 #include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
-
-int32_t ReverseInt(int32_t i) {
-    uint8_t c1 = i & 255;
-    uint8_t c2 = (i >> 8) & 255;
-    uint8_t c3 = (i >> 16) & 255;
-    uint8_t c4 = (i >> 24) & 255;
-
-    return (static_cast<int32_t>(c1) << 24) + (static_cast<int32_t>(c2) << 16) + (static_cast<int32_t>(c3) << 8) + c4;
-}
+#include "mnist.h"
 
 template <typename T>
 chainerx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<T>& dist, const chainerx::Shape& shape) {
@@ -40,53 +31,6 @@ chainerx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<T>& d
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
     return chainerx::FromContiguousHostData(
             shape, chainerx::TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
-}
-
-template <typename T>
-chainerx::Array ReadMnistData(std::ifstream& ifs, const chainerx::Shape& shape) {
-    int64_t n = shape.GetTotalSize();
-    std::shared_ptr<T> data{new T[n], std::default_delete<T[]>{}};
-    std::generate_n(data.get(), n, [&ifs]() {
-        T d = 0;
-        ifs.read(reinterpret_cast<char*>(&d), sizeof(d));
-        return d;
-    });
-    return chainerx::FromContiguousHostData(
-            shape, chainerx::TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
-}
-
-chainerx::Array ReadMnistImages(const std::string& filename) {
-    std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary);
-    if (!ifs.is_open()) {
-        throw std::runtime_error("Could not read MNIST images from " + filename);
-    }
-
-    ifs.ignore(sizeof(int32_t));  // Ignore the magic number.
-    int32_t n{0};
-    int32_t height{0};
-    int32_t width{0};
-    ifs.read(reinterpret_cast<char*>(&n), sizeof(n));
-    ifs.read(reinterpret_cast<char*>(&height), sizeof(height));
-    ifs.read(reinterpret_cast<char*>(&width), sizeof(width));
-    n = ReverseInt(n);
-    height = ReverseInt(height);
-    width = ReverseInt(width);
-
-    return ReadMnistData<uint8_t>(ifs, {n, height * width});
-}
-
-chainerx::Array ReadMnistLabels(const std::string& filename) {
-    std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary);
-    if (!ifs.is_open()) {
-        throw std::runtime_error("Could not read MNIST labels from " + filename);
-    }
-
-    ifs.ignore(sizeof(int32_t));  // Ignore the magic number.
-    int32_t n{0};
-    ifs.read(reinterpret_cast<char*>(&n), sizeof(n));
-    n = ReverseInt(n);
-
-    return ReadMnistData<uint8_t>(ifs, {n});
 }
 
 class Model {
