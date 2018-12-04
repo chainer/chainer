@@ -124,8 +124,8 @@ void RunWithDefaultDevice(int64_t epochs, int64_t batch_size, int64_t n_hidden, 
 
             // Vanilla SGD.
             for (const chainerx::Array& p : model.params()) {
-                chainerx::Array view = p.AsGradStopped(chainerx::CopyKind::kView);
-                view -= p.GetGrad()->AsGradStopped() * lr;
+                chainerx::Array p_as_grad_stopped = p.AsGradStopped();
+                p_as_grad_stopped -= p.GetGrad()->AsGradStopped() * lr;
                 p.ClearGrad();
             }
         }
