@@ -97,6 +97,9 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx.random',
         'chainerx.testing',
     ]
+    setup_kwargs['package_data'] = {
+        'chainerx': ['py.typed'],
+    }
     setup_kwargs.update(dict(
         cmdclass={'build_ext': CMakeBuild},
         ext_modules=[CMakeExtension(
