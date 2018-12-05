@@ -83,7 +83,7 @@ chainerx::Array SoftmaxCrossEntropy(const chainerx::Array& y, const chainerx::Ar
     return -(score * mask).Sum();
 }
 
-void RunWithDefaultDevice(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers, float lr, const std::string& mnist_root) {
+void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers, float lr, const std::string& mnist_root) {
     // Read the MNIST dataset.
     chainerx::Array train_x = ReadMnistImages(mnist_root + "train-images-idx3-ubyte");
     chainerx::Array train_t = ReadMnistLabels(mnist_root + "train-labels-idx1-ubyte");
@@ -199,5 +199,5 @@ int main(int argc, char** argv) {
     std::cout << "Device: " << device.name() << std::endl;
     std::cout << "MNIST root: " << mnist_root << std::endl;
 
-    RunWithDefaultDevice(epochs, batch_size, n_hidden, n_layers, lr, mnist_root);
+    Run(epochs, batch_size, n_hidden, n_layers, lr, mnist_root);
 }
