@@ -30,11 +30,6 @@ class Convolution2D:
         else:
             return chx.conv(x, self.W, stride=self.stride, pad=self.pad)
 
-    def no_grad(self):
-        self.W = self.W.as_grad_stopped()
-        if self.b is not None:
-            self.b = self.b.as_grad_stopped()
-
     def require_grad(self):
         for param in self.params:
             if param is not None:
@@ -67,10 +62,6 @@ class BatchNormalization:
     def params(self):
         return self.gamma, self.beta
 
-    def no_grad(self):
-        self.gamma = self.gamma.as_grad_stopped()
-        self.beta = self.beta.as_grad_stopped()
-
     def require_grad(self):
         for param in self.params:
             param.require_grad()
@@ -97,10 +88,6 @@ class Linear:
     @property
     def params(self):
         return self.W, self.b
-
-    def no_grad(self):
-        self.W = self.W.as_grad_stopped()
-        self.b = self.b.as_grad_stopped()
 
     def require_grad(self):
         for param in self.params:
@@ -144,10 +131,6 @@ class BottleNeckA:
         return (self.conv1, self.bn1, self.conv2, self.bn2,
                 self.conv3, self.bn3, self.conv4, self.bn4)
 
-    def no_grad(self):
-        for param in self.params:
-            param.no_grad()
-
     def require_grad(self):
         for param in self.params:
             param.require_grad()
@@ -182,10 +165,6 @@ class BottleNeckB:
     def params(self):
         return self.conv1, self.bn1, self.conv2, self.bn2, self.conv3, self.bn3
 
-    def no_grad(self):
-        for param in self.params:
-            param.no_grad()
-
     def require_grad(self):
         for param in self.params:
             param.require_grad()
@@ -210,10 +189,6 @@ class Block:
 
     def add_link(self, x):
         self.children.append(x)
-
-    def no_grad(self):
-        for child in self.children:
-            child.no_grad()
 
     def require_grad(self):
         for child in self.children:
@@ -253,10 +228,6 @@ class ResNet50:
     def params(self):
         return (self.conv1, self.bn1, self.res2, self.res3, self.res4,
                 self.res5, self.fc)
-
-    def no_grad(self):
-        for param in self.params:
-            param.no_grad()
 
     def require_grad(self):
         for param in self.params:
