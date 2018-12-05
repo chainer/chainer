@@ -72,7 +72,7 @@ void Chunk::MergeWithNext() {
 }  // namespace cuda_internal
 
 namespace {
-using FreeBinsIt = std::map<size_t, cuda_internal::FreeList>::iterator;
+using FreeBinsMap = std::map<size_t, cuda_internal::FreeList>;
 }
 
 // Pushes a chunk into an appropriate free list
@@ -83,10 +83,10 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk) {
     free_list.emplace_back(std::move(chunk));
 }
 
-void MemoryPool::CompactFreeBins(FreeBinsIt it_start, FreeBinsIt it_end) {
+void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::iterator it_end) {
     auto it_start_rev = std::make_reverse_iterator(it_start);
-    it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const auto& p) { return !p.second.empty(); }).base();
-    it_end = std::find_if(it_end, free_bins_.end(), [](const auto& p) { return !p.second.empty(); });
+    it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const FreeBinsMap::value_type& p) { return !p.second.empty(); }).base();
+    it_end = std::find_if(it_end, free_bins_.end(), [](const FreeBinsMap::value_type& p) { return !p.second.empty(); });
     free_bins_.erase(it_start, it_end);
 }
 
@@ -94,8 +94,9 @@ void MemoryPool::CompactFreeBins(FreeBinsIt it_start, FreeBinsIt it_end) {
 //
 // Not thread-safe
 std::unique_ptr<cuda_internal::Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
-    FreeBinsIt it_start = free_bins_.lower_bound(allocation_size);
-    FreeBinsIt non_empty_it = std::find_if(it_start, free_bins_.end(), [](const auto& pair) { return !pair.second.empty(); });
+    FreeBinsMap::iterator it_start = free_bins_.lower_bound(allocation_size);
+    FreeBinsMap::iterator non_empty_it =
+            std::find_if(it_start, free_bins_.end(), [](const FreeBinsMap::value_type& pair) { return !pair.second.empty(); });
     if (non_empty_it == free_bins_.end()) {
         return nullptr;
     }
@@ -116,7 +117,7 @@ std::unique_ptr<cuda_internal::Chunk> MemoryPool::RemoveChunkFromFreeList(cuda_i
     CHAINERX_ASSERT(chunk != nullptr);
 
     // Find an appropriate free list
-    FreeBinsIt free_bins_it = free_bins_.find(chunk->bytesize());
+    FreeBinsMap::iterator free_bins_it = free_bins_.find(chunk->bytesize());
     if (free_bins_it == free_bins_.end()) {
         return nullptr;
     }
@@ -139,7 +140,7 @@ MemoryPool::~MemoryPool() {
     cudaGetDevice(&orig_device_index);
     cudaSetDevice(device_index_);
 
-    for (std::pair<const size_t, cuda_internal::FreeList>& pair : free_bins_) {
+    for (FreeBinsMap::value_type& pair : free_bins_) {
         cuda_internal::FreeList& free_list = pair.second;
         for (const std::unique_ptr<cuda_internal::Chunk>& chunk : free_list) {
             if (chunk->prev() == nullptr) {
@@ -151,7 +152,7 @@ MemoryPool::~MemoryPool() {
     // by this memory pool are released after this memory pool is destructed.
     // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
     // Operators of arrays holding such memories will be broken, but are not supported.
-    for (const std::pair<void* const, std::unique_ptr<cuda_internal::Chunk>>& pair : in_use_) {
+    for (const auto& pair : in_use_) {
         const std::unique_ptr<cuda_internal::Chunk>& chunk = pair.second;
         if (chunk->prev() == nullptr) {
             allocator_->Free(chunk->ptr());
@@ -165,7 +166,7 @@ void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
 
     // Frees unused memory blocks
-    for (std::pair<const size_t, cuda_internal::FreeList>& pair : free_bins_) {
+    for (FreeBinsMap::value_type& pair : free_bins_) {
         cuda_internal::FreeList& free_list = pair.second;
         for (std::unique_ptr<cuda_internal::Chunk>& chunk : free_list) {
             if (chunk->next() == nullptr && chunk->prev() == nullptr) {
@@ -177,7 +178,7 @@ void MemoryPool::FreeUnusedBlocks() {
     }
 
     // Erase empty free lists from free bins.
-    for (FreeBinsIt free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
+    for (FreeBinsMap::iterator free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
         if (free_bins_it->second.empty()) {
             free_bins_it = free_bins_.erase(free_bins_it);
         } else {
