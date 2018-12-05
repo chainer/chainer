@@ -15,7 +15,11 @@ std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) {
     if (bytesize == 0) {
         return std::shared_ptr<void>{nullptr};
     }
+#ifdef __APPLE__
+    return std::shared_ptr<uint8_t>(new uint8_t[bytesize], std::default_delete<uint8_t[]>());
+#else
     return std::make_unique<uint8_t[]>(bytesize);
+#endif
 }
 
 void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
