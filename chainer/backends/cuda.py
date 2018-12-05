@@ -158,8 +158,8 @@ _integer_types = six.integer_types + (numpy.integer,)
 class GpuDevice(_backend.Device):
 
     def __init__(self, device):
-        assert isinstance(device, Device)
         check_cuda_available()
+        assert isinstance(device, Device)
 
         super(GpuDevice, self).__init__()
         self.device = device
