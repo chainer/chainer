@@ -161,15 +161,13 @@ void MemoryPool::FreeUnusedBlocks() {
     // Frees unused memory blocks
     for (auto& pair : free_bins_) {
         FreeList& free_list = pair.second;
-        FreeList new_free_list;
         for (auto& chunk : free_list) {
             if (chunk->next() == nullptr && chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
-            } else {
-                new_free_list.emplace_back(std::move(chunk));
+                chunk.reset();
             }
         }
-        free_list = std::move(new_free_list);
+        free_list.erase(std::remove(free_list.begin(), free_list.end(), nullptr), free_list.end());
     }
 
     // Erase empty free lists from free bins.
