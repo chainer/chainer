@@ -87,22 +87,18 @@ void MemoryPool::CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, 
 // Not thread-safe
 std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
     auto it_start = free_bins_.lower_bound(allocation_size);
-    size_t distance{0};
-    for (auto it = it_start; it != free_bins_.end(); ++it, ++distance) {
-        FreeList& free_list = it->second;
-        if (free_list.empty()) {
-            continue;
-        }
-        std::unique_ptr<Chunk> chunk = std::move(free_list.back());
-        CHAINERX_ASSERT(chunk != nullptr);
-        free_list.pop_back();
-        if (distance > kCompactionThreashold) {
-            CompactFreeBins(it_start, it);
-        }
-        return chunk;
+    auto non_empty_it = std::find_if(it_start, free_bins_.end(), [](const auto& pair) { return !pair.second.empty(); });
+    if (non_empty_it == free_bins_.end()) {
+        return nullptr;
     }
-
-    return nullptr;
+    FreeList& free_list = non_empty_it->second;
+    std::unique_ptr<Chunk> chunk = std::move(free_list.back());
+    CHAINERX_ASSERT(chunk != nullptr);
+    free_list.pop_back();
+    if (static_cast<size_t>(std::distance(it_start, non_empty_it)) > kCompactionThreashold) {
+        CompactFreeBins(it_start, non_empty_it);
+    }
+    return chunk;
 }
 
 // Removes a chunk from an appropriate free list, and returns the removed chunk
@@ -121,10 +117,10 @@ std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
     // Remove the given chunk from the found free list
     auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
     if (it == free_list.end()) return nullptr;
-    std::unique_ptr<Chunk> chunk_uniq_ptr = std::move(*it);
-    CHAINERX_ASSERT(chunk_uniq_ptr != nullptr);
+    std::unique_ptr<Chunk> removed_chunk = std::move(*it);
+    CHAINERX_ASSERT(removed_chunk != nullptr);
     free_list.erase(it);
-    return chunk_uniq_ptr;
+    return removed_chunk;
 }
 
 MemoryPool::~MemoryPool() {
