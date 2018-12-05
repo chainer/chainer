@@ -133,7 +133,7 @@ MemoryPool::~MemoryPool() {
     cudaGetDevice(&orig_device_index);
     cudaSetDevice(device_index_);
 
-    for (auto& item : free_bins_) {
+    for (std::pair<const size_t, FreeList>& item : free_bins_) {
         FreeList& free_list = item.second;
         for (const std::unique_ptr<Chunk>& chunk : free_list) {
             if (chunk->prev() == nullptr) {
@@ -145,7 +145,7 @@ MemoryPool::~MemoryPool() {
     // by this memory pool are released after this memory pool is destructed.
     // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
     // Operators of arrays holding such memories will be broken, but are not supported.
-    for (const auto& item : in_use_) {
+    for (const std::pair<void* const, std::unique_ptr<Chunk>>& item : in_use_) {
         const std::unique_ptr<Chunk>& chunk = item.second;
         if (chunk->prev() == nullptr) {
             allocator_->Free(chunk->ptr());
@@ -159,9 +159,9 @@ void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
 
     // Frees unused memory blocks
-    for (auto& pair : free_bins_) {
+    for (std::pair<const size_t, FreeList>& pair : free_bins_) {
         FreeList& free_list = pair.second;
-        for (auto& chunk : free_list) {
+        for (std::unique_ptr<Chunk>& chunk : free_list) {
             if (chunk->next() == nullptr && chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
                 chunk.reset();
