@@ -185,7 +185,7 @@ void MemoryPool::FreeUnusedBlocks() {
         if (free_bins_it->second.empty()) {
             free_bins_it = free_bins_.erase(free_bins_it);
         } else {
-            free_bins_it++;
+            ++free_bins_it;
         }
     }
 }
