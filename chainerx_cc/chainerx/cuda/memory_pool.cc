@@ -71,6 +71,10 @@ void Chunk::MergeWithNext() {
 
 }  // namespace cuda_internal
 
+namespace {
+using FreeBinsIt = std::map<size_t, cuda_internal::FreeList>::iterator;
+}
+
 // Pushes a chunk into an appropriate free list
 //
 // Not thread-safe
@@ -79,8 +83,7 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk) {
     free_list.emplace_back(std::move(chunk));
 }
 
-void MemoryPool::CompactFreeBins(
-        std::map<size_t, cuda_internal::FreeList>::iterator it_start, std::map<size_t, cuda_internal::FreeList>::iterator it_end) {
+void MemoryPool::CompactFreeBins(FreeBinsIt it_start, FreeBinsIt it_end) {
     auto it_start_rev = std::make_reverse_iterator(it_start);
     it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const auto& p) { return !p.second.empty(); }).base();
     it_end = std::find_if(it_end, free_bins_.end(), [](const auto& p) { return !p.second.empty(); });
@@ -91,8 +94,8 @@ void MemoryPool::CompactFreeBins(
 //
 // Not thread-safe
 std::unique_ptr<cuda_internal::Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
-    auto it_start = free_bins_.lower_bound(allocation_size);
-    auto non_empty_it = std::find_if(it_start, free_bins_.end(), [](const auto& pair) { return !pair.second.empty(); });
+    FreeBinsIt it_start = free_bins_.lower_bound(allocation_size);
+    FreeBinsIt non_empty_it = std::find_if(it_start, free_bins_.end(), [](const auto& pair) { return !pair.second.empty(); });
     if (non_empty_it == free_bins_.end()) {
         return nullptr;
     }
@@ -113,7 +116,7 @@ std::unique_ptr<cuda_internal::Chunk> MemoryPool::RemoveChunkFromFreeList(cuda_i
     CHAINERX_ASSERT(chunk != nullptr);
 
     // Find an appropriate free list
-    auto free_bins_it = free_bins_.find(chunk->bytesize());
+    FreeBinsIt free_bins_it = free_bins_.find(chunk->bytesize());
     if (free_bins_it == free_bins_.end()) {
         return nullptr;
     }
@@ -174,7 +177,7 @@ void MemoryPool::FreeUnusedBlocks() {
     }
 
     // Erase empty free lists from free bins.
-    for (auto free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
+    for (FreeBinsIt free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
         if (free_bins_it->second.empty()) {
             free_bins_it = free_bins_.erase(free_bins_it);
         } else {
