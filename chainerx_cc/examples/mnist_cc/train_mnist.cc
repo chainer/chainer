@@ -121,10 +121,10 @@ void RunWithDefaultDevice(int64_t epochs, int64_t batch_size, int64_t n_hidden, 
             chainerx::Backward(SoftmaxCrossEntropy(model(x), t));
 
             // Vanilla SGD.
-            for (const chainerx::Array& p : model.params()) {
-                chainerx::Array p_as_grad_stopped = p.AsGradStopped();
-                p_as_grad_stopped -= p.GetGrad()->AsGradStopped() * lr;
-                p.ClearGrad();
+            for (const chainerx::Array& param : model.params()) {
+                chainerx::Array p = param.AsGradStopped();
+                p -= param.GetGrad()->AsGradStopped() * lr;
+                param.ClearGrad();
             }
         }
 
@@ -167,9 +167,9 @@ int main(int argc, char** argv) {
             epochs = std::atoi(argv[i + 1]);
         } else if (arg == "--batchsize") {
             batch_size = std::atoi(argv[i + 1]);
-        } else if (arg == "--n-hidden") {
+        } else if (arg == "--unit") {
             n_hidden = std::atoi(argv[i + 1]);
-        } else if (arg == "--n-layers") {
+        } else if (arg == "--layer") {
             n_layers = std::atoi(argv[i + 1]);
         } else if (arg == "--lr") {
             lr = std::atof(argv[i + 1]);
