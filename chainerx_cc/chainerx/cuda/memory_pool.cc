@@ -116,7 +116,9 @@ std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
 
     // Remove the given chunk from the found free list
     auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
-    if (it == free_list.end()) return nullptr;
+    if (it == free_list.end()) {
+        return nullptr;
+    }
     std::unique_ptr<Chunk> removed_chunk = std::move(*it);
     CHAINERX_ASSERT(removed_chunk != nullptr);
     free_list.erase(it);
@@ -216,12 +218,12 @@ void* MemoryPool::Malloc(size_t bytesize) {
     }
 
     CHAINERX_ASSERT(chunk != nullptr);
-    void* ptr = chunk->ptr();
+    void* chunk_ptr = chunk->ptr();
     {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
-        in_use_.emplace(ptr, std::move(chunk));
+        in_use_.emplace(chunk_ptr, std::move(chunk));
     }
-    return ptr;
+    return chunk_ptr;
 }
 
 void MemoryPool::Free(void* ptr) {

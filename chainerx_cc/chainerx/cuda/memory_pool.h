@@ -66,7 +66,7 @@ class Chunk {
 public:
     Chunk(void* ptr, size_t offset, size_t bytesize)
         : ptr_{reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset)},  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-          bytesize_(bytesize) {}
+          bytesize_{bytesize} {}
     Chunk(const Chunk&) = default;
     ~Chunk() {}
 
