@@ -106,7 +106,7 @@ std::unique_ptr<cuda_internal::Chunk> MemoryPool::PopFromFreeList(size_t allocat
     std::unique_ptr<cuda_internal::Chunk> chunk = std::move(free_list.back());
     CHAINERX_ASSERT(chunk != nullptr);
     free_list.pop_back();
-    if (static_cast<size_t>(std::distance(it_start, non_empty_it)) > kCompactionThreashold) {
+    if (static_cast<size_t>(std::distance(it_start, non_empty_it)) >= kCompactionThreashold) {
         CompactFreeBins(it_start, non_empty_it);
     }
     return chunk;
