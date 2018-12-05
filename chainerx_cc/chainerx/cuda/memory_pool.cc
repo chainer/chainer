@@ -39,6 +39,8 @@ MallocStatus PinnedMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
     CHAINERX_NEVER_REACH();
 }
 
+namespace cuda_internal {
+
 std::unique_ptr<Chunk> Chunk::Split(size_t bytesize) {
     CHAINERX_ASSERT(bytesize_ >= bytesize);
     if (bytesize_ == bytesize) {
@@ -67,15 +69,18 @@ void Chunk::MergeWithNext() {
     next_ = next_->next();
 }
 
+}  // namespace cuda_internal
+
 // Pushes a chunk into an appropriate free list
 //
 // Not thread-safe
-void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
-    FreeList& free_list = free_bins_[chunk->bytesize()];
+void MemoryPool::PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk) {
+    cuda_internal::FreeList& free_list = free_bins_[chunk->bytesize()];
     free_list.emplace_back(std::move(chunk));
 }
 
-void MemoryPool::CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end) {
+void MemoryPool::CompactFreeBins(
+        std::map<size_t, cuda_internal::FreeList>::iterator it_start, std::map<size_t, cuda_internal::FreeList>::iterator it_end) {
     auto it_start_rev = std::make_reverse_iterator(it_start);
     it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const auto& p) { return !p.second.empty(); }).base();
     it_end = std::find_if(it_end, free_bins_.end(), [](const auto& p) { return !p.second.empty(); });
@@ -85,14 +90,14 @@ void MemoryPool::CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, 
 // Finds best-fit, or a smallest larger allocation if available
 //
 // Not thread-safe
-std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
+std::unique_ptr<cuda_internal::Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
     auto it_start = free_bins_.lower_bound(allocation_size);
     auto non_empty_it = std::find_if(it_start, free_bins_.end(), [](const auto& pair) { return !pair.second.empty(); });
     if (non_empty_it == free_bins_.end()) {
         return nullptr;
     }
-    FreeList& free_list = non_empty_it->second;
-    std::unique_ptr<Chunk> chunk = std::move(free_list.back());
+    cuda_internal::FreeList& free_list = non_empty_it->second;
+    std::unique_ptr<cuda_internal::Chunk> chunk = std::move(free_list.back());
     CHAINERX_ASSERT(chunk != nullptr);
     free_list.pop_back();
     if (static_cast<size_t>(std::distance(it_start, non_empty_it)) > kCompactionThreashold) {
@@ -104,7 +109,7 @@ std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
 // Removes a chunk from an appropriate free list, and returns the removed chunk
 //
 // Not thread-safe
-std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
+std::unique_ptr<cuda_internal::Chunk> MemoryPool::RemoveChunkFromFreeList(cuda_internal::Chunk* chunk) {
     CHAINERX_ASSERT(chunk != nullptr);
 
     // Find an appropriate free list
@@ -112,14 +117,14 @@ std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
     if (free_bins_it == free_bins_.end()) {
         return nullptr;
     }
-    FreeList& free_list = free_bins_it->second;
+    cuda_internal::FreeList& free_list = free_bins_it->second;
 
     // Remove the given chunk from the found free list
     auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
     if (it == free_list.end()) {
         return nullptr;
     }
-    std::unique_ptr<Chunk> removed_chunk = std::move(*it);
+    std::unique_ptr<cuda_internal::Chunk> removed_chunk = std::move(*it);
     CHAINERX_ASSERT(removed_chunk != nullptr);
     free_list.erase(it);
     return removed_chunk;
@@ -131,9 +136,9 @@ MemoryPool::~MemoryPool() {
     cudaGetDevice(&orig_device_index);
     cudaSetDevice(device_index_);
 
-    for (std::pair<const size_t, FreeList>& item : free_bins_) {
-        FreeList& free_list = item.second;
-        for (const std::unique_ptr<Chunk>& chunk : free_list) {
+    for (std::pair<const size_t, cuda_internal::FreeList>& item : free_bins_) {
+        cuda_internal::FreeList& free_list = item.second;
+        for (const std::unique_ptr<cuda_internal::Chunk>& chunk : free_list) {
             if (chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
             }
@@ -143,8 +148,8 @@ MemoryPool::~MemoryPool() {
     // by this memory pool are released after this memory pool is destructed.
     // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
     // Operators of arrays holding such memories will be broken, but are not supported.
-    for (const std::pair<void* const, std::unique_ptr<Chunk>>& item : in_use_) {
-        const std::unique_ptr<Chunk>& chunk = item.second;
+    for (const std::pair<void* const, std::unique_ptr<cuda_internal::Chunk>>& item : in_use_) {
+        const std::unique_ptr<cuda_internal::Chunk>& chunk = item.second;
         if (chunk->prev() == nullptr) {
             allocator_->Free(chunk->ptr());
         }
@@ -157,9 +162,9 @@ void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
 
     // Frees unused memory blocks
-    for (std::pair<const size_t, FreeList>& pair : free_bins_) {
-        FreeList& free_list = pair.second;
-        for (std::unique_ptr<Chunk>& chunk : free_list) {
+    for (std::pair<const size_t, cuda_internal::FreeList>& pair : free_bins_) {
+        cuda_internal::FreeList& free_list = pair.second;
+        for (std::unique_ptr<cuda_internal::Chunk>& chunk : free_list) {
             if (chunk->next() == nullptr && chunk->prev() == nullptr) {
                 allocator_->Free(chunk->ptr());
                 chunk.reset();
@@ -188,7 +193,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
     // `std::lock_guard` and `in_use_.emplace` are the sources of possible exceptions.
 
     size_t allocation_size = GetAllocationSize(bytesize);
-    std::unique_ptr<Chunk> chunk{nullptr};
+    std::unique_ptr<cuda_internal::Chunk> chunk{nullptr};
 
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
@@ -196,7 +201,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
     }
 
     if (chunk != nullptr) {
-        std::unique_ptr<Chunk> remaining = chunk->Split(allocation_size);
+        std::unique_ptr<cuda_internal::Chunk> remaining = chunk->Split(allocation_size);
         if (remaining != nullptr) {
             std::lock_guard<std::mutex> lock{free_bins_mutex_};
             PushIntoFreeList(std::move(remaining));
@@ -214,7 +219,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
             }
         }
         CHAINERX_ASSERT(ptr != nullptr);
-        chunk = std::make_unique<Chunk>(ptr, 0, allocation_size);
+        chunk = std::make_unique<cuda_internal::Chunk>(ptr, 0, allocation_size);
     }
 
     CHAINERX_ASSERT(chunk != nullptr);
@@ -230,7 +235,7 @@ void MemoryPool::Free(void* ptr) {
     if (ptr == nullptr) {
         return;
     }
-    std::unique_ptr<Chunk> chunk{nullptr};
+    std::unique_ptr<cuda_internal::Chunk> chunk{nullptr};
 
     {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
@@ -248,7 +253,7 @@ void MemoryPool::Free(void* ptr) {
 
         // If the next chunk is free, merges it with them.
         if (chunk->next() != nullptr) {
-            std::unique_ptr<Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
+            std::unique_ptr<cuda_internal::Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
             if (chunk_next != nullptr) {
                 chunk->MergeWithNext();
             }
@@ -256,7 +261,7 @@ void MemoryPool::Free(void* ptr) {
 
         // If the previous chunk is free, merges it with them.
         if (chunk->prev() != nullptr) {
-            std::unique_ptr<Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
+            std::unique_ptr<cuda_internal::Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
             if (chunk_prev != nullptr) {
                 chunk_prev->MergeWithNext();
                 chunk = std::move(chunk_prev);

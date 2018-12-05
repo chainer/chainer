@@ -57,6 +57,8 @@ public:
     void Free(void* ptr) noexcept override { cudaFreeHost(ptr); }
 };
 
+namespace cuda_internal {
+
 // A chunk that points to a device memory.
 //
 // A chunk might be a splitted memory block from a larger allocation.
@@ -97,6 +99,8 @@ private:
 
 using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks with the same size.
 
+}  // namespace cuda_internal
+
 // Memory pool.
 // This class is thread safe.
 class MemoryPool {
@@ -124,18 +128,19 @@ private:
 
     // Rounds up the memory size to fit memory alignment of memory allocation.
     size_t GetAllocationSize(size_t bytesize) { return ((bytesize + kAllocationUnitSize - 1) / kAllocationUnitSize) * kAllocationUnitSize; }
-    void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
-    std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
-    std::unique_ptr<Chunk> RemoveChunkFromFreeList(Chunk* chunk);
+    void PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk);
+    std::unique_ptr<cuda_internal::Chunk> PopFromFreeList(size_t allocation_size);
+    std::unique_ptr<cuda_internal::Chunk> RemoveChunkFromFreeList(cuda_internal::Chunk* chunk);
 
     // Finds the longest consecutive empty free lists that include the section between `it_start` and `it_end`, and removes them from free
     // bins.
-    void CompactFreeBins(std::map<size_t, FreeList>::iterator it_start, std::map<size_t, FreeList>::iterator it_end);
+    void CompactFreeBins(
+            std::map<size_t, cuda_internal::FreeList>::iterator it_start, std::map<size_t, cuda_internal::FreeList>::iterator it_end);
 
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
-    std::unordered_map<void*, std::unique_ptr<Chunk>> in_use_;  // ptr => Chunk
-    std::map<size_t, FreeList> free_bins_;  // allocation size => FreeList
+    std::unordered_map<void*, std::unique_ptr<cuda_internal::Chunk>> in_use_;  // ptr => cuda_internal::Chunk
+    std::map<size_t, cuda_internal::FreeList> free_bins_;  // allocation size => cuda_internal::FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
 };
