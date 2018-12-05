@@ -87,7 +87,7 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk) {
 }
 
 void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::iterator it_end) {
-    auto it_start_rev = std::make_reverse_iterator(it_start);
+    FreeBinsMap::reverse_iterator it_start_rev = std::make_reverse_iterator(it_start);
     it_start = std::find_if(it_start_rev, free_bins_.rend(), IsFreeListNonEmpty).base();
     it_end = std::find_if(it_end, free_bins_.end(), IsFreeListNonEmpty);
     free_bins_.erase(it_start, it_end);
@@ -126,7 +126,8 @@ std::unique_ptr<cuda_internal::Chunk> MemoryPool::RemoveChunkFromFreeList(cuda_i
     cuda_internal::FreeList& free_list = free_bins_it->second;
 
     // Remove the given chunk from the found free list
-    auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
+    cuda_internal::FreeList::iterator it =
+            std::find_if(free_list.begin(), free_list.end(), [chunk](const auto& ptr) { return ptr.get() == chunk; });
     if (it == free_list.end()) {
         return nullptr;
     }
