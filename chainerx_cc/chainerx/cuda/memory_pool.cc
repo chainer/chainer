@@ -211,6 +211,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
                 throw OutOfMemoryError{bytesize};
             }
         }
+        CHAINERX_ASSERT(ptr != nullptr);
         chunk = std::make_unique<Chunk>(ptr, 0, allocation_size);
     }
 
