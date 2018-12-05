@@ -5,9 +5,24 @@ import numpy
 from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class MSVAGHyperparameter(Protocol):
+        """Protocol type for hyperparameter of M-SVAG.
+
+        This is only for PEP 544 compatible static type checkers.
+        """
+        lr = None  # type: float
+        beta = None  # type: float
+        eta = None  # type: float
+        weight_decay_rate = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: MSVAGHyperparameter # NOQA
 _default_hyperparam.lr = 0.1
 _default_hyperparam.beta = 0.9
 _default_hyperparam.eta = 1.0

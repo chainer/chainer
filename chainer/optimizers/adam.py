@@ -8,9 +8,27 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class AdamHyperparameter(Protocol):
+        """Protocol type for hyperparameter of Adam.
+
+        This is only for PEP 544 compatible static type checkers.
+        """
+        alpha = None  # type: float
+        beta1 = None  # type: float
+        beta2 = None  # type: float
+        eps = None  # type: float
+        eta = None  # type: float
+        weight_decay_rate = None  # type: float
+        amsgrad = None  # type: bool
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: AdamHyperparameter # NOQA
 _default_hyperparam.alpha = 0.001
 _default_hyperparam.beta1 = 0.9
 _default_hyperparam.beta2 = 0.999

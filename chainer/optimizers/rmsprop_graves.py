@@ -3,9 +3,24 @@ import numpy
 from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class RMSpropGravesHyperparameter(Protocol):
+        """Protocol type for hyperparameter of Alex Graves's RMSprop.
+
+        This is only for PEP 544 compatible static type checkers.
+        """
+        lr = None  # type: float
+        alpha = None  # type: float
+        momentum = None  # type: float
+        eps = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: RMSpropGravesHyperparameter # NOQA
 _default_hyperparam.lr = 1e-4
 _default_hyperparam.alpha = 0.95
 _default_hyperparam.momentum = 0.9

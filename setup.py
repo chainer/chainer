@@ -25,6 +25,7 @@ requirements = {
     'install': [
         'setuptools',
         'typing',
+        'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
