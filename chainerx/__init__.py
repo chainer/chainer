@@ -14,7 +14,7 @@ else:
 if _available:
     from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
 
-    from chainerx._core import *  # type: ignore # NOQA
+    from chainerx._core import *  # NOQA
 
     from builtins import bool, int, float  # NOQA
 
