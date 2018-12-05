@@ -73,7 +73,7 @@ void Chunk::MergeWithNext() {
 
 namespace {
 
-using FreeBinsMap = memory_pool_detail::FreeBinsMap;
+using FreeBinsMap = cuda_internal::FreeBinsMap;
 
 bool IsFreeListNonEmpty(const FreeBinsMap::value_type& pair) {
     const cuda_internal::FreeList& free_list = pair.second;
