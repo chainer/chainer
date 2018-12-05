@@ -258,7 +258,7 @@ void MemoryPool::Free(void* ptr) {
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
 
-        // If the next chunk is free, merges it with them.
+        // If the next chunk is free, merges it with it.
         if (chunk->next() != nullptr) {
             std::unique_ptr<cuda_internal::Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
             if (chunk_next != nullptr) {
@@ -266,7 +266,7 @@ void MemoryPool::Free(void* ptr) {
             }
         }
 
-        // If the previous chunk is free, merges it with them.
+        // If the previous chunk is free, merges it with it.
         if (chunk->prev() != nullptr) {
             std::unique_ptr<cuda_internal::Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
             if (chunk_prev != nullptr) {
