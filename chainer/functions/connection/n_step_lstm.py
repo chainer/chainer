@@ -13,7 +13,7 @@ from chainer.utils import argument
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.cuda.cudnn  # type: ignore
 
 
 def _stack_weight(ws):

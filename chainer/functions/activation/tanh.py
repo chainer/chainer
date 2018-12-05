@@ -9,7 +9,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.cuda.cudnn  # type: ignore
     _mode = libcudnn.CUDNN_ACTIVATION_TANH
 
 

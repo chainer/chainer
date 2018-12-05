@@ -10,7 +10,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG  # type: ignore
 
 
 def logsumexp(x, axis):
