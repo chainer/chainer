@@ -71,10 +71,6 @@ void Chunk::MergeWithNext() {
 
 }  // namespace cuda_internal
 
-namespace {
-using FreeBinsMap = std::map<size_t, cuda_internal::FreeList>;
-}
-
 // Pushes a chunk into an appropriate free list
 //
 // Not thread-safe
