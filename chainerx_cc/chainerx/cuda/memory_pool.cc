@@ -247,7 +247,7 @@ void MemoryPool::Free(void* ptr) {
     {
         std::lock_guard<std::mutex> lock{free_bins_mutex_};
 
-        // If there are free chunks before this chunk, merges it with them.
+        // If the next chunk is free, merges it with them.
         if (chunk->next() != nullptr) {
             std::unique_ptr<Chunk> chunk_next = RemoveChunkFromFreeList(chunk->next());
             if (chunk_next != nullptr) {
@@ -255,7 +255,7 @@ void MemoryPool::Free(void* ptr) {
             }
         }
 
-        // If there are free chunks after this chunk, merges it with them.
+        // If the previous chunk is free, merges it with them.
         if (chunk->prev() != nullptr) {
             std::unique_ptr<Chunk> chunk_prev = RemoveChunkFromFreeList(chunk->prev());
             if (chunk_prev != nullptr) {
@@ -264,7 +264,6 @@ void MemoryPool::Free(void* ptr) {
             }
         }
 
-        // Pushes this chunk into the free list.
         PushIntoFreeList(std::move(chunk));
     }
 }

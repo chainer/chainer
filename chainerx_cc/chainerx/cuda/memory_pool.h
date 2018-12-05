@@ -121,7 +121,7 @@ public:
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
 
-    // Rounds up the memory size to fit memory alignment of cudaMalloc.
+    // Rounds up the memory size to fit memory alignment of memory allocation.
     size_t GetAllocationSize(size_t bytesize) { return ((bytesize + kAllocationUnitSize - 1) / kAllocationUnitSize) * kAllocationUnitSize; }
     void PushIntoFreeList(std::unique_ptr<Chunk> chunk);
     std::unique_ptr<Chunk> PopFromFreeList(size_t allocation_size);
