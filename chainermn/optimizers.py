@@ -146,6 +146,8 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
             'needs_bcast', True)
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
+            'finished_forward_gpu', False)
+        super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
             'buffer_size', 4*1024*1024)
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
             'buffers', [])
@@ -167,14 +169,15 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
         else:
             buffers_i = self.buffers_i
             buffer = self.buffers[buffers_i]
-            print('rank {} aggregate buffer'.format(self.communicator.rank))
+            #print('rank {} aggregate buffer'.format(self.communicator.rank))
             buffer.aggregate_grads(self.communicator)
-            print('rank {} sync and clear'.format(self.communicator.rank))
+            #print('rank {} sync and clear'.format(self.communicator.rank))
             self.synchronize()
             self.clear_buffers()
             self.actual_optimizer.update(None, *args, **kwds)
+
         super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
-            'target_params_i', 0)
+            'finished_forward_gpu', False)
 
     def setup(self, link):
         for param in link.params():
@@ -189,7 +192,7 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
 
 
     def post_backward_hook(self, param):
-        print('rank {} call post backward hook'.format(self.communicator.rank))
+        #print('rank {} call post backward hook'.format(self.communicator.rank))
         if not self.needs_bcast:
             self.append_to_buffer(param)
 
@@ -197,15 +200,16 @@ class _MultiNodeOptimizerWithLayerWiseAllreduce(object):
         buffers_i = self.buffers_i
         buffer = self.buffers[buffers_i]
         if not buffer.can_append_param(param):
-            print('rank {} aggregate buffer'.format(self.communicator.rank))
-            buffer.aggregate_grads(self.communicator)
+            #print('rank {} aggregate buffer'.format(self.communicator.rank))
+            buffer.aggregate_grads(self.communicator, default_stream=False)
             buffers_i += 1
             if len(self.buffers) == buffers_i:
                 buffer = GradBuffer(max_memory_size=32*1024*1024, allreduce_grad_dtype=np.dtype('float32'))
                 self.buffers.append(buffer)
             super(_MultiNodeOptimizerWithLayerWiseAllreduce, self).__setattr__(
                 'buffers_i', buffers_i)
-        print('rank {} append buffer'.format(self.communicator.rank))
+            buffer = self.buffers[buffers_i]
+        #print('rank {} append buffer'.format(self.communicator.rank))
         buffer.append_param(param)
 
 
@@ -249,7 +253,7 @@ class GradBuffer(object):
     def can_append_param(self, param):
         data_dtype = self.allreduce_grad_dtype
         memory_size = param.data.size * data_dtype.itemsize
-        print(self.memory_size + memory_size, self.max_memory_size)
+        #print(self.memory_size + memory_size, self.max_memory_size)
         return (self.memory_size + memory_size) <= self.max_memory_size
 
     def append_param(self, param):
@@ -267,14 +271,20 @@ class GradBuffer(object):
     def get_length(self):
         return self.length
 
-    def aggregate_grads(self, communicator):
+    def aggregate_grads(self, communicator, default_stream=True):
         communicator._init_comms()
-        assert len(self.params)
+        assert len(self.params) >= 1
         grad_dtype = self.params[0].grad.dtype
         allreduce_grad_dtype = self.allreduce_grad_dtype
         assert grad_dtype == allreduce_grad_dtype
         n_elems = self.get_length()
-        stream = self.cuda_stream
+        if default_stream:
+            #print("default stream")
+            stream = chainer.cuda.Stream.null
+        else:
+            #print("stream")
+            chainer.cuda.Stream.null.synchronize()
+            stream = self.cuda_stream
         needs_sync = self._assign_for_allreduce_grad(grad_dtype,
                                                      allreduce_grad_dtype,
                                                      n_elems)
