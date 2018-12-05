@@ -71,6 +71,13 @@ void Chunk::MergeWithNext() {
 
 }  // namespace cuda_internal
 
+namespace {
+bool IsFreeListNonEmpty(const FreeBinsMap::value_type& pair) {
+    const cuda_internal::FreeList& free_list = pair.second;
+    return !free_list.empty();
+}
+}  // namespace
+
 // Pushes a chunk into an appropriate free list
 //
 // Not thread-safe
@@ -81,8 +88,8 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<cuda_internal::Chunk> chunk) {
 
 void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::iterator it_end) {
     auto it_start_rev = std::make_reverse_iterator(it_start);
-    it_start = std::find_if(it_start_rev, free_bins_.rend(), [](const FreeBinsMap::value_type& p) { return !p.second.empty(); }).base();
-    it_end = std::find_if(it_end, free_bins_.end(), [](const FreeBinsMap::value_type& p) { return !p.second.empty(); });
+    it_start = std::find_if(it_start_rev, free_bins_.rend(), IsFreeListNonEmpty).base();
+    it_end = std::find_if(it_end, free_bins_.end(), IsFreeListNonEmpty);
     free_bins_.erase(it_start, it_end);
 }
 
@@ -91,8 +98,7 @@ void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::it
 // Not thread-safe
 std::unique_ptr<cuda_internal::Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
     FreeBinsMap::iterator it_start = free_bins_.lower_bound(allocation_size);
-    FreeBinsMap::iterator non_empty_it =
-            std::find_if(it_start, free_bins_.end(), [](const FreeBinsMap::value_type& pair) { return !pair.second.empty(); });
+    FreeBinsMap::iterator non_empty_it = std::find_if(it_start, free_bins_.end(), IsFreeListNonEmpty);
     if (non_empty_it == free_bins_.end()) {
         return nullptr;
     }
