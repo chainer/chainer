@@ -101,9 +101,11 @@ using FreeList = std::vector<std::unique_ptr<Chunk>>;  // List of free chunks wi
 
 }  // namespace cuda_internal
 
-namespace {
+namespace memory_pool_detail {
+
 using FreeBinsMap = std::map<size_t, cuda_internal::FreeList>;
-}
+
+}  // namespace memory_pool_detail
 
 // Memory pool.
 // This class is thread safe.
@@ -138,12 +140,12 @@ private:
 
     // Finds the longest consecutive empty free lists that include the section between `it_start` and `it_end`, and removes them from free
     // bins.
-    void CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::iterator it_end);
+    void CompactFreeBins(memory_pool_detail::FreeBinsMap::iterator it_start, memory_pool_detail::FreeBinsMap::iterator it_end);
 
     int device_index_;
     std::unique_ptr<Allocator> allocator_;
     std::unordered_map<void*, std::unique_ptr<cuda_internal::Chunk>> in_use_;  // ptr => cuda_internal::Chunk
-    FreeBinsMap free_bins_;  // allocation size => cuda_internal::FreeList
+    memory_pool_detail::FreeBinsMap free_bins_;  // allocation size => cuda_internal::FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
 };

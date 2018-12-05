@@ -12,7 +12,7 @@ namespace cuda_internal {
 
 class MemoryPoolTest {
 public:
-    static const std::map<size_t, FreeList>& GetFreeBins(const MemoryPool& pool) { return pool.free_bins_; }
+    static const memory_pool_detail::FreeBinsMap& GetFreeBins(const MemoryPool& pool) { return pool.free_bins_; }
     static const Allocator* GetAllocator(const MemoryPool& pool) { return pool.allocator_.get(); }
 };
 
@@ -184,7 +184,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeForeignPointer) {
 
 TEST_P(MemoryPoolTestForEachAllocator, FreeUnusedBlocks) {
     MemoryPool& memory_pool = *GetParam();
-    const std::map<size_t, cuda_internal::FreeList>& free_bins = cuda_internal::MemoryPoolTest::GetFreeBins(memory_pool);
+    const memory_pool_detail::FreeBinsMap& free_bins = cuda_internal::MemoryPoolTest::GetFreeBins(memory_pool);
 
     void* ptr1 = memory_pool.Malloc(1);
     memory_pool.Free(ptr1);
