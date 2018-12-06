@@ -72,26 +72,36 @@ def sum_to(x, shape):
 # TODO(hvy): Remove this function when chainerx.ndarray.__getitem__ supports
 # advanced indexing.
 def _getitem(arr, key):
+    if not isinstance(arr, chainerx.ndarray):
+        return arr[key]
+
     try:
         return arr[key]
     except (IndexError, chainerx.DimensionError):
         pass
 
-    if isinstance(arr, chainerx.ndarray):
-        arr = backend.from_chainerx(arr)
-        is_arr_chainerx = True
-    else:
-        is_arr_chainerx = False
+    is_backprop_required = arr.is_backprop_required()
+
+    arr = backend.from_chainerx(arr)
     if isinstance(key, chainerx.ndarray):
         key = backend.from_chainerx(key)
+
     if isinstance(arr, cuda.ndarray):
         with arr.device:
             ret = arr[key]
     else:
         ret = arr[key]
-    if is_arr_chainerx:
-        ret = backend.to_chainerx(ret)
-    return ret
+
+    # Doing this check after the fallback __getitem__ because the error which
+    # caused the fallback might not be due to advanced indexing. In such
+    # case the fallback __getitem__ should also raise the error.
+
+    if is_backprop_required:
+        raise RuntimeError(
+            'ChainerX getitem fallback for advanced indexing is not supported '
+            'for arrays that are connected to a graph.')
+
+    return backend.to_chainerx(ret)
 
 
 # Workaround for chainerx.ndarray advanced indexing.
@@ -132,8 +142,16 @@ def _setitem(arr, key, value):
         array([4., 5.])
 
     """
-    if isinstance(arr, chainerx.ndarray):
-        arr = backend.from_chainerx(arr)
+    if not isinstance(arr, chainerx.ndarray):
+        arr[key] = value
+        return
+
+    if arr.is_backprop_required():
+        raise RuntimeError(
+            'ChainerX setitem fallback for advanced indexing is not supported '
+            'for arrays that are connected to a graph.')
+
+    arr = backend.from_chainerx(arr)
     if isinstance(key, chainerx.ndarray):
         key = backend.from_chainerx(key)
     if isinstance(value, chainerx.ndarray):
