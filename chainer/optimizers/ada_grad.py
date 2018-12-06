@@ -10,7 +10,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class AdaGradHyperparameter(Protocol):
-        """Protocol type for hyperparameter of AdaGrad.
+        """Protocol class for hyperparameter of AdaGrad.
 
         This is only for PEP 544 compatible static type checkers.
         """

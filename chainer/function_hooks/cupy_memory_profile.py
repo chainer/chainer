@@ -1,10 +1,12 @@
+from typing import Any  # NOQA
+
 import collections
 import sys
 
 from chainer.backends import cuda
 from chainer import function_hook
 
-
+MemoryHook = None  # type: Any # to handle https://github.com/python/mypy/issues/2477 # NOQA
 try:
     MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook
     memory_hook_available = True

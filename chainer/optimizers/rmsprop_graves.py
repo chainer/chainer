@@ -10,7 +10,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class RMSpropGravesHyperparameter(Protocol):
-        """Protocol type for hyperparameter of Alex Graves's RMSprop.
+        """Protocol class for hyperparameter of Alex Graves's RMSprop.
 
         This is only for PEP 544 compatible static type checkers.
         """

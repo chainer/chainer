@@ -1,4 +1,7 @@
-from typing import Callable, List, Optional  # NOQA
+from typing import Callable  # NOQA
+from typing import List  # NOQA
+from typing import Optional  # NOQA
+from typing import cast  # NOQA
 
 import collections
 import copy
@@ -481,7 +484,7 @@ class Variable(object):
     # the second element.
     _chainerx_grad_cache = None
 
-    _chainerx_name = None
+    _chainerx_name = None  # type: Optional[str]
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
@@ -492,6 +495,10 @@ class Variable(object):
     # this attribute on Variable.grad setter to delay creation of grad_var
     # instance.
     _grad = None
+
+    _requires_grad = True  # type: bool
+
+    _data = None  # type: List[Optional[chainerx.ndarray]]
 
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
@@ -586,6 +593,8 @@ class Variable(object):
                 self._grad_var = Variable(self._grad)
 
     def _set_chainerx_array(self, array, grad):
+        # type: (Optional[chainerx.ndarray], Optional[chainerx.ndarray]) -> None # NOQA
+
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
         requires_grad = self._requires_grad
@@ -630,6 +639,7 @@ class Variable(object):
 
     @property
     def xp(self):
+        # type: () -> Optional[types.Xp]
         """Array module for the data array of this variable."""
         device = self.device
         return None if device is None else device.xp
@@ -793,7 +803,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (types.NdArray) -> None
+        # type: (chainerx.ndarray) -> None
 
         if self.xp is chainerx:
             d_old = self._data[0]
@@ -1591,16 +1601,18 @@ class Parameter(Variable):
 
     """
 
-    initializer = None  # type: Optional[types.InitializerLike]
-    _grad_initializer = None  # type: Optional[types.InitializerLike]
+    initializer = None  # type: Optional[types.AbstractInitializer]
+    _grad_initializer = None  # type: Optional[types.AbstractInitializer]
 
     def __init__(self, initializer=None, shape=None, name=None):
-        # type: (Optional[types.InitializerLike], Optional[types.ShapeLike], Optional[str]) -> None # NOQA
+        # type: (Optional[types.InitializerSpec], Optional[types.ShapeSpec], Optional[str]) -> None # NOQA
+
+        initialize_func = cast(types.AbstractInitializer, initializer)
 
         if initializer is None:
-            initializer = constant.NaN()
+            initialize_func = constant.NaN()
         elif numpy.isscalar(initializer):
-            initializer = constant.Constant(initializer)
+            initialize_func = constant.Constant(initializer)
         if shape is None:
             if chainer.is_arrays_compatible([initializer]):
                 # parameter initialized by the initial array
@@ -1614,16 +1626,16 @@ class Parameter(Variable):
             # parameter initialized with a given shape
             if chainer.is_arrays_compatible([initializer]):
                 xp = backend.get_array_module(initializer)
-                initializer = constant.Constant(initializer)
+                initialize_func = constant.Constant(initializer)
             else:
                 xp = numpy
-            data = initializers.generate_array(initializer, shape, xp)
+            data = initializers.generate_array(initialize_func, shape, xp)
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self._initial_device = backend.CpuDevice()
         self.update_rule = None
-        self.initializer = initializer
+        self.initializer = initialize_func
 
     def __copy__(self):
         return self._copy_to(Parameter())

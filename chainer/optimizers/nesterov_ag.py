@@ -8,7 +8,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class NesterovAGHyperparameter(Protocol):
-        """Protocol type for hyperparameter of Nesterov's Accelerated Gradient.
+        """Protocol class for hyperparameter of Nesterov's Accelerated Gradient.
 
         This is only for PEP 544 compatible static type checkers.
         """

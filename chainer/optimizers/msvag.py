@@ -12,7 +12,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class MSVAGHyperparameter(Protocol):
-        """Protocol type for hyperparameter of M-SVAG.
+        """Protocol class for hyperparameter of M-SVAG.
 
         This is only for PEP 544 compatible static type checkers.
         """

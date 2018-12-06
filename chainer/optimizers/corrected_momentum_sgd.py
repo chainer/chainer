@@ -9,7 +9,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class CorrectedMomentumSGDHyperparameter(Protocol):
-        """Protocol type for hyperparameter of corrected momentum SGD.
+        """Protocol class for hyperparameter of corrected momentum SGD.
 
         This is only for PEP 544 compatible static type checkers.
         """

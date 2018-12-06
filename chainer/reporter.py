@@ -1,3 +1,6 @@
+from typing import List  # NOQA
+from typing import Optional  # NOQA
+
 import collections
 import contextlib
 import copy
@@ -169,7 +172,7 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []
+_reporters = []  # type: Optional[List[Reporter]]
 
 
 def get_current_reporter():

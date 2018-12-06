@@ -10,7 +10,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class SMORMS3Hyperparameter(Protocol):
-        """Protocol type for hyperparameter of Simon Funk's SMORMS3.
+        """Protocol class for hyperparameter of Simon Funk's SMORMS3.
 
         This is only for PEP 544 compatible static type checkers.
         """

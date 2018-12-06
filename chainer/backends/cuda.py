@@ -28,7 +28,10 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
-from typing import Any, Optional, cast  # NOQA
+from typing import Any  # NOQA
+from typing import Optional  # NOQA
+from typing import Union  # NOQA
+from typing import cast  # NOQA
 
 import binascii
 import functools
@@ -49,8 +52,9 @@ from chainer.configuration import config
 from chainer import types  # NOQA
 import chainerx
 
-available = False
-cudnn_enabled = False
+available = False  # type: bool
+cudnn = None  # type: Optional[types.ModuleType]
+cudnn_enabled = False  # type: bool
 
 try:
     import cupy
@@ -308,7 +312,7 @@ def get_device_from_array(*arrays):
 
 
 def get_device(*args):
-    # type: (*types.DeviceLike) -> Device
+    # type: (*Optional[Union[types.CudaDeviceSpec, ndarray]]) -> Device
     """Gets the device from a device object, an ID integer or an array object.
 
     .. note::
@@ -344,7 +348,7 @@ def get_device(*args):
 
 
 def _get_cuda_device(*args):
-    # type: (*Optional[types.DeviceLike]) -> Device
+    # type: (*Optional[Union[types.CudaDeviceSpec, ndarray]]) -> Device
 
     # Returns cuda.Device or DummyDevice.
     for arg in args:
@@ -363,6 +367,8 @@ def _get_cuda_device(*args):
 
 
 def _get_device_or_current(device):
+    # type: (Optional[types.CudaDeviceSpec]) -> Device
+
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.

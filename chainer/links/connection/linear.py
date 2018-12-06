@@ -1,6 +1,9 @@
+from typing import Optional  # NOQA
+
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer import types  # NOQA
 from chainer import utils
 from chainer import variable
 
@@ -91,8 +94,15 @@ class Linear(link.Link):
 
     """
 
+    in_size = None  # type: Optional[int]
+    out_size = None  # type: Optional[int]
+    W = None  # type: variable.Parameter
+    b = None  # type: Optional[variable.Parameter]
+
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
+        # type: (Optional[int], Optional[int], bool, Optional[types.InitializerSpec], Optional[types.InitializerSpec]) -> None # NOQA
+
         super(Linear, self).__init__()
 
         if out_size is None:
@@ -114,9 +124,12 @@ class Linear(link.Link):
                 self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
+        # type: (int) -> None
+
         self.W.initialize((self.out_size, in_size))
 
     def forward(self, x, n_batch_axes=1):
+        # type: (variable.Variable, int) -> variable.Variable
         """Applies the linear layer.
 
         Args:

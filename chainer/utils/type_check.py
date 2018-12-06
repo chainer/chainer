@@ -233,7 +233,7 @@ method to evaluate expression.
     __rmul__ = _flip(__mul__)
 
     if sys.version_info < (3, 0, 0):
-        __div__ = _make_bin_operator('/', 5, operator.__div__)
+        __div__ = _make_bin_operator('/', 5, operator.__div__)  # type: ignore # NOQA
         __rdiv__ = _flip(__div__)
     else:
         __truediv__ = _make_bin_operator('/', 5, operator.__truediv__)

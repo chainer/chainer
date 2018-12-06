@@ -10,7 +10,7 @@ if types.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class AdaDeltaHyperparameter(Protocol):
-        """Protocol type for hyperparameter of Zeiler's ADADELTA.
+        """Protocol class for hyperparameter of Zeiler's ADADELTA.
 
         This is only for PEP 544 compatible static type checkers.
         """

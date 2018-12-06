@@ -1,4 +1,14 @@
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast, overload  # NOQA
+from typing import Any  # NOQA
+from typing import Dict  # NOQA
+from typing import Iterable  # NOQA
+from typing import Iterator  # NOQA
+from typing import List  # NOQA
+from typing import Optional  # NOQA
+from typing import Set  # NOQA
+from typing import Tuple  # NOQA
+from typing import Union  # NOQA
+from typing import cast  # NOQA
+from typing import overload  # NOQA
 
 import collections
 import contextlib
@@ -37,15 +47,15 @@ def _is_shape(value):
 
 
 def _ensure_shape_dtype(value):
-    # type: (Optional[Any]) -> Tuple[Optional[types.ShapeLike], types.DTypeLike] # NOQA
+    # type: (Optional[Any]) -> Tuple[Optional[types.ShapeSpec], types.DTypeSpec] # NOQA
 
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike],
+        return cast(Tuple[Optional[types.ShapeSpec], types.DTypeSpec],
                     (value, numpy.float32))
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
-        return cast(Tuple[Optional[types.ShapeLike], types.DTypeLike], value)
+        return cast(Tuple[Optional[types.ShapeSpec], types.DTypeSpec], value)
 
 
 class Link(object):
@@ -143,8 +153,7 @@ class Link(object):
 
     _params = None  # type: Set[str]
     _persistent = None  # type: Set[str]
-    _cpu = None  # type: bool
-    _device_id = None  # type: Optional[int]
+    _device = None  # type: backend.Device
     _within_init_scope = None  # type: bool
     name = None  # type: Optional[str]
     _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
@@ -199,7 +208,7 @@ class Link(object):
 
     @property
     def xp(self):
-        # type: () -> numpy
+        # type: () -> types.Xp
         """Array module for this link.
 
         Depending on which of CPU/GPU this link is on, this property returns
@@ -253,7 +262,7 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> types.VariableLike
+        # type: (*Any, **Any) -> variable.Variable
 
         # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer._get_link_hooks()
@@ -277,7 +286,7 @@ class Link(object):
         if forward is None:
             # forward is implemented in the child classes
             forward = self.forward  # type: ignore
-        out = forward(*args, **kwargs)  # type: types.VariableLike
+        out = forward(*args, **kwargs)  # type: variable.Variable
 
         # Call forward_postprocess hook
         if hooks:
@@ -307,7 +316,7 @@ class Link(object):
 
     def add_param(self, name, shape=None, dtype=numpy.float32,
                   initializer=None):
-        # type: (str, Optional[types.ShapeLike], types.DTypeLike, Optional[types.InitializerLike]) -> None # NOQA
+        # type: (str, Optional[types.ShapeSpec], types.DTypeSpec, Optional[types.InitializerSpec]) -> None # NOQA
         """Registers a parameter to the link.
 
         Args:
@@ -443,7 +452,7 @@ class Link(object):
         return self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
-        # type: (Optional[types.DeviceLike]) -> 'Link'
+        # type: (Optional[types.CudaDeviceSpec]) -> 'Link'
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -513,6 +522,7 @@ to NumPy/CuPy devices without any copy."""
         return self
 
     def to_device(self, device):
+        # type: (types.DeviceSpec) -> 'Link'
         """Copies parameter variables and persistent values to the specified \
 device.
 
@@ -530,25 +540,27 @@ device.
         return self._to_device(device, skip_between_cupy_devices=False)
 
     def _to_device(self, device, skip_between_cupy_devices=False):
+        # type: (types.DeviceSpec, bool) -> 'Link'
+
         # `skip_between_cupy_devices` argument is a workaround
         # for `Link.to_gpu` which does not transfer cupy parameters to
         # a different CUDA device.
-        device = chainer.get_device(device)
+        device_obj = chainer.get_device(device)
 
         d = self.__dict__
         for name in self._params:
             if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
+                    and device_obj.xp is cuda.cupy
                     and d[name].device.xp is cuda.cupy):
-                d[name].to_device(device)
+                d[name].to_device(device_obj)
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
                 if not (skip_between_cupy_devices
-                        and device.xp is cuda.cupy
+                        and device_obj.xp is cuda.cupy
                         and isinstance(d[name], cuda.ndarray)):
-                    d[name] = device.send(d[name])
+                    d[name] = device_obj.send(d[name])
 
-        self._device = device
+        self._device = device_obj
         return self
 
     def params(self, include_uninit=True):
@@ -860,7 +872,7 @@ device.
         return size
 
     def add_hook(self, hook, name=None):
-        # type: (chainer.LinkHook, Optional[str]) -> None
+        # type: (chainer.LinkHook, Optional[str]) -> 'Link'
         """Registers a link hook.
 
         Args:
@@ -1060,17 +1072,18 @@ class Chain(Link):
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):
-        # type: (types.DeviceLike, bool) -> 'Chain'
+        # type: (types.DeviceSpec, bool) -> 'Chain'
 
         # Overrides Link._to_device
 
-        device = chainer.get_device(device)
+        device_obj = chainer.get_device(device)
         super(Chain, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+            device_obj, skip_between_cupy_devices=skip_between_cupy_devices)
         d = self.__dict__
         for name in self._children:
             d[name]._to_device(
-                device, skip_between_cupy_devices=skip_between_cupy_devices)
+                device_obj,
+                skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):
@@ -1312,16 +1325,17 @@ class ChainList(Link, collections_abc.MutableSequence):
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):
-        # type: (types.DeviceLike, bool) -> 'ChainList'
+        # type: (types.DeviceSpec, bool) -> 'ChainList'
 
         # Overrides Link._to_device
 
-        device = chainer.get_device(device)
+        device_obj = chainer.get_device(device)
         super(ChainList, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+            device_obj, skip_between_cupy_devices=skip_between_cupy_devices)
         for link in self._children:
             link._to_device(
-                device, skip_between_cupy_devices=skip_between_cupy_devices)
+                device_obj,
+                skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 
     def params(self, include_uninit=True):

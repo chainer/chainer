@@ -15,8 +15,10 @@ class Initializer(object):
 
     """
 
+    dtype = None  # type: types.DTypeSpec
+
     def __init__(self, dtype=None):
-        # type: (Optional[types.DTypeLike]) -> None
+        # type: (Optional[types.DTypeSpec]) -> None
 
         self.dtype = dtype
 
