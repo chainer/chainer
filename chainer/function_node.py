@@ -457,8 +457,8 @@ Use apply() method instead.\
             if isinstance(value, fallback_device.xp.ndarray):
                 fallback_array_cache[name] = value
                 sup.__setattr__(name, backend.to_chainerx(value))
-                return value
-            return sup.__setattr__(name, value)
+                return
+            sup.__setattr__(name, value)
 
         # Return a fabricated FunctionNode class
         new_class = type(
