@@ -1,125 +1,410 @@
-import os
-import tempfile
 import unittest
 
 import numpy
 
 import chainer
-from chainer import backend
 import chainer.links as L
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
-from chainer.serializers import npz
 from chainer import testing
-from chainer.testing import attr
+
+
+class TestExceptions(unittest.TestCase):
+
+    def setUp(self):
+        self.x = chainer.Variable(numpy.ones((10, 5), dtype=numpy.float32))
+        self.layer = L.Linear(5, 20)
+
+    def test_wrong_weight_name(self):
+        wrong_Weight_name = 'w'
+        hook = SpectralNormalization(weight_name=wrong_Weight_name)
+        with self.assertRaises(ValueError):
+            self.layer.add_hook(hook)
+
+    def test_raises(self):
+        with self.assertRaises(NotImplementedError):
+            with SpectralNormalization():
+                self.layer(self.x)
+
+
+@testing.parameterize(*testing.product({
+    'use_gamma': [True, False],
+}))
+class TestEmbedID(unittest.TestCase):
+
+    def setUp(self):
+        self.bs, self.in_size, self.out_size = 5, 10, 20
+        self.x = numpy.arange(self.in_size, dtype=numpy.int32)
+        self.layer = L.EmbedID(self.in_size, self.out_size)
+        self.hook = SpectralNormalization(use_gamma=self.use_gamma)
+
+    def test_add_sn_hook(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+
+        self.assertTrue(hook._initialied)
+        if self.use_gamma:
+            self.assertTrue(hasattr(layer, 'gamma'))
+            self.assertIsInstance(getattr(layer, 'gamma'), chainer.Parameter)
+        self.assertTupleEqual(
+            getattr(layer, hook.vector_name).shape,
+            (1, self.in_size)
+        )
+
+    def test_weight_is_parameter(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+        source_weight = getattr(layer, hook.weight_name)
+        layer(self.x)
+        self.assertIs(getattr(layer, hook.weight_name), source_weight)
+
+    def test_u_updated_in_train(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+
+        y1 = layer(self.x).array
+        u1 = numpy.copy(getattr(layer, hook.vector_name))
+        y2 = layer(self.x).array
+        u2 = getattr(layer, hook.vector_name)
+        self.assertFalse((u1 == u2).all())
+        self.assertFalse((y1 == y2).all())
+
+    def test_u_not_updated_in_test(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+
+        with chainer.using_config('train', False):
+            y1 = layer(self.x).array
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            y2 = layer(self.x).array
+            u2 = getattr(layer, hook.vector_name)
+
+        numpy.testing.assert_equal(u1, u2)
+        self.assertTrue((y1 == y2).all())
+
+    def test_deleted(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+
+        y1 = layer(self.x).array
+        with chainer.using_config('train', False):
+            y2 = layer(self.x).array
+        layer.delete_hook(hook.name)
+        self.assertFalse(hasattr(layer, hook.vector_name))
+        y3 = layer(self.x).array
+        self.assertFalse((y1 == y3).all())
+        self.assertFalse((y2 == y3).all())
 
 
 @testing.parameterize(*testing.product({
     'lazy_init': [True, False],
     'use_gamma': [True, False],
 }))
-class TestSpectralNormalizationLinkHook(unittest.TestCase):
-
-    """Test initialization and serialization with Linear."""
+class TestLinear(unittest.TestCase):
 
     def setUp(self):
-        self.in_size, self.out_size = 10, 20
-        if self.lazy_init:
-            self.layer = L.Linear(self.out_size)
-        else:
-            self.layer = L.Linear(self.in_size, self.out_size)
-        self.x = numpy.random.uniform(
-            size=(5, self.in_size)).astype(numpy.float32)
+        self.bs, self.in_size, self.out_size = 10, 20, 30
+        self.x = numpy.random.normal(
+            size=(self.bs, self.in_size)).astype(numpy.float32)
+        self.layer = L.Linear(self.out_size)  # Lazy initialization
+        in_size = None if self.lazy_init else self.in_size
+        self.layer = L.Linear(in_size, self.out_size)
 
-    def test_vector_initialization(self):
+    def test_add_sn_hook(self):
         hook = SpectralNormalization(use_gamma=self.use_gamma)
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            assert not hasattr(layer, hook.vector_name)
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                layer(self.x)
+        self.assertTrue(hasattr(layer, hook.vector_name))
+        self.assertTupleEqual(
+            (1, self.out_size), getattr(layer, hook.vector_name).shape)
+        if not self.use_gamma:
+            self.assertFalse(hasattr(layer, 'gamma'))
+        else:  # Use gamma parameter
+            self.assertTrue(hasattr(layer, 'gamma'))
+            self.assertEqual(
+                getattr(layer, 'gamma').ndim,
+                getattr(layer, hook.weight_name).ndim
+            )
+
+    def _init_layer(self):
+        hook = SpectralNormalization(use_gamma=self.use_gamma)
+        layer = self.layer
+        layer.add_hook(hook)
+        if self.lazy_init:
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                layer(self.x)
+        return layer, hook
+
+    def test_weight_is_parameter(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            source_weight = getattr(layer, hook.weight_name)
             layer(self.x)
-        self.assertTupleEqual((1, self.out_size),
-                              tuple(getattr(layer, hook.vector_name).shape))
-        self.assertTrue(isinstance(getattr(layer, hook.weight_name),
-                                   chainer.variable.Parameter))
-        if self.use_gamma:
-            assert hasattr(layer, 'gamma')
+            self.assertIs(getattr(layer, hook.weight_name), source_weight)
+        else:
+            pass
 
-    def test_remove_hook(self):
-        hook = SpectralNormalization(use_gamma=self.use_gamma)
-        layer = self.layer
-        layer.add_hook(hook)
-        layer(self.x)
+    def test_deleted(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            layer.delete_hook(hook.name)
 
-        prev_weight = getattr(layer, hook.weight_name)
-        layer.delete_hook(hook.name)
-        cur_weight = getattr(layer, hook.weight_name)
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+        else:
+            pass
 
-        self.assertTrue((prev_weight.array == cur_weight.array).all())
-        assert not hasattr(layer, hook.vector_name)
-        if self.use_gamma:
-            assert not hasattr(layer, 'gamma')
+    def test_u_updated_in_train(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            layer(self.x)
+            u2 = getattr(layer, hook.vector_name)
+            self.assertFalse((u1 == u2).all())
+        else:
+            pass
 
-    def test_serialization(self):
-        hook = SpectralNormalization(use_gamma=self.use_gamma)
-        snlayer = self.layer
-        snlayer.add_hook(hook)
-        if self.lazy_init:
-            snlayer(self.x)
-        fd, temp_file_path = tempfile.mkstemp()
-        os.close(fd)
-        npz.save_npz(temp_file_path, snlayer)
-        lin2 = L.Linear(self.out_size)
-        lin2.add_hook(hook)
-        npz.load_npz(temp_file_path, lin2)
-        self.assertTrue((snlayer.W.array == lin2.W.array).all())
+    def test_u_not_updated_in_test(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u = getattr(layer, hook.vector_name)
+            with chainer.using_config('train', False):
+                layer(self.x)
+            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+        else:
+            pass
 
 
 @testing.parameterize(*testing.product({
+    'use_gamma': [True, False],
+    'lazy_init': [True, False],
+    'link': [L.Convolution1D, L.Deconvolution1D],
+}))
+class TestConvolution1D(unittest.TestCase):
+
+    def setUp(self):
+        self.in_channels, self.out_channels = 3, 10
+        in_channels = None if self.lazy_init else self.in_channels
+        conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
+        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
+        self.x = numpy.random.normal(
+            size=(5, self.in_channels, 4)).astype(numpy.float32)
+        self.hook = SpectralNormalization(use_gamma=self.use_gamma)
+
+    def _init_layer(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+        return layer, hook
+
+    def test_add_sn_hook(self):
+        hook = SpectralNormalization(use_gamma=self.use_gamma)
+        layer = self.layer
+        layer.add_hook(hook)
+        if self.lazy_init:
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                layer(self.x)
+        self.assertTrue(hasattr(layer, hook.vector_name))
+        self.assertTupleEqual(
+            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        if not self.use_gamma:
+            self.assertFalse(hasattr(layer, 'gamma'))
+        else:  # Use gamma parameter
+            self.assertTrue(hasattr(layer, 'gamma'))
+            self.assertEqual(
+                getattr(layer, 'gamma').ndim,
+                getattr(layer, hook.weight_name).ndim
+            )
+
+    def test_deleted(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            layer.delete_hook(hook.name)
+
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+        else:
+            pass
+
+    def test_u_updated_in_train(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            layer(self.x)
+            u2 = getattr(layer, hook.vector_name)
+            self.assertFalse((u1 == u2).all())
+        else:
+            pass
+
+    def test_u_not_updated_in_test(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u = getattr(layer, hook.vector_name)
+            with chainer.using_config('train', False):
+                layer(self.x)
+            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+        else:
+            pass
+
+
+@testing.parameterize(*testing.product({
+    'use_gamma': [True, False],
+    'lazy_init': [True, False],
     'link': [L.Convolution2D, L.Deconvolution2D],
 }))
-class TestSNConv(unittest.TestCase):
+class TestConvolution2D(unittest.TestCase):
 
     def setUp(self):
-        self.in_channels, self.out_channels, self.ksize = 3, 10, 3
-        layer = self.link(self.in_channels, self.out_channels, self.ksize)
-        hook = SpectralNormalization()
-        layer.add_hook(hook)
-        self.layer = layer
+        self.in_channels, self.out_channels = 3, 10
+        in_channels = None if self.lazy_init else self.in_channels
+        conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
+        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
         self.x = numpy.random.normal(
             size=(5, self.in_channels, 4, 4)).astype(numpy.float32)
-        self.vector_name = hook.vector_name
+        self.hook = SpectralNormalization(use_gamma=self.use_gamma)
 
-    def test_forward(self):
-        for _ in range(3):
-            self.layer(self.x)
-        y_train = self.layer(self.x)
-        with chainer.using_config('train', False):
-            y_test = self.layer(self.x)
-        numpy.testing.assert_equal(y_train.array, y_test.array)
+    def _init_layer(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+        return layer, hook
+
+    def test_add_sn_hook(self):
+        hook = SpectralNormalization(use_gamma=self.use_gamma)
+        layer = self.layer
+        layer.add_hook(hook)
+        if self.lazy_init:
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                layer(self.x)
+        self.assertTrue(hasattr(layer, hook.vector_name))
+        self.assertTupleEqual(
+            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        if not self.use_gamma:
+            self.assertFalse(hasattr(layer, 'gamma'))
+        else:  # Use gamma parameter
+            self.assertTrue(hasattr(layer, 'gamma'))
+            self.assertEqual(
+                getattr(layer, 'gamma').ndim,
+                getattr(layer, hook.weight_name).ndim
+            )
+
+    def test_deleted(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            layer.delete_hook(hook.name)
+
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+        else:
+            pass
+
+    def test_u_updated_in_train(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            layer(self.x)
+            u2 = getattr(layer, hook.vector_name)
+            self.assertFalse((u1 == u2).all())
+        else:
+            pass
+
+    def test_u_not_updated_in_test(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u = getattr(layer, hook.vector_name)
+            with chainer.using_config('train', False):
+                layer(self.x)
+            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+        else:
+            pass
 
 
 @testing.parameterize(*testing.product({
-    'link': [L.Convolution3D, L.DeconvolutionND],
+    'use_gamma': [True, False],
+    'lazy_init': [True, False],
+    'link': [L.Convolution3D, L.Deconvolution3D],
 }))
-class TestSNConvND(unittest.TestCase):
+class TestConvolution3D(unittest.TestCase):
 
     def setUp(self):
-        self.in_channels, self.out_channels, self.ksize = 3, 10, 3
-        layer = self.link(self.in_channels, self.out_channels, self.ksize)
-        hook = SpectralNormalization()
-        layer.add_hook(hook)
-        self.layer = layer
+        self.in_channels, self.out_channels = 3, 10
+        in_channels = None if self.lazy_init else self.in_channels
+        conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
+        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
         self.x = numpy.random.normal(
             size=(5, self.in_channels, 4, 4, 4)).astype(numpy.float32)
-        self.vector_name = hook.vector_name
+        self.hook = SpectralNormalization(use_gamma=self.use_gamma)
 
-    def test_forward(self):
-        for _ in range(3):
-            self.layer(self.x)
-        y_train = self.layer(self.x)
-        with chainer.using_config('train', False):
-            y_test = self.layer(self.x)
-        numpy.testing.assert_equal(y_train.array, y_test.array)
+    def _init_layer(self):
+        layer = self.layer
+        hook = SpectralNormalization()
+        layer.add_hook(hook)
+        return layer, hook
+
+    def test_add_sn_hook(self):
+        hook = SpectralNormalization(use_gamma=self.use_gamma)
+        layer = self.layer
+        layer.add_hook(hook)
+        if self.lazy_init:
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+            with chainer.using_config('train', False), chainer.no_backprop_mode():
+                layer(self.x)
+        self.assertTrue(hasattr(layer, hook.vector_name))
+        self.assertTupleEqual(
+            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        if not self.use_gamma:
+            self.assertFalse(hasattr(layer, 'gamma'))
+        else:  # Use gamma parameter
+            self.assertTrue(hasattr(layer, 'gamma'))
+            self.assertEqual(
+                getattr(layer, 'gamma').ndim,
+                getattr(layer, hook.weight_name).ndim
+            )
+
+    def test_deleted(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            layer.delete_hook(hook.name)
+
+            self.assertFalse(hasattr(layer, hook.vector_name))
+            if self.use_gamma:
+                self.assertFalse(hasattr(layer, 'gamma'))
+        else:
+            pass
+
+    def test_u_updated_in_train(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            layer(self.x)
+            u2 = getattr(layer, hook.vector_name)
+            self.assertFalse((u1 == u2).all())
+        else:
+            pass
+
+    def test_u_not_updated_in_test(self):
+        if not self.lazy_init:
+            layer, hook = self._init_layer()
+            u = getattr(layer, hook.vector_name)
+            with chainer.using_config('train', False):
+                layer(self.x)
+            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+        else:
+            pass
 
 
 testing.run_module(__name__, __file__)
