@@ -1,5 +1,4 @@
 import collections
-import contextlib
 import heapq
 import inspect
 import traceback
@@ -250,6 +249,7 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
+        chainerx_device = None
         self._is_chainerx, in_data = _extract_apply_in_data(inputs)
 
         if self._is_chainerx:
@@ -273,7 +273,7 @@ Use apply() method instead.\
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()
-            chainerx_in_data, in_data = (
+            chainerx_in_data, in_data, chainerx_device = (
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
 
         utils._check_arrays_forward_compatible(in_data, self.label)
@@ -301,12 +301,19 @@ Use apply() method instead.\
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
                 outputs = static_forward_optimizations(self, in_data)
-            else:
-                if self._is_chainerx:
-                    with self._chainerx_forward_fallback_context:
-                        outputs = self.forward(in_data)
-                else:
+            elif self._is_chainerx:
+                # In ChainerX fallback, __class__ is temporarily replaced with
+                # the fabricated one with automatic attirbute fallback.
+                old_class = self.__class__
+                self.__class__ = self._make_chainerx_forward_fallback_class(
+                    chainerx_device)
+                try:
                     outputs = self.forward(in_data)
+                finally:
+                    self.__class__ = old_class
+            else:
+                # In normal case, simply run the forward method.
+                outputs = self.forward(in_data)
 
         # Check for output array types
         if not isinstance(outputs, tuple):
@@ -423,15 +430,12 @@ Use apply() method instead.\
 
             in_data.append(fallback_data)
 
-        self._chainerx_forward_fallback_context = (
-            self._make_chainerx_forward_fallback_context(device))
-
         in_data = tuple(in_data)
-        return chainerx_in_data, in_data
+        return chainerx_in_data, in_data, device
 
-    @contextlib.contextmanager
-    def _make_chainerx_forward_fallback_context(self, device):
-        old_cls = self.__class__
+    def _make_chainerx_forward_fallback_class(self, device):
+        # Creates a fabricated class based on the concerete FunctionNode class,
+        # equipped with the automatic attribute fallback.
         fallback_device = device.fallback_device
         sup = super(FunctionNode, self)
         # Cache to avoid converting same arrays multiple times
@@ -456,21 +460,15 @@ Use apply() method instead.\
                 return value
             return sup.__setattr__(name, value)
 
-        # Install attribute tweak
-        self.__class__ = type(
+        # Return a fabricated FunctionNode class
+        new_class = type(
             self.__class__.__name__,
             inspect.getmro(self.__class__),
             {
                 '__getattribute__': getattribute,
                 '__setattr__': setattr,
             })
-
-        # Call
-        try:
-            yield
-        finally:
-            # Uninstall attribute tweaks
-            self.__class__ = old_cls
+        return new_class
 
     def _chainerx_apply_fallback_postprocess(
             self, chainerx_in_data, inputs, outputs):
