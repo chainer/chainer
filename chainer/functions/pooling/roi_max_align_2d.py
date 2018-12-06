@@ -298,18 +298,18 @@ class ROIMaxAlign2D(function.Function):
             bin_size_w = roi_width / pooled_width
 
             top_diff_this_bin = top_diff[n, c, ph, pw]
-
-            if self.sampling_ratio[0] is None:
-                roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
-            else:
-                roi_bin_grid_h = self.sampling_ratio[0]
-            if self.sampling_ratio[1] is None:
-                roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
-            else:
-                roi_bin_grid_w = self.sampling_ratio[1]
-
             max_index = self.argmax_data[n, c, ph, pw]
+
             if max_index != -1:
+                if self.sampling_ratio[0] is None:
+                    roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
+                else:
+                    roi_bin_grid_h = self.sampling_ratio[0]
+                if self.sampling_ratio[1] is None:
+                    roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+                else:
+                    roi_bin_grid_w = self.sampling_ratio[1]
+
                 iy = int(max_index / roi_bin_grid_w)
                 ix = max_index % roi_bin_grid_w
 
@@ -394,19 +394,20 @@ class ROIMaxAlign2D(function.Function):
                 (roi_batch_ind * channels + c) * height * width;
 
             int top_offset = (n * channels + c) * pooled_height * pooled_width;
-            T top_diff_this_bin =
-                top_diff[top_offset + ph * pooled_width + pw];
-
-            // We use roi_bin_grid to sample the grid and mimic integral
-            int roi_bin_grid_h = (sampling_ratio_h > 0)
-                ? sampling_ratio_h
-                : ceil(roi_height / pooled_height); // e.g. = 2
-            int roi_bin_grid_w = (sampling_ratio_w > 0)
-                ? sampling_ratio_w
-                : ceil(roi_width / pooled_width);
-
             int max_index = argmax_data[top_offset + ph * pooled_width + pw];
+
             if (max_index != -1) {
+                T top_diff_this_bin =
+                    top_diff[top_offset + ph * pooled_width + pw];
+
+                // We use roi_bin_grid to sample the grid and mimic integral
+                int roi_bin_grid_h = (sampling_ratio_h > 0)
+                    ? sampling_ratio_h
+                    : ceil(roi_height / pooled_height); // e.g. = 2
+                int roi_bin_grid_w = (sampling_ratio_w > 0)
+                    ? sampling_ratio_w
+                    : ceil(roi_width / pooled_width);
+
                 int iy = max_index / roi_bin_grid_w;
                 int ix = max_index % roi_bin_grid_w;
 
@@ -422,7 +423,7 @@ class ROIMaxAlign2D(function.Function):
                 T w1, w2, w3, w4;
                 bool y_ret = get_bounds(y, height, y_low, y_high);
                 bool x_ret = get_bounds(x, width, x_low, x_high);
-                if (!x_ret || ! y_ret) continue;
+                if (!x_ret || !y_ret) continue;
                 get_bilinear_interp_params(
                     y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
 
