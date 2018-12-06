@@ -85,9 +85,10 @@ This is an example to use point-to-point communications::
 
     def __call__(self, x):
         h = f(x)
-        h = chainermn.functions.send(x)
+        h = chainermn.functions.send(x, comm, rank=1)
         return h
 
+The communication target is specified by ``rank`` parameter.
 Note that the return value of ``send`` is often not negligible.
 Please refer to :ref:`pseudo-connect`.
 
@@ -99,7 +100,7 @@ Here is another example to use collective communications::
 
     def __call__(self, x):
         h = f(x)
-        h = chainermn.functions.allgather(h)
+        h = chainermn.functions.allgather(comm, h)
         h = F.stack(h, axis=0)
         h = F.average(h, axis=0)
         return h
@@ -111,3 +112,91 @@ This pattern often appears in the averaging ensemble training.
 
 Note: Define-by-Run and Model Parallelism
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In model-parallel training, a model on each process may become *non-connected* computational graph.
+Let's take a look at an example.
+
+.. figure:: ../../../image/model_parallel/delegate_variable_0.png
+    :align: center
+    :scale: 50%
+
+Naive implementation of a model on process #0 could be::
+
+    class Model_0(chainer.Chain):
+        def __call__(self, x):
+            # first component
+            z = f(x)
+            chainermn.functions.send(z, comm, rank=1)
+
+            # second component
+            z = chainermn.functions.recv(comm, rank=1)
+            y = h(z)
+
+            return y
+
+One may notice that there is no connection between the first and second components of computational graph.
+As we rely on defined-by-run framework, we cannot build a backward path from the second component to the first component.
+In order to build the backward path, a dummy variable, which we call ``delegate_variable``, is needed.
+
+.. figure:: ../../../image/model_parallel/delegate_variable_1.png
+    :align: center
+    :scale: 50%
+
+The variable :math:`\phi` in the above figure is ``delegate_variable``, which is a return value of ``send`` and passed to an argument of ``recv``::
+
+    class Model_0(chainer.Chain):
+        def __call__(self, x):
+            # first component
+            z = f(x)
+            phi = chainermn.functions.send(z, comm, rank=1)
+
+            # second component
+            z = chainermn.functions.recv(comm, rank=1, delegate_variable=phi)
+            y = h(z)
+
+            return y
+
+    class Model_1(chainer.Chain):
+        def __call__(self, _):
+            z = chainermn.functions.recv(comm, rank=0)
+            z = g(z)
+            phi = chainermn.functions.send(z, comm, rank=0)
+            return phi
+
+``Model_1`` also need to return a delegate variable :math:`\phi` to backtrack its computational graph to compute gradients.
+Thus, the backward computation is guaranteed.
+**Otherwise, backward computation will cause deadlock**.
+
+
+Note: Delegate Variable and Pseudo Connect
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As we just see above, delegate variables must be appropriately handled to avoid potential deadlock.
+However, there are still some pathological cases.
+Let's consider to ``send`` variables twice.
+
+.. figure:: ../../../image/model_parallel/pseudo_connect_0.png
+    :align: center
+
+Here, we must guarantee that backward tracking can find two ``send``, but we can only return one delegate variable from each model.
+``pseudo_connect`` is a special function to combine one delegate variable to another variable.
+
+.. figure:: ../../../image/model_parallel/pseudo_connect_1.png
+    :align: center
+
+In the above case, the returned variable :math:`\psi` from ``pseudo_connect`` behaves as if it is :math:`\phi_2`, while its ``backward`` backtracks both :math:`\phi_1` and :math:`\phi_2`::
+
+    class Model_0(chainer.Chain):
+        def __call__(self, x):
+            z1, z2 = f(x)
+            phi1 = chainermn.functions.send(z1, comm, rank=1)
+            phi2 = chainermn.functions.send(z2, comm, rank=1)
+            psi = chainermn.functions.pseudo_connect(phi1, phi2)
+            return psi
+
+    class Model_1(chainer.Chain):
+        def __call__(self, _):
+            z1 = chainermn.functions.recv(comm, rank=0)
+            z2 = chainermn.functions.recv(comm, rank=0)
+            y = g(z1, z2)
+            return y
