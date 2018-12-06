@@ -19,8 +19,12 @@ class MemoryPoolTest;  // for unit-tests
 
 }  // namespace cuda_internal
 
-// TODO(imanishi): Distinguish the unit size of allocator and that of memory pool.
-// CUDA aligns to multiples of 512.
+// Allocation unit size. This value should be a multiple of the allocation unit size of underlying CUDA allocator.
+// TODO(imanishi): The unit sizes of CUDA allocators are not documented. It may be dependent on various factors, such as CUDA architectures,
+// CUDA runtime and/or allocation functions. It has been observed that `cudaMallocManaged` has an allocation unit size of 4096 bytes in
+// certain environment. We should revisit this number later, or perhaps better to determine it at runtime.
+// TODO(imanishi): This number is currently used as both the underlying allocation unit size and the allocation unit size of the memory pool
+// (the unit size of splitted chunks). We could separate them and fine-tune to optimize to the typical memory usage.
 constexpr size_t kAllocationUnitSize = 512;
 
 // If `kCompactionThreshold` or more consecutive empty free lists were found in free bins, executes `CompactFreebins`.
