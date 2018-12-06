@@ -19,6 +19,8 @@ class MemoryPoolTest;  // for unit-tests
 
 }  // namespace cuda_internal
 
+// TODO(imanishi): Distinguish the unit size of allocator and that of memory pool.
+// CUDA aligns to multiples of 512.
 constexpr size_t kAllocationUnitSize = 512;
 
 // If `kCompactionThreshold` or more consecutive empty free lists were found in free bins, executes `CompactFreebins`.
