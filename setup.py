@@ -91,7 +91,7 @@ for k in requirements.keys():
 
 
 extras_require = {k: v for k, v in requirements.items() if k != 'install'}
-if sys.version_info[0] == 3:
+if sys.version_info >= (3, 4):  # requires Python 3.4 or later
     extras_require['test'].append('mypy')
 
 setup_requires = []

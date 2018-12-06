@@ -62,7 +62,9 @@ before_install:
 
 install:
   - pip install -U pip wheel
-  - pip install mypy
+  - if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+      pip install mypy;
+    fi
   - pip install mpi4py
   - python setup.py sdist
   - if [[ $SKIP_CHAINERX != 1 ]]; then
@@ -79,7 +81,9 @@ script:
   # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
   # ignore DeprecationWarning raised in `site.py`.
   - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer chainermn examples tests docs
-  - mypy chainer
+  - if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+      mypy chainer;
+    fi
   - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
   - export OMP_NUM_THREADS=1

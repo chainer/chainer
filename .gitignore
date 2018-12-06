@@ -20,7 +20,6 @@ htmlcov/
 .cache/
 .mypy_cache/
 .pytest_cache/
-.mypy_cache
 docs/my.model
 docs/my.state
 docs/my_mnist.model

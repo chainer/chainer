@@ -1,6 +1,6 @@
 from typing import Any
+from typing import Optional
 from typing import Sequence
-from typing import SupportsInt
 from typing import Tuple
 from typing import Union
 from typing_extensions import Protocol
@@ -10,7 +10,7 @@ from types import ModuleType  # NOQA
 
 try:
     from typing import TYPE_CHECKING  # NOQA
-except ImportError as _:
+except ImportError:
     # typing.TYPE_CHECKING doesn't exist before Python 3.5.2
     TYPE_CHECKING = False
 
@@ -52,14 +52,14 @@ class AbstractInitializer(Protocol):
 
     This is only for PEP 544 compatible static type checkers.
     """
-    dtype = None  # type: DTypeSpec
+    dtype = None  # type: Optional[DTypeSpec]
 
     def __call__(self, array):
         # type: (NdArray) -> None
         pass
 
 
-# see numpy.isscalar
+# see numpy.isscalar()
 InitializerSpec = Union[
     AbstractInitializer,
     numbers.Number,

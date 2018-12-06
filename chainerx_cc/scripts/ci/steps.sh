@@ -75,10 +75,13 @@ step_setup_conda_environment() {
 
         pytest pytest-cov coveralls
         cpplint
-        'mypy>=0.641'
     )
 
     pip install -U "${reqs[@]}"
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        pip install -U mypy>=0.641
+    fi
 }
 
 
@@ -228,8 +231,10 @@ step_python_test_chainerx_nocuda() {
 step_python_typecheck_chainer() {
     source activate testenv
 
-    mypy --version
-    mypy "$REPO_DIR"/chainer
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        mypy --version
+        mypy "$REPO_DIR"/chainer
+    fi
 
     popd
 }
