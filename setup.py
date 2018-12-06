@@ -91,7 +91,8 @@ for k in requirements.keys():
 
 
 extras_require = {k: v for k, v in requirements.items() if k != 'install'}
-
+if sys.version_info[0] == 3:
+    extras_require['test'].append('mypy')
 
 setup_requires = []
 install_requires = requirements['install']

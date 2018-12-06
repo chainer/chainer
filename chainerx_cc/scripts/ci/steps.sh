@@ -75,6 +75,7 @@ step_setup_conda_environment() {
 
         pytest pytest-cov coveralls
         cpplint
+        'mypy>=0.641'
     )
 
     pip install -U "${reqs[@]}"
@@ -221,6 +222,16 @@ step_python_test_chainerx_nocuda() {
 
     # Run all non-CUDA doctests
     find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+}
+
+
+step_python_typecheck_chainer() {
+    source activate testenv
+
+    mypy --version
+    mypy "$REPO_DIR"/chainer
+
+    popd
 }
 
 

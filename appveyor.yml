@@ -57,6 +57,7 @@ install:
 
   - "conda install -y -q setuptools"
   - "conda install -y -q h5py"
+  - "conda install -y -q mypy"
 
 build_script:
   # Build the compiled extension
@@ -66,5 +67,7 @@ test_script:
   # Run the project tests
   - "%CMD_IN_ENV% pip install -U -e .[appveyor]"
   # Avoid interuption confirmation of cmd.exe
+  - "echo mypy chainer > tmp.bat"
+  - "call tmp.bat < nul"
   - "echo python -m pytest --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests/chainer_tests > tmp.bat"
   - "call tmp.bat < nul"
