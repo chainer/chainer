@@ -7,6 +7,7 @@ from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import array
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
@@ -62,7 +63,12 @@ def _pair(x):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-        })]))
+        })])
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    }))
 class TestDeconvolution2DFunction(unittest.TestCase):
 
     def setUp(self):
@@ -129,10 +135,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
     def check_forward(self, inputs, backend_config):
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-
-        x, W, b = inputs
+        x, W, b = backend_config.get_array(inputs)
         x = chainer.Variable(x)
         W = chainer.Variable(W)
         b = None if b is None else chainer.Variable(b)
@@ -149,30 +152,23 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward(self, backend_config):
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
 
-        xp = backend_config.xp
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        if not self.c_contiguous:
+            inputs = array._as_noncontiguous_array(inputs)
+            grad_outputs = array._as_noncontiguous_array(grad_outputs)
 
         x_data, W_data, b_data = inputs
         y_grad, = grad_outputs
-
-        if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
 
         args = (x_data, W_data)
         if b_data is not None:
@@ -189,42 +185,27 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_backward(self, backend_config):
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        xp = backend_config.xp
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        if not self.c_contiguous:
+            inputs = array._as_noncontiguous_array(inputs)
+            grad_outputs = array._as_noncontiguous_array(grad_outputs)
+            grad_grad_inputs = array._as_noncontiguous_array(grad_grad_inputs)
 
         x_data, W_data, b_data = inputs
         y_grad, = grad_outputs
         x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
-
-        if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            x_grad_grad = xp.asfortranarray(x_grad_grad)
-            W_grad_grad = xp.asfortranarray(W_grad_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            assert not x_grad_grad.flags.c_contiguous
-            assert not W_grad_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
-
-                ggb = xp.empty((len(b_data) * 2,), dtype=b_grad_grad.dtype)
-                ggb[::2] = b_grad_grad
-                b_grad_grad = ggb[::2]
-                assert not b_grad_grad.flags.c_contiguous
 
         args = (x_data, W_data)
         grad_grads = (x_grad_grad, W_grad_grad)
@@ -244,9 +225,13 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(self.inputs, self.grad_outputs,
+                                   self.grad_grad_inputs, backend_config)
 
 
 @testing.parameterize(*testing.product({
@@ -357,19 +342,11 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         cuda.cupy.testing.assert_array_equal(y1.data, y2.data)
         cuda.cupy.testing.assert_array_equal(W1.grad, W2.grad)
 
-    def _contiguous(self, x_data, W_data, b_data, gy_data):
-        if not self.c_contiguous:
-            x_data = numpy.asfortranarray(x_data)
-            W_data = numpy.asfortranarray(W_data)
-            gy_data = numpy.asfortranarray(gy_data)
-            self.assertFalse(x_data.flags.c_contiguous)
-            self.assertFalse(W_data.flags.c_contiguous)
-            self.assertFalse(gy_data.flags.c_contiguous)
-            b = numpy.empty((len(b_data) * 2,), dtype=self.b.dtype)
-            b[::2] = b_data
-            b_data = b[::2]
-            self.assertFalse(b_data.flags.c_contiguous)
-        return x_data, W_data, b_data, gy_data
+    def _contiguous(self, *inputs):
+        if self.c_contiguous:
+            return inputs
+        else:
+            return array._as_noncontiguous_array(inputs)
 
     def _run(self):
         with chainer.using_config('cudnn_deterministic', True):

@@ -17,10 +17,13 @@ class Transpose(function_node.FunctionNode):
     def label(self):
         return 'Transpose'
 
+    def forward_chainerx(self, inputs):
+        x = inputs[0]
+        return x.transpose(self.axes),
+
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
-        return y,
+        return x.transpose(self.axes),
 
     def backward(self, indexes, grad_outputs):
         inv_axes = self.axes
