@@ -1,4 +1,3 @@
-import chainer
 from chainer import backend
 from chainer import configuration
 import chainer.functions as F
@@ -71,7 +70,7 @@ class SpectralNormalization(link_hook.LinkHook):
     r"""Spectral Normalization link hook implementation.
 
     This hook normalizes a weight using max singular value and this value
-    is computed via power iteration method. Cuurently, this hook is supposed to
+    is computed via power iteration method. Currently, this hook is supposed to
     be added to :func:`chainer.links.Linear`, :func:`chainer.links.EmbedID`,
     :func:`chainer.links.Convolution2D`, :func:`chainer.links.ConvolutionND`,
     :func:`chainer.links.Deconvolution2D`,
@@ -79,11 +78,12 @@ class SpectralNormalization(link_hook.LinkHook):
     other links like RNNs by specifying ``weight_name``.
 
     .. math::
-         \mathbf{W} &:=& \dfrac{\mathbf{W}}{\sigma(\mathbf{W})} \\
-         \text{where,} \ \sigma(\mathbf{W}) &:=&
-         \max_{\mathbf{h}: \mathbf{h} \ne 0}
-         \dfrac{\|\mathbf{W} \mathbf{h}\|_2}{\|\mathbf{h}\|_2}
-         = \max_{\|\mathbf{h}\|_2 \le 1} \|\mathbf{W}\mathbf{h}\|_2
+
+       \mathbf{W} &:=& \dfrac{\mathbf{W}}{\sigma(\mathbf{W})} \\
+       \text{where,} \ \sigma(\mathbf{W}) &:=&
+        \max_{\mathbf{h}: \mathbf{h} \ne 0}
+       \dfrac{\|\mathbf{W} \mathbf{h}\|_2}{\|\mathbf{h}\|_2}
+        = \max_{\|\mathbf{h}\|_2 \le 1} \|\mathbf{W}\mathbf{h}\|_2
 
     See: T. Miyato et. al., `Spectral Normalization for Generative Adversarial
     Networks <https://arxiv.org/abs/1802.05957>`_
@@ -95,8 +95,8 @@ class SpectralNormalization(link_hook.LinkHook):
             The default value is 1e-12.
         use_gamma (bool): If ``True``, weight scaling parameter gamma which is
             initialized by initial weight's max singular value is introduced.
-        factor (float, None): Scaling parameter to divide maximum singular value.
-            The default value is 1.0.
+        factor (float, None): Scaling parameter to divide maximum singular
+            value.  The default value is 1.0.
         weight_name (str): Link's weight name to apply this hook. The default
             value is 'W'.
         name (str or None): Name of this hook. The default value is
@@ -106,18 +106,34 @@ class SpectralNormalization(link_hook.LinkHook):
         vector_name (str): Name of the approximate first left singular vector
             registered in the target link.
             the target link.
-        axis (int): Axis of weight represents the numbef of output
+        axis (int): Axis of weight represents the number of output
             feature maps or output units (``out_channels`` and
             ``out_size``, respectively).
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(-1, 1, (10, 3, 32, 32)).astype(np.float32)
-        >>> layer = L.Convolution2D(3, 5, 3, 1, 1)
-        >>> hook = SpectralNormalization()
-        >>> layer.add_hook(hook)
-        >>> y = layer(x)
+        There are almost the same but 2 ways to apply spectral normalization
+        (SN) hook to links.
 
+        1. Initialize link and SN separately. This makes it easy to handle
+        buffer and parameter of links registered by SN hook.
+
+            >>> l = L.Convolution2D(3, 5, 3)
+            >>> hook = chainer.link_hooks.SpectralNormalization()
+            >>> l.add_hook(hook)
+            >>> # Check the shape of the first left singular vector.
+            >>> getattr(l, hook.vector_name).shape
+            (1, 5)
+            >>> # Delete SN hook from this link.
+            >>> l.delete_hook(hook.name)
+
+        2. Initialize both link and SN hook at one time. This makes it easy to
+        define your original :class:`~chainer.Chain`.
+
+            >>> # SN hook handles lazy initialization!
+            >>> layer = L.Convolution2D(
+                    5, 3, stride=1, pad=1).add_hook(
+                        chainer.link_hooks.SpectralNormalization())
     """
 
     name = 'SpectralNormalization'
@@ -133,44 +149,63 @@ class SpectralNormalization(link_hook.LinkHook):
         self.vector_name = weight_name + '_u'
         self._initialied = False
         self.axis = 0
-
         if name is not None:
             self.name = name
 
+    def __enter__(self):
+        raise NotImplementedError(
+            'This hook is not supposed to be used as context manager.')
+
+    def __exit__(self):
+        raise NotImplementedError
+
     def added(self, link):
-        if isinstance(
-            link, (
-                L.Deconvolution1D, L.Deconvolution2D,
-                L.Deconvolution3D, L.DeconvolutionND)):
+        # Define axis and register ``u`` if the weight is initialized.
+        if not hasattr(link, self.weight_name):
+            raise ValueError(
+                "Weight '{}' does not exist!".format(self.weight_name))
+        if isinstance(link, (L.Deconvolution2D, L.DeconvolutionND)):
             self.axis = 1
-        if link.W.array is not None:
+        if getattr(link, self.weight_name).array is not None:
             self._prepare_parameters(link)
 
     def deleted(self, link):
-        with chainer.using_config('train', False), chainer.no_backprop_mode():
-            weight = getattr(link, self.weight_name)
-            normalized_weight = self.normalize_weight(link, weight)
-        link.xp.copyto(
-            getattr(link, self.weight_name).array, normalized_weight.array)
+        # Remove approximate vector ``u`` and parameter ``gamma` if exists.
         delattr(link, self.vector_name)
         if self.use_gamma:
             del link.gamma
 
     def forward_preprocess(self, cb_args):
+        # This method normalizes target link's weight spectrally
+        # using power iteration method
         link = cb_args.link
         input_variable = cb_args.args[0]
         if not self._initialied:
             self._prepare_parameters(link, input_variable)
         weight = getattr(link, self.weight_name)
+        # For link.W or equivalents to be chainer.Parameter
+        # consistently to users, this hook maintains a reference to
+        # the unnormalized weight.
         self.original_weight = weight
+        # note: `normalized_weight` is ~chainer.Variable
         normalized_weight = self.normalize_weight(link, weight)
         setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):
+        # Here, the computational graph is already created,
+        # we can reset link.W or equivalents to be Parameter.
         link = cb_args.link
         setattr(link, self.weight_name, self.original_weight)
 
     def _prepare_parameters(self, link, input_variable=None):
+        """Prepare one buffer and one parameter.
+
+        Args:
+            link (:class:`~chainer.Link`): Link to normalize spectrally.
+            input_variable (:class:`~chainer.Variable`):
+                The first minibatch to initialize weight.
+
+        """
         if getattr(link, self.weight_name).array is None:
             if input_variable is not None:
                 link._initialize_params(input_variable.shape[1])
@@ -181,7 +216,7 @@ class SpectralNormalization(link_hook.LinkHook):
         link.register_persistent(self.vector_name)
         if self.use_gamma:
             # Initialize the scaling parameter with the max singular value.
-            weight_matrix = self._reshape_W(initialW.array)
+            weight_matrix = self.reshape_W(initialW.array)
             _, s, _ = link.xp.linalg.svd(weight_matrix)
             gamma_shape = [1] * initialW.ndim
             with link.init_scope():
@@ -189,10 +224,11 @@ class SpectralNormalization(link_hook.LinkHook):
         self._initialied = True
 
     def normalize_weight(self, link, *args, **kwargs):
+        """Normalize target weight before every single forward computation."""
         weight_name, vector_name = self.weight_name, self.vector_name
         W = getattr(link, weight_name)
         u = getattr(link, vector_name)
-        weight_matrix = self._reshape_W(W)
+        weight_matrix = self.reshape_W(W)
         u, v = update_approximate_vectors(
             weight_matrix, u, self.n_power_iteration, self.eps)
         sigma = calculate_max_singular_value(weight_matrix, u, v)
@@ -203,14 +239,14 @@ class SpectralNormalization(link_hook.LinkHook):
         else:
             W = W / sigma
         if configuration.config.train:
-            link.xp.copyto(getattr(link, vector_name), u, casting='no')
+            link.xp.copyto(getattr(link, vector_name), u)
         return W
 
-    def _reshape_W(self, W):
+    def reshape_W(self, W):
         """Reshape & transpose weight into 2D if necessary."""
-        if W.ndim == 2:
-            return W
         if self.axis != 0:
             axes = [self.axis] + [i for i in range(W.ndim) if i != self.axis]
             W = W.transpose(axes)
+        if W.ndim == 2:
+            return W
         return W.reshape(W.shape[0], -1)
