@@ -117,7 +117,7 @@ class TestLinear(unittest.TestCase):
             self.assertFalse(hasattr(layer, hook.vector_name))
             if self.use_gamma:
                 self.assertFalse(hasattr(layer, 'gamma'))
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
                 layer(self.x)
         self.assertTrue(hasattr(layer, hook.vector_name))
         self.assertTupleEqual(
@@ -136,7 +136,7 @@ class TestLinear(unittest.TestCase):
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
                 layer(self.x)
         return layer, hook
 
@@ -192,7 +192,8 @@ class TestConvolution1D(unittest.TestCase):
         self.in_channels, self.out_channels = 3, 10
         in_channels = None if self.lazy_init else self.in_channels
         conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
-        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
+        self.layer = self.link(
+            in_channels, self.out_channels, **conv_init_args)
         self.x = numpy.random.normal(
             size=(5, self.in_channels, 4)).astype(numpy.float32)
         self.hook = SpectralNormalization(use_gamma=self.use_gamma)
@@ -210,7 +211,7 @@ class TestConvolution1D(unittest.TestCase):
             self.assertFalse(hasattr(layer, hook.vector_name))
             if self.use_gamma:
                 self.assertFalse(hasattr(layer, 'gamma'))
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
                 layer(self.x)
         self.assertTrue(hasattr(layer, hook.vector_name))
         self.assertTupleEqual(
@@ -267,7 +268,8 @@ class TestConvolution2D(unittest.TestCase):
         self.in_channels, self.out_channels = 3, 10
         in_channels = None if self.lazy_init else self.in_channels
         conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
-        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
+        self.layer = self.link(
+            in_channels, self.out_channels, **conv_init_args)
         self.x = numpy.random.normal(
             size=(5, self.in_channels, 4, 4)).astype(numpy.float32)
         self.hook = SpectralNormalization(use_gamma=self.use_gamma)
@@ -285,7 +287,7 @@ class TestConvolution2D(unittest.TestCase):
             self.assertFalse(hasattr(layer, hook.vector_name))
             if self.use_gamma:
                 self.assertFalse(hasattr(layer, 'gamma'))
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
                 layer(self.x)
         self.assertTrue(hasattr(layer, hook.vector_name))
         self.assertTupleEqual(
@@ -342,7 +344,8 @@ class TestConvolution3D(unittest.TestCase):
         self.in_channels, self.out_channels = 3, 10
         in_channels = None if self.lazy_init else self.in_channels
         conv_init_args = {'ksize': 3, 'stride': 1, 'pad': 1}
-        self.layer = self.link(in_channels, self.out_channels, **conv_init_args)
+        self.layer = self.link(
+            in_channels, self.out_channels, **conv_init_args)
         self.x = numpy.random.normal(
             size=(5, self.in_channels, 4, 4, 4)).astype(numpy.float32)
         self.hook = SpectralNormalization(use_gamma=self.use_gamma)
@@ -361,7 +364,7 @@ class TestConvolution3D(unittest.TestCase):
             self.assertFalse(hasattr(layer, hook.vector_name))
             if self.use_gamma:
                 self.assertFalse(hasattr(layer, 'gamma'))
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
                 layer(self.x)
         self.assertTrue(hasattr(layer, hook.vector_name))
         self.assertTupleEqual(
