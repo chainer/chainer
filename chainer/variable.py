@@ -1424,6 +1424,15 @@ class Variable(object):
                 x_var._loss_scale = loss_scale
         grads.assert_no_grads()
 
+    def item(self):
+        """Converts the variable with one element to a Python scalar
+
+        Returns:
+            int or float: The element of the array.
+
+        """
+        return self.array.item()
+
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
 
