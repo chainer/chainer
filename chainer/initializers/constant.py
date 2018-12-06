@@ -38,8 +38,6 @@ class Identity(initializer.Initializer):
 
 class _Constant(initializer.Initializer):
 
-    fill_value = None  # type: Optional[float]
-
     def __init__(self, dtype=None):
         if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray)) or
                 numpy.isscalar(self.fill_value)):
