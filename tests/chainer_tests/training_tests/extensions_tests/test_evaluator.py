@@ -135,7 +135,7 @@ class TestEvaluatorTupleData(unittest.TestCase):
         self.converter = DummyConverter(self.batches)
         self.target = DummyModelTwoArgs(self)
         self.evaluator = extensions.Evaluator(
-            self.iterator, self.target, converter=self.converter, device=1)
+            self.iterator, self.target, converter=self.converter, device=-1)
 
     def test_evaluate(self):
         reporter = chainer.Reporter()
@@ -148,7 +148,8 @@ class TestEvaluatorTupleData(unittest.TestCase):
         for i in range(len(self.data)):
             numpy.testing.assert_array_equal(
                 self.converter.args[i]['batch'], self.data[i])
-            self.assertEqual(self.converter.args[i]['device'], 1)
+            self.assertEqual(
+                self.converter.args[i]['device'], -1)
 
         # The model gets results of converter.
         self.assertEqual(len(self.target.args), len(self.batches))

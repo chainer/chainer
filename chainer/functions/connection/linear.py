@@ -7,6 +7,7 @@ import chainer.functions
 from chainer.graph_optimizations import static_code
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -61,6 +62,21 @@ class LinearFunction(function_node.FunctionNode):
         bias = inputs[0]
         y = outputs[0]
         y += bias
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support dtype casting in ChainerX
+        if inputs[0].dtype != inputs[1].dtype:
+            return chainer.Fallback
+
+        # Generic implementation
+        if len(inputs) == 3:
+            x, W, b = inputs
+            if x.dtype != b.dtype:
+                return chainer.Fallback
+            return chainerx.linear(x, W, b),
+        else:
+            x, W = inputs
+            return chainerx.linear(x, W),
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep

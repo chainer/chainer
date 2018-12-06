@@ -24,12 +24,10 @@ class Uniform(distribution.Distribution):
           \\end{cases}
 
     Args:
-        low(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        lower bound :math:`l`.
-        high(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        higher bound :math:`h`.
+        low(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the lower bound :math:`l`.
+        high(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the higher bound :math:`h`.
     """
 
     def __init__(self, **kwargs):

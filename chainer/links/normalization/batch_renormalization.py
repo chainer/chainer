@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+import chainer
 from chainer import configuration
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.normalization import batch_renormalization
@@ -42,14 +42,14 @@ class BatchRenormalization(BatchNormalization):
         if self.gamma is not None:
             gamma = self.gamma
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
         if self.beta is not None:
             beta = self.beta
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
 
