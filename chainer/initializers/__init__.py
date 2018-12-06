@@ -61,14 +61,14 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
 
     if device is None:
         if xp is cuda.cupy:
-            device_obj = chainer.get_device(cuda.Device())
+            backend_device = chainer.get_device(cuda.Device())
         elif xp is chainerx:
-            device_obj = chainer.get_device(chainerx.get_default_device())
+            backend_device = chainer.get_device(chainerx.get_default_device())
         else:
-            device_obj = chainer.get_device(numpy)
+            backend_device = chainer.get_device(numpy)
     else:
-        device_obj = chainer.get_device(device)  # Note: device is DeviceSpec
-        if xp != device_obj.xp:
+        backend_device = chainer.get_device(device)  # Note: device is DeviceSpec
+        if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
 
     if xp is chainerx:
@@ -76,7 +76,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
-        chx_device = cast(_chainerx.ChainerxDevice, device_obj).device
+        chx_device = cast(_chainerx.ChainerxDevice, backend_device).device
         # TODO(okapies): remove 'type: ignore' when chainerx implements sequence support for empty() # NOQA
         array = chainerx.empty(shape, dtype=dtype, device=chx_device)  # type: ignore # NOQA
         if chx_device.backend.name == 'native':
@@ -92,7 +92,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
             initializer(temp_array)
         return array
 
-    with chainer.using_device(device_obj):
+    with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)
         initializer(array)
     return array

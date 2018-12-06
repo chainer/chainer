@@ -545,22 +545,22 @@ device.
         # `skip_between_cupy_devices` argument is a workaround
         # for `Link.to_gpu` which does not transfer cupy parameters to
         # a different CUDA device.
-        device_obj = chainer.get_device(device)
+        backend_device = chainer.get_device(device)
 
         d = self.__dict__
         for name in self._params:
             if not (skip_between_cupy_devices
-                    and device_obj.xp is cuda.cupy
+                    and backend_device.xp is cuda.cupy
                     and d[name].device.xp is cuda.cupy):
-                d[name].to_device(device_obj)
+                d[name].to_device(backend_device)
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
                 if not (skip_between_cupy_devices
-                        and device_obj.xp is cuda.cupy
+                        and backend_device.xp is cuda.cupy
                         and isinstance(d[name], cuda.ndarray)):
-                    d[name] = device_obj.send(d[name])
+                    d[name] = backend_device.send(d[name])
 
-        self._device = device_obj
+        self._device = backend_device
         return self
 
     def params(self, include_uninit=True):
@@ -1076,13 +1076,13 @@ class Chain(Link):
 
         # Overrides Link._to_device
 
-        device_obj = chainer.get_device(device)
+        backend_device = chainer.get_device(device)
         super(Chain, self)._to_device(
-            device_obj, skip_between_cupy_devices=skip_between_cupy_devices)
+            backend_device, skip_between_cupy_devices=skip_between_cupy_devices)
         d = self.__dict__
         for name in self._children:
             d[name]._to_device(
-                device_obj,
+                backend_device,
                 skip_between_cupy_devices=skip_between_cupy_devices)
         return self
 

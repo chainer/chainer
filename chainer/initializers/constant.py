@@ -1,10 +1,9 @@
-from typing import Optional  # NOQA
-
 import numpy
 
 from chainer import backend
 from chainer.backends import cuda
 from chainer import initializer
+from chainer import types  # NOQA
 
 
 class Identity(initializer.Initializer):
@@ -37,6 +36,8 @@ class Identity(initializer.Initializer):
 
 
 class _Constant(initializer.Initializer):
+
+    fill_value = None  # type: types.ScalarValue
 
     def __init__(self, dtype=None):
         if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray)) or

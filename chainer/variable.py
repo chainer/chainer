@@ -1,7 +1,8 @@
+from typing import Any  # NOQA
 from typing import Callable  # NOQA
 from typing import List  # NOQA
 from typing import Optional  # NOQA
-from typing import cast  # NOQA
+from typing import Union  # NOQA
 
 import collections
 import copy
@@ -496,11 +497,15 @@ class Variable(object):
     # instance.
     _grad = None
 
-    _requires_grad = True  # type: bool
+    _requires_grad = None  # type: bool
 
     _data = None  # type: List[Optional[chainerx.ndarray]]
 
+    _node = None  # type: Optional[VariableNode]
+
     def __init__(self, data=None, **kwargs):
+        # type: (types.NdArray, **Any) -> None
+
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
@@ -815,10 +820,9 @@ class Variable(object):
                     'existing or the new array requires backprop.')
 
             self._set_chainerx_array(d, None)
-            return
-
-        self._node._update_data_info(d)
-        self._data[0] = d
+        else:
+            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
+            self._data[0] = d
 
     @property
     def data(self):
@@ -1601,18 +1605,17 @@ class Parameter(Variable):
 
     """
 
-    initializer = None  # type: Optional[types.AbstractInitializer]
+    initializer = None  # type: Optional[Union[Optional[types.AbstractInitializer], types.NdArray]] # NOQA
+    # TODO(okapies): fix the behavior when shape is None and remove NdArray
     _grad_initializer = None  # type: Optional[types.AbstractInitializer]
 
     def __init__(self, initializer=None, shape=None, name=None):
         # type: (Optional[types.InitializerSpec], Optional[types.ShapeSpec], Optional[str]) -> None # NOQA
 
-        initialize_func = cast(types.AbstractInitializer, initializer)
-
         if initializer is None:
-            initialize_func = constant.NaN()
+            initializer = constant.NaN()
         elif numpy.isscalar(initializer):
-            initialize_func = constant.Constant(initializer)
+            initializer = constant.Constant(initializer)
         if shape is None:
             if chainer.is_arrays_compatible([initializer]):
                 # parameter initialized by the initial array
@@ -1626,16 +1629,16 @@ class Parameter(Variable):
             # parameter initialized with a given shape
             if chainer.is_arrays_compatible([initializer]):
                 xp = backend.get_array_module(initializer)
-                initialize_func = constant.Constant(initializer)
+                initializer = constant.Constant(initializer)
             else:
                 xp = numpy
-            data = initializers.generate_array(initialize_func, shape, xp)
+            data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self._initial_device = backend.CpuDevice()
         self.update_rule = None
-        self.initializer = initialize_func
+        self.initializer = initializer
 
     def __copy__(self):
         return self._copy_to(Parameter())

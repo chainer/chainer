@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import numpy  # NOQA
 
     from chainer.backend import Device  # NOQA
-    from chainer.backends import cuda  # NOQA
+    from chainer.backends import cuda, intel64  # NOQA
     from chainer import initializer  # NOQA
 
     import chainerx  # NOQA
@@ -38,8 +38,12 @@ DTypeSpec = Union[Any]  # TODO(okapies): encode numpy.dtype
 NdArray = Union[
     'numpy.ndarray',
     'cuda.ndarray',
+    # 'intel64.mdarray',
+    # TODO(okapies): mdarray is partially imcompatible with other ndarrays
     'chainerx.ndarray',
 ]
+"""The ndarray types which are compatible with :func:`chainer.get_array_types`
+"""
 
 
 Xp = Union[Any]  # TODO(okapies): encode numpy/cupy/chainerx
@@ -60,16 +64,18 @@ class AbstractInitializer(Protocol):
         pass
 
 
-# see numpy.isscalar()
-InitializerSpec = Union[
-    AbstractInitializer,
-    numbers.Number,
+ScalarValue = Union[
+    'numpy.generic',
     bytes,
     str,
     memoryview,
-    'numpy.generic',
-    'numpy.ndarray',
+    numbers.Number,
 ]
+"""The scalar types which are compatible with :func:`numpy.isscalar`.
+"""
+
+
+InitializerSpec = Union[AbstractInitializer, ScalarValue, 'numpy.ndarray']
 
 
 DeviceSpec = Union[
@@ -86,5 +92,5 @@ DeviceSpec = Union[
 CudaDeviceSpec = Union['cuda.Device', int, 'numpy.integer']  # NOQA
 """
 This type only for the deprecated :func:`chainer.cuda.get_device` API.
-Use :class:`chainer.types.DeviceSpec` instead.
+Use :class:`~chainer.types.DeviceSpec` instead.
 """
