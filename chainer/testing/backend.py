@@ -83,8 +83,6 @@ class BackendConfig(object):
         return self._device
 
     def __enter__(self):
-        if self._contexts is None:
-            self._contexts = []
         contexts = [
             chainer.using_config(
                 'use_cudnn', self.use_cudnn),
