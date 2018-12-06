@@ -2254,6 +2254,32 @@ class TestReshape(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'shape': [(), (1,), (1, 1), (1, 1, 1), (2,), (2, 3)],
+    'dtype': [np.int16, np.int32, np.int64, np.float32, np.float64],
+}))
+class TestItem(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.full(self.shape, 1, self.dtype)
+        self.target_type = type(np.array(0, dtype=self.dtype).item())
+    
+    def check_item(self, x):
+        if x.size > 1:
+            with self.assertRaises(ValueError) as cm:
+                chainer.Variable(x).item()
+        else:
+            value = chainer.Variable(self.x).item()
+            self.assertIs(type(value), self.target_type)
+
+    def test_cpu(self):
+        self.check_item(self.x)
+
+    @attr.gpu
+    def test_gpu(self):
+        self.check_item(cuda.to_gpu(self.x))
+
+
+@testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'axes': [[], [(-1, 0, 1)], [[-1, 0, 1]], [None], [-1, 0, 1]],
     'dtype': [np.float16, np.float32, np.float32],
