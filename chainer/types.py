@@ -1,12 +1,11 @@
-from typing import Any
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
-from typing_extensions import Protocol
+from typing import Any  # NOQA
+from typing import Optional  # NOQA
+from typing import Sequence  # NOQA
+from typing import Tuple  # NOQA
+from typing import Union  # NOQA
+from typing_extensions import Protocol  # NOQA
 
 import numbers
-from types import ModuleType  # NOQA
 
 try:
     from typing import TYPE_CHECKING  # NOQA
@@ -16,6 +15,8 @@ except ImportError:
 
 # import chainer modules only for type checkers to avoid circular import
 if TYPE_CHECKING:
+    from types import ModuleType  # NOQA
+
     import numpy  # NOQA
 
     from chainer.backend import Device  # NOQA
@@ -77,8 +78,8 @@ DeviceSpec = Union[
     'cuda.Device',
     str,
     Tuple[str, int],
-    ModuleType,
-    Tuple[ModuleType, int],
+    'ModuleType',
+    Tuple['ModuleType', int],
 ]
 
 
