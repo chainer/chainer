@@ -2262,10 +2262,10 @@ class TestItem(unittest.TestCase):
     def setUp(self):
         self.x = np.full(self.shape, 1, self.dtype)
         self.target_type = type(np.array(0, dtype=self.dtype).item())
-    
+
     def check_item(self, x):
         if x.size > 1:
-            with self.assertRaises(ValueError) as cm:
+            with self.assertRaises(ValueError):
                 chainer.Variable(x).item()
         else:
             value = chainer.Variable(self.x).item()
