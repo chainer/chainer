@@ -19,10 +19,11 @@ class CRF1d(link.Link):
         cost (~chainer.Variable): Transition cost parameter.
     """
 
-    def __init__(self, n_label):
+    def __init__(self, n_label, initialW=0):
         super(CRF1d, self).__init__()
         with self.init_scope():
-            self.cost = variable.Parameter(0, (n_label, n_label))
+            self.cost = variable.Parameter(initializer=initialW,
+                                           shape=(n_label, n_label))
 
     def forward(self, xs, ys, reduce='mean'):
         return crf1d.crf1d(self.cost, xs, ys, reduce)
