@@ -36,25 +36,35 @@ def _ones_like(arr):
         return xp.ones_like(arr)
 
 
+def _make_outputs_props_in_error_message(outputs, grad_outputs):
+    def format_props(arr):
+        return '{}:{}'.format(arr.shape, arr.dtype.name)
+
+    return (
+        'Output shapes and dtypes         : {}\n'
+        'Output gradient shapes and dtypes: {}'.format(
+            ', '.join(format_props(y) for y in outputs),
+            ', '.join('None' if gy is None else format_props(gy)
+                      for gy in grad_outputs)))
+
+
 def _check_outputs_and_grad_outputs(outputs, grad_outputs):
     if len(outputs) != len(grad_outputs):
         raise ValueError(
             'Output gradients must contain equally as many elements as '
             'the number of output elements.\n'
-            'Output shapes         : {}\n'
-            'Output gradient shapes: {}'.format(
-                ', '.join(str(y.shape) for y in outputs),
-                ', '.join(str(None if gy is None else gy.shape)
-                          for gy in grad_outputs)))
-    if not all([gy is None or y.shape == gy.shape
-                for y, gy in zip(outputs, grad_outputs)]):
+            '{}'.format(
+                _make_outputs_props_in_error_message(outputs, grad_outputs)))
+    shapes_match = all([gy is None or y.shape == gy.shape
+                        for y, gy in zip(outputs, grad_outputs)])
+    dtypes_match = all([gy is None or y.dtype == gy.dtype
+                        for y, gy in zip(outputs, grad_outputs)])
+    if not (shapes_match and dtypes_match):
         raise ValueError(
-            'Shapes of outputs and output gradients do not match.\n'
-            'Outputs shapes        : {}\n'
-            'Output gradient shapes: {}\n'.format(
-                ', '.join(str(y.shape) for y in outputs),
-                ', '.join(str(None if gy is None else gy.shape)
-                          for gy in grad_outputs)))
+            'Shapes and/or dtypes of outputs and output gradients do not '
+            'match.\n'
+            '{}'.format(
+                _make_outputs_props_in_error_message(outputs, grad_outputs)))
 
 
 def numerical_grad(
