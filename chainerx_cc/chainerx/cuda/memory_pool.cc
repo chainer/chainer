@@ -95,7 +95,7 @@ void MemoryPool::PushIntoFreeList(std::unique_ptr<Chunk> chunk) {
 }
 
 void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::iterator it_end) {
-    FreeBinsMap::reverse_iterator it_start_rev = std::make_reverse_iterator(it_start);
+    auto it_start_rev = std::make_reverse_iterator(it_start);
     it_start = std::find_if(it_start_rev, free_bins_.rend(), IsFreeListNonEmpty).base();
     it_end = std::find_if(it_end, free_bins_.end(), IsFreeListNonEmpty);
     free_bins_.erase(it_start, it_end);
@@ -105,8 +105,8 @@ void MemoryPool::CompactFreeBins(FreeBinsMap::iterator it_start, FreeBinsMap::it
 //
 // Not thread-safe
 std::unique_ptr<Chunk> MemoryPool::PopFromFreeList(size_t allocation_size) {
-    FreeBinsMap::iterator it_start = free_bins_.lower_bound(allocation_size);
-    FreeBinsMap::iterator non_empty_it = std::find_if(it_start, free_bins_.end(), IsFreeListNonEmpty);
+    auto it_start = free_bins_.lower_bound(allocation_size);
+    auto non_empty_it = std::find_if(it_start, free_bins_.end(), IsFreeListNonEmpty);
     if (non_empty_it == free_bins_.end()) {
         return nullptr;
     }
@@ -127,15 +127,14 @@ std::unique_ptr<Chunk> MemoryPool::RemoveChunkFromFreeList(Chunk* chunk) {
     CHAINERX_ASSERT(chunk != nullptr);
 
     // Find an appropriate free list
-    FreeBinsMap::iterator free_bins_it = free_bins_.find(chunk->bytesize());
+    auto free_bins_it = free_bins_.find(chunk->bytesize());
     if (free_bins_it == free_bins_.end()) {
         return nullptr;
     }
     FreeList& free_list = free_bins_it->second;
 
     // Remove the given chunk from the found free list
-    FreeList::iterator it =
-            std::find_if(free_list.begin(), free_list.end(), [chunk](const std::unique_ptr<Chunk>& ptr) { return ptr.get() == chunk; });
+    auto it = std::find_if(free_list.begin(), free_list.end(), [chunk](const std::unique_ptr<Chunk>& ptr) { return ptr.get() == chunk; });
     if (it == free_list.end()) {
         return nullptr;
     }
@@ -189,7 +188,7 @@ void MemoryPool::FreeUnusedBlocks() {
     }
 
     // Erase empty free lists from free bins.
-    for (FreeBinsMap::iterator free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
+    for (auto free_bins_it = free_bins_.begin(); free_bins_it != free_bins_.end();) {
         if (free_bins_it->second.empty()) {
             free_bins_it = free_bins_.erase(free_bins_it);
         } else {
