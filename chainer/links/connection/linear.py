@@ -1,4 +1,5 @@
 from typing import Optional  # NOQA
+from typing import cast  # NOQA
 
 from chainer.functions.connection import linear
 from chainer import initializers
@@ -96,8 +97,8 @@ class Linear(link.Link):
 
     in_size = None  # type: Optional[int]
     out_size = None  # type: Optional[int]
-    W = None  # type: variable.Parameter
-    b = None  # type: Optional[variable.Parameter]
+    W = None  # type: variable.Variable
+    b = None  # type: Optional[variable.Variable]
 
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
@@ -126,7 +127,7 @@ class Linear(link.Link):
     def _initialize_params(self, in_size):
         # type: (int) -> None
 
-        self.W.initialize((self.out_size, in_size))
+        cast(variable.Parameter, self.W).initialize((self.out_size, in_size))
 
     def forward(self, x, n_batch_axes=1):
         # type: (variable.Variable, int) -> variable.Variable

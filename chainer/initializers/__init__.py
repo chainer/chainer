@@ -67,7 +67,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         else:
             backend_device = chainer.get_device(numpy)
     else:
-        backend_device = chainer.get_device(device)  # Note: device is DeviceSpec
+        backend_device = chainer.get_device(device)
         if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
 

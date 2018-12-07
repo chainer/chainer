@@ -422,9 +422,9 @@ class Link(object):
             ret.name = None
             d = ret.__dict__
             for name in ret._params:
-                d[name] = copy.copy(d[name])
-                param = d[name]  # type: variable.Parameter
-                param.grad = None
+                copied = copy.copy(d[name])  # type: variable.Parameter
+                copied.grad = None
+                d[name] = copied
             return ret
         elif mode == 'copy':
             return copy.deepcopy(self)
@@ -1078,7 +1078,8 @@ class Chain(Link):
 
         backend_device = chainer.get_device(device)
         super(Chain, self)._to_device(
-            backend_device, skip_between_cupy_devices=skip_between_cupy_devices)
+            backend_device,
+            skip_between_cupy_devices=skip_between_cupy_devices)
         d = self.__dict__
         for name in self._children:
             d[name]._to_device(
@@ -1227,8 +1228,7 @@ class ChainList(Link, collections_abc.MutableSequence):
             link.name = str(index)
             self._children[index] = link
         elif isinstance(index, slice):
-            links = cast(Iterable[Link], value)
-            self._children[index] = links
+            self._children[index] = cast(Iterable[Link], value)
             for i, c in enumerate(self._children):
                 c.name = str(i)
         else:

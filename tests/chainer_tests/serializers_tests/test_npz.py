@@ -639,7 +639,7 @@ class TestGroupHierachy(unittest.TestCase):
         npz.load_npz(self.file, self.parent, strict=False)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
-        self.assertFalse(hasattr(self.parent.child.linear, 'b'))
+        self.assertTrue(self.parent.child.linear.b is None)
 
 
 testing.run_module(__name__, __file__)
