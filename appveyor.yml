@@ -58,7 +58,7 @@ install:
   - "conda install -y -q setuptools"
   - "conda install -y -q h5py"
   - if [%PYTHON_VERSION%]==[3.5.x] (
-      conda install -y -q mypy
+      conda install -c conda-forge -y -q mypy
     )
 
 build_script:
