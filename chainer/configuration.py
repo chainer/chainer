@@ -28,6 +28,7 @@ class GlobalConfig(object):
     lazy_grad_sum = None  # type: bool
     cudnn_fast_batch_normalization = None  # type: bool
     dtype = None  # type: numpy.dtype
+    in_recomputing = None  # type: bool
 
     """The plain object that represents the global configuration of Chainer."""
 
