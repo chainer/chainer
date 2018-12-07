@@ -57,7 +57,7 @@ from chainer.testing import parameterize
     {'debug': False},
     {'debug': True},
 ])))
-class TestCopiedSetItem(unittest.TestCase):
+class TestSetItem(unittest.TestCase):
 
     def setUp(self):
         self.x0_data = numpy.random.uniform(-1, 1, self.shape)
@@ -150,7 +150,7 @@ class TestCopiedSetItem(unittest.TestCase):
         numpy.array([[1, 0], [1, 2]]), numpy.array([[0, 1]])
     ), 'batch_ndim': 2},
 )
-class TestCopiedSetItemRaise(unittest.TestCase):
+class TestSetItemRaise(unittest.TestCase):
 
     def setUp(self):
         self.x0_data = numpy.random.uniform(-1, 1, self.shape)
@@ -182,6 +182,16 @@ class TestCopiedSetItemRaise(unittest.TestCase):
         self.check_backward_raise(
             (cuda.to_gpu(self.x0_data), cuda.to_gpu(self.x1_data)),
             cuda.to_gpu(self.gy_data))
+
+
+class TestSetItemDefault(unittest.TestCase):
+
+    def test_default_inplace(self):
+        x0 = chainer.Variable(numpy.zeros((4,), numpy.float32))
+        x1 = chainer.Variable(numpy.ones((2,), numpy.float32))
+        # inplace=True is default but not (yet) implemented
+        with self.assertRaises(NotImplementedError):
+            chainer.functions.set_item(x0, slice(None, 2), x1)
 
 
 testing.run_module(__name__, __file__)
