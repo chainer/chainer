@@ -154,7 +154,8 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
                 function_name, used_bytes, acquired_bytes, occurrence)
             file.write(line)
             file.write('\n')
-        file.flush()
+        if hasattr(file, 'flush'):
+            file.flush()
 
 
 class CupyMemoryCumulativeHook(MemoryHook):
