@@ -438,7 +438,7 @@ Use apply() method instead.\
         # equipped with the automatic attribute fallback, which is enabled
         # during the forward function.
         #
-        # In the fallback mechanism, wnen an array with the fallback ndarray
+        # In the fallback mechanism, when an array with the fallback ndarray
         # type (e.g. numpy.ndarray for ChainerX native devices) is assigned
         # as an attribute, it's automatically converted to a ChainerX ndarray
         # with the corresponding ChainerX device and stored in that form.
