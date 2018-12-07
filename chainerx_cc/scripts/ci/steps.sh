@@ -235,8 +235,6 @@ step_python_typecheck_chainer() {
         mypy --version
         mypy "$REPO_DIR"/chainer
     fi
-
-    popd
 }
 
 
