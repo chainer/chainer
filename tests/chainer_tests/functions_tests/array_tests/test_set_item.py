@@ -96,7 +96,7 @@ class TestCopiedSetItem(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(
-            cuda.to_gpu(self.x0_data), cuda.to_gpu(self.x0_data))
+            cuda.to_gpu(self.x0_data), cuda.to_gpu(self.x1_data))
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(self._forward, x_data, y_grad)
