@@ -410,6 +410,9 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis") = 0);
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
+              // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
+              // provide more helpful error message for users.
+
               auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) {
                   return MoveArrayBodies(Split(Array{ary}, sections, axis));
               };
