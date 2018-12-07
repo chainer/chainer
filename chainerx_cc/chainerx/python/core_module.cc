@@ -9,6 +9,7 @@
 #include "chainerx/python/check_backward.h"
 #include "chainerx/python/common.h"
 #include "chainerx/python/context.h"
+#include "chainerx/python/cuda/cuda_module.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
 #include "chainerx/python/error.h"
@@ -55,6 +56,12 @@ void InitChainerxModule(pybind11::module& m) {
     // sub-module registration to shadow it.
     pybind11::module m_testing = m.def_submodule("_testing");
     testing::testing_internal::InitChainerxTestingModule(m_testing);
+
+    // chainerx.cuda
+    //
+    // Partially exposes the memory pool for external usage.
+    pybind11::module m_cuda = m.def_submodule("cuda");
+    cuda::cuda_internal::InitChainerxCudaModule(m_cuda);
 
     // Modifies __doc__ property of a pybind-generated function object.
     m.def("_set_pybind_doc", [](py::handle obj, std::string docstring) {

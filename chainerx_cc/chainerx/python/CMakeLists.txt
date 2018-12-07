@@ -1,4 +1,4 @@
-add_library(_core.so MODULE
+set(srcs
     core_module.cc
     array.cc
     array_index.cc
@@ -21,6 +21,22 @@ add_library(_core.so MODULE
     testing/device_buffer.cc
     testing/testing_module.cc
     )
+
+if(${CUDA_FOUND})
+    set(srcs
+        ${srcs}
+        cuda/cuda_module.cc
+        cuda/memory_pool.cc
+        )
+
+    CUDA_ADD_LIBRARY(_core_cuda STATIC
+        cuda/cuda_module.cc
+        cuda/memory_pool.cc
+        )
+endif()
+
+add_library(_core.so MODULE ${srcs})
+
 target_link_libraries(_core.so
     PRIVATE
     "-Wl,-flto" pybind11::module
