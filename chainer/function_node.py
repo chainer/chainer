@@ -435,7 +435,22 @@ Use apply() method instead.\
 
     def _make_chainerx_forward_fallback_class(self, device):
         # Creates a fabricated class based on the concerete FunctionNode class,
-        # equipped with the automatic attribute fallback.
+        # equipped with the automatic attribute fallback, which is enabled
+        # during the forward function.
+        #
+        # In the fallback mechanism, wnen an array with the fallback ndarray
+        # type (e.g. numpy.ndarray for ChainerX native devices) is assigned
+        # as an attribute, it's automatically converted to a ChainerX ndarray
+        # with the corresponding ChainerX device and stored in that form.
+        # Conversely, when an attribute with ChainerX ndarray type is queried,
+        # it's converted to the fallback ndarray before being returned.
+        # That way, concrete FunctionNode implementations can use attributes
+        # as ndarray storage, without converting from/to ChainerX manually.
+        #
+        # Note that it works only if the attribute has an ndarray type. If the
+        # array is wrapped in a tuple, for example, no automatic conversion
+        # will be taken place.
+
         fallback_device = device.fallback_device
         sup = super(FunctionNode, self)
         # Cache to avoid converting same arrays multiple times
