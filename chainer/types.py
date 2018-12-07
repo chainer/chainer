@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     import numpy  # NOQA
 
-    from chainer.backend import Device  # NOQA
+    from chainer import backend  # NOQA
     from chainer.backends import cuda, intel64  # NOQA
     from chainer import initializer  # NOQA
 
@@ -39,14 +39,14 @@ NdArray = Union[
     'numpy.ndarray',
     'cuda.ndarray',
     # 'intel64.mdarray',
-    # TODO(okapies): mdarray is partially imcompatible with other ndarrays
+    # TODO(okapies): mdarray is partially incompatible with other ndarrays
     'chainerx.ndarray',
 ]
-"""The ndarray types which are compatible with :func:`chainer.get_array_types`
+"""The ndarray types compatible with :func:`chainer.get_array_types`
 """
 
 
-Xp = Union[Any]  # TODO(okapies): encode numpy/cupy/chainerx
+Xp = Union[Any]  # TODO(okapies): encode numpy/cupy/ideep/chainerx
 
 
 class AbstractInitializer(Protocol):
@@ -71,7 +71,7 @@ ScalarValue = Union[
     memoryview,
     numbers.Number,
 ]
-"""The scalar types which are compatible with :func:`numpy.isscalar`.
+"""The scalar types compatible with :func:`numpy.isscalar`.
 """
 
 
@@ -79,14 +79,17 @@ InitializerSpec = Union[AbstractInitializer, ScalarValue, 'numpy.ndarray']
 
 
 DeviceSpec = Union[
-    'Device',
-    'chainerx.Device',  # See https://github.com/python/mypy/issues/5908 # NOQA
+    'backend.Device',
+    'chainerx.Device',
     'cuda.Device',
     str,
     Tuple[str, int],
-    'ModuleType',
-    Tuple['ModuleType', int],
+    'ModuleType',  # numpy and intel64 module
+    Tuple['ModuleType', int],  # cupy module and device ID
 ]
+"""The device specifier types compatible with :func:`chainer.get_device`
+"""
+# TODO(okapies): Use Xp instead of ModuleType
 
 
 CudaDeviceSpec = Union['cuda.Device', int, 'numpy.integer']  # NOQA
