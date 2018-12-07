@@ -12,7 +12,7 @@ if types.TYPE_CHECKING:
     class AdaDeltaHyperparameter(Protocol):
         """Protocol class for hyperparameter of Zeiler's ADADELTA.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         rho = None  # type: float
         eps = None  # type: float

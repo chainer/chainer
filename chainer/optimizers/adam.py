@@ -17,7 +17,7 @@ if types.TYPE_CHECKING:
     class AdamHyperparameter(Protocol):
         """Protocol class for hyperparameter of Adam.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         alpha = None  # type: float
         beta1 = None  # type: float

@@ -11,7 +11,7 @@ if types.TYPE_CHECKING:
     class CorrectedMomentumSGDHyperparameter(Protocol):
         """Protocol class for hyperparameter of corrected momentum SGD.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         lr = None  # type: float
         momentum = None  # type: float

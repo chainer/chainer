@@ -12,7 +12,7 @@ if types.TYPE_CHECKING:
     class RMSpropHyperparameter(Protocol):
         """Protocol class for hyperparameter of RMSprop.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         lr = None  # type: float
         alpha = None  # type: float

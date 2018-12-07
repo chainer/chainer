@@ -42,7 +42,7 @@ NdArray = Union[
     # TODO(okapies): mdarray is partially incompatible with other ndarrays
     'chainerx.ndarray',
 ]
-"""The ndarray types compatible with :func:`chainer.get_array_types`
+"""The ndarray types supported in :func:`chainer.get_array_types`
 """
 
 
@@ -55,7 +55,7 @@ class AbstractInitializer(Protocol):
     It can be either an :class:`chainer.Initializer` or a callable object
     that takes an ndarray.
 
-    This is only for PEP 544 compatible static type checkers.
+    This is only for PEP 544 compliant static type checkers.
     """
     dtype = None  # type: Optional[DTypeSpec]
 
@@ -71,7 +71,7 @@ ScalarValue = Union[
     memoryview,
     numbers.Number,
 ]
-"""The scalar types compatible with :func:`numpy.isscalar`.
+"""The scalar types supported in :func:`numpy.isscalar`.
 """
 
 
@@ -87,7 +87,7 @@ DeviceSpec = Union[
     'ModuleType',  # numpy and intel64 module
     Tuple['ModuleType', int],  # cupy module and device ID
 ]
-"""The device specifier types compatible with :func:`chainer.get_device`
+"""The device specifier types supported in :func:`chainer.get_device`
 """
 # TODO(okapies): Use Xp instead of ModuleType
 

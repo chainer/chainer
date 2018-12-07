@@ -12,7 +12,7 @@ if types.TYPE_CHECKING:
     class AdaGradHyperparameter(Protocol):
         """Protocol class for hyperparameter of AdaGrad.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         lr = None  # type: float
         eps = None  # type: float

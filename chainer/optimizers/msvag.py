@@ -14,7 +14,7 @@ if types.TYPE_CHECKING:
     class MSVAGHyperparameter(Protocol):
         """Protocol class for hyperparameter of M-SVAG.
 
-        This is only for PEP 544 compatible static type checkers.
+        This is only for PEP 544 compliant static type checkers.
         """
         lr = None  # type: float
         beta = None  # type: float
