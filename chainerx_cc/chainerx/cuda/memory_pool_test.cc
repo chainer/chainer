@@ -24,12 +24,15 @@ void* AddOffset(void* ptr, size_t offset) {
     return reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
+using Chunk = cuda_internal::Chunk;
+
 TEST(ChunkTest, Split) {
     size_t mem_bytesize = kAllocationUnitSize * 4;
     std::shared_ptr<void> mem = std::make_unique<uint8_t[]>(mem_bytesize);
-    cuda_internal::Chunk chunk{mem.get(), 0, mem_bytesize};
+    Chunk chunk{mem.get(), 0, mem_bytesize};
 
-    std::unique_ptr<cuda_internal::Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
+    // Split a chunk into two chunks: a chunk with smaller size and one with the remaining.
+    std::unique_ptr<Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
     EXPECT_EQ(chunk.ptr(), mem.get());
     EXPECT_EQ(chunk.bytesize(), kAllocationUnitSize * 2);
     EXPECT_EQ(chunk.prev(), nullptr);
@@ -39,7 +42,8 @@ TEST(ChunkTest, Split) {
     EXPECT_EQ(tail->prev()->ptr(), chunk.ptr());
     EXPECT_EQ(tail->next(), nullptr);
 
-    std::unique_ptr<cuda_internal::Chunk> tail_of_head = chunk.Split(kAllocationUnitSize);
+    // Split the chunk which was already once splitted.
+    std::unique_ptr<Chunk> tail_of_head = chunk.Split(kAllocationUnitSize);
     EXPECT_EQ(chunk.ptr(), mem.get());
     EXPECT_EQ(chunk.bytesize(), kAllocationUnitSize);
     EXPECT_EQ(chunk.prev(), nullptr);
@@ -49,7 +53,8 @@ TEST(ChunkTest, Split) {
     EXPECT_EQ(tail_of_head->prev()->ptr(), chunk.ptr());
     EXPECT_EQ(tail_of_head->next()->ptr(), tail->ptr());
 
-    std::unique_ptr<cuda_internal::Chunk> tail_of_tail = tail->Split(kAllocationUnitSize);
+    // Split the remaining chunk.
+    std::unique_ptr<Chunk> tail_of_tail = tail->Split(kAllocationUnitSize);
     EXPECT_EQ(tail->ptr(), AddOffset(chunk.ptr(), kAllocationUnitSize * 2));
     EXPECT_EQ(tail->bytesize(), kAllocationUnitSize);
     EXPECT_EQ(tail->prev()->ptr(), tail_of_head->ptr());
@@ -63,33 +68,37 @@ TEST(ChunkTest, Split) {
 TEST(ChunkTest, MergeWithNext) {
     size_t mem_bytesize = kAllocationUnitSize * 4;
     std::shared_ptr<void> mem = std::make_unique<uint8_t[]>(mem_bytesize);
-    cuda_internal::Chunk chunk{mem.get(), 0, mem_bytesize};
+    Chunk chunk{mem.get(), 0, mem_bytesize};
 
     void* chunk_ptr = chunk.ptr();
     size_t chunk_bytesize = chunk.bytesize();
 
-    std::unique_ptr<cuda_internal::Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
-    std::unique_ptr<cuda_internal::Chunk> head = std::make_unique<cuda_internal::Chunk>(chunk);
+    // Split chunk -> [1, 2, 3, 4]
+    std::unique_ptr<Chunk> tail = chunk.Split(kAllocationUnitSize * 2);
+    std::unique_ptr<Chunk> head = std::make_unique<Chunk>(chunk);
     void* head_ptr = head->ptr();
     size_t head_bytesize = head->bytesize();
     void* tail_ptr = tail->ptr();
     size_t tail_bytesize = tail->bytesize();
+    std::unique_ptr<Chunk> tail_next = tail->Split(kAllocationUnitSize);
+    std::unique_ptr<Chunk> head_next = head->Split(kAllocationUnitSize);
 
-    std::unique_ptr<cuda_internal::Chunk> tail_next = tail->Split(kAllocationUnitSize);
-    std::unique_ptr<cuda_internal::Chunk> head_next = head->Split(kAllocationUnitSize);
-
+    // Merge [1] and [2] into [1, 2].
     head->MergeWithNext();
     EXPECT_EQ(head->ptr(), head_ptr);
     EXPECT_EQ(head->bytesize(), head_bytesize);
     EXPECT_EQ(head->prev(), nullptr);
     EXPECT_EQ(head->next()->ptr(), tail_ptr);
 
+    // Merge [3] and [4] into [3, 4].
     tail->MergeWithNext();
     EXPECT_EQ(tail->ptr(), tail_ptr);
     EXPECT_EQ(tail->bytesize(), tail_bytesize);
     EXPECT_EQ(tail->prev()->ptr(), head_ptr);
     EXPECT_EQ(tail->next(), nullptr);
 
+    // Merge [1, 2] and [3, 4] into [1, 2, 3, 4].
+    // Merge chunks which were already one merged.
     head->MergeWithNext();
     EXPECT_EQ(head->ptr(), chunk_ptr);
     EXPECT_EQ(head->bytesize(), chunk_bytesize);
@@ -137,25 +146,30 @@ class MemoryPoolTestForEachAllocator : public ::testing::TestWithParam<std::shar
 TEST_P(MemoryPoolTestForEachAllocator, MallocAndFree) {
     MemoryPool& memory_pool = *GetParam();
 
+    // Allocate two distinct memory areas via allocator.
     void* ptr1 = memory_pool.Malloc(1);
     void* ptr2 = memory_pool.Malloc(1);
     EXPECT_NE(ptr1, ptr2);
 
+    // This memory is stored into the free bins.
     memory_pool.Free(ptr2);
 
+    // Fetche a memory area from the free bins.
     void* ptr3 = memory_pool.Malloc(1);
     EXPECT_EQ(ptr2, ptr3);
-    memory_pool.Free(ptr3);
 
+    memory_pool.Free(ptr3);
     memory_pool.Free(ptr1);
 }
 
 TEST_P(MemoryPoolTestForEachAllocator, MallocAllocationUnitSize) {
     MemoryPool& memory_pool = *GetParam();
 
+    // Allocate a memory area via allocator.
     void* ptr1 = memory_pool.Malloc(100);
     memory_pool.Free(ptr1);
 
+    // Allocate a memory area via allocator, because the free bins do not have any consecutive memory area of such bytesize.
     void* ptr2 = memory_pool.Malloc(100 + kAllocationUnitSize);
     EXPECT_NE(ptr1, ptr2);
 
@@ -196,8 +210,12 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeUnusedBlocks) {
 
 TEST_P(MemoryPoolTestForEachAllocator, MallocSplit) {
     MemoryPool& memory_pool = *GetParam();
+
+    // Allocate a memory area of 4 unit size length in free bins, and store it in free bins.
     void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
     memory_pool.Free(ptr);
+
+    // Take the memory area from free bins and split it into two memory areas.
     void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
     void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
     EXPECT_EQ(ptr, head);
@@ -211,7 +229,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeMerge) {
     void* ptr = memory_pool.Malloc(kAllocationUnitSize * 4);
     memory_pool.Free(ptr);
 
-    // merge head into tail
+    // Merge head into tail
     {
         void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
         void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
@@ -224,7 +242,7 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeMerge) {
         memory_pool.Free(p);
     }
 
-    // merge tail into head
+    // Merge tail into head
     {
         void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
         void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
@@ -239,21 +257,29 @@ TEST_P(MemoryPoolTestForEachAllocator, FreeMerge) {
 }
 
 TEST_P(MemoryPoolTestForEachAllocator, MallocSizeIncreasing) {
+    static constexpr size_t size1 = kAllocationUnitSize * 4;
+    static constexpr size_t size2 = kAllocationUnitSize * 8;
+
     MemoryPool& memory_pool = *GetParam();
-    void* ptr1 = memory_pool.Malloc(kAllocationUnitSize * 4);
+    void* ptr1 = memory_pool.Malloc(size1);
     memory_pool.Free(ptr1);
 
-    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 8);
+    // Cannot take the memory area from free bins, because there is no memory area larger or equal to size2.
+    void* ptr2 = memory_pool.Malloc(size2);
     memory_pool.Free(ptr2);
     EXPECT_NE(ptr1, ptr2);
 }
 
 TEST_P(MemoryPoolTestForEachAllocator, MallocSizeDecreasing) {
+    static constexpr size_t size1 = kAllocationUnitSize * 8;
+    static constexpr size_t size2 = kAllocationUnitSize * 4;
+
     MemoryPool& memory_pool = *GetParam();
-    void* ptr1 = memory_pool.Malloc(kAllocationUnitSize * 8);
+    void* ptr1 = memory_pool.Malloc(size1);
     memory_pool.Free(ptr1);
 
-    void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 4);
+    // Take the memory area from free bins, because there is a memory area larger or equal to size2.
+    void* ptr2 = memory_pool.Malloc(size2);
     memory_pool.Free(ptr2);
     EXPECT_EQ(ptr1, ptr2);
 }
@@ -281,6 +307,9 @@ TEST(MemoryPoolTest, MallocRetryOutOfMemory) {
     void* ptr1 = memory_pool.Malloc(size1);  // no throw
     memory_pool.Free(ptr1);
 
+    // There is no memory area larger or equal to size2, so the memory pool tries to fetch an new memory area from the allocator. However,
+    // there is no free space in the allocator, so the memory pool frees all unused blocks and tries to fetch an new memory area again.
+    // Finally, the memory pool succeeds to obtain an memory area and returns it.
     void* ptr2 = memory_pool.Malloc(size2);  // no throw
     memory_pool.Free(ptr2);
 
@@ -299,6 +328,8 @@ TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeTail) {
     memory_pool.Malloc(kAllocationUnitSize * 2);
     void* tail = memory_pool.Malloc(kAllocationUnitSize * 2);
     memory_pool.Free(tail);
+
+    // The memory pool has an unused block in free bins, but it should not be freed because the previous memory area is in use.
     memory_pool.FreeUnusedBlocks();
     void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 2);
     EXPECT_EQ(tail, ptr2);
@@ -316,6 +347,8 @@ TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeHead) {
 
     void* head = memory_pool.Malloc(kAllocationUnitSize * 2);
     memory_pool.Malloc(kAllocationUnitSize * 2);
+
+    // The memory pool has an unused block in free bins, but it should not be freed because the next memory area is in use.
     memory_pool.Free(head);
     memory_pool.FreeUnusedBlocks();
     void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 2);
