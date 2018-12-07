@@ -339,10 +339,9 @@ class _CheckBackward(object):
                     'Length of no_grads param and xs should be same.\n'
                     'Actual: {0} != {1}'.format(len(no_grads), len(x_data)))
 
-        xp = backend.get_array_module(*x_data)
-        is_chainerx = xp is chainerx
+        device = backend.get_device_from_array(*x_data)
 
-        if is_chainerx:
+        if device.xp is chainerx:
             if len(params) > 0:
                 raise NotImplementedError(
                     'gradient_check does not support params argument for '
@@ -352,7 +351,7 @@ class _CheckBackward(object):
                     'gradient_check does not support no_grads argument for '
                     'ChainerX arrays')
 
-        self.is_chainerx = is_chainerx
+        self.device = device
 
         self.func = func
         self.x_data = x_data
@@ -367,6 +366,10 @@ class _CheckBackward(object):
         self.detect_nondifferentiable = detect_nondifferentiable
 
     def run(self):
+        with chainer.using_device(self.device):
+            self._run()
+
+    def _run(self):
         # Run a forward pass for backward gradients.
         # Uninitialized parameters may be initialized.
         # If self.y_grad is None, it is also updated with 1s.
@@ -427,24 +430,21 @@ class _CheckBackward(object):
     def _sample_directions(self):
         # Samples a direction vector (list of arrays with the same shapes as
         # input arrays and parameters)
+        device = self.device
         x_data = self.x_data
         params = self.params
         no_grads = self.no_grads
 
-        xp = backend.get_array_module(*x_data)
+        xp = device.xp
         direction_xs_shapes = [
             x.shape
             for x, no_grad in six.moves.zip(x_data, no_grads)
             if not no_grad]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
-        if self.is_chainerx:
-            directions = [
-                xp.random.normal(size=shape, device=x_data[0].device)
-                for shape in direction_shapes]
-        else:
-            directions = [
-                xp.random.normal(size=shape) for shape in direction_shapes]
+        directions = [
+            xp.random.normal(size=shape) for shape in direction_shapes]
+
         # The direction vector is normalized in order to keep the scale of
         # differentiation error invariant with respect to the number of input
         # dimensions. Ideally, the scale of the curvature with respect to each
@@ -516,6 +516,7 @@ class _CheckBackward(object):
         return gx_accum
 
     def _directional_numeric_gradients(self, directions, y0_data):
+        device = self.device
         func = self.func
         x_data = self.x_data
         y_grad = self.y_grad
@@ -524,6 +525,8 @@ class _CheckBackward(object):
         no_grads = self.no_grads
         dtype = self.dtype
         detect_nondifferentiable = self.detect_nondifferentiable
+
+        xp = device.xp
 
         x_vars = [variable.Variable(x) for x in x_data]
         variables = (
@@ -544,11 +547,7 @@ class _CheckBackward(object):
                 if skip and x.array.dtype.kind == 'f':
                     x.array = x.array.astype(dtype, copy=False)
 
-        xp = backend.get_array_module(*x_data)
-        if self.is_chainerx:
-            delta = xp.array(0., numpy.float64, device=directions[0].device)
-        else:
-            delta = xp.array(0., numpy.float64)
+        delta = xp.array(0., numpy.float64)
 
         def g():
             # This functions is called twice in `numerical_grad`.
@@ -585,7 +584,7 @@ class _CheckBackward(object):
             ys = func(*g_x_vars)
             ys = _as_tuple(ys)
             ys_data = tuple(y.data for y in ys)
-            if self.is_chainerx:
+            if xp is chainerx:
                 ys_data = tuple([y.as_grad_stopped() for y in ys_data])
             for param, data in six.moves.zip(params, casted_data):
                 param.data = data
