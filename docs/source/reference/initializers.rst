@@ -19,9 +19,9 @@ A weight initializer can be any of the following objects.
   Unless explicitly specified, it is :class:`~chainer.initializers.LeCunNormal`
   with scale value 1.
 
-To set a requirement for the `~numpy.dtype` of the `initializers`, set the ``dtype`` argument
-when calling an `initializer` function (`initializer.__call__`). This sets `initializers.Initializer.dtype`,
-and all future initializer calls will throw an error if the `~numpy.dtype` of the given array  is different.
+An `initializer` has an intrinsic attribute of `~numpy.dtype`, which can be set with the ``dtype`` argument when
+the `initializer` object is created. This sets `initializers.Initializer.dtype`, and all future initializer calls
+will throw an error if the `~numpy.dtype` of the given array is different.
 
 Base class
 ----------
