@@ -57,7 +57,9 @@ install:
 
   - "conda install -y -q setuptools"
   - "conda install -y -q h5py"
-  - "conda install -y -q mypy"
+  - if [%PYTHON_VERSION%]==[3.5.x] (
+      conda install -y -q mypy
+    )
 
 build_script:
   # Build the compiled extension
@@ -67,8 +69,8 @@ test_script:
   # Run the project tests
   - "%CMD_IN_ENV% pip install -U -e .[appveyor]"
   # Avoid interuption confirmation of cmd.exe
-  - if "%PYTHON_VERSION%" == "3.5.x" (
-      echo mypy chainer > tmp.bat
+  - if [%PYTHON_VERSION%]==[3.5.x] (
+      echo mypy chainer > tmp.bat &&
       call tmp.bat < nul
     )
   - "echo python -m pytest --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests/chainer_tests > tmp.bat"
