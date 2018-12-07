@@ -441,14 +441,14 @@ void InitChainerxManipulation(pybind11::module& m) {
               }
               // numpy.ndarray
               if (py::isinstance<py::array>(indices_or_sections)) {
-                  py::array np = py::cast<py::array>(indices_or_sections);
-                  if (np.ndim() >= 2) {
-                      throw py::value_error{std::string{"Too many dimensions of indices: "} + std::to_string(np.ndim())};
+                  py::array np_ios = py::cast<py::array>(indices_or_sections);
+                  if (np_ios.ndim() >= 2) {
+                      throw py::value_error{std::string{"Too many dimensions of indices: "} + std::to_string(np_ios.ndim())};
                   }
                   // sections: scalar
-                  if (np.ndim() == 0) {
+                  if (np_ios.ndim() == 0) {
                       int64_t sections{};
-                      py::object scalar_np = np.attr("tolist")();
+                      py::object scalar_np = np_ios.attr("tolist")();
                       if (py::isinstance<py::int_>(scalar_np)) {
                           sections = py::cast<int64_t>(scalar_np);
                       } else if (py::isinstance<py::float_>(scalar_np)) {
@@ -460,16 +460,16 @@ void InitChainerxManipulation(pybind11::module& m) {
                   }
 
                   // indices: (0,)-shape
-                  if (np.size() == 0) {
+                  if (np_ios.size() == 0) {
                       return split_indices(ary, {}, axis);
                   }
 
-                  if (np.dtype().kind() != 'i') {
+                  if (np_ios.dtype().kind() != 'i') {
                       throw py::type_error{std::string{"Indices must be integers."}};
                   }
                   // indices: non-scalar
                   std::vector<int64_t> indices{};
-                  py::list indices_pylist = np.attr("tolist")();
+                  py::list indices_pylist = np_ios.attr("tolist")();
                   for (py::handle item : indices_pylist) {
                       indices.emplace_back(py::cast<int64_t>(item));
                   }
