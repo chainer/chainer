@@ -1,6 +1,7 @@
 from chainer.functions.loss import crf1d
 from chainer import link
 from chainer import variable
+from chainer import initializers
 
 
 class CRF1d(link.Link):
@@ -19,8 +20,11 @@ class CRF1d(link.Link):
         cost (~chainer.Variable): Transition cost parameter.
     """
 
-    def __init__(self, n_label, initialW=0):
+    def __init__(self, n_label, initialW=None):
         super(CRF1d, self).__init__()
+        if initialW is None:
+            initialW = initializers.constant.Zero()
+
         with self.init_scope():
             self.cost = variable.Parameter(initializer=initialW,
                                            shape=(n_label, n_label))
