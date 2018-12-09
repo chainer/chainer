@@ -35,8 +35,8 @@ class TestCast(unittest.TestCase):
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.cast(x, self.out_type)
-        self.assertEqual(y.data.shape, x.data.shape)
-        self.assertEqual(y.data.dtype, self.out_type)
+        assert y.data.shape == x.data.shape
+        assert y.data.dtype == self.out_type
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -65,18 +65,18 @@ class TestNoCast(unittest.TestCase):
 
     def check_forward_no_cast(self, x_data):
         y = functions.cast(x_data, self.dtype)
-        self.assertIsInstance(y, chainer.Variable)
-        self.assertIs(y.data, x_data)
+        assert isinstance(y, chainer.Variable)
+        assert y.data is x_data
 
     def test_forward_no_cast_array(self):
         y = functions.cast(self.x, self.dtype)
-        self.assertIsInstance(y, chainer.Variable)
-        self.assertIs(y.data, self.x)
+        assert isinstance(y, chainer.Variable)
+        assert y.data is self.x
 
     def test_forward_no_cast_variable(self):
         x = chainer.Variable(self.x)
         y = functions.cast(x, self.dtype)
-        self.assertIs(y, x)
+        assert y is x
 
 
 testing.run_module(__name__, __file__)
