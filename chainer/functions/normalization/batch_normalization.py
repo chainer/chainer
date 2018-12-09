@@ -626,6 +626,30 @@ def _x_hat(x, mean, inv_std):
     return x_mu
 
 
+def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
+    # Returns processed axis for ChainerX.
+    axis_chx = (
+        None if axis is None
+        else axis if isinstance(axis, tuple)
+        else (axis,))
+    axis_chx = _compute_axis(x_ndim, gamma_ndim, axis_chx)
+    return axis_chx
+
+
+def _chainerx_is_supported(device, axis_chx):
+    # Checks if the input configuration is supported in ChainerX
+    axis_ndim_chx = len(axis_chx)
+    if device.backend.name == 'cuda':
+        # cuDNN batch norm restriction
+        if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
+                 and axis_chx[1] == 2 and axis_chx[2] == 3)
+                or (axis_ndim_chx == 4 and axis_chx[0] == 0
+                    and axis_chx[1] == 2 and axis_chx[2] == 3
+                    and axis_chx[3] == 4)):
+            return False
+    return True
+
+
 def _apply_bn_fwd(xp, x, mean, inv_std, gamma, beta):
     # NOTE: all arguments should be broadcasted to x.shape
     # (mean, inv_std, gamma, and beta have to already be expanded)
