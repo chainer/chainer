@@ -176,7 +176,7 @@ class Deconvolution2D(link.Link):
         self.W.initialize(W_shape)
 
     def forward(self, x):
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.outsize,

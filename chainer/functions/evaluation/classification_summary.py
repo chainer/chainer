@@ -45,7 +45,7 @@ class ClassificationSummary(function.Function):
         xp = backend.get_array_module(*inputs)
         y, t = inputs
         # numpy.bincount requires int32 on Windows
-        t = t.astype('i', copy=False)
+        t = t.astype(xp.int32, copy=False)
 
         if self.label_num is None:
             label_num = xp.amax(t) + 1

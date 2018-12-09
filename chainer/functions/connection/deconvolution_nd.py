@@ -11,6 +11,7 @@ from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+import chainerx
 
 
 class DeconvolutionND(function_node.FunctionNode):
@@ -165,6 +166,25 @@ class DeconvolutionND(function_node.FunctionNode):
 
         return y,
 
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+        # TODO(imanishi): Supporft it
+        if inputs[0].device.backend.name == 'cuda' and self.ndim < 2:
+            return chainer.Fallback
+
+        stride = self.stride
+        pad = self.pad
+
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
+
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
@@ -280,7 +300,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):
@@ -290,7 +310,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             Spatial padding width for input arrays
             :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
             ``(p, p, ..., p)``.
-        outsize (:class:`tuple` of :class:`int` s):
+        outsize (None or :class:`tuple` of :class:`int` s):
             Expected output size of deconvolutional operation. It should be a
             tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
             ``None`` and the outsize is estimated by input size, stride and

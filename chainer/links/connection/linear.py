@@ -130,7 +130,7 @@ class Linear(link.Link):
             ~chainer.Variable: Output of the linear layer.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             in_size = utils.size_of_shape(x.shape[1:])
             self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)

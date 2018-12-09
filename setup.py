@@ -6,6 +6,8 @@ import sys
 
 from setuptools import setup
 
+import chainerx_build_helper
+
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
@@ -28,10 +30,10 @@ requirements = {
         'six>=1.9.0',
     ],
     'stylecheck': [
-        'autopep8==1.3.5',
-        'flake8==3.5.0',
+        'autopep8>=1.4.1,<1.5',
+        'flake8>=3.6,<3.7',
         'pbr==4.0.4',
-        'pycodestyle==2.3.1',
+        'pycodestyle>=2.4,<2.5',
     ],
     'test': [
         'pytest',
@@ -118,7 +120,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
-setup(
+setup_kwargs = dict(
     name='chainer',
     version=__version__,  # NOQA
     description='A flexible framework of neural networks',
@@ -182,3 +184,14 @@ setup(
     tests_require=tests_require,
     extras_require=extras_require,
 )
+
+
+build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
+if os.getenv('READTHEDOCS', None) == 'True':
+    os.environ['MAKEFLAGS'] = '-j2'
+    build_chainerx = True
+
+chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
+
+
+setup(**setup_kwargs)

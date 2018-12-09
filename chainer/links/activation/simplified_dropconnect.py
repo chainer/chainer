@@ -95,8 +95,8 @@ class SimplifiedDropconnect(link.Link):
             ~chainer.Variable: Output of the simplified dropconnect layer.
 
         """
-        if self.W.data is None:
-            self._initialize_params(x.size // len(x.data))
+        if self.W.array is None:
+            self._initialize_params(x.size // len(x))
         if mask is not None and 'mask' not in self.__dict__:
             self.add_persistent('mask', mask)
         return simplified_dropconnect.simplified_dropconnect(

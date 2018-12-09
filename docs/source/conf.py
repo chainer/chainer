@@ -355,6 +355,7 @@ from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 from chainer.training import extensions
+import chainerx
 np.random.seed(0)
 '''
 

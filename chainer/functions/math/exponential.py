@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class Exp(function_node.FunctionNode):
@@ -18,6 +19,9 @@ class Exp(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.exp(x[0]),
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
@@ -46,6 +50,9 @@ class Log(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.log(x[0]),
 
     def forward_cpu(self, x):
         self.retain_inputs((0,))
