@@ -171,6 +171,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         )
 
         if isinstance(devices, dict):
+            devices = devices.copy()
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
