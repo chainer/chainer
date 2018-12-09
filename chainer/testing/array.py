@@ -33,15 +33,18 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
             '  shape: {} {}\n'.format(x.shape, y.shape) +
             '  dtype: {} {}\n'.format(x.dtype, y.dtype))
         if x.shape == y.shape:
-            xx = x if x.ndim != 0 else x.reshape((1,))
-            yy = y if y.ndim != 0 else y.reshape((1,))
+            xx = numpy.atleast_1d(x)
+            yy = numpy.atleast_1d(y)
             err = numpy.abs(xx - yy)
-            i = numpy.unravel_index(numpy.argmax(err), err.shape)
+            tol_err = atol + rtol * numpy.abs(yy).astype(numpy.float64)
+            i = numpy.unravel_index(
+                numpy.argmax(err.astype(numpy.float64) - tol_err), err.shape)
             f.write(
                 '  i: {}\n'.format(i) +
                 '  x[i]: {}\n'.format(xx[i]) +
                 '  y[i]: {}\n'.format(yy[i]) +
-                '  err[i]: {}\n'.format(err[i]))
+                '  relative error[i]: {}\n'.format(err[i] / numpy.abs(yy[i])) +
+                '  absolute error[i]: {}\n'.format(err[i]))
         opts = numpy.get_printoptions()
         try:
             numpy.set_printoptions(threshold=10000)
