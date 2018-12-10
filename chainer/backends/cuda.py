@@ -82,6 +82,25 @@ if available:
     except Exception as e:
         _resolution_error = e
 
+    # Replace CuPy's memory pool with ChainerX's if ChainerX is available.
+    if chainerx.is_available():
+        chx_memory_pool = cupy.cuda.memory.ExternalMemoryPool()
+
+        chx_backend = chainerx.get_backend('cuda')
+        for device_id in range(chx_backend.get_device_count()):
+            device = chx_backend.get_device(device_id)
+
+            # Retrieve function pointers to the methods of ChainerX's memory
+            # pool. Note that each memory pool in ChainerX is associated with
+            # a single device.
+            device_malloc = chainerx.cuda.get_memory_pool_malloc(device)
+            device_free = chainerx.cuda.get_memory_pool_free(device)
+
+            chx_memory_pool.register_single_device_memory_pool(
+                device_id, device_malloc, device_free)
+
+        cupy.set_default_memory_pool(chx_memory_pool)
+
 
 def check_cuda_available():
     """Checks if CUDA is available.
