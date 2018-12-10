@@ -1,7 +1,25 @@
 import chainer
 from chainer import backend
+from chainer.backends import _chainerx
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
+
+
+# ChainerX workaround implementation
+# TODO(niboshi): Move to better place
+def _repeat(xp, arr, *args, **kwargs):
+    if xp is not chainerx:
+        return xp.repeat(arr, *args, **kwargs)
+
+    assert not arr.is_backprop_required()
+
+    device = _chainerx.ChainerxDevice(arr.device)
+    arr_fallback = backend.from_chainerx(arr)
+    ret_fallback = device.fallback_device.xp.repeat(
+        arr_fallback, *args, **kwargs)
+    ret = backend.to_chainerx(ret_fallback)
+    return ret
 
 
 class Triplet(function_node.FunctionNode):
@@ -56,7 +74,7 @@ class Triplet(function_node.FunctionNode):
         x_dim = anchor.shape[1]
 
         xp = backend.get_array_module(anchor)
-        tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
+        tmp = _repeat(xp, self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=anchor.dtype)
 
         gy, = grad_outputs
