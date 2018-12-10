@@ -134,7 +134,12 @@ class FunctionAdapter(function_node.FunctionNode):
     def forward(self, inputs):
         # Retain all inputs by default in old-style functions.
         self.retain_inputs(six.moves.range(len(inputs)))
-        return self._function.forward(inputs)
+        if self._is_chainerx_fallback:
+            with function_node._chainerx_attribute_fallback(
+                    self._function, self.chainerx_device):
+                return self._function.forward(inputs)
+        else:
+            return self._function.forward(inputs)
 
     def backward(self, target_input_indexes, grad_outputs):
         retained_inputs = self.get_retained_inputs()
@@ -149,21 +154,27 @@ class FunctionAdapter(function_node.FunctionNode):
         grad_out_data = tuple([None if grad is None else grad.data
                                for grad in grad_outputs])
 
-        # Convert input and output gradients to numpy/cupy
-        xp = backend.get_array_module(*(in_data + grad_out_data))
-        if xp is chainerx:
+        is_chainerx_fallback = self._is_chainerx_fallback
+        if is_chainerx_fallback:
+            # Convert input and output gradients to numpy/cupy
             in_data = backend.from_chainerx(in_data)
             grad_out_data = backend.from_chainerx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
-            gxs = self._function.backward(in_data, grad_out_data)
+            if is_chainerx_fallback:
+                # Enable attribute fallback
+                with function_node._chainerx_attribute_fallback(
+                        self._function, self.chainerx_device):
+                    gxs = self._function.backward(in_data, grad_out_data)
+            else:
+                gxs = self._function.backward(in_data, grad_out_data)
 
         for x, gx in six.moves.zip(self.inputs, gxs):
             variable._check_grad_type(self, x, True, gx, False)
 
         # Convert input gradients back to ChainerX
-        if xp is chainerx:
+        if is_chainerx_fallback:
             gxs = backend.to_chainerx(gxs)
 
         ret = []
@@ -316,7 +327,7 @@ class Function(object):
         retained are set to ``None``.
 
         """
-        if self.node._is_chainerx:
+        if self.node._is_chainerx_fallback:
             return backend.from_chainerx(self.node.output_data)
         return self.node.output_data
 
