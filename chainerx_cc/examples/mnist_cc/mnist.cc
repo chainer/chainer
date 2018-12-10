@@ -16,13 +16,6 @@ namespace chx = chainerx;
 
 namespace {
 
-template <typename T>
-T ReadValue(std::ifstream& ifs) {
-    T val{0};
-    ifs.read(reinterpret_cast<char*>(&val), sizeof(val));
-    return val;
-}
-
 chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
     int64_t n = shape.GetTotalSize();
 
@@ -33,7 +26,8 @@ chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
 }
 
 int32_t ReadHeader(std::ifstream& ifs) {
-    int32_t header = ReadValue<int32_t>(ifs);
+    int32_t header{0};
+    ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
 
     // Swap byte order.
     uint32_t b1 = header & 255;
