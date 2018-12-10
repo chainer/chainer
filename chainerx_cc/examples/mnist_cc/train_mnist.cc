@@ -182,6 +182,9 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (mnist_root.empty()) {
+        throw std::runtime_error("MNIST directory cannot be empty.");
+    }
     if (mnist_root.back() != '/') {
         mnist_root += "/";
     }
