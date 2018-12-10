@@ -30,7 +30,7 @@ chx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<float>& di
     int64_t n = shape.GetTotalSize();
     std::shared_ptr<float> data{new float[n], std::default_delete<float[]>{}};
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
-    return chx::FromContiguousHostData(shape, chx::TypeToDtype<float>, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
+    return chx::FromContiguousHostData(shape, chx::Dtype::kFloat32, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
 class Model {
@@ -109,10 +109,16 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int64_t epoch = 0; epoch < epochs; ++epoch) {
-        // The underlying data of the indices' Array is contiguous so we can use std::shuffle to randomize the order.
-        assert(train_indices.IsContiguous());
+        // Shuffle indices on host device.
+        // TODO(hvy): Shuffle indices without device transfer.
+        chx::Array train_indices_host = train_indices.ToNative();
+        assert(train_indices_host.IsContiguous());
         std::shuffle(
-                reinterpret_cast<int64_t*>(train_indices.raw_data()), reinterpret_cast<int64_t*>(train_indices.raw_data()) + n_train, gen);
+                reinterpret_cast<int64_t*>(train_indices_host.raw_data()),
+                reinterpret_cast<int64_t*>(train_indices_host.raw_data()) + n_train,
+                gen);
+        train_indices = train_indices_host.ToDevice(chx::GetDefaultDevice());
+
         for (int64_t i = 0; i < n_train; i += batch_size) {
             chx::Array indices = train_indices.At({chx::Slice{i, i + batch_size}});
             chx::Array x = train_x.Take(indices, 0);
