@@ -10,7 +10,7 @@ import numpy as np
 
 class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm, allreduce_grad_dtype=None):
+    def __init__(self, mpi_comm, allreduce_grad_dtype=None, batched_pack_unpack=False):
         super(PureNcclCommunicator, self).__init__(mpi_comm)
         if not nccl._available or nccl.get_version() < 2000:
             raise RuntimeError(
@@ -35,9 +35,11 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                     'numpy.float64, or None.')
         else:
             self.allreduce_grad_dtype = None
+        self.batched_pack_unpack = batched_pack_unpack
         self.grad_dtype_to_allreduce_dtype_kernel = None
         self.allreduce_dtype_to_grad_dtype_kernel = None
         self.div_by_size = None
+        self.params_data = None
 
     def _init_comms(self):
         if self.nccl_comm is not None:
@@ -102,6 +104,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream=stream)
         self._unpack_params_from_buffer(params, grad_dtype,
                                         allreduce_grad_dtype, n_elems, stream)
+        self.params_data = None
 
     def _assign_for_allreduce_grad(self, grad_dtype, allreduce_grad_dtype,
                                    n_elems):
@@ -123,6 +126,12 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
     def _pack_params_to_buffer(self, params, grad_dtype, allreduce_grad_dtype,
                                n_elems, stream):
+        if self.batched_pack_unpack:
+            if self.params_data is None:
+                self.params_data = _memory_utility.ParamsData(params, 'grad')
+            _memory_utility.pack_params_ex(
+                self.params_data, self.gpu_buffer_a, allreduce_grad_dtype)
+            return
         if grad_dtype == allreduce_grad_dtype:
             _memory_utility.pack_params(
                 params, grad_dtype.itemsize, 'grad',
@@ -146,6 +155,12 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
     def _unpack_params_from_buffer(self, params, grad_dtype,
                                    allreduce_grad_dtype, n_elems, stream):
+        if self.batched_pack_unpack:
+            if self.params_data is None:
+                self.params_data = _memory_utility.ParamsData(params, 'grad')
+            _memory_utility.unpack_params_ex(
+                self.params_data, self.gpu_buffer_a, allreduce_grad_dtype)
+            return
         if grad_dtype == allreduce_grad_dtype:
             _memory_utility.unpack_params(
                 params, allreduce_grad_dtype.itemsize, 'grad',
@@ -166,7 +181,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             _memory_utility.unpack_params(
                 params, grad_dtype.itemsize, 'grad', self.gpu_tmp_buffer,
                 stream=stream)
-
 
 def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
     return chainer.cuda.cupy.ElementwiseKernel(
