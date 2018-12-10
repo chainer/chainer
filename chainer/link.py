@@ -246,7 +246,7 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        # type: (*tp.Any, **tp.Any) -> variable.Variable
+        # type: (*tp.Any, **tp.Any) -> tp.Any # NOQA
 
         # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer._get_link_hooks()
@@ -270,7 +270,7 @@ class Link(object):
         if forward is None:
             # forward is implemented in the child classes
             forward = self.forward  # type: ignore
-        out = forward(*args, **kwargs)  # type: variable.Variable
+        out = forward(*args, **kwargs)
 
         # Call forward_postprocess hook
         if hooks:
