@@ -9,7 +9,6 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn  # type: ignore
 
 
 class _PoolingND(function_node.FunctionNode):

@@ -21,7 +21,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn  # type: ignore
+    libcudnn = cuda.libcudnn
     _cudnn_version = libcudnn.getVersion()
 
 

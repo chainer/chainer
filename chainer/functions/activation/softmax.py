@@ -9,8 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn  # type: ignore
-    _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
+    _algorithm = cuda.libcudnn.CUDNN_SOFTMAX_ACCURATE
 
 
 class Softmax(function_node.FunctionNode):
