@@ -15,12 +15,10 @@ class Initializer(object):
 
     """
 
-    dtype = None  # type: types.DTypeSpec
-
     def __init__(self, dtype=None):
         # type: (Optional[types.DTypeSpec]) -> None
 
-        self.dtype = dtype
+        self.dtype = dtype  # type: types.DTypeSpec
 
     def __call__(self, array):
         # type: (types.NdArray) -> None

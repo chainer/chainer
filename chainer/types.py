@@ -1,11 +1,10 @@
+import numbers
 from typing import Any  # NOQA
 from typing import Optional  # NOQA
 from typing import Sequence  # NOQA
 from typing import Tuple  # NOQA
 from typing import Union  # NOQA
 from typing_extensions import Protocol  # NOQA
-
-import numbers
 
 try:
     from typing import TYPE_CHECKING  # NOQA

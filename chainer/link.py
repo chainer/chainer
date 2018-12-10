@@ -1,3 +1,6 @@
+import collections
+import contextlib
+import copy
 from typing import Any  # NOQA
 from typing import Dict  # NOQA
 from typing import Iterable  # NOQA
@@ -9,10 +12,6 @@ from typing import Tuple  # NOQA
 from typing import Union  # NOQA
 from typing import cast  # NOQA
 from typing import overload  # NOQA
-
-import collections
-import contextlib
-import copy
 import warnings
 
 import numpy
@@ -41,7 +40,8 @@ def _is_shape(value):
         except TypeError:
             return False
     try:
-        return cast(bool, int(value))
+        int(value)  # try to cast
+        return True
     except TypeError:
         return False
 
@@ -151,21 +151,16 @@ class Link(object):
 
     """
 
-    _params = None  # type: Set[str]
-    _persistent = None  # type: Set[str]
-    _device = None  # type: backend.Device
-    _within_init_scope = None  # type: bool
-    name = None  # type: Optional[str]
     _local_link_hooks = None  # type: Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
 
     def __init__(self, **params):
         # type: (**Any) -> None
 
-        self._params = set()
-        self._persistent = set()
-        self._device = backend.CpuDevice()
-        self._within_init_scope = False
-        self.name = None
+        self._params = set()  # type: Set[str]
+        self._persistent = set()  # type: Set[str]
+        self._device = backend.CpuDevice()  # type: backend.Device
+        self._within_init_scope = False  # type: bool
+        self.name = None  # type: Optional[str]
 
         for name, value in six.iteritems(params):
             shape, dtype = _ensure_shape_dtype(value)
@@ -420,11 +415,10 @@ class Link(object):
             ret._params = set(self._params)
             ret._persistent = set(self._persistent)
             ret.name = None
-            d = ret.__dict__
+            d = ret.__dict__  # type: Dict[str, chainer.Parameter]
             for name in ret._params:
-                copied = copy.copy(d[name])  # type: variable.Parameter
-                copied.grad = None
-                d[name] = copied
+                d[name] = copy.copy(d[name])
+                d[name].grad = None
             return ret
         elif mode == 'copy':
             return copy.deepcopy(self)
@@ -547,7 +541,7 @@ device.
         # a different CUDA device.
         backend_device = chainer.get_device(device)
 
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, chainer.Parameter]
         for name in self._params:
             if not (skip_between_cupy_devices
                     and backend_device.xp is cuda.cupy
@@ -577,9 +571,8 @@ device.
         """
         d = self.__dict__  # type: Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            param = d[name]  # type: variable.Parameter
-            if include_uninit or param.data is not None:
-                yield param
+            if include_uninit or d[name].data is not None:
+                yield d[name]
 
     def namedparams(self, include_uninit=True):
         # type: (bool) -> Iterator[Tuple[str, chainer.Parameter]]
@@ -594,11 +587,10 @@ device.
             paths are relative from this link.
 
         """
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            param = d[name]  # type: variable.Parameter
-            if include_uninit or param.data is not None:
-                yield '/' + name, param
+            if include_uninit or d[name].data is not None:
+                yield '/' + name, d[name]
 
     def links(self, skipself=False):
         # type: (bool) -> Iterator['Link']
@@ -764,9 +756,9 @@ device.
             serializer (~chainer.AbstractSerializer): Serializer object.
 
         """
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, chainer.Parameter]
         for name in self._params:
-            param = d[name]  # type: variable.Parameter
+            param = d[name]
             data = serializer(name, param.data)  # type: types.NdArray
             if param.data is None and data is not None:
                 # Initialize the parameter here
@@ -988,13 +980,11 @@ class Chain(Link):
 
     """
 
-    _children = None  # type: Set[str]
-
     def __init__(self, **links):
         # type: (**Link) -> None
 
         super(Chain, self).__init__()
-        self._children = set()
+        self._children = set()  # type: Set[str]
 
         for name, link in six.iteritems(links):
             self.add_link(name, link)
@@ -1044,11 +1034,10 @@ class Chain(Link):
 
         ret = cast(Chain, super(Chain, self).copy())
         ret._children = set(ret._children)
-        d = ret.__dict__
+        d = ret.__dict__  # type: Dict[str, Link]
         for name in ret._children:
-            child = d[name]  # type: Link
             # copy child links recursively
-            copied = child.copy(mode)
+            copied = d[name].copy(mode)
             copied.name = name
             d[name] = copied
         return ret
@@ -1092,10 +1081,9 @@ class Chain(Link):
 
         for param in super(Chain, self).params(include_uninit):
             yield param
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in sorted(self._children):
-            link = d[name]  # type: Link
-            for param in link.params(include_uninit):
+            for param in d[name].params(include_uninit):
                 yield param
 
     def namedparams(self, include_uninit=True):
@@ -1103,11 +1091,10 @@ class Chain(Link):
 
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in sorted(self._children):
             prefix = '/' + name
-            link = d[name]  # type: Link
-            for path, param in link.namedparams(include_uninit):
+            for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):
@@ -1115,10 +1102,9 @@ class Chain(Link):
 
         if not skipself:
             yield self
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in sorted(self._children):
-            child_link = d[name]  # type: Link
-            for link in child_link.links():
+            for link in d[name].links():
                 yield link
 
     def namedlinks(self, skipself=False):
@@ -1126,21 +1112,20 @@ class Chain(Link):
 
         if not skipself:
             yield '/', self
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in sorted(self._children):
-            child = d[name]  # type: Link
+            child = d[name]
             prefix = '/' + name
             yield prefix, child
-            for path, link in child.namedlinks(True):
+            for path, link in d[name].namedlinks(True):
                 yield prefix + path, link
 
     def children(self):
         # type: () -> Iterator[Link]
 
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in sorted(self._children):
-            child_link = d[name]  # type: Link
-            yield child_link
+            yield d[name]
 
     def copyparams(self, link, copy_persistent=True):
         # type: (Link, bool) -> None
@@ -1164,10 +1149,9 @@ class Chain(Link):
         # type: (chainer.AbstractSerializer) -> None
 
         super(Chain, self).serialize(serializer)
-        d = self.__dict__
+        d = self.__dict__  # type: Dict[str, Link]
         for name in self._children:
-            child_link = d[name]  # type: Link
-            child_link.serialize(serializer[name])
+            d[name].serialize(serializer[name])
 
 
 class ChainList(Link, collections_abc.MutableSequence):
@@ -1190,13 +1174,11 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     """
 
-    _children = None  # type: List[Link]
-
     def __init__(self, *links):
         # type: (*Link) -> None
 
         super(ChainList, self).__init__()
-        self._children = []
+        self._children = []  # type: List[Link]
 
         for link in links:
             self.add_link(link)

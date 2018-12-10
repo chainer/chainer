@@ -9,14 +9,13 @@ import chainerx
 
 
 class ChainerxDevice(_backend.Device):
-    device = None  # type: chainerx.Device
 
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
         assert isinstance(device, chainerx.Device)
         super(ChainerxDevice, self).__init__()
-        self.device = device
+        self.device = device  # type: chainerx.Device
 
     @property
     def xp(self):

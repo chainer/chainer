@@ -1,10 +1,9 @@
-from typing import List  # NOQA
-from typing import Optional  # NOQA
-
 import collections
 import contextlib
 import copy
 import json
+from typing import List  # NOQA
+from typing import Optional  # NOQA
 import warnings
 
 import numpy

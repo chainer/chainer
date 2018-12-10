@@ -1,13 +1,12 @@
+import collections
+import copy
+import heapq
+import traceback
 from typing import Any  # NOQA
 from typing import Callable  # NOQA
 from typing import List  # NOQA
 from typing import Optional  # NOQA
 from typing import Union  # NOQA
-
-import collections
-import copy
-import heapq
-import traceback
 import warnings
 import weakref
 
@@ -497,12 +496,6 @@ class Variable(object):
     # instance.
     _grad = None
 
-    _requires_grad = None  # type: bool
-
-    _data = None  # type: List[Optional[chainerx.ndarray]]
-
-    _node = None  # type: Optional[VariableNode]
-
     def __init__(self, data=None, **kwargs):
         # type: (types.NdArray, **Any) -> None
 
@@ -522,7 +515,7 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
-        self._requires_grad = requires_grad
+        self._requires_grad = requires_grad  # type: bool
         self._loss_scale = None
         self._grad_var = None
         self._device = None
@@ -535,10 +528,10 @@ class Variable(object):
             self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
-            self._node = None
+            self._node = None  # type: Optional[VariableNode]
             self._chainerx_name = name
         else:
-            self._data = [data]
+            self._data = [data]  # type: List[Optional[chainerx.ndarray]]
             self._node = VariableNode(self, name)
             self._grad = grad
 

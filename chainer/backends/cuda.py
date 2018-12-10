@@ -28,17 +28,15 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
-from typing import Any  # NOQA
-from typing import Optional  # NOQA
-from typing import Union  # NOQA
-from typing import cast  # NOQA
-
 import binascii
 import functools
 import itertools
 import os
 import threading
 import time
+from typing import Any  # NOQA
+from typing import Optional  # NOQA
+from typing import cast  # NOQA
 import warnings
 
 import numpy
@@ -53,7 +51,6 @@ from chainer import types  # NOQA
 import chainerx
 
 available = False  # type: bool
-cudnn = None  # type: Optional[types.ModuleType]
 cudnn_enabled = False  # type: bool
 
 try:
@@ -75,16 +72,15 @@ except Exception as e:
     _resolution_error = e
 
     class ndarray(object):  # type: ignore # for type testing
-        shape = property(
-            lambda self: object(),
-            lambda self, v: None,
-            lambda self: None
-        )
+        @property
+        def shape(self):
+            # type: () -> types.Shape
+            pass
 
         @property
         def device(self):
             # type: () -> 'Device'
-            return DummyDevice
+            pass
 
         def get(self, stream=None):
             # type: (Optional['Stream']) -> numpy.ndarray
@@ -120,7 +116,7 @@ if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
-        cudnn = cupy.cudnn
+        cudnn = cupy.cudnn  # type: Optional[types.ModuleType]
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
@@ -312,7 +308,6 @@ def get_device_from_array(*arrays):
 
 
 def get_device(*args):
-    # type: (*Optional[Union[types.CudaDeviceSpec, ndarray]]) -> Device
     """Gets the device from a device object, an ID integer or an array object.
 
     .. note::
@@ -348,13 +343,11 @@ def get_device(*args):
 
 
 def _get_cuda_device(*args):
-    # type: (*Optional[Union[types.CudaDeviceSpec, ndarray]]) -> Device
-
     # Returns cuda.Device or DummyDevice.
     for arg in args:
         if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
-            return Device(cast(int, arg))
+            return Device(arg)
         if isinstance(arg, ndarray):
             if arg.device is None:
                 continue

@@ -95,11 +95,6 @@ class Linear(link.Link):
 
     """
 
-    in_size = None  # type: Optional[int]
-    out_size = None  # type: Optional[int]
-    W = None  # type: variable.Variable
-    b = None  # type: Optional[variable.Variable]
-
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
         # type: (Optional[int], Optional[int], bool, Optional[types.InitializerSpec], Optional[types.InitializerSpec]) -> None # NOQA
@@ -112,12 +107,12 @@ class Linear(link.Link):
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer)  # type: variable.Variable  # NOQA
             if in_size is not None:
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None
+                self.b = None  # type: Optional[variable.Variable]
             else:
                 if initial_bias is None:
                     initial_bias = 0

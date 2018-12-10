@@ -1,8 +1,7 @@
-from typing import Optional  # NOQA
-
 import contextlib
 import sys
 import threading
+from typing import Optional  # NOQA
 
 from chainer import types  # NOQA
 
