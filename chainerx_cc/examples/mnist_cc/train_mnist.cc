@@ -24,12 +24,13 @@
 #include "chainerx/slice.h"
 #include "mnist.h"
 
-chainerx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<float>& dist, const chainerx::Shape& shape) {
+namespace chx = chainerx;
+
+chx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<float>& dist, const chx::Shape& shape) {
     int64_t n = shape.GetTotalSize();
     std::shared_ptr<float> data{new float[n], std::default_delete<float[]>{}};
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
-    return chainerx::FromContiguousHostData(
-            shape, chainerx::TypeToDtype<float>, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
+    return chx::FromContiguousHostData(shape, chx::TypeToDtype<float>, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
 class Model {
@@ -37,18 +38,18 @@ public:
     Model(int64_t n_in, int64_t n_hidden, int64_t n_out, int64_t n_layers)
         : n_in_{n_in}, n_hidden_{n_hidden}, n_out_{n_out}, n_layers_{n_layers} {};
 
-    chainerx::Array operator()(const chainerx::Array& x) {
-        chainerx::Array h = x;
+    chx::Array operator()(const chx::Array& x) {
+        chx::Array h = x;
         for (int64_t i = 0; i < n_layers_; ++i) {
-            h = chainerx::Dot(h, params_[i * 2]) + params_[i * 2 + 1];
+            h = chx::Dot(h, params_[i * 2]) + params_[i * 2 + 1];
             if (i != n_layers_ - 1) {
-                h = chainerx::Maximum(0, h);
+                h = chx::Maximum(0, h);
             }
         }
         return h;
     }
 
-    const std::vector<chainerx::Array>& params() { return params_; }
+    const std::vector<chx::Array>& params() { return params_; }
 
     void Initialize(std::mt19937& gen, std::normal_distribution<float>& dist) {
         params_.clear();
@@ -57,10 +58,10 @@ public:
             int64_t n_in = i == 0 ? n_in_ : n_hidden_;
             int64_t n_out = i == n_layers_ - 1 ? n_out_ : n_hidden_;
             params_.emplace_back(GetRandomArray(gen, dist, {n_in, n_out}));
-            params_.emplace_back(chainerx::Zeros({n_out}, chainerx::Dtype::kFloat32));
+            params_.emplace_back(chx::Zeros({n_out}, chx::Dtype::kFloat32));
         }
 
-        for (const chainerx::Array& param : params_) {
+        for (const chx::Array& param : params_) {
             param.RequireGrad();
         }
     }
@@ -70,13 +71,12 @@ private:
     int64_t n_hidden_;
     int64_t n_out_;
     int64_t n_layers_;
-    std::vector<chainerx::Array> params_;
+    std::vector<chx::Array> params_;
 };
 
-chainerx::Array SoftmaxCrossEntropy(const chainerx::Array& y, const chainerx::Array& t, bool normalize = true) {
-    chainerx::Array score = chainerx::LogSoftmax(y, 1);
-    chainerx::Array mask =
-            (t.At({chainerx::Slice{}, chainerx::NewAxis{}}) == chainerx::Arange(score.shape()[1], t.dtype())).AsType(score.dtype());
+chx::Array SoftmaxCrossEntropy(const chx::Array& y, const chx::Array& t, bool normalize = true) {
+    chx::Array score = chx::LogSoftmax(y, 1);
+    chx::Array mask = (t.At({chx::Slice{}, chx::NewAxis{}}) == chx::Arange(score.shape()[1], t.dtype())).AsType(score.dtype());
     if (normalize) {
         return -(score * mask).Sum() / y.shape()[0];
     }
@@ -85,19 +85,19 @@ chainerx::Array SoftmaxCrossEntropy(const chainerx::Array& y, const chainerx::Ar
 
 void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers, float lr, const std::string& mnist_root) {
     // Read the MNIST dataset.
-    chainerx::Array train_x = ReadMnistImages(mnist_root + "train-images-idx3-ubyte");
-    chainerx::Array train_t = ReadMnistLabels(mnist_root + "train-labels-idx1-ubyte");
-    chainerx::Array test_x = ReadMnistImages(mnist_root + "t10k-images-idx3-ubyte");
-    chainerx::Array test_t = ReadMnistLabels(mnist_root + "t10k-labels-idx1-ubyte");
+    chx::Array train_x = ReadMnistImages(mnist_root + "train-images-idx3-ubyte");
+    chx::Array train_t = ReadMnistLabels(mnist_root + "train-labels-idx1-ubyte");
+    chx::Array test_x = ReadMnistImages(mnist_root + "t10k-images-idx3-ubyte");
+    chx::Array test_t = ReadMnistLabels(mnist_root + "t10k-labels-idx1-ubyte");
 
-    train_x = train_x.AsType(chainerx::Dtype::kFloat32) / 255.f;
-    train_t = train_t.AsType(chainerx::Dtype::kInt32);
-    test_x = test_x.AsType(chainerx::Dtype::kFloat32) / 255.f;
-    test_t = test_t.AsType(chainerx::Dtype::kInt32);
+    train_x = train_x.AsType(chx::Dtype::kFloat32) / 255.f;
+    train_t = train_t.AsType(chx::Dtype::kInt32);
+    test_x = test_x.AsType(chx::Dtype::kFloat32) / 255.f;
+    test_t = test_t.AsType(chx::Dtype::kInt32);
 
     int64_t n_train = train_x.shape().front();
     int64_t n_test = test_x.shape().front();
-    chainerx::Array train_indices = chainerx::Arange(n_train, chainerx::Dtype::kInt64);
+    chx::Array train_indices = chx::Arange(n_train, chx::Dtype::kInt64);
 
     // Initialize the model with random parameters.
     Model model{train_x.shape()[1], n_hidden, 10, n_layers};
@@ -114,15 +114,15 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
         std::shuffle(
                 reinterpret_cast<int64_t*>(train_indices.raw_data()), reinterpret_cast<int64_t*>(train_indices.raw_data()) + n_train, gen);
         for (int64_t i = 0; i < n_train; i += batch_size) {
-            chainerx::Array indices = train_indices.At({chainerx::Slice{i, i + batch_size}});
-            chainerx::Array x = train_x.Take(indices, 0);
-            chainerx::Array t = train_t.Take(indices, 0);
+            chx::Array indices = train_indices.At({chx::Slice{i, i + batch_size}});
+            chx::Array x = train_x.Take(indices, 0);
+            chx::Array t = train_t.Take(indices, 0);
 
-            chainerx::Backward(SoftmaxCrossEntropy(model(x), t));
+            chx::Backward(SoftmaxCrossEntropy(model(x), t));
 
             // Vanilla SGD.
-            for (const chainerx::Array& param : model.params()) {
-                chainerx::Array p = param.AsGradStopped();
+            for (const chx::Array& param : model.params()) {
+                chx::Array p = param.AsGradStopped();
                 p -= param.GetGrad()->AsGradStopped() * lr;
                 param.ClearGrad();
             }
@@ -130,22 +130,21 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
 
         // Evaluate.
         {
-            chainerx::NoBackpropModeScope scope{};
+            chx::NoBackpropModeScope scope{};
 
-            chainerx::Array loss = chainerx::Zeros({}, chainerx::Dtype::kFloat32);
-            chainerx::Array acc = chainerx::Zeros({}, chainerx::Dtype::kFloat32);
+            chx::Array loss = chx::Zeros({}, chx::Dtype::kFloat32);
+            chx::Array acc = chx::Zeros({}, chx::Dtype::kFloat32);
 
             for (int64_t i = 0; i < n_test; i += batch_size) {
-                std::vector<chainerx::ArrayIndex> indices{chainerx::Slice{i, i + batch_size}};
-                chainerx::Array x = test_x.At(indices);
-                chainerx::Array t = test_t.At(indices);
-                chainerx::Array y = model(x);
+                std::vector<chx::ArrayIndex> indices{chx::Slice{i, i + batch_size}};
+                chx::Array x = test_x.At(indices);
+                chx::Array t = test_t.At(indices);
+                chx::Array y = model(x);
                 loss += SoftmaxCrossEntropy(y, t, false);
                 acc += (y.ArgMax(1).AsType(t.dtype()) == t).Sum().AsType(acc.dtype());
             }
 
-            std::cout << "epoch: " << epoch << " loss=" << chainerx::AsScalar(loss / n_test)
-                      << " accuracy=" << chainerx::AsScalar(acc / n_test)
+            std::cout << "epoch: " << epoch << " loss=" << chx::AsScalar(loss / n_test) << " accuracy=" << chx::AsScalar(acc / n_test)
                       << " elapsed_time=" << std::chrono::duration<double>{std::chrono::high_resolution_clock::now() - start}.count()
                       << std::endl;
         }
@@ -189,10 +188,10 @@ int main(int argc, char** argv) {
         mnist_root += "/";
     }
 
-    chainerx::Context ctx{};
-    chainerx::SetDefaultContext(&ctx);
-    chainerx::Device& device = ctx.GetDevice(device_name);
-    chainerx::SetDefaultDevice(&device);
+    chx::Context ctx{};
+    chx::SetDefaultContext(&ctx);
+    chx::Device& device = ctx.GetDevice(device_name);
+    chx::SetDefaultDevice(&device);
 
     std::cout << "Epochs: " << epochs << std::endl;
     std::cout << "Minibatch size: " << batch_size << std::endl;

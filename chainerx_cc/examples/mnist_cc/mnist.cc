@@ -12,6 +12,8 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
+namespace chx = chainerx;
+
 namespace {
 
 template <typename T>
@@ -21,14 +23,13 @@ T ReadValue(std::ifstream& ifs) {
     return val;
 }
 
-chainerx::Array ReadArray(std::ifstream& ifs, const chainerx::Shape& shape) {
+chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
     int64_t n = shape.GetTotalSize();
 
     std::shared_ptr<uint8_t> data{new uint8_t[n], std::default_delete<uint8_t[]>{}};
     ifs.read(reinterpret_cast<char*>(data.get()), n);
 
-    return chainerx::FromContiguousHostData(
-            shape, chainerx::Dtype::kUInt8, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
+    return chx::FromContiguousHostData(shape, chx::Dtype::kUInt8, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
 int32_t ReadHeader(std::ifstream& ifs) {
@@ -45,7 +46,7 @@ int32_t ReadHeader(std::ifstream& ifs) {
 
 }  // namespace
 
-chainerx::Array ReadMnistImages(const std::string& filename) {
+chx::Array ReadMnistImages(const std::string& filename) {
     std::ifstream ifs{filename.c_str(), std::ios::in | std::ios::binary};
     if (!ifs.is_open()) {
         throw std::runtime_error("Could not open MNIST images: " + filename);
@@ -66,7 +67,7 @@ chainerx::Array ReadMnistImages(const std::string& filename) {
     return ReadArray(ifs, {n, height * width});
 }
 
-chainerx::Array ReadMnistLabels(const std::string& filename) {
+chx::Array ReadMnistLabels(const std::string& filename) {
     std::ifstream ifs{filename.c_str(), std::ios::in | std::ios::binary};
     if (!ifs.is_open()) {
         throw std::runtime_error("Could not open MNIST labels: " + filename);
