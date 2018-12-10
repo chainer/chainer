@@ -20,21 +20,41 @@ from chainer.utils import argument
 import chainerx
 
 
-def _check_grad_type(func, x, gx):
-    if x.data is None or gx is None:
-        # ``x.data is None`` implies that the data array is not retained
+def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
+    if gx is None:
         return
-    if not chainer.is_arrays_compatible((gx, x.data)):
+    x_grad = gx.array if is_var_gx else gx
+
+    # FIXME: avoid `isinstance`
+    x_data = None if isinstance(x, _ChainerxVariableNodeProps) else x.data
+
+    # TODO(kataoka): Make _update_data_info store the array module.
+    # ``is_node_x and x_data is None`` implies that the data array is not
+    # retained.
+    # ``not is_node_x and x_data is None`` implies that grad of uninitialized
+    # variable is checked here.
+
+    if x_grad is None:
+        # TODO(kataoka): This should be an error.
+        return
+    elif x_data is None and not is_node_x:
+        # TODO(kataoka): This should be an error.
+        return
+    elif not chainer.is_arrays_compatible((x_grad, x_data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(gx), type(x.data)))
+               (type(x_grad), type(x_data)))
         typ = TypeError
-    elif gx.dtype != x.data.dtype:
+    elif x.dtype is None or x.shape is None:
+        # unretained Variable(None)
+        # TODO(kataoka): This should be an error.
+        return
+    elif gx.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.dtype, x.data.dtype))
+               (gx.dtype, x.dtype))
         typ = TypeError
-    elif gx.shape != x.data.shape:
+    elif gx.shape != x.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.shape, x.data.shape))
+               (gx.shape, x.shape))
         typ = ValueError
     else:
         return
@@ -52,7 +72,7 @@ def _check_grad_type(func, x, gx):
 Please report this error to the issue tracker with the stack trace,
 the information of your environment, and your script:
 https://github.com/chainer/chainer/issues/new.
-'''.format(type(func).__name__, func.label)
+'''
 
     raise typ(detail + msg)
 
@@ -889,9 +909,7 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g)
-
+        _check_grad_type(None, self, False, g, False)
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
@@ -911,8 +929,7 @@ class Variable(object):
 
     @grad_var.setter
     def grad_var(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g.array)
+        _check_grad_type(None, self, False, g, True)
         self._set_grad_var_without_check(g)
 
     @property
@@ -1407,7 +1424,7 @@ class Variable(object):
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem.array)
+                    _check_grad_type(func, x, True, gx_elem, True)
                 del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
