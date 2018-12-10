@@ -10,7 +10,7 @@ Chainer -- A flexible framework of neural networks
 
 .. toctree::
    :maxdepth: 2
-   :caption: Chainer Documents
+   :caption: Chainer Documentation
 
    glance
    install
