@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     std::string device_name{"native"};
     std::string mnist_root{"./"};
 
-    for (int i = 1; i < argc; i += 2) {
+    for (int i = 1; i < argc - 1; i += 2) {
         std::string arg = argv[i];
         if (arg == "--epoch") {
             epochs = std::atoi(argv[i + 1]);
