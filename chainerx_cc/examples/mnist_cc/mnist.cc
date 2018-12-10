@@ -1,6 +1,5 @@
 #include "mnist.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <fstream>
@@ -26,7 +25,7 @@ chainerx::Array ReadArray(std::ifstream& ifs, const chainerx::Shape& shape) {
     int64_t n = shape.GetTotalSize();
 
     std::shared_ptr<uint8_t> data{new uint8_t[n], std::default_delete<uint8_t[]>{}};
-    std::generate_n(data.get(), n, [&ifs]() { return ReadValue<uint8_t>(ifs); });
+    ifs.read(reinterpret_cast<char*>(data.get()), n);
 
     return chainerx::FromContiguousHostData(
             shape, chainerx::Dtype::kUInt8, static_cast<std::shared_ptr<void>>(data), chainerx::GetDefaultDevice());
