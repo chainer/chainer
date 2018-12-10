@@ -57,7 +57,7 @@ public:
             int64_t n_in = i == 0 ? n_in_ : n_hidden_;
             int64_t n_out = i == n_layers_ - 1 ? n_out_ : n_hidden_;
             params_.emplace_back(GetRandomArray(gen, dist, {n_in, n_out}));
-            params_.emplace_back(chainerx::Zeros({n_out}, chainerx::TypeToDtype<float>));
+            params_.emplace_back(chainerx::Zeros({n_out}, chainerx::Dtype::kFloat32));
         }
 
         for (const chainerx::Array& param : params_) {
