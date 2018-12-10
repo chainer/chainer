@@ -102,7 +102,8 @@ def numerical_grad(
         )
         numerical_grad_kernel_3 = cuda.reduce(
             'T y1, T y2, T y3, T y4, U gy, T eps', 'V gxi',
-            'isnan(-y1 + 8 * y2 - 8 * y3 + y4) ? (T) 0. : (-y1 + 8 * y2 - 8 * y3 + y4) * gy',
+            'isnan(-y1 + 8 * y2 - 8 * y3 + y4) ?'
+            '(T) 0. : (-y1 + 8 * y2 - 8 * y3 + y4) * gy',
             'a + b', 'gxi += a / (eps * 6)', '0',
             'numerical_grad_kernel_3'
         )
