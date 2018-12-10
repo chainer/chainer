@@ -1,13 +1,13 @@
 import collections
 import sys
-from typing import Any  # NOQA
+import typing as tp  # NOQA
 
 from chainer.backends import cuda
 from chainer import function_hook
 
 
 try:
-    MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook  # type: Any # to handle https://github.com/python/mypy/issues/2477 # NOQA
+    MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook  # type: tp.Any # to handle https://github.com/python/mypy/issues/2477 # NOQA
     memory_hook_available = True
 except Exception as e:
     _resolution_error = e

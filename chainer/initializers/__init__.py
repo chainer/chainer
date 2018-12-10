@@ -1,4 +1,4 @@
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 
 import numpy
 
@@ -98,7 +98,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
 
 
 def _get_initializer(initializer):
-    # type: (Optional[types.InitializerSpec]) -> types.AbstractInitializer # NOQA
+    # type: (tp.Optional[types.InitializerSpec]) -> types.AbstractInitializer # NOQA
 
     if initializer is None:
         return LeCunNormal()

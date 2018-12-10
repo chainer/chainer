@@ -7,9 +7,9 @@ from chainer import types
 
 
 if types.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    import typing_extensions as tpe
 
-    class RMSpropGravesHyperparameter(Protocol):
+    class RMSpropGravesHyperparameter(tpe.Protocol):
         """Protocol class for hyperparameter of Alex Graves's RMSprop.
 
         This is only for PEP 544 compliant static type checkers.

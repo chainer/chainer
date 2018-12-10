@@ -1,12 +1,4 @@
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
-from typing import overload
+import typing as tp
 
 from chainer import function_node
 import numpy
@@ -44,75 +36,75 @@ class ForceBackpropMode:
     def __exit__(self, *args) -> None: ...
 
 
-@overload
+@tp.overload
 def no_backprop_mode(arg0: BackpropId) -> NoBackpropMode: ...
 
 
-@overload
-def no_backprop_mode(arg0: List[BackpropId]) -> NoBackpropMode: ...
+@tp.overload
+def no_backprop_mode(arg0: tp.List[BackpropId]) -> NoBackpropMode: ...
 
 
-@overload
-def no_backprop_mode(context: Optional[Context]=None) -> NoBackpropMode: ...
+@tp.overload
+def no_backprop_mode(context: tp.Optional[Context]=None) -> NoBackpropMode: ...
 
 
-@overload
+@tp.overload
 def force_backprop_mode(arg0: BackpropId) -> ForceBackpropMode: ...
 
 
-@overload
-def force_backprop_mode(arg0: List[BackpropId]) -> ForceBackpropMode: ...
+@tp.overload
+def force_backprop_mode(arg0: tp.List[BackpropId]) -> ForceBackpropMode: ...
 
 
-@overload
+@tp.overload
 def force_backprop_mode(context: Context=None) -> ForceBackpropMode: ...
 
 
-@overload
+@tp.overload
 def is_backprop_required(arg0: BackpropId) -> bool: ...
 
 
-@overload
-def is_backprop_required(context: Optional[Context]=None) -> bool: ...
+@tp.overload
+def is_backprop_required(context: tp.Optional[Context]=None) -> bool: ...
 
 
 # chainerx_cc/chainerx/python/backward.cc
 def backward(
-        arg0: Union[ndarray, List[ndarray]],
-        backprop_id: Optional[BackpropId]=None,
+        arg0: tp.Union[ndarray, tp.List[ndarray]],
+        backprop_id: tp.Optional[BackpropId]=None,
         enable_double_backprop: bool=...) -> None: ...
 
 
 # python/check_backward.cc
 def check_backward(
-        func: Callable[[ndarray], None],
-        inputs: List[ndarray],
-        grad_outputs: List[ndarray],
-        eps: List[ndarray],
+        func: tp.Callable[[ndarray], None],
+        inputs: tp.List[ndarray],
+        grad_outputs: tp.List[ndarray],
+        eps: tp.List[ndarray],
         atol: float=...,
         rtol: float=...,
-        backprop_id: Optional[BackpropId]=None) -> None: ...
+        backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
 
 def check_double_backward(
-        func: Callable[[ndarray], None],
-        inputs: List[ndarray],
-        grad_outputs: List[ndarray],
-        grad_grad_inputs: List[ndarray],
-        eps: List[ndarray],
+        func: tp.Callable[[ndarray], None],
+        inputs: tp.List[ndarray],
+        grad_outputs: tp.List[ndarray],
+        grad_grad_inputs: tp.List[ndarray],
+        eps: tp.List[ndarray],
         atol: float=...,
         rtol: float=...,
-        backprop_id: Optional[BackpropId]=None) -> None: ...
+        backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
 
 # chainerx_cc/chainerx/python/context.cc
 class Context:
     def get_backend(self, arg0: str) -> Backend: ...
 
-    @overload
+    @tp.overload
     def get_device(self, arg0: str) -> Device: ...
 
-    @overload
+    @tp.overload
     def get_device(self, arg0: str, arg1: int) -> Device: ...
 
     def make_backprop_id(self, backprop_name: str) -> BackpropId: ...
@@ -131,12 +123,12 @@ class ContextScope:
 def get_backend(arg0: str) -> Backend: ...
 
 
-@overload
+@tp.overload
 def get_device(device: Device) -> Device: ...
 
 
-@overload
-def get_device(arg0: str, arg1: Optional[int]=None) -> Device: ...
+@tp.overload
+def get_device(arg0: str, arg1: tp.Optional[int]=None) -> Device: ...
 
 
 def get_default_context() -> Context: ...
@@ -171,20 +163,20 @@ class Device:
 def get_default_device() -> Device: ...
 
 
-@overload
+@tp.overload
 def set_default_device(arg0: Device) -> None: ...
 
 
-@overload
+@tp.overload
 def set_default_device(arg0: str) -> None: ...
 
 
-@overload
+@tp.overload
 def using_device(arg0: Device) -> DeviceScope: ...
 
 
-@overload
-def using_device(arg0: str, arg1: Optional[int]=None) -> DeviceScope: ...
+@tp.overload
+def using_device(arg0: str, arg1: tp.Optional[int]=None) -> DeviceScope: ...
 
 
 class DeviceScope:
@@ -244,23 +236,23 @@ class Scalar:
     @property
     def dtype(self) -> numpy.dtype: ...
 
-    @overload
+    @tp.overload
     def __init__(self, value: bool) -> None: ...
 
-    @overload
+    @tp.overload
     def __init__(self, value: int) -> None: ...
 
-    @overload
+    @tp.overload
     def __init__(self, value: float) -> None: ...
 
-    @overload
-    def __init__(self, value: bool, dtype: Any) -> None: ...
+    @tp.overload
+    def __init__(self, value: bool, dtype: tp.Any) -> None: ...
 
-    @overload
-    def __init__(self, value: int, dtype: Any) -> None: ...
+    @tp.overload
+    def __init__(self, value: int, dtype: tp.Any) -> None: ...
 
-    @overload
-    def __init__(self, value: float, dtype: Any) -> None: ...
+    @tp.overload
+    def __init__(self, value: float, dtype: tp.Any) -> None: ...
 
     def __bool__(self) -> bool: ...
 
@@ -274,7 +266,7 @@ class Scalar:
 
     def __repr__(self) -> str: ...
 
-    def tolist(self) -> Any: ...
+    def toList(self) -> tp.Any: ...
 
 
 # chainerx_cc/chainerx/python/array.cc
@@ -295,7 +287,7 @@ class ndarray:
     def dtype(self) -> numpy.dtype: ...
 
     @property
-    def grad(self) -> Optional[ndarray]: ...
+    def grad(self) -> tp.Optional[ndarray]: ...
 
     @property
     def is_contiguous(self) -> bool: ...
@@ -313,15 +305,15 @@ class ndarray:
     def offset(self) -> int: ...
 
     @property
-    def shape(self) -> Tuple[int, ...]: ...
+    def shape(self) -> tp.Tuple[int, ...]: ...
 
     @property
     def size(self) -> int: ...
 
     @property
-    def strides(self) -> Tuple[int, ...]: ...
+    def strides(self) -> tp.Tuple[int, ...]: ...
 
-    def __add__(self, arg0: Any) -> ndarray: ...
+    def __add__(self, arg0: tp.Any) -> ndarray: ...
 
     def __bool__(self) -> bool: ...
 
@@ -329,208 +321,208 @@ class ndarray:
 
     def __ge__(self, arg0: ndarray) -> ndarray: ...
 
-    def __getitem__(self, key: Any) -> ndarray: ...
+    def __getitem__(self, key: tp.Any) -> ndarray: ...
 
-    def __gt__(self, arg0: Any) -> ndarray: ...
+    def __gt__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __iadd__(self, arg0: Any) -> ndarray: ...
+    def __iadd__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __imul__(self, arg0: Any) -> ndarray: ...
+    def __imul__(self, arg0: tp.Any) -> ndarray: ...
 
     def __init__(
             self,
-            shape: Tuple[int, ...],
-            dtype: Any,
-            device: Optional[Device]=None) -> None: ...
+            shape: tp.Tuple[int, ...],
+            dtype: tp.Any,
+            device: tp.Optional[Device]=None) -> None: ...
 
     def __int__(self) -> int: ...
 
-    def __isub__(self, arg0: Any) -> ndarray: ...
+    def __isub__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __itruediv__(self, arg0: Any) -> ndarray: ...
+    def __itruediv__(self, arg0: tp.Any) -> ndarray: ...
 
     def __le__(self, arg0: ndarray) -> ndarray: ...
 
     def __len__(self) -> int: ...
 
-    def __lt__(self, arg0: Any) -> ndarray: ...
+    def __lt__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __mul__(self, arg0: Any) -> ndarray: ...
+    def __mul__(self, arg0: tp.Any) -> ndarray: ...
 
     def __neg__(self) -> ndarray: ...
 
-    def __radd__(self, arg0: Any) -> ndarray: ...
+    def __radd__(self, arg0: tp.Any) -> ndarray: ...
 
     def __repr__(self) -> str: ...
 
-    def __rmul__(self, arg0: Any) -> ndarray: ...
+    def __rmul__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __rsub__(self, arg0: Any) -> ndarray: ...
+    def __rsub__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __sub__(self, arg0: Any) -> ndarray: ...
+    def __sub__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __truediv__(self, arg0: Any) -> ndarray: ...
+    def __truediv__(self, arg0: tp.Any) -> ndarray: ...
 
-    def argmax(self, axis: Optional[int]=None) -> ndarray: ...
+    def argmax(self, axis: tp.Optional[int]=None) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def as_grad_stopped(self, copy: bool=...) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def as_grad_stopped(
             self,
-            arg0: List[BackpropId],
+            arg0: tp.List[BackpropId],
             copy: bool=...) -> ndarray: ...
 
-    def astype(self, dtype: Any, copy: bool=...) -> ndarray: ...
+    def astype(self, dtype: tp.Any, copy: bool=...) -> ndarray: ...
 
     def backward(
             self,
-            backprop_id: Optional[BackpropId]=None,
+            backprop_id: tp.Optional[BackpropId]=None,
             enable_double_backprop: bool=...) -> None: ...
 
-    def cleargrad(self, backprop_id: Optional[BackpropId]=None) -> None: ...
+    def cleargrad(self, backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
-    def clip(self, a_min: Optional[int], a_max: Optional[int]): ...
+    def clip(self, a_min: tp.Optional[int], a_max: tp.Optional[int]): ...
 
     def copy(self) -> ndarray: ...
 
     def dot(self, b: ndarray) -> ndarray: ...
 
-    def fill(self, value: Any) -> None: ...
+    def fill(self, value: tp.Any) -> None: ...
 
-    def get_grad(self, backprop_id: Optional[BackpropId]=None) -> ndarray: ...
+    def get_grad(self, backprop_id: tp.Optional[BackpropId]=None) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def is_backprop_required(
             self,
             backprop_id:
-            Optional[BackpropId]=None) -> bool: ...
+            tp.Optional[BackpropId]=None) -> bool: ...
 
-    @overload
+    @tp.overload
     def is_backprop_required(self, backprop_id: AnyGraph) -> bool: ...
 
     def is_grad_required(
             self,
-            backprop_id: Optional[BackpropId]=None) -> bool: ...
+            backprop_id: tp.Optional[BackpropId]=None) -> bool: ...
 
-    @overload
+    @tp.overload
     def max(self,
             axis: int,
             keepdims: bool=...) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def max(self,
-            axis: Optional[Tuple[int, ...]]=None,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
     def ravel(self) -> ndarray: ...
 
     def require_grad(
             self,
-            backprop_id: Optional[BackpropId]=None) -> ndarray: ...
+            backprop_id: tp.Optional[BackpropId]=None) -> ndarray: ...
 
-    @overload
-    def reshape(self, arg0: Tuple[int, ...]) -> ndarray: ...
+    @tp.overload
+    def reshape(self, arg0: tp.Tuple[int, ...]) -> ndarray: ...
 
-    @overload
-    def reshape(self, arg0: List[int]) -> ndarray: ...
+    @tp.overload
+    def reshape(self, arg0: tp.List[int]) -> ndarray: ...
 
-    @overload
-    def reshape(self, *args: Any) -> ndarray: ...
+    @tp.overload
+    def reshape(self, *args: tp.Any) -> ndarray: ...
 
     def set_grad(
             self,
             grad: ndarray,
-            backprop_id: Optional[BackpropId]=None) -> None: ...
+            backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
-    @overload
-    def squeeze(self, axis: Optional[Tuple[int, ...]]=None) -> ndarray: ...
+    @tp.overload
+    def squeeze(self, axis: tp.Optional[tp.Tuple[int, ...]]=None) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def squeeze(self, axis: int) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def sum(self, axis: int, keepdims: bool=...) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def sum(self,
-            axis: Optional[Tuple[int, ...]]=None,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
-    def take(self, indices: ndarray, axis: Optional[int]=None) -> ndarray: ...
+    def take(self, indices: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def to_device(self, arg0: Device) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def to_device(self, arg0: str, arg1: int) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def transpose(
             self,
-            axes: Optional[List[int]]=None) -> ndarray: ...
+            axes: tp.Optional[tp.List[int]]=None) -> ndarray: ...
 
-    @overload
-    def transpose(self, *args: Any) -> ndarray: ...
+    @tp.overload
+    def transpose(self, *args: tp.Any) -> ndarray: ...
 
-    @overload
+    @tp.overload
     def transpose(self, axes: int) -> ndarray: ...
 
     def view(self) -> ndarray: ...
 
 
 # chainerx_cc/chainerx/python/routines.cc
-def add(x1: Any, x2: Any) -> ndarray: ...
+def add(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def amax(a: ndarray,
-         axis: Union[int, Optional[List[int]]]=None,
+         axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
          keepdims: bool=...) -> ndarray: ...
 
 
 def arange(
-        start: Any,
-        stop: Optional[Any]=None,
-        step: Optional[Any]=None,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        start: tp.Any,
+        stop: tp.Optional[tp.Any]=None,
+        step: tp.Optional[tp.Any]=None,
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def argmax(a: ndarray, axis: Optional[int]=None) -> ndarray: ...
+def argmax(a: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
 
 
 def array(
-        object: Any,
-        dtype: Optional[Any]=None,
+        object: tp.Any,
+        dtype: tp.Optional[tp.Any]=None,
         copy: bool=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def asarray(
-        object: Any,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        object: tp.Any,
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def ascontiguousarray(
-        a: Any,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        a: tp.Any,
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def asscalar(a: ndarray) -> Any: ...
+def asscalar(a: ndarray) -> tp.Any: ...
 
 
 def average_pool(
         x: ndarray,
-        ksize: Union[int, Tuple[int, ...]],
-        stride: Optional[Union[int, Tuple[int, ...]]]=None,
-        pad: Union[int, Tuple[int, ...]]=...,
+        ksize: tp.Union[int, tp.Tuple[int, ...]],
+        stride: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]]=None,
+        pad: tp.Union[int, tp.Tuple[int, ...]]=...,
         pad_mode: str=...) -> ndarray: ...
 
 
-def backprop_scope(backprop_name: str, context: Any=None) -> BackpropScope: ...
+def backprop_scope(backprop_name: str, context: tp.Any=None) -> BackpropScope: ...
 
 
 def batch_norm(
@@ -541,13 +533,13 @@ def batch_norm(
         running_var: ndarray,
         eps: float=...,
         decay: float=...,
-        axis: Optional[Union[int, Tuple[int, ...]]]=None) -> ndarray: ...
+        axis: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]]=None) -> ndarray: ...
 
 
-def broadcast_to(array: ndarray, shape: Tuple[int, ...]) -> ndarray: ...
+def broadcast_to(array: ndarray, shape: tp.Tuple[int, ...]) -> ndarray: ...
 
 
-def concatenate(arrays: List[ndarray], axis: Optional[int]=...) -> ndarray: ...
+def concatenate(arrays: tp.List[ndarray], axis: tp.Optional[int]=...) -> ndarray: ...
 
 
 def context_scope(arg0: Context) -> ContextScope: ...
@@ -556,46 +548,46 @@ def context_scope(arg0: Context) -> ContextScope: ...
 def conv(
         x: ndarray,
         w: ndarray,
-        b: Optional[ndarray]=None,
-        stride: Union[int, Tuple[int, ...]]=...,
-        pad: Union[int, Tuple[int, ...]]=...,
+        b: tp.Optional[ndarray]=None,
+        stride: tp.Union[int, tp.Tuple[int, ...]]=...,
+        pad: tp.Union[int, tp.Tuple[int, ...]]=...,
         cover_all: bool=False) -> ndarray: ...
 
 
 def conv_transpose(
         x: ndarray,
         w: ndarray,
-        b: Optional[ndarray]=None,
-        stride: Union[int, Tuple[int, ...]]=...,
-        pad: Union[int, Tuple[int, ...]]=...,
-        outsize: Optional[Tuple[int, ...]]=None) -> ndarray: ...
+        b: tp.Optional[ndarray]=None,
+        stride: tp.Union[int, tp.Tuple[int, ...]]=...,
+        pad: tp.Union[int, tp.Tuple[int, ...]]=...,
+        outsize: tp.Optional[tp.Tuple[int, ...]]=None) -> ndarray: ...
 
 
 def copy(a: ndarray) -> ndarray: ...
 
 
-def diag(v: ndarray, k: int=..., device: Optional[Device]=None) -> ndarray: ...
+def diag(v: ndarray, k: int=..., device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def diagflat(
         v: ndarray,
         k: int=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def divide(x1: Any, x2: Any) -> ndarray: ...
+def divide(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def dot(a: ndarray, b: ndarray) -> ndarray: ...
 
 
 def empty(
-        shape: Union[int, Tuple[int, ...]],
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        shape: tp.Union[int, tp.Tuple[int, ...]],
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def empty_like(a: ndarray, device: Optional[Device]=None) -> ndarray: ...
+def empty_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def equal(x1: ndarray, x2: ndarray) -> ndarray: ...
@@ -605,10 +597,10 @@ def exp(x: ndarray) -> ndarray: ...
 
 
 def eye(N: int,
-        M: Optional[int]=None,
+        M: tp.Optional[int]=None,
         k: int=...,
-        dtype: Optional[Any]=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        dtype: tp.Optional[tp.Any]=...,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def fixed_batch_norm(
@@ -618,28 +610,28 @@ def fixed_batch_norm(
         mean: ndarray,
         var: ndarray,
         eps: float=...,
-        axis: Optional[Union[int, List[int]]]=None) -> ndarray: ...
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
 def frombuffer(
-        buffer: Any,
-        dtype: Optional[Any]=...,
+        buffer: tp.Any,
+        dtype: tp.Optional[tp.Any]=...,
         count: int=...,
         offset: int=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def full(
-        shape: Union[int, Tuple[int, ...]],
-        fill_value: Any,
-        dtype: Optional[Any],
-        device: Optional[Device]=None) -> ndarray: ...
+        shape: tp.Union[int, tp.Tuple[int, ...]],
+        fill_value: tp.Any,
+        dtype: tp.Optional[tp.Any],
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def full_like(
         a: ndarray,
-        fill_value: Any,
-        device: Optional[Device]=None) -> ndarray: ...
+        fill_value: tp.Any,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def greater(x1: ndarray, x2: ndarray) -> ndarray: ...
@@ -650,8 +642,8 @@ def greater_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
 
 def identity(
         n: int,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def is_available(): ...
@@ -672,17 +664,17 @@ def less_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
 def linear(
         x: ndarray,
         w: ndarray,
-        b: Optional[ndarray]=None,
+        b: tp.Optional[ndarray]=None,
         n_batch_axes: int=1) -> ndarray: ...
 
 
 def linspace(
-        start: Any,
-        stop: Any,
+        start: tp.Any,
+        stop: tp.Any,
         num: int=...,
         endpoint: bool=True,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def log(x: ndarray) -> ndarray: ...
@@ -690,7 +682,7 @@ def log(x: ndarray) -> ndarray: ...
 
 def log_softmax(
         x: ndarray,
-        axis: Optional[Union[int, List[int]]]=None) -> ndarray: ...
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
 def logical_not(x: ndarray) -> ndarray: ...
@@ -698,22 +690,22 @@ def logical_not(x: ndarray) -> ndarray: ...
 
 def logsumexp(
         x: ndarray,
-        axis: Optional[Union[int, List[int]]]=None,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
         keepdims: bool=...) -> ndarray: ...
 
 
 def max_pool(
         x: ndarray,
-        ksize: Any,
-        stride: Union[int, Tuple[int, ...]]=None,
-        pad: Union[int, Tuple[int, ...]]=...,
+        ksize: tp.Any,
+        stride: tp.Union[int, tp.Tuple[int, ...]]=None,
+        pad: tp.Union[int, tp.Tuple[int, ...]]=...,
         cover_all: bool=...) -> ndarray: ...
 
 
-def maximum(x1: Any, x2: Any) -> ndarray: ...
+def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
-def multiply(x1: Any, x2: Any) -> ndarray: ...
+def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def negative(x: ndarray) -> ndarray: ...
@@ -722,34 +714,34 @@ def negative(x: ndarray) -> ndarray: ...
 def not_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
 
 
-def ones(shape: Union[int, Tuple[int, ...]],
-         dtype: Optional[Any]=None,
-         device: Optional[Device]=None) -> ndarray: ...
+def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
+         dtype: tp.Optional[tp.Any]=None,
+         device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def ones_like(a: ndarray, device: Optional[Device]=None) -> ndarray: ...
+def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-@overload
+@tp.overload
 def reshape(
         a: ndarray,
-        newshape: Union[int, Tuple[int, ...]]) -> ndarray: ...
+        newshape: tp.Union[int, tp.Tuple[int, ...]]) -> ndarray: ...
 
 
-@overload
+@tp.overload
 def reshape(
         a: ndarray,
-        newshape: Union[int, List[int]]) -> ndarray: ...
+        newshape: tp.Union[int, tp.List[int]]) -> ndarray: ...
 
 
-@overload
-def reshape(a: ndarray, *args: Any) -> ndarray: ...
+@tp.overload
+def reshape(a: ndarray, *args: tp.Any) -> ndarray: ...
 
 
 def split(
         ary: ndarray,
-        indices_or_sections: Union[int, List[int]],
-        axis: int=...) -> List[ndarray]: ...
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        axis: int=...) -> tp.List[ndarray]: ...
 
 
 def sqrt(x: ndarray) -> ndarray: ...
@@ -757,21 +749,21 @@ def sqrt(x: ndarray) -> ndarray: ...
 
 def squeeze(
         a: ndarray,
-        axis: Optional[Union[int, List[int]]]=None) -> ndarray: ...
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
-def stack(arrays: List[ndarray], axis: int=...) -> ndarray: ...
+def stack(arrays: tp.List[ndarray], axis: int=...) -> ndarray: ...
 
 
-def subtract(x1: Any, x2: Any) -> ndarray: ...
+def subtract(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def sum(a: ndarray,
-        axis: Optional[Union[int, List[int]]]=None,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
         keepdims: bool=...) -> ndarray: ...
 
 
-def take(a: ndarray, indices: ndarray, axis: Optional[int]) -> ndarray: ...
+def take(a: ndarray, indices: ndarray, axis: tp.Optional[int]) -> ndarray: ...
 
 
 def tanh(x: ndarray) -> ndarray: ...
@@ -782,58 +774,58 @@ def to_numpy(array: ndarray, copy: bool=...) -> numpy.ndarray: ...
 
 def transpose(
         a: ndarray,
-        axes: Optional[Union[int, List[int]]]=None) -> ndarray: ...
+        axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
 def zeros(
-        shape: Union[int, Tuple[int, ...]],
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        shape: tp.Union[int, tp.Tuple[int, ...]],
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def zeros_like(a: ndarray, device: Optional[Device]=None) -> ndarray: ...
+def zeros_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 # chainerx_cc/chainerx/python/chainer_interop.cc
 def _function_node_forward(
         function_node: function_node.FunctionNode,
-        inputs: List[ndarray],
-        outputs: List[ndarray],
-        input_indexes_to_retain: List[int],
-        output_indexes_to_retain: List[int]) -> None: ...
+        inputs: tp.List[ndarray],
+        outputs: tp.List[ndarray],
+        input_indexes_to_retain: tp.List[int],
+        output_indexes_to_retain: tp.List[int]) -> None: ...
 
 
 # chainerx/creation/from_data.py
 def asanyarray(
         a: ndarray,
-        dtype: Optional[Any]=None,
-        device: Optional[Device]=None) -> ndarray: ...
+        dtype: tp.Optional[tp.Any]=None,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def fromfile(
         file: str,
-        dtype: Optional[Any]=...,
+        dtype: tp.Optional[tp.Any]=...,
         count: int=...,
         sep: str=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def fromfunction(
-        function: Callable[..., Any],
-        shape: Tuple[int, ...],
-        **kwargs: Any) -> ndarray: ...
+        function: tp.Callable[..., tp.Any],
+        shape: tp.Tuple[int, ...],
+        **kwargs: tp.Any) -> ndarray: ...
 
 
 def fromiter(
-        iterable: Iterable[Any],
-        dtype: Optional[Any],
+        iterable: tp.Iterable[tp.Any],
+        dtype: tp.Optional[tp.Any],
         count: int=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 def fromstring(
         string: str,
-        dtype: Optional[Any]=float,
+        dtype: tp.Optional[tp.Any]=float,
         count=...,
         sep=...,
         device=None) -> ndarray: ...
@@ -841,16 +833,16 @@ def fromstring(
 
 def loadtxt(
         fname: str,
-        dtype: Optional[Any]=...,
-        comments: Optional[Union[str, Iterable[str]]]=...,
-        delimiter: Optional[str]=None,
-        converters: Optional[Dict[int, Callable[[str], Any]]]=None,
+        dtype: tp.Optional[tp.Any]=...,
+        comments: tp.Optional[tp.Union[str, tp.Iterable[str]]]=...,
+        delimiter: tp.Optional[str]=None,
+        converters: tp.Optional[tp.Dict[int, tp.Callable[[str], tp.Any]]]=None,
         skiprows: int=...,
-        usecols: Optional[Union[int, Iterable[int]]]=None,
+        usecols: tp.Optional[tp.Union[int, tp.Iterable[int]]]=None,
         unpack: bool=...,
         ndmin: int=...,
-        encoding: Optional[str]=...,
-        device: Optional[Device]=None) -> ndarray: ...
+        encoding: tp.Optional[str]=...,
+        device: tp.Optional[Device]=None) -> ndarray: ...
 
 
 # chainerx/activation.py
@@ -868,4 +860,4 @@ def ravel(a: ndarray) -> ndarray: ...
 def square(x: ndarray) -> ndarray: ...
 
 
-def clip(a: ndarray, a_min: Any, a_max: Any) -> ndarray: ...
+def clip(a: ndarray, a_min: tp.Any, a_max: tp.Any) -> ndarray: ...

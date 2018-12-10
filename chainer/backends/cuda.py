@@ -34,8 +34,7 @@ import itertools
 import os
 import threading
 import time
-from typing import Any  # NOQA
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -66,7 +65,7 @@ try:
     from cupy.cuda import Event  # type: ignore # NOQA
     from cupy.cuda import Stream  # type: ignore # NOQA
 
-    libcudnn = cuda.cudnn  # type: Any # NOQA
+    libcudnn = cuda.cudnn  # type: tp.Any # NOQA
     available = True
 except Exception as e:
     _resolution_error = e
@@ -83,16 +82,16 @@ except Exception as e:
             pass
 
         def get(self, stream=None):
-            # type: (Optional['Stream']) -> numpy.ndarray
+            # type: (tp.Optional['Stream']) -> numpy.ndarray
             pass
 
         def set(self, arr, stream=None):
-            # type: (numpy.ndarray, Optional['Stream']) -> None
+            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
             pass
 
     class Device(object):  # type: ignore # for type testing
         def __init__(self, device=None):
-            # type: (Optional[int]) -> None
+            # type: (tp.Optional[int]) -> None
             pass
 
         def __enter__(self):
@@ -100,7 +99,7 @@ except Exception as e:
             pass
 
         def __exit__(self, *args):
-            # type: (*Any) -> None
+            # type: (*tp.Any) -> None
             pass
 
     class Event(object):  # type: ignore # for type testing
@@ -117,7 +116,7 @@ if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
-        cudnn = cupy.cudnn  # type: Optional[types.ModuleType]
+        cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
@@ -263,7 +262,7 @@ def _get_device(device_spec):
 # Global states
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
-    # type: (Optional[int]) -> Device
+    # type: (tp.Optional[int]) -> Device
     """Gets the device from an ID integer.
 
     Args:
@@ -361,7 +360,7 @@ def _get_cuda_device(*args):
 
 
 def _get_device_or_current(device):
-    # type: (Optional[types.CudaDeviceSpec]) -> Device
+    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
 
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.

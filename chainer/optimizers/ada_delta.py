@@ -7,9 +7,9 @@ from chainer import types
 
 
 if types.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    import typing_extensions as tpe
 
-    class AdaDeltaHyperparameter(Protocol):
+    class AdaDeltaHyperparameter(tpe.Protocol):
         """Protocol class for hyperparameter of Zeiler's ADADELTA.
 
         This is only for PEP 544 compliant static type checkers.

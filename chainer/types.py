@@ -1,10 +1,6 @@
 import numbers
-from typing import Any  # NOQA
-from typing import Optional  # NOQA
-from typing import Sequence  # NOQA
-from typing import Tuple  # NOQA
-from typing import Union  # NOQA
-from typing_extensions import Protocol  # NOQA
+import typing as tp  # NOQA
+import typing_extensions as tpe  # NOQA
 
 try:
     from typing import TYPE_CHECKING  # NOQA
@@ -25,16 +21,16 @@ if TYPE_CHECKING:
     import chainerx  # NOQA
 
 
-Shape = Tuple[int, ...]
+Shape = tp.Tuple[int, ...]
 
 
-ShapeSpec = Union[int, Sequence[int]]  # Sequence includes Tuple[int, ...]
+ShapeSpec = tp.Union[int, tp.Sequence[int]]  # Sequence includes Tuple[int, ...] # NOQA
 
 
-DTypeSpec = Union[Any]  # TODO(okapies): encode numpy.dtype
+DTypeSpec = tp.Union[tp.Any]  # TODO(okapies): encode numpy.dtype
 
 
-NdArray = Union[
+NdArray = tp.Union[
     'numpy.ndarray',
     'cuda.ndarray',
     # 'intel64.mdarray',
@@ -45,10 +41,10 @@ NdArray = Union[
 """
 
 
-Xp = Union[Any]  # TODO(okapies): encode numpy/cupy/ideep/chainerx
+Xp = tp.Union[tp.Any]  # TODO(okapies): encode numpy/cupy/ideep/chainerx
 
 
-class AbstractInitializer(Protocol):
+class AbstractInitializer(tpe.Protocol):
     """Protocol class for Initializer.
 
     It can be either an :class:`chainer.Initializer` or a callable object
@@ -56,14 +52,14 @@ class AbstractInitializer(Protocol):
 
     This is only for PEP 544 compliant static type checkers.
     """
-    dtype = None  # type: Optional[DTypeSpec]
+    dtype = None  # type: tp.Optional[DTypeSpec]
 
     def __call__(self, array):
         # type: (NdArray) -> None
         pass
 
 
-ScalarValue = Union[
+ScalarValue = tp.Union[
     'numpy.generic',
     bytes,
     str,
@@ -74,24 +70,24 @@ ScalarValue = Union[
 """
 
 
-InitializerSpec = Union[AbstractInitializer, ScalarValue, 'numpy.ndarray']
+InitializerSpec = tp.Union[AbstractInitializer, ScalarValue, 'numpy.ndarray']
 
 
-DeviceSpec = Union[
+DeviceSpec = tp.Union[
     'backend.Device',
     'chainerx.Device',
     'cuda.Device',
     str,
-    Tuple[str, int],
+    tp.Tuple[str, int],
     'ModuleType',  # numpy and intel64 module
-    Tuple['ModuleType', int],  # cupy module and device ID
+    tp.Tuple['ModuleType', int],  # cupy module and device ID
 ]
 """The device specifier types supported in :func:`chainer.get_device`
 """
 # TODO(okapies): Use Xp instead of ModuleType
 
 
-CudaDeviceSpec = Union['cuda.Device', int, 'numpy.integer']  # NOQA
+CudaDeviceSpec = tp.Union['cuda.Device', int, 'numpy.integer']  # NOQA
 """
 This type only for the deprecated :func:`chainer.cuda.get_device` API.
 Use :class:`~chainer.types.DeviceSpec` instead.

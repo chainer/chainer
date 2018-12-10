@@ -9,9 +9,9 @@ from chainer import types
 
 
 if types.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    import typing_extensions as tpe
 
-    class MSVAGHyperparameter(Protocol):
+    class MSVAGHyperparameter(tpe.Protocol):
         """Protocol class for hyperparameter of M-SVAG.
 
         This is only for PEP 544 compliant static type checkers.

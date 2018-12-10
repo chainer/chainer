@@ -1,4 +1,4 @@
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 
 from chainer.functions.connection import linear
 from chainer import initializers
@@ -96,7 +96,7 @@ class Linear(link.Link):
 
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
-        # type: (Optional[int], Optional[int], bool, Optional[types.InitializerSpec], Optional[types.InitializerSpec]) -> None # NOQA
+        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
 
         super(Linear, self).__init__()
 
@@ -111,7 +111,7 @@ class Linear(link.Link):
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None  # type: Optional[variable.Variable]
+                self.b = None  # type: tp.Optional[variable.Variable]
             else:
                 if initial_bias is None:
                     initial_bias = 0

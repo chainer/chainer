@@ -1,7 +1,7 @@
 import contextlib
 import sys
 import threading
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 
 from chainer import types  # NOQA
 
@@ -22,7 +22,7 @@ class GlobalConfig(object):
     use_cudnn = None  # type: str
     use_cudnn_tensor_core = None  # type: str
     autotune = None  # type: bool
-    schedule_func = None  # type: Optional[static_graph.StaticScheduleFunction] # NOQA
+    schedule_func = None  # type: tp.Optional[static_graph.StaticScheduleFunction] # NOQA
     use_ideep = None  # type: str
     lazy_grad_sum = None  # type: bool
     cudnn_fast_batch_normalization = None  # type: bool

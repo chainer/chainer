@@ -1,7 +1,4 @@
-from typing import Any  # NOQA
-from typing import Dict  # NOQA
-from typing import Optional  # NOQA
-from typing import Tuple  # NOQA
+import typing as tp  # NOQA
 
 import chainer
 from chainer import utils
@@ -11,7 +8,7 @@ class _ForwardPreprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_preprocess"""
 
     def __init__(self, link, forward_name, args, kwargs):
-        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any]) -> None # NOQA
+        # type: ('chainer.link.Link', str, tp.Tuple[tp.Any, ...], tp.Dict[str, tp.Any]) -> None # NOQA
 
         self.link = link
         self.forward_name = forward_name
@@ -28,7 +25,7 @@ class _ForwardPostprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_postrocess"""
 
     def __init__(self, link, forward_name, args, kwargs, out):
-        # type: ('chainer.link.Link', str, Tuple[Any, ...], Dict[str, Any], chainer.variable.Variable) -> None # NOQA
+        # type: ('chainer.link.Link', str, tp.Tuple[tp.Any, ...], tp.Dict[str, tp.Any], chainer.variable.Variable) -> None # NOQA
 
         self.link = link
         self.forward_name = forward_name
@@ -114,7 +111,7 @@ class LinkHook(object):
         del link_hooks[self.name]
 
     def added(self, link):
-        # type: (Optional['chainer.link.Link']) -> None
+        # type: (tp.Optional['chainer.link.Link']) -> None
         """Callback function invoked when the link hook is registered
 
         Args:
@@ -125,7 +122,7 @@ class LinkHook(object):
         pass
 
     def deleted(self, link):
-        # type: (Optional['chainer.link.Link']) -> None
+        # type: (tp.Optional['chainer.link.Link']) -> None
         """Callback function invoked when the link hook is unregistered
 
         Args:

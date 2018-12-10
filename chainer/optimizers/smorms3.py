@@ -7,9 +7,9 @@ from chainer import types
 
 
 if types.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    import typing_extensions as tpe
 
-    class SMORMS3Hyperparameter(Protocol):
+    class SMORMS3Hyperparameter(tpe.Protocol):
         """Protocol class for hyperparameter of Simon Funk's SMORMS3.
 
         This is only for PEP 544 compliant static type checkers.

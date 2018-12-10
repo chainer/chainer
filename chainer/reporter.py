@@ -2,8 +2,7 @@ import collections
 import contextlib
 import copy
 import json
-from typing import List  # NOQA
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -171,7 +170,7 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []  # type: Optional[List[Reporter]]
+_reporters = []  # type: tp.Optional[tp.List[Reporter]]
 
 
 def get_current_reporter():

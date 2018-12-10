@@ -1,4 +1,4 @@
-from typing import Optional  # NOQA
+import typing as tp  # NOQA
 
 from chainer import types  # NOQA
 from chainer import utils
@@ -16,7 +16,7 @@ class Initializer(object):
     """
 
     def __init__(self, dtype=None):
-        # type: (Optional[types.DTypeSpec]) -> None
+        # type: (tp.Optional[types.DTypeSpec]) -> None
 
         self.dtype = dtype  # type: types.DTypeSpec
 

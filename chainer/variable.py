@@ -2,11 +2,7 @@ import collections
 import copy
 import heapq
 import traceback
-from typing import Any  # NOQA
-from typing import Callable  # NOQA
-from typing import List  # NOQA
-from typing import Optional  # NOQA
-from typing import Union  # NOQA
+import typing as tp  # NOQA
 import warnings
 import weakref
 
@@ -484,7 +480,7 @@ class Variable(object):
     # the second element.
     _chainerx_grad_cache = None
 
-    _chainerx_name = None  # type: Optional[str]
+    _chainerx_name = None  # type: tp.Optional[str]
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
@@ -497,7 +493,7 @@ class Variable(object):
     _grad = None
 
     def __init__(self, data=None, **kwargs):
-        # type: (types.NdArray, **Any) -> None
+        # type: (types.NdArray, **tp.Any) -> None
 
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -528,10 +524,10 @@ class Variable(object):
             self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
-            self._node = None  # type: Optional[VariableNode]
+            self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
-            self._data = [data]  # type: List[Optional[chainerx.ndarray]]
+            self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
             self._node = VariableNode(self, name)
             self._grad = grad
 
@@ -591,7 +587,7 @@ class Variable(object):
                 self._grad_var = Variable(self._grad)
 
     def _set_chainerx_array(self, array, grad):
-        # type: (Optional[chainerx.ndarray], Optional[chainerx.ndarray]) -> None # NOQA
+        # type: (tp.Optional[chainerx.ndarray], tp.Optional[chainerx.ndarray]) -> None # NOQA
 
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
@@ -637,7 +633,7 @@ class Variable(object):
 
     @property
     def xp(self):
-        # type: () -> Optional[types.Xp]
+        # type: () -> tp.Optional[types.Xp]
         """Array module for the data array of this variable."""
         device = self.device
         return None if device is None else device.xp
@@ -781,7 +777,7 @@ class Variable(object):
 
     @property
     def array(self):
-        # type: () -> Optional[types.NdArray]
+        # type: () -> tp.Optional[types.NdArray]
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
@@ -819,7 +815,7 @@ class Variable(object):
 
     @property
     def data(self):
-        # type: () -> Optional[types.NdArray]
+        # type: () -> tp.Optional[types.NdArray]
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use
@@ -1552,7 +1548,7 @@ class Variable(object):
         raise NotImplementedError()
 
     __array_priority__ = 200  # type: int
-    __hash__ = None  # type: Callable[[object], int]
+    __hash__ = None  # type: tp.Callable[[object], int]
 
 
 class Parameter(Variable):
@@ -1598,12 +1594,12 @@ class Parameter(Variable):
 
     """
 
-    initializer = None  # type: Optional[Union[Optional[types.AbstractInitializer], types.NdArray]] # NOQA
+    initializer = None  # type: tp.Optional[tp.Union[tp.Optional[types.AbstractInitializer], types.NdArray]] # NOQA
     # TODO(okapies): fix the behavior when shape is None and remove NdArray
-    _grad_initializer = None  # type: Optional[types.AbstractInitializer]
+    _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
 
     def __init__(self, initializer=None, shape=None, name=None):
-        # type: (Optional[types.InitializerSpec], Optional[types.ShapeSpec], Optional[str]) -> None # NOQA
+        # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
 
         if initializer is None:
             initializer = constant.NaN()
