@@ -5,6 +5,7 @@ from chainer import function_node
 import chainer.functions
 import chainer.utils
 from chainer.utils import type_check
+import chainerx
 
 
 class SelectorBase(function_node.FunctionNode):
@@ -28,7 +29,7 @@ class SelectorBase(function_node.FunctionNode):
         raise NotImplementedError('_fwd should be implemented in sub-class.')
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
@@ -70,6 +71,9 @@ class SelectorBase(function_node.FunctionNode):
 
 
 class Max(SelectorBase):
+
+    def forward_chainerx(self, x):
+        return chainerx.amax(x[0], axis=self.axis, keepdims=self.keepdims),
 
     def _fwd(self, x, xp):
         return xp.amax(x, axis=self.axis, keepdims=self.keepdims)
@@ -126,6 +130,9 @@ class ArgMin(IndexSelectorBase):
 
 
 class ArgMax(IndexSelectorBase):
+
+    def forward_chainerx(self, x):
+        return chainerx.argmax(x[0], axis=self.axis).astype(numpy.int32),
 
     def _fwd(self, x, xp):
         return xp.argmax(x, axis=self.axis).astype(numpy.int32)

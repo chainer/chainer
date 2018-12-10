@@ -15,18 +15,17 @@
 # \roi align operator described in Mask RCNN
 # -----------------------------------------------------------------------------
 
-import collections
-
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, chainer.utils.collections_abc.Iterable):
         return x
     return x, x
 
@@ -137,18 +136,16 @@ class ROIAverageAlign2D(function.Function):
                 .format(type(outw), outw))
         if isinstance(spatial_scale, int):
             spatial_scale = float(spatial_scale)
-        elif not (isinstance(spatial_scale, float) and spatial_scale > 0):
+        if not (isinstance(spatial_scale, float) and spatial_scale > 0):
             raise TypeError(
                 'spatial_scale must be a positive float number: {}, {}'
-                .format(type(spatial_scale), spatial_scale)
-            )
+                .format(type(spatial_scale), spatial_scale))
         sampling_ratio = _pair(sampling_ratio)
         if not all((isinstance(s, int) and s >= 1) or s is None
                    for s in sampling_ratio):
             raise TypeError(
                 'sampling_ratio must be integer >= 1 or a pair of it: {}'
-                .format(sampling_ratio)
-            )
+                .format(sampling_ratio))
 
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
@@ -548,9 +545,10 @@ def roi_average_align_2d(
 ):
     """Spatial Region of Interest (ROI) average align function.
 
-    This function acts similarly to :class:`~functions.ROIPooling2D`, but
-    it computes average of input spatial patch with bilinear interpolation
-    for each channel with the region of interest.
+    This function acts similarly to
+    :func:`~chainer.functions.roi_average_pooling_2d`, but it computes average
+    of input spatial patch with bilinear interpolation for each channel with
+    the region of interest.
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be

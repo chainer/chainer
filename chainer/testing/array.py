@@ -1,8 +1,10 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
+from chainer import backend
 from chainer import utils
+import chainerx
 
 
 def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
@@ -18,8 +20,8 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         verbose (bool): If ``True``, it outputs verbose messages on error.
 
     """
-    x = cuda.to_cpu(utils.force_array(x))
-    y = cuda.to_cpu(utils.force_array(y))
+    x = backend.CpuDevice().send(utils.force_array(x))
+    y = backend.CpuDevice().send(utils.force_array(y))
     try:
         numpy.testing.assert_allclose(
             x, y, atol=atol, rtol=rtol, verbose=verbose)
@@ -48,3 +50,39 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         finally:
             numpy.set_printoptions(**opts)
         raise AssertionError(f.getvalue())
+
+
+def _as_noncontiguous_array(array):
+    # This is a temporary function used by tests to convert contiguous arrays
+    # to non-contiguous arrays.
+    #
+    # This functions can be removed if e.g. BackendConfig starts supporting
+    # contiguousness configurations and the array conversion method takes that
+    # into account. Note that that would also mean rewriting tests to use the
+    # backend injector in the first place.
+
+    def as_noncontiguous_array(a):
+        if a is None:
+            return None
+
+        if a.size <= 1:
+            return a
+
+        device = backend.get_device_from_array(a)
+        xp = device.xp
+        with chainer.using_device(device):
+            ret = xp.empty(
+                (a.shape[0] * 2,) + a.shape[1:], dtype=a.dtype)
+        utils._setitem(ret, slice(None, None, 2), a)  # ret[::2] = a
+        ret = utils._getitem(ret, slice(None, None, 2))  # ret = ret[::2]
+        if device.xp is chainerx:
+            assert not ret.is_contiguous
+        else:
+            assert not ret.flags.c_contiguous
+
+        return ret
+
+    if isinstance(array, (list, tuple)):
+        return type(array)([_as_noncontiguous_array(arr) for arr in array])
+    else:
+        return as_noncontiguous_array(array)

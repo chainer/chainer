@@ -13,7 +13,7 @@ class SelectItem(function_node.FunctionNode):
     """Select elements stored in given indices."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(
@@ -67,18 +67,22 @@ class Assign(function_node.FunctionNode):
         self.t = t.data
 
     def forward_cpu(self, inputs):
+        t = backend.from_chainerx(self.t)  # Workaround for ChainerX.
+
         gx = numpy.zeros(self.shape, self.dtype)
-        gx[six.moves.range(self.t.size), self.t] = inputs[0]
+        gx[six.moves.range(self.t.size), t] = inputs[0]
         return gx,
 
     def forward_gpu(self, inputs):
+        t = backend.from_chainerx(self.t)  # Workaround for ChainerX.
+
         gx = cuda.cupy.zeros(self.shape, self.dtype)
         gx = cuda.elementwise(
             'S t, T gloss',
             'raw T gx',
             'int ind[] = {i, t}; gx[ind] = gloss;',
             'getitem_bwd'
-        )(self.t, inputs[0], gx)
+        )(t, inputs[0], gx)
         return gx,
 
     def backward(self, indexes, gy):

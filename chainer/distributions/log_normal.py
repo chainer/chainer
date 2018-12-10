@@ -20,10 +20,10 @@ class LogNormal(distribution.Distribution):
             \\exp\\left(-\\frac{(\\log{x}-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        mu(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\mu`.
-        sigma(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\sigma`.
+        mu(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\mu`.
+        sigma(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\sigma`.
     """
 
     def __init__(self, mu, sigma):

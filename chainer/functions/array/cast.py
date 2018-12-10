@@ -11,7 +11,7 @@ class Cast(function_node.FunctionNode):
         self.type = typ
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
 
         type_check.expect(x_type.dtype.kind == 'f')
@@ -52,5 +52,6 @@ def cast(x, typ):
 
     """
     if x.dtype == typ:
-        return chainer.as_variable(x)
+        if not chainer.config.enable_backprop:
+            return chainer.as_variable(x)
     return Cast(typ).apply((x,))[0]

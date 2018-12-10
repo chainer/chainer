@@ -6,7 +6,11 @@ import tempfile
 import numpy
 import six
 
+import chainer
 # import classes and functions
+from chainer.utils.array import _getitem  # NOQA
+from chainer.utils.array import _setitem  # NOQA
+from chainer.utils.array import size_of_shape  # NOQA
 from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
@@ -72,3 +76,12 @@ def _repr_with_named_data(inst, **kwargs):
     return '<{}.{} {}>'.format(
         inst.__module__, class_name,
         ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))
+
+
+def _check_arrays_forward_compatible(arrays, label=None):
+    if not chainer.is_arrays_compatible(arrays):
+        raise TypeError(
+            'incompatible array types are mixed in the forward input{}.\n'
+            'Actual: {}'.format(
+                ' ({})'.format(label) if label is not None else '',
+                ', '.join(str(type(a)) for a in arrays)))

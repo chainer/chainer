@@ -20,7 +20,7 @@ class Reshape(function_node.FunctionNode):
         assert self._cnt <= 1
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         if self._cnt == 0:
@@ -35,6 +35,10 @@ class Reshape(function_node.FunctionNode):
                 known_size, 'known_size(=%d)' % known_size)
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
 
     def forward(self, inputs):
         x, = inputs

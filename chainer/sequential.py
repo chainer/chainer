@@ -20,7 +20,7 @@ class Sequential(link.ChainList):
     :class:`Sequential` can take arbitrary number of any callable objects for
     the forward pass computation. A :class:`Sequential` calls the given
     callable objects sequentially inside of the :meth:`~Sequential.forward`
-    method in the same order as the given argments.
+    method in the same order as the given arguments.
     Therefore, you do not need to write the forward pass computation
     explicitly.
 
@@ -190,7 +190,7 @@ class Sequential(link.ChainList):
 
         This method performs the forward pass computation by giving the input
         variable ``x`` to the layers registered in the constructor in the same
-        order as the order in which the argments are given to the constructor.
+        order as the order in which the arguments are given to the constructor.
 
         It should be noted that the input variable is given directly to the
         first layer and all intermediate outputs generated during the forward
@@ -275,7 +275,7 @@ class Sequential(link.ChainList):
     def insert(self, i, layer):
         if not callable(layer):
             raise ValueError(
-                'All elements of the argment should be callable. But '
+                'All elements of the argument should be callable. But '
                 'given {} is not callable.'.format(layer))
 
         self._layers.insert(i, layer)
@@ -306,7 +306,7 @@ class Sequential(link.ChainList):
 
         This method removes layers from the Sequential object by the
         layer's class name or function name. If you want to remove a
-        :class:`~Link`, the argment ``type_name`` should be its class name,
+        :class:`~Link`, the argument ``type_name`` should be its class name,
         e.g., :class:`~links.Linear` or :class:`~links.Convolution2D`, etc.
         If you want to remove a :class:`~Function` class or any other callable
         objects, ``type_name`` should be the function name, e.g., ``relu`` or
@@ -349,7 +349,7 @@ class Sequential(link.ChainList):
         """Count the number of layers by layer type.
 
         This method counts the number of layers which have the name given by
-        the argment ``type_name``. For example, if you want to know the number
+        the argument ``type_name``. For example, if you want to know the number
         of :class:`~links.Linear` layers included in this model, ``type_name``
         should be ``Linear``. If you want to know the number of
         :class:`~Function` classes or user-defined functions which have a

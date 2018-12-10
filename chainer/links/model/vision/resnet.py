@@ -61,8 +61,8 @@ class ResNetLayers(link.Chain):
             where ``$CHAINER_DATASET_ROOT`` is set as
             ``$HOME/.chainer/dataset`` unless you specify another value
             by modifying the environment variable and {n_layers} is replaced
-            with the specified number of layers given as the first argment to
-            this costructor. Note that in this case the converted chainer
+            with the specified number of layers given as the first argument to
+            this constructor. Note that in this case the converted chainer
             model is stored on the same directory and automatically used from
             the next time.
             If this argument is specified as ``None``, all the parameters
@@ -311,8 +311,8 @@ class ResNetLayers(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
+                n = len(y) // 10
+                y_shape = y.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = sum(y, axis=1) / 10
         return y
@@ -678,7 +678,7 @@ class BottleneckB(link.Chain):
 
 
 def _global_average_pooling_2d(x):
-    n, channel, rows, cols = x.data.shape
+    n, channel, rows, cols = x.shape
     h = average_pooling_2d(x, (rows, cols), stride=1)
     h = reshape(h, (n, channel))
     return h
@@ -688,11 +688,11 @@ def _transfer_components(src, dst_conv, dst_bn, bname, cname):
     src_conv = getattr(src, 'res{}_branch{}'.format(bname, cname))
     src_bn = getattr(src, 'bn{}_branch{}'.format(bname, cname))
     src_scale = getattr(src, 'scale{}_branch{}'.format(bname, cname))
-    dst_conv.W.data[:] = src_conv.W.data
+    dst_conv.W.array[:] = src_conv.W.array
     dst_bn.avg_mean[:] = src_bn.avg_mean
     dst_bn.avg_var[:] = src_bn.avg_var
-    dst_bn.gamma.data[:] = src_scale.W.data
-    dst_bn.beta.data[:] = src_scale.bias.b.data
+    dst_bn.gamma.array[:] = src_scale.W.array
+    dst_bn.beta.array[:] = src_scale.bias.b.array
 
 
 def _transfer_bottleneckA(src, dst, name):
@@ -716,28 +716,28 @@ def _transfer_block(src, dst, names):
 
 
 def _transfer_resnet50(src, dst):
-    dst.conv1.W.data[:] = src.conv1.W.data
-    dst.conv1.b.data[:] = src.conv1.b.data
+    dst.conv1.W.array[:] = src.conv1.W.array
+    dst.conv1.b.array[:] = src.conv1.b.array
     dst.bn1.avg_mean[:] = src.bn_conv1.avg_mean
     dst.bn1.avg_var[:] = src.bn_conv1.avg_var
-    dst.bn1.gamma.data[:] = src.scale_conv1.W.data
-    dst.bn1.beta.data[:] = src.scale_conv1.bias.b.data
+    dst.bn1.gamma.array[:] = src.scale_conv1.W.array
+    dst.bn1.beta.array[:] = src.scale_conv1.bias.b.array
 
     _transfer_block(src, dst.res2, ['2a', '2b', '2c'])
     _transfer_block(src, dst.res3, ['3a', '3b', '3c', '3d'])
     _transfer_block(src, dst.res4, ['4a', '4b', '4c', '4d', '4e', '4f'])
     _transfer_block(src, dst.res5, ['5a', '5b', '5c'])
 
-    dst.fc6.W.data[:] = src.fc1000.W.data
-    dst.fc6.b.data[:] = src.fc1000.b.data
+    dst.fc6.W.array[:] = src.fc1000.W.array
+    dst.fc6.b.array[:] = src.fc1000.b.array
 
 
 def _transfer_resnet101(src, dst):
-    dst.conv1.W.data[:] = src.conv1.W.data
+    dst.conv1.W.array[:] = src.conv1.W.array
     dst.bn1.avg_mean[:] = src.bn_conv1.avg_mean
     dst.bn1.avg_var[:] = src.bn_conv1.avg_var
-    dst.bn1.gamma.data[:] = src.scale_conv1.W.data
-    dst.bn1.beta.data[:] = src.scale_conv1.bias.b.data
+    dst.bn1.gamma.array[:] = src.scale_conv1.W.array
+    dst.bn1.beta.array[:] = src.scale_conv1.bias.b.array
 
     _transfer_block(src, dst.res2, ['2a', '2b', '2c'])
     _transfer_block(src, dst.res3, ['3a', '3b1', '3b2', '3b3'])
@@ -745,16 +745,16 @@ def _transfer_resnet101(src, dst):
                     ['4a'] + ['4b{}'.format(i) for i in range(1, 23)])
     _transfer_block(src, dst.res5, ['5a', '5b', '5c'])
 
-    dst.fc6.W.data[:] = src.fc1000.W.data
-    dst.fc6.b.data[:] = src.fc1000.b.data
+    dst.fc6.W.array[:] = src.fc1000.W.array
+    dst.fc6.b.array[:] = src.fc1000.b.array
 
 
 def _transfer_resnet152(src, dst):
-    dst.conv1.W.data[:] = src.conv1.W.data
+    dst.conv1.W.array[:] = src.conv1.W.array
     dst.bn1.avg_mean[:] = src.bn_conv1.avg_mean
     dst.bn1.avg_var[:] = src.bn_conv1.avg_var
-    dst.bn1.gamma.data[:] = src.scale_conv1.W.data
-    dst.bn1.beta.data[:] = src.scale_conv1.bias.b.data
+    dst.bn1.gamma.array[:] = src.scale_conv1.W.array
+    dst.bn1.beta.array[:] = src.scale_conv1.bias.b.array
 
     _transfer_block(src, dst.res2, ['2a', '2b', '2c'])
     _transfer_block(src, dst.res3,
@@ -763,8 +763,8 @@ def _transfer_resnet152(src, dst):
                     ['4a'] + ['4b{}'.format(i) for i in range(1, 36)])
     _transfer_block(src, dst.res5, ['5a', '5b', '5c'])
 
-    dst.fc6.W.data[:] = src.fc1000.W.data
-    dst.fc6.b.data[:] = src.fc1000.b.data
+    dst.fc6.W.array[:] = src.fc1000.W.array
+    dst.fc6.b.array[:] = src.fc1000.b.array
 
 
 def _make_npz(path_npz, path_caffemodel, model, n_layers):
