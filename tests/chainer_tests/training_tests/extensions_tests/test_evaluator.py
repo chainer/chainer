@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import _cpu
 from chainer import dataset
 from chainer import iterators
@@ -31,7 +32,8 @@ class DummyModelTwoArgs(chainer.Chain):
 
     def forward(self, x, y):
         self.args.append((x, y))
-        chainer.report({'loss': x.sum() + y.sum()}, self)
+        with chainer.using_device(backend.get_device_from_array(x, y)):
+            chainer.report({'loss': x.sum() + y.sum()}, self)
 
 
 class DummyIterator(dataset.Iterator):
@@ -183,7 +185,8 @@ class TestEvaluatorTupleData(unittest.TestCase):
                 _cpu._to_cpu(target.args[i]), self.batches[i])
 
         expect_mean = numpy.mean([numpy.sum(x) for x in self.batches])
-        self.assertAlmostEqual(mean['target/loss'], expect_mean, places=4)
+        self.assertAlmostEqual(
+            _cpu._to_cpu(mean['target/loss']), expect_mean, places=4)
 
 
 class TestEvaluatorDictData(unittest.TestCase):
