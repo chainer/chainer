@@ -14,8 +14,9 @@ class CRF1d(link.Link):
     Args:
         n_label (int): Number of labels.
         initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is not specify,
-            the weight is initialized with zero.
+            initialize the transition cost matrix.
+            When it is not specify, the transition cost matrix
+            is initialized with zero.
 
     .. seealso:: :func:`~chainer.functions.crf1d` for more detail.
 
