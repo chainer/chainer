@@ -59,7 +59,7 @@ def create_communicator(
         raise ValueError(
             'allreduce_grad_dtype is only available'
             'at \'pure_nccl\' communicator.')
-    if communicator_name != 'pure_nccl' and batched_pack_unpack is not None:
+    if communicator_name != 'pure_nccl' and batched_pack_unpack:
         raise ValueError(
             'batched_pack_unpack is only available'
             'at \'pure_nccl\' communicator.')
