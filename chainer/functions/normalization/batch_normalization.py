@@ -8,7 +8,6 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
-from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
