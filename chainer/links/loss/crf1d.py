@@ -1,7 +1,7 @@
 from chainer.functions.loss import crf1d
+from chainer import initializers
 from chainer import link
 from chainer import variable
-from chainer import initializers
 
 
 class CRF1d(link.Link):
