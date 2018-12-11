@@ -6,12 +6,11 @@ import datetime
 from nltk.translate import bleu_score
 import numpy
 import progressbar
-import six
 import re
+import six
 
 import chainer
 from chainer import backend
-from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -93,8 +92,8 @@ class Seq2seq(chainer.Chain):
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
         # support NumPy 1.9.
-        result = backend.to_numpy(
-            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
+        result = chainer.get_device(numpy).send(
+            self.xp.concatenate([x[None, :] for x in result]).T)
 
         # Remove EOS taggs
         outs = []
@@ -106,21 +105,19 @@ class Seq2seq(chainer.Chain):
         return outs
 
 
+@chainer.dataset.converter()
 def convert(batch, device):
     def to_device_batch(batch):
         if device is None:
             return batch
-        elif device is cuda.DummyDevice:
-            return [chainer.dataset.to_device(device, x) for x in batch]
-        else:
-            xp = backend.get_array_module(*batch)
-            concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x)
-                                     for x in batch[:-1]], dtype=numpy.int32)
-            concat_dev = chainer.dataset.to_device(device, concat)
-            xp_dev = backend.get_array_module(concat_dev)
-            batch_dev = xp_dev.split(concat_dev, sections)
-            return batch_dev
+        src_xp = backend.get_array_module(*batch)
+        xp = device.xp
+        concat = src_xp.concatenate(batch, axis=0)
+        sections = list(numpy.cumsum(
+            [len(x) for x in batch[:-1]], dtype=numpy.int32))
+        concat_dst = device.send(concat)
+        batch_dst = xp.split(concat_dst, sections)
+        return batch_dst
 
     return {'xs': to_device_batch([x for x, _ in batch]),
             'ys': to_device_batch([y for _, y in batch])}
@@ -132,7 +129,7 @@ class CalculateBleu(chainer.training.Extension):
     priority = chainer.training.PRIORITY_WRITER
 
     def __init__(
-            self, model, test_data, key, batch=100, device=-1, max_length=100):
+            self, model, test_data, key, device, batch=100, max_length=100):
         self.model = model
         self.test_data = test_data
         self.key = key
@@ -141,6 +138,8 @@ class CalculateBleu(chainer.training.Extension):
         self.max_length = max_length
 
     def __call__(self, trainer):
+        device = self.device
+
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []
@@ -148,8 +147,7 @@ class CalculateBleu(chainer.training.Extension):
                 sources, targets = zip(*self.test_data[i:i + self.batch])
                 references.extend([[t.tolist()] for t in targets])
 
-                sources = [
-                    chainer.dataset.to_device(self.device, x) for x in sources]
+                sources = [device.send(x) for x in sources]
                 ys = [y.tolist()
                       for y in self.model.translate(sources, self.max_length)]
                 hypotheses.extend(ys)
@@ -291,6 +289,12 @@ def main():
     print('# epoch: {}'.format(args.epoch))
     print('')
 
+    # If the device is a ChainerX CUDA device, use the shared device memory
+    # pool between ChainerX and CuPy.
+    if device.xp is chainerx and device.device.backend.name == 'cuda':
+        # TODO(niboshi): The API is provisional.
+        chainerx._cuda.cupy_share_allocator()
+
     # Load pre-processed dataset
     print('[{}] Loading dataset... (this may take several minutes)'.format(
         datetime.datetime.now()))
@@ -345,11 +349,8 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
-    # Setup the current device
-    if isinstance(device, chainer.cuda.Device):
-        device.use()
-    elif isinstance(device, chainerx.Device):
-        chainerx.set_default_device(device)
+    # Set the current device
+    device.use()
 
     # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
@@ -394,7 +395,6 @@ def main():
         @chainer.training.make_extension()
         def translate(trainer):
             source, target = test_data[numpy.random.choice(len(test_data))]
-            # TODO(sonots): with using_device(device):
             result = model.translate([model.xp.array(source)])[0]
 
             source_sentence = ' '.join([source_words[x] for x in source])
@@ -408,7 +408,7 @@ def main():
             translate, trigger=(args.validation_interval, 'iteration'))
         trainer.extend(
             CalculateBleu(
-                model, test_data, 'validation/main/bleu', device=args.gpu),
+                model, test_data, 'validation/main/bleu', device),
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
