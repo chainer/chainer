@@ -129,7 +129,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if self.batched_pack_unpack:
             if self.params_data is None:
                 self.params_data = _memory_utility.ParamsData(params, 'grad')
-            _memory_utility.pack_params_ex(
+            _memory_utility.batched_pack_params(
                 self.params_data, self.gpu_buffer_a, allreduce_grad_dtype)
             return
         if grad_dtype == allreduce_grad_dtype:
@@ -158,7 +158,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if self.batched_pack_unpack:
             if self.params_data is None:
                 self.params_data = _memory_utility.ParamsData(params, 'grad')
-            _memory_utility.unpack_params_ex(
+            _memory_utility.batched_unpack_params(
                 self.params_data, self.gpu_buffer_a, allreduce_grad_dtype)
             return
         if grad_dtype == allreduce_grad_dtype:

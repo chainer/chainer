@@ -135,7 +135,7 @@ class ParamsData(object):
         self.params_dptr = cp.asarray(params_dptr)
 
 
-def pack_params_ex(params_data, buffer, dtype):
+def batched_pack_params(params_data, buffer, dtype):
     n_params = params_data.n_params
     n_elems = params_data.n_elems
     params_dptr = params_data.params_dptr
@@ -149,7 +149,7 @@ def pack_params_ex(params_data, buffer, dtype):
                                  params_dptr, params_dtype, params_size_csum, n_params))
 
 
-def unpack_params_ex(params_data, buffer, dtype):
+def batched_unpack_params(params_data, buffer, dtype):
     n_params = params_data.n_params
     n_elems = params_data.n_elems
     params_dptr = params_data.params_dptr
