@@ -48,8 +48,7 @@ class HuberLoss(function_node.FunctionNode):
         x0, x1 = self.get_retained_inputs()
         gy, = grad_outputs
         diff = x0 - x1
-        # `functions.clip` only accepts float value.
-        delta = float(self.delta)
+        delta = self.delta
 
         gx = chainer.functions.clip(diff, -delta, delta)
 
