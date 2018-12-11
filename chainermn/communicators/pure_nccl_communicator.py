@@ -10,7 +10,8 @@ import numpy as np
 
 class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm, allreduce_grad_dtype=None, batched_pack_unpack=False):
+    def __init__(self, mpi_comm, allreduce_grad_dtype=None,
+                 batched_pack_unpack=False):
         super(PureNcclCommunicator, self).__init__(mpi_comm)
         if not nccl._available or nccl.get_version() < 2000:
             raise RuntimeError(
@@ -181,6 +182,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             _memory_utility.unpack_params(
                 params, grad_dtype.itemsize, 'grad', self.gpu_tmp_buffer,
                 stream=stream)
+
 
 def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
     return chainer.cuda.cupy.ElementwiseKernel(

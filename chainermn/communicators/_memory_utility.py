@@ -3,16 +3,12 @@ import ctypes
 import mpi4py.MPI
 import numpy as np
 
-from chainermn import nccl
-
 import chainer.backends
 try:
     import cupy as cp
     _cupy_avail = True
 except ImportError:
     _cupy_avail = False
-
-from cupy.cuda import memory
 
 
 class HostPinnedMemory(object):
@@ -115,8 +111,8 @@ def unpack_params(params, itemsize, attr_name, buffer, stream=None):
         buffer.to_device(v, size, offset, stream)
         offset += size
 
-class ParamsData(object):
 
+class ParamsData(object):
     def __init__(self, params, attr_name):
         n_params = len(params)
         params_dptr = np.empty(n_params, dtype=np.int64)
@@ -144,9 +140,10 @@ def batched_pack_params(params_data, buffer, dtype):
     buf_dtype = _get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
-    _cupy_batched_pack_params()((n_blocks, ), (n_threads, ),
-                                (buffer.memory.ptr, buf_dtype, n_elems,
-                                 params_dptr, params_dtype, params_size_csum, n_params))
+    _cupy_batched_pack_params()(
+        (n_blocks, ), (n_threads, ),
+        (buffer.memory.ptr, buf_dtype, n_elems,
+         params_dptr, params_dtype, params_size_csum, n_params))
 
 
 def batched_unpack_params(params_data, buffer, dtype):
@@ -158,9 +155,10 @@ def batched_unpack_params(params_data, buffer, dtype):
     buf_dtype = _get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
-    _cupy_batched_unpack_params()((n_blocks, ), (n_threads, ),
-                                (buffer.memory.ptr, buf_dtype, n_elems,
-                                 params_dptr, params_dtype, params_size_csum, n_params))
+    _cupy_batched_unpack_params()(
+        (n_blocks, ), (n_threads, ),
+        (buffer.memory.ptr, buf_dtype, n_elems,
+         params_dptr, params_dtype, params_size_csum, n_params))
 
 
 def _cupy_batched_pack_params():
@@ -169,8 +167,10 @@ def _cupy_batched_pack_params():
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
     extern "C" __global__
-    void cupy_batched_pack_params( void *dst0, int dst_dtype, int n_elems,
-                                   unsigned long *params_dptr, int *params_dtype, int *params_size_csum, int n_params) {
+    void cupy_batched_pack_params(
+            void *dst0, int dst_dtype, int n_elems,
+            unsigned long *params_dptr, int *params_dtype,
+            int *params_size_csum, int n_params) {
         int tid = threadIdx.x + blockIdx.x * blockDim.x;
         if (tid >= n_elems) return;
         int j_min = 0;
@@ -211,8 +211,7 @@ def _cupy_batched_pack_params():
             }
        }
     }
-    ''', 'cupy_batched_pack_params'
-    )
+    ''', 'cupy_batched_pack_params')
 
 
 def _cupy_batched_unpack_params():
@@ -221,8 +220,10 @@ def _cupy_batched_unpack_params():
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
     extern "C" __global__
-    void cupy_batched_unpack_params( void *src0, int src_dtype, int n_elems,
-                                     unsigned long *params_dptr, int *params_dtype, int *params_size_csum, int n_params) {
+    void cupy_batched_unpack_params(
+            void *src0, int src_dtype, int n_elems,
+            unsigned long *params_dptr, int *params_dtype,
+            int *params_size_csum, int n_params) {
         int tid = threadIdx.x + blockIdx.x * blockDim.x;
         if (tid >= n_elems) return;
         int j_min = 0;
@@ -262,16 +263,14 @@ def _cupy_batched_unpack_params():
                 ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
             }
        }
-    }
-    ''', 'cupy_batched_unpack_params'
-    )
+    }''', 'cupy_batched_unpack_params')
 
 
 def _get_nccl_type_id(dtype):
     if dtype == np.float16:
-        return nccl.NCCL_FLOAT16
+        return 6  # nccl.NCCL_FLOAT16
     elif dtype == np.float32:
-        return nccl.NCCL_FLOAT32
+        return 7  # nccl.NCCL_FLOAT32
     else:
         raise ValueError(
             'dtype must be float16 or float32.')
