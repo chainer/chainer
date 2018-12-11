@@ -1,9 +1,8 @@
-#include "chainerx/native/native_float16.h"
+#include "chainerx/float16.h"
 
 #include <cstdint>
 
 namespace chainerx {
-namespace native {
 namespace {
 
 union UnionFloatUint {
@@ -251,5 +250,4 @@ Half& Half::operator-=(const Half& r) { return *this = Half{static_cast<float>(*
 Half& Half::operator*=(const Half& r) { return *this = Half{static_cast<float>(*this) * static_cast<float>(r)}; }
 Half& Half::operator/=(const Half& r) { return *this = Half{static_cast<float>(*this) / static_cast<float>(r)}; }
 
-}  // namespace native
 }  // namespace chainerx

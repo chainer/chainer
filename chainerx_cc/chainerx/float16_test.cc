@@ -1,4 +1,4 @@
-#include "chainerx/native/native_float16.h"
+#include "chainerx/float16.h"
 
 #include <cmath>
 #include <limits>
@@ -7,7 +7,6 @@
 #include <gtest/gtest.h>
 
 namespace chainerx {
-namespace native {
 namespace {
 
 void CheckNear(double expected, double actual, double tol) {
@@ -166,5 +165,4 @@ TEST(NativeFloat16Test, Float16DivideI) {
 }
 
 }  // namespace
-}  // namespace native
 }  // namespace chainerx
