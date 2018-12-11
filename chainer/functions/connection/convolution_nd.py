@@ -10,6 +10,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+import chainerx
 
 
 def _prod(shape):
@@ -52,6 +53,24 @@ class ConvolutionND(function_node.FunctionNode):
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
+
+    def forward_chainerx(self, inputs):
+        # TODO(hvy): Support mixed precision.
+        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
+        # TODO(hvy): Support groups > 1.
+        if self.groups > 1:
+            return chainer.Fallback
+        if inputs[0].device.backend.name == 'cuda' and (
+                self.cover_all or self.ndim < 2):
+            return chainer.Fallback
+
+        return chainerx.conv(
+            *inputs, stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all),
 
     def _use_cudnn(self, x, W):
         if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
@@ -392,8 +411,6 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
 
        l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
-    The N-dimensional convolution function is defined as follows.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
@@ -401,7 +418,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_O, c_I, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):

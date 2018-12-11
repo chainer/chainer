@@ -4,8 +4,11 @@ import mock
 import numpy
 
 import chainer
+from chainer.backends import _cpu
+from chainer.backends import cuda
 from chainer import dataset
 from chainer import testing
+from chainer.testing import attr
 from chainer import training
 
 
@@ -181,6 +184,187 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
         self.assertEqual(v1, 1)
 
         self.assertEqual(iterator.next_called, 1)
+
+
+@chainer.testing.backend.inject_backend_tests(
+    ['test_converter_given_device'],
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+
+        # Custom converter is not supported for ChainerX.
+    ])
+class TestUpdaterCustomConverter(unittest.TestCase):
+
+    def create_optimizer(self):
+        target = chainer.Link()
+        optimizer = DummyOptimizer()
+        optimizer.setup(target)
+        return optimizer
+
+    def create_updater(self, iterator, optimizer, converter, device):
+        return training.updaters.StandardUpdater(
+            iterator, optimizer, converter=converter, device=device)
+
+    def test_converter_given_device(self, backend_config):
+        self.check_converter_all(backend_config.device)
+
+    def test_converter_given_none(self):
+        self.check_converter_all(None)
+
+    def test_converter_given_int_negative(self):
+        self.check_converter_all(-1)
+
+    @attr.gpu
+    def test_converter_given_int_positive(self):
+        self.check_converter_all(9999)
+
+    def check_converter_all(self, device):
+        self.check_converter_in_arrays(device)
+        self.check_converter_in_obj(device)
+        self.check_converter_out_tuple(device)
+        self.check_converter_out_dict(device)
+        self.check_converter_out_obj(device)
+
+    def check_converter_in_arrays(self, device_arg):
+        iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
+        optimizer = self.create_optimizer()
+
+        called = [0]
+
+        def converter(batch, device):
+            if device_arg is None:
+                self.assertIs(device, None)
+            elif isinstance(device_arg, int):
+                self.assertEqual(device, device_arg)
+            elif isinstance(device_arg, _cpu.CpuDevice):
+                self.assertIsInstance(device, int)
+                self.assertEqual(device, -1)
+            elif isinstance(device_arg, cuda.GpuDevice):
+                self.assertIsInstance(device, int)
+                self.assertEqual(device, device_arg.device.id)
+            else:
+                assert False
+
+            self.assertIsInstance(batch, list)
+            self.assertEqual(len(batch), 1)
+            samples = batch[0]
+            self.assertIsInstance(samples, tuple)
+            self.assertEqual(len(samples), 2)
+            self.assertIsInstance(samples[0], numpy.ndarray)
+            self.assertIsInstance(samples[1], numpy.ndarray)
+            self.assertEqual(samples[0], 1)
+            self.assertEqual(samples[1], 2)
+            called[0] += 1
+            return samples
+
+        updater = self.create_updater(
+            iterator, optimizer, converter, device_arg)
+        updater.update_core()
+        self.assertEqual(called[0], 1)
+
+    def check_converter_in_obj(self, device_arg):
+        obj1 = object()
+        obj2 = object()
+        iterator = DummyIterator([obj1, obj2])
+        optimizer = self.create_optimizer()
+
+        called = [0]
+
+        def converter(batch, device):
+            if device_arg is None:
+                self.assertIs(device, None)
+            elif isinstance(device_arg, int):
+                self.assertEqual(device, device_arg)
+            elif isinstance(device_arg, _cpu.CpuDevice):
+                self.assertIsInstance(device, int)
+                self.assertEqual(device, -1)
+            elif isinstance(device_arg, cuda.GpuDevice):
+                self.assertIsInstance(device, int)
+                self.assertEqual(device, device_arg.device.id)
+            else:
+                assert False
+
+            self.assertIsInstance(batch, list)
+            self.assertEqual(len(batch), 2)
+            self.assertIs(batch[0], obj1)
+            self.assertIs(batch[1], obj2)
+            called[0] += 1
+            return obj1, obj2
+
+        updater = self.create_updater(
+            iterator, optimizer, converter, device_arg)
+        updater.update_core()
+        self.assertEqual(called[0], 1)
+
+    def check_converter_out_tuple(self, device_arg):
+        iterator = DummyIterator([object()])
+        optimizer = self.create_optimizer()
+        converter_out = (object(), object())
+
+        def converter(batch, device):
+            return converter_out
+
+        updater = self.create_updater(
+            iterator, optimizer, converter, device_arg)
+        updater.update_core()
+
+        self.assertEqual(optimizer.update.call_count, 1)
+        args, kwargs = optimizer.update.call_args
+        self.assertEqual(len(args), 3)
+        loss, v1, v2 = args
+        self.assertEqual(len(kwargs), 0)
+
+        self.assertIs(loss, optimizer.target)
+        self.assertIs(v1, converter_out[0])
+        self.assertIs(v2, converter_out[1])
+
+    def check_converter_out_dict(self, device_arg):
+        iterator = DummyIterator([object()])
+        optimizer = self.create_optimizer()
+        converter_out = {'x': object(), 'y': object()}
+
+        def converter(batch, device):
+            return converter_out
+
+        updater = self.create_updater(
+            iterator, optimizer, converter, device_arg)
+        updater.update_core()
+
+        self.assertEqual(optimizer.update.call_count, 1)
+        args, kwargs = optimizer.update.call_args
+        self.assertEqual(len(args), 1)
+        loss, = args
+        self.assertEqual(len(kwargs), 2)
+
+        self.assertIs(loss, optimizer.target)
+        self.assertEqual(sorted(kwargs.keys()), ['x', 'y'])
+        self.assertIs(kwargs['x'], converter_out['x'])
+        self.assertIs(kwargs['y'], converter_out['y'])
+
+    def check_converter_out_obj(self, device_arg):
+        iterator = DummyIterator([object()])
+        optimizer = self.create_optimizer()
+        converter_out = object()
+
+        def converter(batch, device):
+            return converter_out
+
+        updater = self.create_updater(
+            iterator, optimizer, converter, device_arg)
+        updater.update_core()
+
+        self.assertEqual(optimizer.update.call_count, 1)
+        args, kwargs = optimizer.update.call_args
+        self.assertEqual(len(args), 2)
+        loss, v1 = args
+        self.assertEqual(len(kwargs), 0)
+
+        self.assertIs(loss, optimizer.target)
+        self.assertIs(v1, converter_out)
 
 
 testing.run_module(__name__, __file__)

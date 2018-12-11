@@ -10,6 +10,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -268,6 +269,29 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         return y,
 
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if self.dy != 1 or self.dx != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        self._calc_out_size(inputs[0], inputs[1])
+        self._set_cover_all(inputs[0], inputs[1])
+        if self.cover_all:
+            return chainer.Fallback
+
+        stride = (self.sy, self.sx)
+        pad = (self.ph, self.pw)
+        outsize = None if self.outh is None else (self.outh, self.outw)
+
+        return chainerx.conv_transpose(
+            *inputs, stride=stride, pad=pad, outsize=outsize),
+
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
@@ -362,7 +386,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_I, c_O, h_K, w_K)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
@@ -370,7 +394,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         pad (:class:`int` or pair of :class:`int` s):
             Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        outsize (:class:`tuple` of :class:`int`):
+        outsize (None or :class:`tuple` of :class:`int` s):
             Expected output size of deconvolutional operation.
             It should be pair of height and width :math:`(h_O, w_O)`.
             Default value is ``None`` and the outsize is estimated by
