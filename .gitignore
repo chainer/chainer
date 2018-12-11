@@ -27,3 +27,4 @@ docs/*.png
 docs/source/reference/core
 docs/source/reference/generated
 docs/source/reference/util
+docs/source/**/reference/generated
