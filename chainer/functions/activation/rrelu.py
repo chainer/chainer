@@ -100,8 +100,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
     See: https://arxiv.org/pdf/1505.00853.pdf
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         l (float): The lower bound of the uniform distribution.
         u (float): The upper bound of the uniform distribution.

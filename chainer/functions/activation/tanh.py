@@ -94,8 +94,7 @@ def tanh(x):
      .. math:: f(x)=\\tanh(x).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     Returns:

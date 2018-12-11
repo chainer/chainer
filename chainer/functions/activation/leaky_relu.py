@@ -132,8 +132,7 @@ def leaky_relu(x, slope=0.2):
     where :math:`a` is a configurable slope value.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         slope (float): Slope value :math:`a`.
 

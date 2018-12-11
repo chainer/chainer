@@ -91,8 +91,7 @@ def softmax(x, axis=1):
     defined as :math:`f(c)={\\exp(c) \\over \\sum_{d} \\exp(c_d)}`.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         axis (int): The axis along which the softmax is to be computed.
