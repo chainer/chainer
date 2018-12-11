@@ -7,16 +7,16 @@ namespace {
 
 union UnionFloatUint {
 public:
-    UnionFloatUint(float v) : f{v} {}
-    UnionFloatUint(uint32_t v) : i{v} {}
+    explicit UnionFloatUint(float v) : f{v} {}
+    explicit UnionFloatUint(uint32_t v) : i{v} {}
     float f;
     uint32_t i;
 };
 
 union UnionDoubleUint {
 public:
-    UnionDoubleUint(double v) : f{v} {}
-    UnionDoubleUint(uint64_t v) : i{v} {}
+    explicit UnionDoubleUint(double v) : f{v} {}
+    explicit UnionDoubleUint(uint64_t v) : i{v} {}
     double f;
     uint64_t i;
 };
@@ -219,35 +219,25 @@ uint64_t HalfbitsToDoublebits(uint16_t h) {
     }
 }
 
-uint16_t FloatToHalf(float v) { return FloatbitsToHalfbits(UnionFloatUint(v).i); }
-uint16_t DoubleToHalf(double v) { return DoublebitsToHalfbits(UnionDoubleUint(v).i); }
-float HalfToFloat(uint16_t v) { return UnionFloatUint(HalfbitsToFloatbits(v)).f; }
-double HalfToDouble(uint16_t v) { return UnionDoubleUint(HalfbitsToDoublebits(v)).f; }
+uint16_t FloatToHalf(float v) {
+    return FloatbitsToHalfbits(UnionFloatUint(v).i);  // NOLINT(cppcoreguidelines-pro-type-union-access)
+}
+uint16_t DoubleToHalf(double v) {
+    return DoublebitsToHalfbits(UnionDoubleUint(v).i);  // NOLINT(cppcoreguidelines-pro-type-union-access)
+}
+float HalfToFloat(uint16_t v) {
+    return UnionFloatUint(HalfbitsToFloatbits(v)).f;  // NOLINT(cppcoreguidelines-pro-type-union-access)
+}
+double HalfToDouble(uint16_t v) {
+    return UnionDoubleUint(HalfbitsToDoublebits(v)).f;  // NOLINT(cppcoreguidelines-pro-type-union-access)
+}
 
 }  // namespace
 
 Half::Half(float v) : data_{FloatToHalf(v)} {}
 Half::Half(double v) : data_{DoubleToHalf(v)} {}
-Half::Half(bool v) : data_{FloatToHalf(static_cast<float>(v))} {}
-Half::Half(int16_t v) : data_{FloatToHalf(static_cast<float>(v))} {}
-Half::Half(uint16_t v) : data_{FloatToHalf(static_cast<float>(v))} {}
-Half::Half(int32_t v) : data_{FloatToHalf(static_cast<double>(v))} {}
-Half::Half(uint32_t v) : data_{FloatToHalf(static_cast<double>(v))} {}
-Half::Half(int64_t v) : data_{FloatToHalf(static_cast<double>(v))} {}
-Half::Half(uint64_t v) : data_{FloatToHalf(static_cast<double>(v))} {}
 
 Half::operator float() const { return HalfToFloat(data_); }
 Half::operator double() const { return HalfToDouble(data_); }
-
-bool operator==(const Half& l, const Half& r) { return l.data_ == r.data_; }
-Half Half::operator-() const { return Half{-static_cast<float>(*this)}; }
-Half Half::operator+(const Half& r) const { return Half{static_cast<float>(*this) + static_cast<float>(r)}; }
-Half Half::operator-(const Half& r) const { return Half{static_cast<float>(*this) - static_cast<float>(r)}; }
-Half Half::operator*(const Half& r) const { return Half{static_cast<float>(*this) * static_cast<float>(r)}; }
-Half Half::operator/(const Half& r) const { return Half{static_cast<float>(*this) / static_cast<float>(r)}; }
-Half& Half::operator+=(const Half& r) { return *this = Half{static_cast<float>(*this) + static_cast<float>(r)}; }
-Half& Half::operator-=(const Half& r) { return *this = Half{static_cast<float>(*this) - static_cast<float>(r)}; }
-Half& Half::operator*=(const Half& r) { return *this = Half{static_cast<float>(*this) * static_cast<float>(r)}; }
-Half& Half::operator/=(const Half& r) { return *this = Half{static_cast<float>(*this) / static_cast<float>(r)}; }
 
 }  // namespace chainerx
