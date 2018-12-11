@@ -211,7 +211,8 @@ def main():
         labels = []
         lossfun = softmax_cross_entropy.softmax_cross_entropy
         with configuration.using_config('train', False):
-            for batch in copy.copy(iter):
+            iter.reset()
+            for batch in iter:
                 word, label = convert.concat_examples(batch, args.gpu)
                 words.append(word)
                 labels.append(label)
