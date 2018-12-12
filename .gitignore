@@ -11,7 +11,6 @@ build
 .eggs/
 _readthedocs_build
 /TAGS
-/docs/source/reference/**/generated
 /tags
 chainer.egg-info/
 dist/
@@ -24,6 +23,4 @@ docs/my.state
 docs/my_mnist.model
 docs/mnist_result
 docs/*.png
-docs/source/reference/core
-docs/source/reference/generated
-docs/source/reference/util
+/docs/source/**/reference/**/generated
