@@ -108,10 +108,10 @@ class WalkerAlias(object):
         pb = ps * len(self.threshold)
         index = pb.astype(numpy.int32)
         left_right = (
-            chainer.utils._getitem(self.threshold, index)
+            self.threshold[index]
             < (pb - index.astype(thr_dtype)))
         left_right = left_right.astype(numpy.int32)
-        return chainer.utils._getitem(self.values, index * 2 + left_right)
+        return self.values[index * 2 + left_right]
 
     def sample_gpu(self, shape):
         ps = cuda.cupy.random.uniform(size=shape, dtype=numpy.float32)
