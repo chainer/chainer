@@ -31,7 +31,8 @@ def update_approximate_vectors(
     Args:
         weight_matrix (~chainer.Variable): 2D weight.
         u (numpy.ndarray, cupy.ndarray, or None):
-            Vector that has the shape of (1, out_size).
+            Vector that approximates the first left singular vector and
+            has the shape of (out_size,).
         n_power_iteration (int): Number of iterations to approximate
             the first right and left singular vectors.
 
@@ -62,7 +63,7 @@ def calculate_max_singular_value(weight_matrix, u, v):
         ~chainer.Variable: Max singular value via power iteration method.
 
     """
-    sigma = F.sum(F.linear(u, F.transpose(weight_matrix)) * v)
+    sigma = F.sum(F.matmul(u, weight_matrix) * v)
     return sigma
 
 
@@ -210,8 +211,10 @@ class SpectralNormalization(link_hook.LinkHook):
             if input_variable is not None:
                 link._initialize_params(input_variable.shape[1])
         initialW = getattr(link, self.weight_name)
+        if initialW.shape[self.axis] == 0:
+            raise ValueError('Expect W.shape[{}] > 0'.format(self.axis))
         u = link.xp.random.normal(
-            size=(1, initialW.shape[self.axis])).astype(dtype=link.W.dtype)
+            size=(initialW.shape[self.axis],)).astype(dtype=initialW.dtype)
         setattr(link, self.vector_name, u)
         link.register_persistent(self.vector_name)
         if self.use_gamma:
@@ -229,8 +232,11 @@ class SpectralNormalization(link_hook.LinkHook):
         W = getattr(link, weight_name)
         u = getattr(link, vector_name)
         weight_matrix = self.reshape_W(W)
-        u, v = update_approximate_vectors(
-            weight_matrix, u, self.n_power_iteration, self.eps)
+        if not configuration.config.in_recomputing:
+            u, v = update_approximate_vectors(
+                weight_matrix, u, self.n_power_iteration, self.eps)
+        else:
+            v = self.v
         sigma = calculate_max_singular_value(weight_matrix, u, v)
         if self.factor is not None:
             sigma /= self.factor
@@ -238,8 +244,10 @@ class SpectralNormalization(link_hook.LinkHook):
             W = F.broadcast_to(link.gamma, W.shape) * W / sigma
         else:
             W = W / sigma
-        if configuration.config.train:
-            link.xp.copyto(getattr(link, vector_name), u)
+        if not configuration.config.in_recomputing:
+            self.v = v
+            if configuration.config.train:
+                link.xp.copyto(getattr(link, vector_name), u)
         return W
 
     def reshape_W(self, W):
