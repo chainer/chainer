@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 
 import chainer
 import chainer.links as L
@@ -17,13 +18,17 @@ class TestExceptions(unittest.TestCase):
     def test_wrong_weight_name(self):
         wrong_Weight_name = 'w'
         hook = SpectralNormalization(weight_name=wrong_Weight_name)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.layer.add_hook(hook)
 
     def test_raises(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with SpectralNormalization():
                 self.layer(self.x)
+
+    def test_invalid_shaped_weight(self):
+        with pytest.raises(ValueError):
+            L.Linear(10, 0).add_hook(SpectralNormalization())
 
 
 @testing.parameterize(*testing.product({
@@ -41,21 +46,19 @@ class TestEmbedID(unittest.TestCase):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
 
-        self.assertTrue(hook._initialied)
+        assert getattr(layer, hook.vector_name).shape == (self.in_size,)
         if self.use_gamma:
-            self.assertTrue(hasattr(layer, 'gamma'))
-            self.assertIsInstance(getattr(layer, 'gamma'), chainer.Parameter)
-        self.assertTupleEqual(
-            getattr(layer, hook.vector_name).shape,
-            (1, self.in_size)
-        )
+            assert hasattr(layer, 'gamma')
+            assert isinstance(getattr(layer, 'gamma'), chainer.Parameter)
+        else:
+            assert not hasattr(layer, 'gamma')
 
     def test_weight_is_parameter(self):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
         source_weight = getattr(layer, hook.weight_name)
         layer(self.x)
-        self.assertIs(getattr(layer, hook.weight_name), source_weight)
+        assert getattr(layer, hook.weight_name) is source_weight
 
     def test_u_updated_in_train(self):
         layer, hook = self.layer, self.hook
@@ -65,8 +68,8 @@ class TestEmbedID(unittest.TestCase):
         u1 = numpy.copy(getattr(layer, hook.vector_name))
         y2 = layer(self.x).array
         u2 = getattr(layer, hook.vector_name)
-        self.assertFalse((u1 == u2).all())
-        self.assertFalse((y1 == y2).all())
+        assert not (u1 == u2).all()
+        assert not (y1 == y2).all()
 
     def test_u_not_updated_in_test(self):
         layer, hook = self.layer, self.hook
@@ -78,8 +81,23 @@ class TestEmbedID(unittest.TestCase):
             y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
 
-        numpy.testing.assert_equal(u1, u2)
-        self.assertTrue((y1 == y2).all())
+        assert (u1 == u2).all()
+        assert (y1 == y2).all()
+
+    def test_in_recomputing(self):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+
+        y1 = layer(self.x).array
+        u1 = numpy.copy(getattr(layer, hook.vector_name))
+        v1 = numpy.copy(hook.v)
+        with chainer.using_config('in_recomputing', True):
+            y2 = layer(self.x).array
+        u2 = getattr(layer, hook.vector_name)
+        v2 = hook.v
+        assert (u1 == u2).all()
+        assert (v1 == v2).all()
+        assert (y1 == y2).all()
 
     def test_deleted(self):
         layer, hook = self.layer, self.hook
@@ -89,10 +107,10 @@ class TestEmbedID(unittest.TestCase):
         with chainer.using_config('train', False):
             y2 = layer(self.x).array
         layer.delete_hook(hook.name)
-        self.assertFalse(hasattr(layer, hook.vector_name))
+        assert not hasattr(layer, hook.vector_name)
         y3 = layer(self.x).array
-        self.assertFalse((y1 == y3).all())
-        self.assertFalse((y2 == y3).all())
+        assert not (y1 == y3).all()
+        assert not (y2 == y3).all()
 
 
 @testing.parameterize(*testing.product({
@@ -108,28 +126,26 @@ class TestLinear(unittest.TestCase):
         self.layer = L.Linear(self.out_size)  # Lazy initialization
         in_size = None if self.lazy_init else self.in_size
         self.layer = L.Linear(in_size, self.out_size)
+        self.hook = SpectralNormalization(use_gamma=self.use_gamma)
 
     def test_add_sn_hook(self):
         hook = SpectralNormalization(use_gamma=self.use_gamma)
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
             with chainer.using_config('train', False):
                 layer(self.x)
-        self.assertTrue(hasattr(layer, hook.vector_name))
-        self.assertTupleEqual(
-            (1, self.out_size), getattr(layer, hook.vector_name).shape)
+        assert hasattr(layer, hook.vector_name)
+        assert (self.out_size,) == getattr(layer, hook.vector_name).shape
         if not self.use_gamma:
-            self.assertFalse(hasattr(layer, 'gamma'))
+            assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
-            self.assertTrue(hasattr(layer, 'gamma'))
-            self.assertEqual(
-                getattr(layer, 'gamma').ndim,
+            assert hasattr(layer, 'gamma')
+            assert getattr(layer, 'gamma').ndim ==\
                 getattr(layer, hook.weight_name).ndim
-            )
 
     def _init_layer(self):
         hook = SpectralNormalization(use_gamma=self.use_gamma)
@@ -145,18 +161,34 @@ class TestLinear(unittest.TestCase):
             layer, hook = self._init_layer()
             source_weight = getattr(layer, hook.weight_name)
             layer(self.x)
-            self.assertIs(getattr(layer, hook.weight_name), source_weight)
+            assert getattr(layer, hook.weight_name) is source_weight
         else:
             pass
+
+    def test_in_recomputing(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+
+            y1 = layer(self.x).array
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            v1 = numpy.copy(hook.v)
+            with chainer.using_config('in_recomputing', True):
+                y2 = layer(self.x).array
+            u2 = getattr(layer, hook.vector_name)
+            v2 = hook.v
+            assert (u1 == u2).all()
+            assert (v1 == v2).all()
+            assert (y1 == y2).all()
 
     def test_deleted(self):
         if not self.lazy_init:
             layer, hook = self._init_layer()
             layer.delete_hook(hook.name)
 
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
         else:
             pass
 
@@ -166,7 +198,7 @@ class TestLinear(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            self.assertFalse((u1 == u2).all())
+            assert not (u1 == u2).all()
         else:
             pass
 
@@ -176,7 +208,7 @@ class TestLinear(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+            assert (u == getattr(layer, hook.vector_name)).all()
         else:
             pass
 
@@ -208,31 +240,44 @@ class TestConvolution1D(unittest.TestCase):
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
             with chainer.using_config('train', False):
                 layer(self.x)
-        self.assertTrue(hasattr(layer, hook.vector_name))
-        self.assertTupleEqual(
-            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        assert hasattr(layer, hook.vector_name)
+        assert (self.out_channels,) == getattr(layer, hook.vector_name).shape
         if not self.use_gamma:
-            self.assertFalse(hasattr(layer, 'gamma'))
+            assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
-            self.assertTrue(hasattr(layer, 'gamma'))
-            self.assertEqual(
-                getattr(layer, 'gamma').ndim,
+            assert hasattr(layer, 'gamma')
+            assert getattr(layer, 'gamma').ndim ==\
                 getattr(layer, hook.weight_name).ndim
-            )
+
+    def test_in_recomputing(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+
+            y1 = layer(self.x).array
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            v1 = numpy.copy(hook.v)
+            with chainer.using_config('in_recomputing', True):
+                y2 = layer(self.x).array
+            u2 = getattr(layer, hook.vector_name)
+            v2 = hook.v
+            assert (u1 == u2).all()
+            assert (v1 == v2).all()
+            assert (y1 == y2).all()
 
     def test_deleted(self):
         if not self.lazy_init:
             layer, hook = self._init_layer()
             layer.delete_hook(hook.name)
 
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
         else:
             pass
 
@@ -242,7 +287,7 @@ class TestConvolution1D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            self.assertFalse((u1 == u2).all())
+            assert not (u1 == u2).all()
         else:
             pass
 
@@ -252,7 +297,7 @@ class TestConvolution1D(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+            assert (u == getattr(layer, hook.vector_name)).all()
         else:
             pass
 
@@ -284,31 +329,44 @@ class TestConvolution2D(unittest.TestCase):
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
             with chainer.using_config('train', False):
                 layer(self.x)
-        self.assertTrue(hasattr(layer, hook.vector_name))
-        self.assertTupleEqual(
-            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        assert hasattr(layer, hook.vector_name)
+        assert (self.out_channels,) == getattr(layer, hook.vector_name).shape
         if not self.use_gamma:
-            self.assertFalse(hasattr(layer, 'gamma'))
+            assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
-            self.assertTrue(hasattr(layer, 'gamma'))
-            self.assertEqual(
-                getattr(layer, 'gamma').ndim,
+            assert hasattr(layer, 'gamma')
+            assert getattr(layer, 'gamma').ndim ==\
                 getattr(layer, hook.weight_name).ndim
-            )
+
+    def test_in_recomputing(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+
+            y1 = layer(self.x).array
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            v1 = numpy.copy(hook.v)
+            with chainer.using_config('in_recomputing', True):
+                y2 = layer(self.x).array
+            u2 = getattr(layer, hook.vector_name)
+            v2 = hook.v
+            assert (u1 == u2).all()
+            assert (v1 == v2).all()
+            assert (y1 == y2).all()
 
     def test_deleted(self):
         if not self.lazy_init:
             layer, hook = self._init_layer()
             layer.delete_hook(hook.name)
 
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
         else:
             pass
 
@@ -318,7 +376,7 @@ class TestConvolution2D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            self.assertFalse((u1 == u2).all())
+            assert not (u1 == u2).all()
         else:
             pass
 
@@ -328,7 +386,7 @@ class TestConvolution2D(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+            assert (u == getattr(layer, hook.vector_name)).all()
         else:
             pass
 
@@ -361,31 +419,44 @@ class TestConvolution3D(unittest.TestCase):
         layer = self.layer
         layer.add_hook(hook)
         if self.lazy_init:
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
             with chainer.using_config('train', False):
                 layer(self.x)
-        self.assertTrue(hasattr(layer, hook.vector_name))
-        self.assertTupleEqual(
-            (1, self.out_channels), getattr(layer, hook.vector_name).shape)
+        assert hasattr(layer, hook.vector_name)
+        assert (self.out_channels,) == getattr(layer, hook.vector_name).shape
         if not self.use_gamma:
-            self.assertFalse(hasattr(layer, 'gamma'))
+            assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
-            self.assertTrue(hasattr(layer, 'gamma'))
-            self.assertEqual(
-                getattr(layer, 'gamma').ndim,
+            assert hasattr(layer, 'gamma')
+            assert getattr(layer, 'gamma').ndim ==\
                 getattr(layer, hook.weight_name).ndim
-            )
+
+    def test_in_recomputing(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+
+            y1 = layer(self.x).array
+            u1 = numpy.copy(getattr(layer, hook.vector_name))
+            v1 = numpy.copy(hook.v)
+            with chainer.using_config('in_recomputing', True):
+                y2 = layer(self.x).array
+            u2 = getattr(layer, hook.vector_name)
+            v2 = hook.v
+            assert (u1 == u2).all()
+            assert (v1 == v2).all()
+            assert (y1 == y2).all()
 
     def test_deleted(self):
         if not self.lazy_init:
             layer, hook = self._init_layer()
             layer.delete_hook(hook.name)
 
-            self.assertFalse(hasattr(layer, hook.vector_name))
+            assert not hasattr(layer, hook.vector_name)
             if self.use_gamma:
-                self.assertFalse(hasattr(layer, 'gamma'))
+                assert not hasattr(layer, 'gamma')
         else:
             pass
 
@@ -395,7 +466,7 @@ class TestConvolution3D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            self.assertFalse((u1 == u2).all())
+            assert not (u1 == u2).all()
         else:
             pass
 
@@ -405,7 +476,7 @@ class TestConvolution3D(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            self.assertTrue((u == getattr(layer, hook.vector_name)).all())
+            assert (u == getattr(layer, hook.vector_name)).all()
         else:
             pass
 
