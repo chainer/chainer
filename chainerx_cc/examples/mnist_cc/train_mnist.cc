@@ -7,6 +7,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <string>
 
@@ -26,11 +27,20 @@
 
 namespace chx = chainerx;
 
-chx::Array GetRandomArray(std::mt19937& gen, std::normal_distribution<float>& dist, const chx::Shape& shape) {
+chx::Array GetRandomArray(const chx::Shape& shape, std::mt19937& gen, std::normal_distribution<float>& dist) {
     int64_t n = shape.GetTotalSize();
     std::shared_ptr<float> data{new float[n], std::default_delete<float[]>{}};
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
+
     return chx::FromContiguousHostData(shape, chx::Dtype::kFloat32, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
+}
+
+chx::Array GetRandomIndicesArray(int64_t n, std::mt19937& gen) {
+    std::shared_ptr<int64_t> data{new int64_t[n], std::default_delete<int64_t[]>{}};
+    std::iota(data.get(), data.get() + n, 0);
+    std::shuffle(data.get(), data.get() + n, gen);
+
+    return chx::FromContiguousHostData({n}, chx::Dtype::kInt64, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
 class Model {
@@ -57,7 +67,7 @@ public:
         for (int64_t i = 0; i < n_layers_; ++i) {
             int64_t n_in = i == 0 ? n_in_ : n_hidden_;
             int64_t n_out = i == n_layers_ - 1 ? n_out_ : n_hidden_;
-            params_.emplace_back(GetRandomArray(gen, dist, {n_in, n_out}));
+            params_.emplace_back(GetRandomArray({n_in, n_out}, gen, dist));
             params_.emplace_back(chx::Zeros({n_out}, chx::Dtype::kFloat32));
         }
 
@@ -97,7 +107,6 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
 
     int64_t n_train = train_x.shape().front();
     int64_t n_test = test_x.shape().front();
-    chx::Array train_indices = chx::Arange(n_train, chx::Dtype::kInt64);
 
     // Initialize the model with random parameters.
     Model model{train_x.shape()[1], n_hidden, 10, n_layers};
@@ -109,15 +118,7 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int64_t epoch = 0; epoch < epochs; ++epoch) {
-        // Shuffle indices on host device.
-        // TODO(hvy): Shuffle indices without device transfer.
-        chx::Array train_indices_host = train_indices.ToNative();
-        assert(train_indices_host.IsContiguous());
-        std::shuffle(
-                reinterpret_cast<int64_t*>(train_indices_host.raw_data()),
-                reinterpret_cast<int64_t*>(train_indices_host.raw_data()) + n_train,
-                gen);
-        train_indices = train_indices_host.ToDevice(chx::GetDefaultDevice());
+        chx::Array train_indices = GetRandomIndicesArray(n_train, gen);
 
         for (int64_t i = 0; i < n_train; i += batch_size) {
             chx::Array indices = train_indices.At({chx::Slice{i, i + batch_size}});
