@@ -95,7 +95,7 @@ Next, we need to define the neural network for inclusion in our model. For our m
 
 As an activation function, we'll use standard Rectified Linear Units (:func:`~chainer.functions.relu`).
 
-Using the :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
+Using :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
