@@ -14,8 +14,8 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 * Broad and deep support -- Chainer is actively used for most of the current approaches for neural nets (CNN, RNN, RL, etc.), aggressively adds new approaches as they're developed, and provides support for many kinds of hardware as well as parallelization for multiple GPUs
 
 
-Mushrooms -- tasty or deathly?
-------------------------------
+Mushrooms -- tasty or deadly?
+-----------------------------
 
 Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with `Kaggle's edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>`_, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc., in a `mushrooms.csv file <https://raw.githubusercontent.com/chainer/chainer/master/examples/glance/mushrooms.csv>`_.
 
