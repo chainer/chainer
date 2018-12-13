@@ -86,7 +86,6 @@ Array manipulations
    chainer.functions.broadcast_to
    chainer.functions.cast
    chainer.functions.concat
-   chainer.functions.copied_set_item
    chainer.functions.copy
    chainer.functions.depth2space
    chainer.functions.diagonal
@@ -110,6 +109,7 @@ Array manipulations
    chainer.functions.scatter_add
    chainer.functions.select_item
    chainer.functions.separate
+   chainer.functions.set_item
    chainer.functions.space2depth
    chainer.functions.spatial_transformer_grid
    chainer.functions.spatial_transformer_sampler
