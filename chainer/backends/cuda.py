@@ -158,8 +158,8 @@ _integer_types = six.integer_types + (numpy.integer,)
 class GpuDevice(_backend.Device):
 
     def __init__(self, device):
-        assert isinstance(device, Device)
         check_cuda_available()
+        assert isinstance(device, Device)
 
         super(GpuDevice, self).__init__()
         self.device = device
@@ -670,6 +670,8 @@ def fuse(*args, **kwargs):
     """
     if available:
         return cupy.fuse(*args, **kwargs)
+    elif len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+        return args[0]
     else:
         return lambda f: f
 

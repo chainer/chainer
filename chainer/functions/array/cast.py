@@ -52,5 +52,6 @@ def cast(x, typ):
 
     """
     if x.dtype == typ:
-        return chainer.as_variable(x)
+        if not chainer.config.enable_backprop:
+            return chainer.as_variable(x)
     return Cast(typ).apply((x,))[0]

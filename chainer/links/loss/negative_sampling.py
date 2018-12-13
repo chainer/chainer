@@ -22,6 +22,7 @@ class NegativeSampling(link.Link):
         counts (int list): Number of each identifiers.
         sample_size (int): Number of negative samples.
         power (float): Power factor :math:`\\alpha`.
+        dtype (numpy.dtype): Type to use in computing.
 
     .. seealso:: :func:`~chainer.functions.negative_sampling` for more detail.
 
@@ -30,12 +31,13 @@ class NegativeSampling(link.Link):
 
     """
 
-    def __init__(self, in_size, counts, sample_size, power=0.75):
+    def __init__(self, in_size, counts, sample_size, power=0.75, dtype=None):
         super(NegativeSampling, self).__init__()
+        dtype = chainer.get_dtype(dtype)
         vocab_size = len(counts)
         self.sample_size = sample_size
-        power = numpy.float32(power)
-        p = numpy.array(counts, power.dtype)
+        power = dtype.type(power)
+        p = numpy.array(counts, dtype)
         numpy.power(p, power, p)
         self.sampler = walker_alias.WalkerAlias(p)
 
