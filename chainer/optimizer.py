@@ -680,6 +680,7 @@ class GradientMethod(Optimizer):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
         self._use_fp32_update = False
+        self._batched_update_rule = None
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
@@ -746,8 +747,13 @@ class GradientMethod(Optimizer):
         self.call_hooks('pre')
 
         self.t += 1
-        for param in self.target.params():
-            param.update()
+        if self.t > 1 and self._batched_update_rule is not None:
+            params = [param for _, param in sorted(self.target.namedparams())
+                      if param.grad is not None]
+            self._batched_update_rule.batched_update(params, self._loss_scale)
+        else:
+            for param in self.target.params():
+                param.update()
 
         self.reallocate_cleared_grads()
 
@@ -796,6 +802,14 @@ class GradientMethod(Optimizer):
         if link is not None:
             for param in link.params():
                 param.update_rule.use_fp32_update()
+
+    def use_batched_update(self):
+        self._batched_update_rule = self.create_update_rule()
+        if not callable(getattr(self._batched_update_rule,
+                                'batched_update', None)):
+            self._batched_update_rule = None
+            warnings.warn('batched_update is not available with '
+                          '{}.'.format(self.__class__.__name__))
 
 
 class HyperparameterProxy(object):
