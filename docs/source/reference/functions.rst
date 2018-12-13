@@ -301,6 +301,7 @@ Normalization functions
    chainer.functions.fixed_batch_renormalization
    chainer.functions.fixed_decorrelated_batch_normalization
    chainer.functions.group_normalization
+   chainer.functions.instance_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
