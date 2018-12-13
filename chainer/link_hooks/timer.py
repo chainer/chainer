@@ -9,18 +9,23 @@ from chainer import link_hook
 
 class TimerHook(link_hook.LinkHook):
     """Link hook for measuring elapsed time of :meth:`forward`.
+
     Example:
         Code example::
+
             from chainer.link_hooks import TimerHook
             hook = TimerHook()
             with hook:
                 trainer.run()
             hook.print_report()
+
         Output example::
+
               LinkName  ElapsedTime  Occurrence
                 Linear     41.42sec        2100
                    MLP     42.09sec         700
             Classifier     42.39sec         700
+
         where *LinkName* is the name of link that calls the hook,
         and *ElapsedTime* is the elapsed time the link consumed,
         and *Occurrence* is the number of calls.
@@ -127,3 +132,6 @@ class TimerHook(link_hook.LinkHook):
             file.write(line)
             file.write('\n')
         file.flush()
+
+    # TODO(crcrpar): Support backward pre/post process.
+    # See https://github.com/chainer/chainer/issues/5197
