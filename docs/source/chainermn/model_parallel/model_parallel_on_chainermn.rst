@@ -67,7 +67,7 @@ For the last case, you may use ``create_empty_dataset``, which returns a dataset
     train = chainermn.datasets.create_empty_dataset(train)
     test = chainermn.datasets.create_empty_dataset(test)
 
-This input pattern appears in the subsequent examples such as :doc:`example1_simple_mlp.rst`.
+This input pattern appears in the subsequent examples such as :doc:`example1_simple_mlp`.
 Note that datasets are required in Chainer's updater API. The empty dataset can be used as a dummy dataset.
 
 .. figure:: ../../../image/model_parallel/empty_dataset.png

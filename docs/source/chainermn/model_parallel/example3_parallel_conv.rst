@@ -51,7 +51,7 @@ Parallel convolution model implementation could be like this::
             indices = indices[indices % self.comm.size == 0] + self.comm.rank
             return [i for i in indices if i < self.in_channels]
 
-where ``comm`` is a ChainerMN communicator (see :ref:`pseudo-connect`).
+where ``comm`` is a ChainerMN communicator (see :ref:`chainermn-communicator`).
 
 ``ParallelConvolution2D`` can simply replace with the original ``Convolution2D``.
 For the first convolution layer, all processes must input the same images to the model.

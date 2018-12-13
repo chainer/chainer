@@ -23,7 +23,7 @@ It can replace this complicated communication pattern.
         L.NStepLSTM(n_layers, n_units, n_units, 0.1),
         comm, rank_in=None, rank_out=1)
 
-where ``comm`` is a ChainerMN communicator (see :ref:`pseudo-connect`).
+where ``comm`` is a ChainerMN communicator (see :ref:`chainermn-communicator`).
 
 The overall model definition can be written as follows::
 
