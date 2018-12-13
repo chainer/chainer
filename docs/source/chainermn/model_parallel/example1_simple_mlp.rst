@@ -15,7 +15,7 @@ First, let's create a ChainerMN communicator::
         comm = chainermn.create_communicator('naive')
         device = -1
 
-As we see in :doc:`model_parallel_on_chainermn`, the naive implementation is to use the point-to-point communication such as ``send`` and ``recv``::
+As we saw in :doc:`model_parallel_on_chainermn`, one naive implementation would be to use the point-to-point communication such as ``send`` and ``recv``::
 
     class MLP0(chainer.Chain):
         def __init__(self, comm, n_out):

@@ -2,18 +2,19 @@ Example 3: Channel-wise Parallel Convolution
 ============================================
 
 This is an example to parallelize CNN in channel-wise manner.
-This parallelization is useful with a large batch size, or with high resolution images.
+This parallelization is useful with large batch size, or with high resolution images.
 
 .. figure:: ../../../image/model_parallel/parallel_conv.png
     :align: center
 
 The basic strategy is
 
-1. pick channels that each process is responsible for
-2. apply convolution
-3. use ``allgather`` to combine outputs in one tensor
+1. to pick channels that each process is responsible for
+2. to apply convolution, and
+3. to use ``allgather`` to combine outputs of all channels into a single tensor
 
-on each process::
+on each process.
+Parallel convolution model implementation could be like this::
 
     class ParallelConvolution2D(chainer.links.Convolution2D):
         def __init__(self, comm, in_channels, out_channels, *args, **kwargs):
@@ -50,8 +51,10 @@ on each process::
             indices = indices[indices % self.comm.size == 0] + self.comm.rank
             return [i for i in indices if i < self.in_channels]
 
+where ``comm`` is a ChainerMN communicator (see :ref:`pseudo-connect`).
+
 ``ParallelConvolution2D`` can simply replace with the original ``Convolution2D``.
-For the first convolution layer, input images for all processes must be shared.
+For the first convolution layer, all processes must input the same images to the model.
 ``MultiNodeIterator`` distributes the same batches to all processes every iteration::
 
     if comm.rank != 0:
@@ -65,4 +68,4 @@ For the first convolution layer, input images for all processes must be shared.
                                          repeat=False, shuffle=False),
         comm)
 
-An example code for VGG16 parallelization is available `here <https://github.com/chainer/chainer/blob/master/examples/chainermn/parallel_convolution/>`__.
+An example code with a training script for VGG16 parallelization is available `here <https://github.com/chainer/chainer/blob/master/examples/chainermn/parallel_convolution/>`__.

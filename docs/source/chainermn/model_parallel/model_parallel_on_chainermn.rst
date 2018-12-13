@@ -2,6 +2,8 @@ Model Parallel on ChainerMN
 ===========================
 
 
+.. _chainermn-communicator:
+
 Step 1: Communicators
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -25,7 +27,7 @@ For further detail about the communicator split, please refer to `MPI tutorial <
 Step 2: Datasets and Iterators
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In model parallel, there are three types of processes regarding to datasets.
+In model parallel training, all processes belong to at least one of the following dataset input patterns.
 
 1. model inputs come from datasets, and each process takes different mini-batches
 2. model inputs come from datasets, and several processes share the same mini-batches
@@ -65,7 +67,8 @@ For the last case, you may use ``create_empty_dataset``, which returns a dataset
     train = chainermn.datasets.create_empty_dataset(train)
     test = chainermn.datasets.create_empty_dataset(test)
 
-Note that datasets are required in Chainer's API. The empty dataset can be used as a dummy dataset.
+This input pattern appears in the subsequent examples such as :doc:`example1_simple_mlp.rst`.
+Note that datasets are required in Chainer's updater API. The empty dataset can be used as a dummy dataset.
 
 .. figure:: ../../../image/model_parallel/empty_dataset.png
     :align: center

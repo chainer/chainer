@@ -6,10 +6,12 @@ This example shows how to parallelize models that involves RNN.
 .. figure:: ../../../image/model_parallel/seq2seq_0.png
     :align: center
 
-The above model is a typical encoder-decoder model, and the encoder and decoder are splitted on two processes.
-When ``f`` or ``g`` are large models such as deep CNN, this kind of model parallelism is needed.
-However, ``send``, ``recv``, and ``pseudo_connect`` must be appropriately used, which is relatively hard.
-To mitigate its difficulty, ``MultiNodeNStepRNN`` can be used.
+Above figure depicts a typical encoder-decoder model, where the model is split up to encoder and decoder, both running respectively in two processes.
+When ``f`` or ``g`` are large models that consume huge memory such as CNN, model parallelism like this would be useful.
+In the forward computation, the encoder invokes ``send`` function to send its context vectors, and the decoder invokes ``recv`` to receive them.
+The backward computation must be built by ``pseudo_connect``.
+As this communication pattern is very popular in RNNs, ``MultiNodeNStepRNN`` is a ready-made utility link for this pattern.
+It can replace this complicated communication pattern.
 
 .. figure:: ../../../image/model_parallel/seq2seq_1.png
     :align: center
@@ -21,7 +23,9 @@ To mitigate its difficulty, ``MultiNodeNStepRNN`` can be used.
         L.NStepLSTM(n_layers, n_units, n_units, 0.1),
         comm, rank_in=None, rank_out=1)
 
-The model definition is as follows::
+where ``comm`` is a ChainerMN communicator (see :ref:`pseudo-connect`).
+
+The overall model definition can be written as follows::
 
     class Encoder(chainer.Chain):
 
@@ -59,4 +63,4 @@ The model definition is as follows::
             c, h, os, _ = self.mn_decoder(ys)
             # compute loss (omitted)
 
-An example code on seq2seq model is available `here <https://github.com/chainer/chainer/blob/master/examples/chainermn/seq2seq/seq2seq_mp1.py>`__.
+An example code with a training script is available `here <https://github.com/chainer/chainer/blob/master/examples/chainermn/seq2seq/seq2seq_mp1.py>`__.

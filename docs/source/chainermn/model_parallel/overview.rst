@@ -37,9 +37,9 @@ Moreover, parameter updates in backward propagation are automatically invoked th
 2. Synchronous Model Parallel
 -----------------------------
 
-ChainerMN restricts itself to the synchronous updates.
-Though the asynchronous counterpart seems to be more computationally efficient, the asynchronous updates often suffer from the stale gradients problem and results in difficulty while debugging.
-The synchronous communication makes them simpler.
+ChainerMN restricts itself to synchronous SGD.
+Though the asynchronous counterpart seems to be more computationally efficient, asynchronous SGD often suffer from the stale gradients problem and results in difficulty while debugging.
+ChainerMN's synchronous communication model makes SGD simpler.
 
 
 3. Single-Program-Multiple-Data (SPMD)
@@ -49,6 +49,8 @@ In principle, ChainerMN supports single-program-multiple-data (SPMD), which mean
 
 .. figure:: ../../../image/model_parallel/spmd.png
     :align: center
+
+Synchronous model-parallelism suits well with MPI programming style and SPMD model.
 
 
 References
