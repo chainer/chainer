@@ -73,8 +73,8 @@ def _as_noncontiguous_array(array):
         with chainer.using_device(device):
             ret = xp.empty(
                 (a.shape[0] * 2,) + a.shape[1:], dtype=a.dtype)
-        utils._setitem(ret, slice(None, None, 2), a)  # ret[::2] = a
-        ret = utils._getitem(ret, slice(None, None, 2))  # ret = ret[::2]
+        ret[::2] = a
+        ret = ret[::2]
         if device.xp is chainerx:
             assert not ret.is_contiguous
         else:

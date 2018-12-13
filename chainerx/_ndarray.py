@@ -1,11 +1,9 @@
-# This file defines inefficient workaround implementation for
-# NumPy ndarray-compatibility functions. This file should ultimately be
-# emptied by implementing those functions in more efficient manner.
+# This file implements chainerx.ndarray methods that can be defined only in
+# Python.
 
 import chainerx
 
 
-# Populates chainerx.ndarray methods in the chainerx namespace
 def populate():
 
     def clip(self, a_min, a_max):

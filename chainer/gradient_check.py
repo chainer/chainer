@@ -10,7 +10,6 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import FunctionNode
 from chainer import testing
-from chainer import utils
 from chainer import variable
 import chainerx
 
@@ -165,13 +164,13 @@ def numerical_grad(
 
     # Evaluate func at a single input
     def eval_func(x, i, delta, orig):
-        utils._setitem(x, i, orig + delta)
+        x[i] = orig + delta
         y = _copy_arrays(f())
         assert len(y) == len(grad_outputs)
         assert all([
             gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
             for y_, gy in zip(y, grad_outputs)])
-        utils._setitem(x, i, orig)
+        x[i] = orig
         return y
 
     # An iteration on a single input displacement
@@ -303,7 +302,7 @@ def numerical_grad(
                         y1, y0, xp.asarray(gy), eps, gx[i])
                 else:
                     dot = numpy.nansum((y1 - y0) * gy)
-                    utils._setitem(gx, i, gx[i] + dot / (2 * eps))
+                    gx[i] = gx[i] + dot / (2 * eps)
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
                 y1 = yss[1][i_out]
@@ -315,7 +314,7 @@ def numerical_grad(
                 else:
                     num = -y3 + 8 * y2 - 8 * y1 + y0
                     dot = numpy.nansum(num * gy)
-                    utils._setitem(gx, i, gx[i] + dot / (6 * eps))
+                    gx[i] = gx[i] + dot / (6 * eps)
             else:
                 assert False
 
