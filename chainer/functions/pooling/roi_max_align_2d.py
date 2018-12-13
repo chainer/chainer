@@ -121,7 +121,7 @@ class ROIMaxAlign2D(function.Function):
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
-            max_val = - float('inf')
+            max_val = - numpy.inf
             max_index = -1
             for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
