@@ -34,9 +34,6 @@ step_show_environment_info() {
     echo "whoami: $(whoami) ($(id -u $(whoami)))"
     echo "PWD: $PWD"
 
-    # g++
-    g++ --version
-
     # cmake
     cmake --version
 

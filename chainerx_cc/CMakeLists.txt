@@ -89,6 +89,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")  # cmake -DCMAKE_BUILD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
     if (${CUDA_FOUND})
+        list(APPEND CUDA_NVCC_FLAGS -Xcompiler -std=c++14)
         list(APPEND CUDA_NVCC_FLAGS -std=c++14)
     endif()
 

@@ -49,6 +49,14 @@ run_step() {
 }
 
 
+run_steps_ctest() {
+    run_step setup_openblas
+    run_step cmake
+    CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step make
+    run_step make_install
+    run_step ctest
+}
+
 # Run steps
 
 run_step show_environment_info
@@ -63,12 +71,11 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
         run_step clang_tidy normal
         run_step clang_tidy test
         ;;
+    # TODO: Define both gcc and clang configuration
     'chainerx-c')
-        run_step setup_openblas
-        run_step cmake
-        CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step make
-        run_step make_install
-        run_step ctest
+        export CC=clang-3.9
+        export CXX=clang++-3.9
+        run_steps_ctest
         ;;
     'chainerx-py3')
         run_step setup_conda_environment
