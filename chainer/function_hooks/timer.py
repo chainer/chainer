@@ -102,7 +102,7 @@ class TimerHook(function_hook.FunctionHook):
 
         Returns:
             A summarized dictionary whose keys are function names and
-            values are dictionaries of `elapsed_time` and `occurrrence`.
+            values are dictionaries of `elapsed_time` and `occurrence`.
         """
         summary = {}
         for function_name, elapsed_time in self.call_history:

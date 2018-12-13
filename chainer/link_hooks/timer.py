@@ -91,7 +91,7 @@ class TimerHook(link_hook.LinkHook):
         """Returns a summary of time profiling in links.
         Returns:
             A summarized dictionary whose keys are link names and
-            values are dictionaries of `elapsed_time` and `occurrrence`.
+            values are dictionaries of `elapsed_time` and `occurrence`.
         """
         summary = {}
         for link_name, elapsed_time in self.call_history:
@@ -111,7 +111,7 @@ class TimerHook(link_hook.LinkHook):
         return '%.2f%s' % (second, 'ns')
 
     def print_report(self, file=sys.stdout):
-        """Prints a summary report of time profiling in linkss."""
+        """Prints a summary report of time profiling in links."""
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
         for link_name, record in self.summary().items():
             elapsed_time = self._humanized_time(record['elapsed_time'])
