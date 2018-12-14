@@ -297,9 +297,20 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = None
+                avg_var = None
+
             ret = functions.batch_normalization(
-                x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay, axis=self.axis)
+                x, gamma, beta, eps=self.eps, running_mean=avg_mean,
+                running_var=avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean

@@ -3,8 +3,9 @@ set -eux
 
 this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-host_workspace_dir="$PWD"
-host_repo_dir="$host_workspace_dir"/repo
+
+test $# -eq 1
+host_repo_dir="$1"
 
 
 # Should be checked out here

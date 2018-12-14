@@ -69,6 +69,13 @@ class TestGraphBuilder(unittest.TestCase):
     def test_multiple_outputs4(self):
         _check(self, (self.x, self.y, self.z), 5, 4)
 
+    def test_nontuple_outputs(self):
+        _check(self, self.z, 5, 4)
+
+    def test_raise_array_outputs(self):
+        with self.assertRaises(TypeError):
+            c.build_computational_graph(self.z.array)
+
 
 class TestGraphBuilder2(unittest.TestCase):
 

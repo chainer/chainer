@@ -4,4 +4,5 @@ base: docs/source
 conda:
   file: docs/rtd_conda.yml
 python:
-  setup_py_install: false
+  version: 3.5
+  setup_py_install: true

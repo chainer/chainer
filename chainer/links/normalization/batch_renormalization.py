@@ -60,9 +60,20 @@ class BatchRenormalization(BatchNormalization):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = self.xp.zeros_like(self.avg_mean)
+                avg_var = self.xp.zeros_like(self.avg_var)
+
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
-                self.eps, self.avg_mean, self.avg_var, decay,
+                self.eps, avg_mean, avg_var, decay,
                 update_statistics=True)
         else:
             # Use running average statistics or fine-tuned statistics.

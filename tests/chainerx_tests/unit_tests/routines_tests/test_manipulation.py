@@ -419,6 +419,14 @@ def test_stack(xp, shapes, axis):
     ((2, 4, 6), [2, 8], 2),
     ((2, 4, 6), [4, 2], 2),
     ((2, 4, 6), [1, 3], -2),
+    ((6,), numpy.array([1, 2]), 0),  # indices with 1-d numpy array
+    ((6,), numpy.array([2]), 0),  # indices with (1,)-shape numpy array
+    ((6,), numpy.array(2), 0),  # sections numpy scalar
+    ((6,), numpy.array(2.0), 0),  # sections with numpy scalar, float
+    ((6,), 2.0, 0),  # float type sections, without fraction
+    # indices with empty numpy indices
+    ((6,), numpy.array([], numpy.int32), 0),
+    ((6,), numpy.array([], numpy.float64), 0),
 ])
 def test_split(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
@@ -427,7 +435,8 @@ def test_split(xp, shape, indices_or_sections, axis):
 
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(
-        chainerx.DimensionError, IndexError, ValueError, ZeroDivisionError))
+        chainerx.DimensionError, IndexError, ValueError, TypeError,
+        ZeroDivisionError))
 @pytest.mark.parametrize('shape,indices_or_sections,axis', [
     ((), 1, 0),
     ((2,), 3, 0),
@@ -435,6 +444,17 @@ def test_split(xp, shape, indices_or_sections, axis):
     ((2, 4), -1, 1),
     ((2, 4), 1, 2),  # Axis out of range.
     ((2, 4), 3, 1),  # Uneven split.
+    ((6,), [2.0], 0),  # float type indices
+    ((6,), 2.1, 0),  # float type sections, with fraction
+    # indices with (1,)-shape numpy array, float
+    ((6,), numpy.array([2.0]), 0),
+    # sections with numpy scalar, float with fraction
+    ((6,), numpy.array(2.1), 0),
+    ((2,), [1, 2.0], 0),  # indices with mixed type
+    ((6,), '2', 0),  # Invalid type
+    # indices with empty numpy indices
+    ((6,), numpy.array([[], []], numpy.int32), 0),
+    ((6,), numpy.array([[], []], numpy.float64), 0),
 ])
 def test_split_invalid(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')

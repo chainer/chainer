@@ -143,6 +143,11 @@ Configuration Keys
 
    If ``True``, Chainer will try to use the fast implementation for batch normalization in cuDNN by setting cuDNN's batch normalization mode to ``CUDNN_BATCHNORM_SPATIAL_PERSISTENT``. You can change the default value to ``True`` by setting ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION`` environment variable to ``1``.
 
+* ``in_recomputing`` (default: ``False``)
+   This flag is automatically set by :func:`chainer.functions.forget` and not intended to be changed by users.
+   You can use this flag when implementing your own Link to avoid updating the internal states during recomputation done by :func:`chainer.functions.forget`.
+   See the documentation of :func:`chainer.functions.forget` for details.
+
 
 User-defined Keys
 -----------------
