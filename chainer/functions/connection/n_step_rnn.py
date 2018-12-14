@@ -25,32 +25,6 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
 
 
-class PointerArray(object):
-
-    def __init__(self, lst, back_pointer):
-        self._value = numpy.array(lst, dtype=numpy.intp)
-        # Store back_pointer to prevent the GC removes the original variable
-        self._back_pointer = back_pointer
-
-    @property
-    def data(self):
-        return self._value.ctypes.data
-
-
-def _make_tensor_descriptor_array(xs):
-    """Make an array of pointers denoting pointers of tensor descriptors.
-
-    """
-    descs = []
-    for x in xs:
-        if x.ndim < 3:
-            shape = x.shape + (1,) * (3 - x.ndim)
-            x = x.reshape(shape)
-        desc = cudnn.create_tensor_nd_descriptor(x)
-        descs.append(desc)
-    return PointerArray([d.value for d in descs], descs)
-
-
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Define RNN parameters using dict.
     _rnn_dirs = {
@@ -296,85 +270,20 @@ class BaseNStepRNN(function.Function):
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs
-            cx = cuda.cupy.ascontiguousarray(cx)
-            cx_desc = cudnn.create_tensor_nd_descriptor(cx)
-
-            cy = cuda.cupy.empty_like(cx)
-            cy_desc = cudnn.create_tensor_nd_descriptor(cy)
-
-            cx_data_ptr = cx.data.ptr
-            cy_data_ptr = cy.data.ptr
-
-            cx_desc_value = cx_desc.value
-            cy_desc_value = cy_desc.value
         else:
             # RNN, GRU
             hx, w, xs = inputs
-            cx = cy = None
-            cx_data_ptr = cy_data_ptr = 0
-            cx_desc_value = cy_desc_value = 0
-
-        w = cuda.cupy.ascontiguousarray(w)
-        xs = cuda.cupy.ascontiguousarray(xs)
-        hx = cuda.cupy.ascontiguousarray(hx)
-
-        length = len(self.lengths)
-        n_units = hx.shape[2]
-
-        ys = cuda.cupy.empty(
-            (len(xs), n_units * self.rnn_direction), dtype=xs.dtype)
-
-        handle = cudnn.get_handle()
-        self.handle = handle
-
-        # TODO(unno): Make a wrapper method to avoid access _desc directly
-        rnn_desc = cudnn.create_rnn_descriptor(
-            n_units, self.n_layers, self.states._desc,
-            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
-            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
-        self.rnn_desc = rnn_desc
-
-        x_list = cuda.cupy.split(xs, self.sections[:-1])
-        c_x_descs = _make_tensor_descriptor_array(x_list)
-        hx_desc = cudnn.create_tensor_nd_descriptor(hx)
-
-        w_desc = cudnn.create_filter_descriptor(w)
-
-        self.w_desc = w_desc
-
-        y_list = cuda.cupy.split(ys, self.sections[:-1])
-        c_y_descs = _make_tensor_descriptor_array(y_list)
-        hy = cuda.cupy.empty_like(hx)
-        hy_desc = cudnn.create_tensor_nd_descriptor(hy)
-
-        work_size = libcudnn.getRNNWorkspaceSize(
-            handle, rnn_desc.value, length, c_x_descs.data)
-        workspace = cuda.cupy.empty((work_size,), dtype='b')
-        self.workspace = workspace
+            cx = None
 
         if not configuration.config.train:
-            libcudnn.RNNForwardInference(
-                handle, rnn_desc.value, length,
-                c_x_descs.data, xs.data.ptr, hx_desc.value, hx.data.ptr,
-                cx_desc_value, cx_data_ptr, w_desc.value, w.data.ptr,
-                c_y_descs.data, ys.data.ptr, hy_desc.value, hy.data.ptr,
-                cy_desc_value, cy_data_ptr, workspace.data.ptr, work_size)
+            hy, cy, ys = cudnn.rnn_forward_inference(
+                self.states, self.rnn_dir, self.rnn_mode,
+                hx, cx, w, xs, self.lengths)
 
         else:
-            reserve_size = libcudnn.getRNNTrainingReserveSize(
-                handle, rnn_desc.value, length, c_x_descs.data)
-            self.reserve_space = cuda.cupy.empty((reserve_size,), dtype='b')
-            libcudnn.RNNForwardTraining(
-                handle, rnn_desc.value, length,
-                c_x_descs.data, xs.data.ptr, hx_desc.value, hx.data.ptr,
-                cx_desc_value, cx_data_ptr, w_desc.value, w.data.ptr,
-                c_y_descs.data, ys.data.ptr, hy_desc.value, hy.data.ptr,
-                cy_desc_value, cy_data_ptr,
-                workspace.data.ptr, work_size,
-                self.reserve_space.data.ptr, reserve_size)
-
-        self.c_y_descs = c_y_descs
-        self.c_x_descs = c_x_descs
+            self.reserve_space, hy, cy, ys = cudnn.rnn_forward_training(
+                self.states, self.rnn_dir, self.rnn_mode,
+                hx, cx, w, xs, self.lengths)
 
         if self.use_cell:
             # LSTM
@@ -393,78 +302,27 @@ class BaseNStepRNN(function.Function):
             if dcy is None:
                 dcy = cuda.cupy.zeros_like(cx)
 
-            cx = cuda.cupy.ascontiguousarray(cx)
-            dcx = cuda.cupy.empty_like(cx)
-
-            cx_desc = cudnn.create_tensor_nd_descriptor(cx)
-            dcx_desc = cudnn.create_tensor_nd_descriptor(dcx)
-            dcy_desc = cudnn.create_tensor_nd_descriptor(dcy)
-
-            cx_data_ptr = cx.data.ptr
-            dcy_data_ptr = dcy.data.ptr
-            dcx_data_ptr = dcx.data.ptr
-            cx_desc_value = cx_desc.value
-            dcx_desc_value = dcx_desc.value
-            dcy_desc_value = dcy_desc.value
         else:
             # GRU, RNN
             hx, w, xs = inputs
             dhy, dys = grads
-            dcy = cx = dcx = None
-            cx_data_ptr = dcy_data_ptr = dcx_data_ptr = 0
-            cx_desc_value = dcx_desc_value = dcy_desc_value = 0
+            dcy = cx = None
 
         ys = self.output_data[-1]
 
-        xs = cuda.cupy.ascontiguousarray(xs)
-        hx = cuda.cupy.ascontiguousarray(hx)
-
         if dhy is None:
             dhy = cuda.cupy.zeros_like(hx)
-
         if dys is None:
             dys = cuda.cupy.zeros_like(ys)
 
-        length = len(self.lengths)
+        dhx, dcx, dxs = cudnn.rnn_backward_data(
+            self.states, self.rnn_dir, self.rnn_mode,
+            hx, cx, w, xs, ys, self.reserve_space,
+            dhy, dcy, dys, self.lengths)
 
-        dhx = cuda.cupy.empty_like(hx)
-
-        hx_desc = cudnn.create_tensor_nd_descriptor(hx)
-        dhy_desc = cudnn.create_tensor_nd_descriptor(dhy)
-
-        dy_list = cuda.cupy.split(dys, self.sections[:-1], 0)
-        c_dy_descs = _make_tensor_descriptor_array(dy_list)
-
-        rnn_desc = self.rnn_desc
-        handle = self.handle
-        work_size = libcudnn.getRNNWorkspaceSize(
-            handle, rnn_desc.value, length, self.c_x_descs.data)
-        workspace = cuda.cupy.empty((work_size,), dtype='b')
-
-        dhx_desc = cudnn.create_tensor_nd_descriptor(dhx)
-
-        dxs = cuda.cupy.empty_like(xs)
-        dx_list = cuda.cupy.split(dxs, self.sections[:-1], 0)
-        c_dx_descs = _make_tensor_descriptor_array(dx_list)
-
-        libcudnn.RNNBackwardData(
-            handle, rnn_desc.value, length,
-            self.c_y_descs.data, ys.data.ptr,
-            c_dy_descs.data, dys.data.ptr, dhy_desc.value, dhy.data.ptr,
-            dcy_desc_value, dcy_data_ptr, self.w_desc.value, w.data.ptr,
-            hx_desc.value, hx.data.ptr, cx_desc_value, cx_data_ptr,
-            c_dx_descs.data, dxs.data.ptr, dhx_desc.value, dhx.data.ptr,
-            dcx_desc_value, dcx_data_ptr, workspace.data.ptr, work_size,
-            self.reserve_space.data.ptr, self.reserve_space.size)
-
-        dw = cuda.cupy.zeros_like(w)
-        dw_desc = cudnn.create_filter_descriptor(dw)
-        libcudnn.RNNBackwardWeights(
-            handle, rnn_desc.value, length,
-            self.c_x_descs.data, xs.data.ptr,
-            hx_desc.value, hx.data.ptr, self.c_y_descs.data, ys.data.ptr,
-            workspace.data.ptr, work_size, dw_desc.value, dw.data.ptr,
-            self.reserve_space.data.ptr, self.reserve_space.size)
+        dw = cudnn.rnn_backward_weights(
+            self.states, self.rnn_dir, self.rnn_mode,
+            xs, hx, ys, w, self.reserve_space, self.lengths)
 
         if self.use_cell:
             # LSTM
