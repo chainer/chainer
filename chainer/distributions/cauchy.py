@@ -6,27 +6,12 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
 from chainer.functions.math import trigonometric
-from chainer import utils
-
-
-class CauchyICDF(chainer.function_node.FunctionNode):
-
-    def forward(self, inputs):
-        self.retain_inputs((0,))
-        x, = inputs
-        xp = cuda.get_array_module(x)
-        self.h = (x - 0.5) * numpy.pi
-        return utils.force_array(xp.tan(self.h), x.dtype),
-
-    def backward(self, target_input_indexes, grad_outputs):
-        gy, = grad_outputs
-        x, = self.get_retained_inputs()
-        return gy / trigonometric.cos(
-            utils.force_array(self.h, x.dtype)) ** 2 * numpy.pi,
 
 
 def _cauchy_icdf(x):
-    y, = CauchyICDF().apply((x,))
+    x = chainer.as_variable(x)
+    h = (x - 0.5) * numpy.pi
+    y = chainer.functions.tan(h)
     return y
 
 

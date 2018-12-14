@@ -112,39 +112,4 @@ class TestCauchy(testing.distribution_unittest):
         self.check_variance(True)
 
 
-@testing.parameterize(*testing.product({
-    'shape': [(2, 3), ()],
-    'dtype': [numpy.float32, numpy.float64],
-}))
-class TestCauchyICDF(unittest.TestCase):
-
-    def setUp(self):
-        self.x = numpy.random.uniform(
-            low=0.02, high=0.98, size=self.shape).astype(self.dtype)
-        self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-
-    def check_forward(self, x_data):
-        distributions.cauchy._cauchy_icdf(x_data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            distributions.cauchy._cauchy_icdf,
-            x_data, y_grad, **self.backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-
 testing.run_module(__name__, __file__)
