@@ -45,6 +45,10 @@ class LocalResponseNormalization(function_node.FunctionNode):
         self.alpha = alpha
         self.beta = beta
 
+        self.scale = None
+        self.indexes = None
+        self.unit_scale = None
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
@@ -110,13 +114,9 @@ class LocalResponseNormalization(function_node.FunctionNode):
         y, = self.get_retained_outputs()
         gy, = grad_outputs
 
-        scale = getattr(self, 'scale', None)
-        indexes = getattr(self, 'indexes', None)
-        unit_scale = getattr(self, 'unit_scale', None)
-
         f = LocalResponseNormalizationGrad(
             self.n, self.k, self.alpha, self.beta, self._use_ideep,
-            scale, indexes, unit_scale,)
+            self.scale, self.indexes, self.unit_scale,)
         return f.apply((x, y, gy))
 
 
