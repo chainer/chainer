@@ -59,7 +59,7 @@ void InitChainerxDeviceBuffer(pybind11::module& m) {
               Dtype dtype = python_internal::GetDtype(dtype_handle);
               int64_t item_size = GetItemSize(dtype);
               int64_t bytes = item_size * total_size;
-              std::shared_ptr<void> host_data = std::make_unique<uint8_t[]>(bytes);
+              std::shared_ptr<void> host_data(new uint8_t[bytes], std::default_delete<uint8_t[]>());
               std::string format = VisitDtype(dtype, [&host_data, &list](auto pt) {
                   using T = typename decltype(pt)::type;
                   std::transform(list.begin(), list.end(), static_cast<T*>(host_data.get()), [](auto& item) { return py::cast<T>(item); });

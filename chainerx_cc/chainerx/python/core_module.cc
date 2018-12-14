@@ -1,3 +1,7 @@
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
 #include <pybind11/pybind11.h>
 
 #include "chainerx/python/array.h"
@@ -57,17 +61,18 @@ void InitChainerxModule(pybind11::module& m) {
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 
     // Modifies __doc__ property of a pybind-generated function object.
-    m.def("_set_pybind_doc", [](py::handle obj, std::string docstring) {
+    m.def("_set_pybind_doc", [](py::handle obj, const std::string& docstring) {
         if (!py::isinstance<py::function>(obj)) {
             throw py::type_error{"Object is not a function."};
         }
 
-        // This function is called only sequentially from Python module.
-        // No need of race guard.
-        static std::vector<std::string>* docstrings_keeper = new std::vector<std::string>{};
+        // std::malloc should be used here, since pybind uses std::free to free ml_doc.
+        auto* c_docstring = static_cast<char*>(std::malloc(docstring.size() + 1));
+        if (c_docstring == nullptr) {
+            return;
+        }
 
-        docstrings_keeper->emplace_back(std::move(docstring));
-        const char* c_docstring = docstrings_keeper->back().c_str();
+        std::strncpy(c_docstring, docstring.c_str(), docstring.size() + 1);
 
         auto func = py::cast<py::function>(obj);
         auto cfunc = func.cpp_function();
