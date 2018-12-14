@@ -3,7 +3,7 @@ import six
 
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -33,7 +33,7 @@ def _cu_conv_sum(y, x, n):
                              size=x.shape[0] * rdim)
 
 
-class LocalResponseNormalization(function.Function):
+class LocalResponseNormalization(function_node.FunctionNode):
 
     """Cross-channel normalization function used in AlexNet."""
 
@@ -54,61 +54,46 @@ class LocalResponseNormalization(function.Function):
             x_type.ndim >= 2,
         )
 
-    def forward_cpu(self, x):
+    def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
-                and intel64.inputs_all_ready(x, (4,))):
+                and intel64.inputs_all_ready(inputs, (4,))):
             self._use_ideep = True
-            return self._forward_ideep(x)
+            return self.forward_ideep(inputs)
+
+        x, = inputs
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
 
         half_n = self.n // 2
-        x2 = numpy.square(x[0])
+        x2 = numpy.square(x)
         sum_part = x2.copy()
         for i in six.moves.range(1, half_n + 1):
             sum_part[:, i:] += x2[:, :-i]
             sum_part[:, :-i] += x2[:, i:]
         self.unit_scale = self.k + self.alpha * sum_part
         self.scale = self.unit_scale ** -self.beta
-        self.y = x[0] * self.scale
-        return self.y,
+        y = x * self.scale
+        return y,
 
-    def _forward_ideep(self, x):
+    def forward_ideep(self, inputs):
+        x, = inputs
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
+
         param = intel64.ideep.localResponseNormalizationParam(
             self.n, self.k, self.n * self.alpha, self.beta,
             intel64.ideep.localResponseNormalizationParam.lrn_across_channels)
         y, indexes = intel64.ideep.localResponseNormalization.Forward(
-            intel64.ideep.array(x[0]), param)
-        self.y = y
+            intel64.ideep.array(x), param)
         self.indexes = indexes
-        return self.y,
+        return y,
 
-    def backward_cpu(self, x, gy):
-        if self._use_ideep:
-            return self._backward_ideep(x, gy)
+    def forward_gpu(self, inputs):
+        x, = inputs
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
 
-        half_n = self.n // 2
-        summand = self.y * gy[0] / self.unit_scale
-        sum_part = summand.copy()
-        for i in six.moves.range(1, half_n + 1):
-            sum_part[:, i:] += summand[:, :-i]
-            sum_part[:, :-i] += summand[:, i:]
-
-        gx = gy[0] * self.scale - 2 * self.alpha * self.beta * x[0] * sum_part
-        return gx,
-
-    def _backward_ideep(self, x, gy):
-        param = intel64.ideep.localResponseNormalizationParam(
-            self.n, self.k, self.n * self.alpha, self.beta,
-            intel64.ideep.localResponseNormalizationParam.lrn_across_channels
-        )
-        gx = intel64.ideep.localResponseNormalization.Backward(
-            intel64.ideep.array(x[0]),
-            intel64.ideep.array(gy[0]),
-            self.indexes,
-            param)
-        return gx,
-
-    def forward_gpu(self, x):
-        self.y = cuda.cupy.square(x[0])  # temporary
+        self.y = cuda.cupy.square(x)  # temporary
         self.scale = cuda.cupy.empty_like(self.y)
         _cu_conv_sum(self.scale, self.y, self.n)
         cuda.elementwise(
@@ -116,23 +101,85 @@ class LocalResponseNormalization(function.Function):
             'T y, T scale',
             '''scale = k + alpha * scale;
                y = x * pow(scale, -beta);''',
-            'lrn_fwd')(x[0], self.k, self.alpha, self.beta,
+            'lrn_fwd')(x, self.k, self.alpha, self.beta,
                        self.y, self.scale)
         return self.y,
 
-    def backward_gpu(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        y, = self.get_retained_outputs()
+        gy, = grad_outputs
+
+        scale = getattr(self, 'scale', None)
+        indexes = getattr(self, 'indexes', None)
+        unit_scale = getattr(self, 'unit_scale', None)
+
+        f = LocalResponseNormalizationGrad(
+            self.n, self.k, self.alpha, self.beta, self._use_ideep,
+            scale, indexes, unit_scale,)
+        return f.apply((x, y, gy))
+
+
+class LocalResponseNormalizationGrad(function_node.FunctionNode):
+
+    def __init__(self, n, k, alpha, beta, use_ideep,
+                 scale=None, indexes=None, unit_scale=None):
+        self.n = n
+        self.k = k
+        self.alpha = alpha
+        self.beta = beta
+        self._use_ideep = use_ideep
+
+        self.scale = scale
+        self.indexes = indexes
+        self.unit_scale = unit_scale
+
+    def forward_cpu(self, inputs):
+        if self._use_ideep:
+            return self._backward_ideep(inputs)
+
+        x, y, gy = inputs
+        half_n = self.n // 2
+        summand = y * gy / self.unit_scale
+        sum_part = summand.copy()
+        for i in six.moves.range(1, half_n + 1):
+            sum_part[:, i:] += summand[:, :-i]
+            sum_part[:, :-i] += summand[:, i:]
+
+        gx = gy * self.scale - 2 * self.alpha * self.beta * x * sum_part
+        return gx,
+
+    def _backward_ideep(self, inputs):
+        x, y, gy = inputs
+
+        param = intel64.ideep.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            intel64.ideep.localResponseNormalizationParam.lrn_across_channels
+        )
+        gx = intel64.ideep.localResponseNormalization.Backward(
+            intel64.ideep.array(x),
+            intel64.ideep.array(gy),
+            self.indexes,
+            param)
+        return gx,
+
+    def forward_gpu(self, inputs):
+        x, y, gy = inputs
         summand = cuda.elementwise(
             'T scale, T y, T gy', 'T summand',
             'summand = y * gy / scale',
-            'lrn_bwd_summand')(self.scale, self.y, gy[0])
-        gx = cuda.cupy.empty_like(x[0])
+            'lrn_bwd_summand')(self.scale, y, gy)
+        gx = cuda.cupy.empty_like(x)
         _cu_conv_sum(gx, summand, self.n)
         cuda.elementwise(
             ' T x, T gy, T scale, T beta, T coeff', 'T gx',
             'gx = pow(scale, -beta) * gy - coeff * x * gx',
-            'lrn_bwd')(x[0], gy[0], self.scale,
+            'lrn_bwd')(x, gy, self.scale,
                        self.beta, 2 * self.alpha * self.beta, gx)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        raise NotImplementedError
 
 
 def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
@@ -161,4 +208,4 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
     Neural Networks <https://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
-    return LocalResponseNormalization(n, k, alpha, beta)(x)
+    return LocalResponseNormalization(n, k, alpha, beta).apply((x,))[0]
