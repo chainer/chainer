@@ -168,8 +168,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
         Shape reduced_shape{};
         Strides reduced_strides{};
         if (total_size == 1) {
-            reduced_shape.push_back(int64_t{1});
-            reduced_strides.push_back(item_size);
+            reduced_shape.emplace_back(int64_t{1});
+            reduced_strides.emplace_back(item_size);
         } else {
             int8_t i = 0;
             // Ignore preceding 1-length dimensions
@@ -193,8 +193,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
                     reduced_strides.back() = st;
                 } else {
                     // Otherwise, add a new shape and stride.
-                    reduced_shape.push_back(dim);
-                    reduced_strides.push_back(st);
+                    reduced_shape.emplace_back(dim);
+                    reduced_strides.emplace_back(st);
                 }
             }
         }
@@ -209,7 +209,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
             size_t i_dim = 0;
             for (int64_t dim : out_shape) {
                 if (dim <= 1) {
-                    strides.push_back(last_stride);
+                    strides.emplace_back(last_stride);
                     continue;
                 }
                 if (i_dim >= reduced_shape.size() || reduced_shape[i_dim] % dim != 0) {
@@ -219,7 +219,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
                 }
                 reduced_shape[i_dim] /= dim;
                 last_stride = reduced_shape[i_dim] * reduced_strides[i_dim];
-                strides.push_back(last_stride);
+                strides.emplace_back(last_stride);
                 if (reduced_shape[i_dim] == 1) {
                     ++i_dim;
                 }
@@ -412,7 +412,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             }
         }
         if (indices.size() < arrays.size() - 1) {
-            indices.push_back(shape[axis]);
+            indices.emplace_back(shape[axis]);
         }
     }
 
@@ -628,7 +628,8 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
 
-    std::vector<Array> out;
+    std::vector<Array> out{};
+    out.reserve(sections);
 
     for (int64_t i = 0; i < sections; ++i) {
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
@@ -651,19 +652,19 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     indices.emplace_back(in_dim);
 
     Shape out_shape = in_shape;
-    int64_t& out_dim = out_shape[axis_norm];
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
 
-    std::vector<Array> out;
+    std::vector<Array> out{};
+    out.reserve(indices.size());
 
     for (int64_t index : indices) {
         int64_t slice_stop = std::min(in_dim, std::max(int64_t{0}, index));
         int64_t slice_step = slice_stop - slice_start;
 
         // Update the dimension of interest in the output shape.
-        out_dim = std::max(int64_t{0}, slice_step);
+        out_shape[axis_norm] = std::max(int64_t{0}, slice_step);
 
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
 

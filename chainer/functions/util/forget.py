@@ -51,7 +51,8 @@ class Forget(function_node.FunctionNode):
         # Create new variables that have no creators
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
 
-        with function.force_backprop_mode():
+        with function.force_backprop_mode(),\
+                chainer.using_config('in_recomputing', True):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
 
@@ -120,6 +121,16 @@ def forget(func, *xs):
     .. note::
 
         ``F.forget`` does not support double backpropagation.
+
+    .. note::
+
+        If you want to use ``F.forget`` to a link which updates the link's
+        internal information every time the forward computation is called,
+        please ensure that the information is updated just once in a single
+        iteration. You may use the ``chainer.config.in_recomputing`` flag to
+        check if the forward computation is the first call in an iteration.
+        Please see the implementation of
+        :class:`~chainer.links.BatchNormalization` for detail.
 
     Args:
         func (callable): A function to call. It needs to be called with

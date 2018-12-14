@@ -46,7 +46,9 @@ class CMakeBuild(build_ext.build_ext):
             '-DCHAINERX_BUILD_TEST=OFF',
         ]
 
-        if self.debug:  # python setup.py build --debug
+        if self.debug or os.getenv('READTHEDOCS', None) == 'True':
+            # Enable debug mode when `python setup.py build --debug` is used
+            # or on READTHEDOCS.
             cfg = 'Debug'
         else:
             cfg = 'Release'

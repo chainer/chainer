@@ -2071,13 +2071,15 @@ class TestVariableBackwardError(unittest.TestCase):
     def setUp(self):
         self.x = np.array([1], np.float32)
 
-    def check_type_mismatch(self, x_data):
+    def check_type_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2089,19 +2091,28 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_type_mismatch_cpu(self):
-        self.check_type_mismatch(self.x)
+        self.check_type_mismatch(self.x, True)
+
+    def test_type_mismatch_unretain_cpu(self):
+        self.check_type_mismatch(self.x, False)
 
     @attr.gpu
     def test_type_mismatch_gpu(self):
-        self.check_type_mismatch(cuda.to_gpu(self.x))
+        self.check_type_mismatch(cuda.to_gpu(self.x), True)
 
-    def check_dtype_mismatch(self, x_data):
+    @attr.gpu
+    def test_type_mismatch_unretain_gpu(self):
+        self.check_type_mismatch(cuda.to_gpu(self.x), False)
+
+    def check_dtype_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2113,19 +2124,28 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_dtype_mismatch_cpu(self):
-        self.check_dtype_mismatch(self.x)
+        self.check_dtype_mismatch(self.x, True)
+
+    def test_dtype_mismatch_unretain_cpu(self):
+        self.check_dtype_mismatch(self.x, False)
 
     @attr.gpu
     def test_dtype_mismatch_gpu(self):
-        self.check_dtype_mismatch(cuda.to_gpu(self.x))
+        self.check_dtype_mismatch(cuda.to_gpu(self.x), True)
 
-    def check_shape_mismatch(self, x_data):
+    @attr.gpu
+    def test_dtype_mismatch_unretain_gpu(self):
+        self.check_dtype_mismatch(cuda.to_gpu(self.x), False)
+
+    def check_shape_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2137,11 +2157,18 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_shape_mismatch_cpu(self):
-        self.check_shape_mismatch(self.x)
+        self.check_shape_mismatch(self.x, True)
+
+    def test_shape_mismatch_unretain_cpu(self):
+        self.check_shape_mismatch(self.x, False)
 
     @attr.gpu
     def test_shape_mismatch_gpu(self):
-        self.check_shape_mismatch(cuda.to_gpu(self.x))
+        self.check_shape_mismatch(cuda.to_gpu(self.x), True)
+
+    @attr.gpu
+    def test_shape_mismatch_unretain_gpu(self):
+        self.check_shape_mismatch(cuda.to_gpu(self.x), False)
 
 
 class TestVariableBackwardErrorTraceback(unittest.TestCase):

@@ -223,7 +223,7 @@ class TestCTCBlankSymbol(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
-        self.x = numpy.random.uniform(-1, 1, (4, 2, 4)).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, (4, 2, 4)).astype(self.dtype)
         self.l = numpy.array([[3, 0, 3, 1, 3],
                               [3, 1, 3, 0, 3]]).astype(numpy.int32)
         self.blank_symbol = 3

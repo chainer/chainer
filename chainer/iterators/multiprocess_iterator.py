@@ -186,6 +186,8 @@ class MultiprocessIterator(iterator.Iterator):
         self.finalize()
 
     def __copy__(self):
+        # This function is implemented for backward compatibility.
+        # Please use `reset` normally.
         other = MultiprocessIterator(
             self.dataset, self.batch_size, self.repeat, shuffle=None,
             n_processes=self.n_processes, n_prefetch=self.n_prefetch,

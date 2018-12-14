@@ -165,14 +165,15 @@ def swish(x, beta):
         \\lim_{\\beta \\to \\infty} f(x, \\beta) &= \\max(0, x).
 
     Args:
-        x (~chainer.Variable): Input variable of shape :math:`(s_B, s_1, \
-            s_2, ..., s_N)`, where :math:`s_B` is assumed to be the
-            *minibatch dimension*.
-        beta (~chainer.Variable): Parameter variable :math:`\\beta` of shape
-            :math:`(s_1, s_2, ..., s_M)`, where :math:`M` is an arbitrary
-            integer between :math:`0 \\leq M \\leq N`. The number of
-            dimensions of ``beta`` will be matched with ``x`` by reshaping it
-            as :math:`(1, s_1, ..., s_M, 1, ... 1)`, then ``beta`` and ``x``
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable of
+            shape :math:`(s_B, s_1, s_2, ..., s_N)`, where :math:`s_B` is
+            assumed to be the *minibatch dimension*.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Parameter variable
+            :math:`\\beta` of shape :math:`(s_1, s_2, ..., s_M)`, where
+            :math:`M` is an arbitrary integer between
+            :math:`0 \\leq M \\leq N`. The number of dimensions of ``beta``
+            will be matched with ``x`` by reshaping it as
+            :math:`(1, s_1, ..., s_M, 1, ... 1)`, then ``beta`` and ``x``
             are multiplied together in an element-wise manner.
 
     Returns:
