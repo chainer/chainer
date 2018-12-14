@@ -254,7 +254,7 @@ def linear(x, W, b=None, n_batch_axes=1):
     It accepts two or three arguments: an input minibatch ``x``, a weight
     matrix ``W``, and optionally a bias vector ``b``. It computes
 
-    .. math:: Y = xW^\\top + b.
+    .. math:: y_i = W x_i + b.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
