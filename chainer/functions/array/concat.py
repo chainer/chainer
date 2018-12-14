@@ -6,6 +6,7 @@ from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Concat(function_node.FunctionNode):
@@ -49,6 +50,9 @@ class Concat(function_node.FunctionNode):
         # Generic implementation
         xp = backend.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
+
+    def forward_chainerx(self, xs):
+        return chainerx.concatenate(xs, self.axis),
 
     def _forward_ideep(self, xs):
         xs_mdarray = intel64.ideep.mdarrayVector()

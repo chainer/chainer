@@ -13,7 +13,7 @@ class ELU(function_node.FunctionNode):
         self.alpha = float(alpha)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(x_type.dtype.kind == 'f')
@@ -48,7 +48,7 @@ class ELUGrad(function_node.FunctionNode):
         self.alpha = alpha
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -92,8 +92,7 @@ def elu(x, alpha=1.0):
     See: https://arxiv.org/abs/1511.07289
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         alpha (float): Parameter :math:`\\alpha`. Default is 1.0.
 

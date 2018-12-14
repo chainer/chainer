@@ -62,7 +62,7 @@ class LSTM(function_node.FunctionNode):
     """
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('c', 'x'))
+        type_check._argname(in_types, ('c', 'x'))
         c_type, x_type = in_types
 
         type_check.expect(
@@ -305,12 +305,10 @@ def lstm(c_prev, x):
     applying the function.
 
     Args:
-        c_prev (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        c_prev (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable that holds the previous cell state. The cell state
             should be a zero array or the output of the previous call of LSTM.
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable that holds the sources of cell input, input gate, forget
             gate and output gate. It must have the second dimension whose size
             is four times of that of the cell state.

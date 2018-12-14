@@ -17,6 +17,7 @@ import six
 from chainer import iterators
 from chainer import serializer
 from chainer import testing
+from chainer.testing import attr
 
 
 class DummySerializer(serializer.Serializer):
@@ -52,14 +53,7 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
-@testing.parameterize(*testing.product({
-    'n_prefetch': [1, 2],
-    'shared_mem': [None, 1000000],
-    'order_sampler': [
-        None, lambda order, _: numpy.random.permutation(len(order))],
-    'maxtasksperchild': [None, 1, 10],
-}))
-class TestMultiprocessIterator(unittest.TestCase):
+class BaseTestMultiprocessIterator(object):
 
     def setUp(self):
         self.n_processes = 2
@@ -350,6 +344,31 @@ class TestMultiprocessIterator(unittest.TestCase):
         it.next()
         it.finalize()
         self.assertRaises(NotImplementedError, it.reset)
+
+
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
+    'maxtasksperchild': [None],
+}))
+class TestMultiprocessIterator(
+        BaseTestMultiprocessIterator, unittest.TestCase):
+    pass
+
+
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
+    'maxtasksperchild': [1, 10],
+}))
+@attr.slow
+class TestMultiprocessIteratorSlow(
+        BaseTestMultiprocessIterator, unittest.TestCase):
+    pass
 
 
 @testing.parameterize(*testing.product({

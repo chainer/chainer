@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -19,7 +20,7 @@ from chainer.testing import attr
         'axis': [1],
     }) + [
         {'shape': (2, 3), 'axis': 0},
-        {'shape': (2, 2, 3), 'axis': 2},
+        {'shape': (2, 2, 3), 'axis': -1},
         {'shape': (2, 2, 2, 3), 'axis': -4},
     ],
 ))
@@ -73,6 +74,14 @@ class TestLogSoftmax(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         def f(x):
             return functions.log_softmax(x, self.axis)
@@ -99,6 +108,14 @@ class TestLogSoftmax(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
     def check_double_backward(self, x_data, gy_data, ggx_data,
                               use_cudnn='always'):
         def f(x):
@@ -123,6 +140,17 @@ class TestLogSoftmax(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
 
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
+
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
@@ -143,7 +171,7 @@ class TestLogSoftmaxCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cudnn.softmax_forward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -151,7 +179,7 @@ class TestLogSoftmaxCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with testing.patch('cupy.cuda.cudnn.softmaxBackward') as func:
+            with testing.patch('cupy.cudnn.softmax_backward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

@@ -4,7 +4,9 @@ Functions
 .. module:: chainer.functions
 
 Chainer provides variety of built-in function implementations in :mod:`chainer.functions` package.
-These functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+These functions usually return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+For a :class:`~chainer.Variable` argument of a function, an :ref:`ndarray` can be passed if you do not need its gradient.
+Some functions additionally supports scalar arguments.
 
 .. note::
     Functions implemented in Chainer consists of the following two parts:
@@ -321,6 +323,9 @@ Spatial pooling
    chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
    chainer.functions.roi_average_align_2d
+   chainer.functions.roi_average_pooling_2d
+   chainer.functions.roi_max_align_2d
+   chainer.functions.roi_max_pooling_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_1d

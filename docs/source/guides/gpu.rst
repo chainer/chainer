@@ -26,7 +26,7 @@ After reading this section, you will be able to:
        with cupy.cuda.Device(1):
            pass
    except cupy.cuda.runtime.CUDARuntimeError:
-       raise RuntimeError('doctest in this document requires 2 GPUs') from None
+       raise RuntimeError('doctest in this documentation requires 2 GPUs') from None
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,7 +59,7 @@ Chainer changes the default allocator of CuPy to the memory pool, so user can us
 Basics of :class:`cupy.ndarray`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See `the document of CuPy <https://docs-cupy.chainer.org/en/latest/>`_ for the basic usage of :class:`cupy.ndarray`
+See `the documentation of CuPy <https://docs-cupy.chainer.org/en/latest/>`_ for the basic usage of :class:`cupy.ndarray`
 
 CuPy is a GPU array backend that implements a subset of NumPy interface.
 The :class:`cupy.ndarray` class is in its core, which is a compatible GPU alternative of :class:`numpy.ndarray`.

@@ -248,7 +248,7 @@ class _RetrieveAsCaffeModel(object):
                     setattr(layer.batch_norm_param, k, v)
                 _add_blob(layer, [mean.data.size], mean.data)
                 _add_blob(layer, [var.data.size], var.data)
-                _add_blob(layer, [1], numpy.ones((1,), dtype='f'))
+                _add_blob(layer, [1], numpy.ones((1,), dtype=numpy.float32))
 
             if gamma.data is None and beta.data is None:
                 pass
@@ -383,9 +383,9 @@ def export(model, args, directory=None,
     Args:
         model (~chainer.Chain): The model object you want to export in Caffe
             format. It should have :meth:`__call__` method because the second
-            argment ``args`` is directly given to the model by the ``()``
+            argument ``args`` is directly given to the model by the ``()``
             accessor.
-        args (list of ~chainer.Variable): The argments which are given to the
+        args (list of ~chainer.Variable): The arguments which are given to the
             model directly.
         directory (str): The directory used for saving the resulting Caffe
             model. If None, nothing is saved to the disk.

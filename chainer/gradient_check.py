@@ -4,12 +4,14 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import FunctionNode
 from chainer import testing
 from chainer import variable
+import chainerx
 
 
 class NondifferentiableError(Exception):
@@ -18,7 +20,50 @@ class NondifferentiableError(Exception):
 
 def _copy_arrays(xs):
     xp = backend.get_array_module(*xs)
-    return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
+    if xp is chainerx:
+        return [
+            xp.array(x, dtype=numpy.float64, copy=True, device=x.device)
+            for x in xs]
+    else:
+        return [xp.array(x, dtype=numpy.float64, copy=True) for x in xs]
+
+
+def _ones_like(arr):
+    device = cuda.get_device_from_array(arr)
+    xp = backend.get_array_module(arr)
+    with device:
+        return xp.ones_like(arr)
+
+
+def _make_outputs_props_in_error_message(outputs, grad_outputs):
+    def format_props(arr):
+        return '{}:{}'.format(arr.shape, arr.dtype.name)
+
+    return (
+        'Output shapes and dtypes         : {}\n'
+        'Output gradient shapes and dtypes: {}'.format(
+            ', '.join(format_props(y) for y in outputs),
+            ', '.join('None' if gy is None else format_props(gy)
+                      for gy in grad_outputs)))
+
+
+def _check_outputs_and_grad_outputs(outputs, grad_outputs):
+    if len(outputs) != len(grad_outputs):
+        raise ValueError(
+            'Output gradients must contain equally as many elements as '
+            'the number of output elements.\n'
+            '{}'.format(
+                _make_outputs_props_in_error_message(outputs, grad_outputs)))
+    shapes_match = all([gy is None or y.shape == gy.shape
+                        for y, gy in zip(outputs, grad_outputs)])
+    dtypes_match = all([gy is None or y.dtype == gy.dtype
+                        for y, gy in zip(outputs, grad_outputs)])
+    if not (shapes_match and dtypes_match):
+        raise ValueError(
+            'Shapes and/or dtypes of outputs and output gradients do not '
+            'match.\n'
+            '{}'.format(
+                _make_outputs_props_in_error_message(outputs, grad_outputs)))
 
 
 def numerical_grad(
@@ -39,8 +84,8 @@ def numerical_grad(
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
             numerical gradient by finite differences.
-        grad_outputs (tuple of arrays): Tuple of arrays that are treated as
-            output gradients.
+        grad_outputs (tuple of arrays or scalars): Tuple of arrays or scalars
+            that are treated as output gradients.
         eps (float): Epsilon value of finite differences.
         detect_nondifferentiable (bool):
             ``False`` by default.
@@ -71,6 +116,7 @@ def numerical_grad(
 
     """
     assert eps > 0
+    assert isinstance(inputs, (tuple, list))
     for x in inputs:
         if x.dtype.kind != 'f':
             raise RuntimeError(
@@ -78,14 +124,14 @@ def numerical_grad(
 
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
-    gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
-    cpu = any(isinstance(x, numpy.ndarray) for x in inputs + grad_outputs)
 
-    if gpu and cpu:
+    if not chainer.is_arrays_compatible(
+            [a for a in inputs + grad_outputs if not numpy.isscalar(a)]):
         raise RuntimeError('Do not mix GPU and CPU arrays in `numerical_grad`')
 
-    if gpu:
-        xp = cuda.cupy
+    xp = backend.get_array_module(*(inputs + grad_outputs))
+
+    if xp is cuda.cupy:
         numerical_grad_kernel_1 = cuda.reduce(
             'T y1, T y2, U gy, T eps', 'V gxi',
             '(y1 - y2) * gy', 'a + b', 'gxi += a / (eps * 2)', '0',
@@ -97,9 +143,12 @@ def numerical_grad(
             'a + b', 'gxi += a / (eps * 6)', '0',
             'numerical_grad_kernel_3'
         )
+
+    if xp is chainerx:
+        grads = [
+            xp.zeros(x.shape, numpy.float64, device=x.device) for x in inputs]
     else:
-        xp = numpy
-    grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
+        grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
     if detect_nondifferentiable:
         if center_outputs is None:
@@ -115,6 +164,10 @@ def numerical_grad(
     def eval_func(x, i, delta, orig):
         x[i] = orig + delta
         y = _copy_arrays(f())
+        assert len(y) == len(grad_outputs)
+        assert all([
+            gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
+            for y_, gy in zip(y, grad_outputs)])
         x[i] = orig
         return y
 
@@ -177,12 +230,12 @@ def numerical_grad(
                     [xp.hstack([y.ravel() for y in ys]) for ys in yss])
                 assert ystack.ndim == 2 and ystack.shape[0] == len(yss)
                 # Fit to quadratic
-                if gpu:
+                if xp is cuda.cupy:
                     ystack = ystack.get()
                 polyfit = numpy.polynomial.polynomial.polyfit
                 _, (residuals, _, _, _) = polyfit(
                     range(len(yss)), ystack, deg=2, full=True)
-                if gpu:
+                if xp is cuda.cupy:
                     residuals = xp.array(residuals)
                 residuals = xp.sqrt(residuals / len(yss))
 
@@ -234,7 +287,9 @@ def numerical_grad(
         for i_out, gy in enumerate(grad_outputs):
             if gy is None:
                 continue
-            gpu_ = (gpu and
+            if not numpy.isscalar(gy):
+                gy = gy.astype(numpy.float64, copy=False)
+            gpu_ = (xp is cuda.cupy and
                     all(isinstance(ys[i_out], cuda.ndarray)
                         for ys in yss))
             if len(yss) == 2:  # 1st order
@@ -245,7 +300,7 @@ def numerical_grad(
                         y1, y0, xp.asarray(gy), eps, gx[i])
                 else:
                     dot = ((y1 - y0) * gy).sum()
-                    gx[i] += dot / (2 * eps)
+                    gx[i] = gx[i] + dot / (2 * eps)
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
                 y1 = yss[1][i_out]
@@ -257,7 +312,7 @@ def numerical_grad(
                 else:
                     num = -y3 + 8 * y2 - 8 * y1 + y0
                     dot = (num * gy).sum()
-                    gx[i] += dot / (6 * eps)
+                    gx[i] = gx[i] + dot / (6 * eps)
             else:
                 assert False
 
@@ -301,8 +356,293 @@ def _as_tuple(x):
         return x,
 
 
-def _filter_list(lst, ignore_list):
-    return [x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
+class _CheckBackward(object):
+
+    def __init__(
+            self, func, x_data, y_grad, params, eps, atol, rtol, no_grads,
+            dtype, detect_nondifferentiable):
+        if dtype is not None and numpy.dtype(dtype).kind != 'f':
+            raise ValueError('`dtype` is allowed only float type')
+
+        x_data = _as_tuple(x_data)
+        if y_grad is not None:
+            y_grad = _as_tuple(y_grad)
+        params = _as_tuple(params)
+
+        if no_grads is None:
+            no_grads = [x.dtype.kind != 'f' for x in x_data]
+        else:
+            if len(no_grads) != len(x_data):
+                raise ValueError(
+                    'Length of no_grads param and xs should be same.\n'
+                    'Actual: {0} != {1}'.format(len(no_grads), len(x_data)))
+
+        device = backend.get_device_from_array(*x_data)
+
+        if device.xp is chainerx:
+            if len(params) > 0:
+                raise NotImplementedError(
+                    'gradient_check does not support params argument for '
+                    'ChainerX arrays')
+            if any(no_grads):
+                raise NotImplementedError(
+                    'gradient_check does not support no_grads argument for '
+                    'ChainerX arrays')
+
+        self.device = device
+
+        self.func = func
+        self.x_data = x_data
+        self.y_grad = y_grad
+        self.params = params
+        self.no_grads = no_grads
+        self.atol = atol
+        self.rtol = rtol
+        # options for numeric gradients
+        self.eps = eps
+        self.dtype = dtype
+        self.detect_nondifferentiable = detect_nondifferentiable
+
+    def run(self):
+        with chainer.using_device(self.device):
+            self._run()
+
+    def _run(self):
+        # Run a forward pass for backward gradients.
+        # Uninitialized parameters may be initialized.
+        # If self.y_grad is None, it is also updated with 1s.
+        # This must be done before sampling a direction vector, because
+        # otherwise the shapes of uninitialized parameters wouldn't be
+        # determined.
+        xs_backward, ys = (
+            self._forward_for_backward_gradients())
+        # Keep output arrays to save computation in numerical gradients
+        y0_data = tuple([y.array for y in ys])
+
+        # If y_grad is not given, generate the all-1 gradients.
+        if self.y_grad is None:
+            if not (len(ys) == 1 and ys[0].shape == ()):
+                raise ValueError(
+                    'y_grad argument cannot be omitted if the target function '
+                    'is not a loss function, which has a single output with '
+                    'shape ().\n'
+                    'Actual output shapes: {}'.format(
+                        ', '.join([str(y.shape) for y in ys])))
+
+            self.y_grad = tuple([_ones_like(y.array) for y in ys])
+        else:
+            _check_outputs_and_grad_outputs(ys, self.y_grad)
+
+        # Sample a direction vector.
+        directions = self._sample_directions()
+
+        # Compute backward gradients by running a backward pass.
+        gx_backward = self._directional_backward_gradients(
+            xs_backward, ys, directions)
+
+        # Compute numeric gradients
+        gx_numeric = self._directional_numeric_gradients(directions, y0_data)
+
+        # Compare the resulted gradients
+        self._compare_gradients(gx_numeric, gx_backward, directions)
+
+    def _compare_gradients(self, gx_numeric, gx_backward, directions):
+        atol = self.atol
+        rtol = self.rtol
+        # Compare the gradients
+        try:
+            testing.assert_allclose(
+                gx_numeric, gx_backward, atol=atol, rtol=rtol)
+        except AssertionError as e:
+            eps = self.eps
+            x_data = self.x_data
+            y_grad = self.y_grad
+            f = six.StringIO()
+            f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
+                eps, atol, rtol))
+            for i, x_ in enumerate(x_data):
+                f.write('inputs[{}]:\n'.format(i))
+                f.write('{}\n'.format(x_))
+            for i, gy_ in enumerate(y_grad):
+                f.write('grad_outputs[{}]:\n'.format(i))
+                f.write('{}\n'.format(gy_))
+            for i, d_ in enumerate(directions):
+                f.write('directions[{}]:\n'.format(i))
+                f.write('{}\n'.format(d_))
+            f.write('gradients (numeric):  {}\n'.format(gx_numeric))
+            f.write('gradients (backward): {}\n'.format(gx_backward))
+            f.write('\n')
+            f.write(str(e))
+            raise AssertionError(f.getvalue())
+
+    def _sample_directions(self):
+        # Samples a direction vector (list of arrays with the same shapes as
+        # input arrays and parameters)
+        device = self.device
+        x_data = self.x_data
+        params = self.params
+        no_grads = self.no_grads
+
+        xp = device.xp
+        direction_xs_shapes = [
+            x.shape
+            for x, no_grad in six.moves.zip(x_data, no_grads)
+            if not no_grad]
+        direction_param_shapes = [p.shape for p in params]
+        direction_shapes = direction_xs_shapes + direction_param_shapes
+        directions = [
+            xp.random.normal(size=shape) for shape in direction_shapes]
+
+        # The direction vector is normalized in order to keep the scale of
+        # differentiation error invariant with respect to the number of input
+        # dimensions. Ideally, the scale of the curvature with respect to each
+        # input dimension should be taken into account, but we ignore the
+        # differences and assume that the curvature is uniform with respect to
+        # all the input dimentions.
+        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+        if norm != 0:
+            # norm could be zero if input arrays are 0-sized.
+            scale = 1. / norm
+            directions = [d * scale for d in directions]
+
+        return directions
+
+    def _clear_grads(self, xs):
+        for x in xs:
+            x.grad_var = None
+
+    def _forward_for_backward_gradients(self):
+        func = self.func
+        x_data = self.x_data
+        params = self.params
+
+        xs = [variable.Variable(x) for x in x_data]
+        y = func(*xs)
+        y = _as_tuple(y)
+
+        # Clear gradients which may exist if func calls backward inside of
+        # itself.
+        self._clear_grads(xs)
+        self._clear_grads(params)
+        return xs, y
+
+    def _directional_backward_gradients(self, xs, ys, directions):
+        params = self.params
+        no_grads = self.no_grads
+
+        # We need to start backprop from a single variable,
+        # so a dummy function `_GradientSetter` is inserted at the end of the
+        # computational graph.
+        y_backward = _apply_grad_setter_func(
+            ys,
+            [None if gy is None
+             # Copy is needed to avoid being updated during backprop, which
+             # would affect the numerical gradient.
+             else chainer.Variable(gy.copy(), requires_grad=False)
+             for gy in self.y_grad])
+
+        # Backward
+        y_backward.backward()
+
+        for no_grad, x in six.moves.zip(no_grads, xs):
+            if no_grad and x.grad is not None:
+                raise RuntimeError(
+                    'gradient of int variable must be None')
+
+        grads = (
+            [x.grad for x, no_grad in six.moves.zip(xs, no_grads)
+             if not no_grad]
+            + [p.grad for p in params])
+
+        gx_accum = 0
+        assert len(grads) == len(directions)
+        for g, direction in six.moves.zip(grads, directions):
+            if g is not None:
+                gx_accum += (g.astype(numpy.float64) * direction).sum()
+
+        return gx_accum
+
+    def _directional_numeric_gradients(self, directions, y0_data):
+        device = self.device
+        func = self.func
+        x_data = self.x_data
+        y_grad = self.y_grad
+        params = self.params
+        eps = self.eps
+        no_grads = self.no_grads
+        dtype = self.dtype
+        detect_nondifferentiable = self.detect_nondifferentiable
+
+        xp = device.xp
+
+        x_vars = [variable.Variable(x) for x in x_data]
+        variables = (
+            [x for x, no_grad in six.moves.zip(x_vars, no_grads)
+             if not no_grad]
+            + list(params))
+
+        if dtype is None:
+            casted_data = [x.array for x in variables]
+        else:
+            if numpy.dtype(dtype).kind != 'f':
+                raise ValueError('`dtype` is allowed only float type')
+            casted_data = [
+                x.array.astype(dtype, copy=False) for x in variables]
+
+            # Even skipped variable must have the same dtype.
+            for x, skip in six.moves.zip(x_vars, no_grads):
+                if skip and x.array.dtype.kind == 'f':
+                    x.array = x.array.astype(dtype, copy=False)
+
+        delta = xp.array(0., numpy.float64)
+
+        def g():
+            # This functions is called twice in `numerical_grad`.
+            # `delta` is `epsilon` or `-epsilon` in these calls.
+            # See the document of `numerical_grad`.
+
+            def perturb(data, direction):
+                data = (data.astype(numpy.float64)
+                        + delta * direction).astype(data.dtype)
+                if numpy.isscalar(data):
+                    data = xp.array(data)
+                return data
+
+            # Input arrays
+            g_x_vars = []
+            j = 0
+            for i in range(len(x_vars)):
+                if no_grads[i]:
+                    g_x_vars.append(x_vars[i])
+                else:
+                    data = perturb(casted_data[j], directions[j])
+                    g_x_vars.append(variable.Variable(data))
+                    j += 1
+            # Parameters
+            for i in range(len(params)):
+                params[i].data = perturb(
+                    casted_data[j + i], directions[j + i])
+
+            # Clear gradients to support func that calls backward inside of
+            # itself.
+            self._clear_grads(g_x_vars)
+            self._clear_grads(params)
+
+            ys = func(*g_x_vars)
+            ys = _as_tuple(ys)
+            ys_data = tuple(y.data for y in ys)
+            if xp is chainerx:
+                ys_data = tuple([y.as_grad_stopped() for y in ys_data])
+            for param, data in six.moves.zip(params, casted_data):
+                param.data = data
+            return ys_data
+
+        gx, = numerical_grad(
+            g, (delta,), y_grad, eps=eps,
+            detect_nondifferentiable=detect_nondifferentiable,
+            center_outputs=y0_data)
+
+        return gx
 
 
 def check_backward(
@@ -328,7 +668,7 @@ def check_backward(
         gy_data = xp.array(...)
         check_backward(func, (x1_data, x2_data), gy_data)
 
-    This method creates :class:`~chainer.Variable` objects with ``x_data``
+    This function creates :class:`~chainer.Variable` objects with ``x_data``
     and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
     result as :class:`~chainer.Variable`.
     Then, it sets ``y_grad`` array to ``grad`` attribute of the result and
@@ -455,138 +795,10 @@ def check_backward(
     .. seealso::
        :func:`numerical_grad`
     """
-    if dtype is not None and numpy.dtype(dtype).kind != 'f':
-        raise ValueError('`dtype` is allowed only float type')
-
-    x_data = _as_tuple(x_data)
-    if y_grad is not None:
-        y_grad = _as_tuple(y_grad)
-    params = _as_tuple(params)
-
-    xs = [variable.Variable(x) for x in x_data]
-    y = func(*xs)
-    y = _as_tuple(y)
-    y0_data = [_.data for _ in y]
-
-    # All creators of `y` need to be the same because we only call
-    # `y[0].backward` to call `backward` method of the creator.
-    # To do so we need to insert a dummy function `_GradientSetter` to the
-    # computational graph.
-    # Note that `func` may not be a `Function` object.
-
-    y, y_grad = _set_y_grad(y, y_grad)
-
-    # Clear gradients which may exist if func calls backward inside of itself.
-    _clear_grads(xs)
-    _clear_grads(params)
-
-    # We only need to call `backward` for one result `Variable`.
-    # `Variable.backward` method calls `Function.backward` of its creator.
-    y.backward()
-
-    if no_grads is None:
-        no_grads = [x.dtype.kind != 'f' for x in xs]
-    else:
-        if len(no_grads) != len(xs):
-            raise ValueError(
-                'Length of no_grads param and xs should be same.\n'
-                'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
-
-    for skip, x in six.moves.zip(no_grads, xs):
-        if skip and x.grad is not None:
-            raise RuntimeError(
-                'gradient of int variable must be None')
-
-    if len(xs) - no_grads.count(True) + len(params) == 0:
-        # When there is no float variables, we need not to check gradient
-        # values
-        return
-
-    variables = _filter_list(xs, no_grads) + list(params)
-    # Keep the gradient arrays of params which may be overwritten by func
-    grads = [x.grad for x in variables]
-
-    if dtype is None:
-        casted_data = [x.data for x in variables]
-    else:
-        if numpy.dtype(dtype).kind != 'f':
-            raise ValueError('`dtype` is allowed only float type')
-        casted_data = [x.data.astype(dtype, copy=False) for x in variables]
-
-        # Even skipped variable must have the same dtype.
-        for x, skip in six.moves.zip(xs, no_grads):
-            if skip and x.data.dtype.kind == 'f':
-                x.data = x.data.astype(dtype, copy=False)
-
-    xp = backend.get_array_module(*xs)
-    directions = [xp.random.normal(size=x.shape) for x in variables]
-    # The direction vector is normalized in order to keep the scale of
-    # differentiation error invariant with respect to the number of input
-    # dimensions. Ideally, the scale of the curvature with respect to each
-    # input dimension should be taken into account, but we ignore the
-    # differences and assume that the curvature is uniform with respect to all
-    # the input dimentions.
-    norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
-    if norm != 0:
-        # norm could be zero if input arrays are 0-sized.
-        scale = 1. / norm
-        directions = [d * scale for d in directions]
-
-    delta = xp.array(0., 'd')
-
-    def g():
-        # This functions is called twice in `numerical_grad`.
-        # `delta` is `epsilon` or `-epsilon` in these calls.
-        # See the document of `numerical_grad`.
-        for x, data, direction in six.moves.zip(
-                variables, casted_data, directions):
-            # astype is require to store data with the given type
-            data = (data.astype('d') +
-                    delta * direction).astype(data.dtype)
-            if numpy.isscalar(data):
-                data = xp.array(data)
-            x.data = data
-
-        # Clear gradients to support func that calls backward inside of itself.
-        _clear_grads(xs)
-        _clear_grads(params)
-
-        ys = func(*xs)
-        ys = _as_tuple(ys)
-        ys_data = tuple(y.data for y in ys)
-        for x, data in six.moves.zip(variables, casted_data):
-            x.data = data
-        return ys_data
-
-    gx, = numerical_grad(
-        g, (delta,), y_grad, eps=eps,
-        detect_nondifferentiable=detect_nondifferentiable,
-        center_outputs=y0_data)
-    gx_accum = 0
-    for g, direction in six.moves.zip(grads, directions):
-        if g is not None:
-            gx_accum += (g.astype('d') * direction).sum()
-
-    try:
-        testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
-    except AssertionError as e:
-        f = six.StringIO()
-        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
-            eps, atol, rtol))
-        for i, x_ in enumerate(xs):
-            f.write('inputs[{}]:\n'.format(i))
-            f.write('{}\n'.format(x_))
-        for i, gy_ in enumerate(y_grad):
-            f.write('grad_outputs[{}]:\n'.format(i))
-            f.write('{}\n'.format(gy_))
-        for i, d_ in enumerate(directions):
-            f.write('directions[{}]:\n'.format(i))
-            f.write('{}\n'.format(d_))
-        f.write('gradients (numeric):  {}\n'.format(gx))
-        f.write('gradients (backward): {}\n'.format(gx_accum))
-        f.write('\n')
-        f.write(str(e))
-        raise AssertionError(f.getvalue())
+    _CheckBackward(
+        func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
+        detect_nondifferentiable,
+    ).run()
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
@@ -637,10 +849,11 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         gys = inputs[n_x:]
 
         y = _as_tuple(func(*xs))
+        _check_outputs_and_grad_outputs(y, gys)
 
         # Let all elements of y share the same creator.
         # See the comment in check_backward.
-        y, _ = _set_y_grad(y, gys)
+        y = _apply_grad_setter_func(y, gys)
 
         y.backward(enable_double_backprop=True)
 
@@ -691,45 +904,22 @@ class _GradientSetter(FunctionNode):
         self.grad = grad
 
     def forward(self, inputs):
+        # output a dummy array.
         xp = backend.get_array_module(inputs[0])
-
-        if self.grad is None:
-            y0, = inputs
-            gy0 = xp.ones_like(y0)
-            assert gy0.size == 1
-
-            self.grad = (gy0,)
-
-        # output a 0-sized 1-dim array like inputs
-        return xp.empty((0,), dtype=inputs[0].dtype),
+        return xp.empty((0,), dtype=numpy.float32),
 
     def backward(self, inputs, grad_outputs):
-        grad = self.grad
-
-        return tuple(
-            None if g is None else variable.as_variable(g)
-            for g in grad)
+        return self.grad
 
 
-def _set_y_grad(y, y_grad):
-    if y_grad is not None:
-        if len(y) != len(y_grad):
-            raise ValueError(
-                'Upstream gradients must contain equally many elements as '
-                'number of output elements.\n'
-                'Actual: {} != {}'.format(len(y), len(y_grad)))
-        y, = _GradientSetter(y_grad).apply(y)
-    else:
-        if len(y) != 1:
-            raise ValueError(
-                'Function must return a zero-dimensional array of length 1 '
-                'if the upstream gradient is `None`.\n'
-                'Actual: {} != 1'.format(len(y)))
-        y, = _GradientSetter(None).apply(y)
-        y_grad = (1,)
-    return y, y_grad
-
-
-def _clear_grads(xs):
-    for x in xs:
-        x.grad_var = None
+def _apply_grad_setter_func(y, y_grad):
+    # Applies the `_GradientSetter` function.
+    # The gradient setter function accepts any number of upstream outputs as
+    # its inputs, and returns a single output variable with dummy data.
+    # This variable will be later backward()ed and during backprop, this
+    # function returns the given gradients (`y_grad`) on its backward.
+    assert len(y) == len(y_grad)
+    assert all(isinstance(y_, chainer.Variable) for y_ in y)
+    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in y_grad)
+    y, = _GradientSetter(y_grad).apply(y)
+    return y

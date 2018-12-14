@@ -170,7 +170,7 @@ class TestLSTM(unittest.TestCase):
                 chainer.functions.lstm, inputs, grad_outputs, grad_grad_inputs,
                 **self.check_double_backward_options)
 
-    def test_double_backward(self,  backend_config):
+    def test_double_backward(self, backend_config):
         self.check_double_backward(
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)

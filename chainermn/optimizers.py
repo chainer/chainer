@@ -15,9 +15,13 @@ class _MultiNodeOptimizer(object):
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
         if lossfun is not None:
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            target.cleargrads()
-            loss.backward()
+            if use_cleargrads:
+                target.cleargrads()
+            else:
+                target.zerograds()
+            loss.backward(loss_scale=self.actual_optimizer._loss_scale)
             del loss
 
         if self.is_changed(target):
@@ -38,6 +42,10 @@ class _MultiNodeOptimizer(object):
             if (param1[0] != param2[0]) or param1[1] != param2[1]:
                 return True
         return False
+
+    def setup(self, link):
+        self.actual_optimizer.setup(link)
+        return self
 
     def __getattr__(self, attr_name):
         return getattr(self.actual_optimizer, attr_name)
@@ -65,9 +73,13 @@ class _DoubleBufferingOptimizer(object):
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
         if lossfun is not None:
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            target.cleargrads()
-            loss.backward()
+            if use_cleargrads:
+                target.cleargrads()
+            else:
+                target.zerograds()
+            loss.backward(loss_scale=self.actual_optimizer._loss_scale)
             del loss
 
         if self.is_changed(target, self.target_params_list[0]):
@@ -117,6 +129,10 @@ class _DoubleBufferingOptimizer(object):
     def wait(self):
         self.allreduce_grad_stream.synchronize()
         chainer.cuda.Stream.null.synchronize()
+
+    def setup(self, link):
+        self.actual_optimizer.setup(link)
+        return self
 
     def __getattr__(self, attr_name):
         return getattr(self.actual_optimizer, attr_name)

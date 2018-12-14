@@ -3,6 +3,7 @@ from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class LogSumExp(function_node.FunctionNode):
@@ -21,7 +22,7 @@ class LogSumExp(function_node.FunctionNode):
             raise TypeError('None, int or tuple of int are required')
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
@@ -34,6 +35,9 @@ class LogSumExp(function_node.FunctionNode):
                     type_check.expect(
                         -axis - 1 < in_types[0].ndim,
                     )
+
+    def forward_chainerx(self, inputs):
+        return chainerx.logsumexp(inputs[0], self.axis),
 
     def forward(self, inputs):
         self.retain_inputs((0,))

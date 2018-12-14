@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -17,8 +18,11 @@ class Tanh(function_node.FunctionNode):
     """Hyperbolic tangent function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.tanh(x[0]),
 
     def forward_cpu(self, x):
         y = utils.force_array(numpy.tanh(x[0]))
@@ -94,8 +98,7 @@ def tanh(x):
      .. math:: f(x)=\\tanh(x).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     Returns:

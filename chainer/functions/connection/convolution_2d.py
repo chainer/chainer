@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer import backend
@@ -11,6 +10,7 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -20,6 +20,16 @@ def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
+
+
+# Used by deconvolution_2d.py.
+# TODO(beam2d): Unify matmul implementations
+def _matmul(a, b):
+    xp = backend.get_array_module(a)
+    if not hasattr(xp, 'matmul'):
+        # NumPy 1.9 does not support matmul. We use einsum instead.
+        return xp.einsum('ijl,ilk->ijk', a, b)
+    return xp.matmul(a, b)
 
 
 class Convolution2DFunction(function_node.FunctionNode):
@@ -54,8 +64,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            # Need to consider the case that group count > 1.
-            # x_type.shape[1] == w_type.shape[1],
+            x_type.shape[1] == w_type.shape[1] * self.groups,
         )
 
         if type_check.eval(n_in) == 3:
@@ -79,6 +88,23 @@ class Convolution2DFunction(function_node.FunctionNode):
         if out_w <= 0:
             raise RuntimeError('Width in the output should be positive.')
         return out_h, out_w
+
+    def forward_chainerx(self, inputs):
+        # TODO(hvy): Support mixed precision.
+        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if self.dy > 1 or self.dx > 1:
+            return chainer.Fallback
+        # TODO(hvy): Support groups > 1.
+        if self.groups > 1:
+            return chainer.Fallback
+        if inputs[0].device.backend.name == 'cuda' and self.cover_all:
+            return chainer.Fallback
+
+        return chainerx.conv(
+            *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+            cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
@@ -186,38 +212,26 @@ class Convolution2DFunction(function_node.FunctionNode):
         # oC, oH, oW: output channels, output height, output width
         G = self.groups
         N, iC, iH, iW = x.shape
-        oC, _, kH, kW = W.shape
-        iCg = int(iC / G)
-        oCg = int(oC / G)
+        oC, _, kH, kW = W.shape  # _ == iCg
+        iCg = iC // G
+        oCg = oC // G
 
-        xp = backend.get_array_module(x)
+        # (N, iC, kW, kW, oH, oW)
+        x = conv.im2col(x, kH, kW, self.sy, self.sx, self.ph, self.pw,
+                        cover_all=self.cover_all, dy=self.dy, dx=self.dx)
+        oH, oW = x.shape[-2:]
 
-        _x = x.reshape((N, G, iCg, iH, iW))
-        _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
+        x = x.transpose(1, 2, 3, 0, 4, 5)  # (iC, kH, kW, N, oH, oW)
+        x = x.reshape(G, iCg * kH * kW, N * oH * oW)
 
-        _W = W.reshape((G, oCg, iCg, kH, kW))
+        W = W.reshape(G, oCg, iCg * kH * kW)
+
+        # (G, oCg, N*oH*oW) = (G, oCg, iCg*kH*kW) @ (G, iCg*kH*kW, N*oH*oW)
+        y = _matmul(W, x).astype(x.dtype, copy=False)
+        y = y.reshape(oC, N, oH, oW)
+        y = y.transpose(1, 0, 2, 3)  # (N, oC, oH, oW)
         if b is not None:
-            _b = b.reshape((G, oCg))
-
-        _ys = []
-
-        for g in six.moves.range(G):
-            _bg = None if b is None else _b[g, ]
-            if xp is numpy:
-                _y, = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
-            else:
-                _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
-
-            _ys.append(_y)
-
-        # (N, oC, oH, oW)
-        if self._use_ideep:
-            __ys = intel64.ideep.mdarrayVector()
-            for _y in _ys:
-                __ys.push_back(_y)
-            y = intel64.ideep._ideep4py.concat.Forward(__ys, 1)
-        else:
-            y = xp.concatenate(_ys, axis=1)
+            y += b.reshape(1, b.size, 1, 1)
 
         return y,
 
@@ -359,26 +373,27 @@ class Convolution2DGradW(function_node.FunctionNode):
         # oC, oH, oW: output channels, output height, output width
         G = self.groups
         N, iC, iH, iW = x.shape
-        _, oC, oH, oW = gy.shape
-        iCg = int(iC / G)
-        oCg = int(oC / G)
+        _, oC, oH, oW = gy.shape  # _ == N
+        kH = self.kh
+        kW = self.kw
+        iCg = iC // G
+        oCg = oC // G
 
-        xp = backend.get_array_module(x)
+        # (N, iC, kH, kW, oH, oW)
+        x = conv.im2col(x, kH, kW, self.sy, self.sx, self.ph, self.pw,
+                        cover_all=self.cover_all, dy=self.dy, dx=self.dx)
 
-        _x = x.reshape((N, G, iCg, iH, iW))
-        _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
-        _gy = gy.reshape((N, G, oCg, oH, oW))
-        _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
+        x = x.transpose(1, 2, 3, 0, 4, 5)  # (iC, kH, kW, N, oH, oW)
+        x = x.reshape(G, iCg * kH * kW, N * oH * oW)
+        x = x.transpose(0, 2, 1)  # (G, N*oH*oW, iCg*kH*kW)
 
-        _gWs = []
-        for g in six.moves.range(G):
-            if xp is numpy:
-                _gW, = self._forward_cpu_core(_x[g, ], _gy[g, ])
-            else:
-                _gW, = self._forward_gpu_core(_x[g, ], _gy[g, ])
-            _gWs.append(_gW)
+        gy = gy.transpose(1, 0, 2, 3)  # (oC, N, oH, oW)
+        gy = gy.reshape(G, oCg, N * oH * oW)
 
-        gW = xp.concatenate(_gWs)  # (oC, iCg, kH, kW)
+        # (G, oCg, iCg*kH*kW) = (G, oCg, N*oH*oW) @ (G, N*oH*oW, iCg*kH*kW)
+        gW = _matmul(gy, x).astype(self.W_dtype, copy=False)
+        gW = gW.reshape(oC, iCg, kH, kW)
+
         return gW,
 
     def _forward_cudnn(self, x, gy):
@@ -502,7 +517,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_O, c_I, h_K, w_K)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
