@@ -45,8 +45,8 @@ void InitChainerxMemoryPool(py::module& m) {
                       dynamic_cast<chainerx::cuda::CudaDevice*>(&actual_device)->device_memory_pool().get(),
                       std::placeholders::_1);
 
-              return [free = std::move(free)](intptr_t bytesize) {
-                  free(reinterpret_cast<void*>(bytesize));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              return [free = std::move(free)](intptr_t ptr) {
+                  free(reinterpret_cast<void*>(ptr));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
               };
           },
           py::arg("device"));
