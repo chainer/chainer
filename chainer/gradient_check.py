@@ -301,7 +301,10 @@ def numerical_grad(
                     numerical_grad_kernel_1(
                         y1, y0, xp.asarray(gy), eps, gx[i])
                 else:
-                    dot = numpy.nansum((y1 - y0) * gy)
+                    num = y1 - y0
+                    dot = num * gy
+                    if isinstance(num, xp.ndarray):
+                        dot = numpy.nansum(dot)
                     gx[i] = gx[i] + dot / (2 * eps)
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
@@ -313,7 +316,9 @@ def numerical_grad(
                         y3, y2, y1, y0, gy, eps, gx[i])
                 else:
                     num = -y3 + 8 * y2 - 8 * y1 + y0
-                    dot = numpy.nansum(num * gy)
+                    dot = num * gy
+                    if isinstance(num, xp.ndarray):
+                        dot = numpy.nansum(dot)
                     gx[i] = gx[i] + dot / (6 * eps)
             else:
                 assert False
