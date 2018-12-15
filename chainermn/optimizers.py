@@ -15,9 +15,13 @@ class _MultiNodeOptimizer(object):
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
         if lossfun is not None:
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            target.cleargrads()
-            loss.backward()
+            if use_cleargrads:
+                target.cleargrads()
+            else:
+                target.zerograds()
+            loss.backward(loss_scale=self.actual_optimizer._loss_scale)
             del loss
 
         if self.is_changed(target):
@@ -69,9 +73,13 @@ class _DoubleBufferingOptimizer(object):
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
         if lossfun is not None:
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            target.cleargrads()
-            loss.backward()
+            if use_cleargrads:
+                target.cleargrads()
+            else:
+                target.zerograds()
+            loss.backward(loss_scale=self.actual_optimizer._loss_scale)
             del loss
 
         if self.is_changed(target, self.target_params_list[0]):

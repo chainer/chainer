@@ -83,7 +83,7 @@ class BackendConfig(object):
         return self._device
 
     def __enter__(self):
-        self._contexts = [
+        contexts = [
             chainer.using_config(
                 'use_cudnn', self.use_cudnn),
             chainer.using_config(
@@ -94,12 +94,14 @@ class BackendConfig(object):
                 'use_ideep', self.use_ideep),
             chainer.using_device(self.device),
         ]
-        for c in self._contexts:
+        for c in contexts:
             c.__enter__()
+        self._contexts.append(contexts)
         return self
 
     def __exit__(self, typ, value, traceback):
-        for c in reversed(self._contexts):
+        contexts = self._contexts.pop()
+        for c in reversed(contexts):
             c.__exit__(typ, value, traceback)
 
     def __repr__(self):

@@ -203,6 +203,7 @@ if _chainer_dtype not in ('float16', 'float32', 'float64'):
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.dtype = numpy.dtype(_chainer_dtype)
+global_config.in_recomputing = False
 
 
 def is_debug():
