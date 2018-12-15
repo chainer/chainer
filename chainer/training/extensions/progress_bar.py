@@ -111,7 +111,8 @@ class ProgressBar(extension.Extension):
                 util.set_console_cursor_position(0, -4)
             else:
                 out.write('\033[4A')
-            out.flush()
+            if hasattr(out, 'flush'):
+                out.flush()
 
             if len(recent_timing) > 100:
                 del recent_timing[0]
@@ -123,4 +124,5 @@ class ProgressBar(extension.Extension):
             util.erase_console(0, 0)
         else:
             out.write('\033[J')
-        out.flush()
+        if hasattr(out, 'flush'):
+            out.flush()

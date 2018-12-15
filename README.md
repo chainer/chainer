@@ -13,6 +13,7 @@
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
 | [**Tutorial**](https://docs.chainer.org/en/stable/guides/)
 | **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**ChainerX**](#chainerx)
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
@@ -61,6 +62,11 @@ Any contributions to Chainer are welcome!
 If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
 
 
+## ChainerX
+
+See this [separate user guide](chainerx.md) for how to build and run Chainer with ChainerX.
+
+
 ## License
 
 MIT License (see `LICENSE` file).
@@ -79,3 +85,10 @@ Chainer: a Next-Generation Open Source Framework for Deep Learning,
 *Proceedings of Workshop on Machine Learning Systems(LearningSys) in
 The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS)*, (2015)
 [URL](http://learningsys.org/papers/LearningSys_2015_paper_33.pdf), [BibTex](chainer_bibtex.txt)
+
+
+Akiba, T., Fukuda, K. and Suzuki, S.,
+ChainerMN: Scalable Distributed Deep Learning Framework,
+*Proceedings of Workshop on ML Systems in
+The Thirty-first Annual Conference on Neural Information Processing Systems (NIPS)*, (2017)
+[URL](http://learningsys.org/nips17/assets/papers/paper_25.pdf), [BibTex](chainermn_bibtex.txt)

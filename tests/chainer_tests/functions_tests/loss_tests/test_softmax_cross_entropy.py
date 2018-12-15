@@ -4,11 +4,13 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class SoftmaxCrossEntropyTestBase(object):
@@ -54,7 +56,7 @@ class SoftmaxCrossEntropyTestBase(object):
 
     def check_forward(self, x_data, t_data, class_weight, use_cudnn='always'):
         x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
+        t = chainer.Variable(t_data, requires_grad=False)
         with chainer.using_config('use_cudnn', use_cudnn):
             loss = functions.softmax_cross_entropy(
                 x, t, normalize=self.normalize, reduce=self.reduce,
@@ -62,23 +64,24 @@ class SoftmaxCrossEntropyTestBase(object):
                 enable_double_backprop=self.enable_double_backprop)
         self.assertEqual(loss.data.shape, self.gy.shape)
         self.assertEqual(loss.data.dtype, self.dtype)
-        if not self.enable_double_backprop:
+        if (not self.enable_double_backprop
+                and (chainer.backend.get_array_module(x_data)
+                     is not chainerx)):
             assert (loss.creator.y is not None) == self.cache_score
-        loss_value = cuda.to_cpu(loss.data)
 
         if self.reduce == 'mean':
             self.check_forward_with_reduce(
-                float(loss_value), t_data, class_weight)
+                float(loss.data), t_data, class_weight)
         else:
-            self.check_forward_without_reduce(loss_value, t_data, class_weight)
+            self.check_forward_without_reduce(loss.data, t_data, class_weight)
 
-    def check_forward_with_reduce(self, loss_value, t_data, class_weight):
+    def expected_forward_with_reduce(self, x_data, t_data, class_weight):
         # Compute expected value
         loss_expect = 0.0
         count = 0
-        x = numpy.rollaxis(self.x, 1, self.x.ndim).reshape(
-            (self.t.size, self.x.shape[1]))
-        t = self.t.ravel()
+        x = numpy.rollaxis(x_data, 1, x_data.ndim).reshape(
+            (t_data.size, x_data.shape[1]))
+        t = t_data.ravel()
         for xi, ti in six.moves.zip(x, t):
             if ti == -1:
                 continue
@@ -99,26 +102,40 @@ class SoftmaxCrossEntropyTestBase(object):
                 loss_expect = 0.0
             else:
                 loss_expect /= len(t_data)
+        return loss_expect
+
+    def check_forward_with_reduce(self, loss_value, t_data, class_weight):
+        loss_expect = self.expected_forward_with_reduce(
+            self.x, self.t, backend.CpuDevice().send(class_weight))
 
         testing.assert_allclose(
             loss_expect, loss_value, **self.check_forward_options)
 
-    def check_forward_without_reduce(self, loss_value, t_data, class_weight):
-        x = numpy.rollaxis(self.x, 1, self.x.ndim).reshape(
-            (self.t.size, self.x.shape[1]))
-        t = self.t.ravel()
-        l = loss_value.ravel()
-        for xi, ti, li in six.moves.zip(x, t, l):
+    def expected_forward_without_reduce(self, x_data, t_data, class_weight):
+        x = numpy.rollaxis(x_data, 1, x_data.ndim).reshape(
+            (t_data.size, x_data.shape[1]))
+        t = t_data.ravel()
+
+        loss_shape = x_data.shape[0:1] + x_data.shape[2:]
+        loss_expect = numpy.zeros(loss_shape, x_data.dtype)
+        for i, (ti, loss_idx) in enumerate(zip(t, numpy.ndindex(*loss_shape))):
+            xi = x[i]
             if ti == -1:
                 continue
             log_z = numpy.ufunc.reduce(numpy.logaddexp, xi)
             if class_weight is None:
-                loss_expect = -(xi - log_z)[ti]
+                loss_expect[loss_idx] = -(xi - log_z)[ti]
             else:
-                loss_expect = -(xi - log_z)[ti] * class_weight[ti]
+                loss_expect[loss_idx] = -(xi - log_z)[ti] * class_weight[ti]
 
-            testing.assert_allclose(
-                loss_expect, li, **self.check_forward_options)
+        return loss_expect
+
+    def check_forward_without_reduce(self, loss_value, t_data, class_weight):
+        loss_expect = self.expected_forward_without_reduce(
+            self.x, self.t, backend.CpuDevice().send(class_weight))
+
+        testing.assert_allclose(
+            loss_expect, loss_value, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t, self.class_weight)
@@ -136,16 +153,44 @@ class SoftmaxCrossEntropyTestBase(object):
             None if not self.weight_apply else cuda.to_gpu(self.class_weight),
             'never')
 
+    @attr.chainerx
+    def test_forward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(x)
+
+        self.check_forward(
+            conv(self.x), conv(self.t),
+            None if not self.weight_apply else conv(self.class_weight))
+
+    @attr.chainerx
+    @attr.gpu
+    def test_forward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+
+        self.check_forward(
+            conv(self.x), conv(self.t),
+            None if not self.weight_apply else conv(self.class_weight))
+
     def check_backward(self, x_data, t_data, g_data, class_weight,
                        use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
-            def f(x, t):
-                return functions.softmax_cross_entropy(
-                    x, t, cache_score=self.cache_score,
+            def f(x):
+                ys = functions.softmax_cross_entropy(
+                    x, t_data, cache_score=self.cache_score,
                     class_weight=class_weight, reduce=self.reduce)
+                return ys
 
             gradient_check.check_backward(
-                f, (x_data, t_data), g_data, dtype=numpy.float64,
+                f, x_data, g_data, dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -175,6 +220,43 @@ class SoftmaxCrossEntropyTestBase(object):
             weight = cuda.to_gpu(self.class_weight)
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t), g_data, weight, 'never')
+
+    @attr.chainerx
+    def test_backward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(x)
+
+        g_data = None
+        if self.reduce == 'no':
+            g_data = conv(self.gy)
+        weight = None
+        if not self.weight_apply:
+            weight = conv(self.class_weight)
+        self.check_backward(
+            conv(self.x), conv(self.t), g_data, weight)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_backward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+
+        g_data = None
+        if self.reduce == 'no':
+            g_data = conv(self.gy)
+        weight = None
+        if not self.weight_apply:
+            weight = conv(self.class_weight)
+        self.check_backward(
+            conv(self.x), conv(self.t), g_data, weight)
 
 
 test_cases = testing.product({
@@ -260,6 +342,33 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
             None if not self.weight_apply else cuda.to_gpu(self.class_weight),
             'never')
 
+    @attr.chainerx
+    def test_double_backward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(x)
+
+        args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
+        args.append(None if not self.weight_apply else conv(self.class_weight))
+        self.check_double_backward(*args)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_double_backward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(x):
+            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+
+        args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
+        args.append(None if not self.weight_apply else conv(self.class_weight))
+        self.check_double_backward(*args)
+
 
 @testing.parameterize(*testing.product_dict(
     [
@@ -331,7 +440,7 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cudnn.softmax_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))

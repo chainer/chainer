@@ -1,4 +1,4 @@
-__version__ = '5.0.0rc1'
+__version__ = '6.0.0b1'
 
 
 _optional_dependencies = [
@@ -11,7 +11,7 @@ _optional_dependencies = [
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==5.0.0rc1',
+        'specifier': '==6.0.0b1',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {
@@ -19,7 +19,7 @@ _optional_dependencies = [
         'packages': [
             'ideep4py',
         ],
-        'specifier': '>=2.0, <2.1',
+        'specifier': '>=2.0.0.post3, <2.1',
         'help': 'https://docs.chainer.org/en/latest/tips.html',
     },
 ]

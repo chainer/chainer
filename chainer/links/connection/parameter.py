@@ -22,7 +22,7 @@ class Parameter(link.Link):
     def __init__(self, array):
         super(Parameter, self).__init__()
         self.add_param('W', array.shape, dtype=array.dtype)
-        self.W.data = array
+        self.W.array = array
         if isinstance(array, cuda.ndarray):
             self.to_gpu(cuda.get_device_from_array(array))
 

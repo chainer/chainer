@@ -20,7 +20,7 @@ class Contrastive(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1', 'y'))
+        type_check._argname(in_types, ('x0', 'x1', 'y'))
 
         x0_type, x1_type, y_type = in_types
         type_check.expect(

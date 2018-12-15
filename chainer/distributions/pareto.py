@@ -14,10 +14,10 @@ class Pareto(distribution.Distribution):
         f(x) = \\alpha x_m^{\\alpha}(x)^{-(\\alpha+1)},
 
     Args:
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`x_m`.
-        alpha(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\alpha`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`x_m`.
+        alpha(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\alpha`.
     """
 
     def __init__(self, scale, alpha):

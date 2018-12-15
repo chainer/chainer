@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import numpy
@@ -158,6 +159,56 @@ class TestForgetGrad(unittest.TestCase):
         y.backward()
         assert isinstance(model.link.W.grad_var, variable.Variable)
         assert isinstance(model.link.b.grad_var, variable.Variable)
+
+
+@testing.parameterize(*testing.product({
+    'link_name': ['bn', 'brn'],
+    'finetune': [False, True],
+}))
+class TestBatchNormalization(unittest.TestCase):
+
+    def test_bn(self):
+
+        class Model(chainer.link.Chain):
+            def __init__(self, link_name, finetune, forget=False):
+                super(Model, self).__init__()
+                with self.init_scope():
+                    if link_name == 'bn':
+                        self.link = links.BatchNormalization(3)
+                    elif link_name == 'brn':
+                        self.link = links.BatchRenormalization(3)
+                self.forget = forget
+                self.finetune = finetune
+
+            def forward(self, x):
+                if self.forget:
+                    return functions.forget(
+                        functools.partial(self.link, finetune=self.finetune),
+                        x)
+                else:
+                    return self.link(x, finetune=self.finetune)
+
+        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+
+        model1 = Model(self.link_name, self.finetune, forget=False)
+        model2 = Model(self.link_name, self.finetune, forget=True)
+
+        # Update the models' internal statistics
+        y = model1(x)
+        functions.sum(y).backward()
+
+        y = model2(x)
+        functions.sum(y).backward()
+
+        # Check if the outputs of the models are the same during test time
+        with chainer.using_config('train', False):
+            y1 = model1(x)
+            y2 = model2(x)
+            numpy.testing.assert_almost_equal(y1.data, y2.data)
+
+        if self.finetune:
+            assert model1.link.N == 1
+            assert model2.link.N == 1
 
 
 testing.run_module(__name__, __file__)

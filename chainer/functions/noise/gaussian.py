@@ -27,7 +27,7 @@ class Gaussian(function_node.FunctionNode):
         self.eps = eps
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('mean', 'ln_var'))
+        type_check._argname(in_types, ('mean', 'ln_var'))
 
         m_type, v_type = in_types
         type_check.expect(
