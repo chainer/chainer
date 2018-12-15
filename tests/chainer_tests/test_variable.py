@@ -298,11 +298,8 @@ class TestVariable(unittest.TestCase):
     def test_len_chainerx(self):
         self.check_len(chainerx.array(self.x))
 
-    def check_iter(self, gpu):
-        x = self.x
-        if gpu:
-            x = cuda.to_gpu(x)
-        x = chainer.Variable(x)
+    def check_iter(self, a):
+        x = chainer.Variable(a)
         if x.ndim == 0:
             pytest.raises(TypeError, x.__iter__)
         else:
@@ -313,11 +310,11 @@ class TestVariable(unittest.TestCase):
             assert i == len(self.x)
 
     def test_iter_cpu(self):
-        self.check_iter(False)
+        self.check_iter(self.x)
 
     @attr.gpu
     def test_iter_gpu(self):
-        self.check_len(True)
+        self.check_len(cuda.to_gpu(self.x))
 
     def check_get_item(self, a):
         x = chainer.Variable(a)
