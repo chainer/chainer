@@ -38,13 +38,17 @@ if _available:
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
+    # Implements ndarray methods in Python
     from chainerx import _ndarray
-    from chainerx import _docs
-
-    # Add workaround implementation for NumPy ndarray-compatible functions
     _ndarray.populate()
 
+    # Temporary workaround implementations that fall back to NumPy/CuPy's
+    # respective functions.
+    from chainerx import _fallback_workarounds
+    _fallback_workarounds.populate()
+
     # Dynamically inject docstrings
+    from chainerx import _docs
     _docs.set_docs()
 
 else:

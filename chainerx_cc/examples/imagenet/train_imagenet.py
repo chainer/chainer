@@ -23,7 +23,7 @@ import resnet50
 
 def get_imagenet(dataset_iter):
     x, t = zip(*next(dataset_iter))
-    return chx.array(np.array(x)), chx.array(np.array(t))
+    return chx.array(x), chx.array(t)
 
 
 def compute_loss(y, t):
@@ -42,21 +42,17 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
         raise ValueError(
             'Test size can be no larger than {}'.format(X_test.shape[0]))
 
-    model.no_grad()
+    with chx.no_backprop_mode():
+        total_loss = chx.array(0, dtype=chx.float32)
+        num_correct = chx.array(0, dtype=chx.int64)
+        for i in range(0, N_test, batch_size):
+            x = X_test[i:min(i + batch_size, N_test)]
+            t = Y_test[i:min(i + batch_size, N_test)]
 
-    # TODO(beam2d): make chx.array(0, dtype=...) work
-    total_loss = chx.zeros((), dtype=chx.float32)
-    num_correct = chx.zeros((), dtype=chx.int64)
-    for i in range(0, N_test, batch_size):
-        x = X_test[i:min(i + batch_size, N_test)]
-        t = Y_test[i:min(i + batch_size, N_test)]
-
-        y = model(x)
-        total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype)
-                        == t).astype(chx.int32).sum()
-
-    model.require_grad()
+            y = model(x)
+            total_loss += compute_loss(y, t) * batch_size
+            num_correct += (y.argmax(axis=1).astype(t.dtype)
+                            == t).astype(chx.int32).sum()
 
     mean_loss = float(total_loss) / N_test
     accuracy = int(num_correct) / N_test
