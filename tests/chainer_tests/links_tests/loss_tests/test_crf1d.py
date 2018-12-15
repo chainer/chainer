@@ -48,7 +48,7 @@ class TestCRF1d(unittest.TestCase):
                    for b in self.batches]
         self.ys = [numpy.random.randint(
             0, self.n_labels, (b,)).astype(numpy.int32)
-                   for b in self.batches]
+            for b in self.batches]
 
         self.link = links.CRF1d(n_label=self.n_labels)
         self.cost_shape = (self.n_labels, self.n_labels)
