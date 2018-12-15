@@ -64,7 +64,8 @@ class TestCRF1d(unittest.TestCase):
     def check_forward(self, x_data, t_data):
         x = self.link(x_data, t_data)
         t = self._crf1d(self.link.cost.data, x_data, t_data)
-        testing.assert_allclose(x.data, t)
+        testing.assert_allclose(x.data, t,
+                                **self.check_forward_options)
 
     @condition.retry(3)
     def test_forward_cpu(self):
