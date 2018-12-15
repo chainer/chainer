@@ -34,6 +34,7 @@ install(FILES
     dtype.h
     enum.h
     error.h
+    float16.h
     graph.h
     hash_combine.h
     index_iterator.h
@@ -73,6 +74,7 @@ add_library(chainerx SHARED
     device.cc
     device_id.cc
     dtype.cc
+    float16.cc
     graph.cc
     numeric.cc
     numerical_gradient.cc
@@ -116,6 +118,7 @@ if(${CHAINERX_BUILD_TEST})
         context_test.cc
         device_test.cc
         dtype_test.cc
+        float16_test.cc
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc

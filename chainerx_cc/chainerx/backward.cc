@@ -38,10 +38,17 @@ using internal::OpNode;
 namespace internal {
 namespace {
 
+// Throws GradientError in case of mismatch in gradient array props.
 void CheckGradCompatible(const Array& grad, const Shape& shape, Dtype dtype, Device& device) {
-    CheckEqual(dtype, grad.dtype());
-    CheckEqual(shape, grad.shape());
-    CheckEqual(device, grad.device());
+    if (dtype != grad.dtype()) {
+        throw GradientError{"Gradient dtypes do not match. Expected: ", dtype, " Actual: ", grad.dtype(), "."};
+    }
+    if (shape != grad.shape()) {
+        throw GradientError{"Gradient shapes do not match. Expected: ", shape, " Actual: ", grad.shape(), "."};
+    }
+    if (&device != &grad.device()) {
+        throw GradientError{"Gradient devices do not match. Expected: ", device.name(), " Actual: ", grad.device().name(), "."};
+    }
 }
 
 }  // namespace
@@ -285,8 +292,17 @@ private:
                 CHAINERX_ASSERT(input_array_node != nullptr);
                 nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
-                internal::SetGrad(
-                        input_grad, computed_input_grad, input_array_node->shape(), input_array_node->dtype(), input_array_node->device());
+                try {
+                    internal::SetGrad(
+                            input_grad,
+                            computed_input_grad,
+                            input_array_node->shape(),
+                            input_array_node->dtype(),
+                            input_array_node->device());
+                } catch (const GradientError& e) {
+                    // TODO(niboshi): Use std::nested_exception
+                    throw GradientError{e.what(), " Op: ", op_node->name()};
+                }
             }
         }
     }
@@ -329,8 +345,17 @@ private:
                 const ArrayNode& input_array_node = *input_array_nodes[i];
                 // Retrieve the pointer to the input gradient.
                 internal::GradRef& input_grad = array_node_grad_map_.at(input_array_nodes[i].get());
-                internal::AccumulateGrad(
-                        input_grad.get(), std::move(*gx), input_array_node.shape(), input_array_node.dtype(), input_array_node.device());
+                try {
+                    internal::AccumulateGrad(
+                            input_grad.get(),
+                            std::move(*gx),
+                            input_array_node.shape(),
+                            input_array_node.dtype(),
+                            input_array_node.device());
+                } catch (const GradientError& e) {
+                    // TODO(niboshi): Use std::nested_exception
+                    throw GradientError{e.what(), " Op: ", op_node.name()};
+                }
             }
         }
     }

@@ -525,14 +525,13 @@ def test_array_require_grad_multiple_graphs_forward():
 
 
 @pytest.mark.parametrize(
-    'expected_error,invalid_shape,invalid_dtype,invalid_device',
+    'invalid_shape,invalid_dtype,invalid_device',
     [
-        (chainerx.DtypeError, None, chainerx.float32, None),
-        (chainerx.DimensionError, (2, 1), None, None),
-        (chainerx.DeviceError, None, None, 'native:1'),
+        (None, chainerx.float32, None),
+        ((2, 1), None, None),
+        (None, None, 'native:1'),
     ])
-def test_array_grad_invalid_grad(
-        expected_error, invalid_shape, invalid_dtype, invalid_device):
+def test_array_grad_invalid_grad(invalid_shape, invalid_dtype, invalid_device):
     shape = (3, 1)
     dtype = chainerx.float64
     device = 'native:0'
@@ -546,9 +545,9 @@ def test_array_grad_invalid_grad(
     invalid_grad = chainerx.ones(
         grad_shape, grad_dtype, device=grad_device)
 
-    with pytest.raises(expected_error):
+    with pytest.raises(chainerx.GradientError):
         array.set_grad(invalid_grad)
-    with pytest.raises(expected_error):
+    with pytest.raises(chainerx.GradientError):
         array.grad = invalid_grad
 
 
