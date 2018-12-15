@@ -10,7 +10,6 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 import argparse
-import copy
 import numpy as np
 
 import chainer
