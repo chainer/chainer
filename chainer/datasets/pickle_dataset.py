@@ -41,7 +41,8 @@ class PickleDatasetWriter(object):
         self._positions.append(position)
 
     def flush(self):
-        self._writer.flush()
+        if hasattr(self._writer, 'flush'):
+            self._writer.flush()
 
 
 class PickleDataset(dataset_mixin.DatasetMixin):

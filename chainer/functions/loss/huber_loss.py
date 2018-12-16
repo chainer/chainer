@@ -17,7 +17,7 @@ class HuberLoss(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -48,8 +48,7 @@ class HuberLoss(function_node.FunctionNode):
         x0, x1 = self.get_retained_inputs()
         gy, = grad_outputs
         diff = x0 - x1
-        # `functions.clip` only accepts float value.
-        delta = float(self.delta)
+        delta = self.delta
 
         gx = chainer.functions.clip(diff, -delta, delta)
 

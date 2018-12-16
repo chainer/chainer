@@ -11,10 +11,14 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
+import chainerx
 
 
 def _to_fcontiguous(arrays):
     xp = chainer.backend.get_array_module(*arrays)
+    # TODO(niboshi): Fix it. Non-contiguous tests are skipped for ChainerX.
+    if xp is chainerx:
+        raise unittest.SkipTest('ChainerX does not support asfortranarray')
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -33,7 +37,12 @@ def _to_fcontiguous(arrays):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
-    }))
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestAveragePooling2D(unittest.TestCase):
 
     def setUp(self):
@@ -67,10 +76,13 @@ class TestAveragePooling2D(unittest.TestCase):
         return expect,
 
     def check_forward(self, inputs, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         y_expect, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
 
@@ -88,9 +100,12 @@ class TestAveragePooling2D(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
@@ -108,10 +123,13 @@ class TestAveragePooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
@@ -151,7 +169,7 @@ class TestAveragePooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -162,7 +180,7 @@ class TestAveragePooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

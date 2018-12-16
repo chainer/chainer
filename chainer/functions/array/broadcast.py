@@ -4,6 +4,7 @@ import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Broadcast(function_node.FunctionNode):
@@ -68,7 +69,7 @@ class BroadcastTo(function_node.FunctionNode):
         self._shape = tuple(shape)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         ndim = type_check.make_variable(len(self._shape), 'len(shape)')
         type_check.expect(in_types[0].ndim <= ndim)
@@ -83,6 +84,10 @@ class BroadcastTo(function_node.FunctionNode):
                 expect += ' or in_type[0].shape[%d] == 1' % i
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
+
+    def broadcast_to(self, inputs):
+        x, = inputs
+        return chainerx.broadcast_to(x, self.shape),
 
     def forward(self, inputs):
         x, = inputs
@@ -129,5 +134,6 @@ def broadcast_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
+
     y, = BroadcastTo(shape).apply((x,))
     return y

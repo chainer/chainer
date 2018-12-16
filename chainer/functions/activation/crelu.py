@@ -14,7 +14,7 @@ class CReLU(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim > self.axis,
@@ -57,8 +57,7 @@ def crelu(x, axis=1):
     See: https://arxiv.org/abs/1603.05201
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         axis (int): Axis that the output values are concatenated along.
             Default is 1.

@@ -5,17 +5,12 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
-from chainer.functions.activation import softmax
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _algorithm = libcudnn.CUDNN_SOFTMAX_LOG
-
-
-_get_tensor4d_shape = softmax._get_tensor4d_shape
-_get_cudnn_mode = softmax._get_cudnn_mode
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG
 
 
 def logsumexp(x, axis):
@@ -33,20 +28,7 @@ def _log_softmax(x, axis=1):
     if chainer.should_use_cudnn('>=auto'):
         xp = backend.get_array_module(x)
         if xp is not numpy:
-            oz_dtype = 'd' if x.dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            handle = cudnn.get_handle()
-            x_tensor4d = cuda.cupy.ascontiguousarray(
-                x.reshape(_get_tensor4d_shape(axis, x.shape)))
-            desc = cudnn.create_tensor_descriptor(x_tensor4d)
-            cudnn_mode = _get_cudnn_mode(x_tensor4d.shape)
-            y = xp.empty_like(x)
-            libcudnn.softmaxForward(
-                handle, _algorithm, cudnn_mode, one.data, desc.value,
-                x_tensor4d.data.ptr, zero.data, desc.value,
-                y.data.ptr)
-            return y
+            return cudnn.softmax_forward(x, axis, _algorithm)
     log_z = logsumexp(x, axis)
     y = x - log_z
     return y
@@ -60,13 +42,16 @@ class LogSoftmax(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(
             x_type.dtype.kind == 'f',
             -x_type.ndim <= self.axis < x_type.ndim,
         )
+
+    def forward_chainerx(self, xs):
+        return chainerx.log_softmax(xs[0], axis=self.axis),
 
     def forward(self, xs):
         y = _log_softmax(xs[0], axis=self.axis)
@@ -96,20 +81,7 @@ class LogSoftmaxGrad(function_node.FunctionNode):
         y, gy = inputs
         xp = self._x_xp
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
-            oz_dtype = 'd' if self._x_dtype == 'd' else 'f'
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            handle = cudnn.get_handle()
-            gx = xp.empty(self._x_shape, dtype=self._x_dtype)
-            gx_tensor4d = cuda.cupy.ascontiguousarray(
-                gx.reshape(_get_tensor4d_shape(self.axis, gx.shape)))
-            gy = cuda.cupy.ascontiguousarray(gy)
-            desc = cudnn.create_tensor_descriptor(gx_tensor4d)
-            cudnn_mode = _get_cudnn_mode(gx_tensor4d.shape)
-            libcudnn.softmaxBackward(
-                handle, _algorithm, cudnn_mode, one.data, desc.value,
-                y.data.ptr, desc.value, gy.data.ptr, zero.data,
-                desc.value, gx.data.ptr)
+            gx = cudnn.softmax_backward(y, gy, self.axis, _algorithm)
         else:
             gx = gy - xp.exp(y) * gy.sum(axis=self.axis, keepdims=True)
         return gx,
@@ -152,8 +124,7 @@ def log_softmax(x, axis=1):
         ``log_softmax`` method is more stable.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         axis (int): The axis along which the softmax is to be computed.

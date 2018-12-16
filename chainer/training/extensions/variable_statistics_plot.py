@@ -64,10 +64,10 @@ class Reservoir(object):
 
     """Reservoir sample with a fixed sized buffer."""
 
-    def __init__(self, size, data_shape, dtype='f'):
+    def __init__(self, size, data_shape, dtype=numpy.float32):
         self.size = size
         self.data = numpy.zeros((size,) + data_shape, dtype=dtype)
-        self.idxs = numpy.zeros((size,), dtype='i')
+        self.idxs = numpy.zeros((size,), dtype=numpy.int32)
         self.counter = 0
 
     def add(self, x, idx=None):

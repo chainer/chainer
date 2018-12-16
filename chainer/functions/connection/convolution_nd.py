@@ -6,9 +6,18 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
+from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+import chainerx
+
+
+def _prod(shape):
+    prod = 1
+    for d in shape:
+        prod *= d
+    return prod
 
 
 class ConvolutionND(function_node.FunctionNode):
@@ -45,6 +54,24 @@ class ConvolutionND(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    def forward_chainerx(self, inputs):
+        # TODO(hvy): Support mixed precision.
+        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
+        # TODO(hvy): Support groups > 1.
+        if self.groups > 1:
+            return chainer.Fallback
+        if inputs[0].device.backend.name == 'cuda' and (
+                self.cover_all or self.ndim < 2):
+            return chainer.Fallback
+
+        return chainerx.conv(
+            *inputs, stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all),
+
     def _use_cudnn(self, x, W):
         if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
             # cuDNN < 6.0 does not support dilated convolutions
@@ -71,11 +98,11 @@ class ConvolutionND(function_node.FunctionNode):
         # oC: output channels
         G = self.groups
         N, iC = x.shape[:2]
-        in_size = x.shape[2:]
         oC = W.shape[0]
         k_size = W.shape[2:]
         iCg = iC // G
         oCg = oC // G
+        dims = len(k_size)
         if iC % G != 0:
             raise TypeError('The number of groups must be '
                             'a divisor of that of input channels')
@@ -83,19 +110,26 @@ class ConvolutionND(function_node.FunctionNode):
             raise TypeError('The number of groups must be '
                             'a divisor of that of output channels')
 
-        _x = x.reshape((N, G, iCg) + in_size)
-        _x = xp.rollaxis(_x, 1)  # (G, N, iCg) + in_size
-        _W = W.reshape((G, oCg, iCg) + k_size)
+        xp = backend.get_array_module(x)
+
+        # (N, iC, k_size..., o_size...)
+        x = conv_nd.im2col_nd(x, k_size, self.stride, self.pad,
+                              cover_all=self.cover_all, dilate=self.dilate)
+        o_size = x.shape[-dims:]
+
+        x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
+        mul_len = iCg * _prod(k_size)
+        x = x.reshape(G, mul_len, N * _prod(o_size))
+
+        W = W.reshape(G, oCg, mul_len)
+
+        # (G, oCg, N*o_size) = (G, oCg, iCg*k_size) @ (G, iCg*k_size, N*o_size)
+        y = convolution_2d._matmul(W, x).astype(x.dtype, copy=False)
+        y = y.reshape(oC, N, *o_size)
+        y = xp.rollaxis(y, 1)  # (N, oC, o_size...)
         if b is not None:
-            _b = b.reshape(G, oCg)
+            y += b.reshape(1, b.size, *((1,) * dims))
 
-        _ys = []
-        for g in moves.range(G):
-            _bg = None if b is None else _b[g]
-            _y, = self._forward_xp_core(_x[g], _W[g], _bg, xp)
-            _ys.append(_y)
-
-        y = xp.concatenate(_ys, axis=1)  # (N, oC) + out_size
         return y,
 
     def _forward_xp_core(self, x, W, b, xp):
@@ -231,24 +265,32 @@ class ConvolutionNDGradW(function_node.FunctionNode):
     def _forward_grouped_convolution_xp(self, x, gy, xp):
         G = self.groups
         N, iC = x.shape[:2]
-        in_size = x.shape[2:]
         oC = gy.shape[1]
-        out_size = gy.shape[2:]
+        o_size = gy.shape[2:]
+        o_size_prod = _prod(o_size)
+        k_size = self.ksize
+        dims = len(o_size)
         iCg = iC // G
         oCg = oC // G
+
         # Do not check iCg and oCg because this class is rarely used alone
-        _x = x.reshape((N, G, iCg) + in_size)
-        _x = xp.rollaxis(_x, 1)  # (G, N, iCg) + in_size
-        _gy = gy.reshape((N, G, oCg) + out_size)
-        _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg) + out_size
 
-        # Work-around for NumPy's bug?
-        if xp is numpy:
-            _gy = xp.ascontiguousarray(_gy)
+        # (N, iC, k_size..., o_size...)
+        x = conv_nd.im2col_nd(x, k_size, self.stride, self.pad,
+                              cover_all=self.cover_all, dilate=self.dilate)
 
-        _gWs = [self._forward_xp_core(_x[g], _gy[g], xp)[0]
-                for g in moves.range(G)]
-        gW = xp.concatenate(_gWs)  # (oC, iCg) + k_size
+        x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
+        mul_len = iCg * _prod(k_size)
+        x = x.reshape(G, mul_len, N * o_size_prod)
+        x = x.transpose(0, 2, 1)  # (G, N*o_size, iCg*k_size)
+
+        gy = xp.rollaxis(gy, 1)  # (oC, N, o_size...)
+        gy = gy.reshape(G, oCg, N * o_size_prod)
+
+        # (G, oCg, iCg*k_size) = (G, oCg, N*o_size) @ (G, N*o_size, iCg*k_size)
+        gW = convolution_2d._matmul(gy, x).astype(self.W_dtype, copy=False)
+        gW = gW.reshape(oC, iCg, *k_size)
+
         return gW,
 
     def _forward_xp_core(self, x, gy, xp):
@@ -369,8 +411,6 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
 
        l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
-    The N-dimensional convolution function is defined as follows.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
@@ -378,7 +418,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Weight variable of shape :math:`(c_O, c_I, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):

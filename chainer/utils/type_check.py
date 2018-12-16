@@ -504,7 +504,7 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
-def argname(in_types, names):
+def _argname(in_types, names):
     """Assigns user friendly names for the input types.
 
     This function also asserts that lenghts of in_types and names are the

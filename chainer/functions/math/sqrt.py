@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class Sqrt(function_node.FunctionNode):
@@ -14,8 +15,11 @@ class Sqrt(function_node.FunctionNode):
         return 'sqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.sqrt(x[0]),
 
     def forward(self, x):
         self.retain_outputs((0,))
@@ -35,7 +39,7 @@ class RsqrtGPU(function_node.FunctionNode):
         return 'rsqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_gpu(self, inputs):
@@ -83,7 +87,7 @@ def rsqrt(x):
     .. seealso:: :func:`~chainer.functions.sqrt`
     """
     xp = backend.get_array_module(x)
-    if xp is numpy:
+    if xp is numpy or xp is chainerx:
         return 1.0 / sqrt(x)
 
     # CuPy provides `rsqrt` which is faster than `1.0 / sqrt(x)`.

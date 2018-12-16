@@ -3,12 +3,14 @@ import weakref
 
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 # for backward compatibility
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
 from chainer import variable
+import chainerx
 
 
 def no_backprop_mode():
@@ -135,14 +137,34 @@ class FunctionAdapter(function_node.FunctionNode):
         return self._function.forward(inputs)
 
     def backward(self, target_input_indexes, grad_outputs):
-        in_data = tuple([input.data for input in self.inputs])
+        retained_inputs = self.get_retained_inputs()
+        inputs = [None] * len(self.inputs)
+        in_data = [None] * len(self.inputs)
+        for retained, i_in in six.moves.zip(
+                retained_inputs, self._input_indexes_to_retain):
+            inputs[i_in] = retained
+            in_data[i_in] = retained.array
+        in_data = tuple(in_data)
+
         grad_out_data = tuple([None if grad is None else grad.data
                                for grad in grad_outputs])
 
+        # Convert input and output gradients to numpy/cupy
+        xp = backend.get_array_module(*(in_data + grad_out_data))
+        if xp is chainerx:
+            in_data = backend.from_chainerx(in_data)
+            grad_out_data = backend.from_chainerx(grad_out_data)
+
+        # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
             gxs = self._function.backward(in_data, grad_out_data)
+
         for x, gx in six.moves.zip(self.inputs, gxs):
-            variable._check_grad_type(self, x, gx)
+            variable._check_grad_type(self, x, True, gx, False)
+
+        # Convert input gradients back to ChainerX
+        if xp is chainerx:
+            gxs = backend.to_chainerx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -153,7 +175,8 @@ class FunctionAdapter(function_node.FunctionNode):
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
-                g.node._old_style_grad_generator = self._function.label
+                if g.xp is not chainerx:
+                    g.node._old_style_grad_generator = self._function.label
             ret.append(g)
 
         return tuple(ret)
@@ -293,6 +316,8 @@ class Function(object):
         retained are set to ``None``.
 
         """
+        if self.node._is_chainerx:
+            return backend.from_chainerx(self.node.output_data)
         return self.node.output_data
 
     @property

@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -20,7 +21,7 @@ class PadSequence(function_node.FunctionNode):
         type_check.expect(in_types.size() > 0)
 
         for i, in_type in enumerate(in_types):
-            type_check.argname((in_type,), ('x{}'.format(i),))
+            type_check._argname((in_type,), ('x{}'.format(i),))
             type_check.expect(
                 in_type.ndim > 0,
                 in_type.shape[1:] == in_types[0].shape[1:],
@@ -55,9 +56,11 @@ class PadSequence(function_node.FunctionNode):
         else:
             # This code assumes that all arrays are c_contiguous
             ptr_shape = (Ellipsis,) + (None,) * xs[0].ndim
-            ptrs = cuda.cupy.array([x.data for x in xs], 'P')[ptr_shape]
-            lengths = cuda.cupy.array([len(x) for x in xs], 'i')[ptr_shape]
-            base = numpy.prod(xs[0].shape[1:], dtype='i')
+            ptrs = cuda.cupy.array(
+                [x.data for x in xs], numpy.uintp)[ptr_shape]
+            lengths = cuda.cupy.array(
+                [len(x) for x in xs], numpy.int32)[ptr_shape]
+            base = utils.size_of_shape(xs[0].shape[1:])
             cuda.elementwise(
                 'P ptr, int32 length, T pad, int32 base, int32 max_length',
                 'T y',

@@ -3,6 +3,7 @@ import collections
 import numpy
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 
@@ -20,11 +21,13 @@ def to_device(device, x):
     See also :func:`chainer.dataset.concat_examples`.
 
     Args:
-        device (int or None): Device ID to which an array is sent. If it is
-            negative value, an array is sent to CPU. If it is positive, an
-            array is sent to GPU with the given ID. If it is ``None``, an
-            array is left in the original device.
-        x (numpy.ndarray or cupy.ndarray): An array to send.
+        device (None or int or device specifier): A device to which an array
+            is sent. If it is a negative integer, an array is sent to CPU.
+            If it is a positive integer, an array is sent to GPU with the
+            given ID. If it is``None``, an array is left in the original
+            device. Also, any of device specifiers described at
+            :class:`~chainer.backend.DeviceId` is accepted.
+        x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
 
     Returns:
         Converted array.
@@ -32,12 +35,20 @@ def to_device(device, x):
     """
     if device is None:
         return x
-    elif device < 0:
-        return cuda.to_cpu(x)
+
+    # For backward compatibilities
+    if isinstance(device, six.integer_types):
+        if device < 0:
+            device = backend.CpuDevice()
+        else:
+            device = backend.get_device(cuda.Device(device))
     else:
-        return cuda.to_gpu(x, device)
+        device = backend.get_device(device)
+
+    return device.send(x)
 
 
+# TODO(hvy): Write unit tests where batch elements contain Python lists.
 def concat_examples(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
@@ -105,9 +116,9 @@ def concat_examples(batch, device=None, padding=None):
     Args:
         batch (list): A list of examples. This is typically given by a dataset
             iterator.
-        device (int): Device ID to which each array is sent. Negative value
-            indicates the host memory (CPU). If it is omitted, all arrays are
-            left in the original device.
+        device (device specifier): A device to which each array is sent.
+            If it is omitted, all arrays are left in their original devices.
+            See :meth:`~chainer.dataset.convert.to_device` for more details.
         padding: Scalar value for extra elements. If this is None (default),
             an error is raised on shape mismatch. Otherwise, an array of
             minimum dimensionalities that can accommodate all arrays is
@@ -152,16 +163,19 @@ def concat_examples(batch, device=None, padding=None):
 
 def _concat_arrays(arrays, padding):
     # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
-    # types such as int or float.
-    if not isinstance(arrays[0], numpy.ndarray) and\
-       not isinstance(arrays[0], cuda.ndarray):
+    # types such as int, float or list.
+    if not isinstance(arrays[0], chainer.get_array_types()):
         arrays = numpy.asarray(arrays)
-    if padding is not None:
-        return _concat_arrays_with_padding(arrays, padding)
 
-    xp = backend.get_array_module(arrays[0])
-    with cuda.get_device_from_array(arrays[0]):
-        return xp.concatenate([array[None] for array in arrays])
+    if padding is not None:
+        arr_concat = _concat_arrays_with_padding(arrays, padding)
+    else:
+        device = backend.get_device_from_array(arrays[0])
+        with chainer.using_device(device):
+            arr_concat = device.xp.concatenate(
+                [array[None] for array in arrays])
+
+    return arr_concat
 
 
 def _concat_arrays_with_padding(arrays, padding):
@@ -171,9 +185,9 @@ def _concat_arrays_with_padding(arrays, padding):
             numpy.maximum(shape, array.shape, shape)
     shape = tuple(numpy.insert(shape, 0, len(arrays)))
 
-    xp = backend.get_array_module(arrays[0])
-    with cuda.get_device_from_array(arrays[0]):
-        result = xp.full(shape, padding, dtype=arrays[0].dtype)
+    device = backend.get_device_from_array(arrays[0])
+    with chainer.using_device(device):
+        result = device.xp.full(shape, padding, dtype=arrays[0].dtype)
         for i in six.moves.range(len(arrays)):
             src = arrays[i]
             slices = tuple(slice(dim) for dim in src.shape)
@@ -204,14 +218,31 @@ class ConcatWithAsyncTransfer(object):
     Args:
         stream (cupy.cuda.Stream): CUDA stream. If ``None``, a stream is
             automatically created on the first call. Data transfer operation
-            is launched acynchrnously using the stream.
+            is launched asynchronously using the stream.
+        compute_stream(cupy.cuda.Stream): CUDA stream used for compute kernels.
+            If not ``None``, CUDA events are created/used to avoid global
+            synchronization and overlap execution of compute kernels and data
+            transfers as much as possible. If ``None``, global synchronization
+            is used instead.
     """
 
-    def __init__(self, stream=None):
+    def __init__(self, stream=None, compute_stream=None):
         self._stream = stream
+        self.compute_stream = compute_stream
+
         self._device = None
         self._conveyor = collections.defaultdict(
             lambda: Conveyor(self._device, self._stream))
+        if compute_stream is not None:
+            # * event1 prevents a CPU thread to update arrays that might be
+            #   still being used by GPU kernels.
+            # * event2 prevents a GPU kernel to read arrays that might be
+            #   still being transfered to GPU.
+            self._event1 = cuda.Event()
+            self._event2 = cuda.Event()
+            self._sync_get = False
+        else:
+            self._sync_get = True
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
@@ -239,6 +270,10 @@ class ConcatWithAsyncTransfer(object):
         if device is not self._device:
             raise ValueError('device is different')
 
+        if self.compute_stream is not None:
+            self._event1.synchronize()
+            self._event1.record(stream=self.compute_stream)
+
         with cuda.get_device_from_id(device):
             if isinstance(first_elem, tuple):
                 result = []
@@ -250,7 +285,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[i] for example in batch], padding[i]))
 
                 for i in six.moves.range(len(first_elem)):
-                    result.append(self._conveyor[i].get())
+                    result.append(self._conveyor[i].get(sync=self._sync_get))
+
+                if self.compute_stream is not None:
+                    self._event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self._event2)
 
                 return tuple(result)
 
@@ -264,7 +303,11 @@ class ConcatWithAsyncTransfer(object):
                         [example[key] for example in batch], padding[key]))
 
                 for key in first_elem:
-                    result[key] = self._conveyor[key].get()
+                    result[key] = self._conveyor[key].get(sync=self._sync_get)
+
+                if self.compute_stream is not None:
+                    self._event2.record(stream=self._stream)
+                    self.compute_stream.wait_event(self._event2)
 
                 return result
 
@@ -276,7 +319,7 @@ class Conveyor(object):
 
     """Interface to handle asynchronous data transfer using double buffering.
 
-    An asynchrous data transfer is initiated by :meth:`put`, and the result,
+    An asynchronous data transfer is initiated by :meth:`put`, and the result,
     the array transferred to a target device, is obtained by :meth:`get`.
     You should call :meth:`put` followed by :meth:`get`.
 
@@ -293,11 +336,12 @@ class Conveyor(object):
     def __init__(self, device=None, stream=None):
         self._device = device
         self._stream = stream
+
         self._array_set = [[None, None], [None, None]]
         self._ret_array = []
 
     def put(self, array):
-        """Initiates asynchrous transfer of an array to a target device.
+        """Initiates asynchronous transfer of an array to a target device.
 
         This method assumes that the input array is a numpy array and
         on host memory without page-locked. So, it first copys the data
@@ -345,19 +389,23 @@ class Conveyor(object):
         self._array_set.append([pin_array, cp_array])
         self._ret_array.append(cp_array)
 
-    def get(self):
+    def get(self, sync=True):
         """Returns the array of data transferred to a target device asynchronously.
 
-        This method first waits for completion of asynchrnous data trasfer
-        initiated by :meth:`put`, then returns the array on the target
-        device.
+        If sync is ``True``, the data of returned array is available in GPU
+        kernels. If sync is ``False``, the data of returned array might be
+        being transferred to GPU, so synchronization must be done carefully by
+        the calling function.
 
-        Global synchronizaton (deviceSynchronize()) is used to ensure
-        completion of asynchronous data transfer for safer reason.
-        If a caller function is correctly handling the synchronization,
-        local synchronization (self._stream.synchronize()) may be enough.
+        Args:
+            sync (bool): If ``True``, global synchronization is used to ensure
+                completion of asynchronous data transfer for safer reason.
+                If ``False``, it assumes a caller function is handling
+                synchronization correctly hence does not use global
+                synchronization.
         """
         if (self._device is not None and self._device >= 0 and
                 self._stream is not None):
-            cuda.cupy.cuda.runtime.deviceSynchronize()
+            if sync:
+                cuda.cupy.cuda.runtime.deviceSynchronize()
         return self._ret_array.pop(0)

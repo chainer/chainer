@@ -115,7 +115,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             value attached to the key ``'main'``.
         auto_new_epoch (bool): If ``True``,
             :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
-            automatically called when the ``is_new_poch`` attribute of the
+            automatically called when the ``is_new_epoch`` attribute of the
             main iterator is ``True``.
 
     """
@@ -171,6 +171,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         )
 
         if isinstance(devices, dict):
+            devices = devices.copy()
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
