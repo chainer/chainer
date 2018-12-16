@@ -25,7 +25,7 @@ class TestCRF1d(unittest.TestCase):
     def _crf1d(self, cost_data, xs_data, ys_data):
         z = numpy.zeros((self.batches[0],), numpy.float32)
         for b, length in enumerate(self.lengths):
-            for ys in itertools.product(range(self.n_labels), repeat=length):
+            for ys in itertools.product(range(self.n_label), repeat=length):
                 z[b] += numpy.exp(self._calc_score(b, ys))
 
         score = numpy.zeros((self.batches[0],), numpy.float32)
@@ -39,7 +39,7 @@ class TestCRF1d(unittest.TestCase):
     def setUp(self):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
-        self.n_labels = 3
+        self.n_label = 3
 
         self.lengths = [3, 3]
         self.batches = [2, 2, 2]
@@ -47,11 +47,11 @@ class TestCRF1d(unittest.TestCase):
         self.xs = [numpy.random.uniform(-1, 1, (b, 3)).astype(self.dtype)
                    for b in self.batches]
         self.ys = [numpy.random.randint(
-            0, self.n_labels, (b,)).astype(numpy.int32)
+            0, self.n_label, (b,)).astype(numpy.int32)
             for b in self.batches]
 
-        self.link = links.CRF1d(n_label=self.n_labels)
-        self.cost_shape = (self.n_labels, self.n_labels)
+        self.link = links.CRF1d(n_label=self.n_label)
+        self.cost_shape = (self.n_label, self.n_label)
 
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-3}
@@ -85,7 +85,7 @@ class TestCRF1d(unittest.TestCase):
 class TestInitialization(unittest.TestCase):
 
     def setUp(self):
-        self.n_labels = 3
+        self.n_label = 3
 
         if self.initializer is None:
             self.initial_cost = None
@@ -95,7 +95,7 @@ class TestInitialization(unittest.TestCase):
 
         with chainer.using_config('dtype', self.dtype):
             self.link = links.CRF1d(
-                self.n_labels,
+                self.n_label,
                 initial_cost=self.initial_cost)
 
     def check_param(self):
@@ -105,14 +105,14 @@ class TestInitialization(unittest.TestCase):
 
         if self.initializer is None:
             cost = numpy.empty(
-                (self.n_labels, self.n_labels), dtype=self.dtype)
+                (self.n_label, self.n_label), dtype=self.dtype)
             initial_cost = initializers.constant.Zero()
             initial_cost(cost)
             testing.assert_allclose(cost, link.cost.data)
 
         elif self.initializer == 'random':
             zeros = link.xp.zeros(
-                (self.n_labels, self.n_labels), dtype=self.dtype)
+                (self.n_label, self.n_label), dtype=self.dtype)
             assert not (zeros == link.cost.data).all()
 
     def test_param_cpu(self):
