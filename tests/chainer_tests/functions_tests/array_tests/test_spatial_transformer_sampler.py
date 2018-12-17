@@ -93,7 +93,6 @@ class TestSpatialTransformerSampler(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
 
