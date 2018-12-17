@@ -59,7 +59,7 @@ class Forget(function_node.FunctionNode):
         for out, grad_output in zip(outs, grad_outputs):
             out.grad_var = grad_output
         # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
-        chainer.variable._backprop_to_all(outs, False, None)
+        chainer.variable._backprop_to_all(list(outs), False, None)
 
         return tuple([inp.grad_var for inp in dummy_inputs])
 
