@@ -19,9 +19,9 @@ class ManualScheduleTrigger(object):
             either ``'iteration'`` or ``'epoch'``.
 
     Attributes:
-        finished (bool): Flag that triggered when this trigger will never
-            called again. The flag helps decision to call
-            `Extension.initialize` or not in `trainer`.
+        finished (bool): Flag that indicates whether or not this trigger will
+        fire in the future. This flag is used to determine if the extension
+        should be initialized after resume.
 
     """
 
