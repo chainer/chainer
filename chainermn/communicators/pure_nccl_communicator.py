@@ -224,6 +224,8 @@ class _ParamsData(object):
         for i, param in enumerate(params):
             v = getattr(param, attr_name)
             params_dptr[i] = v.data.ptr
+            if v.dtype not in [np.float16, np.float32]:
+                raise ValueError('dtype musb be float16 or float32.')
             params_dtype[i] = _get_nccl_type_id(v.dtype)
             params_size_csum[i+1] = params_size_csum[i] + v.size
         self.n_params = n_params
@@ -352,7 +354,7 @@ def _cupy_batched_unpack_params():
             if (dst_dtype == NCCL_FLOAT16) {
                 ((half*) (params_dptr[j]))[dst_idx] = (half) src[tid];
             }
-            else if (src_dtype == NCCL_FLOAT32) {
+            else if (dst_dtype == NCCL_FLOAT32) {
                 ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
             }
         }
@@ -361,7 +363,7 @@ def _cupy_batched_unpack_params():
             if (dst_dtype == NCCL_FLOAT16) {
                 ((half*) (params_dptr[j]))[dst_idx] = (half) src[tid];
             }
-            else if (src_dtype == NCCL_FLOAT32) {
+            else if (dst_dtype == NCCL_FLOAT32) {
                 ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
             }
        }
