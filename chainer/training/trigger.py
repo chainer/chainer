@@ -1,107 +1,146 @@
-import functools
+class Trigger(object):
+    """Base class for triggers.
 
+    Attributes:
+        cached_during_iteration (bool): If ``True``, the trigger caches the
+            evaluation and returns the same value within each iteration.
+            Otherwise it evaluates each time it is called. This attribute
+            should be set to ``True`` if a single trigger instance is used for
+            multiple purpose simultaneously (e.g. for multiple trainer
+            extensions). ``True`` by default.
 
-class _IterationAwareTriggerWrapper(object):
+    There are to ways to define a trigger: to inherit directly from
+    :class:`chainer.Trigger` and override :meth:`chainer.Trigger.evaluate`, or
+    to use :func:`chainer.trigger` decorator.
 
-    _prev_epoch_detail = None
-    _prev_result = None
+    .. code-block:: python
 
-    def __init__(self, original_trigger):
-        self._original_trigger = original_trigger
+        # (1) Inherit chainer.Trigger
+
+        class RandomTrigger(chainer.Trigger):
+            # A trigger that triggers randomly at 10% of all the iterations.
+            def evaluate(self, trainer):
+                return random.randint(0, 9) == 0
+
+        random_trigger = RandomTrigger()
+
+        # (2) Use a decorator
+
+        @chainer.trigger
+        def random_trigger(trainer):
+            # A trigger that triggers randomly at 10% of all the iterations.
+            return random.randint(0, 9) == 0
+
+    See also:
+        :func:`chainer.trigger`
+    """
+
+    cached_during_iteration = True
+
+    # None if the result is NOT cached during an iteration.
+    # Otherwise a tuple containing two elements:
+    # [0] epoch detail and [1] the evaluation (True/False).
+    __cache_during_iteration = None
+
+    def evaluate(self, trainer):
+        """Implements the trigger logic.
+
+        Args:
+            trainer (chainer.training.Trainer): Trainer instance.
+
+        Returns:
+            bool: The evaluation of the trigger.
+
+        This method is meant to be overridden to implement the logic of the
+        trigger. The user of the trigger should not call this method. Instead,
+        use the trigger as a callable::
+
+        .. code-block:: python
+
+            # No
+            if my_trigger.evaluate(trainer):
+                ...
+
+            # Yes
+            if my_trigger(trainer):
+                ...
+        """
+        raise NotImplementedError(
+            'Trigger implementation must override `evaluate` method.')
 
     def __call__(self, trainer):
-        prev_epoch_detail = self._prev_epoch_detail
+        """Evaluates the trigger.
+
+        Args:
+            trainer (chainer.training.Trainer): Trainer instance.
+
+        Returns:
+            bool: The evaluation of the trigger.
+        """
         epoch_detail = trainer.updater.epoch_detail
-        if prev_epoch_detail == epoch_detail:
-            result = self._prev_result
-        else:
-            result = self._original_trigger(trainer)
-            self._prev_result = result
-            self._prev_epoch_detail = epoch_detail
+
+        # If cached_during_iteration is True, check the cache and return its
+        # value if the epoch detail matches.
+        if self.cached_during_iteration:
+            cache = self.__cache_during_iteration
+            if cache is not None:
+                cached_epoch_detail, cached_result = cache
+                if epoch_detail == cached_epoch_detail:
+                    return cached_result
+
+        # Evaluate the trigger
+        result = self.evaluate(trainer)
+
+        # Cache as necessary
+        if self.cached_during_iteration:
+            cache = (epoch_detail, result)
+            self.__cache_during_iteration = cache
+
         return result
 
 
-def iteration_aware(_arg=None):
-    """iteration_aware()
-Utility to make a trigger aware of training iterations.
+def trigger(_arg=None, cached_during_iteration=True):
+    """trigger(cached_during_iteration=True)
+Decorator to make a trigger.
 
-    This utility makes the trigger cache its evaluation and return the
-    same value during each iteration. This enables a single trigger instance to
-    be used for multiple purposes, e.g. multiple trainer extensions.
+    Args:
+        cached_during_iteration (bool): Corresponding to
+            ``cached_during_iteration`` attribute of the
+            :class:`chainer.Trigger` class.
 
-    If the original trigger returns the same result within any given iteration,
-    you don't need to use this utility.
+    This decorator makes a trigger instance from a user-defined function.
+    The decorated function will turn into a :class:`chainer.Trigger` class
+    instance.
 
-    There are two ways to use this utility: `decorator-style` and
-    `function-style`.
+    See :class:`chainer.Trigger` for code examples.
 
-    Decorator-style notation is used to make a trigger class iteration-aware.
+    .. note::
+        This decorator was introduced in v6. Until then, Custom triggers can be
+        defined by bare functions without this decorator. However, as there
+        were no ``cached_during_iteration`` switch, using a single trigger
+        instance across multiple trainer extensions had caused inconsistent
+        trigger evaluation across them.
 
-    .. code-block:: python
-
-        # decorator-style
-
-        @iteration_aware()
-        class RandomIterationTrigger(object):
-            # An iteration-aware trigger that triggers randomly at 10% of
-            # all the iterations.
-            def __call__(self, trainer):
-                return random.randint(0, 9) == 0
-
-    Function-style notation is used to make a single trigger instance
-    iteration-aware. The original trigger can be any trigger callable.
-
-    .. code-block:: python
-
-        # function-style
-
-        def random_trigger(trainer):
-            # Original non-iteration-aware trigger.
-            return random.randint(0, 9) == 0
-
-        # Make the trigger iteration-aware.
-        trigger = iteration_aware(random_trigger)
-
+    See also:
+        :class:`chainer.Trigger`
     """
 
-    def wrap(cls):
-        orig_call = cls.__call__
+    def wrap(func):
 
-        @functools.wraps(orig_call)
-        def wrapped_call(self, trainer):
-            prev_epoch_detail = getattr(self, '__prev_epoch_detail', None)
-            epoch_detail = trainer.updater.epoch_detail
-            if prev_epoch_detail == epoch_detail:
-                result = getattr(self, '__prev_result')
-            else:
-                result = orig_call(self, trainer)
-                self.__prev_result = result
-                self.__prev_epoch_detail = epoch_detail
-            return result
+        cdi = cached_during_iteration
 
-        cls.__call__ = wrapped_call
-        return cls
+        class _Trigger(Trigger):
+            cached_during_iteration = cdi
+
+            def evaluate(self, trainer):
+                return func(trainer)
+
+        return _Trigger()
 
     if _arg is not None:
-        if isinstance(_arg, type):
-            # Decorator-style without parentheses, like
-            #
-            # @iteration_aware
-            # class Trigger: ...
-            cls = _arg
-            return wrap(cls)
+        # without parentheses (@trigger)
+        assert callable(_arg)
+        return wrap(_arg)
 
-        if callable(_arg):
-            # Function-style, like
-            #
-            # trigger = iteration_aware(original_trigger)
-            orig_trigger = _arg
-            return _IterationAwareTriggerWrapper(orig_trigger)
-
-        raise TypeError('Original trigger must be a callable.')
-
-    # Decorator-style with parentheses, like
-    #
-    # @iteration_aware()
-    # class Trigger: ...
+    # with parentheses (@trigger())
     return wrap

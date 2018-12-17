@@ -1,12 +1,16 @@
 import unittest
 
+import numpy
+
 from chainer import testing
 from chainer.training import trigger as trigger_module
 
 
-class OnceInThreeTrigger(object):
+class OnceInThreeTriggerImpl(object):
     # A trigger to trigger once in three times
     # i.e. False, False, True, False, False, True, ...
+
+    # (this class is not a Trigger instance)
 
     def __init__(self, trigger_history):
         self.n = 0
@@ -19,33 +23,43 @@ class OnceInThreeTrigger(object):
         return result
 
 
-class TestIterationAware(unittest.TestCase):
+@testing.parameterize(*testing.product({
+    'cached_during_iteration': [True, False],
+    'n_extensions': [1, 3],
+}))
+class TestCacheDuringIteration(unittest.TestCase):
 
     def create_trigger_with_decorator(self, trigger_history):
-        # Make iteration-aware trigger by decorator
-        @trigger_module.iteration_aware()
-        class DecoratedTrigger(OnceInThreeTrigger):
-            pass
+        # Make trigger by decorator
 
-        return DecoratedTrigger(trigger_history)
+        impl = OnceInThreeTriggerImpl(trigger_history)
 
-    def create_trigger_with_decorator_without_paren(self, trigger_history):
-        # Make iteration-aware trigger by decorator without parentheses `()`
-        @trigger_module.iteration_aware
-        class DecoratedTrigger(OnceInThreeTrigger):
-            pass
+        @trigger_module.trigger(
+            cached_during_iteration=self.cached_during_iteration)
+        def decorated_trigger(trainer):
+            return impl(trainer)
 
-        return DecoratedTrigger(trigger_history)
+        return decorated_trigger
 
-    def create_trigger_with_function(self, trigger_history):
-        # Make iteration-aware trigger by function notation
-        return trigger_module.iteration_aware(
-            OnceInThreeTrigger(trigger_history))
+    def create_trigger_with_class(self, trigger_history):
+        # Make trigger by inheritance
 
-    def check_iteration_aware(self, trigger, n_extensions, trigger_history):
+        impl = OnceInThreeTriggerImpl(trigger_history)
+
+        class Trigger(trigger_module.Trigger):
+            cached_during_iteration = self.cached_during_iteration
+
+            def evaluate(self, trainer):
+                return impl(trainer)
+
+        return Trigger()
+
+    def check_cached_during_iteration(
+            self, trigger, trigger_history):
         # Register n extensions with a single trigger instance
         # and check to see if the trigger is NOT called for each extension.
 
+        n_extensions = self.n_extensions
         max_iters = 10
         iter_per_epoch = 5
 
@@ -72,39 +86,34 @@ class TestIterationAware(unittest.TestCase):
         trainer.run()
 
         # Check
-        for i in range(n_extensions):
-            assert extension_epoch_details[i] == [0.6, 1.2, 1.8]
-        assert len(trigger_history) == max_iters
-        assert trigger_history == [
-            False, False, True, False, False, True, False, False, True, False]
+        if self.cached_during_iteration:
+            expected_trigger_history = [
+                i % 3 == 2 for i in range(max_iters)]
+            expected_extension_epoch_details = (
+                [[0.6, 1.2, 1.8]] * n_extensions)
+        else:
+            expected_trigger_history = [
+                i % 3 == 2 for i in range(n_extensions * max_iters)]
+            t = numpy.array(expected_trigger_history)
+            t = t.reshape(-1, n_extensions).T
+            expected_extension_epoch_details = [
+                [float(j + 1) / iter_per_epoch
+                 for j, value in enumerate(t[i])
+                 if value]
+                for i in range(n_extensions)]
 
-    def test_iteration_aware_decorator(self):
-        history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_decorator(history), 1, history)
+        assert trigger_history == expected_trigger_history
+        assert extension_epoch_details == expected_extension_epoch_details
 
+    def test_with_decorator(self):
         history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_decorator(history), 3, history)
+        self.check_cached_during_iteration(
+            self.create_trigger_with_decorator(history), history)
 
+    def test_with_class(self):
         history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_decorator_without_paren(history),
-            1, history)
-
-        history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_decorator_without_paren(history),
-            3, history)
-
-    def test_iteration_aware_function(self):
-        history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_function(history), 1, history)
-
-        history = []
-        self.check_iteration_aware(
-            self.create_trigger_with_function(history), 3, history)
+        self.check_cached_during_iteration(
+            self.create_trigger_with_class(history), history)
 
 
 testing.run_module(__name__, __file__)

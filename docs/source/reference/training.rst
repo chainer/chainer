@@ -152,7 +152,8 @@ It is mainly used to determine when to call an extension. It is also used to det
    :nosignatures:
 
    chainer.training.get_trigger
-   chainer.training.trigger.iteration_aware
+   chainer.Trigger
+   chainer.trigger
    chainer.training.triggers.BestValueTrigger
    chainer.training.triggers.EarlyStoppingTrigger
    chainer.training.triggers.IntervalTrigger

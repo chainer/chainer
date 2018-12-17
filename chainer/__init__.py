@@ -65,6 +65,8 @@ from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.training.trigger import trigger  # NOQA
+from chainer.training.trigger import Trigger  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
