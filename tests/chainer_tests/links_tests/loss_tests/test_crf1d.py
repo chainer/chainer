@@ -17,7 +17,7 @@ from chainer.testing import attr
 }))
 class TestCRF1d(unittest.TestCase):
     def _calc_score(self, batch, ys):
-        cost = self.link.cost.data
+        cost = self.link.cost.array
         return sum(x[batch, y] for x, y in zip(self.xs, ys)) + \
             sum(cost[y1, y2] for y1, y2 in zip(ys[:-1], ys[1:]))
 
@@ -62,7 +62,7 @@ class TestCRF1d(unittest.TestCase):
 
     def check_forward(self, x_data, t_data):
         x = self.link(x_data, t_data)
-        t = self._crf1d(self.link.cost.data, x_data, t_data)
+        t = self._crf1d(self.link.cost.array, x_data, t_data)
         testing.assert_allclose(x.data, t,
                                 **self.check_forward_options)
 
