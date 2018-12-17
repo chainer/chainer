@@ -9,7 +9,6 @@ from chainer import initializers
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
@@ -67,12 +66,10 @@ class TestCRF1d(unittest.TestCase):
         testing.assert_allclose(x.data, t,
                                 **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.xs, self.ys)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.xs), cuda.to_gpu(self.ys))
@@ -91,12 +88,14 @@ class TestInitialization(unittest.TestCase):
             self.initial_cost = None
 
         elif self.initializer == 'random':
-            self.initial_cost = initializers.GlorotUniform()
+            initializer = initializers.GlorotUniform()
+            self.initial_cost = numpy.empty((self.n_label, self.n_label),
+                                            dtype=self.dtype)
+            initializer(self.initial_cost)
 
         with chainer.using_config('dtype', self.dtype):
-            self.link = links.CRF1d(
-                self.n_label,
-                initial_cost=self.initial_cost)
+            self.link = links.CRF1d(self.n_label,
+                                    initial_cost=self.initial_cost)
 
     def check_param(self):
         link = self.link
@@ -108,12 +107,11 @@ class TestInitialization(unittest.TestCase):
                 (self.n_label, self.n_label), dtype=self.dtype)
             initial_cost = initializers.constant.Zero()
             initial_cost(cost)
-            testing.assert_allclose(cost, link.cost.data)
+            testing.assert_allclose(cost, link.cost.data, atol=0, rtol=0)
 
         elif self.initializer == 'random':
-            zeros = link.xp.zeros(
-                (self.n_label, self.n_label), dtype=self.dtype)
-            assert not (zeros == link.cost.data).all()
+            testing.assert_allclose(link.cost.data, self.initial_cost,
+                                    atol=0, rtol=0)
 
     def test_param_cpu(self):
         self.check_param()
