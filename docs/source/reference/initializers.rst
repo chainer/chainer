@@ -19,10 +19,6 @@ A weight initializer can be any of the following objects.
   Unless explicitly specified, it is :class:`~chainer.initializers.LeCunNormal`
   with scale value 1.
 
-An `initializer` has an intrinsic attribute of `~numpy.dtype`, which can be set with the ``dtype`` argument when
-the `initializer` object is created. This sets `initializers.Initializer.dtype`, and all future initializer calls
-will throw an error if the `~numpy.dtype` of the given array is different.
-
 If an `initializer` object has the `~numpy.dtype` attribute, the `initializer` can assume that the array to feed the data into has that `~numpy.dtype`. If the required dtype, depending on the context where the `initializer` is used, does not match the `~numpy.dtype` attribute, Chainer will report an error.
 
 Base class
