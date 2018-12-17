@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 def _skip_if(cond, reason):
@@ -124,6 +125,69 @@ class TestLogSumExp(unittest.TestCase):
     def test_forward_negative_multi_axis_invert_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=(-2, 0))
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        for i in range(self.x.ndim):
+            self.check_forward(chainerx.array(self.x), axis=i)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_negative_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x), axis=-1)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x), axis=(0, 1))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_multi_axis_invert_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x), axis=(1, 0))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_negative_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x), axis=(0, -1))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_forward_negative_multi_axis_invert_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x), axis=(-2, 0))
+
     def check_backward(self, x_data, y_grad, axis=None):
         gradient_check.check_backward(
             lambda x: functions.logsumexp(x, axis), x_data, y_grad,
@@ -204,6 +268,71 @@ class TestLogSumExp(unittest.TestCase):
     def test_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_backward_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        for i in range(self.x.ndim):
+            gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
+            self.check_backward(
+                chainerx.array(self.x), chainerx.array(gy), axis=i)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_backward_negative_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        for i in range(self.x.ndim):
+            gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
+            self.check_backward(
+                chainerx.array(self.x), chainerx.array(gy), axis=-1)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_backward_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(0, 1))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_backward_multi_axis_invert_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(1, 0))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_backward_negative_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(0, -1))
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad, axis=None):
         gradient_check.check_double_backward(
@@ -298,6 +427,103 @@ class TestLogSumExp(unittest.TestCase):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(gy), cuda.to_gpu(self.ggx),
+            axis=(-2, 0))
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        for i in range(self.x.ndim):
+            gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
+            self.check_double_backward(
+                chainerx.array(self.x),
+                chainerx.array(gy),
+                chainerx.array(self.ggx),
+                axis=i)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_negative_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        for i in range(self.x.ndim):
+            gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
+            self.check_double_backward(
+                chainerx.array(self.x),
+                chainerx.array(gy),
+                chainerx.array(self.ggx),
+                axis=-1)
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
+            axis=(0, 1))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_multi_axis_invert_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
+            axis=(1, 0))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_negative_multi_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
+            axis=(0, -1))
+
+    @attr.chainerx
+    @_skip_if_0dim
+    def test_double_backward_negative_multi_axis_invert_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
             axis=(-2, 0))
 
     def test_invalid_axis_type(self):

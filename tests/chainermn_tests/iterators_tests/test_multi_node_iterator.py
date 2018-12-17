@@ -168,15 +168,16 @@ class TestMultiNodeIterator(unittest.TestCase):
             self.communicator,
             rank_master=rank_master)
 
-        order = iterator._order
-        new_order = np.roll(order, 1)
         target = dict()
         iterator.serialize(DummySerializer(target))
+        order = target['order']
+        new_order = np.roll(order, 1)
         target['order'] = new_order
         iterator.serialize(DummyDeserializer(target))
 
         if self.communicator.rank == rank_master:
-            self.assertEqual(iterator._order.tolist(), new_order.tolist())
+            self.assertEqual(iterator._state.order.tolist(),
+                             new_order.tolist())
         else:
             self.assertEqual(iterator._order.tolist(), order.tolist())
 

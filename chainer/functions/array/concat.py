@@ -2,10 +2,11 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Concat(function_node.FunctionNode):
@@ -47,8 +48,11 @@ class Concat(function_node.FunctionNode):
             return self._forward_ideep(xs)
 
         # Generic implementation
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
+
+    def forward_chainerx(self, xs):
+        return chainerx.concatenate(xs, self.axis),
 
     def _forward_ideep(self, xs):
         xs_mdarray = intel64.ideep.mdarrayVector()
@@ -96,7 +100,7 @@ def concat(xs, axis=1):
                [1],
                [2]])
         >>> z = F.concat((x, y), axis=1)
-        >>> z.data
+        >>> z.array
         array([[ 0,  1,  2,  3,  0],
                [ 4,  5,  6,  7,  1],
                [ 8,  9, 10, 11,  2]])

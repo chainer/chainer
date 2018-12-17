@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -9,7 +9,7 @@ class AbsoluteError(function_node.FunctionNode):
     """Element-wise absolute error function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check._argname(in_types, ('x0', 'x1'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -23,7 +23,7 @@ class AbsoluteError(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        gx = gy * cuda.get_array_module(gy).sign(self.diff)
+        gx = gy * backend.get_array_module(gy).sign(self.diff)
         return gx, -gx
 
 

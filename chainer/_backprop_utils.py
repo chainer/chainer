@@ -78,13 +78,16 @@ def backprop_step(
     :func:`chainer.grad`.
 
     Args:
-        target_input_indexes (tuple of int): Sorted indices of the input
-            variables w.r.t. which the gradients are required. It is
-            guaranteed that this tuple contains at least one element.
+        func (~chainer.FunctionNode): The function for which gradients are
+            accumulated.
+        target_input_indexes (tuple of int): Sorted indices of the inputs
+            that require gradients. It is guaranteed that this tuple contains
+            at least one element.
         grad_outputs (tuple of Variable): Gradients w.r.t. the output
             variables. If the gradient w.r.t. an output variable is not
             given, the corresponding element is ``None``.
-        grad_inputs (dict): References of radients w.r.t. the input variables.
+        grad_inputs (dict): References of the gradients w.r.t. the input
+            variables.
 
     """
     is_debug = chainer.is_debug()
@@ -166,7 +169,7 @@ def backprop_step(
                     yield gx_elem
 
         for gx in iter_gxs(grad_inputs.values()):
-            if chainer.backends._contains_nan(gx.data):
+            if chainer.backend._contains_nan(gx.data):
                 raise RuntimeError(
                     'NaN is detected on backward computation of {}'
                     .format(func.label))

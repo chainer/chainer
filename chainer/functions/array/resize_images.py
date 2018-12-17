@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -12,17 +13,17 @@ class ResizeImages(function_node.FunctionNode):
         self.out_W = output_shape[1]
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
-            x_type.dtype.char == 'f',
+            x_type.dtype == numpy.float32,
             x_type.ndim == 4
         )
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         B, C, H, W = x.shape
 
@@ -46,10 +47,10 @@ class ResizeImages(function_node.FunctionNode):
         w2 = (u - u0) * (v1 - v)
         w3 = (u1 - u) * (v - v0)
         w4 = (u - u0) * (v - v0)
-        w1 = w1.astype(x.dtype)
-        w2 = w2.astype(x.dtype)
-        w3 = w3.astype(x.dtype)
-        w4 = w4.astype(x.dtype)
+        w1 = w1.astype(x.dtype, copy=False)
+        w2 = w2.astype(x.dtype, copy=False)
+        w3 = w3.astype(x.dtype, copy=False)
+        w4 = w4.astype(x.dtype, copy=False)
 
         y = (w1[None, None, :] * x[:, :, v0, u0] +
              w2[None, None, :] * x[:, :, v0, u1] +
@@ -71,16 +72,16 @@ class ResizeImagesGrad(function_node.FunctionNode):
         self.input_shape = input_shape
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
 
         gy_type = in_types[0]
         type_check.expect(
-            gy_type.dtype.char == 'f',
+            gy_type.dtype == numpy.float32,
             gy_type.ndim == 4
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         gy, = inputs
 
         B, C, H, W = self.input_shape
@@ -105,10 +106,10 @@ class ResizeImagesGrad(function_node.FunctionNode):
         wu1 = u1 - u
         wv0 = v - v0
         wv1 = v1 - v
-        wu0 = wu0.astype(gy.dtype)
-        wu1 = wu1.astype(gy.dtype)
-        wv0 = wv0.astype(gy.dtype)
-        wv1 = wv1.astype(gy.dtype)
+        wu0 = wu0.astype(gy.dtype, copy=False)
+        wu1 = wu1.astype(gy.dtype, copy=False)
+        wv0 = wv0.astype(gy.dtype, copy=False)
+        wv1 = wv1.astype(gy.dtype, copy=False)
 
         # --- gx
         if xp is numpy:

@@ -1,11 +1,13 @@
 import functools
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer.testing import array
 from chainer.testing import attr
-import numpy
+from chainer import utils
 
 
 def skip_not_in_test_target(test_target):
@@ -31,6 +33,7 @@ class distribution_unittest(unittest.TestCase):
             self.event_shape = ()
         self.continuous = True
         self.test_targets = set()
+        self.options = {}
 
         self.setUp_configure()
 
@@ -52,19 +55,22 @@ class distribution_unittest(unittest.TestCase):
 
     @property
     def cpu_dist(self):
-        return self.dist(**self.params)
+        params = self.params
+        params.update(self.options)
+        return self.dist(**params)
 
     @property
     def gpu_dist(self):
         if self.is_variable:
-            self.gpu_params = {k: cuda.to_gpu(v.data)
-                               for k, v in self.params.items()}
-            self.gpu_params = {k: chainer.Variable(v)
-                               for k, v in self.gpu_params.items()}
+            gpu_params = {k: cuda.to_gpu(v.data)
+                          for k, v in self.params.items()}
+            gpu_params = {k: chainer.Variable(v)
+                          for k, v in gpu_params.items()}
         else:
-            self.gpu_params = {k: cuda.to_gpu(v)
-                               for k, v in self.params.items()}
-        return self.dist(**self.gpu_params)
+            gpu_params = {k: cuda.to_gpu(v)
+                          for k, v in self.params.items()}
+        gpu_params.update(self.options)
+        return self.dist(**gpu_params)
 
     @skip_not_in_test_target('batch_shape')
     def test_batch_shape_cpu(self):
@@ -177,7 +183,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             onebyone_smp = smp.reshape(*[
-                int(numpy.prod(sh))
+                utils.size_of_shape(sh)
                 for sh in [self.sample_shape, self.shape, self.event_shape]])
             onebyone_smp = numpy.swapaxes(onebyone_smp, 0, 1)
             onebyone_smp = onebyone_smp.reshape((-1,) + self.sample_shape
@@ -187,7 +193,8 @@ class distribution_unittest(unittest.TestCase):
                     self.scipy_onebyone_params_iter(), onebyone_smp):
                 log_prob2.append(scipy_prob(one_smp, **one_params))
             log_prob2 = numpy.vstack(log_prob2)
-            log_prob2 = log_prob2.reshape(int(numpy.prod(self.shape)), -1).T
+            log_prob2 = log_prob2.reshape(
+                utils.size_of_shape(self.shape), -1).T
             log_prob2 = log_prob2.reshape(self.sample_shape + self.shape)
         else:
             log_prob2 = scipy_prob(smp, **self.scipy_params)
@@ -281,7 +288,7 @@ class distribution_unittest(unittest.TestCase):
                 smp2.append(self.scipy_dist.rvs(
                     size=(100000,)+self.sample_shape, **one_params))
             smp2 = numpy.vstack(smp2)
-            smp2 = smp2.reshape((int(numpy.prod(self.shape)), 100000)
+            smp2 = smp2.reshape((utils.size_of_shape(self.shape), 100000)
                                 + self.sample_shape
                                 + self.cpu_dist.event_shape)
             smp2 = numpy.rollaxis(

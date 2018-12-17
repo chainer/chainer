@@ -2,11 +2,13 @@ import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 def _mat_ptrs(a):
@@ -44,7 +46,7 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         a = a.swapaxes(-1, -2)
     if transb and b.ndim != 1:
         b = b.swapaxes(-1, -2)
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
 
     if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)
@@ -77,7 +79,7 @@ class MatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
@@ -103,6 +105,22 @@ class MatMul(function_node.FunctionNode):
             type_check.expect(a_type.shape[a_idx] == b_type.shape[b_idx])
             type_check.expect_broadcast_shapes(
                 a_type.shape[:-2], b_type.shape[:-2])
+
+    def forward_chainerx(self, x):
+        a, b = x
+        # TODO(sonots): Support transa and transb in ChainerX
+        if self.transa or self.transb or self.transc:
+            return chainer.Fallback
+        # TODO(sonots): Support dtype promotion in ChainerX
+        if a.dtype != b.dtype:
+            return chainer.Fallback
+        # TODO(sonots): Support ndim > 2 in ChainerX
+        if a.ndim != 2 or b.ndim != 2:
+            return chainer.Fallback
+        # TODO(niboshi): Support it
+        if self.dtype is not None and self.dtype != a.dtype:
+            return chainer.Fallback
+        return chainerx.dot(a, b),
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -192,7 +210,7 @@ def matmul(a, b, transa=False, transb=False):
 
         >>> a = np.array([[1, 0], [0, 1]], np.float32)
         >>> b = np.array([[4, 1], [2, 2]], np.float32)
-        >>> F.matmul(a, b).data
+        >>> F.matmul(a, b).array
         array([[4., 1.],
                [2., 2.]], dtype=float32)
 
@@ -220,7 +238,7 @@ class BatchMatMul(function_node.FunctionNode):
         self.transb = transb
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(

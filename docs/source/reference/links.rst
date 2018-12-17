@@ -23,9 +23,13 @@ Learnable connections
    chainer.links.Bias
    chainer.links.Bilinear
    chainer.links.ChildSumTreeLSTM
+   chainer.links.Convolution1D
    chainer.links.Convolution2D
+   chainer.links.Convolution3D
    chainer.links.ConvolutionND
+   chainer.links.Deconvolution1D
    chainer.links.Deconvolution2D
+   chainer.links.Deconvolution3D
    chainer.links.DeconvolutionND
    chainer.links.DeformableConvolution2D
    chainer.links.DepthwiseConvolution2D
@@ -122,6 +126,13 @@ VGG Networks
    chainer.links.VGG19Layers
    chainer.links.model.vision.vgg.prepare
 
+.. note::
+   ChainerCV contains implementation of VGG networks as well (i.e.,
+   :class:`chainercv.links.model.vgg.VGG16`). Unlike the Chainer's
+   implementation, the ChainerCV's implementation
+   assumes the color channel of the input image to be ordered in RGB instead
+   of BGR.
+
 GoogLeNet
 ~~~~~~~~~
 
@@ -143,6 +154,49 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+.. note::
+   ChainerCV contains implementation of ResNet as well (i.e.,
+   :class:`chainercv.links.model.resnet.ResNet50`,
+   :class:`chainercv.links.model.resnet.ResNet101`,
+   :class:`chainercv.links.model.resnet.ResNet152`).
+   Unlike the Chainer's
+   implementation, the ChainerCV's implementation
+   assumes the color channel of the input image to be ordered in RGB instead
+   of BGR.
+
+
+ChainerCV models
+~~~~~~~~~~~~~~~~
+
+.. note::
+   ChainerCV supports implementations of links that are useful for computer
+   vision problems, such as object detection, semantic segmentation, and
+   instance segmentation.
+   The documentation can be found in :mod:`chainercv.links`.
+   Here is a subset of models with pre-trained weights supported by ChainerCV:
+
+   * Detection
+      * :class:`chainercv.links.model.faster_rcnn.FasterRCNNVGG16`
+      * :class:`chainercv.links.model.ssd.SSD300`
+      * :class:`chainercv.links.model.ssd.SSD512`
+      * :class:`chainercv.links.model.yolo.YOLOv2`
+      * :class:`chainercv.links.model.yolo.YOLOv3`
+   * Semantic Segmentation
+      * :class:`chainercv.links.model.segnet.SegNetBasic`
+      * :class:`chainercv.experimental.links.model.pspnet.PSPNetResNet101`
+   * Instance Segmentation
+      * :class:`chainercv.experimental.links.model.fcis.FCISResNet101`
+   * Classification
+      * :class:`chainercv.links.model.resnet.ResNet101`
+      * :class:`chainercv.links.model.resnet.ResNet152`
+      * :class:`chainercv.links.model.resnet.ResNet50`
+      * :class:`chainercv.links.model.senet.SEResNet101`
+      * :class:`chainercv.links.model.senet.SEResNet152`
+      * :class:`chainercv.links.model.senet.SEResNet50`
+      * :class:`chainercv.links.model.senet.SEResNeXt101`
+      * :class:`chainercv.links.model.senet.SEResNeXt50`
+      * :class:`chainercv.links.model.vgg.VGG16`
 
 Compatibility with other frameworks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

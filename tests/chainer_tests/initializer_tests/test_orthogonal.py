@@ -1,5 +1,6 @@
 import unittest
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
@@ -36,7 +37,7 @@ class OrthogonalBase(unittest.TestCase):
     def check_shaped_initializer(self, xp):
         initializer = initializers.Orthogonal(scale=2.0, dtype=self.dtype)
         w = initializers.generate_array(initializer, self.shape, xp)
-        self.assertIs(cuda.get_array_module(w), xp)
+        self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 

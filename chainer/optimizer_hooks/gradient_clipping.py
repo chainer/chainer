@@ -2,6 +2,7 @@ import collections
 
 import six
 
+from chainer import backend
 from chainer import cuda
 
 
@@ -51,7 +52,7 @@ class GradientClipping(object):
     def __call__(self, opt):
         sqnorm = _sum_sqnorm([p.grad for p in opt.target.params(False)])
         with cuda.get_device_from_array(sqnorm) as dev:
-            norm = cuda.get_array_module(sqnorm).sqrt(sqnorm)
+            norm = backend.get_array_module(sqnorm).sqrt(sqnorm)
             rate = self.threshold / norm
             # When no clipping is needed, skip the clipping on CPU and
             # multiply 1.0 on the device otherwise.

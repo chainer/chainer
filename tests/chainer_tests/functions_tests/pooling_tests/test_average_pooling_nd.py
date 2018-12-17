@@ -6,6 +6,7 @@ import operator
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -94,6 +95,21 @@ class TestAveragePoolingND(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
+    @attr.chainerx
+    def test_forward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(backend.to_chainerx(self.x), 'never')
+
+    @attr.chainerx
+    @attr.gpu
+    def test_forward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(backend.to_chainerx(cuda.to_gpu(self.x)), 'never')
+
     def check_forward_consistency_regression(self, x_data, use_cudnn='always'):
         # Regression test to average_pooling_2d.
 
@@ -154,6 +170,26 @@ class TestAveragePoolingND(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
+    @attr.chainerx
+    def test_backward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.gy), 'never')
+
+    @attr.chainerx
+    @attr.gpu
+    def test_backward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(a):
+            return backend.to_chainerx(cuda.to_gpu(a))
+
+        self.check_backward(conv(self.x), conv(self.gy), 'never')
+
     def check_backward_consistency_regression(self, x_data, gy_data,
                                               use_cudnn='always'):
         # Regression test to two-dimensional average pooling layer.
@@ -164,7 +200,7 @@ class TestAveragePoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional average pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
@@ -234,6 +270,30 @@ class TestAveragePoolingND(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
 
+    @attr.chainerx
+    @condition.retry(10)
+    def test_double_backward_chainerx_native(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_double_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.gy),
+            backend.to_chainerx(self.ggx), 'never')
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_chainerx_cuda(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        def conv(a):
+            return backend.to_chainerx(cuda.to_gpu(a))
+
+        self.check_double_backward(
+            conv(self.x), conv(self.gy), conv(self.ggx), 'never')
+
 
 @testing.parameterize(*testing.product({
     'dims': [(4, 3, 2), (3, 2), (2,)],
@@ -264,7 +324,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto') and
@@ -276,9 +336,43 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
+
+
+class TestAveragePoolingNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        x_shape = (2, 3) + (3,) * ndim
+        dtype = numpy.float32
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        ksize = (2,) * ndim
+
+        return x, ksize
+
+    def test_average_pooling_1d(self):
+        (x, ksize) = self._get_data(1)
+        testing.assert_allclose(
+            functions.average_pooling_nd(x, ksize).data,
+            functions.average_pooling_1d(x, ksize).data)
+
+    def test_average_pooling_1d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.average_pooling_1d(x, ksize)
+
+    def test_average_pooling_3d(self):
+        (x, ksize) = self._get_data(3)
+        testing.assert_allclose(
+            functions.average_pooling_nd(x, ksize).data,
+            functions.average_pooling_3d(x, ksize).data)
+
+    def test_average_pooling_3d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.average_pooling_3d(x, ksize)
 
 
 testing.run_module(__name__, __file__)

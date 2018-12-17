@@ -1,7 +1,7 @@
 from six import moves
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 from chainer import variable
@@ -47,7 +47,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[1], W.shape[2]
         feature_dim = W.shape[3] * W.shape[4] * W.shape[5]
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         output = xp.empty((x.shape[0], W.shape[0], output_row, output_col,),
                           dtype=x.dtype)
         for i in moves.range(output_row):
@@ -74,7 +74,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         W = Wvar.data
         gyvar, = grad_outputs
         gy = gyvar.data
-        xp = cuda.get_array_module(x, W)
+        xp = backend.get_array_module(x, W)
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[1], W.shape[2]
         ret = []

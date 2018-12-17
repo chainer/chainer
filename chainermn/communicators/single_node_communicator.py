@@ -41,9 +41,9 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 
-        params = [param for _, param in sorted(model.namedparams())]
+        params = _memory_utility.extract_params_set_data(model)
         itemsize = 4
-        n_elems_total = sum(param.grad.size for param in params)
+        n_elems_total = sum(param.data.size for param in params)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
 

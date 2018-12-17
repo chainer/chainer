@@ -1,6 +1,12 @@
 from __future__ import absolute_import
 
+import sys
+
+import numpy
+
 import chainer
+from chainer import _backend
+from chainer.backends import _cpu
 from chainer.configuration import config
 
 
@@ -10,12 +16,62 @@ _error = None
 try:
     import ideep4py as ideep  # NOQA
     from ideep4py import mdarray  # NOQA
-    _ideep_version = 0
+    _ideep_version = 2 if hasattr(ideep, '__version__') else 1
 except ImportError as e:
     _error = e
+    _ideep_version = None
 
     class mdarray(object):
         pass  # for type testing
+
+
+class Intel64Device(_backend.Device):
+
+    def __init__(self):
+        check_ideep_available()
+        super(Intel64Device, self).__init__()
+
+    @property
+    def xp(self):
+        return numpy
+
+    @staticmethod
+    def from_array(array):
+        if isinstance(array, mdarray):
+            return Intel64Device()
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, Intel64Device)
+
+    def __repr__(self):
+        return '<{}>'.format(self.__class__.__name__)
+
+    def send_array(self, array):
+        if isinstance(array, ideep.mdarray):
+            return array
+
+        if not isinstance(array, numpy.ndarray):
+            array = _cpu._to_cpu(array)  # to numpy.ndarray
+
+        if (isinstance(array, numpy.ndarray) and
+                array.ndim in (1, 2, 4) and
+                0 not in array.shape):
+            # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+            # Currently iDeep only supports (1, 2, 4)-dim arrays.
+            # Note that array returned from `ideep.array` may not be an
+            # iDeep mdarray, e.g., when the dtype is not float32.
+            array = ideep.array(array, itype=ideep.wgt_array)
+        return array
+
+
+def _get_device(device_spec):
+    # Called from chainer.backend.get_device
+    if not is_ideep_available():
+        return None
+    if device_spec is sys.modules[__name__]:
+        return Intel64Device()
+    return None
 
 
 # ------------------------------------------------------------------------------
@@ -31,10 +87,9 @@ def is_ideep_available():
     """Returns if iDeep is available.
 
     Returns:
-        bool: ``True`` if iDeep is installed.
+        bool: ``True`` if the supported version of iDeep is installed.
     """
-
-    return _ideep_version is not None
+    return _ideep_version is not None and _ideep_version == 2
 
 
 def check_ideep_available():
@@ -53,6 +108,10 @@ def check_ideep_available():
         raise RuntimeError(
             'iDeep is not available.\n'
             'Reason: {}: {}'.format(type(_error).__name__, msg))
+    elif _ideep_version != 2:
+        raise RuntimeError(
+            'iDeep is not available.\n'
+            'Reason: Unsupported iDeep version ({})'.format(_ideep_version))
 
 
 def should_use_ideep(level):
@@ -70,7 +129,7 @@ def should_use_ideep(level):
         bool: ``True`` if the caller should use iDeep.
 
     """
-    if _ideep_version is None:
+    if not is_ideep_available():
         return False
 
     # TODO(niboshi):
@@ -120,7 +179,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
     def _is_supported_array_type(a):
         return isinstance(a, ideep.mdarray) or ideep.check_type([a])
 
-    if _ideep_version is None:
+    if not is_ideep_available():
         return False
 
     inputs = [x.data if isinstance(x, chainer.variable.Variable)

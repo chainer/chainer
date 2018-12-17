@@ -3,12 +3,12 @@ import math
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.array import diagonal
 from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
 from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
@@ -70,7 +70,7 @@ class TriangularInv(chainer.function_node.FunctionNode):
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         invx, = self.get_retained_outputs()
         mask = xp.tril(xp.ones((len(invx), len(invx)), dtype=bool))
         if not self._lower:
@@ -107,12 +107,11 @@ class MultivariateNormal(distribution.Distribution):
             \\exp\\left(-\\frac{1}{2}(x-\\mu) V^{-1}(x-\\mu)\\right)
 
     Args:
-        loc (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the
-            location :math:`\\mu`.
-        scale_tril (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the
-            scale :math:`L` such that :math:`V=LL^T`.
+        loc (:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`.
+        scale_tril (:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`L` such that
+            :math:`V=LL^T`.
 
     """
 
@@ -181,13 +180,8 @@ class MultivariateNormal(distribution.Distribution):
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape+(1,)).astype(numpy.float32)
 
-        noise = matmul.matmul(repeat.repeat(
-            expand_dims.expand_dims(self.scale_tril, axis=0), n, axis=0), eps)
-        noise = squeeze.squeeze(noise, axis=-1)
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
-
-        return noise
+        return self.loc + squeeze.squeeze(
+            matmul.matmul(self.scale_tril, eps), axis=-1)
 
     @property
     def support(self):

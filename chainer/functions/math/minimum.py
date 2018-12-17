@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -9,17 +10,19 @@ class Minimum(function_node.FunctionNode):
     """Element-wise minimum of input variables."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
-            in_types[0].shape == in_types[1].shape
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, inputs):
+        # may broadcast
         self.retain_inputs((0, 1))
         x1, x2 = inputs
-        xp = cuda.get_array_module(x1, x2)
+        xp = backend.get_array_module(x1, x2)
         return utils.force_array(xp.minimum(x1, x2)),
 
     def backward(self, indexes, grad_outputs):
@@ -36,9 +39,9 @@ class MinimumGrad(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         gy, = inputs
         x1, x2 = self.x1, self.x2
-        gx1 = gy * (x1 <= x2)
-        gx2 = gy * (x1 > x2)
-        return utils.force_array(gx1), utils.force_array(gx2)
+        gx1 = utils.force_array(gy * (x1 <= x2))
+        gx2 = utils.force_array(gy * (x1 > x2))
+        return utils.sum_to(gx1, x1.shape), utils.sum_to(gx2, x2.shape)
 
     def forward_gpu(self, inputs):
         gy, = inputs
@@ -51,7 +54,7 @@ class MinimumGrad(function_node.FunctionNode):
             'T x1, T x2, T gy', 'T gx1',
             'gx1 = (x1 > x2) ? gy : (T)0.0',
             'minimum_bwd2')(x1, x2, gy)
-        return gx1, gx2
+        return utils.sum_to(gx1, x1.shape), utils.sum_to(gx2, x2.shape)
 
     def backward(self, indexes, grad_outputs):
         x1, x2 = self.x1, self.x2

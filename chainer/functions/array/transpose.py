@@ -17,10 +17,13 @@ class Transpose(function_node.FunctionNode):
     def label(self):
         return 'Transpose'
 
+    def forward_chainerx(self, inputs):
+        x = inputs[0]
+        return x.transpose(self.axes),
+
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
-        return y,
+        return x.transpose(self.axes),
 
     def backward(self, indexes, grad_outputs):
         inv_axes = self.axes
@@ -51,7 +54,7 @@ def transpose(x, axes=None):
         >>> y = F.transpose(x)  # reverse the dimensions
         >>> y.shape
         (3, 2, 1)
-        >>> y.data
+        >>> y.array
         array([[[0.],
                 [3.]],
         <BLANKLINE>
@@ -63,7 +66,7 @@ def transpose(x, axes=None):
         >>> y = F.transpose(x, axes=(1, 0, 2)) # swap 1st and 2nd axis
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)

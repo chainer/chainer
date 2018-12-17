@@ -5,6 +5,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -170,7 +171,7 @@ class TestUnpoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional unpooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
@@ -301,6 +302,40 @@ class TestUnpoolingNDOutsize(unittest.TestCase):
         with self.assertRaises(type_check.InvalidType):
             functions.unpooling_nd(
                 x, ksize, stride, pad, outsize=outs, cover_all=cover_all)
+
+
+class TestUnpoolingNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        x_shape = (2, 3) + (3,) * ndim
+        dtype = numpy.float32
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        ksize = (2,) * ndim
+
+        return x, ksize
+
+    def test_unpooling_1d(self):
+        (x, ksize) = self._get_data(1)
+        testing.assert_allclose(
+            functions.unpooling_nd(x, ksize).data,
+            functions.unpooling_1d(x, ksize).data)
+
+    def test_unpooling_1d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.unpooling_1d(x, ksize)
+
+    def test_unpooling_3d(self):
+        (x, ksize) = self._get_data(3)
+        testing.assert_allclose(
+            functions.unpooling_nd(x, ksize).data,
+            functions.unpooling_3d(x, ksize).data)
+
+    def test_unpooling_3d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.unpooling_3d(x, ksize)
 
 
 testing.run_module(__name__, __file__)

@@ -3,6 +3,7 @@ import math
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
@@ -13,7 +14,7 @@ class LaplaceCDF(chainer.function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = 0.5 - 0.5 * xp.sign(x) * xp.expm1(-abs(x))
         self.retain_outputs((0,))
         return utils.force_array(y, x.dtype),
@@ -29,7 +30,7 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         h = 1 - 2 * x
         return utils.force_array(xp.sign(h) * xp.log1p(-abs(h)), x.dtype),
 
@@ -60,12 +61,10 @@ class Laplace(distribution.Distribution):
             \\exp\\left(-\\frac{|x-\\mu|}{b}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`b`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter
+            of distribution representing the scale :math:`b`.
     """
 
     def __init__(self, loc, scale):

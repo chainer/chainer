@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer import backend
 from chainer.utils import type_check
 
 
@@ -23,13 +23,13 @@ class ThinStackSet(chainer.Function):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         stack, indices, values = inputs
         stack[xp.arange(len(indices)), indices] = values
         return stack,
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         _, indices, _ = inputs
         g = grads[0]
         gv = g[xp.arange(len(indices)), indices]
@@ -55,12 +55,12 @@ class ThinStackGet(chainer.Function):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         stack, indices = inputs
         return stack[xp.arange(len(indices)), indices], stack
 
     def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         stack, indices = inputs
         g, gs = grads
         if gs is None:

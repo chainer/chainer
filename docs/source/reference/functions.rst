@@ -4,7 +4,9 @@ Functions
 .. module:: chainer.functions
 
 Chainer provides variety of built-in function implementations in :mod:`chainer.functions` package.
-These functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+These functions usually return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+For a :class:`~chainer.Variable` argument of a function, an :ref:`ndarray` can be passed if you do not need its gradient.
+Some functions additionally supports scalar arguments.
 
 .. note::
     Functions implemented in Chainer consists of the following two parts:
@@ -131,9 +133,13 @@ Neural network connections
    :nosignatures:
 
    chainer.functions.bilinear
+   chainer.functions.convolution_1d
    chainer.functions.convolution_2d
+   chainer.functions.convolution_3d
    chainer.functions.convolution_nd
+   chainer.functions.deconvolution_1d
    chainer.functions.deconvolution_2d
+   chainer.functions.deconvolution_3d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
    chainer.functions.deformable_convolution_2d_sampler
@@ -182,6 +188,7 @@ Loss functions
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
    chainer.functions.decov
+   chainer.functions.discriminative_margin_based_clustering_loss
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -307,14 +314,23 @@ Spatial pooling
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.average_pooling_1d
    chainer.functions.average_pooling_2d
+   chainer.functions.average_pooling_3d
    chainer.functions.average_pooling_nd
+   chainer.functions.max_pooling_1d
    chainer.functions.max_pooling_2d
+   chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
    chainer.functions.roi_average_align_2d
+   chainer.functions.roi_average_pooling_2d
+   chainer.functions.roi_max_align_2d
+   chainer.functions.roi_max_pooling_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
+   chainer.functions.unpooling_1d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_3d
    chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
