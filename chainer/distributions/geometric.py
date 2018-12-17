@@ -11,7 +11,8 @@ class Geometric(distribution.Distribution):
     The probability mass function of the distribution is expressed as
 
     .. math::
-        f(x = k) = p(1-p)^{k-1},
+        Pr(x = k) = p(1-p)^{k-1},
+        for k = 1, 2, 3, ...,
 
     Args:
         p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
