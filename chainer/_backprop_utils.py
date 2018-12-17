@@ -60,11 +60,7 @@ class GradTable(object):
         grads = self.grads
         if node in grads:
             return _reduce(grads.pop(node))
-        if self._load_if_new_leaf and node.creator_node is None:
-            node._check_old_style_gradient()
-            return node.grad_var
-        else:
-            return None
+        return None
 
     def assert_no_grads(self):
         for gx in self.grads.values():
