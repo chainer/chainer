@@ -1,9 +1,7 @@
 import numpy
-import unittest
 
 from chainer.backends import cuda
 from chainer import distributions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import array
 from chainer.testing import attr

@@ -1,5 +1,6 @@
-import numpy
 import warnings
+
+import numpy
 
 import chainer
 from chainer.backends import cuda
