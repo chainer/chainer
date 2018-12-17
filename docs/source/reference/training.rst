@@ -148,7 +148,6 @@ These extensions provide features to release memories.
 
    chainer.training.extensions.unchain_variables
 
-
 .. _triggers:
 
 Triggers
