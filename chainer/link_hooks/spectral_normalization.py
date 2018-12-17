@@ -47,7 +47,7 @@ def update_approximate_vectors(
     xp = backend.get_array_module(weight_matrix)
     for _ in range(n_power_iteration):
         v = l2normalize(xp, xp.dot(u, weight_matrix), eps)
-        u = l2normalize(xp, xp.dot(v, weight_matrix.T), eps)
+        u = l2normalize(xp, xp.dot(weight_matrix, v), eps)
     return u, v
 
 
@@ -63,7 +63,7 @@ def calculate_max_singular_value(weight_matrix, u, v):
         ~chainer.Variable: Max singular value via power iteration method.
 
     """
-    sigma = F.sum(F.matmul(u, weight_matrix) * v)
+    sigma = F.matmul(F.matmul(u, weight_matrix), v)
     return sigma
 
 
@@ -212,7 +212,9 @@ class SpectralNormalization(link_hook.LinkHook):
                 link._initialize_params(input_variable.shape[1])
         initialW = getattr(link, self.weight_name)
         if initialW.shape[self.axis] == 0:
-            raise ValueError('Expect W.shape[{}] > 0'.format(self.axis))
+            raise ValueError(
+                'Expect {}.shape[{}] > 0'.format(self.weight_name, self.axis)
+            )
         u = link.xp.random.normal(
             size=(initialW.shape[self.axis],)).astype(dtype=initialW.dtype)
         setattr(link, self.vector_name, u)

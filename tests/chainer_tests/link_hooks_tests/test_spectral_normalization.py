@@ -68,8 +68,8 @@ class TestEmbedID(unittest.TestCase):
         u1 = numpy.copy(getattr(layer, hook.vector_name))
         y2 = layer(self.x).array
         u2 = getattr(layer, hook.vector_name)
-        assert not (u1 == u2).all()
-        assert not (y1 == y2).all()
+        assert not numpy.array_equal(u1, u2)
+        assert not numpy.array_equal(y1, y2)
 
     def test_u_not_updated_in_test(self):
         layer, hook = self.layer, self.hook
@@ -81,8 +81,8 @@ class TestEmbedID(unittest.TestCase):
             y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
 
-        assert (u1 == u2).all()
-        assert (y1 == y2).all()
+        numpy.testing.assert_array_equal(u1, u2)
+        numpy.testing.assert_array_equal(y1, y2)
 
     def test_in_recomputing(self):
         layer, hook = self.layer, self.hook
@@ -95,9 +95,9 @@ class TestEmbedID(unittest.TestCase):
             y2 = layer(self.x).array
         u2 = getattr(layer, hook.vector_name)
         v2 = hook.v
-        assert (u1 == u2).all()
-        assert (v1 == v2).all()
-        assert (y1 == y2).all()
+        numpy.testing.assert_array_equal(u1, u2)
+        numpy.testing.assert_array_equal(v1, v2)
+        numpy.testing.assert_array_equal(y1, y2)
 
     def test_deleted(self):
         layer, hook = self.layer, self.hook
@@ -109,8 +109,8 @@ class TestEmbedID(unittest.TestCase):
         layer.delete_hook(hook.name)
         assert not hasattr(layer, hook.vector_name)
         y3 = layer(self.x).array
-        assert not (y1 == y3).all()
-        assert not (y2 == y3).all()
+        assert not numpy.array_equal(y1, y3)
+        assert not numpy.array_equal(y2, y3)
 
 
 @testing.parameterize(*testing.product({
@@ -177,9 +177,9 @@ class TestLinear(unittest.TestCase):
                 y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v
-            assert (u1 == u2).all()
-            assert (v1 == v2).all()
-            assert (y1 == y2).all()
+            numpy.testing.assert_equal(u1, u2)
+            numpy.testing.assert_equal(v1, v2)
+            numpy.testing.assert_equal(y1, y2)
 
     def test_deleted(self):
         if not self.lazy_init:
@@ -266,9 +266,9 @@ class TestConvolution1D(unittest.TestCase):
                 y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v
-            assert (u1 == u2).all()
-            assert (v1 == v2).all()
-            assert (y1 == y2).all()
+            numpy.testing.assert_equal(u1, u2)
+            numpy.testing.assert_equal(v1, v2)
+            numpy.testing.assert_equal(y1, y2)
 
     def test_deleted(self):
         if not self.lazy_init:
@@ -287,7 +287,7 @@ class TestConvolution1D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            assert not (u1 == u2).all()
+            assert not numpy.array_equal(u1, u2)
         else:
             pass
 
@@ -297,7 +297,8 @@ class TestConvolution1D(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            assert (u == getattr(layer, hook.vector_name)).all()
+            numpy.testing.assert_array_equal(
+                u, getattr(layer, hook.vector_name))
         else:
             pass
 
@@ -355,9 +356,9 @@ class TestConvolution2D(unittest.TestCase):
                 y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v
-            assert (u1 == u2).all()
-            assert (v1 == v2).all()
-            assert (y1 == y2).all()
+            numpy.testing.assert_array_equal(u1, u2)
+            numpy.testing.assert_array_equal(v1, v2)
+            numpy.testing.assert_array_equal(y1, y2)
 
     def test_deleted(self):
         if not self.lazy_init:
@@ -376,7 +377,7 @@ class TestConvolution2D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            assert not (u1 == u2).all()
+            assert not numpy.array_equal(u1, u2)
         else:
             pass
 
@@ -445,9 +446,9 @@ class TestConvolution3D(unittest.TestCase):
                 y2 = layer(self.x).array
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v
-            assert (u1 == u2).all()
-            assert (v1 == v2).all()
-            assert (y1 == y2).all()
+            numpy.testing.assert_array_equal(u1, u2)
+            numpy.testing.assert_array_equal(v1, v2)
+            numpy.testing.assert_array_equal(y1, y2)
 
     def test_deleted(self):
         if not self.lazy_init:
@@ -466,7 +467,7 @@ class TestConvolution3D(unittest.TestCase):
             u1 = numpy.copy(getattr(layer, hook.vector_name))
             layer(self.x)
             u2 = getattr(layer, hook.vector_name)
-            assert not (u1 == u2).all()
+            assert not numpy.array_equal(u1, u2)
         else:
             pass
 
@@ -476,7 +477,8 @@ class TestConvolution3D(unittest.TestCase):
             u = getattr(layer, hook.vector_name)
             with chainer.using_config('train', False):
                 layer(self.x)
-            assert (u == getattr(layer, hook.vector_name)).all()
+            numpy.testing.assert_array_equal(
+                u, getattr(layer, hook.vector_name))
         else:
             pass
 
