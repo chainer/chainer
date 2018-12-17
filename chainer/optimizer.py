@@ -757,9 +757,9 @@ class GradientMethod(Optimizer):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
 
         Args:
-             use (bool): If ``True``, this function enables use of
-                 `cleargrads`. If ``False``, disables use of `cleargrads`
-                 (`zerograds` is used).
+            use (bool): If ``True``, this function enables use of
+                `cleargrads`. If ``False``, disables use of `cleargrads`
+                (`zerograds` is used).
 
          .. deprecated:: v2.0
             Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.

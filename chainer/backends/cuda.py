@@ -266,9 +266,10 @@ def get_device_from_array(*arrays):
 def get_device(*args):
     """Gets the device from a device object, an ID integer or an array object.
 
-    .. deprecated:: v2
+    .. note::
 
-        Please use :func:`~chainer.backends.cuda.get_device_from_id`
+        This API is deprecated since v3.0.0. Please use
+        :func:`~chainer.backends.cuda.get_device_from_id`
         or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
