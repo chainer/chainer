@@ -22,6 +22,7 @@ Distributions
    chainer.distributions.Dirichlet
    chainer.distributions.Exponential
    chainer.distributions.Gamma
+   chainer.distributions.Geometric
    chainer.distributions.Gumbel
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
