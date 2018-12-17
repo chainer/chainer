@@ -87,6 +87,12 @@ public:
     using ChainerxError::ChainerxError;
 };
 
+// Error on mismatch gradient traits
+class GradientError : public ChainerxError {
+public:
+    using ChainerxError::ChainerxError;
+};
+
 // Error on failing gradient check
 class GradientCheckError : public ChainerxError {
 public:

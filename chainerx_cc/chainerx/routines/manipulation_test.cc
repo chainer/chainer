@@ -839,7 +839,9 @@ TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxesIndices) {
     Array e1 = testing::BuildArray({1, 4}).WithData<int32_t>({0, 1, 2, 3});
     Array e2 = testing::BuildArray({1, 4}).WithData<int32_t>({4, 5, 6, 7});
 
-    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2}); }, {a}, {e1, e2}); });
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], std::vector<int64_t>{1}); }, {a}, {e1, e2});
+    });
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguousSections) {
@@ -855,7 +857,9 @@ TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguousIndices) {
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
     Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
 
-    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2}, 1); }, {a}, {e1, e2}); });
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], std::vector<int64_t>{2}, 1); }, {a}, {e1, e2});
+    });
 }
 
 TEST_P(ManipulationTest, SplitSectionsBackward) {

@@ -2,8 +2,6 @@
 chainer implementation of pix2pix
 https://phillipi.github.io/pix2pix/
 
-The Japanese readme can be found [here](README-ja.md).
-
 # Example result on CMP facade dataset
 <img src="https://github.com/mattya/chainer-pix2pix/blob/master/image/example.png?raw=true">
 From the left side: input, output, ground_truth

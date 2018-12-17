@@ -307,7 +307,7 @@ TEST_P(ArrayTest, InvalidSetGradMismatchedShape) {
     Array g = testing::BuildArray(mismatched_shape).WithData<T>({8, 4, 6});
     x.RequireGrad();
 
-    EXPECT_THROW(x.SetGrad(g), DimensionError);
+    EXPECT_THROW(x.SetGrad(g), GradientError);
 }
 
 // TODO(niboshi): Move to ArrayGradTest
@@ -320,7 +320,7 @@ TEST_P(ArrayTest, InvalidSetGradMismatchedDtype) {
     Array g = testing::BuildArray(shape).WithData<MismatchedT>({8, 4, 6, 3, 2, 1});
     x.RequireGrad();
 
-    EXPECT_THROW(x.SetGrad(g), DtypeError);
+    EXPECT_THROW(x.SetGrad(g), GradientError);
 }
 
 // TODO(niboshi): Move to ArrayGradTest
@@ -335,7 +335,7 @@ TEST_P(ArrayTest, InvalidSetGradMismatchedDevice) {
     Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1}).WithDevice(mismatched_device);
     x.RequireGrad();
 
-    EXPECT_THROW(x.SetGrad(g), DeviceError);
+    EXPECT_THROW(x.SetGrad(g), GradientError);
 }
 
 TEST_P(ArrayTest, ContiguousFill) {
