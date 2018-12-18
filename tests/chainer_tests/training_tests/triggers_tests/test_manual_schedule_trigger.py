@@ -15,7 +15,8 @@ from chainer import training
     # single iteration
     {
         'iter_per_epoch': 2, 'schedule': (2, 'iteration'), 'resume': 3,
-        'expected': [False, True, False, False, False, False, False]},
+        'expected': [False, True, False, False, False, False, False],
+        'finished': [False, True, True, True, True, True, True]},
     # multiple iteration
     {
         'iter_per_epoch': 2, 'schedule': ([2, 4], 'iteration'), 'resume': 3,
@@ -59,9 +60,10 @@ class TestTrigger(unittest.TestCase):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
-        for expected in self.expected:
+        for expected, finished in zip(self.expected, self.finished):
             trainer.updater.update()
             self.assertEqual(trigger(trainer), expected)
+            self.assertEqual(trigger.finished, finished)
 
     def test_resumed_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
