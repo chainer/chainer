@@ -2628,7 +2628,8 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         with warnings.catch_warnings():
             # ok to be warned that x.grad_var is old-styled scalar
             warnings.simplefilter('ignore', DeprecationWarning)
-            x.grad_var.backward()
+            with pytest.raises(RuntimeError):
+                x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
