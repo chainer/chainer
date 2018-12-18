@@ -225,7 +225,7 @@ class _ParamsData(object):
             v = getattr(param, attr_name)
             params_dptr[i] = v.data.ptr
             if v.dtype not in [np.float16, np.float32]:
-                raise ValueError('dtype musb be float16 or float32.')
+                raise ValueError('dtype must be float16 or float32.')
             params_dtype[i] = _get_nccl_type_id(v.dtype)
             params_size_csum[i+1] = params_size_csum[i] + v.size
         self.n_params = n_params
