@@ -8,7 +8,7 @@ from chainer.functions.normalization import batch_normalization
 def instance_normalization(x, gamma, beta, eps=2e-5):
     """Instance normalization function.
 
-    This function implements a "instance normalization"
+    This function implements instance normalization
     which normalizes each sample by its mean and standard deviation.
 
     Args:
