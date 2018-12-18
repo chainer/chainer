@@ -54,8 +54,7 @@ def dstack(xs):
     """Concatenate variables along third axis (depth wise).
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same ``ndim``. When the variables have the third axis (i.e.
             :math:`ndim \\geq 3`), the variables must have the same shape
