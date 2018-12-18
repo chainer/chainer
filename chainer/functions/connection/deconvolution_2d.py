@@ -372,13 +372,6 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):

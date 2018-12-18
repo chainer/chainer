@@ -474,11 +474,6 @@ class Variable(object):
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
         * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
-    .. warning::
-
-       ``volatile`` argument is not supported anymore since v2.
-       Instead, use :func:`chainer.no_backprop_mode`.
-
     Args:
         data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.
@@ -1137,12 +1132,13 @@ class Variable(object):
     def zerograd(self):
         """Initializes the gradient array by zeros.
 
+
         Note that the gradient variable is unchained from the computational
-        graph by this method because this operation breaks the backprop
+        graph by this method, because this operation breaks the backprop
         validity.
 
         .. deprecated:: v1.15
-           Use :meth:`cleargrad` instead.
+           Use more efficient  :meth:`cleargrads` instead.
 
         """
         warnings.warn(

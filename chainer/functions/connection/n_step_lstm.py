@@ -70,14 +70,6 @@ def n_step_lstm(
     Note that all input variables except the first layer may have different
     shape from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): The number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -230,14 +222,6 @@ def n_step_bilstm(
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
     Note that all input variables except the first layer may have different
     shape from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): The number of layers.
