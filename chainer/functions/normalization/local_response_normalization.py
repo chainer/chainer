@@ -179,6 +179,7 @@ class LocalResponseNormalizationGrad(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, grad_outputs):
+        # No trivial way to implement double-backward for this function.
         raise NotImplementedError
 
 
