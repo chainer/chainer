@@ -76,12 +76,12 @@ Array MaxPool(
                             }
                             bb3.Finalize();
                         }
-                        bctx2.input_grad() = ggout;
+                        bctx2.input_grad() = std::move(ggout);
                     });
                 }
                 bb2.Finalize();
             }
-            bctx1.input_grad() = gx;
+            bctx1.input_grad() = std::move(gx);
         }
 
         StackVector<int64_t, kMaxNdim> kernel_size;
@@ -132,7 +132,7 @@ Array AveragePool(
                     }
                     bb2.Finalize();
                 }
-                bctx.input_grad() = gx;
+                bctx.input_grad() = std::move(gx);
             });
         }
         bb1.Finalize();

@@ -394,7 +394,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
             Array reshaped_out{};
             if (keepdims) {
                 reshaped_gout = gout;
-                reshaped_out = out;
+                reshaped_out = std::move(out);
             } else {
                 // Add broadcastable dimensions to out and gout
                 // for each one that was reduced in the forward operation
