@@ -761,12 +761,12 @@ class GradientMethod(Optimizer):
                 `cleargrads`. If ``False``, disables use of `cleargrads`
                 (`zerograds` is used).
 
-         .. deprecated:: v2.0
-            Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
-            :meth:`~Link.cleargrads` is more efficient than
-            :meth:`~Link.zerograds`, so one does not have to call
-            :meth:`use_cleargrads`. This method remains for backward
-            compatibility.
+        .. deprecated:: v2.0
+           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
+           :meth:`~Link.cleargrads` is more efficient than
+           :meth:`~Link.zerograds`, so one does not have to call
+           :meth:`use_cleargrads`. This method remains for backward
+           compatibility.
 
         """
         warnings.warn(
