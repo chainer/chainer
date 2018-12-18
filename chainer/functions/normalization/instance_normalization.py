@@ -31,7 +31,7 @@ def instance_normalization(x, gamma, beta, eps=2e-5):
 
     """
     if x.ndim <= 2:
-        raise ValueError('Input dimension must be grater than 2, '
+        raise ValueError('Input dimension must be greater than 2, '
                          'including batch size dimension '
                          '(first dimension).')
 
