@@ -13,7 +13,7 @@ from chainer.utils import type_check
 def _inv_gpu(b):
     # We do a batched LU decomposition on the GPU to compute the inverse
     # Change the shape of the array to be size=1 minibatch if necessary
-    # Also copy the matrix as the elments will be modified in-place
+    # Also copy the matrix as the elements will be modified in-place
     a = matmul._as_batch_mat(b).copy()
     n = a.shape[1]
     n_matrices = len(a)

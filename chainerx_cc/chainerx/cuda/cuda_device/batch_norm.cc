@@ -165,7 +165,7 @@ public:
                 internal::GetRawOffsetData<void>(x_mean),
                 internal::GetRawOffsetData<void>(x_inv_std));
 
-        // When data type of prameters is converted, say, from fp16
+        // When data type of parameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
         // running_var updated by batchNormalizationForwardTraining
         // must be explicitly written back to their original fp16 arrays.
