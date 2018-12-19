@@ -69,14 +69,10 @@ class ReLU(function_node.FunctionNode):
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
             # cuDNN implementation
             x, = self.get_retained_inputs()
-            return ReLUGradCudnn(x, y).apply((gy,))
+            return ReLUGradCudnn(x.array, y.array).apply((gy,))
 
         # Generic implementation
-        return ReLUGrad2(y).apply((gy,))
-
-
-def _heaviside(x):
-    return (x > 0).astype(x.dtype)
+        return ReLUGrad2(y.array).apply((gy,))
 
 
 class ReLUGrad2(function_node.FunctionNode):
@@ -93,7 +89,10 @@ class ReLUGrad2(function_node.FunctionNode):
 
     def __init__(self, b):
         super(ReLUGrad2, self).__init__()
-        self.b = b.data
+        # Compatibility to old version
+        if isinstance(b, chainer.Variable):
+            b = b.array
+        self.b = b
 
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
@@ -118,8 +117,8 @@ class ReLUGrad2(function_node.FunctionNode):
         gx = _relu_grad2_kernel(b, inputs[0])
         return gx,
 
-    def backward(self, indexes, gy):
-        return gy[0] * _heaviside(self.b),
+    def backward(self, indexes, grad_outputs):
+        return ReLUGrad2(self.b).apply(grad_outputs)
 
 
 class ReLUGrad3Base(function_node.FunctionNode):
@@ -136,13 +135,11 @@ class ReLUGrad3Base(function_node.FunctionNode):
 
     def __init__(self, x, y):
         super(ReLUGrad3Base, self).__init__()
-        self.x = x.data
-        self.y = y.data
+        self.x = x
+        self.y = y
 
     def backward(self, indexes, grad_outputs):
-        gy, = grad_outputs
-        ggx = gy * _heaviside(self.y)
-        return ggx,
+        return ReLUGrad2(self.y).apply(grad_outputs)
 
 
 class ReLUGradCudnn(ReLUGrad3Base):
