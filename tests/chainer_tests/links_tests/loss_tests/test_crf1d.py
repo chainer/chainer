@@ -110,7 +110,7 @@ class TestInitialization(unittest.TestCase):
             testing.assert_allclose(cost, link.cost.array, atol=0, rtol=0)
 
         elif self.initializer == 'random':
-            testing.assert_allclose(link.cost.data, self.initial_cost,
+            testing.assert_allclose(link.cost.array, self.initial_cost,
                                     atol=0, rtol=0)
 
     def test_param_cpu(self):
