@@ -11,7 +11,7 @@ class InstanceNormalization(link.Link):
 
     This link wraps the :func:`~chainer.functions.instance_normalization`.
     Instance normalization is very close to batch normalization but different
-    in that this normalizes each samples in mini batch by its mean and standard
+    in that this normalizes each samples in a mini-batch by its mean and standard
     deviation even if in testing mode. Also note that this normalization only
     works on inputs whose dimensions are greater than 2.
 
