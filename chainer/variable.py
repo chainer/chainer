@@ -1502,34 +1502,9 @@ class Variable(object):
     __hash__ = None
 
 
-if six.PY3:
-    OrderedDict = collections.OrderedDict
-else:
-    # Reference counting cannot free keys in old `collections.OrderedDict`,
-    # where a doubly linked list is used to maintain the order.
-    class OrderedDict(object):
-        def __init__(self):
-            self.keys = set()
-            self.dict = collections.OrderedDict()
-
-        def __contains__(self, key):
-            return weakref.ref(key) in self.dict
-
-        def __setitem__(self, key, value):
-            self.keys.add(key)
-            self.dict[weakref.ref(key)] = value
-
-        def __getitem__(self, key):
-            return self.dict[weakref.ref(key)]
-
-        def items(self):
-            return [(k(), v) for k, v in self.dict.items()]
-
-        def values(self):
-            return self.dict.values()
-
-
 def _backprop_to_all(outputs, retain_grad, loss_scale):
+    OrderedDict3 = chainer.utils.collections.RefCountFriendlyOrderedDict
+
     cand_funcs = []
     seen_set = set()
 
@@ -1615,7 +1590,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             # Keep the order for the portability, rather than
             # target_inputs = [inputs[i] for i in target_input_indexes]
             # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
-            in_grad = OrderedDict()
+            in_grad = OrderedDict3()
             for i in target_input_indexes:
                 x = inputs[i]
                 if x not in in_grad:
