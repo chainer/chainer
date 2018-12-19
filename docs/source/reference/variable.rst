@@ -24,6 +24,7 @@ Chainer supports the following classes:
 
 * :class:`numpy.ndarray`, including :class:`ideep4py.mdarray`
 * :class:`cupy.ndarray`
+* :class:`chainerx.ndarray`
 
 .. note::
     Python scalars (:class:`float`, etc.) and NumPy scalars (``numpy.float16``, ``numpy.float32``, etc.) cannot be used as :attr:`chainer.Variable.array`.
