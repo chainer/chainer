@@ -83,16 +83,16 @@ class TestInitialization(unittest.TestCase):
 
     def setUp(self):
         self.n_label = 3
+        self.initial_cost = numpy.empty((self.n_label, self.n_label),
+                                        dtype=self.dtype)
 
         if self.initializer is None:
-            self.initial_cost = None
+            initializer = initializers.constant.Zero()
 
         elif self.initializer == 'random':
             initializer = initializers.GlorotUniform()
-            self.initial_cost = numpy.empty((self.n_label, self.n_label),
-                                            dtype=self.dtype)
-            initializer(self.initial_cost)
 
+        initializer(self.initial_cost)
         with chainer.using_config('dtype', self.dtype):
             self.link = links.CRF1d(self.n_label,
                                     initial_cost=self.initial_cost)
@@ -105,8 +105,6 @@ class TestInitialization(unittest.TestCase):
         if self.initializer is None:
             cost = numpy.empty(
                 (self.n_label, self.n_label), dtype=self.dtype)
-            initial_cost = initializers.constant.Zero()
-            initial_cost(cost)
             testing.assert_allclose(cost, link.cost.array, atol=0, rtol=0)
 
         elif self.initializer == 'random':
