@@ -10,7 +10,6 @@ import chainer
 # import classes and functions
 from chainer.utils.array import size_of_shape  # NOQA
 from chainer.utils.array import sum_to  # NOQA
-import chainer.utils.collections
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA

@@ -17,6 +17,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
+import chainer.utils.collections
 import chainerx
 
 
