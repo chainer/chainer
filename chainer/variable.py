@@ -1331,7 +1331,7 @@ class Variable(object):
         if kwargs:
             return_cont, = argument.parse_kwargs(
                 kwargs,
-                ('_return_cont', return_cont),
+                ('return_cont', return_cont),
             )
 
         # Initialize error by 1, if this is a loss variable

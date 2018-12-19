@@ -3048,7 +3048,7 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('g', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True)
+        backward = y.backward(return_cont=True)
         del y
         backward()
         assert x.grad is not None
@@ -3064,7 +3064,7 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('g', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True, enable_double_backprop=True)
+        backward = y.backward(return_cont=True, enable_double_backprop=True)
         del y
         backward()
         assert x.grad is not None
@@ -3086,7 +3086,7 @@ class TestDelayBackward(unittest.TestCase):
         del h
         gy = self.var('gy')
         y.grad_var = gy
-        backward = y.backward(_return_cont=True, enable_double_backprop=True)
+        backward = y.backward(return_cont=True, enable_double_backprop=True)
         del y
         backward()
         assert x.grad is not None
@@ -3097,7 +3097,7 @@ class TestDelayBackward(unittest.TestCase):
         ]
 
         x.grad_var.grad_var = self.var('ggx')
-        backward = x.grad_var.backward(_return_cont=True)
+        backward = x.grad_var.backward(return_cont=True)
         del x
         backward()
         assert gy.grad is not None
@@ -3116,7 +3116,7 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('h', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True, retain_grad=True)
+        backward = y.backward(return_cont=True, retain_grad=True)
         del y
         backward()
         assert x.grad is not None
@@ -3138,7 +3138,7 @@ class TestDelayBackward(unittest.TestCase):
         y1, = self.func('g1', [h], 1)
         del h
         y0.grad_var = self.var('gy0')
-        backward = y0.backward(_return_cont=True)
+        backward = y0.backward(return_cont=True)
         del y0
         backward()
         gx0 = x.grad
@@ -3151,7 +3151,7 @@ class TestDelayBackward(unittest.TestCase):
 
         # h = f(x) should not be unchained
         y1.grad_var = self.var('gy1')
-        backward = y1.backward(_return_cont=True)
+        backward = y1.backward(return_cont=True)
         del y1
         backward()
         assert not np.array_equal(gx0, x.grad)
@@ -3173,7 +3173,7 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('r3', [z] + self.func('f3', [h, params[3]], 1), 1)
         del z, h
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True)
+        backward = y.backward(return_cont=True)
         del y
         backward()
         for p in params:
@@ -3206,7 +3206,7 @@ class TestDelayBackward(unittest.TestCase):
         x = self.var('x')
         y, = self.func('f', [x], 1)
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True)
+        backward = y.backward(return_cont=True)
         del y
         backward()
         with pytest.raises(RuntimeError):
@@ -3232,7 +3232,7 @@ class TestDelayBackward(unittest.TestCase):
         ret = y.backward()
         assert ret is None
 
-        backward = y.backward(_return_cont=True)
+        backward = y.backward(return_cont=True)
         del y
         ret = backward()
         assert ret is None
