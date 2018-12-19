@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import testing
+from chainer.utils import cache
 
 
 class MockDistribution(object):
@@ -13,12 +14,12 @@ class MockDistribution(object):
         self.h_call_count = 0
         self.y_call_count = 0
 
-    @chainer.distribution.cached_property
+    @cache.cached_property
     def h(self):
         self.h_call_count += 1
         return self.x * 2
 
-    @chainer.distribution.cached_property
+    @cache.cached_property
     def y(self):
         self.y_call_count += 1
         return self.h * 3

@@ -12,6 +12,7 @@ from chainer.functions.math import log_ndtr
 from chainer.functions.math import ndtr
 from chainer.functions.math import ndtri
 from chainer.utils import argument
+from chainer.utils import cache
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
@@ -58,18 +59,18 @@ class Normal(distribution.Distribution):
         self.__scale = scale
         self.__log_scale = log_scale
 
-    @distribution.cached_property
+    @cache.cached_property
     def loc(self):
         return chainer.as_variable(self.__loc)
 
-    @distribution.cached_property
+    @cache.cached_property
     def scale(self):
         if self.__scale is not None:
             return chainer.as_variable(self.__scale)
         else:
             return exponential.exp(self.log_scale)
 
-    @distribution.cached_property
+    @cache.cached_property
     def log_scale(self):
         if self.__log_scale is not None:
             return chainer.as_variable(self.__log_scale)
@@ -83,7 +84,7 @@ class Normal(distribution.Distribution):
     def cdf(self, x):
         return ndtr.ndtr((x - self.loc) / self.scale)
 
-    @distribution.cached_property
+    @cache.cached_property
     def entropy(self):
         return self.log_scale + ENTROPYC
 
@@ -108,7 +109,7 @@ class Normal(distribution.Distribution):
     def log_survival_function(self, x):
         return log_ndtr.log_ndtr((self.loc - x) / self.scale)
 
-    @distribution.cached_property
+    @cache.cached_property
     def mean(self):
         return self.loc
 
@@ -134,7 +135,7 @@ class Normal(distribution.Distribution):
 
         return noise
 
-    @distribution.cached_property
+    @cache.cached_property
     def stddev(self):
         return self.scale
 
@@ -145,7 +146,7 @@ class Normal(distribution.Distribution):
     def survival_function(self, x):
         return ndtr.ndtr((self.loc - x) / self.scale)
 
-    @distribution.cached_property
+    @cache.cached_property
     def variance(self):
         return self.scale ** 2
 
