@@ -17,7 +17,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
-import chainer.utils.collections
+import chainer.utils.dict
 import chainerx
 
 
@@ -1504,7 +1504,7 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    OrderedDict3 = chainer.utils.collections.RefCountFriendlyOrderedDict
+    OrderedDict3 = chainer.utils.dict.RefCountFriendlyOrderedDict
 
     cand_funcs = []
     seen_set = set()

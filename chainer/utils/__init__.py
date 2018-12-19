@@ -1,4 +1,4 @@
-import collections as _collections
+import collections
 import contextlib
 import shutil
 import tempfile
@@ -22,9 +22,9 @@ from chainer.utils.walker_alias import WalkerAlias  # NOQA
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.
 # See: https://github.com/chainer/chainer/issues/5097
 try:
-    collections_abc = _collections.abc
+    collections_abc = collections.abc
 except AttributeError:  # python <3.3
-    collections_abc = _collections
+    collections_abc = collections
 
 
 def force_array(x, dtype=None):
