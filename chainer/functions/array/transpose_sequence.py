@@ -97,8 +97,8 @@ def transpose_sequence(xs):
     :class:`~chainer.Variable`.
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Variables to transpose.
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
+            Variables to transpose.
 
     Returns:
         tuple of :class:`~chainer.Variable`: Transposed list.
