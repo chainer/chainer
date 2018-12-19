@@ -23,7 +23,6 @@ class InstanceNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
-
         initial_gamma: Initializer of the scaling parameter. The default value
             is ``1``.
         initial_beta: Initializer of the shifting parameter. The default value
