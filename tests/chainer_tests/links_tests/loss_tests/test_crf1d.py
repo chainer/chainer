@@ -107,7 +107,7 @@ class TestInitialization(unittest.TestCase):
                 (self.n_label, self.n_label), dtype=self.dtype)
             initial_cost = initializers.constant.Zero()
             initial_cost(cost)
-            testing.assert_allclose(cost, link.cost.data, atol=0, rtol=0)
+            testing.assert_allclose(cost, link.cost.array, atol=0, rtol=0)
 
         elif self.initializer == 'random':
             testing.assert_allclose(link.cost.data, self.initial_cost,
