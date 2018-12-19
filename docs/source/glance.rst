@@ -111,6 +111,8 @@ Since mushrooms are either edible or poisonous (no information on psychedelic ef
    :lines: 43-44
    :lineno-start: 43
 
+Note that in the two code snippets above we have not specified the size of the input layer. Once we start feeding the neural network with samples, Chainer will recognize the dimensionality of the input automatically and initialize the matrix for each layer with the appropriate shape. In the example above, that is 44×22 for the first hidden layer, 44×44 for the second hidden layer, and 1×44 for the output layer.
+
 Optimizer
 ~~~~~~~~~~~~
 .. image:: ../image/glance/trainer-optimizer.png
