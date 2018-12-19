@@ -4,7 +4,6 @@ import heapq
 import traceback
 import warnings
 import weakref
-import sys
 
 import numpy
 import six
@@ -1329,12 +1328,10 @@ class Variable(object):
             return
 
         return_cont = False
-        assert_refs = True
         if kwargs:
-            return_cont, assert_refs = argument.parse_kwargs(
+            return_cont, = argument.parse_kwargs(
                 kwargs,
                 ('_return_cont', return_cont),
-                ('_assert_refs', assert_refs),
             )
 
         # Initialize error by 1, if this is a loss variable
@@ -1364,22 +1361,29 @@ class Variable(object):
 
         ref_self = [self]
 
-        def cont():
+        def cont(**kwargs):
+            assert_moved = True
+            if kwargs:
+                assert_moved, = argument.parse_kwargs(
+                    kwargs,
+                    ('_assert_moved', assert_moved),
+                )
+
             if not ref_self:
                 raise RuntimeError(
                     'the continuation Variable.backward(_return_cont=True) '
                     'has been consumed')
+            weakref_self = weakref.ref(ref_self[0])
             outputs = ref_self
-            if sys.getrefcount(ref_self[0]) > 2:
-                if assert_refs:
-                    raise RuntimeError(
-                        'The continuation Variable.backward(_return_cont=True)'
-                        ' is called but there are other references to self')
-                else:
-                    outputs = list(outputs)
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
                 _backprop_to_all(outputs, retain_grad, loss_scale)
+            if assert_moved and weakref_self() is not None:
+                raise RuntimeError(
+                    'The continuation Variable.backward(_return_cont=True) '
+                    'is called but the output variable is not freed. '
+                    'To disable this check, call the continuation with '
+                    '`_assert_moved=False`.')
 
         return cont
 

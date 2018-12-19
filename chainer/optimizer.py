@@ -739,10 +739,10 @@ class GradientMethod(Optimizer):
             else:
                 self.target.zerograds()
             backward = loss.backward(
-                _return_cont=True, _assert_refs=False,
+                _return_cont=True,
                 loss_scale=self._loss_scale)
             del loss
-            backward()
+            backward(_assert_moved=False)
             del backward
 
         self.reallocate_cleared_grads()
