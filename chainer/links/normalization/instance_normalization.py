@@ -13,7 +13,7 @@ class InstanceNormalization(link.Link):
     Instance normalization is very close to batch normalization but different
     in that this normalizes each samples in mini batch by its mean and standard
     deviation even if in testing mode. Also note that this normalization only
-    work on inputs whose dimensions are greater than 2.
+    works on inputs whose dimensions are greater than 2.
 
     Args:
         size (int): Size (or shape) of channel dimensions.
