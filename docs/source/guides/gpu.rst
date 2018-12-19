@@ -33,7 +33,6 @@ Relationship between Chainer and CuPy
 
 .. note::
 
-   From v2.0.0, CuPy is turned into a separate package and repository.
    Even if you have CUDA installed in your environment, you have to install CuPy separately to use GPUs.
    See :ref:`install_cuda` for the way to set up CUDA support.
 

@@ -71,10 +71,6 @@ It can be done by calling the :meth:`~Link.cleargrads` method.
 
    >>> f.cleargrads()
 
-.. note::
-   :meth:`~Link.cleargrads` is introduced in v1.15 to replace :meth:`~Link.zerograds` for efficiency.
-   :meth:`~Link.zerograds` is left only for backward compatibility.
-
 Now we can compute the gradients of parameters by simply calling the backward method and access them via the ``grad`` property.
 
 .. doctest::

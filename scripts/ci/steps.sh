@@ -16,13 +16,13 @@ mkdir -p "$WORK_DIR"
 
 step_setup() {
     local this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    source "$this_dir"/setup-ubuntu.sh
+    source "$this_dir"/chainerx/setup-ubuntu.sh
 }
 
 
 step_setup_conda() {
     local this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    source "$this_dir"/setup-conda.sh "$DOWNLOAD_DIR"/conda "$CONDA_DIR"
+    source "$this_dir"/chainerx/setup-conda.sh "$DOWNLOAD_DIR"/conda "$CONDA_DIR"
 
     echo 'PATH="$CONDA_DIR"/bin:"$PATH"' >> "$CHAINERX_CI_BASH_ENV"
 }

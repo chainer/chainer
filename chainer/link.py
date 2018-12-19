@@ -671,13 +671,11 @@ device.
         # type: () -> None
         """Initializes all gradient arrays by zero.
 
-        This method can be used for the same purpose of cleargrads, but less
-        efficient. This method is left for backward compatibility.
-
-        .. deprecated:: v1.15
-           Use :meth:`cleargrads` instead.
+         .. deprecated:: v1.15
+            Use the more efficient :meth:`cleargrads` instead.
 
         """
+
         warnings.warn(
             'Link.zerograds is deprecated. Use Link.cleargrads instead.',
             DeprecationWarning)

@@ -56,8 +56,8 @@ TEST_THREAD_SAFE_P(ConnectionTest, Conv2d) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
@@ -97,8 +97,8 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvNd) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<double>(-x_shape.GetTotalSize() / 2, 1.0).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<double>(-w_shape.GetTotalSize() / 2, 1.0);
+    Array x = testing::BuildArray(x_shape).WithLinearData<double>(-x_shape.GetTotalSize() / 2.0f, 1.0).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<double>(-w_shape.GetTotalSize() / 2.0f, 1.0);
     Array b = testing::BuildArray(b_shape).WithData<double>({-0.2, 1.3});
 
     Array e = testing::BuildArray(out_shape).WithData<double>(
@@ -138,8 +138,8 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvCoverAll) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     Array e =
@@ -186,8 +186,8 @@ TEST_P(ConnectionTest, ConvBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
@@ -234,8 +234,8 @@ TEST_P(ConnectionTest, ConvCoverAllBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
@@ -278,8 +278,8 @@ TEST_P(ConnectionTest, ConvDoubleBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
@@ -332,8 +332,8 @@ TEST_P(ConnectionTest, ConvCoverAllDoubleBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
@@ -381,8 +381,8 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvTranspose) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
@@ -452,8 +452,8 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvTransposeOutSize) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
@@ -522,8 +522,8 @@ TEST_P(ConnectionTest, ConvTransposeBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
@@ -565,8 +565,8 @@ TEST_P(ConnectionTest, ConvTransposeDoubleBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
-    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f)).RequireGrad();
     Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
