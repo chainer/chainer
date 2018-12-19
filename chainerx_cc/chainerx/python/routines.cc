@@ -61,7 +61,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape info_shape{info.shape.begin(), info.shape.end()};
     Strides info_strides{info.strides.begin(), info.strides.end()};
 
-    if (!internal::IsContiguous(info_shape, info_strides, info.itemsize)) {
+    if (!internal::IsContiguous(Shape{info.shape.begin(), info.shape.end()}, Strides{info.strides.begin(), info.strides.end()}, info.itemsize)) {
         throw ChainerxError{"ndarray is not C-contiguous"};
     }
 
