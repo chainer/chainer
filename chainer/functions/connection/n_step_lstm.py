@@ -17,7 +17,7 @@ if cuda.cudnn_enabled:
 
 
 def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    # TODO(unno): Input of the current LSTM implementation is shuffled
     w = stack.stack(ws, axis=1)
     shape = w.shape
     return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
