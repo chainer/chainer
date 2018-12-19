@@ -87,6 +87,7 @@ class ManualScheduleTrigger(object):
         return fire
 
     def serialize(self, serializer):
+        self.finished = serializer('finished', self.finished)
         try:
             self._previous_iteration = serializer(
                 'previous_iteration', self._previous_iteration)
