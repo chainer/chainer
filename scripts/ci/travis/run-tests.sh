@@ -20,6 +20,7 @@ esac
 # Assign default values
 : "${MATRIX_EVAL:=}"
 : "${SKIP_CHAINERX:=0}"
+: "${SKIP_CHAINERMN:=0}"
 : "${CHAINER_TEST_STATUS:=0}"
 
 REPO_DIR="$TRAVIS_BUILD_DIR"
@@ -29,6 +30,7 @@ mkdir -p "$WORK_DIR"
 # Env script which is sourced before each step
 CHAINER_BASH_ENV="$WORK_DIR"/_chainer_bash_env
 touch "$CHAINER_BASH_ENV"
+source "$CHAINER_BASH_ENV"
 
 export REPO_DIR
 export WORK_DIR
@@ -88,7 +90,19 @@ case "${CHAINER_TRAVIS_TEST}" in
             before_install)
                 eval "${MATRIX_EVAL}"
                 run_prestep before_install_chainer_test
-                run_prestep before_install_chainermn_test_deps
+
+                if [[ $SKIP_CHAINERMN != 1 ]]; then
+                    run_prestep before_install_chainermn_test_deps
+                fi
+
+                if [[ $TRAVIS_OS_NAME == "windows" ]]; then
+                    choco install python3
+
+                    export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+                    echo 'export PATH="/c/Python37:/c/Python37/Scripts:$PATH"' >> $CHAINER_BASH_ENV
+
+                    python -m pip install -U pip
+                fi
                 ;;
 
             install)
@@ -96,14 +110,20 @@ case "${CHAINER_TRAVIS_TEST}" in
 
                 run_prestep install_chainer_test_deps
                 run_prestep install_chainer_docs_deps
-                run_prestep install_chainermn_test_deps
+
+                if [[ $SKIP_CHAINERMN != 1 ]]; then
+                    run_prestep install_chainermn_test_deps
+                fi
 
                 run_prestep chainer_install_from_sdist
                 ;;
 
             script)
                 run_step chainer_tests
-                run_step chainermn_tests
+
+                if [[ $SKIP_CHAINERMN != 1 ]]; then
+                    run_step chainermn_tests
+                fi
 
                 if [[ $SKIP_CHAINERX != 1 ]]; then
                     CHAINER_DOCS_SKIP_LINKCODE=1 \
