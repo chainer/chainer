@@ -61,7 +61,8 @@ class ManualScheduleTrigger(object):
                 previous_epoch_detail < p <= epoch_detail
                 for p in self.points)
 
-            if fire and epoch_detail >= max(self.points):
+            if (fire or hasattr(self, '_finished_is_tmp')) and \
+               epoch_detail >= max(self.points):
                 self.finished = True
         else:
             iteration = updater.iteration
@@ -76,7 +77,8 @@ class ManualScheduleTrigger(object):
                 previous_iteration < p <= iteration
                 for p in self.points)
 
-            if fire and iteration >= max(self.points):
+            if (fire or hasattr(self, '_finished_is_tmp')) and \
+               iteration >= max(self.points):
                 self.finished = True
 
         # save current values
@@ -87,7 +89,6 @@ class ManualScheduleTrigger(object):
         return fire
 
     def serialize(self, serializer):
-        self.finished = serializer('finished', self.finished)
         try:
             self._previous_iteration = serializer(
                 'previous_iteration', self._previous_iteration)
@@ -112,3 +113,14 @@ class ManualScheduleTrigger(object):
                 'it may not work correctly.')
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
+
+        try:
+            self.finished = serializer('finished', self.finished)
+        except KeyError:
+            warnings.warn(
+                'The flag of finished is not saved.'
+                'ManualScheduleTrigger set the flag to `False` to force'
+                'initialization and reset in next `__call__`.')
+            # set False to force initialization.
+            self.finished = False
+            self._finished_is_tmp = True
