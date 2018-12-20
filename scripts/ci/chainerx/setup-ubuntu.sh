@@ -6,7 +6,7 @@ apt-get update
 pkgs=(
     git
     cmake
-    g++-5 clang-3.9
+    g++-8 clang-3.9
     clang-tidy-5.0 clang-6.0 clang-format-6.0
     python3-dev
     wget
