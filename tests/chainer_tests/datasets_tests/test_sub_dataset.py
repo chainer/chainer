@@ -52,7 +52,7 @@ class TestSplitDataset(unittest.TestCase):
         with self.assertRaises(ValueError):
             datasets.split_dataset(original, -1)
         with self.assertRaises(ValueError):
-            datasets.split_dataset(original, 5)
+            datasets.split_dataset(original, 6)
 
     def test_split_dataset_invalid_type(self):
         original = [1, 2, 3, 4, 5]
