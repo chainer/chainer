@@ -149,8 +149,8 @@ class FunctionNode(object):
     _supports_static_optimizations = False
     # True if the function node is operating on ChainerX arrays and it falls
     # back to NumPy/CuPy implementation.
-    _is_chainerx_fallback = False
-    # chainerx.Device instance if _is_chainerx_fallback == True
+    _is_chainex_fallback_mode = False
+    # chainerx.Device instance if _is_chainex_fallback_mode == True
     chainerx_device = None
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
@@ -193,7 +193,7 @@ class FunctionNode(object):
         instead.
 
         """
-        if self._is_chainerx_fallback:
+        if self._is_chainex_fallback_mode:
             retained_output_data = [
                 var.array for var in self._chainerx_retained_outputs]
         else:
@@ -280,7 +280,7 @@ Use apply() method instead.\
             # Fall back to FunctionNode.forward()
             chainerx_in_data, in_data, chainerx_device = (
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
-            self._is_chainerx_fallback = True
+            self._is_chainex_fallback_mode = True
             self.chainerx_device = chainerx_device
 
         utils._check_arrays_forward_compatible(in_data, self.label)
@@ -308,7 +308,7 @@ Use apply() method instead.\
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
                 outputs = static_forward_optimizations(self, in_data)
-            elif self._is_chainerx_fallback:
+            elif self._is_chainex_fallback_mode:
                 # In ChainerX fallback, __class__ is temporarily replaced with
                 # the fabricated one with automatic attirbute fallback.
                 with _chainerx_attribute_fallback(self, chainerx_device):
@@ -344,7 +344,7 @@ Use apply() method instead.\
 
         self._output_count = len(outputs)
 
-        if self._is_chainerx_fallback:
+        if self._is_chainex_fallback_mode:
             ret = self._chainerx_apply_fallback_postprocess(
                 chainerx_in_data, inputs, outputs)
 
@@ -699,7 +699,7 @@ Use apply() method instead.\
                            retained_inputs, retained_outputs):
         # Backward wrapper that is called from C++ via a Python binding in case
         # self.apply was called with chainerx.ndarrays.
-        assert self._is_chainerx_fallback
+        assert self._is_chainex_fallback_mode
         assert len(target_input_indexes) > 0
         assert (
             (self._input_indexes_to_retain is None
@@ -785,7 +785,7 @@ Use apply() method instead.\
             return `None`.
 
         """
-        if self._is_chainerx_fallback:
+        if self._is_chainex_fallback_mode:
             return self._chainerx_retained_inputs
 
         if self._input_indexes_to_retain is None or self.inputs is None:
@@ -817,7 +817,7 @@ Use apply() method instead.\
            node of the function node.
 
         """
-        if self._is_chainerx_fallback:
+        if self._is_chainex_fallback_mode:
             return self._chainerx_retained_outputs
 
         if self._output_indexes_to_retain is None or self.outputs is None:
