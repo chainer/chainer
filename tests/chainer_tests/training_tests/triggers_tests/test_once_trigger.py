@@ -12,35 +12,41 @@ from chainer.testing import condition
 from chainer import training
 
 
-def get_expected(num, periods=[0]):
-    return [i in periods for i in six.moves.range(num)]
+def get_expected(num, call_on_first=True):
+    return [i == 0 and call_on_first for i in six.moves.range(num)]
 
 
 @testing.parameterize(
     # basic
     {
         'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4,
-        'expected': get_expected(7)},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, False)},
     # call on resume
     {
         'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,
-        'expected': get_expected(7, [0, 4])},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, True)},
     # unaligned epoch
     {
         'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3,
-        'expected': get_expected(7)},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, False)},
     # unaligned epoch, call on resume
     {
         'iter_per_epoch': 2.5, 'call_on_resume': True, 'resume': 3,
-        'expected': get_expected(7, [0, 3])},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, True)},
     # tiny epoch
     {
         'iter_per_epoch': 0.5, 'call_on_resume': False, 'resume': 4,
-        'expected': get_expected(7)},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, False)},
     # tiny epoch, call on resume
     {
         'iter_per_epoch': 0.5, 'call_on_resume': True, 'resume': 4,
-        'expected': get_expected(7, [0, 4])},
+        'expected': get_expected(7),
+        'expected_resume': get_expected(7, True)},
 )
 class TestOnceTrigger(unittest.TestCase):
 
@@ -57,14 +63,14 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected in self.expected[:self.resume]:
+            for expected in self.expected:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
             serializers.save_npz(f.name, trigger)
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected in self.expected[self.resume:]:
+            for expected in self.expected_resume:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
 
@@ -88,7 +94,7 @@ class TestOnceTrigger(unittest.TestCase):
         accumulated = False
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected in self.expected[:self.resume]:
+            for expected in self.expected:
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
@@ -98,7 +104,7 @@ class TestOnceTrigger(unittest.TestCase):
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected in self.expected[self.resume:]:
+            for expected in self.expected_resume:
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
@@ -110,7 +116,7 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected in self.expected[:self.resume]:
+            for expected in self.expected:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
             # old version does not save anything
@@ -119,7 +125,7 @@ class TestOnceTrigger(unittest.TestCase):
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             with testing.assert_warns(UserWarning):
                 serializers.load_npz(f.name, trigger)
-            for expected in self.expected[self.resume:]:
+            for expected in self.expected_resume:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
 
