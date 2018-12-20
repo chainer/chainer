@@ -33,4 +33,5 @@ class OnceTrigger(object):
                 'The flag is not saved.'
                 'OnceTrigger guess it is not first when resumed.'
                 'If this trigger is resumed before first called,'
-                'it may not work correctly.'')
+                'it may not work correctly.')
+            self._flag_first = self._flag_resumed
