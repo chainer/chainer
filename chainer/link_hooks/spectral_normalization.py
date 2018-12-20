@@ -72,16 +72,19 @@ class SpectralNormalization(link_hook.LinkHook):
 
     This hook normalizes a weight using max singular value and this value
     is computed via power iteration method. Currently, this hook is supposed to
-    be added to :func:`chainer.links.Linear`, :func:`chainer.links.EmbedID`,
-    :func:`chainer.links.Convolution2D`, :func:`chainer.links.ConvolutionND`,
-    :func:`chainer.links.Deconvolution2D`,
-    and :func:`chainer.links.DeconvolutionND`. However, you can use this to
+    be added to :class:`chainer.links.Linear`, :class:`chainer.links.EmbedID`,
+    :class:`chainer.links.Convolution2D`, :class:`chainer.links.ConvolutionND`,
+    :class:`chainer.links.Deconvolution2D`,
+    and :class:`chainer.links.DeconvolutionND`. However, you can use this to
     other links like RNNs by specifying ``weight_name``.
+    It is highly recommended to add this hook before optimizer setup because
+    this hook add a scaling parameter ``gamma`` if ``use_gamma`` is True.
+    Otherwise, the registered ``gamma` will not be updated.
 
     .. math::
 
-       \mathbf{W} &:=& \dfrac{\mathbf{W}}{\sigma(\mathbf{W})} \\
-       \text{where,} \ \sigma(\mathbf{W}) &:=&
+       \bar{\mathbf{W}} &=& \dfrac{\mathbf{W}}{\sigma(\mathbf{W})} \\
+       \text{, where} \ \sigma(\mathbf{W}) &:=&
         \max_{\mathbf{h}: \mathbf{h} \ne 0}
        \dfrac{\|\mathbf{W} \mathbf{h}\|_2}{\|\mathbf{h}\|_2}
         = \max_{\|\mathbf{h}\|_2 \le 1} \|\mathbf{W}\mathbf{h}\|_2
@@ -99,9 +102,9 @@ class SpectralNormalization(link_hook.LinkHook):
         factor (float, None): Scaling parameter to divide maximum singular
             value.  The default value is 1.0.
         weight_name (str): Link's weight name to apply this hook. The default
-            value is 'W'.
+            value is ``'W'``.
         name (str or None): Name of this hook. The default value is
-            'SpectralNormalization'.
+            ``'SpectralNormalization'``.
 
     Attributes:
         vector_name (str): Name of the approximate first left singular vector
@@ -243,7 +246,7 @@ class SpectralNormalization(link_hook.LinkHook):
         if self.factor is not None:
             sigma /= self.factor
         if self.use_gamma:
-            W = F.broadcast_to(link.gamma, W.shape) * W / sigma
+            W = link.gamma * W / sigma
         else:
             W = W / sigma
         if not configuration.config.in_recomputing:
