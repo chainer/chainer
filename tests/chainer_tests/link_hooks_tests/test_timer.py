@@ -1,3 +1,4 @@
+import math
 import re
 import unittest
 
@@ -31,6 +32,8 @@ class TestTimerHook(unittest.TestCase):
 
     def check_forward(self, xp):
         link = MyModel()
+        if xp is not numpy:
+            link = link.to_gpu()
         hook = link_hooks.TimerHook()
 
         with hook:
@@ -51,22 +54,22 @@ class TestTimerHook(unittest.TestCase):
         # summary
         summary = hook.summary()
         assert sorted(summary.keys()) == ['Linear', 'MyModel']
-        assert summary['Linear'] == {
-            'occurrence': 4,
-            'elapsed_time': times[0] + times[1] + times[3] + times[4]}
-        assert summary['MyModel'] == {
-            'occurrence': 2,
-            'elapsed_time': times[2] + times[5]}
-        summary['Linear']
+        assert summary['Linear']['occurrence'] == 4
+        assert math.isclose(
+            summary['Linear']['elapsed_time'],
+            times[0] + times[1] + times[3] + times[4])
+        assert summary['MyModel']['occurrence'] == 2
+        assert math.isclose(
+            summary['MyModel']['elapsed_time'],
+            times[2] + times[5])
 
         # print_report
         s = six.io.StringIO()
         hook.print_report(file=s)
-        report = s.getvalue().split('\n')
-        assert len(report) == 4
-        assert re.match(r' +Linear +[.0-9a-z]+ +4$', report[1])
-        assert re.match(r' +MyModel +[.0-9a-z]+ +2$', report[2])
-        assert len(report[3]) == 0
+        report = s.getvalue().splitlines()
+        assert len(report) == 3
+        assert re.match(r' +Linear +[.0-9a-z]+ +4$', report[1]) is not None
+        assert re.match(r' MyModel +[.0-9a-z]+ +2$', report[2]) is not None
 
     def test_forward_cpu(self):
         self.check_forward(numpy)
