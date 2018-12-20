@@ -86,14 +86,10 @@ if available:
     # with the CUDA backend.
     if chainerx.is_available():
         try:
-            chx_backend = chainerx.get_backend('cuda')
-            memory_pools = [
-                chainerx.cuda.get_memory_pool(device_id) for device_id in
-                range(chx_backend.get_device_count())]
-            malloc, free = chainerx.cuda.get_memory_pool_malloc_free()
-            external_memory_pool = cupy.cuda.memory.ExternalMemoryPool(
-                memory_pools, malloc, free)
-            cupy.cuda.set_allocator(external_memory_pool.malloc)
+            memory_pool = cupy.cuda.memory.ExternalMemoryPool(
+                chainerx.cuda.get_memory_pools(),
+                *chainerx.cuda.get_memory_pool_malloc_free())
+            cupy.cuda.set_allocator(memory_pool.malloc)
         except chainerx.BackendError:
             pass
 
