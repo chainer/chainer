@@ -296,7 +296,7 @@ class AsStridedGrad(FunctionNode):
             raise TypeError('Only float is supported for back propagation')
 
         xp = cuda.get_array_module(gy)
-        input_geometry: TensorGeometry = self.input_geometry
+        input_geometry = self.input_geometry
         itemsize = input_geometry.itemsize
 
         if 0 in input_geometry.shape:
