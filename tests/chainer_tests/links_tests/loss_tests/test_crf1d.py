@@ -101,15 +101,9 @@ class TestInitialization(unittest.TestCase):
         link = self.link
         dtype = self.dtype
         assert link.cost.dtype == dtype
-
-        if self.initializer is None:
-            cost = numpy.empty(
-                (self.n_label, self.n_label), dtype=self.dtype)
-            testing.assert_allclose(cost, link.cost.array, atol=0, rtol=0)
-
-        elif self.initializer == 'random':
-            testing.assert_allclose(link.cost.array, self.initial_cost,
-                                    atol=0, rtol=0)
+        testing.assert_allclose(link.cost.array,
+                                self.initial_cost,
+                                atol=0, rtol=0)
 
     def test_param_cpu(self):
         self.check_param()
