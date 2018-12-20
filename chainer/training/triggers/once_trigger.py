@@ -16,7 +16,7 @@ class OnceTrigger(object):
         self._flag_first = True
         self._flag_resumed = call_on_resume
 
-    def trigger(self, trainer):
+    def __call__(self, trainer):
         flag = self._flag_first or self._flag_resumed
         self._flag_resumed = False
         self._flag_first = False
