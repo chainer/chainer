@@ -1,3 +1,4 @@
+import collections
 import sys
 import time
 
@@ -98,7 +99,7 @@ class TimerHook(link_hook.LinkHook):
             A summarized dictionary whose keys are link names and
             values are dictionaries of `elapsed_time` and `occurrence`.
         """
-        summary = {}
+        summary = collections.OrderedDict()
         for link_name, elapsed_time in self.call_history:
             if link_name not in summary:
                 summary[link_name] = {'elapsed_time': 0, 'occurrence': 0}
