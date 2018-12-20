@@ -47,6 +47,18 @@ class TestSplitDataset(unittest.TestCase):
         self.assertEqual(subset2[1], 4)
         self.assertEqual(subset2[2], 5)
 
+    def test_split_dataset_head(self):
+        original = [1, 2, 3, 4, 5]
+        subset1, subset2 = datasets.split_dataset(original, 0)
+        self.assertEqual(len(subset1), 0)
+        self.assertEqual(len(subset2), 5)
+
+    def test_split_dataset_tail(self):
+        original = [1, 2, 3, 4, 5]
+        subset1, subset2 = datasets.split_dataset(original, 5)
+        self.assertEqual(len(subset1), 5)
+        self.assertEqual(len(subset2), 0)
+
     def test_split_dataset_invalid_position(self):
         original = [1, 2, 3, 4, 5]
         with self.assertRaises(ValueError):
