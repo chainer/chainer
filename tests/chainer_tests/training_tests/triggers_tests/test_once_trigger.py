@@ -12,31 +12,35 @@ from chainer.testing import condition
 from chainer import training
 
 
-def get_expected(num):
-    return [i == 0 for i in six.moves.range(num)]
+def get_expected(num, periods=[0]):
+    return [i in periods for i in six.moves.range(num)]
 
 
 @testing.parameterize(
-    # iteration
+    # basic
     {
-        'iter_per_epoch': 5, 'interval': (2, 'iteration'), 'resume': 4,
+        'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4,
         'expected': get_expected(7)},
-    # basic epoch
+    # call on resume
     {
-        'iter_per_epoch': 1, 'interval': (3, 'epoch'), 'resume': 4,
-        'expected': get_expected(7)},
-    # fractional epoch
-    {
-        'iter_per_epoch': 2, 'interval': (1.5, 'epoch'), 'resume': 4,
-        'expected': get_expected(7)},
+        'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,
+        'expected': get_expected(7, [0, 4])},
     # unaligned epoch
     {
-        'iter_per_epoch': 2.5, 'interval': (1, 'epoch'), 'resume': 3,
+        'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3,
         'expected': get_expected(7)},
+    # unaligned epoch, call on resume
+    {
+        'iter_per_epoch': 2.5, 'call_on_resume': True, 'resume': 3,
+        'expected': get_expected(7, [0, 3])},
     # tiny epoch
     {
-        'iter_per_epoch': 0.5, 'interval': (1, 'epoch'), 'resume': 4,
+        'iter_per_epoch': 0.5, 'call_on_resume': False, 'resume': 4,
         'expected': get_expected(7)},
+    # tiny epoch, call on resume
+    {
+        'iter_per_epoch': 0.5, 'call_on_resume': True, 'resume': 4,
+        'expected': get_expected(7, [0, 4])},
 )
 class TestOnceTrigger(unittest.TestCase):
 
