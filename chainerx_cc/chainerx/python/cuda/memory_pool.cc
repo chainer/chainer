@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include <pybind11/functional.h>
@@ -12,6 +13,7 @@
 #include "chainerx/device.h"
 
 #include "chainerx/python/common.h"
+#include "chainerx/python/context.h"
 #include "chainerx/python/device.h"
 
 namespace chainerx {
@@ -21,35 +23,34 @@ namespace cuda_internal {
 
 namespace py = pybind11;  // standard convention
 
+using CudaDevice = chainerx::cuda::CudaDevice;
+using MemoryPool = chainerx::cuda::MemoryPool;
+
+void* Malloc(void* memory_pool_ptr, size_t bytesize) {
+    return reinterpret_cast<MemoryPool*>(memory_pool_ptr)->Malloc(bytesize);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+}
+
+void Free(void* memory_pool_ptr, void* ptr) {
+    reinterpret_cast<MemoryPool*>(memory_pool_ptr)->Free(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+}
+
+intptr_t GetMemoryPool(CudaDevice& device) {
+    return reinterpret_cast<intptr_t>(device.device_memory_pool().get());  // NOLINT(cppcoreguidelines-cppcoreguidelines);
+}
+
+std::pair<intptr_t, intptr_t> GetMallocFree() {
+    return std::make_pair(reinterpret_cast<intptr_t>(&Malloc), reinterpret_cast<intptr_t>(&Free)); // NOLINT(cppcoreguidelines-cppcoreguidelines);
+}
+
 void InitChainerxMemoryPool(py::module& m) {
-    m.def("get_memory_pool_malloc",
-          [](py::handle device) -> std::function<intptr_t(size_t)> {
-              Device& actual_device = chainerx::python::python_internal::GetDevice(device);
-
-              std::function<void*(size_t)> malloc = std::bind(
-                      &chainerx::cuda::MemoryPool::Malloc,
-                      dynamic_cast<chainerx::cuda::CudaDevice*>(&actual_device)->device_memory_pool().get(),
-                      std::placeholders::_1);
-
-              return [malloc = std::move(malloc)](size_t bytesize) {
-                  return reinterpret_cast<intptr_t>(malloc(bytesize));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-              };
+    m.def("get_memory_pool",
+          [](size_t device_id) -> intptr_t {
+              Device& device = GetBackend("cuda").GetDevice(device_id);
+              CudaDevice* cuda_device = dynamic_cast<CudaDevice*>(&device);
+              return GetMemoryPool(*cuda_device);
           },
-          py::arg("device"));
-    m.def("get_memory_pool_free",
-          [](py::handle device) -> std::function<void(intptr_t)> {
-              Device& actual_device = chainerx::python::python_internal::GetDevice(device);
-
-              std::function<void(void*)> free = std::bind(
-                      &chainerx::cuda::MemoryPool::Free,
-                      dynamic_cast<chainerx::cuda::CudaDevice*>(&actual_device)->device_memory_pool().get(),
-                      std::placeholders::_1);
-
-              return [free = std::move(free)](intptr_t ptr) {
-                  free(reinterpret_cast<void*>(ptr));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-              };
-          },
-          py::arg("device"));
+          py::arg("device_id"));
+    m.def("get_memory_pool_malloc_free", []() -> std::pair<intptr_t, intptr_t> { return GetMallocFree(); });
 }
 
 }  // namespace cuda_internal
