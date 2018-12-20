@@ -20,32 +20,56 @@ def get_expected(num, call_on_first=True):
     # basic
     {
         'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, False)},
     # call on resume
     {
         'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, True)},
     # unaligned epoch
     {
         'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, False)},
     # unaligned epoch, call on resume
     {
         'iter_per_epoch': 2.5, 'call_on_resume': True, 'resume': 3,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, True)},
     # tiny epoch
     {
         'iter_per_epoch': 0.5, 'call_on_resume': False, 'resume': 4,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, False)},
     # tiny epoch, call on resume
     {
         'iter_per_epoch': 0.5, 'call_on_resume': True, 'resume': 4,
+<<<<<<< HEAD
         'expected': get_expected(7),
+=======
+        'expected': get_expected(7, False),
+>>>>>>> 58b2f9571e88fee92d545b8d1623d836c78170b1
         'expected_resume': get_expected(7, True)},
 )
 class TestOnceTrigger(unittest.TestCase):
