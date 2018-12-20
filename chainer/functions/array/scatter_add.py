@@ -28,7 +28,7 @@ class ScatterAdd(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         n_nones = len([item for item in self.slices if item is None])
         valid_slice = len(self.slices) - n_nones
         type_check.expect(in_types[0].ndim >= valid_slice)
@@ -68,13 +68,14 @@ def scatter_add(a, slices, b):
     The value of the original ``a`` is not changed.
 
     Args:
-        a (~chainer.Variable): A variable.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): A variable.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
             It is an integer, a slice, an ellipsis,
             a numpy.newaxis, an integer array-like, a boolean array-like
             or tuple of them.
-        b (~chainer.Variable): A variable that is scatter added to ``a``.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable that is scatter added to ``a``.
             Its shape has to equal ``a[slices]`` because broadcasting
             of variables is not supported.
 

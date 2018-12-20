@@ -14,7 +14,7 @@ class R2_score(function.Function):
             raise ValueError("invalid multioutput argument")
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('pred', 'true'))
+        type_check._argname(in_types, ('pred', 'true'))
         pred_type, true_type = in_types
 
         type_check.expect(
@@ -36,7 +36,8 @@ class R2_score(function.Function):
         SS_tot_iszero = SS_tot == 0
         SS_tot[SS_tot_iszero] = 1  # Assign dummy value to avoid zero-division
         ret = xp.where(
-            SS_tot_iszero, 0.0, 1 - SS_res / SS_tot).astype(pred.dtype)
+            SS_tot_iszero, 0.0, 1 - SS_res / SS_tot
+        ).astype(pred.dtype, copy=False)
         if self.multioutput == 'uniform_average':
             return xp.asarray(ret.mean()),
         elif self.multioutput == 'raw_values':

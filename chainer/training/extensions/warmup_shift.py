@@ -5,7 +5,9 @@ from chainer.training import extension
 
 class WarmupShift(extension.Extension):
 
-    """Trainer extension to change an optimizer attribute evenly at the
+    """Trainer extension to gradually initialize an optimizer attribute.
+
+    This extension changes an optimizer attribute evenly at the
     begining of one training.
 
     For example, suppose that this extension is called at every iteration,

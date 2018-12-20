@@ -213,7 +213,7 @@ def upsampling_2d(
         ...     pooled_x, indexes, ksize=2, stride=2, outsize=x.shape[2:])
         >>> upsampled_x.shape
         (1, 1, 6, 6)
-        >>> upsampled_x.data
+        >>> upsampled_x.array
         array([[[[ 0.,  0.,  0.,  0.,  0.,  0.],
                  [ 0.,  8.,  0., 10.,  0., 12.],
                  [ 0.,  0.,  0.,  0.,  0.,  0.],

@@ -1,9 +1,10 @@
+import math
+
 import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
-import math
 
 LOGPROBC = - 0.5 * math.log(2 * math.pi)
 
@@ -19,10 +20,10 @@ class LogNormal(distribution.Distribution):
             \\exp\\left(-\\frac{(\\log{x}-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        mu(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\mu`.
-        sigma(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\sigma`.
+        mu(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\mu`.
+        sigma(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\sigma`.
     """
 
     def __init__(self, mu, sigma):

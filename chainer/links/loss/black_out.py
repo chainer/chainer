@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer.functions.loss import black_out
 from chainer import link
@@ -35,16 +36,16 @@ class BlackOut(link.Link):
         with self.init_scope():
             self.W = variable.Parameter(shape=(vocab_size, in_size))
 
-    def to_cpu(self):
-        super(BlackOut, self).to_cpu()
-        self.sampler.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(BlackOut, self).to_gpu()
-            self.sampler.to_gpu()
-        return self
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        if not (skip_between_cupy_devices
+                and device.xp is cuda.cupy
+                and isinstance(self.sampler, cuda.ndarray)):
+            self.sampler.to_device(device)
+        return super(BlackOut, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
 
     def forward(self, x, t):
         """Computes the loss value for given input and ground truth labels.
@@ -65,5 +66,5 @@ class BlackOut(link.Link):
         else:
             shape = (batch_size, self.sample_size)
             sample_data = self.sampler.sample(shape)
-        samples = variable.Variable(sample_data)
+        samples = variable.Variable(sample_data, requires_grad=False)
         return black_out.black_out(x, t, self.W, samples)

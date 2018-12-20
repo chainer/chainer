@@ -19,7 +19,7 @@ def out_generated_image(gen, dis, rows, cols, seed, dst):
         z = Variable(xp.asarray(gen.make_hidden(n_images)))
         with chainer.using_config('train', False):
             x = gen(z)
-        x = chainer.cuda.to_cpu(x.data)
+        x = chainer.cuda.to_cpu(x.array)
         np.random.seed()
 
         x = np.asarray(np.clip(x * 255, 0.0, 255.0), dtype=np.uint8)

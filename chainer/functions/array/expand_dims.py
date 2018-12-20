@@ -12,7 +12,7 @@ class ExpandDims(function_node.FunctionNode):
         self.axis = int(axis)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         if self.axis >= 0:
             type_check.expect(x_type.ndim >= self.axis)
@@ -33,8 +33,7 @@ def expand_dims(x, axis):
     """Expands dimensions of an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         axis (int):
             Position where new axis is to be inserted. The ``axis`` parameter
             is acceptable when :math:`-ndim - 1 \\leq axis \\leq ndim`.
@@ -54,19 +53,19 @@ def expand_dims(x, axis):
         >>> y = F.expand_dims(x, axis=0)
         >>> y.shape
         (1, 3)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 3]])
         >>> y = F.expand_dims(x, axis=1)
         >>> y.shape
         (3, 1)
-        >>> y.data
+        >>> y.array
         array([[1],
                [2],
                [3]])
         >>> y = F.expand_dims(x, axis=-2)
         >>> y.shape
         (1, 3)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 3]])
 
     """

@@ -60,7 +60,7 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
    >>> z.grad
    array([-1.], dtype=float32)
 
-All these computations are can be generalized to a multi-element array input.
+All these computations can be generalized to a multi-element array input.
 While single-element arrays are automatically initialized to ``[1]``, to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
 This is done simply by setting the :attr:`~chainer.Variable.grad` attribute of the output variable:
 

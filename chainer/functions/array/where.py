@@ -54,17 +54,14 @@ def where(condition, x, y):
     All ``condition``, ``x``, and ``y`` must have the same shape.
 
     Args:
-        condition (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        condition (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable containing the condition.
             A :math:`(s_1, s_2, ..., s_N)` -shaped boolean array.
             Only boolean array is permitted.
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable chosen when ``condition`` is ``True``.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable chosen when ``condition`` is ``False``.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 
@@ -79,7 +76,7 @@ def where(condition, x, y):
                [False,  True]])
         >>> x = np.array([[1, 2], [3, 4]], np.float32)
         >>> y = np.zeros((2, 2), np.float32)
-        >>> F.where(cond, x, y).data
+        >>> F.where(cond, x, y).array
         array([[1., 0.],
                [0., 4.]], dtype=float32)
 

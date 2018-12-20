@@ -2,6 +2,7 @@ import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Stack(function_node.FunctionNode):
@@ -34,6 +35,9 @@ class Stack(function_node.FunctionNode):
             return xp.concatenate(
                 [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
 
+    def forward_chainerx(self, xs):
+        return chainerx.stack(xs, self.axis),
+
     def backward(self, inputs, grads):
         return chainer.functions.separate(grads[0], self.axis)
 
@@ -42,8 +46,7 @@ def stack(xs, axis=0):
     """Concatenate variables along a new axis.
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same shape.
         axis (int): The axis along which the arrays will be stacked. The
@@ -80,7 +83,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=0)
         >>> y.shape
         (2, 3, 4)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1,  2,  3],
                 [ 4,  5,  6,  7],
                 [ 8,  9, 10, 11]],
@@ -91,7 +94,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=1)
         >>> y.shape
         (3, 2, 4)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1,  2,  3],
                 [12, 13, 14, 15]],
         <BLANKLINE>
@@ -103,7 +106,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=2)
         >>> y.shape
         (3, 4, 2)
-        >>> y.data
+        >>> y.array
         array([[[ 0, 12],
                 [ 1, 13],
                 [ 2, 14],

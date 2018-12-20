@@ -92,17 +92,17 @@ class TextClassifier(chainer.Chain):
 
         loss = F.softmax_cross_entropy(concat_outputs, concat_truths)
         accuracy = F.accuracy(concat_outputs, concat_truths)
-        reporter.report({'loss': loss.data}, self)
-        reporter.report({'accuracy': accuracy.data}, self)
+        reporter.report({'loss': loss}, self)
+        reporter.report({'accuracy': accuracy}, self)
         return loss
 
     def predict(self, xs, softmax=False, argmax=False):
         concat_encodings = F.dropout(self.encoder(xs), ratio=self.dropout)
         concat_outputs = self.output(concat_encodings)
         if softmax:
-            return F.softmax(concat_outputs).data
+            return F.softmax(concat_outputs).array
         elif argmax:
-            return self.xp.argmax(concat_outputs.data, axis=1)
+            return self.xp.argmax(concat_outputs.array, axis=1)
         else:
             return concat_outputs
 

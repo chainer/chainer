@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -26,12 +24,10 @@ class Uniform(distribution.Distribution):
           \\end{cases}
 
     Args:
-        low(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        lower bound :math:`l`.
-        high(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        higher bound :math:`h`.
+        low(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the lower bound :math:`l`.
+        high(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the higher bound :math:`h`.
     """
 
     def __init__(self, **kwargs):
@@ -100,8 +96,8 @@ class Uniform(distribution.Distribution):
             -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
-                (x.data >= self.low.data) & (x.data < self.high.data)),
-            logp, xp.full_like(logp.array, -numpy.inf))
+                (x.data >= self.low.data) & (x.data <= self.high.data)),
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
@@ -141,6 +137,6 @@ def _kl_uniform_uniform(dist1, dist2):
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.full_like(dist1.high.data, numpy.inf)
+    inf = xp.array(xp.inf, dist1.high.dtype)
 
     return where.where(is_inf, inf, kl)

@@ -20,11 +20,11 @@ def dump_graph(root_name, out_name='cg.dot',
     It only dumps a graph at the first invocation.
 
     .. note::
-       As of v2.0.0, the computational graph is not kept by default. This
+       The computational graph is not kept by default. This
        extension changes this behavior until the first invocation. **It is
        strongly recommended to use it with the default trigger setting.**
 
-       The detailed behavior of this extension since v2.0.0 is as follows.
+       The detailed behavior of this extension is as follows.
 
        1. In its initializer, it turns on the
           ``chainer.config.keep_graph_on_report`` flag.

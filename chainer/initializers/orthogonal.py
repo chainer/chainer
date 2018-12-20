@@ -2,6 +2,7 @@ import numpy
 
 from chainer import backend
 from chainer import initializer
+from chainer import utils
 
 
 # Original code forked from MIT licensed keras project
@@ -50,7 +51,7 @@ class Orthogonal(initializer.Initializer):
             raise ValueError('Array to be initialized must be non-empty.')
         else:
             # numpy.prod returns float value when the argument is empty.
-            flat_shape = (len(array), int(numpy.prod(array.shape[1:])))
+            flat_shape = (len(array), utils.size_of_shape(array.shape[1:]))
             if flat_shape[0] > flat_shape[1]:
                 raise ValueError('Cannot make orthogonal system because'
                                  ' # of vectors ({}) is larger than'

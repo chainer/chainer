@@ -121,7 +121,7 @@ def main():
     # Datasets of worker 0 and 1 are split and distributed to all workers.
     if model_axis == 0:
         train, test = chainer.datasets.get_mnist()
-        if comm.rank == 1:
+        if data_axis == 1:
             train = chainermn.datasets.create_empty_dataset(train)
             test = chainermn.datasets.create_empty_dataset(test)
     else:

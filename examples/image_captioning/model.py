@@ -137,7 +137,7 @@ class LSTMLanguageModel(chainer.Chain):
             # sequence
             x = Variable(self.xp.asarray(captions[:, i]))
             t = Variable(self.xp.asarray(captions[:, i + 1]))
-            if (t.data == self.embed_word.ignore_label).all():
+            if (t.array == self.embed_word.ignore_label).all():
                 # Preprocessed captions are padded to reach a maximum length.
                 # Often, you want to set the `ignore_label` to this padding.
                 # If all targets are simply paddings, predictions are no longer
@@ -157,7 +157,7 @@ class LSTMLanguageModel(chainer.Chain):
         for _ in range(max_caption_length):
             x = Variable(captions[:, -1])  # Previous word token as input
             y = self.step(x)
-            pred = y.data.argmax(axis=1).astype(np.int32)
+            pred = y.array.argmax(axis=1).astype(np.int32)
             captions = self.xp.hstack((captions, pred[:, None]))
             if (pred == eos).all():
                 break
@@ -251,7 +251,7 @@ class NStepLSTMLanguageModel(chainer.Chain):
             #
             # Note that this is a greedy approach and that it can by replaced
             # by e.g. beam search
-            pred = ys.data.argmax(axis=1).astype(np.int32)
+            pred = ys.array.argmax(axis=1).astype(np.int32)
             captions = self.xp.hstack((captions, pred[:, None]))
 
             if (pred == eos).all():

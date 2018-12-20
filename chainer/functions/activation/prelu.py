@@ -25,7 +25,7 @@ class PReLUFunction(function_node.FunctionNode):
     """Parametric Rectified Linear Unit function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'W'))
+        type_check._argname(in_types, ('x', 'W'))
         x_type, W_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -68,7 +68,7 @@ class PReLUFunctionGrad(function_node.FunctionNode):
         self.extended_shape = extended_shape
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'W', 'gy'))
+        type_check._argname(in_types, ('x', 'W', 'gy'))
         x_type, W_type, gy_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -162,9 +162,9 @@ def prelu(x, W):
     :math:`N` is an arbitrary non-negative integer.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
             Its first argument is assumed to be the minibatch dimension.
-        W (~chainer.Variable): Weight variable.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`): Weight variable.
 
     Returns:
         ~chainer.Variable: Output variable

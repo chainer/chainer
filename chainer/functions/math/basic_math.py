@@ -1,4 +1,7 @@
+import math
+
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -21,42 +24,49 @@ def _convert_value_to_string(value):
             return '({})'.format(value)
         else:
             return str(value)
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray)):
+
+    array_types = chainer.get_array_types()
+    if isinstance(value, array_types):
         return 'constant array'
     else:
         raise ValueError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            'or a `Variable`.\nActual: {}'.format(type(value)))
-
-
-def _check_constant_type(value):
-    if numpy.isscalar(value):
-        return
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray)):
-        return
-    else:
-        raise TypeError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            'or a `Variable`.\nActual: {}'.format(type(value)))
+            'Value must be a Variable, scalar, {} or {}. Actual: {}'.format(
+                ', '.join([str(at) for at in array_types[:-1]]),
+                array_types[-1], type(value)))
 
 
 def _preprocess_const(x, value):
-    xp = backend.get_array_module(x)
-    if not numpy.isscalar(value) and backend.get_array_module(value) != xp:
-        # TODO(unno): We can transfer arrays automatically
-        raise TypeError('Cannot mix cupy.ndarray and numpy.ndarray')
+    return x.dtype.type(value)
 
-    b = xp.broadcast(x, value)
-    if b.shape != x.shape:
-        raise ValueError('Failed to broadcast arrays')
-    return utils.force_type(x.dtype, value)
+
+def _chainerx_preprocess_const(x, value, label):
+    # Allow mixing of numpy/cupy array and chainerx array as long as
+    # conversion without copy is possible.
+    if isinstance(value, (numpy.ndarray, cuda.ndarray)):
+        # TODO(niboshi): force zero-copy
+        return backend.to_chainerx(value)
+
+    if isinstance(value, (six.integer_types, float)):
+        return value
+    if numpy.isscalar(value):
+        return numpy.asscalar(value)
+    if isinstance(value, variable.Variable):
+        value = variable.as_array(value)
+    utils._check_arrays_forward_compatible((x, value), label)
+    return value
 
 
 def _preprocess_rhs(x, value):
     if isinstance(value, chainer.Variable):
         return value
-    _check_constant_type(value)
-    return utils.force_type(x.dtype, value)
+
+    if not (numpy.isscalar(value)
+            or isinstance(value, chainer.get_array_types())):
+        raise TypeError(
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
+
+    return value.astype(x.dtype, copy=False)
 
 
 class Neg(function_node.FunctionNode):
@@ -66,7 +76,10 @@ class Neg(function_node.FunctionNode):
         return '__neg__'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
+
+    def forward_chainerx(self, x):
+        return -x[0],
 
     def forward(self, x):
         self.retain_inputs(())
@@ -92,7 +105,7 @@ class Absolute(function_node.FunctionNode):
         return '|_|'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -111,7 +124,7 @@ class AbsoluteGrad(function_node.FunctionNode):
         self.x = x
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -144,12 +157,15 @@ class Add(function_node.FunctionNode):
         return '_ + _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs'))
+        type_check._argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype == in_types[1].dtype,
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] + x[1],
 
     def forward(self, x):
         # may broadcast
@@ -171,8 +187,12 @@ class AddConstant(function_node.FunctionNode):
         return '_ + %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types.size() == 1)
+
+    def forward_chainerx(self, x):
+        value = _chainerx_preprocess_const(x[0], self.value, 'add')
+        return x[0] + value,
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -187,7 +207,7 @@ class MultiAdd(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         for i, in_type in enumerate(in_types):
-            type_check.argname((in_type,), ('x{}'.format(i),))
+            type_check._argname((in_type,), ('x{}'.format(i),))
             type_check.expect(in_types[0].dtype == in_type.dtype)
 
     def forward(self, xs):
@@ -215,6 +235,7 @@ class MultiAdd(function_node.FunctionNode):
                      for x_node in self.inputs)
 
 
+# TODO(hvy): Implement multi-add with chainerx.ndarrays.
 def add(*xs):  # lhs + rhs or add more than 2 variables
     """Element-wise addition.
 
@@ -238,10 +259,13 @@ class Sub(function_node.FunctionNode):
         return '_ - _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs'))
+        type_check._argname(in_types, ('lhs', 'rhs'))
         type_check.expect(in_types[0].dtype == in_types[1].dtype)
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] - x[1],
 
     def forward(self, x):
         # may broadcast
@@ -262,7 +286,6 @@ def sub(self, rhs):  # lhs - rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -279,7 +302,7 @@ class SubFromConstant(function_node.FunctionNode):
         return '%s - _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -309,13 +332,16 @@ class Mul(function_node.FunctionNode):
         return '_ * _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs'))
+        type_check._argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] * x[1],
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -340,7 +366,11 @@ class MulConstant(function_node.FunctionNode):
         return '_ * %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
+
+    def forward_chainerx(self, x):
+        value = _chainerx_preprocess_const(x[0], self.value, 'mul')
+        return x[0] * value,
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -357,7 +387,6 @@ def mul(self, rhs):  # lhs * rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -371,13 +400,16 @@ class Div(function_node.FunctionNode):
         return '_ / _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs'))
+        type_check._argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] / x[1],
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -453,13 +485,13 @@ def div(self, rhs):  # lhs / rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
     return Div().apply((self, rhs))[0]
 
 
+# TODO(sonots): Support chainerx
 class DivFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
@@ -470,7 +502,7 @@ class DivFromConstant(function_node.FunctionNode):
         return '%s / _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -521,7 +553,6 @@ def rdiv(self, rhs):  # rhs / lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -555,7 +586,7 @@ class PowVarVar(function_node.FunctionNode):
         return '_ ** _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs'))
+        type_check._argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -580,7 +611,7 @@ class PowVarVarGrad(function_node.FunctionNode):
         self.y = y
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('lhs', 'rhs', 'gy'))
+        type_check._argname(in_types, ('lhs', 'rhs', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -656,7 +687,7 @@ class PowVarConst(function_node.FunctionNode):
         return '_ ** %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -676,7 +707,7 @@ class PowVarConstGrad(function_node.FunctionNode):
         self.val = self.val_1 = None
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'gy'))
+        type_check._argname(in_types, ('x', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -743,7 +774,7 @@ class PowConstVar(function_node.FunctionNode):
         return '%s ** _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -761,9 +792,10 @@ class PowConstVarGrad(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
+        self.log_value = math.log(value)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('y', 'gy'))
+        type_check._argname(in_types, ('y', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -774,27 +806,24 @@ class PowConstVarGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
 
-        self.value = _preprocess_const(y, self.value)
-        gx = utils.force_array(
-            numpy.log(self.value, dtype=y.dtype) * y * gy)
+        gx = utils.force_array(y.dtype.type(self.log_value) * y * gy)
         return gx,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
         y, gy = inputs
 
-        self.value = _preprocess_const(y, self.value)
+        value = _preprocess_const(y, self.value)
         gx = cuda.elementwise(
             'T y, T gy, T value', 'T gx',
             'gx = log(value) * y * gy',
-            'pow_const_var_bwd')(y, gy, self.value)
+            'pow_const_var_bwd')(y, gy, value)
         return gx,
 
     def backward(self, indexes, ggx):
         y, gy = self.get_retained_inputs()
 
-        xp = backend.get_array_module(y)
-        gygy = xp.log(self.value) * ggx[0]
+        gygy = y.dtype.type(self.log_value) * ggx[0]
 
         ret = []
         if 0 in indexes:

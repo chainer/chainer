@@ -6,6 +6,8 @@ import sys
 
 from setuptools import setup
 
+import chainerx_build_helper
+
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
@@ -19,25 +21,19 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         sys.exit(1)
 
 
-def cupy_requirement(pkg):
-    return '{}==5.0.0rc1'.format(pkg)
-
-
 requirements = {
     'install': [
+        'setuptools',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
         'six>=1.9.0',
     ],
-    'cuda': [
-        cupy_requirement('cupy'),
-    ],
     'stylecheck': [
-        'autopep8==1.3.5',
-        'flake8==3.5.0',
+        'autopep8>=1.4.1,<1.5',
+        'flake8>=3.6,<3.7',
         'pbr==4.0.4',
-        'pycodestyle==2.3.1',
+        'pycodestyle>=2.4,<2.5',
     ],
     'test': [
         'pytest',
@@ -119,28 +115,12 @@ is necessary. Please uninstall the old ChainerMN in advance.
     print(msg)
     exit(1)
 
-# Currently cupy provides source package (cupy) and binary wheel packages
-# (cupy-cudaXX). Chainer can use any one of these packages.
-cupy_pkg = find_any_distribution([
-    'cupy-cuda92',
-    'cupy-cuda91',
-    'cupy-cuda90',
-    'cupy-cuda80',
-    'cupy',
-])
-if cupy_pkg is not None:
-    req = cupy_requirement(cupy_pkg.project_name)
-    install_requires.append(req)
-    print('Use %s' % req)
-else:
-    print('No CuPy installation detected')
-
 here = os.path.abspath(os.path.dirname(__file__))
 # Get __version__ variable
 exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
-setup(
+setup_kwargs = dict(
     name='chainer',
     version=__version__,  # NOQA
     description='A flexible framework of neural networks',
@@ -204,3 +184,14 @@ setup(
     tests_require=tests_require,
     extras_require=extras_require,
 )
+
+
+build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
+if os.getenv('READTHEDOCS', None) == 'True':
+    os.environ['MAKEFLAGS'] = '-j2'
+    build_chainerx = True
+
+chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
+
+
+setup(**setup_kwargs)
