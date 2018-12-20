@@ -48,8 +48,7 @@ class TestOnceTrigger(unittest.TestCase):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.OnceTrigger(self.call_on_resume)
-        # before the first iteration, trigger should be False
-        for expected in [False] + self.expected:
+        for expected in self.expected:
             self.assertEqual(trigger(trainer), expected)
             trainer.updater.update()
 
@@ -75,8 +74,7 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.OnceTrigger(self.call_on_resume)
         accumulated = False
-        # before the first iteration, trigger should be False
-        for expected in [False] + self.expected:
+        for expected in self.expected:
             accumulated = accumulated or expected
             if random.randrange(2):
                 self.assertEqual(trigger(trainer), accumulated)

@@ -34,4 +34,4 @@ class OnceTrigger(object):
                 'OnceTrigger guess it is not first when resumed.'
                 'If this trigger is resumed before first called,'
                 'it may not work correctly.')
-            self._flag_first = self._flag_resumed
+            self._flag_first = False
