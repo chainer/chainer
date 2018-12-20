@@ -61,8 +61,11 @@ class ManualScheduleTrigger(object):
                 previous_epoch_detail < p <= epoch_detail
                 for p in self.points)
 
-            if (fire or hasattr(self, '_finished_is_tmp')) and \
-               epoch_detail >= max(self.points):
+            if hasattr(self, '_finished_is_tmp'):
+                del self._finished_is_tmp
+                if epoch_detail >= max(self.points):
+                    self.finished = True
+            if fire and epoch_detail >= max(self.points):
                 self.finished = True
         else:
             iteration = updater.iteration
@@ -77,8 +80,11 @@ class ManualScheduleTrigger(object):
                 previous_iteration < p <= iteration
                 for p in self.points)
 
-            if (fire or hasattr(self, '_finished_is_tmp')) and \
-               iteration >= max(self.points):
+            if hasattr(self, '_finished_is_tmp'):
+                del self._finished_is_tmp
+                if iteration >= max(self.points):
+                    self.finished = True
+            if fire and iteration >= max(self.points):
                 self.finished = True
 
         # save current values
