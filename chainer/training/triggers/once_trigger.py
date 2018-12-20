@@ -1,3 +1,6 @@
+import warnings
+
+
 class OnceTrigger(object):
 
     """Trigger based on the starting point of the iteration.
@@ -23,4 +26,11 @@ class OnceTrigger(object):
         return flag
 
     def serialize(self, serializer):
-        self._flag_first = serializer('_flag_first', self._flag_first)
+        try:
+            self._flag_first = serializer('_flag_first', self._flag_first)
+        except KeyError:
+            warnings.warn(
+                'The flag is not saved.'
+                'OnceTrigger guess it is not first when resumed.'
+                'If this trigger is resumed before first called,'
+                'it may not work correctly.'')
