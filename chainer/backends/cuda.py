@@ -48,6 +48,7 @@ import chainerx
 
 available = False
 cudnn_enabled = False
+_chainerx_allocator = None
 
 try:
     import cupy
@@ -87,10 +88,11 @@ if available:
     # without having both modules using separate memory pools.
     if chainerx.is_available():
         try:
-            allocator = cupy.cuda.memory.ExternalAllocator(
+            _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
                 chainerx.cuda.get_backend_ptr(),
                 *chainerx.cuda.get_backend_malloc_free_ptrs())
-            cupy.cuda.set_allocator(allocator.malloc)
+
+            cupy.cuda.set_allocator(_chainerx_allocator.malloc)
         except chainerx.BackendError:
             pass
 
