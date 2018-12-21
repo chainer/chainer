@@ -164,22 +164,33 @@ int main(int argc, char** argv) {
     std::string device_name{"native"};
     std::string mnist_root{"./"};
 
-    for (int i = 1; i < argc - 1; i += 2) {
+    for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
+
+        auto read_next_string = [&]() {
+            ++i;
+            if (i >= argc) {
+                throw std::runtime_error("The value of flag " + arg + " is omitted.");
+            }
+            return argv[i];
+        };
+        auto read_next_int = [&]() { return std::atoi(read_next_string()); };
+        auto read_next_float = [&]() { return std::atof(read_next_string()); };
+
         if (arg == "--epoch") {
-            epochs = std::atoi(argv[i + 1]);
+            epochs = read_next_int();
         } else if (arg == "--batchsize") {
-            batch_size = std::atoi(argv[i + 1]);
+            batch_size = read_next_int();
         } else if (arg == "--unit") {
-            n_hidden = std::atoi(argv[i + 1]);
+            n_hidden = read_next_int();
         } else if (arg == "--layer") {
-            n_layers = std::atoi(argv[i + 1]);
+            n_layers = read_next_int();
         } else if (arg == "--lr") {
-            lr = std::atof(argv[i + 1]);
+            lr = read_next_float();
         } else if (arg == "--device") {
-            device_name = argv[i + 1];
+            device_name = read_next_string();
         } else if (arg == "--data") {
-            mnist_root = argv[i + 1];
+            mnist_root = read_next_string();
         } else {
             throw std::runtime_error("Unknown argument: " + arg);
         }
