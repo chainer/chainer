@@ -87,14 +87,10 @@ if available:
     # with the CUDA backend. This is needed in order to share the GPU memory
     # without having both modules using separate memory pools.
     if chainerx.is_available():
-        try:
-            _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
-                chainerx.cuda.get_backend_ptr(),
-                *chainerx.cuda.get_backend_malloc_free_ptrs())
-
-            cupy.cuda.set_allocator(_chainerx_allocator.malloc)
-        except chainerx.BackendError:
-            pass
+        _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
+            chainerx.cuda.get_backend_ptr(),
+            *chainerx.cuda.get_backend_malloc_free_ptrs())
+        cupy.cuda.set_allocator(_chainerx_allocator.malloc)
 
 
 def check_cuda_available():
