@@ -82,14 +82,15 @@ if available:
     except Exception as e:
         _resolution_error = e
 
-    # Replace CuPy's memory pool with ChainerX's if ChainerX is available
-    # with the CUDA backend.
+    # Replace CuPy's allocator with ChainerX's if ChainerX is available
+    # with the CUDA backend. This is needed in order to share the GPU memory
+    # without having both modules using separate memory pools.
     if chainerx.is_available():
         try:
-            memory_pool = cupy.cuda.memory.ExternalMemoryPool(
-                chainerx.cuda.get_memory_pools(),
-                *chainerx.cuda.get_memory_pool_malloc_free())
-            cupy.cuda.set_allocator(memory_pool.malloc)
+            allocator = cupy.cuda.memory.ExternalAllocator(
+                chainerx.cuda.get_backend_ptr(),
+                *chainerx.cuda.get_backend_malloc_free_ptrs())
+            cupy.cuda.set_allocator(allocator.malloc)
         except chainerx.BackendError:
             pass
 

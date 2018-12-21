@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include <pybind11/functional.h>
 
@@ -27,37 +26,30 @@ namespace py = pybind11;  // standard convention
 using CudaDevice = chainerx::cuda::CudaDevice;
 using MemoryPool = chainerx::cuda::MemoryPool;
 
-void* Malloc(void* memory_pool_ptr, size_t bytesize) {
-    return reinterpret_cast<MemoryPool*>(memory_pool_ptr)->Malloc(bytesize);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+void* Malloc(void* backend, size_t bytesize, int device_id) {
+    CudaDevice* device = dynamic_cast<CudaDevice*>(
+            &reinterpret_cast<Backend*>(backend)->GetDevice(device_id));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return device->device_memory_pool()->Malloc(bytesize);
 }
 
-void Free(void* memory_pool_ptr, void* ptr) {
-    reinterpret_cast<MemoryPool*>(memory_pool_ptr)->Free(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+void Free(void* backend, void* ptr, int device_id) {
+    CudaDevice* device = dynamic_cast<CudaDevice*>(
+            &reinterpret_cast<Backend*>(backend)->GetDevice(device_id));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return device->device_memory_pool()->Free(ptr);
 }
 
-std::vector<intptr_t> GetMemoryPools() {
-    Backend& backend = GetBackend("cuda");
-    size_t device_count = static_cast<size_t>(backend.GetDeviceCount());
-
-    std::vector<intptr_t> memory_pools;
-    memory_pools.reserve(device_count);
-
-    for (size_t device_id = 0; device_id < device_count; ++device_id) {
-        CudaDevice* device = dynamic_cast<CudaDevice*>(&backend.GetDevice(device_id));
-        const std::shared_ptr<MemoryPool>& memory_pool = device->device_memory_pool();
-        memory_pools.emplace_back(reinterpret_cast<intptr_t>(memory_pool.get()));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
-    }
-    return memory_pools;
+intptr_t GetBackendPtr() {
+    return reinterpret_cast<intptr_t>(&GetBackend("cuda"));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
 }
 
-std::pair<intptr_t, intptr_t> GetMemoryPoolMallocFree() {
+std::pair<intptr_t, intptr_t> GetBackendMallocFreePtrs() {
     return std::make_pair(
             reinterpret_cast<intptr_t>(&Malloc), reinterpret_cast<intptr_t>(&Free));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
 }
 
 void InitChainerxMemoryPool(py::module& m) {
-    m.def("get_memory_pools", []() -> std::vector<intptr_t> { return GetMemoryPools(); });
-    m.def("get_memory_pool_malloc_free", []() -> std::pair<intptr_t, intptr_t> { return GetMemoryPoolMallocFree(); });
+    m.def("get_backend_ptr", []() -> intptr_t { return GetBackendPtr(); });
+    m.def("get_backend_malloc_free_ptrs", []() -> std::pair<intptr_t, intptr_t> { return GetBackendMallocFreePtrs(); });
 }
 
 }  // namespace cuda_internal
