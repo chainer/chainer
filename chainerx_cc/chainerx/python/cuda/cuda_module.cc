@@ -2,20 +2,16 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <utility>
 
-#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/memory_pool.h"
-#include "chainerx/device.h"
 
-#include "chainerx/python/backend.h"
 #include "chainerx/python/common.h"
-#include "chainerx/python/context.h"
-#include "chainerx/python/device.h"
 
 namespace chainerx {
 namespace python {
