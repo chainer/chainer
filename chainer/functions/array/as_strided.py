@@ -1,5 +1,5 @@
 from chainer.backends import cuda
-from chainer.function_node import FunctionNode 
+from chainer.function_node import FunctionNode
 from chainer.utils import type_check
 
 import numpy as np
@@ -61,10 +61,10 @@ def _min_index(shape, strides, storage_offset):
     if len(strides_negative) == 0:
         return storage_offset
     else:
-        return storage_offset + \
-               reduce(lambda base, shape_strides:
-                      base + (shape_strides[0] - 1) * shape_strides[1],
-                      zip(shape_negative, strides_negative), 0)
+        return storage_offset + reduce(
+            lambda base, shape_strides:
+            base + (shape_strides[0] - 1) * shape_strides[1],
+            zip(shape_negative, strides_negative), 0)
 
 
 def _max_index(shape, strides, storage_offset):
@@ -87,8 +87,8 @@ def _max_index(shape, strides, storage_offset):
         return storage_offset
     else:
         return storage_offset + reduce(
-            lambda base, shape_strides: base + (shape_strides[0] - 1) *
-                                        shape_strides[1],
+            lambda base, shape_strides:
+            base + (shape_strides[0] - 1) * shape_strides[1],
             zip(shape_positive, strides_positive), 0)
 
 
