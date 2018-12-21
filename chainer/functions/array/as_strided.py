@@ -382,10 +382,10 @@ def as_strided(x, shape, strides, storage_offset=None):
         shape (tuple of int):
             The shape of output.
         strides (tuple of int):
-            The strides of output, given in the unit of bytes.
+            The strides of output, given in the unit of steps.
         storage_offset (int):
             The offset between the head of allocated memory and the pointer of
-            first element, given in the unit of bytes.
+            first element, given in the unit of steps.
 
     Returns:
         ~chainer.Variable: The strided variable.
