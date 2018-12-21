@@ -376,10 +376,11 @@ def as_strided(x, shape, strides, storage_offset=None):
     """Create a new view of array with the given shape, strides, and offset.
 
     Args:
-        x (tuple of :class:`~chainer.Variable` or :class:`numpy.ndarray` or
+        x (tuple of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             The array pointing a memory buffer. Its view is totally ignored.
-        shape (tuple of int): The shape of output.
+        shape (tuple of int):
+            The shape of output.
         strides (tuple of int):
             The strides of output, given in the unit of bytes.
         storage_offset (int):
@@ -405,6 +406,7 @@ def as_strided(x, shape, strides, storage_offset=None):
         :func:`numpy.lib.stride_tricks.as_strided`.
 
     .. admonition:: Example
+
         >>> from chainer import functions as F, Variable
         >>> x = Variable(np.arange(4, dtype=np.float32))
         >>> x
