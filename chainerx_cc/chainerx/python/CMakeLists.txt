@@ -26,12 +26,10 @@ if(${CUDA_FOUND})
     set(srcs
         ${srcs}
         cuda/cuda_module.cc
-        cuda/memory_pool.cc
         )
 
     CUDA_ADD_LIBRARY(_core_cuda STATIC
         cuda/cuda_module.cc
-        cuda/memory_pool.cc
         )
 endif()
 
