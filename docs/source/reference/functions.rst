@@ -80,6 +80,7 @@ Array manipulations
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.as_strided
    chainer.functions.broadcast
    chainer.functions.broadcast_to
    chainer.functions.cast
