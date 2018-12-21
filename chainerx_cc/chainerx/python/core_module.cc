@@ -58,8 +58,6 @@ void InitChainerxModule(pybind11::module& m) {
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 
     // chainerx.cuda
-    //
-    // Partially exposes the memory pool for external usage.
     pybind11::module m_cuda = m.def_submodule("cuda");
     cuda::cuda_internal::InitChainerxCudaModule(m_cuda);
 
