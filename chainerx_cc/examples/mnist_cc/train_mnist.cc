@@ -45,23 +45,8 @@ chx::Array MakePermutationOfIndices(int64_t n, std::mt19937& gen) {
 
 class Model {
 public:
-    Model(int64_t n_in, int64_t n_hidden, int64_t n_out, int64_t n_layers)
-        : n_in_{n_in}, n_hidden_{n_hidden}, n_out_{n_out}, n_layers_{n_layers} {};
-
-    chx::Array operator()(const chx::Array& x) {
-        chx::Array h = x;
-        for (int64_t i = 0; i < n_layers_; ++i) {
-            h = chx::Dot(h, params_[i * 2]) + params_[i * 2 + 1];
-            if (i != n_layers_ - 1) {
-                h = chx::Maximum(0, h);
-            }
-        }
-        return h;
-    }
-
-    const std::vector<chx::Array>& params() { return params_; }
-
-    void Initialize(std::mt19937& gen, std::normal_distribution<float>& dist) {
+    Model(int64_t n_in, int64_t n_hidden, int64_t n_out, int64_t n_layers, std::mt19937& gen, std::normal_distribution<float>& dist)
+        : n_in_{n_in}, n_hidden_{n_hidden}, n_out_{n_out}, n_layers_{n_layers} {
         params_.clear();
 
         for (int64_t i = 0; i < n_layers_; ++i) {
@@ -75,6 +60,19 @@ public:
             param.RequireGrad();
         }
     }
+
+    chx::Array operator()(const chx::Array& x) {
+        chx::Array h = x;
+        for (int64_t i = 0; i < n_layers_; ++i) {
+            h = chx::Dot(h, params_[i * 2]) + params_[i * 2 + 1];
+            if (i != n_layers_ - 1) {
+                h = chx::Maximum(0, h);
+            }
+        }
+        return h;
+    }
+
+    const std::vector<chx::Array>& params() { return params_; }
 
 private:
     int64_t n_in_;
@@ -109,11 +107,10 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
     int64_t n_test = test_x.shape().front();
 
     // Initialize the model with random parameters.
-    Model model{train_x.shape()[1], n_hidden, 10, n_layers};
     std::random_device rd{};
     std::mt19937 gen{rd()};
     std::normal_distribution<float> dist{0.f, 0.05f};
-    model.Initialize(gen, dist);
+    Model model{train_x.shape()[1], n_hidden, 10, n_layers, gen, dist};
 
     auto start = std::chrono::high_resolution_clock::now();
 
