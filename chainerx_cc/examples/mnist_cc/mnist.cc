@@ -25,7 +25,7 @@ chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
     return chx::FromContiguousHostData(shape, chx::Dtype::kUInt8, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
-int32_t ReadHeader(std::ifstream& ifs) {
+int32_t ReadInt32(std::ifstream& ifs) {
     int32_t result = 0;
     for (int i = 0; i < 4; ++i) {
         char byte;
@@ -43,13 +43,13 @@ chx::Array ReadMnistImages(const std::string& filename) {
         throw std::runtime_error("Could not open MNIST images: " + filename);
     }
 
-    if (ReadHeader(ifs) != 0x803) {
+    if (ReadInt32(ifs) != 0x803) {
         throw std::runtime_error("Bad MNIST images file: " + filename);
     }
 
-    int32_t n = ReadHeader(ifs);
-    int32_t height = ReadHeader(ifs);
-    int32_t width = ReadHeader(ifs);
+    int32_t n = ReadInt32(ifs);
+    int32_t height = ReadInt32(ifs);
+    int32_t width = ReadInt32(ifs);
 
     assert(n == 60000 || n == 10000);
     assert(height == 28);
@@ -64,11 +64,11 @@ chx::Array ReadMnistLabels(const std::string& filename) {
         throw std::runtime_error("Could not open MNIST labels: " + filename);
     }
 
-    if (ReadHeader(ifs) != 0x801) {
+    if (ReadInt32(ifs) != 0x801) {
         throw std::runtime_error("Bad MNIST labels file: " + filename);
     }
 
-    int32_t n = ReadHeader(ifs);
+    int32_t n = ReadInt32(ifs);
 
     assert(n == 60000 || n == 10000);
 

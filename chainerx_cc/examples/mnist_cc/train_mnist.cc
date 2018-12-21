@@ -27,7 +27,7 @@
 
 namespace chx = chainerx;
 
-chx::Array GetRandomArray(const chx::Shape& shape, std::mt19937& gen, std::normal_distribution<float>& dist) {
+chx::Array MakeRandomParam(const chx::Shape& shape, std::mt19937& gen, std::normal_distribution<float>& dist) {
     int64_t n = shape.GetTotalSize();
     std::shared_ptr<float> data{new float[n], std::default_delete<float[]>{}};
     std::generate_n(data.get(), n, [&dist, &gen]() { return dist(gen); });
@@ -35,7 +35,7 @@ chx::Array GetRandomArray(const chx::Shape& shape, std::mt19937& gen, std::norma
     return chx::FromContiguousHostData(shape, chx::Dtype::kFloat32, static_cast<std::shared_ptr<void>>(data), chx::GetDefaultDevice());
 }
 
-chx::Array GetRandomIndicesArray(int64_t n, std::mt19937& gen) {
+chx::Array MakePermutationOfIndices(int64_t n, std::mt19937& gen) {
     std::shared_ptr<int64_t> data{new int64_t[n], std::default_delete<int64_t[]>{}};
     std::iota(data.get(), data.get() + n, 0);
     std::shuffle(data.get(), data.get() + n, gen);
@@ -67,7 +67,7 @@ public:
         for (int64_t i = 0; i < n_layers_; ++i) {
             int64_t n_in = i == 0 ? n_in_ : n_hidden_;
             int64_t n_out = i == n_layers_ - 1 ? n_out_ : n_hidden_;
-            params_.emplace_back(GetRandomArray({n_in, n_out}, gen, dist));
+            params_.emplace_back(MakeRandomParam({n_in, n_out}, gen, dist));
             params_.emplace_back(chx::Zeros({n_out}, chx::Dtype::kFloat32));
         }
 
@@ -118,7 +118,7 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int64_t epoch = 0; epoch < epochs; ++epoch) {
-        chx::Array train_indices = GetRandomIndicesArray(n_train, gen);
+        chx::Array train_indices = MakePermutationOfIndices(n_train, gen);
 
         for (int64_t i = 0; i < n_train; i += batch_size) {
             chx::Array indices = train_indices.At({chx::Slice{i, i + batch_size}});
