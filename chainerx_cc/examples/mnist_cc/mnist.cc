@@ -26,16 +26,13 @@ chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
 }
 
 int32_t ReadHeader(std::ifstream& ifs) {
-    int32_t header{0};
-    ifs.read(reinterpret_cast<char*>(&header), sizeof(header));
-
-    // Swap byte order.
-    uint32_t b1 = header & 255;
-    uint32_t b2 = (header >> 8) & 255;
-    uint32_t b3 = (header >> 16) & 255;
-    uint32_t b4 = (header >> 24) & 255;
-
-    return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+    int32_t result = 0;
+    for (int i = 0; i < 4; ++i) {
+        char byte;
+        ifs.read(&byte, sizeof(byte));
+        result = (result << 8) | (static_cast<uint32_t>(byte) & 0xff);
+    }
+    return result;
 }
 
 }  // namespace
