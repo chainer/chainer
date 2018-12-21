@@ -3,6 +3,7 @@
 #include <string>
 
 #include <pybind11/pybind11.h>
+#include <gsl/gsl>
 
 #include "chainerx/python/array.h"
 #include "chainerx/python/array_index.h"
@@ -67,7 +68,8 @@ void InitChainerxModule(pybind11::module& m) {
         }
 
         // std::malloc should be used here, since pybind uses std::free to free ml_doc.
-        auto* c_docstring = static_cast<char*>(std::malloc(docstring.size() + 1));
+        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
+        gsl::owner<char*> c_docstring = static_cast<char*>(std::malloc(docstring.size() + 1));
         if (c_docstring == nullptr) {
             return;
         }
