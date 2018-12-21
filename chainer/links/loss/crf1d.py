@@ -27,12 +27,11 @@ class CRF1d(link.Link):
         cost (~chainer.Variable): Transition cost parameter.
     """
 
-    def __init__(self, n_label, initial_cost=None, transpose=False):
+    def __init__(self, n_label, initial_cost=None):
         super(CRF1d, self).__init__()
         if initial_cost is None:
             initial_cost = initializers.constant.Zero()
 
-        self.transpose = transpose
         with self.init_scope():
             self.cost = variable.Parameter(initializer=initial_cost,
                                            shape=(n_label, n_label))
