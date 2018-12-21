@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
@@ -89,9 +88,6 @@ class ReLUGrad2(function_node.FunctionNode):
 
     def __init__(self, b):
         super(ReLUGrad2, self).__init__()
-        # Compatibility to old version
-        if isinstance(b, chainer.Variable):
-            b = b.array
         self.b = b
 
     def forward_cpu(self, inputs):
@@ -100,28 +96,25 @@ class ReLUGrad2(function_node.FunctionNode):
             return self.forward_ideep(inputs)
 
         gy, = inputs
-        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
-        gx = gy * (b > 0)
+        gx = gy * (self.b > 0)
         return utils.force_array(gx, dtype=gy.dtype),
 
     def forward_ideep(self, inputs):
         gy, = inputs
-        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
         gx = intel64.ideep.relu.Backward(
-            intel64.ideep.array(b),
+            intel64.ideep.array(self.b),
             intel64.ideep.array(gy))
         return gx,
 
     def forward_gpu(self, inputs):
-        b = backend.from_chainerx(self.b)  # Workaround for ChainerX
-        gx = _relu_grad2_kernel(b, inputs[0])
+        gx = _relu_grad2_kernel(self.b, inputs[0])
         return gx,
 
     def backward(self, indexes, grad_outputs):
         return ReLUGrad2(self.b).apply(grad_outputs)
 
 
-class ReLUGrad3Base(function_node.FunctionNode):
+class ReLUGradCudnn(function_node.FunctionNode):
     """Computes the gradient of the ReLU function.
 
     This function takes 3 variables a, b, and c, and
@@ -134,20 +127,17 @@ class ReLUGrad3Base(function_node.FunctionNode):
     """
 
     def __init__(self, x, y):
-        super(ReLUGrad3Base, self).__init__()
+        super(ReLUGradCudnn, self).__init__()
         self.x = x
         self.y = y
-
-    def backward(self, indexes, grad_outputs):
-        return ReLUGrad2(self.y).apply(grad_outputs)
-
-
-class ReLUGradCudnn(ReLUGrad3Base):
 
     def forward(self, inputs):
         assert chainer.should_use_cudnn('==always')
         gy, = inputs
         return cudnn.activation_backward(self.x, self.y, gy, _mode),
+
+    def backward(self, indexes, grad_outputs):
+        return ReLUGrad2(self.y).apply(grad_outputs)
 
 
 def relu(x):
