@@ -25,7 +25,7 @@ class TestCRF1d(unittest.TestCase):
         z = numpy.zeros((self.batches[0],), numpy.float32)
         for b, length in enumerate(self.lengths):
             for ys in itertools.product(range(self.n_label), repeat=length):
-                z[b] += numpy.exp(self._calc_score(b, ys))
+                z[b] += numpy.exp(chainer.cuda.to_cpu(self._calc_score(b, ys)))
 
         score = numpy.zeros((self.batches[0],), numpy.float32)
         for b, length in enumerate(self.lengths):
