@@ -32,7 +32,8 @@ class TestStrideArray(unittest.TestCase):
         assert (y == y_expected).all()
 
     def test_broadcast_cpu(self):
-        x = np.arange(12, dtype=self.dtype).reshape((3, 4)).copy()  # [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
+        x = np.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
+        # [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
         y = _stride_array(x, (2, 3, 4), (0, 4, 1), 0)
         y_expected = np.broadcast_to(x, (2, 3, 4))
         assert (y == y_expected).all()
@@ -152,7 +153,8 @@ class TestAsStridedForward(unittest.TestCase):
         v = Variable(x)
         y = as_strided(v, (3, 3), (1, 2), 0)
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
-        y_expected = _stride_array(np.arange(8, dtype=self.dtype), (3, 3), (1, 2), 0)
+        y_expected = _stride_array(np.arange(8, dtype=self.dtype),
+                                   (3, 3), (1, 2), 0)
         assert (y.array == y_expected).all()
 
     @testing.attr.gpu
@@ -162,7 +164,8 @@ class TestAsStridedForward(unittest.TestCase):
         v = Variable(x)
         y = as_strided(v, (3, 3), (1, 2), 0)
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
-        y_expected = _stride_array(cp.arange(8, dtype=self.dtype), (3, 3), (1, 2), 0)
+        y_expected = _stride_array(cp.arange(8, dtype=self.dtype),
+                                   (3, 3), (1, 2), 0)
         assert (y.array == y_expected).all()
 
 
@@ -231,7 +234,11 @@ class TestAsStridedBackward(unittest.TestCase):
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
         y.grad = np.ones(y.shape, dtype=self.dtype)
         gx, = grad((y,), (v,))
-        assert (gx.array == np.array([[0.5, 0.5, 0.], [2., 2., 1.], [1., 0.5, 0.5]])).all()
+        assert (gx.array == np.array([
+            [0.5, 0.5, 0.],
+            [2., 2., 1.],
+            [1., 0.5, 0.5]
+        ])).all()
 
     @testing.attr.gpu
     def test_general_stride_backward_gpu(self):
@@ -242,7 +249,11 @@ class TestAsStridedBackward(unittest.TestCase):
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
         y.grad = cp.ones(y.shape, dtype=self.dtype)
         gx, = grad((y,), (v,))
-        assert (gx.array == cp.array([[0.5, 0.5, 0.], [2., 2., 1.], [1., 0.5, 0.5]])).all()
+        assert (gx.array == cp.array([
+            [0.5, 0.5, 0.],
+            [2., 2., 1.],
+            [1., 0.5, 0.5]
+        ])).all()
 
 
 @testing.parameterize(
