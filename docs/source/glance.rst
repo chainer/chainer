@@ -14,8 +14,8 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 * Broad and deep support -- Chainer is actively used for most of the current approaches for neural nets (CNN, RNN, RL, etc.), aggressively adds new approaches as they're developed, and provides support for many kinds of hardware as well as parallelization for multiple GPUs
 
 
-Mushrooms -- tasty or deathly?
-------------------------------
+Mushrooms -- tasty or deadly?
+-----------------------------
 
 Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with `Kaggle's edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>`_, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc., in a `mushrooms.csv file <https://raw.githubusercontent.com/chainer/chainer/master/examples/glance/mushrooms.csv>`_.
 
@@ -95,7 +95,7 @@ Next, we need to define the neural network for inclusion in our model. For our m
 
 As an activation function, we'll use standard Rectified Linear Units (:func:`~chainer.functions.relu`).
 
-Using the :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
+Using :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -110,6 +110,8 @@ Since mushrooms are either edible or poisonous (no information on psychedelic ef
    :linenos:
    :lines: 43-44
    :lineno-start: 43
+
+Note that in the two code snippets above we have not specified the size of the input layer. Once we start feeding the neural network with samples, Chainer will recognize the dimensionality of the input automatically and initialize the matrix for each layer with the appropriate shape. In the example above, that is 44×22 for the first hidden layer, 44×44 for the second hidden layer, and 1×44 for the output layer.
 
 Optimizer
 ~~~~~~~~~~~~

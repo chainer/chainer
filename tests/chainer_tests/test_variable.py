@@ -4,6 +4,7 @@ import platform
 import re
 import sys
 import unittest
+import warnings
 
 import mock
 import numpy as np
@@ -2070,13 +2071,15 @@ class TestVariableBackwardError(unittest.TestCase):
     def setUp(self):
         self.x = np.array([1], np.float32)
 
-    def check_type_mismatch(self, x_data):
+    def check_type_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2088,19 +2091,28 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_type_mismatch_cpu(self):
-        self.check_type_mismatch(self.x)
+        self.check_type_mismatch(self.x, True)
+
+    def test_type_mismatch_unretain_cpu(self):
+        self.check_type_mismatch(self.x, False)
 
     @attr.gpu
     def test_type_mismatch_gpu(self):
-        self.check_type_mismatch(cuda.to_gpu(self.x))
+        self.check_type_mismatch(cuda.to_gpu(self.x), True)
 
-    def check_dtype_mismatch(self, x_data):
+    @attr.gpu
+    def test_type_mismatch_unretain_gpu(self):
+        self.check_type_mismatch(cuda.to_gpu(self.x), False)
+
+    def check_dtype_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2112,19 +2124,28 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_dtype_mismatch_cpu(self):
-        self.check_dtype_mismatch(self.x)
+        self.check_dtype_mismatch(self.x, True)
+
+    def test_dtype_mismatch_unretain_cpu(self):
+        self.check_dtype_mismatch(self.x, False)
 
     @attr.gpu
     def test_dtype_mismatch_gpu(self):
-        self.check_dtype_mismatch(cuda.to_gpu(self.x))
+        self.check_dtype_mismatch(cuda.to_gpu(self.x), True)
 
-    def check_shape_mismatch(self, x_data):
+    @attr.gpu
+    def test_dtype_mismatch_unretain_gpu(self):
+        self.check_dtype_mismatch(cuda.to_gpu(self.x), False)
+
+    def check_shape_mismatch(self, x_data, retain):
         xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
 
             def forward(self, inputs):
+                if not retain:
+                    self.retain_inputs(())
                 return xp.array(1, np.float32),
 
             def backward(self, inputs, grads):
@@ -2136,11 +2157,18 @@ class TestVariableBackwardError(unittest.TestCase):
             y.backward()
 
     def test_shape_mismatch_cpu(self):
-        self.check_shape_mismatch(self.x)
+        self.check_shape_mismatch(self.x, True)
+
+    def test_shape_mismatch_unretain_cpu(self):
+        self.check_shape_mismatch(self.x, False)
 
     @attr.gpu
     def test_shape_mismatch_gpu(self):
-        self.check_shape_mismatch(cuda.to_gpu(self.x))
+        self.check_shape_mismatch(cuda.to_gpu(self.x), True)
+
+    @attr.gpu
+    def test_shape_mismatch_unretain_gpu(self):
+        self.check_shape_mismatch(cuda.to_gpu(self.x), False)
 
 
 class TestVariableBackwardErrorTraceback(unittest.TestCase):
@@ -2548,7 +2576,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
         x = chainer.Variable(np.empty((), np.float32))
-        y = x * 2
+        y = x * 2  # x.grad_var will be different from y.grad_var
         y.backward()
         assert x.grad_var is not y.grad_var
         assert x.grad_var.creator is None
@@ -2592,11 +2620,14 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
 
     def test_default_backward(self):
         x = chainer.Variable(np.empty(1, np.float32))
-        y = F.identity(x)
+        y = x * 2  # x.grad_var will be different from y.grad_var
         with testing.assert_warns(DeprecationWarning):
             y.backward()
         assert x.grad_var.creator is None
-        x.grad_var.backward()
+        with warnings.catch_warnings():
+            # ok to be warned that x.grad_var is old-styled scalar
+            warnings.simplefilter('ignore', DeprecationWarning)
+            x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
@@ -2605,7 +2636,10 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
-            x.grad_var.backward()
+            with warnings.catch_warnings():
+                # ok to be warned that x.grad_var is old-styled scalar
+                warnings.simplefilter('ignore', DeprecationWarning)
+                x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
         x = chainer.Variable(np.empty(1, np.float32))
@@ -2614,7 +2648,10 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
-            x.grad_var.backward()
+            with warnings.catch_warnings():
+                # ok to be warned that x.grad_var is old-styled scalar
+                warnings.simplefilter('ignore', DeprecationWarning)
+                x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
         x = chainer.Variable(np.empty(1, np.float32))

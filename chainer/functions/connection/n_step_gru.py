@@ -61,14 +61,6 @@ def n_step_gru(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -162,14 +154,6 @@ def n_step_bigru(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -230,14 +214,6 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     This function is used at  :func:`chainer.functions.n_step_bigru` and
     :func:`chainer.functions.n_step_gru`.
     This function's behavior depends on argument ``use_bi_direction``.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.

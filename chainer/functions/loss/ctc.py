@@ -151,7 +151,7 @@ class ConnectionistTemporalClassification(function.Function):
             res = create_recurrence_relation(x, self.zero_padding)
         return res.astype(x.dtype, copy=False)
 
-    # path probablity to label probability
+    # path probability to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
         seq_length = len(multiply_seq)
@@ -404,7 +404,7 @@ def connectionist_temporal_classification(
         raise TypeError('blank_symbol must be non-negative integer.')
     assert 0 <= blank_symbol < x[0].shape[1]
     # This implementation only supports 1-dimensional data.
-    # TODO(jnishi): Support d(>1)-dimentinal inputs.
+    # TODO(jnishi): Support d(>1)-dimensional inputs.
     assert x[0].ndim == 2
 
     xp = backend.get_array_module(x[0])

@@ -282,7 +282,7 @@ def get_device(*args):
 
     .. note::
 
-        This API is deprecated. Please use
+        This API is deprecated since v3.0.0. Please use
         :func:`~chainer.backends.cuda.get_device_from_id`
         or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
@@ -684,6 +684,8 @@ def fuse(*args, **kwargs):
     """
     if available:
         return cupy.fuse(*args, **kwargs)
+    elif len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+        return args[0]
     else:
         return lambda f: f
 

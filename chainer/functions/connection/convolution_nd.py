@@ -412,14 +412,11 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
        l_n = (d_n + 2p_n - k_n + s_n - 1) / s_n + 1 \\ \\ (n = 1, ..., N)
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_O, c_I, k_1, k_2, ..., k_N)`.
-        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):
             Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.

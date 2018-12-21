@@ -35,10 +35,18 @@ endif()
 
 add_library(_core.so MODULE ${srcs})
 
-target_link_libraries(_core.so
-    PRIVATE
-    "-Wl,-flto" pybind11::module
-    "-Wl,-R,'$ORIGIN/.'" chainerx)
+if(${APPLE})
+    target_link_libraries(_core.so
+        PRIVATE
+        "-flto" pybind11::module
+        chainerx)
+else()
+    target_link_libraries(_core.so
+        PRIVATE
+        "-Wl,-flto" pybind11::module
+        "-Wl,-R,'$ORIGIN/.'" chainerx)
+endif()
+
 set_target_properties(_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"

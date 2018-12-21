@@ -104,7 +104,7 @@ class TestCall(unittest.TestCase):
     def test_eval(self):
         self.assertEqual(6, self.c1.eval())
         self.assertEqual(6, self.c2.eval())
-        # an error is occured in `eval`
+        # an error is occurred in `eval`
         with self.assertRaises(TypeError):
             self.assertEqual(6, self.c3.eval())
 
