@@ -381,6 +381,11 @@ class Sequential(link.ChainList):
                 ret.append(copy.copy(layer))
         return ret
 
+    def copyparams(self, sequential, copy_persistent=True):
+        for idx, child in enumerate(self):
+            if isinstance(child, link.Link):
+                child.copyparams(sequential[idx], copy_persistent)
+
     def flatten(self):
         """Flatten nested :class:`~chainer.Sequential` links.
 
