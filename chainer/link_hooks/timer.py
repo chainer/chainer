@@ -95,9 +95,11 @@ class TimerHook(link_hook.LinkHook):
 
     def summary(self):
         """Returns a summary of time profiling in links.
+
         Returns:
             A summarized dictionary whose keys are link names and
             values are dictionaries of `elapsed_time` and `occurrence`.
+
         """
         summary = collections.OrderedDict()
         for link_name, elapsed_time in self.call_history:
