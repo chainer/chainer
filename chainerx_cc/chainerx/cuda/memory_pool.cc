@@ -14,7 +14,7 @@ namespace chainerx {
 namespace cuda {
 
 MallocStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
-    cudaError_t status = cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal);
+    cudaError_t status = cudaMalloc(ptr, bytesize);
     switch (status) {
         case cudaSuccess:
             return MallocStatus::kSuccess;
