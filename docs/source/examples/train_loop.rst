@@ -257,7 +257,7 @@ The training loop code is as follows:
 
             # Display the training loss
             print('epoch:{:02d} train_loss:{:.04f} '.format(
-                train_iter.epoch, float(to_cpu(loss.data))), end='')
+                train_iter.epoch, float(to_cpu(loss.array))), end='')
 
             test_losses = []
             test_accuracies = []
@@ -270,12 +270,12 @@ The training loop code is as follows:
 
                 # Calculate the loss
                 loss_test = F.softmax_cross_entropy(prediction_test, target_test)
-                test_losses.append(to_cpu(loss_test.data))
+                test_losses.append(to_cpu(loss_test.array))
 
                 # Calculate the accuracy
                 accuracy = F.accuracy(prediction_test, target_test)
                 accuracy.to_cpu()
-                test_accuracies.append(accuracy.data)
+                test_accuracies.append(accuracy.array)
 
                 if test_iter.is_new_epoch:
                     test_iter.epoch = 0
@@ -365,8 +365,8 @@ The saved test image looks like:
     # Forward calculation of the model by sending X
     y = model(x)
 
-    # The result is given as Variable, then we can take a look at the contents by the attribute, .data.
-    y = y.data
+    # The result is given as Variable, then we can take a look at the contents by the attribute, .array.
+    y = y.array
 
     # Look up the most probable digit number using argmax
     pred_label = y.argmax(axis=1)
