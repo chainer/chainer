@@ -141,7 +141,7 @@ endif()
 # gsl-lite
 # gsl-lite is a header-only library, we do not need to build and run tests
 get_third_party(gsl-lite)
-include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/gsl-lite/include)
 # ref. https://github.com/martinmoene/gsl-lite#api-macro
 # As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
 # We want to stop it because we get many warnings with nvcc.
@@ -152,15 +152,15 @@ endif()
 
 # optional-lite
 get_third_party(optional-lite)
-include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
     ${CMAKE_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 if(${CHAINERX_BUILD_TEST})
     enable_testing()
 endif()
