@@ -23,6 +23,12 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
+std::shared_ptr<void> ToHost(const std::shared_ptr<void>& cuda_mem, size_t bytesize) {
+    std::shared_ptr<void> host_mem = std::make_unique<char[]>(bytesize);
+    cudaMemcpy(host_mem.get(), cuda_mem.get(), bytesize, cudaMemcpyDeviceToHost);
+    return host_mem;
+}
+
 template <typename T>
 void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size, Device& ptr_device) {
     auto expected_raw_ptr = static_cast<const T*>(expected.get());
@@ -51,7 +57,7 @@ TEST(CudaDeviceTest, Allocate) {
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
     EXPECT_EQ(device.index(), attr.device);
-    EXPECT_TRUE(IsPointerManagedMemory(ptr.get()));
+    EXPECT_FALSE(IsPointerManagedMemory(ptr.get()));
 }
 
 TEST(CudaDeviceTest, AllocateZero) {
@@ -139,14 +145,14 @@ TEST(CudaDeviceTest, FromHostMemory) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
-
-    ExpectDataEqual<float>(src, dst, size, device);
     EXPECT_NE(src.get(), dst.get());
+
+    ExpectDataEqual<float>(src, ToHost(dst, bytesize), size, device);
 
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, dst.get()));
     EXPECT_EQ(device.index(), attr.device);
-    EXPECT_TRUE(IsPointerManagedMemory(dst.get()));
+    EXPECT_FALSE(IsPointerManagedMemory(dst.get()));
 }
 
 TEST(CudaDeviceTest, DotNonContiguousOut) {
