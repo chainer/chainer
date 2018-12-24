@@ -110,7 +110,7 @@ def main():
     # The "main" refers to the target link of the "main" optimizer.
     # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
     if device.xp is not chainerx:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
