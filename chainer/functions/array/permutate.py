@@ -47,7 +47,7 @@ class Permutate(function_node.FunctionNode):
         self.inv = inv
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         if self.axis < 0:
             type_check.expect(x_type.ndim >= -self.axis)
@@ -88,12 +88,10 @@ def permutate(x, indices, axis=0, inv=False):
     That means ``y[indices[i]] = x[i]``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable to permutate.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
-        indices (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        indices (:class:`~chainer.Variable` or :ref:`ndarray`):
             Indices to extract from the variable. A one-dimensional int array.
         axis (int): Axis that the input array is permutate along.
         inv (bool): If ``True``, ``indices`` is treated as its inverse.
@@ -110,18 +108,18 @@ def permutate(x, indices, axis=0, inv=False):
                [4., 5.]], dtype=float32)
         >>> indices = np.array([2, 0, 1], np.int32)
         >>> y = F.permutate(x, indices)
-        >>> y.data
+        >>> y.array
         array([[4., 5.],
                [0., 1.],
                [2., 3.]], dtype=float32)
         >>> y = F.permutate(x, indices, inv=True)
-        >>> y.data
+        >>> y.array
         array([[2., 3.],
                [4., 5.],
                [0., 1.]], dtype=float32)
         >>> indices = np.array([1, 0], np.int32)
         >>> y = F.permutate(x, indices, axis=1)
-        >>> y.data
+        >>> y.array
         array([[1., 0.],
                [3., 2.],
                [5., 4.]], dtype=float32)

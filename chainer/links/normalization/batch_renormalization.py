@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+import chainer
 from chainer import configuration
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.normalization import batch_renormalization
@@ -42,14 +42,14 @@ class BatchRenormalization(BatchNormalization):
         if self.gamma is not None:
             gamma = self.gamma
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
         if self.beta is not None:
             beta = self.beta
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
 
@@ -60,13 +60,21 @@ class BatchRenormalization(BatchNormalization):
             else:
                 decay = self.decay
 
-            func = batch_renormalization.BatchRenormalizationFunction(
-                self.eps, self.avg_mean, self.avg_var, decay,
-                self.rmax, self.dmax)
-            ret = func(x, gamma, beta)
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
 
-            self.avg_mean[:] = func.running_mean
-            self.avg_var[:] = func.running_var
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = self.xp.zeros_like(self.avg_mean)
+                avg_var = self.xp.zeros_like(self.avg_var)
+
+            ret = batch_renormalization.batch_renormalization(
+                x, gamma, beta, self.rmax, self.dmax,
+                self.eps, avg_mean, avg_var, decay,
+                update_statistics=True)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean

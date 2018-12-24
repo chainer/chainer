@@ -42,6 +42,10 @@ class Squeeze(function_node.FunctionNode):
                 else:
                     type_check.expect(-x_type.ndim <= x)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.squeeze(self.axis),
+
     def forward(self, inputs):
         x, = inputs
         xp = backend.get_array_module(x)
@@ -67,8 +71,7 @@ def squeeze(x, axis=None):
     """Remove demensions of size one from the shape of a ndarray.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (None or int or tuple of ints): A subset of the single-dimensional
             entries in the shape to remove. If ``None`` is supplied, all of
@@ -86,20 +89,20 @@ def squeeze(x, axis=None):
         >>> y = F.squeeze(x)
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
         >>> y = F.squeeze(x, axis=1)
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)
         >>> y = F.squeeze(x, axis=(1, 2))
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
 

@@ -1,5 +1,6 @@
 import sys
 import unittest
+import warnings
 
 import numpy
 
@@ -103,7 +104,7 @@ class TestCall(unittest.TestCase):
     def test_eval(self):
         self.assertEqual(6, self.c1.eval())
         self.assertEqual(6, self.c2.eval())
-        # an error is occured in `eval`
+        # an error is occurred in `eval`
         with self.assertRaises(TypeError):
             self.assertEqual(6, self.c3.eval())
 
@@ -368,7 +369,9 @@ class TestSameTypes(unittest.TestCase):
     def test_all_numpy_subclasses(self):
         x = numpy.array([0])
         y = numpy.array([[1], [2]])
-        z = numpy.matrix("3,4; 5,6")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            z = numpy.matrix("3,4; 5,6")
         self.assertTrue(T.same_types(x, y, z))
 
     @attr.gpu

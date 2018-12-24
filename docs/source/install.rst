@@ -23,9 +23,9 @@ Requirements
 You need to have the following components to use Chainer.
 
 * `Python <https://python.org/>`_
-    * Supported Versions: 2.7.6+, 3.4.3+, 3.5.1+ and 3.6.0+.
+    * Supported Versions: 2.7.6+, 3.4.3+, 3.5.1+, 3.6.0+ and 3.7.0+.
 * `NumPy <http://www.numpy.org/>`_
-    * Supported Versions: 1.9, 1.10, 1.11, 1.12, 1.13 and 1.14.
+    * Supported Versions: 1.9, 1.10, 1.11, 1.12, 1.13, 1.14 and 1.15.
     * NumPy will be installed automatically during the installation of Chainer.
 
 Before installing Chainer, we recommend you to upgrade ``setuptools`` and ``pip``::
@@ -38,11 +38,11 @@ Hardware Acceleration Support
 You can accelerate performance of Chainer by installing the following optional components.
 
 * NVIDIA CUDA / cuDNN
-    * `CuPy <https://cupy.chainer.org/>`_ 4.0+
+    * `CuPy <https://cupy.chainer.org/>`_ 5.0+
     * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
-    * `iDeep <https://github.com/intel/ideep>`_ 2.0.0+
+    * `iDeep <https://github.com/intel/ideep>`_ 2.0.0.post3+
     * See :doc:`tips` for instructions.
 
 Optional Features
@@ -60,7 +60,7 @@ Chainer can be installed without them, in which case the corresponding features 
 * Distributed Deep Learning using ChainerMN
     * CUDA-aware MPI
     * `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`__
-    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions
+    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions.
 
 
 Install Chainer
@@ -107,6 +107,15 @@ You can refer to the following flags to confirm if CUDA/cuDNN support is actuall
 ``chainer.backends.cuda.cudnn_enabled``
    ``True`` if cuDNN support is available.
 
+
+Google Colaboratory
+~~~~~~~~~~~~~~~~~~~
+
+You can install Chainer and CuPy using the following snippet on `Google Colaboratory <https://colab.research.google.com/>`_::
+
+   !curl https://colab.chainer.org/install | sh -
+
+See `chainer/google-colaboratory <https://github.com/chainer/google-colaboratory>`_ for more details and examples.
 
 Uninstall Chainer
 -----------------

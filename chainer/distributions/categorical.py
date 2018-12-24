@@ -19,12 +19,11 @@ class Categorical(distribution.Distribution):
         P(x = i; p) = p_i
 
     Args:
-        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
-        logit(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`\\log\\{p\\} + C`. Either `p` or `logit` (not both) must \
-        have a value.
+        p(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
+        logit(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing :math:`\\log\\{p\\} + C`. Either `p` or
+            `logit` (not both) must have a value.
 
     """
 

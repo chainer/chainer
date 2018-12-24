@@ -22,7 +22,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -164,7 +164,7 @@ astype(np.float32)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[ 0.126928  ,  0.04858735,  0.974077  ],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 

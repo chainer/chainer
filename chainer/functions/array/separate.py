@@ -12,7 +12,7 @@ class Separate(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         if self.axis >= 0:
             type_check.expect(self.axis < x_type.ndim)
@@ -45,8 +45,7 @@ def separate(x, axis=0):
     This function is an inverse of :func:`chainer.functions.stack`.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable to be separated.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (int): Axis along which variables are separated.
@@ -71,14 +70,14 @@ def separate(x, axis=0):
         2
         >>> y[0].shape
         (3,)
-        >>> y[0].data
+        >>> y[0].array
         array([0., 1., 2.], dtype=float32)
         >>> y = F.separate(x, axis=1)
         >>> len(y)
         3
         >>> y[0].shape
         (2,)
-        >>> y[0].data
+        >>> y[0].array
         array([0., 3.], dtype=float32)
 
     """

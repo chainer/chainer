@@ -20,7 +20,7 @@ class Triplet(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('anchor', 'positive', 'negative'))
+        type_check._argname(in_types, ('anchor', 'positive', 'negative'))
 
         type_check.expect(
             in_types[0].dtype.kind == 'f',
@@ -141,7 +141,7 @@ astype(np.float32)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([0.11000005, 0.17      ], dtype=float32)
         >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
         variable(0.44000003)

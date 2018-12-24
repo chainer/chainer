@@ -87,7 +87,7 @@ class Swish(link.Link):
             ~chainer.Variable: Output of the Swish activation function.
 
         """
-        if self.beta.data is None:
+        if self.beta.array is None:
             self.beta.initialize(x.shape[1:])
 
         return swish.swish(x, self.beta)

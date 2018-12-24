@@ -1,3 +1,8 @@
+# Note for contributors:
+# This example code is referred to from "Chainer at a Glance" tutorial.
+# If this file is to be modified, please also update the line numbers in
+# `docs/source/glance.rst` accordingly.
+
 import chainer as ch
 from chainer import datasets
 import chainer.functions as F
@@ -51,7 +56,7 @@ trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
 
 # Dump a computational graph from 'loss' variable at the first iteration
 # The "main" refers to the target link of the "main" optimizer.
-trainer.extend(extensions.dump_graph('main/loss'))
+trainer.extend(extensions.DumpGraph('main/loss'))
 
 trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
 
@@ -78,7 +83,7 @@ trainer.run()
 
 x, t = test[np.random.randint(len(test))]
 
-predict = model.predictor(x[None]).data
+predict = model.predictor(x[None]).array
 predict = predict[0][0]
 
 if predict >= 0:

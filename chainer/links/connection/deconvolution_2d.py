@@ -22,13 +22,6 @@ class Deconvolution2D(link.Link):
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
         in_channels (int or None): Number of channels of input arrays.
             If ``None``, parameter initialization will be deferred until the
@@ -176,7 +169,7 @@ class Deconvolution2D(link.Link):
         self.W.initialize(W_shape)
 
     def forward(self, x):
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.outsize,

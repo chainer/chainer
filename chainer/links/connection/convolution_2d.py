@@ -23,13 +23,6 @@ class Convolution2D(link.Link):
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
         in_channels (int or None): Number of channels of input arrays.
             If ``None``, parameter initialization will be deferred until the
@@ -166,7 +159,7 @@ class Convolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,

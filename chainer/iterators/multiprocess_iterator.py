@@ -1,5 +1,4 @@
 from __future__ import division
-import collections
 import datetime
 import multiprocessing
 from multiprocessing import sharedctypes
@@ -12,13 +11,12 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators._statemachine import (IteratorState,
+                                             iterator_statemachine)
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 _response_time = 0.1
-_PrefetchState = collections.namedtuple('_PrefetchState', (
-    'current_position', 'epoch', 'is_new_epoch',
-    'previous_epoch_detail', 'order'))
 
 
 def _raise_timeout_warning():
@@ -84,11 +82,15 @@ class MultiprocessIterator(iterator.Iterator):
 
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
             This option cannot be used when ``shuffle`` is not ``None``.
+        maxtasksperchild (int): Number of tasks a worker of prefetch process
+            can complete before it will exit and be replaced with a fresh
+            worker process, to enable unused resources to be freed. If
+            ``None``, worker processes will live as long as the pool.
 
     """
 
@@ -102,7 +104,8 @@ class MultiprocessIterator(iterator.Iterator):
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=None,
                  n_processes=None, n_prefetch=1, shared_mem=None,
-                 order_sampler=None, dataset_timeout=30.0):
+                 order_sampler=None, dataset_timeout=30.0,
+                 maxtasksperchild=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -111,6 +114,7 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
         self.dataset_timeout = dataset_timeout
+        self._maxtasksperchild = maxtasksperchild
 
         if self.shuffle is not None:
             if order_sampler is not None:
@@ -126,16 +130,14 @@ class MultiprocessIterator(iterator.Iterator):
                 order_sampler = ShuffleOrderSampler()
         self.order_sampler = order_sampler
 
-        self._reset()
-
         self._comm = _Communicator(self.n_prefetch, dataset_timeout)
-        self._set_prefetch_state()
+        self.reset()
 
         self._prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat,
             self.n_processes, self.n_prefetch, self.shared_mem,
             self._comm, self.order_sampler,
-            self._interruption_testing)
+            self._interruption_testing, self._maxtasksperchild)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
 
@@ -144,15 +146,16 @@ class MultiprocessIterator(iterator.Iterator):
         if self._prefetch_loop.thread is None:
             if self._prefetch_loop.measure_required():
                 measure_mode = True
-                batch, prefetch_state = self._prefetch_loop.measure(
+                batch, state = self._prefetch_loop.measure(
                     self.dataset_timeout)
             self._prefetch_loop.launch_thread()
 
         if not measure_mode:
-            batch, prefetch_state = self._comm.get()
+            batch, state = self._comm.get()
 
-        (self.current_position, self.epoch, self.is_new_epoch,
-            self._previous_epoch_detail, self._order) = prefetch_state
+        self._previous_epoch_detail = self.epoch_detail
+        self._state = state
+
         if batch is None:
             raise StopIteration
         else:
@@ -183,19 +186,29 @@ class MultiprocessIterator(iterator.Iterator):
         self.finalize()
 
     def __copy__(self):
+        # This function is implemented for backward compatibility.
+        # Please use `reset` normally.
         other = MultiprocessIterator(
             self.dataset, self.batch_size, self.repeat, shuffle=None,
             n_processes=self.n_processes, n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem, order_sampler=self.order_sampler)
 
-        other.current_position = self.current_position
-        other.epoch = self.epoch
-        other.is_new_epoch = self.is_new_epoch
+        other._reset_state(self.current_position, self.epoch,
+                           self.is_new_epoch, self._state.order)
         other._previous_epoch_detail = self._previous_epoch_detail
-        other._order = self._order
-
-        other._set_prefetch_state()
         return other
+
+    @property
+    def current_position(self):
+        return self._state.current_position
+
+    @property
+    def epoch(self):
+        return self._state.epoch
+
+    @property
+    def is_new_epoch(self):
+        return self._state.is_new_epoch
 
     @property
     def epoch_detail(self):
@@ -208,14 +221,16 @@ class MultiprocessIterator(iterator.Iterator):
         return self._previous_epoch_detail
 
     def serialize(self, serializer):
-        self.current_position = serializer('current_position',
-                                           self.current_position)
-        self.epoch = serializer('epoch', self.epoch)
-        self.is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
+        current_position = serializer('current_position',
+                                      self.current_position)
+        epoch = serializer('epoch', self.epoch)
+        is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
+        order = self._state.order.copy()
         try:
-            serializer('order', self._order)
+            serializer('order', order)
         except KeyError:
-            serializer('_order', self._order)
+            serializer('_order', order)
+        self._reset_state(current_position, epoch, is_new_epoch, order)
         try:
             self._previous_epoch_detail = serializer(
                 'previous_epoch_detail', self._previous_epoch_detail)
@@ -228,43 +243,32 @@ class MultiprocessIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
-        self._set_prefetch_state()
 
     def reset(self):
+        if self.order_sampler is None:
+            order = None
+        else:
+            order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
+        self._reset_state(0, 0, False, order)
+        self._previous_epoch_detail = -1.
+
+    def _reset_state(self, current_position, epoch, is_new_epoch, order):
         if self._finalized:
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
-        self._reset()
-        self._set_prefetch_state()
-
-    def _reset(self):
-        self.current_position = 0
-        self.epoch = 0
-        self.is_new_epoch = False
-        # use -1 instead of None internally.
-        self._previous_epoch_detail = -1.
-        if self.order_sampler:
-            self._order = self.order_sampler(
-                numpy.arange(len(self.dataset)), 0)
-        else:
-            self._order = None
+        self._state = IteratorState(current_position, epoch, is_new_epoch,
+                                    order)
+        self._comm.reset(self._state)
 
     @property
     def _epoch_size(self):
-        if self._order is None:
-            return len(self.dataset)
+        order = self._state.order
+        if order is None:
+            epoch_size = len(self.dataset)
         else:
-            return len(self._order)
-
-    def _set_prefetch_state(self):
-        prefetch_state = _PrefetchState(
-            current_position=self.current_position,
-            epoch=self.epoch,
-            is_new_epoch=self.is_new_epoch,
-            previous_epoch_detail=self._previous_epoch_detail,
-            order=self._order)
-        self._comm.reset(prefetch_state)
+            epoch_size = len(order)
+        return epoch_size
 
 
 class _Communicator(object):
@@ -350,7 +354,7 @@ class _PrefetchLoop(object):
     def __init__(self, dataset, batch_size, repeat,
                  n_processes, n_prefetch, mem_size, comm,
                  order_sampler,
-                 _interruption_testing):
+                 _interruption_testing, maxtasksperchild):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -358,6 +362,7 @@ class _PrefetchLoop(object):
         self.mem_size = mem_size
         self._comm = comm
         self.order_sampler = order_sampler
+        self.maxtasksperchild = maxtasksperchild
 
         self._allocate_shared_memory()
 
@@ -391,7 +396,9 @@ class _PrefetchLoop(object):
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
 
-        indices = self._proceed()
+        self.prefetch_state, indices = iterator_statemachine(
+            self.prefetch_state, self.batch_size, self.repeat,
+            self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration
             batch = None
         else:
@@ -430,7 +437,8 @@ class _PrefetchLoop(object):
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
-            initargs=(self.dataset, self.mem_size, self.mem_bulk))
+            initargs=(self.dataset, self.mem_size, self.mem_bulk),
+            maxtasksperchild=self.maxtasksperchild)
         if self._interruption_testing:
             pids = self._pool.map(_report_pid, range(self.n_processes))
             print(' '.join(map(str, pids)))
@@ -465,7 +473,9 @@ class _PrefetchLoop(object):
         elif status == _Communicator.STATUS_TERMINATE:
             return False  # stop loop
 
-        indices = self._proceed()
+        self.prefetch_state, indices = iterator_statemachine(
+            self.prefetch_state, self.batch_size, self.repeat,
+            self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration
             batch = None
         else:
@@ -478,57 +488,13 @@ class _PrefetchLoop(object):
                         return False
                 else:
                     break
-
             batch = [_unpack(data, self.mem_bulk) for data in data_all]
 
         self._comm.put(batch, self.prefetch_state, reset_count)
         return True
 
-    def _proceed(self):
-        (pos, epoch, is_new_epoch,
-            previous_epoch_detail, order) = self.prefetch_state
-        n = len(order) if order is not None else len(self.dataset)
 
-        if pos < self.batch_size and epoch > 0 and not self.repeat:
-            return None  # stop iteration
-
-        previous_epoch_detail = epoch + pos / n
-
-        new_pos = pos + self.batch_size
-        if new_pos < n:
-            if order is None:
-                indices = numpy.arange(pos, new_pos)
-            else:
-                indices = order[pos:new_pos]
-            is_new_epoch = False
-        else:
-            new_pos = new_pos - n if self.repeat else 0
-
-            if order is None:
-                indices = numpy.arange(pos, n)
-                if self.repeat:
-                    indices = \
-                        numpy.concatenate((indices, numpy.arange(new_pos)))
-            else:
-                indices = order[pos:n]
-                if self.repeat:
-                    new_order = self.order_sampler(order, pos)
-                    if len(new_order) != n:
-                        raise ValueError('The size of order does not match '
-                                         'the size of the previous order.')
-                    order = new_order
-                    indices = \
-                        numpy.concatenate((indices, order[:new_pos]))
-            epoch += 1
-            is_new_epoch = True
-
-        self.prefetch_state = _PrefetchState(
-            new_pos, epoch, is_new_epoch,
-            previous_epoch_detail, order)
-        return indices
-
-
-# Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
+# Using `parameterized` function (e.g. bound method) with Pool is tricky due to
 # restrictions imposed by Pickle. Picklable types differ across versions.
 # Just using top-level function with globals seems to be safest.
 # it doesn't mean thread safety broken or global variables visible;

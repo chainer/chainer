@@ -51,16 +51,15 @@ class Forget(function_node.FunctionNode):
         # Create new variables that have no creators
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
 
-        with function.force_backprop_mode():
+        with function.force_backprop_mode(),\
+                chainer.using_config('in_recomputing', True):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
-            if len(outs) > 1:
-                # Avoid doing backward multiple times when `outs` is a tuple
-                outs = chainer.functions.identity(*outs)
 
         for out, grad_output in zip(outs, grad_outputs):
             out.grad_var = grad_output
-        outs[0].backward()
+        # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
+        chainer.variable._backprop_to_all(outs, False, None)
 
         return tuple([inp.grad_var for inp in dummy_inputs])
 
@@ -89,7 +88,7 @@ def forget(func, *xs):
        Let ``f`` be a function defined as:
 
        >>> def f(a, b):
-       ...   return a + b + a
+       ...   return (a + b) * a
 
        and, ``x`` and ``y`` be :class:`~chainer.Variable`\\ s:
 
@@ -122,6 +121,16 @@ def forget(func, *xs):
     .. note::
 
         ``F.forget`` does not support double backpropagation.
+
+    .. note::
+
+        If you want to use ``F.forget`` to a link which updates the link's
+        internal information every time the forward computation is called,
+        please ensure that the information is updated just once in a single
+        iteration. You may use the ``chainer.config.in_recomputing`` flag to
+        check if the forward computation is the first call in an iteration.
+        Please see the implementation of
+        :class:`~chainer.links.BatchNormalization` for detail.
 
     Args:
         func (callable): A function to call. It needs to be called with
