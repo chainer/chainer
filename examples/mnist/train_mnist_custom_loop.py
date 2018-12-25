@@ -8,6 +8,7 @@ applies an optimizer to update the model.
 """
 
 import argparse
+import os
 import re
 
 import numpy
