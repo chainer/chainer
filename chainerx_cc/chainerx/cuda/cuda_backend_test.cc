@@ -26,7 +26,9 @@ namespace {
 
 template <typename T>
 std::shared_ptr<void> ToHost(const Device& from_device, const std::shared_ptr<void>& mem, size_t size) {
-    if (nullptr != dynamic_cast<native::NativeBackend*>(&from_device.backend())) return mem;
+    if (nullptr != dynamic_cast<native::NativeBackend*>(&from_device.backend())) {
+        return mem;
+    }
     std::shared_ptr<void> host_mem = std::make_unique<T[]>(size);
     cudaMemcpy(host_mem.get(), mem.get(), sizeof(T) * size, cudaMemcpyDeviceToHost);
     return host_mem;
