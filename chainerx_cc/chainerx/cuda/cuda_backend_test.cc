@@ -20,6 +20,19 @@
 #include "chainerx/testing/threading.h"
 #include "chainerx/testing/util.h"
 
+#ifdef _WIN32
+int setenv(const char* name, const char* value, int overwrite) {
+    if (!overwrite) {
+        size_t requiredCount = 0;
+        auto err = getenv_s(&requiredCount, nullptr, 0, name);
+        if (err != 0 || requiredCount != 0) return err;
+    }
+    return _putenv_s(name, value);
+}
+
+void unsetenv(const char* name) { _putenv_s(name, ""); }
+#endif
+
 namespace chainerx {
 namespace cuda {
 namespace {

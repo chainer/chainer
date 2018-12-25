@@ -1,4 +1,4 @@
-add_library(_core.so MODULE
+set(core_srcs
     core_module.cc
     array.cc
     array_index.cc
@@ -21,18 +21,41 @@ add_library(_core.so MODULE
     testing/device_buffer.cc
     testing/testing_module.cc
     )
-if(${APPLE})
-    target_link_libraries(_core.so
+
+if(MSVC)
+    add_library(_core.pyd MODULE ${core_srcs})
+
+    target_link_libraries(_core.pyd
         PRIVATE
-        "-flto" pybind11::module
-        chainerx)
+        "-Wl,-flto" pybind11::module
+        "-Wl,-R,'$ORIGIN/.'" chainerx)
+    set_target_properties(_core.pyd
+        PROPERTIES
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_MODULE_SUFFIX}")
+
 else()
+
+    add_library(_core.so MODULE ${core_srcs})
+
     target_link_libraries(_core.so
         PRIVATE
         "-Wl,-flto" pybind11::module
         "-Wl,-R,'$ORIGIN/.'" chainerx)
+    if(${APPLE})
+        target_link_libraries(_core.so
+            PRIVATE
+           "-flto" pybind11::module
+            chainerx)
+    else()
+        target_link_libraries(_core.so
+            PRIVATE
+            "-Wl,-flto" pybind11::module
+            "-Wl,-R,'$ORIGIN/.'" chainerx)
+    endif()
+    set_target_properties(_core.so
+        PROPERTIES
+        PREFIX "${PYTHON_MODULE_PREFIX}"
+        SUFFIX "${PYTHON_MODULE_SUFFIX}")
+
 endif()
-set_target_properties(_core.so
-    PROPERTIES
-    PREFIX "${PYTHON_MODULE_PREFIX}"
-    SUFFIX "${PYTHON_MODULE_SUFFIX}")

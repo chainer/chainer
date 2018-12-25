@@ -59,14 +59,17 @@ class CMakeBuild(build_ext.build_ext):
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     cfg.upper(), extdir)]
-            if sys.maxsize > 2**32:
-                cmake_args += ['-A', 'x64']
-            build_args += ['--', '/m']
+
+            cmake_args += ['-DDEFAULT_CHAINERX_ENABLE_BLAS=OFF']
+            cmake_args += ['-G', 'Visual Studio 15 2017 Win64','-T', 'llvm']
+            
+            #if sys.maxsize > 2**32:
+            #    cmake_args += ['-A', 'x64']
+            #build_args += ['--', '/m']
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--']
-
-        build_args += ext.build_targets
+            build_args += ext.build_targets
 
         env = os.environ.copy()
         env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
@@ -99,10 +102,16 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx.random',
         'chainerx.testing',
     ]
+
+    if platform.system() == "Windows":
+        build_targets=['_core.pyd']
+    else:
+        build_targets=['_core.so']
+
     setup_kwargs.update(dict(
         cmdclass={'build_ext': CMakeBuild},
         ext_modules=[CMakeExtension(
             name='chainerx._core',
-            build_targets=['_core.so'],
+            build_targets=build_targets,
             sourcedir='chainerx_cc')],
     ))

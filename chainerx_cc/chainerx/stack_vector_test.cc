@@ -321,6 +321,7 @@ TEST(StackVectorTest, Back) {
 }
 
 TEST(StackVectorTest, Iterator) {
+#ifndef _WIN32
     StackVector<int, 5> vec1{2, 3};
 
     EXPECT_EQ(vec1.begin(), &vec1.front());
@@ -363,6 +364,7 @@ TEST(StackVectorTest, Iterator) {
         EXPECT_EQ(9, *it);
         EXPECT_EQ(vec1.begin(), it);
     }
+#endif
 }
 
 TEST(StackVectorTest, EraseMiddle) {

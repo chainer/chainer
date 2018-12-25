@@ -15,3 +15,13 @@ set_target_properties(backend1.so
     PREFIX ""
     SUFFIX ""
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/backends")
+
+if(MSVC)
+    target_link_libraries(backend0.so
+        chainerx
+        chainerx_native)
+
+    target_link_libraries(backend1.so
+        chainerx
+        chainerx_native)
+endif()
