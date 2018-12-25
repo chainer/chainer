@@ -44,7 +44,7 @@ class Model(chainer.Link):
         self.l2 = links.Linear(2)
         self.i = 0
 
-    def __call__(self, x):
+    def forward(self, x):
         self.flag_history.append(
             configuration.config.keep_graph_on_report)
 
@@ -77,7 +77,7 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
         updater = training.updaters.StandardUpdater(iterator, optimizer)
         trainer = training.Trainer(updater, (n_epochs, 'epoch'), out=outdir)
 
-        extension = c.dump_graph('main/loss', out_name='test.dot')
+        extension = c.DumpGraph('main/loss', out_name='test.dot')
         trainer.extend(extension)
 
         # Run

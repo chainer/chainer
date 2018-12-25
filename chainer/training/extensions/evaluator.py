@@ -1,11 +1,16 @@
 import copy
+import warnings
 
+import numpy
 import six
 
+from chainer import backend
+from chainer.backends import cuda
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import function
+from chainer import iterators
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
@@ -76,6 +81,9 @@ class Evaluator(extension.Extension):
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
+        if device is not None:
+            device = backend._get_device_compat(device)
+
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
@@ -88,6 +96,21 @@ class Evaluator(extension.Extension):
         self.device = device
         self.eval_hook = eval_hook
         self.eval_func = eval_func
+
+        for key, iter in six.iteritems(iterator):
+            if (isinstance(iter, (iterators.SerialIterator,
+                                  iterators.MultiprocessIterator,
+                                  iterators.MultithreadIterator)) and
+                    getattr(iter, 'repeat', False)):
+                msg = 'The `repeat` property of the iterator {} '
+                'is set to `True`. Typically, the evaluator sweeps '
+                'over iterators until they stop, '
+                'but as the property being `True`, this iterator '
+                'might not stop and evaluation could go into '
+                'an infinite loop.'
+                'We recommend to check the configuration '
+                'of iterators'.format(key)
+                warnings.warn(msg)
 
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
@@ -149,6 +172,11 @@ class Evaluator(extension.Extension):
         accumulates the reported values to :class:`~chainer.DictSummary` and
         returns a dictionary whose values are means computed by the summary.
 
+        Note that this function assumes that the main iterator raises
+        ``StopIteration`` or code in the evaluation loop raises an exception.
+        So, if this assumption is not held, the function could be caught in
+        an infinite loop.
+
         Users can override this method to customize the evaluation routine.
 
         .. note::
@@ -181,7 +209,7 @@ class Evaluator(extension.Extension):
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self.converter(batch, self.device)
+                in_arrays = self._call_converter(batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):
                         eval_func(*in_arrays)
@@ -193,6 +221,25 @@ class Evaluator(extension.Extension):
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def _call_converter(self, batch, device):
+        # TODO(niboshi): This is a temporary workaround to keep backward
+        # compatibility about user-defined custom converters. Existing
+        # converters expect int values as the `device` argument, so they
+        # can't handle ChainerX devices. We should either break backward
+        # compatibility at some time or introduce a sparate API.
+        converter = self.converter
+        if converter is convert.concat_examples:
+            return converter(batch, device)
+        else:
+            if device is None:
+                return converter(batch, None)
+            if device.xp is numpy:
+                return converter(batch, -1)
+            if device.xp is cuda.cupy:
+                return converter(batch, device.device.id)
+            raise NotImplementedError(
+                'Currently only `concat_examples` supports ChainerX.')
 
     def finalize(self):
         """Finalizes the evaluator object.

@@ -3,91 +3,112 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'shape': [(3, 2), ()],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestGaussian(unittest.TestCase):
 
     def setUp(self):
-        self.m = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.v = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.ggm = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
-        self.ggv = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
+        shape = self.shape
+        dtype = self.dtype
+        self.m = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        self.v = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        self.gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        self.ggm = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        self.ggv = numpy.random.uniform(-1, 1, shape).astype(dtype)
 
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        if self.dtype == numpy.float16:
+            self.check_backward_options['dtype'] = numpy.float64
+            self.check_double_backward_options['dtype'] = numpy.float64
 
-    def check_forward(self, m_data, v_data):
+    def test_forward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        m_data, v_data = backend_config.get_array((self.m, self.v))
+
         m = chainer.Variable(m_data)
         v = chainer.Variable(v_data)
-        n = functions.gaussian(m, v)
 
-        # Only checks dtype and shape because its result contains noise
-        self.assertEqual(n.dtype, numpy.float32)
-        self.assertEqual(n.shape, m.shape)
+        # Call forward without eps and retrieve it
+        n1, eps = functions.gaussian(m, v, return_eps=True)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.m, self.v)
+        self.assertIsInstance(eps, backend_config.xp.ndarray)
+        self.assertEqual(n1.dtype, self.dtype)
+        self.assertEqual(n1.shape, m.shape)
+        self.assertEqual(eps.dtype, self.dtype)
+        self.assertEqual(eps.shape, m.shape)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.m), cuda.to_gpu(self.v))
+        # Call again with retrieved eps
+        n2 = functions.gaussian(m, v, eps=eps)
+        self.assertEqual(n2.dtype, self.dtype)
+        self.assertEqual(n2.shape, m.shape)
+        testing.assert_allclose(n1.array, n2.array)
 
-    def check_backward(self, m_data, v_data, y_grad):
-        # Instantiate the FunctionNode object outside the function that is
-        # tested in order to reuse the same noise for the numerical gradient
-        # computations (the noise is generated once during its first forward
-        # pass, then reused)
-        # TODO(hvy): Do no expose interals of the tested function using
-        # e.g. numpy.random.RandomState
-        gaussian = functions.Gaussian()
+    def test_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        m_data, v_data = backend_config.get_array((self.m, self.v))
+        y_grad = backend_config.get_array(self.gy)
+        eps = backend_config.get_array(
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype))
 
         def f(m, v):
-            return gaussian.apply((m, v))[0]
+            # In case numerical gradient computation is held in more precise
+            # dtype than that of backward computation, cast the eps to reuse
+            # before the numerical computation.
+            eps_ = eps.astype(m.dtype)
+            return functions.gaussian(m, v, eps=eps_)
 
         gradient_check.check_backward(
             f, (m_data, v_data), y_grad, **self.check_backward_options)
 
-    def test_backward_cpu(self):
-        self.check_backward(self.m, self.v, self.gy)
+    def test_double_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.m),
-                            cuda.to_gpu(self.v),
-                            cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, m_data, v_data, y_grad, m_grad_grad,
-                              v_grad_grad):
-        gaussian = functions.Gaussian()
+        m_data, v_data = backend_config.get_array((self.m, self.v))
+        y_grad = backend_config.get_array(self.gy)
+        m_grad_grad, v_grad_grad = (
+            backend_config.get_array((self.ggm, self.ggv)))
+        eps = backend_config.get_array(
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype))
 
         def f(m, v):
-            y = gaussian.apply((m, v))[0]
-            return y * y
+            # In case numerical gradient computation is held in more precise
+            # dtype than that of backward computation, cast the eps to reuse
+            # before the numerical computation.
+            eps_ = eps.astype(m.dtype)
+            return functions.gaussian(m, v, eps=eps_)
 
         gradient_check.check_double_backward(
             f, (m_data, v_data), y_grad, (m_grad_grad, v_grad_grad),
-            atol=5e-4, rtol=5e-3)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.m, self.v, self.gy, self.ggm, self.ggv)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.m),
-                                   cuda.to_gpu(self.v),
-                                   cuda.to_gpu(self.gy),
-                                   cuda.to_gpu(self.ggm),
-                                   cuda.to_gpu(self.ggv))
+            **self.check_double_backward_options)
 
 
 testing.run_module(__name__, __file__)

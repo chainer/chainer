@@ -1,5 +1,4 @@
-import numpy
-
+import chainer
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
 from chainer.functions.pooling import average_pooling_2d
@@ -44,7 +43,7 @@ class InceptionBN(link.Chain):
 
     def __init__(self, in_channels, out1, proj3, out3, proj33, out33,
                  pooltype, proj_pool=None, stride=1, conv_init=None,
-                 dtype=numpy.float32):
+                 dtype=None):
         super(InceptionBN, self).__init__()
         self.out1 = out1
         self.proj_pool = proj_pool
@@ -52,6 +51,7 @@ class InceptionBN(link.Chain):
         self.pooltype = pooltype
         if pooltype != 'max' and pooltype != 'avg':
             raise NotImplementedError()
+        dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
             self.proj3 = convolution_2d.Convolution2D(
@@ -92,7 +92,7 @@ class InceptionBN(link.Chain):
                 self.poolpn = batch_normalization.BatchNormalization(
                     proj_pool, dtype=dtype)
 
-    def __call__(self, x):
+    def forward(self, x):
         outs = []
 
         if self.out1 > 0:

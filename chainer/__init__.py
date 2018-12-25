@@ -9,23 +9,33 @@ from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
+from chainer import distributions  # NOQA
 from chainer import function_hooks  # NOQA
 from chainer import functions  # NOQA
+from chainer import graph_optimizations  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
 from chainer import links  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
+from chainer import variable  # NOQA
 
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._runtime_info import print_runtime_info  # NOQA
+from chainer.backend import get_device  # NOQA
+from chainer.backend import using_device  # NOQA
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.distribution import cross_entropy  # NOQA
+from chainer.distribution import Distribution  # NOQA
+from chainer.distribution import kl_divergence  # NOQA
+from chainer.distribution import register_kl  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import FunctionAdapter  # NOQA
@@ -35,10 +45,13 @@ from chainer.function_node import FunctionNode  # NOQA
 from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
+from chainer.graph_optimizations.static_graph import static_graph  # NOQA
+from chainer.graph_optimizations.static_graph_utilities import static_code  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
+from chainer.link_hook import LinkHook  # NOQA
 from chainer.optimizer import GradientMethod  # NOQA
 from chainer.optimizer import Optimizer  # NOQA
 from chainer.optimizer import UpdateRule  # NOQA
@@ -48,6 +61,7 @@ from chainer.reporter import report  # NOQA
 from chainer.reporter import report_scope  # NOQA
 from chainer.reporter import Reporter  # NOQA
 from chainer.reporter import Summary  # NOQA
+from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
@@ -63,6 +77,9 @@ from chainer import cuda  # NOQA
 from chainer import _environment_check
 
 
+import chainerx
+
+
 # Check environment conditions
 _environment_check.check()
 
@@ -74,12 +91,33 @@ _array_types = None
 _cpu_array_types = None
 
 
+# Used in chainer.FunctionNode.forward_chainerx().
+# This value is returned to indicate that the function does not support forward
+# computation in ChainerX implementation with given input arrays and other
+# arguments.
+class _FallbackType(object):
+    def __repr__(self):
+        return 'Fallback'
+
+
+Fallback = _FallbackType()
+
+
 def get_function_hooks():
     try:
         ret = _thread_local.function_hooks
     except AttributeError:
         ret = collections.OrderedDict()
         _thread_local.function_hooks = ret
+    return ret
+
+
+def _get_link_hooks():
+    try:
+        ret = _thread_local.link_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.link_hooks = ret
     return ret
 
 
@@ -99,6 +137,10 @@ def _load_array_types():
             array_types.append(backends.intel64.mdarray)
             cpu_array_types.append(backends.intel64.mdarray)
 
+        if chainerx.is_available():
+            array_types.append(chainerx.ndarray)
+            cpu_array_types.append(chainerx.ndarray)
+
         array_types = tuple(array_types)
         cpu_array_types = tuple(cpu_array_types)
 
@@ -116,11 +158,23 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
+# TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
     arrays = [a for a in arrays if a is not None]
+
     if len(arrays) == 0:
         return True
-    if type(arrays[0]) is backends.cuda.ndarray:
+
+    # If there's at least one chainerx.ndarray, all other arrays
+    # will be converted to memory-shared chainerx.ndarrays.
+    # TODO(niboshi): intel64.mdarray is not supported yet.
+    # TODO(niboshi): Delegate array compatibility check to chainerx.
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
+        return not any([
+            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+
+    if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
@@ -137,9 +191,19 @@ global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
+global_config.schedule_func = None
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
+global_config.cudnn_fast_batch_normalization = bool(int(
+    os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
+
+_chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
+if _chainer_dtype not in ('float16', 'float32', 'float64'):
+    raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
+                    'Only float16/32/64 are allowed.'.format(_chainer_dtype))
+global_config.dtype = numpy.dtype(_chainer_dtype)
+global_config.in_recomputing = False
 
 
 def is_debug():
@@ -192,6 +256,20 @@ class DebugMode(object):
 
     def __exit__(self, *args):
         self._using.__exit__(*args)
+
+
+def get_dtype(dtype=None):
+    """Resolves Chainer's default dtype.
+
+    Returns:
+        If ``dtype`` is not ``None``, it returns the dtype normalized by
+        ``numpy.dtype()``. Otherwise, it returns ``chainer.config.dtype`` (see
+        :ref:`configuration`) normalized as well.
+
+    """
+    if dtype is None:
+        dtype = config.dtype
+    return numpy.dtype(dtype)
 
 
 basic_math.install_variable_arithmetics()

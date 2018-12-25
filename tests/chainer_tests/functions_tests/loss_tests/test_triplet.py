@@ -11,12 +11,13 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    *testing.product({
-        'batchsize': [5, 10], 'input_dim': [2, 3],
-        'margin': [0.1, 0.5], 'reduce': ['mean', 'no']
-    })
-)
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'batchsize': [5, 10],
+    'input_dim': [2, 3],
+    'margin': [0.1, 0.5],
+    'reduce': ['mean', 'no']
+}))
 class TestTriplet(unittest.TestCase):
 
     def setUp(self):
@@ -25,9 +26,9 @@ class TestTriplet(unittest.TestCase):
 
         # Sample differentiable inputs
         while True:
-            self.a = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-            self.p = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-            self.n = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+            self.a = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            self.p = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            self.n = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             if (abs(self.a - self.p) < 2 * eps).any():
                 continue
             if (abs(self.a - self.n) < 2 * eps).any():
@@ -43,10 +44,25 @@ class TestTriplet(unittest.TestCase):
             gy_shape = ()
         else:
             gy_shape = self.batchsize,
-        self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(numpy.float32)
-        self.gga = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.ggp = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.ggn = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
+        self.gga = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        self.ggp = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        self.ggn = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'rtol': 5e-3, 'atol': 5e-3}
+            self.check_backward_options = {'rtol': 5e-2, 'atol': 5e-2}
+            self.check_double_backward_options = {'rtol': 5e0, 'atol': 5e0}
+        elif self.dtype == numpy.float32:
+            self.check_forward_options = {'rtol': 1e-4, 'atol': 1e-4}
+            self.check_backward_options = {'rtol': 5e-4, 'atol': 5e-4}
+            self.check_double_backward_options = {'rtol': 1e-3, 'atol': 1e-3}
+        elif self.dtype == numpy.float64:
+            self.check_forward_options = {'rtol': 1e-4, 'atol': 1e-4}
+            self.check_backward_options = {'rtol': 5e-4, 'atol': 5e-4}
+            self.check_double_backward_options = {'rtol': 1e-3, 'atol': 1e-3}
+        else:
+            raise ValueError('invalid dtype')
 
     def check_forward(self, a_data, p_data, n_data):
         a_val = chainer.Variable(a_data)
@@ -57,13 +73,13 @@ class TestTriplet(unittest.TestCase):
             self.assertEqual(loss.data.shape, ())
         else:
             self.assertEqual(loss.data.shape, (self.batchsize,))
-        self.assertEqual(loss.data.dtype, numpy.float32)
+        self.assertEqual(loss.data.dtype, self.dtype)
         loss_value = cuda.to_cpu(loss.data)
 
         #
         # Compute expected value
         #
-        loss_expect = numpy.empty((self.a.shape[0],), dtype=numpy.float32)
+        loss_expect = numpy.empty((self.a.shape[0],), dtype=self.dtype)
         for i in six.moves.range(self.a.shape[0]):
             ad, pd, nd = self.a[i], self.p[i], self.n[i]
             dp = numpy.sum((ad - pd) ** 2)
@@ -72,7 +88,7 @@ class TestTriplet(unittest.TestCase):
         if self.reduce == 'mean':
             loss_expect = loss_expect.mean()
         numpy.testing.assert_allclose(
-            loss_expect, loss_value, rtol=1e-4, atol=1e-4)
+            loss_expect, loss_value, **self.check_forward_options)
 
     def test_negative_margin(self):
         self.margin = -1
@@ -96,7 +112,7 @@ class TestTriplet(unittest.TestCase):
 
         gradient_check.check_backward(
             f, (a_data, p_data, n_data), gy_data, dtype=numpy.float64,
-            rtol=5e-4, atol=5e-4)
+            **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.a, self.p, self.n, self.gy)
@@ -114,7 +130,8 @@ class TestTriplet(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (a_data, p_data, n_data), gy_data,
-            (gga_data, ggp_data, ggn_data), rtol=1e-3, atol=1e-3)
+            (gga_data, ggp_data, ggn_data),
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

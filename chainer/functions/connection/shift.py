@@ -23,8 +23,7 @@ class Shift(function_node.FunctionNode):
         self.dy, self.dx = _pair(dilate)
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check._argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
@@ -122,8 +121,7 @@ def shift(x, ksize=3, dilate=1):
     Convolutions <https://arxiv.org/abs/1711.08141>`_
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c, h, w)`.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.

@@ -7,7 +7,7 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -22,13 +22,6 @@ class Convolution2D(link.Link):
     selects the most efficient CNN algorithm for images of fixed-size, 
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
-
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
 
     Args:
         in_channels (int or None): Number of channels of input arrays.
@@ -48,6 +41,15 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        dilate (int or pair of ints):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`): Number of groups of channels. If the number
+            is greater than 1, input tensor :math:`W` is divided into some
+            blocks by this value channel-wise. For each tensor blocks,
+            convolution operation will be executed independently. Input channel
+            size ``in_channels`` and output channel size ``out_channels`` must
+            be exactly divisible by this value.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -103,16 +105,14 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, groups=1,
-                 **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
-        argument.check_unexpected_kwargs(
-            kwargs, deterministic="deterministic argument is not "
-            "supported anymore. "
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
+            deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -142,14 +142,14 @@ class Convolution2D(link.Link):
         kh, kw = _pair(self.ksize)
         if self.out_channels % self.groups != 0:
             raise ValueError('the number of output channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         if in_channels % self.groups != 0:
             raise ValueError('the number of input channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the convolution layer.
 
         Args:
@@ -159,7 +159,7 @@ class Convolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,

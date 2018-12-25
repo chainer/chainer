@@ -4,7 +4,7 @@ from chainer.training.extensions import snapshot_writers
 from chainer.utils import argument
 
 
-def snapshot_object(target, filename, savefun=npz.save_npz):
+def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
     """Returns a trainer extension to take snapshots of a given object.
 
     This extension serializes the given object and saves it to the output
@@ -27,6 +27,8 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
             ``'snapshot_10000'`` at the 10,000th iteration.
         savefun: Function to save the object. It takes two arguments: the
             output file path and the object to serialize.
+        snapshot_on_error (bool): Whether to take a snapshot in case trainer
+            loop has been failed.
 
     Returns:
         Snapshot extension object.
@@ -35,15 +37,20 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+    snapshot_on_error = argument.parse_kwargs(
+        kwargs, ('snapshot_on_error', False))
+    argument.assert_kwargs_empty(kwargs)
+
     return _Snapshot(
         target=target,
         writer=snapshot_writers.SimpleWriter(savefun=savefun),
-        filename=filename)
+        filename=filename,
+        snapshot_on_error=snapshot_on_error)
 
 
 def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
-    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None)
+    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None, snapshot_on_error=False)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -88,6 +95,8 @@ def snapshot(savefun=None,
             :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`
             object instantiated with specified ``savefun`` argument will be
             used.
+        snapshot_on_error (bool): Whether to take a snapshot in case trainer
+            loop has been failed.
 
     Returns:
         Snapshot extension object.
@@ -139,13 +148,15 @@ ProcessQueueWriter`
 
         - :meth:`chainer.training.extensions.snapshot_object`
     """  # NOQA
-    target = kwargs.pop('target', None)
-    condition = kwargs.pop('condition', None)
-    writer = kwargs.pop('writer', None)
+    target, condition, writer, snapshot_on_error = argument.parse_kwargs(
+        kwargs,
+        ('target', None), ('condition', None), ('writer', None),
+        ('snapshot_on_error', False))
+    argument.assert_kwargs_empty(kwargs)
+
     if savefun is not None and writer is not None:
         raise TypeError(
             'savefun and writer arguments cannot be specified together.')
-    argument.assert_kwargs_empty(kwargs)
 
     if writer is None:
         if savefun is None:
@@ -153,7 +164,8 @@ ProcessQueueWriter`
         writer = snapshot_writers.SimpleWriter(savefun=savefun)
 
     return _Snapshot(
-        target=target, condition=condition, writer=writer, filename=filename)
+        target=target, condition=condition, writer=writer, filename=filename,
+        snapshot_on_error=snapshot_on_error)
 
 
 def _always_true():
@@ -179,7 +191,8 @@ class _Snapshot(extension.Extension):
 
     def __init__(
             self, target=None, condition=None, writer=None,
-            filename='snapshot_iter_{.updater.iteration}'):
+            filename='snapshot_iter_{.updater.iteration}',
+            snapshot_on_error=False):
         if condition is None:
             condition = _always_true
         if writer is None:
@@ -188,18 +201,27 @@ class _Snapshot(extension.Extension):
         self.filename = filename
         self.condition = condition
         self.writer = writer
+        self._snapshot_on_error = snapshot_on_error
+
+    def on_error(self, trainer, exc, tb):
+        super(_Snapshot, self).on_error(trainer, exc, tb)
+        if self._snapshot_on_error:
+            self._make_snapshot(trainer)
 
     def __call__(self, trainer):
         if self.condition():
-            target = trainer if self._target is None else self._target
-            serialized_target = npz.serialize(target)
-            filename = self.filename
-            if callable(filename):
-                filename = filename(trainer)
-            else:
-                filename = filename.format(trainer)
-            outdir = trainer.out
-            self.writer(filename, outdir, serialized_target)
+            self._make_snapshot(trainer)
+
+    def _make_snapshot(self, trainer):
+        target = trainer if self._target is None else self._target
+        serialized_target = npz.serialize(target)
+        filename = self.filename
+        if callable(filename):
+            filename = filename(trainer)
+        else:
+            filename = filename.format(trainer)
+        outdir = trainer.out
+        self.writer(filename, outdir, serialized_target)
 
     def finalize(self):
         if hasattr(self.writer, 'finalize'):

@@ -8,7 +8,7 @@ A :class:`Link` is an object that holds parameters (i.e. optimization targets).
 The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
 We will introduce higher level links, but here think of links as simply functions with parameters.
 
-One of the most frequently used links is the :class:`~functions.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
+One of the most frequently used links is the :class:`~functions.connection.linear.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
 It represents a mathematical function :math:`f(x) = Wx + b`, where the matrix :math:`W` and the vector :math:`b` are parameters.
 This link corresponds to its pure counterpart :func:`~functions.linear`, which accepts :math:`x, W, b` as arguments.
 A linear link from three-dimensional space to two-dimensional space is defined by the following line:
@@ -30,10 +30,10 @@ This is the preferred way to initialize these parameters.
 
 .. doctest::
 
-   >>> f.W.data
+   >>> f.W.array
    array([[ 1.0184761 ,  0.23103087,  0.5650746 ],
           [ 1.2937803 ,  1.0782351 , -0.56423163]], dtype=float32)
-   >>> f.b.data
+   >>> f.b.array
    array([0., 0.], dtype=float32)
 
 An instance of the Linear link acts like a usual function:
@@ -42,7 +42,7 @@ An instance of the Linear link acts like a usual function:
 
    >>> x = Variable(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32))
    >>> y = f(x)
-   >>> y.data
+   >>> y.array
    array([[3.1757617, 1.7575557],
           [8.619507 , 7.1809077]], dtype=float32)
 
@@ -70,10 +70,6 @@ It can be done by calling the :meth:`~Link.cleargrads` method.
 .. doctest::
 
    >>> f.cleargrads()
-
-.. note::
-   :meth:`~Link.cleargrads` is introduced in v1.15 to replace :meth:`~Link.zerograds` for efficiency.
-   :meth:`~Link.zerograds` is left only for backward compatibility.
 
 Now we can compute the gradients of parameters by simply calling the backward method and access them via the ``grad`` property.
 

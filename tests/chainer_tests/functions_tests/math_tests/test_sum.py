@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -45,6 +46,15 @@ class TestSum(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @attr.chainerx
+    @condition.retry(3)
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.sum(x, self.axis, self.keepdims),
@@ -59,6 +69,15 @@ class TestSum(unittest.TestCase):
     def test_backward_axis_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+    @attr.chainerx
+    @condition.retry(3)
+    def test_backward_axis_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -70,15 +89,15 @@ class TestSumError(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Sum([0])
+            functions.sum(self.x, axis=[0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Sum((1, 'x'))
+            functions.sum(self.x, axis=(1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Sum((0, 0))
+            functions.sum(self.x, axis=(0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):

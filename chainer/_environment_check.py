@@ -3,6 +3,9 @@ import sys
 import warnings
 
 import numpy.distutils.system_info
+import pkg_resources
+
+import chainer
 
 
 def _check_python_350():
@@ -33,11 +36,60 @@ We recommend using other BLAS libraries such as OpenBLAS.
 For details of the issue, please see
 https://docs.chainer.org/en/stable/tips.html#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x.
 
-Also note that Chainer does not officially support Mac OS X.
-Please use it at your own risk.
+Please be aware that Mac OS X is not an officially supported OS.
 ''')  # NOQA
+
+
+def _check_optional_dependencies():
+    for dep in chainer._version._optional_dependencies:
+        name = dep['name']
+        pkgs = dep['packages']
+        spec = dep['specifier']
+        help = dep['help']
+        installed = False
+        for pkg in pkgs:
+            found = False
+            requirement = '{}{}'.format(pkg, spec)
+            try:
+                pkg_resources.require(requirement)
+                found = True
+            except pkg_resources.DistributionNotFound:
+                continue
+            except pkg_resources.VersionConflict:
+                msg = '''
+--------------------------------------------------------------------------------
+{name} ({pkg}) version {version} may not be compatible with this version of Chainer.
+Please consider installing the supported version by running:
+  $ pip install '{requirement}'
+
+See the following page for more details:
+  {help}
+--------------------------------------------------------------------------------
+'''  # NOQA
+                warnings.warn(msg.format(
+                    name=name, pkg=pkg,
+                    version=pkg_resources.get_distribution(pkg).version,
+                    requirement=requirement, help=help))
+                found = True
+            except Exception:
+                warnings.warn(
+                    'Failed to check requirement: {}'.format(requirement))
+                break
+
+            if found:
+                if installed:
+                    warnings.warn('''
+--------------------------------------------------------------------------------
+Multiple installations of {name} package has been detected.
+You should select only one package from from {pkgs}.
+Run `pip list` to see the list of packages currently installed, then
+`pip uninstall <package name>` to uninstall unnecessary package(s).
+--------------------------------------------------------------------------------
+'''.format(name=name, pkgs=pkgs))
+                installed = True
 
 
 def check():
     _check_python_350()
     _check_osx_numpy_backend()
+    _check_optional_dependencies()

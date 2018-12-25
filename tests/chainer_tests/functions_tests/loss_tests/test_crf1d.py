@@ -82,18 +82,12 @@ class TestCRF1d(unittest.TestCase):
             return functions.crf1d(cost, xs, ys, reduce=self.reduce)
 
         args = [cost_data] + xs_data + ys_data
-        if len(self.batches) == 1:
-            # When each sequence only contains one element, cost matrix
-            # is not used, and its gradient is not updated.
-            no_grads = [True] + [False] * len(xs_data) + [True] * len(ys_data)
-        else:
-            no_grads = None
         if self.reduce == 'mean':
             grad = None
         elif self.reduce == 'no':
             grad = g_data
         gradient_check.check_backward(
-            f, args, grad, no_grads=no_grads, rtol=1e-3, atol=1e-3)
+            f, args, grad, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
         self.check_backward(self.cost, self.xs, self.ys, self.g)

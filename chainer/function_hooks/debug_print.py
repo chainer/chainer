@@ -1,7 +1,7 @@
 import sys
 import warnings
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_hook
 from chainer import variable
 
@@ -73,11 +73,14 @@ class PrintHook(function_hook.FunctionHook):
         if out_grad is not None:
             self._print('output gradient')
             for d in out_grad:
-                xp = cuda.get_array_module(d)
-                v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
-                v.grad = d
+                if d is None:
+                    v = variable.Variable()
+                else:
+                    xp = backend.get_array_module(d)
+                    v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
+                    v.grad = d
                 self._print(v.debug_print())
-        if self.flush:
+        if self.flush and hasattr(self.file, 'flush'):
             self.file.flush()
 
     def forward_preprocess(self, function, in_data):

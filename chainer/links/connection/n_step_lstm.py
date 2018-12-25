@@ -15,12 +15,6 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -31,16 +25,10 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
     n_weights = 8
 
-    def __call__(self, hx, cx, xs, **kwargs):
-        """__call__(self, hx, cx, xs)
+    def forward(self, hx, cx, xs, **kwargs):
+        """forward(self, hx, cx, xs)
 
         Calculate all hidden states and cell states.
-
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
 
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
@@ -91,23 +79,11 @@ class NStepLSTM(NStepLSTMBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -138,23 +114,11 @@ class NStepBiLSTM(NStepLSTMBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`

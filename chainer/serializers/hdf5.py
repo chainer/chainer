@@ -3,8 +3,11 @@ import sys
 import numpy
 import six
 
+from chainer.backends import _cpu
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import serializer
+import chainerx
 
 
 try:
@@ -47,9 +50,6 @@ class HDF5Serializer(serializer.Serializer):
         return HDF5Serializer(self.group.require_group(name), self.compression)
 
     def __call__(self, key, value):
-        ret = value
-        if isinstance(value, cuda.ndarray):
-            value = cuda.to_cpu(value)
         if value is None:
             # use Empty to represent None
             if h5py.version.version_tuple < (2, 7, 0):
@@ -58,10 +58,10 @@ class HDF5Serializer(serializer.Serializer):
             arr = h5py.Empty('f')
             compression = None
         else:
-            arr = numpy.asarray(value)
+            arr = _cpu._to_cpu(value)
             compression = None if arr.size <= 1 else self.compression
         self.group.create_dataset(key, data=arr, compression=compression)
-        return ret
+        return value
 
 
 def save_hdf5(filename, obj, compression=4):
@@ -154,11 +154,15 @@ class HDF5Deserializer(serializer.Deserializer):
             return None
         if value is None:
             return numpy.asarray(dataset)
-
-        if isinstance(value, numpy.ndarray):
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.to_numpy(value, copy=False)
+            dataset.read_direct(value_view)
+        elif isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset, dtype=value.dtype))
+        elif isinstance(value, intel64.mdarray):
+            intel64.ideep.basic_copyto(value, numpy.asarray(dataset))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value

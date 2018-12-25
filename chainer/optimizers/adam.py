@@ -1,9 +1,12 @@
 from __future__ import division
 import math
+import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -50,7 +53,7 @@ class AdamRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        alpha (float): Step size.
+        alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
@@ -59,6 +62,8 @@ class AdamRule(optimizer.UpdateRule):
         amsgrad (bool): Whether to use the AMSGrad variant of Adam.
 
     """
+    _kernel = None
+    _amsgrad_kernel = None
 
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
@@ -81,12 +86,21 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.amsgrad = amsgrad
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
+
+        # For iDeep
+        if (isinstance(param.data, intel64.mdarray)
+                and intel64.inputs_all_ready((self.state['m'],))
+                and intel64.inputs_all_ready((self.state['v'],))):
+            self.state['m'] = intel64.ideep.array(
+                self.state['m'], itype=intel64.ideep.wgt_array)
+            self.state['v'] = intel64.ideep.array(
+                self.state['v'], itype=intel64.ideep.wgt_array)
 
     def update_core_cpu(self, param):
         grad = param.grad
@@ -99,17 +113,29 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
-
-        m += (1 - hp.beta1) * (grad - m)
-        v += (1 - hp.beta2) * (grad * grad - v)
-
-        if hp.amsgrad:
-            vhat = self.state['vhat']
-            numpy.maximum(vhat, v, out=vhat)
+        if (isinstance(m, intel64.mdarray)
+                and isinstance(v, intel64.mdarray)):
+            m.inplace_axpby(1.0, 1.0 - hp.beta1, grad - m)
+            v.inplace_axpby(1.0, 1.0 - hp.beta2, grad*grad - v)
+            if hp.amsgrad:
+                vhat = self.state['vhat']
+                numpy.maximum(vhat, v, out=vhat)
+            else:
+                vhat = v
+            param.data.inplace_axpby(
+                1.0 - hp.weight_decay_rate, -hp.eta,
+                self.alpha_t * m / (numpy.sqrt(vhat) + hp.eps))
         else:
-            vhat = v
-        param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
-                                hp.weight_decay_rate * param.data)
+            m += (1 - hp.beta1) * (grad - m)
+            v += (1 - hp.beta2) * (grad * grad - v)
+            if hp.amsgrad:
+                vhat = self.state['vhat']
+                numpy.maximum(vhat, v, out=vhat)
+            else:
+                vhat = v
+            param.data -= hp.eta * (
+                self.alpha_t * m / (numpy.sqrt(vhat) + hp.eps) +
+                hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad
@@ -123,37 +149,50 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         if hp.amsgrad:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v, T vhat',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   vhat = max(vhat, v);
-                   param -= eta * (lr * m / (sqrt(vhat) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'],
-                        self.state['vhat'])
+            if AdamRule._amsgrad_kernel is None:
+                AdamRule._amsgrad_kernel = cuda.elementwise(
+                    'T grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
+                    'T eps, T eta, T weight_decay_rate',
+                    'T param, T m, T v, T vhat',
+                    '''m += one_minus_beta1 * (grad - m);
+                       v += one_minus_beta2 * (grad * grad - v);
+                       vhat = max(vhat, v);
+                       param -= eta * (alpha_t * m / (sqrt(vhat) + eps) +
+                                       weight_decay_rate * param);''',
+                    'adam')
+            AdamRule._amsgrad_kernel(
+                grad, self.alpha_t, 1 - hp.beta1,
+                1 - hp.beta2, hp.eps,
+                hp.eta, hp.weight_decay_rate,
+                param.data, self.state['m'], self.state['v'],
+                self.state['vhat'])
         else:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   param -= eta * (lr * m / (sqrt(v) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'])
+            if AdamRule._kernel is None:
+                AdamRule._kernel = cuda.elementwise(
+                    'T grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
+                    'T eps, T eta, T weight_decay_rate',
+                    'T param, T m, T v',
+                    '''m += one_minus_beta1 * (grad - m);
+                       v += one_minus_beta2 * (grad * grad - v);
+                       param -= eta * (alpha_t * m / (sqrt(v) + eps) +
+                                       weight_decay_rate * param);''',
+                    'adam')
+            AdamRule._kernel(grad, self.alpha_t, 1 - hp.beta1,
+                             1 - hp.beta2, hp.eps,
+                             hp.eta, hp.weight_decay_rate,
+                             param.data, self.state['m'], self.state['v'])
+
+    @property
+    def alpha_t(self):
+        return _learning_rate(self.hyperparam, self.t)
 
     @property
     def lr(self):
-        return _learning_rate(self.hyperparam, self.t)
+        warnings.warn(
+            'AdamRule.lr has been renamed to AdamRule.alpha_t. '
+            'Use of AdamRule.lr is deprecated in Chainer v6.',
+            DeprecationWarning)
+        return self.alpha_t
 
 
 class Adam(optimizer.GradientMethod):
@@ -181,7 +220,7 @@ class Adam(optimizer.GradientMethod):
                <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     Args:
-        alpha (float): Step size.
+        alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
@@ -220,5 +259,13 @@ class Adam(optimizer.GradientMethod):
         return AdamRule(self.hyperparam)
 
     @property
-    def lr(self):
+    def alpha_t(self):
         return _learning_rate(self.hyperparam, self.t)
+
+    @property
+    def lr(self):
+        warnings.warn(
+            'Adam.lr has been renamed to AdamRule.alpha_t. '
+            'Use of Adam.lr is deprecated in Chainer v6.',
+            DeprecationWarning)
+        return self.alpha_t

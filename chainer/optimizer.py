@@ -5,11 +5,13 @@ import warnings
 import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
+from chainer import backend
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 class Hyperparameter(object):
@@ -229,8 +231,11 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device_from_array(param.data) as dev:
-            if int(dev) == -1:
+        device = param.device
+        with chainer.using_device(device):
+            if device.xp is chainerx:
+                self.update_core_chainerx(param)
+            elif device.xp is numpy:
                 self.update_core_cpu(param)
             else:
                 self.update_core_gpu(param)
@@ -256,6 +261,62 @@ class UpdateRule(object):
 
         """
         raise NotImplementedError
+
+    def update_core_chainerx(self, param):
+        """Updates the ChainerX parameter.
+
+        This method can be overridden to implement custom update logic.
+        The default implementation is to convert the parameter to a
+        memory-shared NumPy/CuPy parameter and call the corresponding update
+        method.
+
+        See :meth:`update_core` for details.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        grad_array = param.grad
+        backend_name = param.array.device.backend.name
+        if backend_name == 'native':
+            update_core = self.update_core_cpu
+        elif backend_name == 'cuda':
+            update_core = self.update_core_gpu
+        else:
+            raise RuntimeError(
+                'Default implementation of Optimizer.update_core_chainerx is '
+                'only provided for native or cuda backends (actual: {}). '
+                'Override Optimizer.update_core_chainerx() to implement '
+                'custom update logic.'.format(backend_name))
+
+        # Convert state arrays to NumPy/CuPy
+        chainerx_state_arrays = {}
+        for state_name, st in self.state.items():
+            st = self.state[state_name]
+            if isinstance(st, chainerx.ndarray):
+                self.state[state_name] = backend.from_chainerx(st)
+                chainerx_state_arrays[state_name] = st
+
+        # Create a temporary parameter with memory-shared NumPy/CuPy array
+        # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
+        # cache and avoid redundant conversion. Else, create the cache here
+        # and use it.
+        if param._chainerx_fallback_array is None:
+            param._chainerx_fallback_array = backend.from_chainerx(
+                param.array)
+
+        temp_param = variable.Variable(param._chainerx_fallback_array)
+
+        if grad_array is not None:
+            temp_param._set_grad_without_check(
+                backend.from_chainerx(grad_array))
+
+        # Update
+        update_core(temp_param)
+
+        # Restore state arrays
+        for state_name, arr in chainerx_state_arrays.items():
+            self.state[state_name] = arr
 
     def init_state(self, param):
         """Initializes the state.
@@ -292,33 +353,36 @@ class UpdateRule(object):
                 self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
-                    self._state[key] = serializer(key, None)
+                    try:
+                        value = serializer(key, None)
+                    except KeyError:
+                        if self.enabled:
+                            raise
+                        value = None
                     # leave the update rule state as `None` if the keys are not
                     # contained in the snapshot, so that these states can be
                     # automatically initialized with the `_prepare` method
-                    if self._state[key] is None:
+                    if value is None:
                         self._state = None
                         break
+                    else:
+                        self._state[key] = value
         else:
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        with cuda.get_device_from_array(param.data) as device:
+        device = param.device
+        with chainer.using_device(device):
             state = self.state
             if state is None:
                 state = self._state = {}
                 self.init_state(param)
 
             for name, value in six.iteritems(state):
-                if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
+                if not isinstance(value, chainer.get_array_types()):
                     continue
-                value_device = cuda.get_device_from_array(value)
-                if value_device.id != device.id:
-                    if device.id >= 0:
-                        state[name] = cuda.to_gpu(value)
-                    else:
-                        state[name] = cuda.to_cpu(value)
+                state[name] = device.send(value)
 
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32.
@@ -371,6 +435,10 @@ class Optimizer(object):
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.
+        ~Optimizer.use_auto_new_epoch: Boolean flag to indicate if
+            :meth:`new_epoch` will be called by the updater. Updater should
+            set this flag to ``True`` if it automatically calls
+            :meth:`new_epoch`.
 
     """
 
@@ -380,6 +448,7 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    use_auto_new_epoch = False
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -431,24 +500,51 @@ class Optimizer(object):
         parameters.
 
         Args:
-            lossfun (function): Loss function. It accepts arbitrary arguments
-                and returns one :class:`~chainer.Variable` object that
-                represents the loss (or objective) value. This argument can be
-                omitted for single gradient-based methods. In this case, this
-                method assumes gradient arrays computed.
+            lossfun (callable):
+                Loss function.
+                You can specify one of loss functions from
+                :doc:`built-in loss functions </reference/functions>`, or
+                your own loss function.
+                It should not be an
+                :doc:`loss functions with parameters </reference/links>`
+                (i.e., :class:`~chainer.Link` instance).
+                The function must accept arbitrary arguments
+                and return one :class:`~chainer.Variable` object that
+                represents the loss (or objective) value.
+                Returned value must be a Variable derived from the input
+                Variable object.
+                ``lossfun`` can be omitted for single gradient-based methods.
+                In this case, this method assumes gradient arrays computed.
             args, kwds: Arguments for the loss function.
 
         """
         raise NotImplementedError
 
-    def new_epoch(self):
+    def new_epoch(self, auto=False):
         """Starts a new epoch.
 
         This method increments the :attr:`epoch` count. Note that if the
         optimizer depends on the epoch count, then user should call this method
         appropriately at the beginning of each epoch.
 
+        Args:
+            auto (bool): Should be ``True`` if this method is called by an
+                updater. In this case, :attr:`use_auto_new_epoch` should be set
+                to ``True`` by the updater.
+
         """
+        if auto:
+            if not self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'invalid new_epoch call with auto=True.\n'
+                    'Fix the updater to set '
+                    'optimizer.use_auto_new_epoch = True.')
+        else:
+            if self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'duplicated new_epoch with the updater.\n'
+                    'Pass auto_new_epoch=False to the updater or stop calling '
+                    'new_epoch outside the updater.')
         self.epoch += 1
 
     def add_hook(self, hook, name=None, timing='auto'):
@@ -459,7 +555,7 @@ class Optimizer(object):
         attribute.
 
         Args:
-            hook (function): Hook function. If ``hook.call_for_each_param`` is
+            hook (callable): Hook function. If ``hook.call_for_each_param`` is
                 true, this hook function is called for each parameter by
                 passing the update rule and the parameter. Otherwise, this hook
                 function is called only once each iteration by passing the
@@ -604,9 +700,9 @@ class GradientMethod(Optimizer):
         """
         for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device_from_array(param.data):
-                    xp = cuda.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+                device = param.device
+                with chainer.using_device(device):
+                    param.grad = device.xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""

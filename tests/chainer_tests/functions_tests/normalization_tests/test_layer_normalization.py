@@ -2,7 +2,6 @@ import unittest
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -10,17 +9,11 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _batch_normalization(expander, gamma, beta, x, mean, var):
-    mean = mean[expander]
-    std = numpy.sqrt(var)[expander]
-    y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
-    return y_expect
-
-
 @testing.parameterize(*(testing.product({
     'batchsize': [1, 5],
     'size': [10, 20],
     'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
 })))
 class TestLayerNormalization(unittest.TestCase):
 
@@ -43,21 +36,25 @@ class TestLayerNormalization(unittest.TestCase):
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
+        mean = numpy.mean(x, axis=1, keepdims=True)
+        var = numpy.mean(numpy.square(x - mean), axis=1, keepdims=True)
+        std = numpy.sqrt(var + self.eps)
+        self.y_expected = (
+            numpy.expand_dims(gamma, axis=0) * (x - mean) / std
+            + numpy.expand_dims(beta, axis=0))
+
     def check_forward(self, args):
         x_data = args[0]
 
         def func(x):
             args_ = x, args[1], args[2]
-            return functions.layer_normalization(*args_)
+            return functions.layer_normalization(*args_, eps=self.eps)
 
         y = func(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
 
-        unbatched_concat_y = chainer.functions.concat(
-            [func(one_x[None, ]) for one_x in x_data], axis=0)
-
         testing.assert_allclose(
-            y.data, unbatched_concat_y.data, **self.check_forward_options)
+            y.data, self.y_expected, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.args)
@@ -68,7 +65,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad):
         def func(*args_):
-            return functions.layer_normalization(*args_)
+            return functions.layer_normalization(*args_, eps=self.eps)
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -85,8 +82,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
-            y = functions.layer_normalization(*args_)
-            return y * y
+            return functions.layer_normalization(*args_, eps=self.eps)
 
         gradient_check.check_double_backward(
             func, args, y_grad, x_grad_grad,

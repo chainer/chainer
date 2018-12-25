@@ -1,3 +1,5 @@
+.. _creating_models:
+
 Creating Models
 ~~~~~~~~~~~~~~~
 
@@ -44,7 +46,7 @@ Then, what we have to do here is just define the above class as a subclass of Ch
    ...             self.l1 = L.Linear(4, 3)
    ...             self.l2 = L.Linear(3, 2)
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
@@ -55,17 +57,8 @@ It means we can define more complex chains that hold ``MyChain`` objects as thei
 
 .. note::
 
-   We often define a single forward method of a link by the ``__call__`` operator.
+   We often define a single forward method of a link by the ``forward`` operator.
    Such links and chains are callable and behave like regular functions of Variables.
-
-.. note::
-
-    In Chainer v1, we could also register the trainable layers
-    (i.e., :class:`~chainer.Link` s) to the model by putting them to the
-    :meth:`~chainer.Chain.__init__` of :class:`~chainer.Chain`
-    or registering them via :meth:`~chainer.Chain.add_link`.
-    But as these ways are deprecated in Chainer v2, users are recommended
-    to use the way explained above.
 
 Another way to define a chain is using the :class:`ChainList` class, which behaves like a list of links:
 
@@ -78,7 +71,7 @@ Another way to define a chain is using the :class:`ChainList` class, which behav
    ...             L.Linear(3, 2),
    ...         )
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self[0](x)
    ...         return self[1](h)
 

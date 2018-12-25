@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -23,6 +24,7 @@ from chainer.utils import type_check
         {'in_shapes': [(3, 2, 4)], 'out_shape': (3, 2, 4)},
         {'in_shapes': [(3, 1, 4), (1, 2, 4), (3, 2, 1)],
          'out_shape': (3, 2, 4)},
+        {'in_shapes': [(1, 0, 1), (2,)], 'out_shape': (1, 0, 2)},
     ],
     [
         {'dtype': numpy.float16},
@@ -84,12 +86,8 @@ class TestBroadcast(unittest.TestCase):
         if len(data) == 1:
             return
 
-        def f(*xs):
-            ys = functions.broadcast(*xs)
-            return [y * y for y in ys]
-
         gradient_check.check_double_backward(
-            f, data, grads, gg, dtype=numpy.float64,
+            functions.broadcast, data, grads, gg, dtype=numpy.float64,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
@@ -163,6 +161,14 @@ class TestBroadcastTo(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.data))
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.data))
+
     def check_backward(self, data, grads):
         gradient_check.check_backward(
             lambda x: functions.broadcast_to(x, self.out_shape), data, grads,
@@ -174,6 +180,15 @@ class TestBroadcastTo(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(
+            chainerx.array(self.data), chainerx.array(self.grad))
 
 
 @testing.parameterize(

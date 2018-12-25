@@ -10,6 +10,11 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     It takes three variables: the input image ``x``, the filter weight ``W``,
     and the bias vector ``b``.
 
+    .. note::
+       You can also perform dilated convolution by passing ``dilate``
+       argument to :class:`chainer.functions.convolution_2d`.
+       The functionality is the same.
+
     Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
@@ -21,10 +26,12 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
       respectively.
 
     Args:
-        x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
-        W (~chainer.Variable): Weight variable of shape
-            :math:`(c_O, c_I, k_H, k_W)`.
-        b (~chainer.Variable): Bias variable of length :math:`c_O` (optional).
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape :math:`(c_O, c_I, k_H, k_W)`.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.

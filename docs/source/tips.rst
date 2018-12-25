@@ -25,8 +25,7 @@ MNIST example does not converge in CPU mode on Mac OS X
 
 .. note::
 
-   Mac OS X is not officially supported.
-   Please use it at your own risk.
+   Mac OS X is not an officially supported OS.
 
 Many users have reported that MNIST example does not work correctly
 when using vecLib as NumPy backend on Mac OS X.
@@ -35,43 +34,148 @@ vecLib is the default BLAS library installed on Mac OS X.
 We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 
 To use an alternative BLAS library, it is necessary to reinstall NumPy.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
+Here are instructions to install NumPy with OpenBLAS using `Conda <https://conda.io/docs/user-guide/install/index.html>`_.
 
 ::
 
-   $ brew tap homebrew/science
-   $ brew install openblas
-   $ brew install numpy --with-openblas
+   $ conda install -c conda-forge numpy
 
-If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
+Otherwise, to install NumPy without Conda, you may need to install NumPy from source.
+
+Use `Homebrew <https://brew.sh/>`_ to install OpenBLAS.
+
+::
+
+   $ brew install openblas
+
+Uninstall existing NumPy installation
+
+::
+
+   $ pip uninstall numpy
+
+You'll to create a file called `.numpy-site.cfg` in your home (~/) directory with the following:
+
+::
+
+   [openblas]
+   libraries = openblas
+   library_dirs = /usr/local/opt/openblas/lib
+   include_dirs = /usr/local/opt/openblas/include
+
+Install NumPy from the source code
+
+::
+
+   pip install --no-binary :all: numpy
+
+Confirm NumPy has been installed with OpenBLAS by running this command:
+
+::
+
+   $ python -c "import numpy; print(numpy.show_config())"
+
+You should see the following information:
+
+::
+
+   blas_mkl_info:
+     NOT AVAILABLE
+   blis_info:
+     NOT AVAILABLE
+   openblas_info:
+     libraries = ['openblas', 'openblas']
+     library_dirs = ['/usr/local/opt/openblas/lib']
+     language = c
+     define_macros = [('HAVE_CBLAS', None)]
+     runtime_library_dirs = ['/usr/local/opt/openblas/lib']
+    ...
+
+Once this is done, you should be able to ``import chainer`` without OpenBLAS errors.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
 
-How do I accelerate my model using iDeep on Intel CPU?
-------------------------------------------------------
+How do I fix InvalidType error?
+-------------------------------
 
-Follow these steps to utilize iDeep in your model.
+Chainer raises an ``InvalidType`` exception when invalid inputs are given to :doc:`reference/functions`.
+If you got ``InvalidType``, generally you need to check if ``dtype`` and/or ``shape`` of inputs are valid for the function.
 
-Install iDeep
-~~~~~~~~~~~~~
+Here are some examples of ``InvalidType`` errors:
 
-The following environments are recommended by `iDeep <https://github.com/intel/ideep>`_.
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.arange(10) - 5
+    F.relu(x)
+
+.. testoutput::
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: ReLU (Forward)
+
+   Expect: in_types[0].dtype.kind == f
+   Actual: i != f
+
+In this case, :attr:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
+You need to cast the input appropriately before passing to the function (e.g., ``x.astype(np.float32)``).
+
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.ones((4, 4))
+    y = np.ones((3, 3))
+    F.concat([x, y])
+
+.. testoutput::
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: Concat (Forward)
+
+   Expect: in_types[0].shape[0] == in_types[1].shape[0]
+   Actual: 4 != 3
+
+In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]``, but actually it was ``4`` and ``3``, respectively.
+
+See :doc:`guides/type_checks` for the detailed behavior of type checking system in Chainer.
+
+How do I accelerate my model using Chainer Backend for Intel Architecture?
+--------------------------------------------------------------------------
+
+Follow these steps to utilize Chainer Backend for Intel Architecture in your model.
+
+Install Chainer Backend for Intel Architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following environments are recommended by `Chainer Backend for Intel Architecture <https://github.com/intel/ideep>`_.
 
 * Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
-* Python 2.7.5+, 3.5.2+, and 3.6.0+
+* Python 2.7.6+, 3.5.2+, and 3.6.0+
 
-On recommended systems, you can install iDeep wheel (binary distribution) by:
+On recommended systems, you can install Chainer Backend for Intel Architecture wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install ideep4py
+    $ pip install 'ideep4py<2.1'
 
-Enable iDeep Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
 
-Currently iDeep is disabled by default because it is an experimental feature.
-You need to manually enable iDeep by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
+    ``ideep4py`` v1.0.x is incompatible with v2.0.x, and is not supported in Chainer v5.0 or later.
+
+Enable Chainer Backend for Intel Architecture Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently Chainer Backend for Intel Architecture is disabled by default because it is an experimental feature.
+You need to manually enable it by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
 See :ref:`configuration` for details.
 
 The easiest way to change the configuration is to set environment variable as follows:
@@ -89,19 +193,39 @@ You can also use :func:`chainer.using_config` to change the configuration.
         y = chainer.functions.relu(x)
     print(type(y.data))
 
-.. testoutput::
+.. code-block:: none
 
     <class 'ideep4py.mdarray'>
 
-Convert Your Model to iDeep
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. Avoid dependency to Chainer Backend for Intel Architecture module in doctest.
+.. testoutput::
+   :hide:
 
-You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
+   <class '...'>
+
+Convert Your Model to Chainer Backend for Intel Architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to Chainer Backend for Intel Architecture.
 
 Run Your Model
 ~~~~~~~~~~~~~~
 
-Now your model is accelerated by iDeep!
+Now your model is accelerated by Chainer Backend for Intel Architecture!
 
-Please note that not all functions and optimizers support iDeep acceleration.
-Also note that iDeep will not be used depending on the shape and data type of the input data.
+Please note that not all functions and optimizers support Chainer Backend for Intel Architecture acceleration.
+Also note that Chainer Backend for Intel Architecture will not be used depending on the shape and data type of the input data.
+
+My training process gets stuck when using MultiprocessIterator
+--------------------------------------------------------------
+
+When you are using OpenCV somewhere in your code and the :class:`~chainer.iterators.MultiprocessIterator` is used in the
+training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
+prevent the process got stuck.
+
+1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
+2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
+3. Use :class:`~chainer.iterators.MultithreadIterator` instead of :class:`~chainer.iterators.MultiprocessIterator`.
+
+This problem is originally reported here: `A training loop got stuck in a certain condition with multi-processing updater and opencv <https://github.com/chainer/chainer/issues/2903>`_
+for Chainer and the discussion on related problems is still going here: `OpenCV + Python multiprocessing breaks on OSX <https://github.com/opencv/opencv/issues/5150>`_.

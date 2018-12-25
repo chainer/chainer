@@ -57,6 +57,14 @@ class TestStatelessMGU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
 
 
+@testing.parameterize(
+    {'dtype': numpy.float16,
+     'forward_tols': {'atol': 5e-4, 'rtol': 5e-3}},
+    {'dtype': numpy.float32,
+     'forward_tols': {'atol': 1e-5, 'rtol': 1e-4}},
+    {'dtype': numpy.float64,
+     'forward_tols': {'atol': 1e-5, 'rtol': 1e-4}},
+)
 class TestStatefulMGU(unittest.TestCase):
 
     in_size = 4
@@ -64,25 +72,27 @@ class TestStatefulMGU(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(
-            -1, 1, (3, self.in_size)).astype(numpy.float32)
+            -1, 1, (3, self.in_size)).astype(self.dtype)
         self.gy = numpy.random.uniform(
-            -1, 1, (3, self.out_size)).astype(numpy.float32)
+            -1, 1, (3, self.out_size)).astype(self.dtype)
 
-        self.mgu = links.StatefulMGU(self.in_size, self.out_size)
+        with chainer.using_config('dtype', self.dtype):
+            self.mgu = links.StatefulMGU(self.in_size, self.out_size)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         W_f = cuda.to_cpu(self.mgu.W_f.W.data)
         W_h = cuda.to_cpu(self.mgu.W_h.W.data)
-        y1 = self.mgu(x)
-        y2 = self.mgu(x)
+        with chainer.using_config('dtype', self.dtype):
+            y1 = self.mgu(x)
+            y2 = self.mgu(x)
 
-        h = numpy.zeros(self.out_size, dtype='f')
+        h = numpy.zeros(self.out_size, dtype=self.dtype)
         for i in six.moves.range(3):
             h1 = mgu(W_f, W_h, h, self.x[i])
-            testing.assert_allclose(h1, y1.data[i])
+            testing.assert_allclose(h1, y1.data[i], **self.forward_tols)
             h2 = mgu(W_f, W_h, h1, self.x[i])
-            testing.assert_allclose(h2, y2.data[i])
+            testing.assert_allclose(h2, y2.data[i], **self.forward_tols)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)

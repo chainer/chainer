@@ -1,5 +1,5 @@
-import numpy
-
+import chainer
+from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
@@ -105,7 +105,7 @@ class StatelessGRU(GRUBase):
 
     """
 
-    def __call__(self, h, x):
+    def forward(self, h, x):
         r = sigmoid.sigmoid(self.W_r(x) + self.U_r(h))
         z = sigmoid.sigmoid(self.W_z(x) + self.U_z(h))
         h_bar = tanh.tanh(self.W(x) + self.U(r * h))
@@ -201,29 +201,28 @@ class StatefulGRU(GRUBase):
         self.state_size = out_size
         self.reset_state()
 
-    def to_cpu(self):
-        super(StatefulGRU, self).to_cpu()
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        super(StatefulGRU, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(StatefulGRU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
+        return self
 
     def set_state(self, h):
         assert isinstance(h, variable.Variable)
-        h_ = h
-        if self.xp == numpy:
-            h_.to_cpu()
-        else:
-            h_.to_gpu(self._device_id)
-        self.h = h_
+        h.to_device(self.device)
+        self.h = h
 
     def reset_state(self):
         self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         z = self.W_z(x)
         h_bar = self.W(x)
         if self.h is not None:
@@ -246,30 +245,17 @@ class GRU(StatefulGRU):
 
     This is an alias of :class:`~chainer.links.StatefulGRU`.
 
-    .. warning::
-
-       In Chainer v1, ``GRU`` was *stateless*,
-       as opposed to the current implementation.
-       To align with LSTM links, we have changed
-       the naming convention from Chainer v2 so that the shorthand name
-       points the stateful links.
-       You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``GRU`` in v1.
-
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
-       for details.
-
     """
 
-    def __call__(self, *args):
-        """__call__(self, x)
+    def forward(self, *args):
+        """forward(self, x)
 
         Does forward propagation.
 
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.__call__ must be 1. "
+        msg = ("Invalid argument. The length of GRU.forward must be 1. "
                "But %d is given. " % n_args)
 
         if n_args == 0 or n_args >= 3:
@@ -281,4 +267,4 @@ class GRU(StatefulGRU):
                     "Use chainer.links.StatelessGRU instead.")
             raise ValueError(msg)
 
-        return super(GRU, self).__call__(args[0])
+        return super(GRU, self).forward(args[0])

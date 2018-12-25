@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -83,8 +84,8 @@ class GoogLeNet(link.Chain):
             but not GlorotUniform.
 
     Attributes:
-        ~GoogLeNet.available_layers (list of str): The list of available layer
-            names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -182,16 +183,10 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
-
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
@@ -205,10 +200,14 @@ class GoogLeNet(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['prob']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -237,25 +236,29 @@ class GoogLeNet(link.Chain):
 
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['pool5'], size=(224, 224))
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
 
-        .. warning::
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
 
-           ``train`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+         .. code-block:: python
+
+             # model is an instance of `GoogLeNet`
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -272,12 +275,16 @@ class GoogLeNet(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config',
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['pool5']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config',
+                volatile='volatile argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -310,8 +317,8 @@ class GoogLeNet(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
+                n = len(y) // 10
+                y_shape = y.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = average(y, axis=1)
         return y
@@ -320,7 +327,7 @@ class GoogLeNet(link.Chain):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for GoogLeNet.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained GoogLeNet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -343,6 +350,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -353,9 +361,9 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
-    image -= numpy.array([104.0, 117.0, 123.0], dtype=numpy.float32)  # BGR
+    image -= numpy.array([104.0, 117.0, 123.0], dtype=dtype)  # BGR
     image = image.transpose((2, 0, 1))
     return image
 
@@ -364,30 +372,30 @@ def _transfer_inception(src, dst, names):
     for name in names:
         chain = getattr(dst, 'inc{}'.format(name))
         src_prefix = 'inception_{}/'.format(name)
-        chain.conv1.W.data[:] = src[src_prefix + '1x1'].W.data
-        chain.conv1.b.data[:] = src[src_prefix + '1x1'].b.data
-        chain.proj3.W.data[:] = src[src_prefix + '3x3_reduce'].W.data
-        chain.proj3.b.data[:] = src[src_prefix + '3x3_reduce'].b.data
-        chain.conv3.W.data[:] = src[src_prefix + '3x3'].W.data
-        chain.conv3.b.data[:] = src[src_prefix + '3x3'].b.data
-        chain.proj5.W.data[:] = src[src_prefix + '5x5_reduce'].W.data
-        chain.proj5.b.data[:] = src[src_prefix + '5x5_reduce'].b.data
-        chain.conv5.W.data[:] = src[src_prefix + '5x5'].W.data
-        chain.conv5.b.data[:] = src[src_prefix + '5x5'].b.data
-        chain.projp.W.data[:] = src[src_prefix + 'pool_proj'].W.data
-        chain.projp.b.data[:] = src[src_prefix + 'pool_proj'].b.data
+        chain.conv1.W.array[:] = src[src_prefix + '1x1'].W.array
+        chain.conv1.b.array[:] = src[src_prefix + '1x1'].b.array
+        chain.proj3.W.array[:] = src[src_prefix + '3x3_reduce'].W.array
+        chain.proj3.b.array[:] = src[src_prefix + '3x3_reduce'].b.array
+        chain.conv3.W.array[:] = src[src_prefix + '3x3'].W.array
+        chain.conv3.b.array[:] = src[src_prefix + '3x3'].b.array
+        chain.proj5.W.array[:] = src[src_prefix + '5x5_reduce'].W.array
+        chain.proj5.b.array[:] = src[src_prefix + '5x5_reduce'].b.array
+        chain.conv5.W.array[:] = src[src_prefix + '5x5'].W.array
+        chain.conv5.b.array[:] = src[src_prefix + '5x5'].b.array
+        chain.projp.W.array[:] = src[src_prefix + 'pool_proj'].W.array
+        chain.projp.b.array[:] = src[src_prefix + 'pool_proj'].b.array
 
 
 def _transfer_googlenet(src, dst):
     # 1 #################################################################
-    dst.conv1.W.data[:] = src['conv1/7x7_s2'].W.data
-    dst.conv1.b.data[:] = src['conv1/7x7_s2'].b.data
+    dst.conv1.W.array[:] = src['conv1/7x7_s2'].W.array
+    dst.conv1.b.array[:] = src['conv1/7x7_s2'].b.array
 
     # 2 #################################################################
-    dst.conv2_reduce.W.data[:] = src['conv2/3x3_reduce'].W.data
-    dst.conv2_reduce.b.data[:] = src['conv2/3x3_reduce'].b.data
-    dst.conv2.W.data[:] = src['conv2/3x3'].W.data
-    dst.conv2.b.data[:] = src['conv2/3x3'].b.data
+    dst.conv2_reduce.W.array[:] = src['conv2/3x3_reduce'].W.array
+    dst.conv2_reduce.b.array[:] = src['conv2/3x3_reduce'].b.array
+    dst.conv2.W.array[:] = src['conv2/3x3'].W.array
+    dst.conv2.b.array[:] = src['conv2/3x3'].b.array
 
     # 3, 4, 5 ###########################################################
     _transfer_inception(src, dst, ['3a', '3b',
@@ -395,22 +403,22 @@ def _transfer_googlenet(src, dst):
                                    '5a', '5b'])
 
     # outputs ############################################################
-    dst.loss1_conv.W.data[:] = src['loss1/conv'].W.data
-    dst.loss1_conv.b.data[:] = src['loss1/conv'].b.data
-    dst.loss1_fc1.W.data[:] = src['loss1/fc'].W.data
-    dst.loss1_fc1.b.data[:] = src['loss1/fc'].b.data
-    dst.loss1_fc2.W.data[:] = src['loss1/classifier'].W.data
-    dst.loss1_fc2.b.data[:] = src['loss1/classifier'].b.data
+    dst.loss1_conv.W.array[:] = src['loss1/conv'].W.array
+    dst.loss1_conv.b.array[:] = src['loss1/conv'].b.array
+    dst.loss1_fc1.W.array[:] = src['loss1/fc'].W.array
+    dst.loss1_fc1.b.array[:] = src['loss1/fc'].b.array
+    dst.loss1_fc2.W.array[:] = src['loss1/classifier'].W.array
+    dst.loss1_fc2.b.array[:] = src['loss1/classifier'].b.array
 
-    dst.loss2_conv.W.data[:] = src['loss2/conv'].W.data
-    dst.loss2_conv.b.data[:] = src['loss2/conv'].b.data
-    dst.loss2_fc1.W.data[:] = src['loss2/fc'].W.data
-    dst.loss2_fc1.b.data[:] = src['loss2/fc'].b.data
-    dst.loss2_fc2.W.data[:] = src['loss2/classifier'].W.data
-    dst.loss2_fc2.b.data[:] = src['loss2/classifier'].b.data
+    dst.loss2_conv.W.array[:] = src['loss2/conv'].W.array
+    dst.loss2_conv.b.array[:] = src['loss2/conv'].b.array
+    dst.loss2_fc1.W.array[:] = src['loss2/fc'].W.array
+    dst.loss2_fc1.b.array[:] = src['loss2/fc'].b.array
+    dst.loss2_fc2.W.array[:] = src['loss2/classifier'].W.array
+    dst.loss2_fc2.b.array[:] = src['loss2/classifier'].b.array
 
-    dst.loss3_fc.W.data[:] = src['loss3/classifier'].W.data
-    dst.loss3_fc.b.data[:] = src['loss3/classifier'].b.data
+    dst.loss3_fc.W.array[:] = src['loss3/classifier'].W.array
+    dst.loss3_fc.b.array[:] = src['loss3/classifier'].b.array
 
 
 def _max_pooling_2d(x):
@@ -435,7 +443,9 @@ def _dropout(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     GoogLeNet.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

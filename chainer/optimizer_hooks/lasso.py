@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer import cuda
 
 
@@ -16,6 +17,12 @@ class Lasso(object):
                          when this hook should be called by
                          the Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
+        ~optimizer_hooks.Lasso.call_for_each_param (bool): Specifies
+                         if this hook is called for each parameter (``True``)
+                         or only once (``False``) by an optimizer to
+                         which this hook is registered. This function does
+                         not expect users to switch the value from default one,
+                         which is `True`.
 
     .. versionadded:: 4.0.0
        The *timing* parameter.
@@ -32,7 +39,7 @@ class Lasso(object):
         p, g = param.data, param.grad
         if p is None or g is None:
             return
-        xp = cuda.get_array_module(p)
+        xp = backend.get_array_module(p)
         with cuda.get_device_from_array(p) as dev:
             sign = xp.sign(p)
             if int(dev) == -1:

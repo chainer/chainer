@@ -1,8 +1,8 @@
 import collections
 
-import numpy
 import six
 
+from chainer import backend
 from chainer import cuda
 
 
@@ -13,7 +13,12 @@ def _sum_sqnorm(arr):
             x = x.ravel()
             s = x.dot(x)
             sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+    # If only a single device is used, aggregate square norms on it.
+    if len(sq_sum) == 1:
+        with cuda.get_device_from_array(arr[0]):
+            return sum(six.itervalues(sq_sum))
+    else:
+        return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class GradientClipping(object):
@@ -45,11 +50,18 @@ class GradientClipping(object):
         self.threshold = threshold
 
     def __call__(self, opt):
-        norm = numpy.sqrt(_sum_sqnorm(
-            [p.grad for p in opt.target.params(False)]))
-        rate = self.threshold / norm
-        if rate < 1:
-            for param in opt.target.params(False):
-                grad = param.grad
-                with cuda.get_device_from_array(grad):
-                    grad *= rate
+        sqnorm = _sum_sqnorm([p.grad for p in opt.target.params(False)])
+        with cuda.get_device_from_array(sqnorm) as dev:
+            norm = backend.get_array_module(sqnorm).sqrt(sqnorm)
+            rate = self.threshold / norm
+            # When no clipping is needed, skip the clipping on CPU and
+            # multiply 1.0 on the device otherwise.
+            if int(dev) == -1:
+                if rate >= 1:
+                    return
+            else:
+                rate = rate.clip(None, 1)
+        for param in opt.target.params(False):
+            grad = param.grad
+            with cuda.get_device_from_array(grad):
+                grad *= rate

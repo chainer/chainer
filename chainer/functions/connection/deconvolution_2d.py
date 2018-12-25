@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
@@ -11,6 +10,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -27,18 +27,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     cover_all = None
     _use_ideep = False
 
-    def __init__(self, stride=1, pad=0, outsize=None, groups=1, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
+    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) context "
             "where value is either `True` or `False`.",
             requires_x_grad="requires_x_grad argument is not supported "
             "anymore. Just remove the argument. Note that whether to compute "
             "the gradient w.r.t. x is automatically decided during "
-            "backpropagation."
-        )
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+            "backpropagation.")
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -110,6 +108,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 raise RuntimeError('Width in the output must be positive.')
 
     def forward_cpu(self, inputs):
+        if ((self.dy == 1 and self.dx == 1)
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            self._use_ideep = True
+
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
@@ -132,6 +135,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
+        if self._use_ideep:
+            return self._forward_ideep(x, W, b)
+
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
@@ -139,7 +145,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def _forward_ideep(self, x, W, b):
@@ -165,7 +171,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             param)
 
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def forward_gpu(self, inputs):
@@ -222,27 +228,27 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # yC, yH, yW: y channels, y height, y width
         G = self.groups
         N, xC, xH, xW = x.shape
-        xCg = int(xC / G)
-        _, yCg, kH, kW = W.shape
+        xCg = xC // G
+        _, yCg, kH, kW = W.shape  # _ == xC
+        yC = yCg * G
 
-        xp = cuda.get_array_module(x)
+        x = x.transpose(1, 0, 2, 3)  # (xC, N, xH, xW)
+        x = x.reshape(G, xCg, N * xH * xW)
 
-        _x = x.reshape(N, G, xCg, xH, xW)
-        _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
-        _W = W.reshape(G, xCg, yCg, kH, kW)
+        W = W.reshape(G, xCg, yCg * kH * kW)
+        W = W.transpose(0, 2, 1)  # (G, yCg*kH*kW, xCg)
+
+        # (G, yCg*kH*kW, N*xH*xW) = (G, yCg*kH*kW, xCg) @ (G, xCg, N*xH*xW)
+        col = convolution_2d._matmul(W, x).astype(x.dtype, copy=False)
+
+        col = col.reshape(yC, kH, kW, N, xH, xW)
+        col = col.transpose(3, 0, 1, 2, 4, 5)  # (N, yC, kH, kW, xH, xW)
+
+        y = conv.col2im(col, self.sy, self.sx, self.ph, self.pw,
+                        self.outh, self.outw, dy=self.dy, dx=self.dx)
+
         if b is not None:
-            _b = b.reshape(G, yCg)
-
-        _ys = []
-        for g in six.moves.range(G):
-            _bg = None if b is None else _b[g, ]
-            if xp is numpy:
-                _y, = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
-            else:
-                _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
-            _ys.append(_y)
-
-        y = xp.concatenate(_ys, axis=1)  # (N, yC, yH, yW)
+            y += b.reshape(1, b.size, 1, 1)
         return y,
 
     def _forward_cudnn(self, x, W, b):
@@ -262,6 +268,29 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             tensor_core=tensor_core)
 
         return y,
+
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if self.dy != 1 or self.dx != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        self._calc_out_size(inputs[0], inputs[1])
+        self._set_cover_all(inputs[0], inputs[1])
+        if self.cover_all:
+            return chainer.Fallback
+
+        stride = (self.sy, self.sx)
+        pad = (self.ph, self.pw)
+        outsize = None if self.outh is None else (self.outh, self.outw)
+
+        return chainerx.conv_transpose(
+            *inputs, stride=stride, pad=pad, outsize=outsize),
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
@@ -297,9 +326,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                           self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, groups=1,
-                     **kwargs):
-    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, dilate=1, groups=1)
 
     Two dimensional deconvolution function.
 
@@ -344,33 +372,30 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h_I, w_I)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_I, c_O, h_K, w_K)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
             are equivalent.
         pad (:class:`int` or pair of :class:`int` s):
             Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        outsize (:class:`tuple` of :class:`int`):
+        outsize (None or :class:`tuple` of :class:`int` s):
             Expected output size of deconvolutional operation.
             It should be pair of height and width :math:`(h_O, w_O)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
+        dilate (:class:`int` or pair of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped deconvolution.
+            The default is one, where grouped deconvolution is not used.
 
     Returns:
         ~chainer.Variable:
@@ -403,13 +428,14 @@ astype(np.float32)
         True
 
 
-    """
+    """  # NOQA
     argument.check_unexpected_kwargs(
         kwargs, deterministic="deterministic argument is not "
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+    dilate, groups = argument.parse_kwargs(kwargs,
+                                           ('dilate', 1), ('groups', 1))
 
     func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
                                    groups=groups)

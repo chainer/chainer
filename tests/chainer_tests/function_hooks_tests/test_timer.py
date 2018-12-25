@@ -28,7 +28,7 @@ class SimpleLink(chainer.Link):
                 numpy.float32)
             self.w = chainer.Parameter(init_w)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.w * x
 
 
@@ -83,7 +83,7 @@ class TestTimerHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
@@ -91,7 +91,8 @@ class TestTimerHookToFunction(unittest.TestCase):
     def check_forward(self, x):
         self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0], functions.Exp, float)
+        check_history(self, self.h.call_history[0],
+                      functions.math.exponential.Exp, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -106,7 +107,8 @@ class TestTimerHookToFunction(unittest.TestCase):
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
-        check_history(self, self.h.call_history[1], functions.Exp, float)
+        check_history(self, self.h.call_history[1],
+                      functions.math.exponential.Exp, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -118,7 +120,8 @@ class TestTimerHookToFunction(unittest.TestCase):
     def test_reentrant(self):
         # In/grad data are random; these do not simulate the actually possible
         # cases.
-        g = functions.Identity()  # any function other than Exp is ok
+        # any function other than Exp is ok
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
         t1 = time.time()
@@ -138,7 +141,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.assertGreaterEqual(f_time, t2 - t1)
 
     def test_reentrant_total_time(self):
-        g = functions.Identity()
+        g = functions.math.identity.Identity()
 
         t0 = time.time()
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
@@ -158,7 +161,7 @@ class TestTimerPrintReport(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 

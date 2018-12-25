@@ -1,13 +1,32 @@
-import collections
-
 import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
+from chainer.utils import collections_abc
 from chainer.utils import type_check
+import chainerx
+
+
+_numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'
+
+
+def _fix_numpy_split(ys, x, indices_or_sections, axis):
+    """Make the output of np.split compatible with numpy >= 1.11"""
+    if all(y.ndim == x.ndim for y in ys):
+        return ys
+    tmp = [len(t) for t in numpy.split(
+        numpy.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
+    shape = list(x.shape)
+    for i, t in enumerate(tmp):
+        y = ys[i]
+        if y.ndim != x.ndim:
+            assert y.size == 0
+            shape[axis] = t
+            ys[i] = y.reshape(shape)
+    return ys
 
 
 def _get_indices_or_sections(indices_or_sections):
@@ -32,7 +51,7 @@ def _get_indices_or_sections(indices_or_sections):
         if ios.ndim >= 2:
             raise TypeError('indices_or_sections must be 1-D sequence')
         is_seq = ios.ndim != 0
-    elif isinstance(ios, collections.Sequence):
+    elif isinstance(ios, collections_abc.Sequence):
         # Any sequence except numpy.ndarray
         ios = list(ios)
         is_seq = True
@@ -80,6 +99,14 @@ class SplitAxis(function_node.FunctionNode):
             sections = type_check.make_variable(self.sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
+    @property
+    def indices_or_sections(self):
+        return self.indices if self.indices is not None else self.sections
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return tuple(chainerx.split(x, self.indices_or_sections, self.axis))
+
     def forward(self, inputs):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
@@ -88,14 +115,13 @@ class SplitAxis(function_node.FunctionNode):
             return self._forward_ideep(inputs)
 
         x, = inputs
-        self._xp = cuda.get_array_module(x)
-        if self.indices is not None:
-            indices_or_sections = self.indices
-        else:
-            indices_or_sections = self.sections
-        ret = tuple(self._xp.split(x, indices_or_sections, self.axis))
+        self._xp = backend.get_array_module(x)
+        indices_or_sections = self.indices_or_sections
+        ret = self._xp.split(x, indices_or_sections, self.axis)
+        if self._xp == numpy and not _numpy_split_ok:
+            ret = _fix_numpy_split(ret, x, indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
-        return ret
+        return tuple(ret)
 
     def _ideep_is_supported(self, inputs):
         # Returns True if iDeep supports current configuration of inputs and
@@ -156,8 +182,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             A variable to be split.
         indices_or_sections (int or 1-D array): If this argument is an integer,
             N, the array will be divided into N equal arrays along axis.
@@ -175,11 +200,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         :class:`~chainer.Variable` otherwise.
         When ``force_tuple`` is ``True``, returned value is always a tuple
         regardless of the number of outputs.
-
-    .. note::
-        This function raises :class:`ValueError` if at least
-        one of the outputs is split to zero-size
-        (i.e. ``axis``-th value of its shape is zero).
 
     """
     res = SplitAxis(indices_or_sections, axis).apply((x,))

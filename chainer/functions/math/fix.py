@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import utils
 
 
@@ -17,6 +17,6 @@ def fix(x):
     """
 
     if isinstance(x, chainer.variable.Variable):
-        x = x.data
-    xp = cuda.get_array_module(x)
+        x = x.array
+    xp = backend.get_array_module(x)
     return chainer.as_variable(utils.force_array(xp.fix(x), x.dtype))

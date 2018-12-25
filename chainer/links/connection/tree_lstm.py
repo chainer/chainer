@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.activation import tree_lstm
@@ -5,7 +7,6 @@ from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer import link
 from chainer.links.connection import linear
-from chainer import utils
 
 
 class ChildSumTreeLSTM(link.Chain):
@@ -61,9 +62,8 @@ class ChildSumTreeLSTM(link.Chain):
 
         self.in_size = in_size
         self.state_size = out_size
-        utils.experimental('chainer.links.tree_lstm.py')
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of Child-Sum TreeLSTM.
 
         Args:
@@ -122,7 +122,7 @@ class ChildSumTreeLSTM(link.Chain):
 
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
-    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+    def _pad_zero_nodes(self, vs, shape, dtype=numpy.float32):
         if any(v is None for v in vs):
             zero = self.xp.zeros(shape, dtype=dtype)
             return tuple(zero if v is None else v for v in vs)
@@ -199,9 +199,8 @@ class NaryTreeLSTM(link.Chain):
         self.in_size = in_size
         self.state_size = out_size
         self.n_ary = n_ary
-        utils.experimental('chainer.links.tree_lstm.py')
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of N-ary TreeLSTM.
 
         Args:
@@ -244,7 +243,7 @@ class NaryTreeLSTM(link.Chain):
 
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
-    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+    def _pad_zero_nodes(self, vs, shape, dtype=numpy.float32):
         if any(v is None for v in vs):
             zero = self.xp.zeros(shape, dtype=dtype)
             return tuple(zero if v is None else v for v in vs)

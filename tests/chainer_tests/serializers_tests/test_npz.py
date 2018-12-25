@@ -7,13 +7,16 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import link
 from chainer import links
 from chainer import optimizers
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestDictionarySerializer(unittest.TestCase):
@@ -40,9 +43,13 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
         self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, cuda.to_cpu(data))
+        numpy.testing.assert_array_equal(dset, backend.CpuDevice().send(data))
 
         self.assertIs(ret, data)
+
+    @attr.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data), 'w')
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data, 'w')
@@ -117,12 +124,19 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(ret), self.data)
+
+    @attr.chainerx
+    def test_deserialize_chainerx(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y), 'y')
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
@@ -136,6 +150,11 @@ class TestNpzDeserializer(unittest.TestCase):
     def test_deserialize_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y), 'y')
+
+    @attr.ideep
+    def test_deserialize_ideep(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(intel64.mdarray(y), 'y')
 
     @attr.gpu
     def test_deserialize_by_passing_none_gpu(self):
@@ -235,6 +254,39 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
         yy = numpy.ones((2, 1), dtype=numpy.float32)
         ret = self.deserializer('yy', yy)
         self.assertIs(ret, yy)
+
+
+@testing.parameterize(
+    {'ignore_names': 'yy'},
+    {'ignore_names': ['yy']},
+    {'ignore_names': lambda key: key == 'yy'},
+    {'ignore_names': [lambda key: key == 'yy']},
+)
+class TestLoadNpzIgnoreNames(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        self.x = numpy.asarray(10, dtype=numpy.float32)
+        self.yy = numpy.ones((2, 3), dtype=numpy.float32)
+        with open(path, 'wb') as f:
+            numpy.savez(
+                f, **{'x': self.x, 'yy': self.yy})
+
+    def tearDown(self):
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_load_npz_ignore_names(self):
+        chain = link.Chain()
+        with chain.init_scope():
+            chain.x = chainer.variable.Parameter(shape=())
+            chain.yy = chainer.variable.Parameter(shape=(2, 3))
+        npz.load_npz(
+            self.temp_file_path, chain, ignore_names=self.ignore_names)
+        self.assertEqual(chain.x.data, self.x)
+        self.assertFalse(numpy.all(chain.yy.data == self.yy))
 
 
 @testing.parameterize(*testing.product({'file_type': ['filename', 'bytesio']}))

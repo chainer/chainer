@@ -6,21 +6,35 @@ import mock
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
-class TestLink(unittest.TestCase):
+def _assert_variable_array_equal(var, expected_array):
+    assert var.shape == expected_array.shape
+    assert var.dtype == expected_array.dtype
+    _assert_arrays_equal(var.data, expected_array)
+
+
+def _assert_arrays_equal(array, expected_array):
+    array = backend.CpuDevice().send(array)
+    assert array.shape == expected_array.shape
+    assert array.dtype == expected_array.dtype
+    assert (array == expected_array).all()
+
+
+class LinkTestBase(object):
 
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        with testing.assert_warns(DeprecationWarning):
-            self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                     u=(None, 'd'))
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
         with self.link.init_scope():
             self.link.y = chainer.Parameter(shape=(2,))
             self.link.v = chainer.Parameter()
@@ -45,10 +59,12 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(var, chainer.Parameter)
         self.assertEqual(var.data.shape, shape)
         self.assertEqual(var.data.dtype, dtype)
-        numpy.testing.assert_array_equal(var.data, data_value)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(var.data), data_value)
         self.assertEqual(var.grad.shape, shape)
         self.assertEqual(var.grad.dtype, dtype)
-        numpy.testing.assert_array_equal(var.grad, numpy.nan)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(var.grad), numpy.nan)
 
     def check_param_uninit(self, name, initializer=None):
         self.assertTrue(hasattr(self.link, name))
@@ -58,6 +74,9 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(var.data)
         if initializer is not None:
             self.assertIs(var.initializer, initializer)
+
+
+class TestLink(LinkTestBase, unittest.TestCase):
 
     def test_init(self):
         self.check_param_init('x', (2, 3), 'd')
@@ -80,46 +99,55 @@ class TestLink(unittest.TestCase):
             self.link.p = p
         self.assertTrue(all(p is not param for param in self.link.params()))
 
+    def test_call_injected_with_mixin(self):
+        call = mock.MagicMock()
+        call.return_value = 3
+
+        class CallMixin(object):
+            __call__ = call
+
+        class InjectedLink(chainer.Link, CallMixin):
+            pass
+
+        link = InjectedLink()
+        ret = link(1, a=2)
+
+        call.assert_called_once_with(1, a=2)
+        assert ret == call.return_value
+
     def test_add_param(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', (2, 3))
+        self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('w', (2, 3), dtype='d')
+        self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('r')
+        self.link.add_param('r')
         self.check_param_uninit('r')
         self.link.r.initialize((2, 3))
         self.check_param_init('r', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('s', dtype='d')
+        self.link.add_param('s', dtype='d')
         self.check_param_uninit('s')
         self.link.s.initialize((2, 3))
         self.check_param_init('s', (2, 3), 'd')
 
         initializer = initializers.Zero('d')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('t', initializer=initializer)
+        self.link.add_param('t', initializer=initializer)
         self.check_param_uninit('t', initializer)
         self.link.t.initialize((2, 3))
         self.check_param_init('t', (2, 3), 'd', 0)
 
     def test_add_param_direct_initialization(self):
         z = numpy.random.rand(2, 3).astype('f')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', initializer=z)
+        self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
     def test_add_param_duplicated_with_persistent(self):
         self.link.add_persistent('z', 'abc')
         with self.assertRaises(AttributeError):
-            with testing.assert_warns(DeprecationWarning):
-                self.link.add_param('z', (2, 3))
+            self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -140,8 +168,8 @@ class TestLink(unittest.TestCase):
         self.assertNotIn('p', self.link._params)
         self.assertNotIn('p', self.link._persistent)
 
-    def test_copy(self):
-        link = self.link.copy()
+    def test_copy_with_share_mode(self):
+        link = self.link.copy(mode='share')
         self.assertIsInstance(link._params, set)
         self.assertIsInstance(link._persistent, set)
         self.assertTrue(hasattr(link, 'x'))
@@ -149,12 +177,47 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(link, 'u'))
         self.assertTrue(hasattr(link, 'p'))
         self.assertIsNot(link.x, self.link.x)
-        self.assertIs(link.x.data, self.link.x.data)
+        self.assertIs(link.x.array, self.link.x.array)
         self.assertIsNot(link.y, self.link.y)
-        self.assertIs(link.y.data, self.link.y.data)
-        self.assertIsNone(link.u.data)
+        self.assertIs(link.y.array, self.link.y.array)
+        self.assertIsNone(link.u.array)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    def test_copy_with_copy_mode(self):
+        link = self.link.copy(mode='copy')
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.array, self.link.x.array)
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.array, self.link.y.array)
+        self.assertIsNone(link.u.array)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertIsNot(link.name, None)
+
+    def test_copy_with_init_mode(self):
+        self.link.u.initializer = initializers.Normal(
+            dtype=self.link.u.initializer.dtype)
+        self.link.u.initialize((2, 3))
+        link = self.link.copy(mode='init')
+        self.assertFalse(numpy.array_equal(self.link.u.array, link.u.array))
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.array, self.link.x.array)
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.array, self.link.y.array)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertIsNot(link.name, None)
 
     @attr.gpu
     def test_copy_and_to_gpu_init(self):
@@ -172,9 +235,12 @@ class TestLink(unittest.TestCase):
         cupy = cuda.cupy
         l0 = self.link
         l1 = l0.copy()
+        self.assertIs(l0.device.xp, numpy)
         self.assertIsNone(l0.u.data)
         self.assertIsNone(l1.u.data)
         l1.to_gpu()
+        self.assertIs(l0.device.xp, numpy)
+        self.assertIsNone(l0.u.data)
         l1.u.initialize((2, 3))
         self.assertIsNone(l0.u.data)
         self.assertIsInstance(l1.u.data, cupy.ndarray)
@@ -219,7 +285,7 @@ class TestLink(unittest.TestCase):
     def test_deepcopy(self):
         link = copy.deepcopy(self.link)
         self._check_deepcopy(link)
-        self.assertIsNone(link._device_id)
+        self.assertEqual(link.device.xp, numpy)
 
     @attr.multi_gpu(2)
     def test_deepcopy_multi_device(self):
@@ -227,7 +293,7 @@ class TestLink(unittest.TestCase):
         self.link.to_gpu(device_id)
         link = copy.deepcopy(self.link)
         self._check_deepcopy(link)
-        self.assertEqual(link._device_id, device_id)
+        self.assertEqual(link.device.device, cuda.Device(device_id))
         self.assertEqual(link.x.data.device.id, device_id)
         self.assertEqual(link.y.data.device.id, device_id)
 
@@ -279,38 +345,55 @@ class TestLink(unittest.TestCase):
         self.assertIsInstance(self.link.p, cupy.ndarray)
 
     @attr.multi_gpu(2)
-    def test_to_gpu_different_device(self):
+    def test_to_gpu_different_current_device(self):
         cuda.Device(1).use()
         self.link.to_gpu(0)
-        self.assertEqual(self.link._device_id, 0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_different_device(self):
+        self.link.to_gpu(0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
+        self.link.to_gpu(1)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
     def test_to_gpu_current_device(self):
         cuda.Device(1).use()
         self.link.to_gpu()
-        self.assertEqual(self.link._device_id, 1)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
 
     def test_params(self):
         params = list(self.link.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y),
-                          id(self.link.u), id(self.link.v)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.u), id(self.link.v),
+                          id(self.link.x), id(self.link.y)])
 
     def test_params_skip_uninit(self):
         params = list(self.link.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.x), id(self.link.y)])
 
     def test_namedparams(self):
         namedparams = list(self.link.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y)),
-                          ('/u', id(self.link.u)), ('/v', id(self.link.v))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/u', id(self.link.u)), ('/v', id(self.link.v)),
+                          ('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.link.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_links(self):
         links = list(self.link.links())
@@ -326,7 +409,7 @@ class TestLink(unittest.TestCase):
         self.assertEqual(pl[0][0], '/')
         self.assertIs(pl[0][1], self.link)
 
-    def test_copyparams(self):
+    def _setup_test_copyparams(self):
         self.link.x.grad.fill(0)
         self.link.y.grad.fill(1)
         self.link.u.initialize((2, 3))
@@ -351,8 +434,12 @@ class TestLink(unittest.TestCase):
         l.u.grad.fill(7)
         l.v.data.fill(8)
         l.v.grad.fill(9)
+        l.add_persistent('p', numpy.full_like(self.link.p, 10))
 
-        self.link.copyparams(l)
+        return l, (gx, gy, gu)
+
+    def _check_copyparams(self, l, gs):
+        gx, gy, gu = gs
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
@@ -361,6 +448,22 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
+
+    def test_copyparams(self):
+        l, gs = self._setup_test_copyparams()
+        self.link.copyparams(l)
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, l.p)
+
+    def test_copyparams_no_copy_persistent(self):
+        orig_p = self.link.p.copy()
+
+        l, gs = self._setup_test_copyparams()
+        numpy.testing.assert_array_equal(False, orig_p == l.p)
+        self.link.copyparams(l, copy_persistent=False)
+
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, orig_p)
 
     def test_cleargrads(self):
         self.link.cleargrads()
@@ -472,10 +575,9 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.count_params()
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
-        assert self.link.count_params() == 8
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
@@ -483,6 +585,140 @@ class TestLink(unittest.TestCase):
             warnings.simplefilter('always')
             self.link.count_params()
         assert not w
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
+
+    def test_from_chainerx(self, backend_config):
+        self.link.to_device(backend_config.device)
+        self.link.from_chainerx()
+
+        source_device = backend_config.device
+
+        self.check_param_init('x', (2, 3), 'd')
+        self.check_param_init('y', (2,), 'f')
+        self.check_param_uninit('u')
+
+        if source_device.xp is chainerx:
+            backend_name = source_device.device.backend.name
+            if backend_name == 'native':
+                expected_device = backend.CpuDevice()
+            elif backend_name == 'cuda':
+                expected_device = backend.GpuDevice.from_device_id(
+                    source_device.device.index)
+        else:
+            expected_device = source_device
+
+        self.assertEqual(self.link._device, expected_device)
+
+    def test_to_chainerx(self, backend_config):
+        self.link.to_device(backend_config.device)
+        self.link.to_chainerx()
+
+        source_device = backend_config.device
+
+        self.check_param_init('x', (2, 3), 'd')
+        self.check_param_init('y', (2,), 'f')
+        self.check_param_uninit('u')
+
+        if source_device.xp is chainerx:
+            expected_device = source_device
+        elif source_device.xp is numpy:
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('native', 0))
+        elif source_device.xp is cuda.cupy:
+            expected_device = backend.ChainerxDevice(
+                chainerx.get_device('cuda', source_device.device.id))
+        else:
+            assert False
+
+        self.assertEqual(self.link._device, expected_device)
+
+
+class TestLinkRepeat(unittest.TestCase):
+
+    def setUp(self):
+
+        class Layer(chainer.Link):
+            def __init__(self):
+                super(Layer, self).__init__()
+                with self.init_scope():
+                    self.x = chainer.Parameter(
+                        chainer.initializers.Normal(), shape=(2, 3))
+
+            def forward(self):
+                pass
+
+        self.link = Layer()
+
+    def test_no_repeat(self):
+        ret = self.link.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_init(self):
+        ret = self.link.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But shape and type of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        # Parameters are re-initialized, so the values should be different
+        self.assertFalse(numpy.all(ret[0].x.array == ret[1].x.array))
+
+    def test_repeat_with_copy(self):
+        ret = self.link.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
+
+    def test_repeat_with_share(self):
+        ret = self.link.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But the array objects should be the same
+        self.assertIs(ret[0].x.array, ret[1].x.array)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
 
 
 class CountParameter(chainer.Parameter):
@@ -493,30 +729,44 @@ class CountParameter(chainer.Parameter):
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
+        self.count_to_device = 0
         self.count_zerograd = 0
 
     def to_cpu(self):
         self.count_to_cpu += 1
-        super(CountParameter, self).to_cpu()
+        return super(CountParameter, self).to_cpu()
 
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
-        super(CountParameter, self).to_gpu(device)
+        return super(CountParameter, self).to_gpu(device)
+
+    def to_device(self, device=None):
+        self.count_to_device += 1
+        return super(CountParameter, self).to_device(device)
 
     def zerograd(self):
         self.count_zerograd += 1
         super(CountParameter, self).zerograd()
 
 
-class TestChain(unittest.TestCase):
+class ChainTestBase(object):
 
     def setUp(self):
+        # Schematic:
+        # c2
+        # - c1
+        #   - l1 (x: uninitialized with shape=(2, 3))
+        #   - l2 (x: uninitialized with shape=2)
+        # - l3   (x: uninitialized without shape)
+
         self.l1 = chainer.Link()
         with self.l1.init_scope():
             self.l1.x = chainer.Parameter(shape=(2, 3))
+
         self.l2 = chainer.Link()
         with self.l2.init_scope():
             self.l2.x = chainer.Parameter(shape=2)
+
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter()
@@ -524,12 +774,20 @@ class TestChain(unittest.TestCase):
         self.c1 = chainer.Chain()
         with self.c1.init_scope():
             self.c1.l1 = self.l1
-        with testing.assert_warns(DeprecationWarning):
-            self.c1.add_link('l2', self.l2)
+        self.c1.add_link('l2', self.l2)
+
         self.c2 = chainer.Chain()
         with self.c2.init_scope():
             self.c2.c1 = self.c1
             self.c2.l3 = self.l3
+
+    def set_count_parameters(self):
+        self.l1.x = CountParameter(self.l1.x)
+        self.l2.x = CountParameter(self.l2.x)
+        self.l3.x = CountParameter(self.l3.x)
+
+
+class TestChain(ChainTestBase, unittest.TestCase):
 
     def test_init(self):
         self.assertIs(self.c1.l1, self.l1)
@@ -563,8 +821,15 @@ class TestChain(unittest.TestCase):
         self.assertFalse(hasattr(self.c1, 'l1'))
         self.assertNotIn('l1', self.c1._children)
 
-    def test_copy(self):
-        c2 = self.c2.copy()
+    def test_copy_with_share_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='share')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
@@ -576,7 +841,6 @@ class TestChain(unittest.TestCase):
         self.assertIsNot(c2.c1.l1.x, self.l1.x)
         self.assertIs(c2.c1.l1.x.data, self.l1.x.data)
         self.assertIs(c2.c1.l1.x.grad, None)
-        self.assertIs(c2.name, None)
 
         self.assertTrue(hasattr(c2.c1, 'l2'))
         self.assertEqual(c2.c1.l2.name, 'l2')
@@ -590,6 +854,86 @@ class TestChain(unittest.TestCase):
         self.assertIsNot(c2.l3, self.l3)
         self.assertIsNot(c2.l3.x, self.l3.x)
         self.assertIs(c2.l3.x.data, self.l3.x.data)
+        self.assertIs(c2.l3.x.grad, None)
+
+    def test_copy_with_copy_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='copy')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'c1'))
+        self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
+        self.assertIsNot(c2.c1, self.c1)
+        self.assertEqual(c2.c1.l1.name, 'l1')
+        self.assertIsNot(c2.c1.l1, self.l1)
+        self.assertIsNot(c2.c1.l1.x, self.l1.x)
+        self.assertIsNot(c2.c1.l1.x.data, self.l1.x.data)
+        self.assertTrue(numpy.array_equal(c2.c1.l1.x.data, self.l1.x.data))
+        self.assertIs(c2.c1.l1.x.grad, None)
+
+        self.assertTrue(hasattr(c2.c1, 'l2'))
+        self.assertEqual(c2.c1.l2.name, 'l2')
+        self.assertIsNot(c2.c1.l2, self.l2)
+        self.assertIsNot(c2.c1.l2.x, self.l2.x)
+        self.assertIsNot(c2.c1.l2.x.data, self.l2.x.data)
+        self.assertTrue(numpy.array_equal(c2.c1.l2.x.data, self.l2.x.data))
+        self.assertIs(c2.c1.l2.x.grad, None)
+
+        self.assertTrue(hasattr(c2, 'l3'))
+        self.assertEqual(c2.l3.name, 'l3')
+        self.assertIsNot(c2.l3, self.l3)
+        self.assertIsNot(c2.l3.x, self.l3.x)
+        self.assertIs(c2.l3.x.data, self.l3.x.data)
+        self.assertIs(c2.l3.x.grad, None)
+
+    def test_copy_with_init_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='init')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'c1'))
+        self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
+        self.assertIsNot(c2.c1, self.c1)
+        self.assertEqual(c2.c1.l1.name, 'l1')
+        self.assertIsNot(c2.c1.l1, self.l1)
+        self.assertIsNot(c2.c1.l1.x, self.l1.x)
+        self.assertIsNot(c2.c1.l1.x.data, self.l1.x.data)
+        self.assertFalse(numpy.array_equal(c2.c1.l1.x.data, self.l1.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.c1.l1.x.grad).all())
+
+        self.assertTrue(hasattr(c2.c1, 'l2'))
+        self.assertEqual(c2.c1.l2.name, 'l2')
+        self.assertIsNot(c2.c1.l2, self.l2)
+        self.assertIsNot(c2.c1.l2.x, self.l2.x)
+        self.assertIsNot(c2.c1.l2.x.data, self.l2.x.data)
+        self.assertFalse(numpy.array_equal(c2.c1.l2.x.data, self.l2.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.c1.l2.x.grad).all())
+
+        self.assertTrue(hasattr(c2, 'l3'))
+        self.assertEqual(c2.l3.name, 'l3')
+        self.assertIsNot(c2.l3, self.l3)
+        self.assertIsNot(c2.l3.x, self.l3.x)
+        self.assertIs(c2.l3.x.data, self.l3.x.data)
+        # A Parameter constructed with shape argument but not initialized
+        # has None in grad
         self.assertIs(c2.l3.x.grad, None)
 
     def test_to_cpu_on_cpu(self):
@@ -608,11 +952,6 @@ class TestChain(unittest.TestCase):
         self.assertIs(self.l3.x.data, x3)
         self.assertIs(self.l3.x.grad, gx3)
 
-    def set_count_parameters(self):
-        self.l1.x = CountParameter(self.l1.x)
-        self.l2.x = CountParameter(self.l2.x)
-        self.l3.x = CountParameter(self.l3.x)
-
     @attr.gpu
     def test_to_cpu(self):
         self.set_count_parameters()
@@ -629,12 +968,15 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_cpu, 1)
-        self.assertEqual(self.l1.x.count_to_gpu, 1)
-        self.assertEqual(self.l2.x.count_to_cpu, 1)
-        self.assertEqual(self.l2.x.count_to_gpu, 1)
-        self.assertEqual(self.l3.x.count_to_cpu, 1)
-        self.assertEqual(self.l3.x.count_to_gpu, 1)
+        self.assertEqual(self.l1.x.count_to_cpu, 0)
+        self.assertEqual(self.l1.x.count_to_gpu, 0)
+        self.assertEqual(self.l1.x.count_to_device, 2)
+        self.assertEqual(self.l2.x.count_to_cpu, 0)
+        self.assertEqual(self.l2.x.count_to_gpu, 0)
+        self.assertEqual(self.l2.x.count_to_device, 2)
+        self.assertEqual(self.l3.x.count_to_cpu, 0)
+        self.assertEqual(self.l3.x.count_to_gpu, 0)
+        self.assertEqual(self.l3.x.count_to_device, 2)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, numpy.ndarray)
@@ -656,68 +998,95 @@ class TestChain(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_gpu, 1)
-        self.assertEqual(self.l2.x.count_to_gpu, 1)
-        self.assertEqual(self.l3.x.count_to_gpu, 1)
+        self.assertEqual(self.l1.x.count_to_gpu, 0)
+        self.assertEqual(self.l1.x.count_to_device, 1)
+        self.assertEqual(self.l2.x.count_to_gpu, 0)
+        self.assertEqual(self.l2.x.count_to_device, 1)
+        self.assertEqual(self.l3.x.count_to_gpu, 0)
+        self.assertEqual(self.l3.x.count_to_device, 1)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
 
+    def test_to_device(self):
+        self.set_count_parameters()
+        device = backend.CpuDevice()
+        self.c2.to_device(device)
+        self.assertIs(self.c2.xp, numpy)
+        self.assertIs(self.c1.xp, numpy)
+        self.assertIs(self.l1.xp, numpy)
+        self.assertIs(self.l2.xp, numpy)
+        self.assertIs(self.l3.xp, numpy)
+        self.assertIsInstance(self.l1.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertEqual(self.l1.x.count_to_device, 1)
+        self.assertEqual(self.l2.x.count_to_device, 1)
+        self.assertEqual(self.l3.x.count_to_device, 1)
+
+        self.l3.x.initialize((3,))
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
+
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
-                          ('/l3/x', id(self.l3.x))})
+                          ('/l3/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
-                          ('/c1/l2/x', id(self.l2.x))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
+                          ('/c1/l2/x', id(self.l2.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/c1', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_children(self):
         children = list(self.c2.children())
-        self.assertEqual({id(c) for c in children}, {id(self.c1), id(self.l3)})
+        self.assertEqual([id(c) for c in children], [id(self.c1), id(self.l3)])
 
     def test_copyparams(self):
         l1 = chainer.Link()
@@ -806,18 +1175,173 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
+        assert self.c1.count_params() == 8
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert not w
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
+
+    def check_array_device(self, array, expected_device):
+        expected_ndarray = expected_device.xp.ndarray
+        self.assertIsInstance(array, expected_ndarray)
+        if expected_device.xp in (chainerx, cuda.cupy):
+            assert array.device == expected_device.device
+
+    def check_expected_device(self, expected_device):
+        expected_xp = expected_device.xp
+        self.assertIs(self.c2.xp, expected_xp)
+        self.assertIs(self.c1.xp, expected_xp)
+        self.assertIs(self.l1.xp, expected_xp)
+        self.assertIs(self.l2.xp, expected_xp)
+        self.assertIs(self.l3.xp, expected_xp)
+        self.check_array_device(self.l1.x.data, expected_device)
+        self.check_array_device(self.l1.x.grad, expected_device)
+        self.check_array_device(self.l2.x.data, expected_device)
+        self.check_array_device(self.l2.x.grad, expected_device)
+        self.assertIsNone(self.l3.x.data)
+
+        self.l3.x.initialize((3,))
+        self.check_array_device(self.l3.x.data, expected_device)
+        self.check_array_device(self.l3.x.grad, expected_device)
+
+    def test_to_chainerx(self, backend_config):
+        self.set_count_parameters()
+        self.c2.to_device(backend_config.device)
+        self.c2.to_chainerx()
+
+        src_device = backend_config.device
+        if src_device.xp is chainerx:
+            expected_device = src_device
+        else:
+            expected_device = (
+                backend.ChainerxDevice.from_fallback_device(src_device))
+        self.check_expected_device(expected_device)
+
+    def test_from_chainerx(self, backend_config):
+        self.set_count_parameters()
+        self.c2.to_device(backend_config.device)
+        self.c2.from_chainerx()
+
+        src_device = backend_config.device
+        if src_device.xp is chainerx:
+            expected_device = src_device.fallback_device
+        else:
+            expected_device = src_device
+        self.check_expected_device(expected_device)
+
+
+class TestChainRepeat(unittest.TestCase):
+
+    def setUp(self):
+        class ChainForTest(chainer.Chain):
+            def __init__(self):
+                super(ChainForTest, self).__init__()
+                with self.init_scope():
+                    self.link = chainer.Link()
+
+            def forward(self):
+                pass
+
+        self.chain = ChainForTest()
+        self.link = self.chain.link
+        with self.link.init_scope():
+            self.link.x = chainer.Parameter(
+                chainer.initializers.Normal(), shape=(2, 3))
+
+    def test_no_repeat(self):
+        ret = self.chain.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share_mode(self):
+        ret = self.chain.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link, ret[1].link)
+        self.assertIsNot(ret[0].link.x, self.chain.link.x)
+        self.assertIsNot(ret[1].link.x, self.chain.link.x)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIs(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIs(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
+
+    def test_repeat_with_copy_mode(self):
+        ret = self.chain.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link, ret[1].link)
+        self.assertIsNot(ret[0].link.x, self.link.x)
+        self.assertIsNot(ret[1].link.x, self.link.x)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIsNot(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[1].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertTrue(numpy.array_equal(
+            ret[0].link.x.data, self.chain.link.x.data))
+        self.assertTrue(numpy.array_equal(
+            ret[0].link.x.data, ret[1].link.x.data))
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
+
+    def test_repeat_with_init_mode(self):
+        ret = self.chain.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIsNot(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[1].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertFalse(numpy.array_equal(
+            ret[0].link.x.data, self.chain.link.x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[1].link.x.data, self.chain.link.x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[0].link.x.data, ret[1].link.x.data))
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
 
 
 class TestChainList(unittest.TestCase):
@@ -833,10 +1357,14 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter(shape=3)
+        self.l4 = chainer.Link()
+        self.l5 = chainer.Link()
+        self.l6 = chainer.Link()
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
         self.c2 = chainer.ChainList(self.c1)
         self.c2.append(self.l3)
+        self.c3 = chainer.ChainList(self.l4)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
@@ -851,6 +1379,44 @@ class TestChainList(unittest.TestCase):
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
+
+    def test_setitem(self):
+        self.c1[1] = self.l3
+        self.assertEqual(self.l3.name, '1')
+
+    def test_setitem_slice(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[3:0:-1] = [self.l4, self.l5]  # l1 l5 l4
+        self.assertEqual(len(self.c1), 3)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '2')
+        self.assertEqual(self.l5.name, '1')
+
+    def test_setitem_slice_short(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4]  # l1 l4
+        self.assertEqual(len(self.c1), 2)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+
+    def test_setitem_slice_long(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4, self.l5, self.l6]  # l1 l4 l5 l6
+        self.assertEqual(len(self.c1), 4)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+        self.assertEqual(self.l5.name, '2')
+        self.assertEqual(self.l6.name, '3')
+
+    def test_iadd(self):
+        self.c2 += self.c3
+        self.assertIs(len(self.c2), 3)
+        self.assertEqual(self.l4.name, '2')
+
+    def test_delete_item(self):
+        del self.c2[0]
+        self.assertEqual(len(self.c2), 1)
+        self.assertEqual(self.l3.name, '0')
 
     def test_assign_param_in_init_scope(self):
         p = chainer.Parameter()
@@ -874,8 +1440,14 @@ class TestChainList(unittest.TestCase):
         self.assertEqual(len(self.c1), 2)
         self.assertEqual(len(self.c2), 2)
 
-    def test_copy(self):
-        c2 = self.c2.copy()
+    def test_copy_with_share_mode(self):
+        c2 = self.c2.copy(mode='share')
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
 
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, list)
@@ -899,6 +1471,77 @@ class TestChainList(unittest.TestCase):
         self.assertIsNot(c2[1].x, self.l3.x)
         self.assertIs(c2[1].x.data, self.l3.x.data)
         self.assertIs(c2[1].x.grad, None)
+
+    def test_copy_with_copy_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='copy')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
+        self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
+        self.assertIsNot(c2[0][0], self.l1)
+        self.assertEqual(c2[0][0].name, '0')
+        self.assertIsNot(c2[0][0].x, self.l1.x)
+        self.assertIsNot(c2[0][0].x.data, self.l1.x.data)
+        self.assertTrue(numpy.array_equal(c2[0][0].x.data, self.l1.x.data))
+        self.assertIs(c2[0][0].x.grad, None)
+
+        self.assertIsNot(c2[0][1], self.l2)
+        self.assertEqual(c2[0][1].name, '1')
+        self.assertIsNot(c2[0][1].x, self.l2.x)
+        self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
+        self.assertTrue(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
+        self.assertIs(c2[0][1].x.grad, None)
+
+        self.assertIsNot(c2[1], self.l3)
+        self.assertEqual(c2[1].name, '1')
+        self.assertIsNot(c2[1].x, self.l3.x)
+        self.assertIsNot(c2[1].x.data, self.l3.x.data)
+        # l3 is constructed with shape argument but not initialized
+        self.assertTrue(numpy.isnan(c2[1].x.grad).all())
+
+    def test_copy_with_init_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='init')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
+        self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
+        self.assertIsNot(c2[0][0], self.l1)
+        self.assertEqual(c2[0][0].name, '0')
+        self.assertIsNot(c2[0][0].x, self.l1.x)
+        self.assertIsNot(c2[0][0].x.data, self.l1.x.data)
+        self.assertFalse(numpy.array_equal(c2[0][0].x.data, self.l1.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2[0][0].x.grad).all())
+
+        self.assertIsNot(c2[0][1], self.l2)
+        self.assertEqual(c2[0][1].name, '1')
+        self.assertIsNot(c2[0][1].x, self.l2.x)
+        self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
+        self.assertFalse(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2[0][1].x.grad).all())
+
+        self.assertIsNot(c2[1], self.l3)
+        self.assertEqual(c2[1].name, '1')
+        self.assertIsNot(c2[1].x, self.l3.x)
+        self.assertTrue(numpy.isnan(c2[1].x.data).all())
+        self.assertTrue(numpy.isnan(c2[1].x.grad).all())
 
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
@@ -977,59 +1620,99 @@ class TestChainList(unittest.TestCase):
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
 
+    @attr.chainerx
+    def test_to_chainerx(self):
+        self.c2.to_device(backend.CpuDevice())
+        self.c2.to_chainerx()
+        self.assertIs(self.c2.xp, chainerx)
+        self.assertIs(self.c1.xp, chainerx)
+        self.assertIs(self.l1.xp, chainerx)
+        self.assertIs(self.l2.xp, chainerx)
+        self.assertIs(self.l3.xp, chainerx)
+        self.assertIsInstance(self.l1.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l1.x.grad, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
+        self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l3.x.grad, chainerx.ndarray)
+        expected_device = chainerx.get_device('native:0')
+        self.assertIs(self.l1.x.data.device, expected_device)
+        self.assertIs(self.l1.x.grad.device, expected_device)
+        self.assertIs(self.l2.x.data.device, expected_device)
+        self.assertIs(self.l2.x.grad.device, expected_device)
+        self.assertIs(self.l3.x.data.device, expected_device)
+        self.assertIs(self.l3.x.grad.device, expected_device)
+
+    def test_to_device(self):
+        device = backend.CpuDevice()
+        self.c2.to_device(device)
+        self.assertIs(self.c2.xp, numpy)
+        self.assertIs(self.c1.xp, numpy)
+        self.assertIs(self.l1.xp, numpy)
+        self.assertIs(self.l2.xp, numpy)
+        self.assertIs(self.l3.xp, numpy)
+        self.assertIsInstance(self.l1.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
+
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l1.y),
-                          id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l1.y),
+                          id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/0/y', id(self.l1.y)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/0', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_children(self):
         self.assertEqual(tuple(id(c) for c in self.c2.children()),
@@ -1135,10 +1818,15 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
+            assert self.c1.count_params() == 8
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
@@ -1147,12 +1835,102 @@ class TestChainList(unittest.TestCase):
         assert not w
 
 
+class TestChainListRepeat(unittest.TestCase):
+
+    def setUp(self):
+        class ChainListForTest(chainer.ChainList):
+            def __init__(self):
+                super(ChainListForTest, self).__init__(chainer.Link())
+
+            def forward(self):
+                pass
+
+        self.chainlist = ChainListForTest()
+        self.link = self.chainlist[0]
+        with self.link.init_scope():
+            self.link.x = chainer.Parameter(
+                chainer.initializers.Normal(), shape=(2, 3))
+
+    def test_no_repeat(self):
+        ret = self.chainlist.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share_mode(self):
+        ret = self.chainlist.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIs(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIs(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_copy_mode(self):
+        ret = self.chainlist.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_init_mode(self):
+        ret = self.chainlist.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[1][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+
 @attr.ideep
 class TestIntel64(unittest.TestCase):
 
     def setUp(self):
         self.link = chainer.Link()
-        shape = (2,)
+        shape = (2, 2)
         dtype = numpy.float32
         y_array = numpy.random.rand(*shape).astype(dtype)
         pa_array = numpy.random.rand(*shape).astype(dtype)
@@ -1171,33 +1949,21 @@ class TestIntel64(unittest.TestCase):
         self.pa_array = pa_array
         self.ps_scalar = ps_scalar
 
-    def _assert_variable_array_equal(self, var, expected_array):
-        assert var.shape == expected_array.shape
-        assert var.dtype == expected_array.dtype
-        self._assert_arrays_equal(var.data, expected_array)
-
-    def _assert_arrays_equal(self, array, expected_array):
-        if isinstance(array, cuda.ndarray):
-            array = array.get()
-        assert array.shape == expected_array.shape
-        assert array.dtype == expected_array.dtype
-        assert (array == expected_array).all()
-
     def test_cpu_to_intel64(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
 
         # Initialized parameter
         assert isinstance(link.y.data, intel64.ideep.mdarray)
-        self._assert_variable_array_equal(link.y, self.y_array)
+        _assert_variable_array_equal(link.y, self.y_array)
         # Uninitialized parameter
         assert link.v.data is None
         # Persistent ndarray
         assert isinstance(link.pa, intel64.ideep.mdarray)
-        self._assert_arrays_equal(link.pa, self.pa_array)
+        _assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
 
@@ -1209,7 +1975,7 @@ class TestIntel64(unittest.TestCase):
         prev_pa = link.pa
         prev_ps = link.ps
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.Intel64Device)
 
         # Everything should be left untouched
 
@@ -1226,20 +1992,20 @@ class TestIntel64(unittest.TestCase):
     def test_gpu_to_intel64(self):
         link = self.link
         link.to_gpu()
-        assert link._device_id == 0
+        assert link.device.device == cuda.Device(0)
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
 
         # Initialized parameter
         assert isinstance(link.y.data, intel64.ideep.mdarray)
-        self._assert_variable_array_equal(link.y, self.y_array)
+        _assert_variable_array_equal(link.y, self.y_array)
         # Uninitialized parameter
         assert link.v.data is None
         # Persistent ndarray
         assert isinstance(link.pa, intel64.ideep.mdarray)
-        self._assert_arrays_equal(link.pa, self.pa_array)
+        _assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
 
@@ -1247,42 +2013,244 @@ class TestIntel64(unittest.TestCase):
     def test_intel64_to_gpu(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.Intel64Device)
         link.to_gpu()
-        assert link._device_id == 0
+        assert link.device.device == cuda.Device(0)
 
         # Arrays should be converted to cupy.ndarray
 
         # Initialized parameter
         assert isinstance(link.y.data, cuda.cupy.ndarray)
-        self._assert_variable_array_equal(link.y, self.y_array)
+        _assert_variable_array_equal(link.y, self.y_array)
         # Uninitialized parameter
         assert link.v.data is None
         # Persistent ndarray
         assert isinstance(link.pa, cuda.ndarray)
-        self._assert_arrays_equal(link.pa, self.pa_array)
+        _assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
 
     def test_intel64_to_cpu(self):
         link = self.link
         link.to_intel64()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.Intel64Device)
         link.to_cpu()
-        assert link._device_id is None
+        assert isinstance(link.device, backend.CpuDevice)
 
         # Arrays should be converted to numpy.ndarray
 
         # Initialized parameter
         assert isinstance(link.y.data, numpy.ndarray)
-        self._assert_variable_array_equal(link.y, self.y_array)
+        _assert_variable_array_equal(link.y, self.y_array)
         # Uninitialized parameter
         assert link.v.data is None
         # Persistent ndarray
         assert isinstance(link.pa, numpy.ndarray)
-        self._assert_arrays_equal(link.pa, self.pa_array)
+        _assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
+
+    def test_cpu_to_intel64_unsupported(self):
+        # Test for persistents that cannot be transferred to iDeep.
+        with self.link.init_scope():
+            self.link.no_ideep = numpy.ones((2, 2, 2), numpy.float32)
+            self.link.register_persistent('no_ideep')
+        self.link.to_intel64()
+        assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+    @attr.gpu
+    def test_gpu_to_intel64_unsupported(self):
+        # Test for persistents that cannot be transferred to iDeep.
+        with self.link.init_scope():
+            self.link.no_ideep = cuda.cupy.ones((2, 2, 2), numpy.float32)
+            self.link.register_persistent('no_ideep')
+        self.link.to_intel64()
+        assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+
+@attr.chainerx
+class TestToChainerX(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2, 2)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+    def test_chainerx_to_chainerx(self):
+        link = self.link
+        link.to_chainerx()
+        prev_y = link.y
+        prev_v = link.v
+        prev_pa = link.pa
+        prev_ps = link.ps
+        link.to_chainerx()
+        assert link.device.device == chainerx.get_device('native:0')
+
+        # Everything should be left untouched
+
+        # Initialized parameter
+        assert link.y is prev_y
+        # Uninitialized parameter
+        assert link.v is prev_v
+        # Persistent ndarray
+        assert link.pa is prev_pa
+        # Persistent scalar
+        assert link.ps is prev_ps
+
+    def test_cpu_to_chainerx(self):
+        link = self.link
+        link.to_chainerx()
+
+        # Initialized parameter
+        assert isinstance(link.y.data, chainerx.ndarray)
+        assert link.y.data.device.backend.name == 'native'
+        assert link.y.data.device.index == 0
+        _assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, chainerx.ndarray)
+        _assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    @attr.gpu
+    def test_gpu_to_chainerx(self):
+        link = self.link
+        link.to_gpu()
+        assert link.device.device == cuda.Device(0)
+        link.to_chainerx()
+        assert link.device.device == chainerx.get_device('cuda:0')
+
+        # Arrays should be converted to chainerx.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, chainerx.ndarray)
+        assert link.y.data.device.backend.name == 'cuda'
+        assert link.y.data.device.index == 0
+        _assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, chainerx.ndarray)
+        _assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    # TODO(niboshi): Add other test variations
+
+
+class TestToDevice(unittest.TestCase):
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2, 2)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+        if cuda.available:
+            self.current_device_id = cuda.cupy.cuda.get_device_id()
+
+    def check_to_device(self, device_spec, expected_ndarray_type):
+        link = self.link
+
+        link.to_device(device_spec)
+
+        # Initialized parameter
+        assert isinstance(link.y.data, expected_ndarray_type)
+        _assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, expected_ndarray_type)
+        _assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+        return link
+
+    def test_to_device_numpy(self):
+        link = self.check_to_device(numpy, numpy.ndarray)
+        assert isinstance(link.device, backend.CpuDevice)
+
+    @attr.gpu
+    def test_to_device_cupy(self):
+        link = self.check_to_device((cuda.cupy, 0), cuda.ndarray)
+        assert link.device.device == cuda.Device(0)
+
+    @attr.chainerx
+    def test_to_device_chainerx(self):
+        link = self.check_to_device('native:0', chainerx.ndarray)
+        assert link.device.device == chainerx.get_device('native:0')
+
+
+class TestCallMethod(unittest.TestCase):
+
+    def setUp(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+        self.model = Model()
+
+    def test_has_forward_no_call(self):
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # model.forward is called
+        self.model.forward.assert_called_once()
+
+    def test_has_call_and_forward(self):
+        self.model.__call__ = mock.MagicMock()
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
+
+    def test_has_call_no_forward(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
+
+    def test_no_call_no_forward(self):
+        with self.assertRaises(AttributeError):
+            self.model(0)
 
 
 testing.run_module(__name__, __file__)

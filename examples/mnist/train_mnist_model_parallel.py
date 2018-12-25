@@ -27,7 +27,7 @@ class ParallelMLP(chainer.Chain):
             self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
             self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
 
-    def __call__(self, x):
+    def forward(self, x):
         # assume x is on gpu0
         x1 = F.copy(x, self.gpu1)
 
@@ -89,7 +89,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu0))
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(

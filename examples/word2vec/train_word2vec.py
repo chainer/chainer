@@ -31,7 +31,7 @@ class ContinuousBoW(chainer.Chain):
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
             self.loss_func = loss_func
 
-    def __call__(self, x, contexts):
+    def forward(self, x, contexts):
         e = self.embed(contexts)
         h = F.sum(e, axis=1) * (1. / contexts.shape[1])
         loss = self.loss_func(h, x)
@@ -50,7 +50,7 @@ class SkipGram(chainer.Chain):
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
             self.loss_func = loss_func
 
-    def __call__(self, x, contexts):
+    def forward(self, x, contexts):
         e = self.embed(contexts)
         batch_size, n_context, n_units = e.shape
         x = F.broadcast_to(x[:, None], (batch_size, n_context))
@@ -71,7 +71,7 @@ class SoftmaxCrossEntropyLoss(chainer.Chain):
         with self.init_scope():
             self.out = L.Linear(n_in, n_out, initialW=0)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         return F.softmax_cross_entropy(self.out(x), t)
 
 
@@ -189,9 +189,6 @@ def main():
     print('Output type: {}'.format(args.out_type))
     print('')
 
-    if args.gpu >= 0:
-        cuda.get_device_from_id(args.gpu).use()
-
     # Load the dataset
     train, val, _ = chainer.datasets.get_ptb_words()
     counts = collections.Counter(train)
@@ -212,11 +209,11 @@ def main():
         HSM = L.BinaryHierarchicalSoftmax
         tree = HSM.create_huffman_tree(counts)
         loss_func = HSM(args.unit, tree)
-        loss_func.W.data[...] = 0
+        loss_func.W.array[...] = 0
     elif args.out_type == 'ns':
         cs = [counts[w] for w in range(len(counts))]
         loss_func = L.NegativeSampling(args.unit, cs, args.negative_size)
-        loss_func.W.data[...] = 0
+        loss_func.W.array[...] = 0
     elif args.out_type == 'original':
         loss_func = SoftmaxCrossEntropyLoss(args.unit, n_vocab)
     else:
@@ -259,7 +256,7 @@ def main():
     # Save the word2vec model
     with open('word2vec.model', 'w') as f:
         f.write('%d %d\n' % (len(index2word), args.unit))
-        w = cuda.to_cpu(model.embed.W.data)
+        w = cuda.to_cpu(model.embed.W.array)
         for i, wi in enumerate(w):
             v = ' '.join(map(str, wi))
             f.write('%s %s\n' % (index2word[i], v))
