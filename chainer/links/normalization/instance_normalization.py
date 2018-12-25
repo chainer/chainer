@@ -1,8 +1,11 @@
+import warnings
+
 import chainer
 from chainer.functions.normalization import instance_normalization
 from chainer import initializers
 from chainer import link
 from chainer import variable
+from chainer.utils import argument
 
 
 class InstanceNormalization(link.Link):
@@ -11,22 +14,35 @@ class InstanceNormalization(link.Link):
 
     This link wraps the :func:`~chainer.functions.instance_normalization`.
     Instance normalization is very close to batch normalization but different
-    in that this normalizes each samples in a mini-batch by its mean and standard
-    deviation even if in testing mode. Also note that this normalization only
+    in that this normalizes each samples in a mini-batch by
+    its mean and standard deviation even if in testing mode.
+    However, you can use average mean and variance in testing mode by set
+    ``track_avg_stats`` as ``True``. Note that this normalization only
     works on inputs whose dimensions are greater than 2.
+
+    This runs in three modes: training mode, fine-tuning mode, and testing mode
+    if you set ``track_avg_stats`` ``True``. See details of the above modes in
+    :class:`~chainer.links.BatchNormalization`.
 
     Args:
         size (int): Size (or shape) of channel dimensions.
+        decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
         use_gamma (bool): If ``True``, use scaling parameter. Otherwise, use
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
+        track_avg_stats (bool): If ``True``, moving statistics are used in
+            testing mode. The default value is ``False``.
         initial_gamma: Initializer of the scaling parameter. The default value
             is ``1``.
         initial_beta: Initializer of the shifting parameter. The default value
             is ``0``.
+        initial_avg_mean: Initializer of the moving average of population mean.
+            The default value is ``0``.
+        initial_avg_var: Initializer of the moving average of population
+            variance. The default value is ``1``.
 
     See: `Instance Normalization: The Missing Ingredient for Fast Stylization
            <https://arxiv.org/abs/1607.08022>`_
@@ -37,6 +53,12 @@ class InstanceNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
+        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
+        N (int): Count of batches given for fine-tuning.
+        decay (float): Decay rate of moving average. It is used on training.
+        eps (float): Epsilon value for numerical stability. This value is added
+            to the batch variances.
         eps (float): Epsilon value for numerical stability. This value is added
             to the batch variances.
 
@@ -88,12 +110,21 @@ class InstanceNormalization(link.Link):
 
     gamma = None
     beta = None
+    avg_mean = None
+    avg_var = None
 
-    def __init__(self, size, eps=2e-5, dtype=None,
+    def __init__(self, size, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+                 initial_gamma=None, initial_beta=None,
+                 track_avg_stats=False,
+                 initial_avg_mean=None, initial_avg_var=None):
         super(InstanceNormalization, self).__init__()
+        self.size = size
+        self._initial_avg_mean = initial_avg_mean
+        self._initial_avg_var = initial_avg_var
+        self.decay = decay
         self.eps = eps
+        self.track_avg_stats = track_avg_stats
         self._dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
@@ -103,22 +134,25 @@ class InstanceNormalization(link.Link):
                 gamma_initializer = \
                     initializers._get_initializer(initial_gamma)
                 gamma_initializer.dtype = self._dtype
-                self.gamma = variable.Parameter(gamma_initializer)
+                self.gamma = variable.Parameter(gamma_initializer, (size,))
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
                 beta_initializer = initializers._get_initializer(initial_beta)
                 beta_initializer.dtype = self._dtype
-                self.beta = variable.Parameter(beta_initializer)
-
-        if size is not None:
-            self._initialize_params(size)
-
-    def _initialize_params(self, shape):
-        if self.gamma is not None:
-            self.gamma.initialize(shape)
-        if self.beta is not None:
-            self.beta.initialize(shape)
+                self.beta = variable.Parameter(beta_initializer, (size,))
+        self.N = 0
+        self.register_persistent('N')
+        if self.track_avg_stats:
+            self.avg_mean = self._init_array(self._initial_avg_mean, 0, size)
+            self._initial_avg_mean = None
+            self.register_persistent('avg_mean')
+            self.avg_var = self._init_array(self._initial_avg_var, 1, size)
+            self._initial_avg_var = None
+            self.register_persistent('avg_var')
+        else:
+            self.avg_mean = None
+            self.avg_var = None
 
     def _init_array(self, initializer, default_value, size):
         if initializer is None:
@@ -127,13 +161,86 @@ class InstanceNormalization(link.Link):
         return initializers.generate_array(
             initializer, size, self.xp, dtype=self._dtype)
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
 
+        Invokes the forward propagation of InstanceNormalization.
+
+        In training mode and ``track_avg_stats`` is ``True``,
+        InstanceNormalization computes moving averages of mean and variance
+        for evaluation during training.
+
+        .. warning::
+
+            ``test`` argument is not supported anymore since v2.
+            Instead, use ``chainer.using_config('train', False)``.
+            See :func:`chainer.using_config`.
+
         Args:
-            x (Variable): Input variable.
+            x (Variable): Input variable, mini-batch of instances.
+            finetune (bool): Finetune is triggered only when
+                ``track_avg_stats`` is ``True`` and it is in training mode.
+                In fine-tuning mode, this accumulates the input array
+                to compute population statistics for normalization,
+                and normalizes the input using instance statistics.
 
         """
+        finetune, = argument.parse_kwargs(
+            kwargs, ('finetune', False),
+            test='test argument is not supported anymore. '
+                 'Use chainer.using_config')
 
-        return instance_normalization.instance_normalization(
-            x, self.gamma, self.beta, self.eps)
+        if finetune and not self.track_avg_stats:
+            warnings.warn(
+                'Because `track_avg_stats` is ``False``,'
+                'finetune is ineffective.',
+                warnings.UserWarning
+            )
+
+        gamma = self.gamma
+        if gamma is None:
+            with chainer.using_device(self.device):
+                gamma = self.xp.ones(self.size, dtype=x.dtype)
+        beta = self.beta
+        if beta is None:
+            with chainer.using_device(self.device):
+                beta = self.xp.zeros(self.size, dtype=x.dtype)
+
+        avg_mean, avg_var = self.avg_mean, self.avg_var
+        decay = self.decay
+        if self.track_avg_stats:
+            if finetune:
+                self.N += 1
+                decay = 1. - 1. / self.N
+        if chainer.config.in_recomputing:
+            if finetune:
+                self.N -= 1
+            avg_mean = None
+            avg_var = None
+
+        if not chainer.config.train and self.track_avg_stats:
+            ret = instance_normalization.fixed_instance_normalization(
+                x, gamma, beta, avg_mean, avg_var, self.eps
+            )
+        else:
+            ret = instance_normalization.instance_normalization(
+                x, gamma, beta, eps=self.eps, running_mean=avg_mean,
+                running_var=avg_var, decay=decay
+            )
+        return ret
+
+    def start_finetuning(self):
+        """Resets the population count for collecting population statistics.
+
+        This method can be skipped if it is the first time to use the
+        fine-tuning mode. Otherwise, this method should be called before
+        starting the fine-tuning mode again.
+
+        """
+        if self.track_avg_stats:
+            warnings.warn(
+                'Because `track_avg_stats` is ``False``,'
+                'finetune is ineffective.',
+                warnings.UserWarning
+            )
+        self.N = 0

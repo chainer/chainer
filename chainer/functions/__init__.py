@@ -201,6 +201,7 @@ from chainer.functions.normalization.decorrelated_batch_normalization import dec
 from chainer.functions.normalization.decorrelated_batch_normalization import fixed_decorrelated_batch_normalization  # NOQA
 from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.instance_normalization import instance_normalization  # NOQA
+from chainer.functions.normalization.instance_normalization import fixed_instance_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
