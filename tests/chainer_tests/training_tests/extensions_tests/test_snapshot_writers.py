@@ -6,6 +6,7 @@ import threading
 
 from chainer import testing
 from chainer.training.extensions import snapshot_writers
+from chainer import utils
 
 
 snapshot_writers_path = 'chainer.training.extensions.snapshot_writers'
@@ -13,34 +14,28 @@ snapshot_writers_path = 'chainer.training.extensions.snapshot_writers'
 
 class TestSimpleWriter(unittest.TestCase):
 
-    def setUp(self):
-        self.filename = 'myfile.dat'
-        self.outdir = 'mydir'
-        self.target = mock.MagicMock()
-
     def test_call(self):
+        target = mock.MagicMock()
         w = snapshot_writers.SimpleWriter()
         w.save = mock.MagicMock()
-        w(self.filename, self.outdir, self.target)
+        with utils.tempdir() as tempd:
+            w('myfile.dat', tempd, target)
 
         assert w.save.call_count == 1
 
 
 class TestStandardWriter(unittest.TestCase):
 
-    def setUp(self):
-        self.filename = 'myfile.dat'
-        self.outdir = 'mydir'
-        self.target = mock.MagicMock()
-
     def test_call(self):
+        target = mock.MagicMock()
         w = snapshot_writers.StandardWriter()
         worker = mock.MagicMock()
         name = snapshot_writers_path + '.StandardWriter.create_worker'
         with mock.patch(name, return_value=worker):
-            w(self.filename, self.outdir, self.target)
-            w(self.filename, self.outdir, self.target)
-            w.finalize()
+            with utils.tempdir() as tempd:
+                w('myfile.dat', tempd, target)
+                w('myfile.dat', tempd, target)
+                w.finalize()
 
             assert worker.start.call_count == 2
             assert worker.join.call_count == 2
@@ -48,40 +43,28 @@ class TestStandardWriter(unittest.TestCase):
 
 class TestThreadWriter(unittest.TestCase):
 
-    def setUp(self):
-        self.filename = 'myfile.dat'
-        self.outdir = 'mydir'
-        self.target = mock.MagicMock()
-
     def test_create_worker(self):
+        target = mock.MagicMock()
         w = snapshot_writers.ThreadWriter()
-        worker = w.create_worker(self.filename, self.outdir, self.target)
-
-        assert isinstance(worker, threading.Thread)
+        with utils.tempdir() as tempd:
+            worker = w.create_worker('myfile.dat', tempd, target)
+            assert isinstance(worker, threading.Thread)
 
 
 class TestProcessWriter(unittest.TestCase):
 
-    def setUp(self):
-        self.filename = 'myfile.dat'
-        self.outdir = 'mydir'
-        self.target = mock.MagicMock()
-
     def test_create_worker(self):
+        target = mock.MagicMock()
         w = snapshot_writers.ProcessWriter()
-        worker = w.create_worker(self.filename, self.outdir, self.target)
-
-        assert isinstance(worker, multiprocessing.Process)
+        with utils.tempdir() as tempd:
+            worker = w.create_worker('myfile.dat', tempd, target)
+            assert isinstance(worker, multiprocessing.Process)
 
 
 class TestQueueWriter(unittest.TestCase):
 
-    def setUp(self):
-        self.filename = 'myfile.dat'
-        self.outdir = 'mydir'
-        self.target = mock.MagicMock()
-
     def test_call(self):
+        target = mock.MagicMock()
         q = mock.MagicMock()
         consumer = mock.MagicMock()
         names = [snapshot_writers_path + '.QueueWriter.create_queue',
@@ -89,9 +72,11 @@ class TestQueueWriter(unittest.TestCase):
         with mock.patch(names[0], return_value=q):
             with mock.patch(names[1], return_value=consumer):
                 w = snapshot_writers.QueueWriter()
-                w(self.filename, self.outdir, self.target)
-                w(self.filename, self.outdir, self.target)
-                w.finalize()
+
+                with utils.tempdir() as tempd:
+                    w('myfile.dat', tempd, target)
+                    w('myfile.dat', tempd, target)
+                    w.finalize()
 
                 assert consumer.start.call_count == 1
                 assert q.put.call_count == 3
