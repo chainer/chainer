@@ -49,8 +49,11 @@ class TestFunctionBackprop(unittest.TestCase):
         forward_xp, backward_xp = _get_expected_xp(backend_config, True)
 
         class Func(chainer.Function):
-            def forward(self, inputs):
+            def __init__(self):
+                self.array_init = backend_config.device.send(
+                    numpy.array([3], numpy.float32))
 
+            def forward(self, inputs):
                 # Inputs
                 assert isinstance(inputs, tuple)
                 # x1, x3: float32
@@ -59,6 +62,11 @@ class TestFunctionBackprop(unittest.TestCase):
                 assert isinstance(x1, forward_xp.ndarray)
                 assert isinstance(x2, forward_xp.ndarray)
                 assert isinstance(x3, forward_xp.ndarray)
+
+                # attribute fallback
+                assert isinstance(self.array_init, forward_xp.ndarray)
+                self.array_forward = forward_xp.array([2], numpy.float32)
+                assert isinstance(self.array_forward, forward_xp.ndarray)
 
                 y1 = x2 - 1  # int32
                 y2 = x1 * x3 + x2.astype(x1.dtype)
@@ -96,6 +104,12 @@ class TestFunctionBackprop(unittest.TestCase):
                 assert isinstance(y2, backward_xp.ndarray)
                 assert y3 is None
 
+                # attribute fallback
+                assert isinstance(self.array_init, backward_xp.ndarray)
+                assert isinstance(self.array_forward, backward_xp.ndarray)
+                self.array_backward = backward_xp.array([4], numpy.float32)
+                assert isinstance(self.array_backward, backward_xp.ndarray)
+
                 gx1 = x3 * gy2  # + gy3
                 gx2 = None
                 gx3 = x1 * gy2  # + gy3
@@ -107,6 +121,10 @@ class TestFunctionBackprop(unittest.TestCase):
         forward_xp, backward_xp = _get_expected_xp(backend_config, False)
 
         class Func(chainer.FunctionNode):
+            def __init__(self):
+                self.array_init = backend_config.device.send(
+                    numpy.array([3], numpy.float32))
+
             def forward(self, inputs):
 
                 # Inputs
@@ -116,6 +134,11 @@ class TestFunctionBackprop(unittest.TestCase):
                 assert isinstance(x1, forward_xp.ndarray)
                 assert isinstance(x2, forward_xp.ndarray)
                 assert isinstance(x3, forward_xp.ndarray)
+
+                # attribute fallback
+                assert isinstance(self.array_init, forward_xp.ndarray)
+                self.array_forward = forward_xp.array([2], numpy.float32)
+                assert isinstance(self.array_forward, forward_xp.ndarray)
 
                 y1 = x2 - 1  # int32
                 y2 = x1 * x3 + x2.astype(x1.dtype)
@@ -156,6 +179,12 @@ class TestFunctionBackprop(unittest.TestCase):
                 y1, y2, = retained_outputs
                 assert isinstance(y1.array, backward_xp.ndarray)
                 assert isinstance(y2.array, backward_xp.ndarray)
+
+                # attribute fallback
+                assert isinstance(self.array_init, backward_xp.ndarray)
+                assert isinstance(self.array_forward, backward_xp.ndarray)
+                self.array_backward = backward_xp.array([4], numpy.float32)
+                assert isinstance(self.array_backward, backward_xp.ndarray)
 
                 gx1 = x3 * gy2  # + gy3
                 gx2 = None

@@ -53,7 +53,7 @@ class _Blob(initializer.Initializer):
         indices = list(range(0, size, self.chunk_size))
 
         # Rather than accessing Protobuf's RepeatedScalar fields directly,
-        # creating a intermediate list by indexing is more efficifent due to
+        # creating a intermediate list by indexing is more efficient due to
         # the implementation of the Python extension of Protobuf.
         # To avoid allocating excessively large lists, we limit the length
         # of lists by `chunk_size`.

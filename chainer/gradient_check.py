@@ -225,7 +225,7 @@ def numerical_grad(
                 any_nonfinite |= not all(_.all() for _ in isfinites)
 
             if not any_nonfinite:
-                # Stack flattenend outputs to make (5, *)-shaped 2D array
+                # Stack flattened outputs to make (5, *)-shaped 2D array
                 ystack = xp.vstack(
                     [xp.hstack([y.ravel() for y in ys]) for ys in yss])
                 assert ystack.ndim == 2 and ystack.shape[0] == len(yss)
@@ -498,7 +498,7 @@ class _CheckBackward(object):
         # dimensions. Ideally, the scale of the curvature with respect to each
         # input dimension should be taken into account, but we ignore the
         # differences and assume that the curvature is uniform with respect to
-        # all the input dimentions.
+        # all the input dimensions.
         norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
         if norm != 0:
             # norm could be zero if input arrays are 0-sized.
