@@ -1,12 +1,54 @@
 import warnings
 
+import numpy
+
+import chainer
 from chainer import backend
+from chainer.backends import cuda
 from chainer.functions.array import reshape
 from chainer.functions.array import tile
 from chainer.functions.normalization import batch_normalization
 from chainer.utils import argument
 from chainer.utils import type_check
 import chainerx
+
+
+def _check_type_and_shape(x, gamma, beta, mean=None, var=None):
+    if x.ndim <= 2:
+        raise ValueError('Input dimension must be greater than 2, '
+                         'including batch size dimension '
+                         '(first dimension).')
+    n_channels = x.shape[1]
+    if x.dtype != gamma.dtype:
+        raise type_check.InvalidType(x.dtype, gamma.dtype)
+    if x.dtype != beta.dtype:
+        raise type_check.InvalidType(x.dtype, beta.dtype)
+    if n_channels != gamma.size:
+        raise type_check.InvalidType(n_channels, gamma.size)
+    if n_channels != beta.size:
+        raise type_check.InvalidType(n_channels, beta.size)
+    if mean is not None:
+        if x.dtype != mean.dtype:
+            raise type_check.InvalidType(x.dtype, mean.dtype)
+        if n_channels != mean.size:
+            raise type_check.InvalidType(n_channels, mean.size)
+    if var is not None:
+        if x.dtype != var.dtype:
+            raise type_check.InvalidType(x.dtype, var.dtype)
+        if n_channels != var.size:
+            raise type_check.InvalidType(n_channels, var.size)
+
+
+def _to_current_device(x):
+    xp = backend.get_array_module(x)
+    if xp is numpy:
+        return x
+    else:
+        current_device_id = cuda.cupy.cuda.device.get_device_id()
+        x_device_id = x.device.id
+        if current_device_id != x_device_id:
+            x = cuda.to_gpu(x, current_device_id)
+        return x
 
 
 def instance_normalization(x, gamma, beta, **kwargs):
@@ -44,32 +86,28 @@ def instance_normalization(x, gamma, beta, **kwargs):
         kwargs, ('eps', 2e-5), ('running_mean', None),
         ('running_var', None), ('decay', 0.9)
     )
-    if x.ndim <= 2:
-        raise ValueError('Input dimension must be greater than 2, '
-                         'including batch size dimension '
-                         '(first dimension).')
+    _check_type_and_shape(x, gamma, beta, running_mean, running_var)
     batch_size, channels = x.shape[:2]
     original_shape = x.shape
-    assert channels == gamma.size and channels == beta.size
-    if channels != gamma.size:
-        raise ValueError
-    if channels != beta.size:
-        raise ValueError
-    # type_check.expect(
-    #     channels == gamma.size,
-    #     channels == beta.size,
-    # )
     x = reshape.reshape(x, (1, batch_size * channels) + original_shape[2:])
     gamma = tile.tile(gamma, batch_size)
     beta = tile.tile(beta, batch_size)
 
-    xp = backend.get_array_module(x)
+    xp = backend.get_array_module(x, gamma, beta)
     if running_mean is not None:
-        tiled_mean = xp.concatenate([running_mean] * batch_size)
+        if isinstance(running_mean, chainer.variable.Variable):
+            tiled_mean = tile.tile(running_mean, batch_size)
+        else:
+            # running_mean = _to_current_device(running_mean)
+            tiled_mean = xp.concatenate([running_mean] * batch_size)
     else:
         tiled_mean = None
     if running_var is not None:
-        tiled_var = xp.concatenate([running_var] * batch_size)
+        if isinstance(running_var, chainer.variable.Variable):
+            tiled_var = tile.tile(running_var, batch_size)
+        else:
+            # running_var = _to_current_device(running_var)
+            tiled_var = xp.concatenate([running_var] * batch_size)
     else:
         tiled_var = None
 
@@ -83,18 +121,23 @@ def instance_normalization(x, gamma, beta, **kwargs):
     y = reshape.reshape(y, original_shape)
     if running_mean is not None:
         if xp is chainerx:
-            running_mean, running_var = backend.from_chainerx(
-                (running_mean, running_var)
+            running_mean, tiled_mean = backend.from_chainerx(
+                (running_mean, tiled_mean)
             )
-            tiled_mean, tiled_var = backend.from_chainerx(
-                (tiled_mean, tiled_var)
-            )
+            tiled_mean.reshape((batch_size, channels)).mean(axis=0)
         running_mean[:] = xp.reshape(
             tiled_mean, (batch_size, channels)).mean(axis=0)
+        if xp is chainerx:
+            running_mean = backend.to_chainerx(running_mean)
+    if running_var is not None:
+        if xp is chainerx:
+            running_var, tiled_var = backend.from_chainerx(
+                (running_var, tiled_var)
+            )
+            tiled_var.reshape((batch_size, channels)).mean(axis=0)
         running_var[:] = xp.reshape(
             tiled_var, (batch_size, channels)).mean(axis=0)
         if xp is chainerx:
-            running_mean = backend.to_chainerx(running_mean)
             running_var = backend.to_chainerx(running_var)
     return y
 
@@ -124,32 +167,28 @@ def fixed_instance_normalization(x, gamma, beta, mean, var, eps=2e-5):
        :class:`~chainer.links.InstancNormalization`
 
     """
-    if x.ndim <= 2:
-        raise ValueError('Input dimension must be greater than 2, '
-                         'including batch size dimension '
-                         '(first dimension).')
-    batch_size, channels = x.shape[:2]
+    _check_type_and_shape(x, gamma, beta, mean, var)
     original_shape = x.shape
-    if channels != gamma.size:
-        raise ValueError
-    if channels != beta.size:
-        raise ValueError
-    if channels != mean.size:
-        raise ValueError
-    if channels != var.size:
-        raise ValueError
-    x = reshape.reshape(x, (1, batch_size * channels) + original_shape[2:])
+    batch_size, channels = original_shape[:2]
     gamma = tile.tile(gamma, batch_size)
     beta = tile.tile(beta, batch_size)
-    xp = backend.get_array_module(x)
-    tiled_mean = xp.concatenate([mean] * batch_size)
-    tiled_var = xp.concatenate([var] * batch_size)
+    if isinstance(mean, chainer.variable.Variable):
+        tiled_mean = tile.tile(mean, batch_size)
+        tiled_var = tile.tile(var, batch_size)
+    else:
+        xp = backend.get_array_module(mean, var)
+        mean = _to_current_device(mean)
+        tiled_mean = xp.concatenate([mean] * batch_size)
+        var = _to_current_device(var)
+        tiled_var = xp.concatenate([var] * batch_size)
+
+    x = reshape.reshape(x, (1, batch_size * channels) + original_shape[2:])
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        x = batch_normalization.fixed_batch_normalization(
+        y = batch_normalization.fixed_batch_normalization(
             x, gamma, beta, tiled_mean, tiled_var, eps=eps,
         )
 
-    x = reshape.reshape(x, original_shape)
-    return x
+    y = reshape.reshape(y, original_shape)
+    return y

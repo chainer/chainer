@@ -246,13 +246,13 @@ class TestInstanceNormalization(unittest.TestCase):
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15)],
+    'shape': [(2, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
     'running_statistics': [True, False],
 })))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # CPU tests
     testing.product({
         'use_cuda': [False],
@@ -318,6 +318,8 @@ class TestFixedInstanceNormalization(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
 
         y_expected, = self.forward_cpu(inputs)
+
+        f_inputs = backend_config.get_array(f_inputs)
         if not self.c_contiguous:
             f_inputs = _as_noncontiguous_array(f_inputs)
 
@@ -326,7 +328,7 @@ class TestFixedInstanceNormalization(unittest.TestCase):
                 y = functions.fixed_instance_normalization(
                     *f_inputs, eps=self.eps)
 
-        assert y.data.dtype == self.dtype
+        assert y.array.dtype == self.dtype
 
         testing.assert_allclose(
             y_expected, y.array, **self.check_forward_options)
