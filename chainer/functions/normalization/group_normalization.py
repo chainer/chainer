@@ -52,7 +52,8 @@ class GroupNormalization(function_node.FunctionNode):
         orig_shape = x.shape
         batch_size, channels = orig_shape[:2]
         groups = self.groups
-        x = x.reshape((batch_size * groups, -1))
+        reduced_shape = (batch_size * groups, -1)
+        x = x.reshape(reduced_shape)
 
         self.mean = x.mean(axis=1)
         x_hat = x - self.mean[:, None]
@@ -84,7 +85,8 @@ class GroupNormalization(function_node.FunctionNode):
         orig_shape = x.shape
         batch_size, channels = orig_shape[:2]
         groups = self.groups
-        x = x.reshape((1, batch_size * groups, -1, 1))
+        cudnn_shape = (1, batch_size * groups, -1, 1)
+        x = x.reshape(cudnn_shape)
 
         with cuda.get_device_from_array(x):
             dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
@@ -113,7 +115,8 @@ class GroupNormalization(function_node.FunctionNode):
         orig_shape = x.shape
         batch_size = orig_shape[0]
         groups = self.groups
-        x = chainer.functions.reshape(x, (batch_size * groups, -1))
+        reduced_shape = (batch_size * groups, -1)
+        x = chainer.functions.reshape(x, reduced_shape)
 
         x_hat, = _XHat(
             self.eps, self.mean, self.inv_std,
@@ -134,7 +137,7 @@ class _GradHelper(function_node.FunctionNode):
         x_hat, gamma, gy = inputs
         xp = backend.get_array_module(x_hat)
 
-        x_hat_shape = x_hat.shape
+        reduced_shape = x_hat.shape
         batch_size, channels = gy.shape[:2]
         x_hat = x_hat.reshape((batch_size, channels, -1))
         gy = gy.reshape((batch_size, channels, -1))
@@ -149,14 +152,14 @@ class _GradHelper(function_node.FunctionNode):
                 'groupnorm_ggamma')(gy, x_hat, axis=(0, 2))
         gbeta = gy.sum(axis=(0, 2))
 
-        gx_hat = gx_hat.reshape(x_hat_shape)
+        gx_hat = gx_hat.reshape(reduced_shape)
         return gx_hat, ggamma, gbeta
 
     def backward(self, indexes, grad_outputs):
         x_hat, gamma, gy = self.get_retained_inputs()
         ggx_hat, gggamma, ggbeta = grad_outputs
 
-        x_hat_shape = x_hat.shape
+        reduced_shape = x_hat.shape
         orig_shape = gy.shape
         batch_size, channels = gy.shape[:2]
         x_hat = x_hat.reshape((batch_size, channels, -1))
@@ -168,7 +171,7 @@ class _GradHelper(function_node.FunctionNode):
         ggy = (ggx_hat * gamma[:, None] + gggamma[:, None] * x_hat +
                ggbeta[:, None])
 
-        gx_hat2 = chainer.functions.reshape(gx_hat2, x_hat_shape)
+        gx_hat2 = chainer.functions.reshape(gx_hat2, reduced_shape)
         ggy = chainer.functions.reshape(ggy, orig_shape)
         return gx_hat2, ggamma2, ggy
 
