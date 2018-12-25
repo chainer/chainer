@@ -43,7 +43,7 @@ case "${CHAINER_TRAVIS_TEST}" in
             install)
                 pip install -U pip wheel
                 if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-                    pip install mypy;
+                    pip install -U 'mypy>=0.650';
                 fi
                 pip install mpi4py
                 python setup.py sdist

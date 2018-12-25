@@ -80,7 +80,7 @@ step_setup_conda_environment() {
     pip install -U "${reqs[@]}"
 
     if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        pip install -U mypy>=0.641
+        pip install -U 'mypy>=0.650'
     fi
 }
 
