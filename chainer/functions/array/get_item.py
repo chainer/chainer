@@ -93,8 +93,8 @@ def get_item(x, slices):
     """Extract elements from array with specified shape, axes and offsets.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable to be sliced.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable to be sliced.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
             An object to specify the selection of elements.

@@ -114,8 +114,7 @@ def repeat(x, repeats, axis=None):
     """Construct an array by repeating a given array.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         repeats (:class:`int` or :class:`tuple` of :class:`int` s):
             The number of times which each element of ``x`` is repeated.

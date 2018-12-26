@@ -88,12 +88,10 @@ def permutate(x, indices, axis=0, inv=False):
     That means ``y[indices[i]] = x[i]``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable to permutate.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
-        indices (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        indices (:class:`~chainer.Variable` or :ref:`ndarray`):
             Indices to extract from the variable. A one-dimensional int array.
         axis (int): Axis that the input array is permutate along.
         inv (bool): If ``True``, ``indices`` is treated as its inverse.

@@ -50,8 +50,7 @@ def vstack(xs):
     """Concatenate variables vertically (row wise).
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same ``ndim``. When the variables have the second axis (i.e.
             :math:`ndim \\geq 2`), the variables must have the same shape
