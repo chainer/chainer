@@ -26,13 +26,13 @@ chx::Array ReadArray(std::ifstream& ifs, const chx::Shape& shape) {
 }
 
 int32_t ReadInt32(std::ifstream& ifs) {
-    int32_t result = 0;
+    uint32_t result = 0;
     for (int i = 0; i < 4; ++i) {
-        char byte;
+        char byte{};
         ifs.read(&byte, sizeof(byte));
-        result = (result << 8) | (static_cast<uint32_t>(byte) & 0xff);
+        result = (result << 8) | static_cast<uint32_t>(static_cast<uint8_t>(byte));
     }
-    return result;
+    return static_cast<int32_t>(result);
 }
 
 }  // namespace
