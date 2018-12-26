@@ -6,25 +6,42 @@ cache:
 
 matrix:
   include:
-    - dist: trusty
+    - name: "Python Style Check"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="python-stylecheck"
+
+    - name: "C++ Style Check"
+      language: python
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="c-stylecheck"
+
+    - name: "Ubuntu14.04 Py27"
+      dist: trusty
       python: "2.7"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - SKIP_CHAINERX=1
 
-    - dist: trusty
+    - name: "Ubuntu14.04 Py34"
+      dist: trusty
       python: "3.4"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - SKIP_CHAINERX=1
 
-    - dist: xenial
+    - name: "Ubuntu16.04 Py35 + ChainerX"
+      dist: xenial
       python: "3.5"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
-    - os: osx
+    - name: "macOS Py27"
+      os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
@@ -34,7 +51,8 @@ matrix:
       - SKIP_CHAINERX=1
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
-    - os: osx
+    - name: "macOS Py34"
+      os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
@@ -44,7 +62,8 @@ matrix:
       - SKIP_CHAINERX=1
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
-    - os: osx
+    - name: "macOS Py35"
+      os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
@@ -63,14 +82,6 @@ install:
 script:
   - bash scripts/ci/travis/run-tests.sh script
 
-sudo: false
-
 addons:
   apt:
-    packages:
-      - gfortran
-      - libhdf5-serial-dev
-      - liblapack-dev
-      - openmpi-bin
-      - openmpi-common
-      - libopenmpi-dev
+    update: true
