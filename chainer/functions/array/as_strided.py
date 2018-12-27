@@ -55,16 +55,12 @@ def _min_index(shape, strides, storage_offset):
     Returns:
         int: The leftest pointer in the array
     """
-    ndim = len(shape)
-    shape_negative = [shape[i] for i in range(ndim) if strides[i] < 0]
-    strides_negative = [strides[i] for i in range(ndim) if strides[i] < 0]
-    if len(strides_negative) == 0:
+    sh_st_neg = [sh_st for sh_st in zip(shape, strides) if sh_st[1] < 0]
+    if len(sh_st_neg) == 0:
         return storage_offset
     else:
         return storage_offset + reduce(
-            lambda base, shape_strides:
-            base + (shape_strides[0] - 1) * shape_strides[1],
-            zip(shape_negative, strides_negative), 0)
+            lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_neg, 0)
 
 
 def _max_index(shape, strides, storage_offset):
@@ -80,16 +76,12 @@ def _max_index(shape, strides, storage_offset):
     Returns:
         int: The rightest pointer in the array
     """
-    ndim = len(shape)
-    shape_positive = [shape[i] for i in range(ndim) if strides[i] > 0]
-    strides_positive = [strides[i] for i in range(ndim) if strides[i] > 0]
-    if len(strides_positive) == 0:
+    sh_st_pos = [sh_st for sh_st in zip(shape, strides) if sh_st[1] < 0]
+    if len(sh_st_pos) == 0:
         return storage_offset
     else:
         return storage_offset + reduce(
-            lambda base, shape_strides:
-            base + (shape_strides[0] - 1) * shape_strides[1],
-            zip(shape_positive, strides_positive), 0)
+            lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_pos, 0)
 
 
 def _index_add(augend, indices, addend):
