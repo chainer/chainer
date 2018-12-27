@@ -529,8 +529,8 @@ void Backward(
 }
 
 void Backward(
-        const std::vector<ConstArrayRef>& inputs,
         const std::vector<ConstArrayRef>& outputs,
+        const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id,
         DoubleBackpropOption double_backprop) {
     if (inputs.empty() || outputs.empty()) {

@@ -993,7 +993,7 @@ TEST_F(BackpropTest, BackwardWithInputsOnlyRequiresGrad) {
 
     Array y = x1 * x2;
 
-    Backward({x1}, {y}, backprop_id_1);
+    Backward({y}, {x1}, backprop_id_1);
 
     EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1008,7 +1008,7 @@ TEST_F(BackpropTest, BackwardWithInputsMixedRequiresGrad) {
 
     Array y = x1 * x2;
 
-    Backward({x1, x2}, {y}, backprop_id_1);
+    Backward({y}, {x1, x2}, backprop_id_1);
 
     EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1023,7 +1023,7 @@ TEST_F(BackpropTest, BackwardWithInputsOnlyRequiresGradButSpecifySubset) {
 
     Array y = x1 * x2;
 
-    Backward({x1}, {y}, backprop_id_1);
+    Backward({y}, {x1}, backprop_id_1);
 
     EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.GetGrad(backprop_id_1));
@@ -1038,7 +1038,7 @@ TEST_F(BackpropTest, BackwardWithInputsMultipleSameInputs) {
 
     Array y = x1 * x1 * x2;
 
-    Backward({x1}, {y}, backprop_id_1);
+    Backward({y}, {x1}, backprop_id_1);
 
     EXPECT_ARRAY_EQ(Full({1}, 12.0f), *x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1053,7 +1053,7 @@ TEST_F(BackpropTest, BackwardWithInputsNoInputs) {
 
     Array y = x1 * x2;
 
-    Backward({}, {y}, backprop_id_1);
+    Backward({y}, {}, backprop_id_1);
 
     EXPECT_FALSE(x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1068,7 +1068,7 @@ TEST_F(BackpropTest, BackwardWithInputsNoOutputs) {
 
     Array y = x1 * x2;
 
-    Backward({x1, x2}, {}, backprop_id_1);
+    Backward({}, {x1, x2}, backprop_id_1);
 
     EXPECT_FALSE(x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1089,7 +1089,7 @@ TEST_F(BackpropTest, BackwardWithInputsNonTrivialGraph) {
     Array z1 = y1 * 2;
     Array z2 = y2 / y3;
 
-    Backward({x2, x3}, {z1, z2}, backprop_id_1);
+    Backward({z1, z2}, {x2, x3}, backprop_id_1);
 
     EXPECT_FALSE(x1.GetGrad(backprop_id_1));
     EXPECT_ARRAY_EQ(Full({1}, 2.0f), *x2.GetGrad(backprop_id_1));  // 2 * x1
@@ -1120,7 +1120,7 @@ TEST_F(BackpropTest, BackwardWithInputsSomeOutputsOmitted) {
     y1.SetGrad(FullLike(y1, 2), backprop_id_1);
     y2.SetGrad(FullLike(y2, 3), backprop_id_1);
 
-    Backward({x1}, {y2}, backprop_id_1);
+    Backward({y2}, {x1}, backprop_id_1);
 
     EXPECT_ARRAY_EQ(Full({1}, 40.0f), *x1.GetGrad(backprop_id_1));
 }

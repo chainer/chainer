@@ -46,8 +46,8 @@ void Backward(
 //
 // This functions is not thread safe.
 void Backward(
-        const std::vector<ConstArrayRef>& inputs,
         const std::vector<ConstArrayRef>& outputs,
+        const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
