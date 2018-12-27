@@ -991,11 +991,17 @@ TEST_F(BackpropTest, BackwardWithInputsOnlyRequiresGrad) {
     Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
     Array x2 = Full({1}, 3.0f);
 
+    Array x1_initial_grad = Full({1}, 4.0f);
+    x1.SetGrad(x1_initial_grad, backprop_id_1);
+
     Array y = x1 * x2;
 
-    Backward({y}, {x1}, backprop_id_1);
+    // Backward({y}, {x1}, backprop_id_1);
+    std::vector<Array> grads = Grad({y}, {x1}, backprop_id_1);
 
-    EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
+    // EXPECT_ARRAY_EQ(Full({1}, 3.0f), *x1.GetGrad(backprop_id_1));
+    EXPECT_ARRAY_EQ(Full({1}, 3.0f), grads.at(0));
+    EXPECT_ARRAY_EQ(*x1.GetGrad(backprop_id_1), x1_initial_grad);
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
 }
 

@@ -183,8 +183,13 @@ public:
             const std::vector<ConstArrayRef>& inputs,
             const std::vector<ConstArrayRef>& outputs,
             const BackpropId& backprop_id,
-            DoubleBackpropOption double_backprop)
-        : inputs_{inputs}, outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
+            DoubleBackpropOption double_backprop,
+            std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map)
+        : inputs_{inputs},
+          outputs_{outputs},
+          backprop_id_{backprop_id},
+          double_backprop_{double_backprop},
+          array_node_grad_map_{std::move(array_node_grad_map)} {
         for (const Array& output : outputs) {
             if (!output.IsBackpropRequired(backprop_id)) {
                 throw ChainerxError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
@@ -208,6 +213,13 @@ public:
             input_required_flags_ = CreateSubgraph(inputs, output_array_nodes_, backprop_id);
         }
     }
+
+    BackwardImpl(
+            const std::vector<ConstArrayRef>& inputs,
+            const std::vector<ConstArrayRef>& outputs,
+            const BackpropId& backprop_id,
+            DoubleBackpropOption double_backprop)
+        : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}} {}
 
     void Run() {
         // Push initial output array nodes
@@ -492,10 +504,6 @@ private:
     // This mapping is used to keep output array nodes alive (referenced from op nodes as weak pointers).
     std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> output_array_node_keeper_;
 
-    // Mapping from array nodes to the corresponding gradients. Gradients may be genuine gradients held by array bodies or temporary
-    // gradients which are only valid during backward computation at most.
-    std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map_;
-
     // Arguments to Backward().
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
     const std::vector<ConstArrayRef>& inputs_;
@@ -503,6 +511,10 @@ private:
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
     const BackpropId& backprop_id_;
     DoubleBackpropOption double_backprop_;
+
+    // Mapping from array nodes to the corresponding gradients. Gradients may be genuine gradients held by array bodies or temporary
+    // gradients which are only valid during backward computation at most.
+    std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map_;
 
     std::vector<BackpropId> backprop_ids_to_stop_gradient_;
 
@@ -538,6 +550,42 @@ void Backward(
     }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop}.Run();
+}
+
+std::vector<Array> Grad(
+        const std::vector<ConstArrayRef>& outputs,
+        const std::vector<ConstArrayRef>& inputs,
+        const nonstd::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop) {
+    if (inputs.empty() || outputs.empty()) {
+        return {};
+    }
+
+    std::vector<nonstd::optional<Array>> temp_input_grads;
+    temp_input_grads.reserve(inputs.size());
+
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
+
+    // Initialize the grad map with newly created gradient arrays of the inputs.
+    // The existing gradients of the inputs are thus not modified.
+    std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
+    for (const Array& input : inputs) {
+        const std::shared_ptr<ArrayNode>& input_array_node = internal::GetArrayBody(input)->GetArrayNode(actual_backprop_id);
+        temp_input_grads.emplace_back(nonstd::optional<Array>{});
+        array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&temp_input_grads.back()});
+    }
+
+    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map)}.Run();
+
+    std::vector<Array> input_grads;
+    input_grads.reserve(temp_input_grads.size());
+    std::transform(
+            temp_input_grads.begin(),
+            temp_input_grads.end(),
+            std::back_inserter(input_grads),
+            [](const nonstd::optional<Array>& temp_input_grad) { return *temp_input_grad; });
+
+    return input_grads;
 }
 
 }  // namespace chainerx
