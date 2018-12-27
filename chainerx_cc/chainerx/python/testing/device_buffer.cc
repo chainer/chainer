@@ -26,7 +26,7 @@ namespace py = pybind11;  // standard convention
 // (py::buffer_info only holds a raw pointer and does not manage the lifetime of the pointed data). Memoryviews created from this buffer
 // will also share ownership. Note that accessing the .obj attribute of a memoryview may increase the reference count and should thus be
 // avoided.
-class PyDeviceBuffer {
+class PYBIND11_EXPORT PyDeviceBuffer {
 public:
     PyDeviceBuffer(std::shared_ptr<void> data, std::shared_ptr<py::buffer_info> info) : data_{std::move(data)}, info_{std::move(info)} {}
 
