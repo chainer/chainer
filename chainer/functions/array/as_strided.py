@@ -1,5 +1,5 @@
 from chainer.backends import cuda
-from chainer.function_node import FunctionNode
+from chainer import function_node
 from chainer.utils import type_check
 
 import numpy as np
@@ -211,7 +211,7 @@ class TensorGeometry(object):
         return len(self.shape)
 
 
-class AsStrided(FunctionNode):
+class AsStrided(function_node.FunctionNode):
     """Transportation of :func:`torch.Tensor.as_strided`.
     While :func:`torch.Tensor.as_strided` does not support nagative strides,
     this implementation does support it.
@@ -268,7 +268,7 @@ class AsStrided(FunctionNode):
                              self.storage_offset).apply(grad_outputs)
 
 
-class AsStridedGrad(FunctionNode):
+class AsStridedGrad(function_node.FunctionNode):
     """Backward of :func:`~chainer.functions.as_strided`.
     """
 
