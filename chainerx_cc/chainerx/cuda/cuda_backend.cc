@@ -1,12 +1,13 @@
 #include "chainerx/cuda/cuda_backend.h"
 
-#include <cuda_runtime.h>
-
 #include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+
+#include <cuda_runtime.h>
+#include <gsl/gsl>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
@@ -23,7 +24,7 @@ constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
 namespace cuda_internal {
 
-CudaDevice* CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
+gsl::owner<CudaDevice*> CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
 
 }  // namespace cuda_internal
 

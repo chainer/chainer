@@ -50,14 +50,6 @@ requirements = {
         'sphinx==1.7.9',
         'sphinx_rtd_theme',
     ],
-    'travis': [
-        '-r stylecheck',
-        '-r test',
-        '-r docs',
-        'theano',
-        'h5py',
-        'pillow',
-    ],
     'appveyor': [
         '-r test',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
