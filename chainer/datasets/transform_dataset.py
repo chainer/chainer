@@ -7,7 +7,7 @@ class TransformDataset(dataset_mixin.DatasetMixin):
 
     This dataset wraps the base dataset by modifying the behavior of the base
     dataset's :meth:`__getitem__`. Arrays returned by :meth:`__getitem__` of
-    the base dataset with an integer as an argument are transformed by the 
+    the base dataset with an integer as an argument are transformed by the
     given function :obj:`transform`.
     Also, :meth:`__len__` returns the integer returned by the base dataset's
     :meth:`__len__`.
