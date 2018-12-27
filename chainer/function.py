@@ -179,6 +179,7 @@ class FunctionAdapter(function_node.FunctionNode):
                 g = variable.Variable(gxs[i])
                 if g.xp is not chainerx:
                     g.node._disabled_grad_generator = (
+                        RuntimeError,
                         'backward of an old style Function "{}"'.format(
                             self._function.label))
             ret.append(g)

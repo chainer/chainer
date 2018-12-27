@@ -380,6 +380,7 @@ Use apply() method instead.\
             else:
                 for y in ret:
                     y.node._disabled_grad_generator = (
+                        DeprecationWarning,
                         '{} with enable_backprop=False config'.format(
                             self.label))
 

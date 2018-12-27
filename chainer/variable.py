@@ -421,9 +421,15 @@ class VariableNode(object):
 
     def _check_disabled_gradient(self):
         if self._disabled_grad_generator is not None:
-            raise RuntimeError(
-                'backward is unavailable: {}'.format(
-                    self._disabled_grad_generator))
+            exc, func_str = self._disabled_grad_generator
+            if issubclass(exc, Warning):
+                warnings.warn(
+                    'backward is unavailable: {}\n'
+                    'Propagating no gradients, but in future this will result '
+                    'in an error. Use the attribute `chainer.Variable.array` '
+                    'to compute partial gradients.'.format(func_str), exc)
+            else:
+                raise exc('backward is unavailable: {}'.format(func_str))
 
 
 def _create_variable(data, name, grad, requires_grad):

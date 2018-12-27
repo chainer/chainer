@@ -1,5 +1,6 @@
 import contextlib
 import pkg_resources
+import re
 import sys
 import unittest
 import warnings
@@ -86,6 +87,27 @@ def assert_warns(expected):
     # frame.
     if sys.version_info >= (3, 0):
         if not any(isinstance(m.message, expected) for m in w):
+            try:
+                exc_name = expected.__name__
+            except AttributeError:
+                exc_name = str(expected)
+
+            raise AssertionError('%s not triggerred' % exc_name)
+
+
+@contextlib.contextmanager
+def assert_warns_regex(expected, message):
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        yield
+
+    # Python 2 does not raise warnings multiple times from the same stack
+    # frame.
+    if sys.version_info >= (3, 0):
+        if not any(
+                isinstance(m.message, expected)
+                and re.search(message, str(m.message))
+                for m in w):
             try:
                 exc_name = expected.__name__
             except AttributeError:

@@ -2580,7 +2580,8 @@ class TestVariableDoubleBackward(unittest.TestCase):
         y.backward()
         assert x.grad_var is not y.grad_var
         assert x.grad_var.creator is None
-        with pytest.raises(RuntimeError):
+        with testing.assert_warns_regex(
+                DeprecationWarning, 'backward is unavailable'):
             x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
@@ -2622,13 +2623,15 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
     def test_default_backward(self):
         x = chainer.Variable(np.empty(1, np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
-        with testing.assert_warns(DeprecationWarning):
+        with testing.assert_warns_regex(
+                DeprecationWarning, 'scalar'):
             y.backward()
         assert x.grad_var.creator is None
         with warnings.catch_warnings():
             # ok to be warned that x.grad_var is old-styled scalar
             warnings.simplefilter('ignore', DeprecationWarning)
-            with pytest.raises(RuntimeError):
+            with testing.assert_warns_regex(
+                    DeprecationWarning, 'backward is unavailable'):
                 x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
