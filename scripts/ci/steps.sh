@@ -233,7 +233,7 @@ step_python_typecheck_chainer() {
 
     if python -c "import sys; assert sys.version_info >= (3, 4)"; then
         mypy --version
-        mypy "$REPO_DIR"/chainer
+        (cd "$REPO_DIR" && mypy chainer)
     fi
 }
 
