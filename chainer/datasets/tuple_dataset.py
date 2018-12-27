@@ -1,3 +1,4 @@
+import numpy
 import six
 
 
@@ -40,7 +41,7 @@ class TupleDataset(object):
 
     def __getitem__(self, index):
         batches = [dataset[index] for dataset in self._datasets]
-        if isinstance(index, slice):
+        if isinstance(index, (slice, list, numpy.ndarray)):
             length = len(batches[0])
             return [tuple([batch[i] for batch in batches])
                     for i in six.moves.range(length)]
