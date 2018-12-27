@@ -12,11 +12,11 @@ index_dtype = {t().itemsize: t for t in np.sctypes['int']}
 def _byte2step(iterable, itemsize):
     for i in iterable:
         assert i % itemsize == 0
-    return tuple((i // itemsize for i in iterable))
+    return tuple([i // itemsize for i in iterable])
 
 
 def _step2byte(iterable, itemsize):
-    return tuple((i * itemsize for i in iterable))
+    return tuple([i * itemsize for i in iterable])
 
 
 def _maybe_overlapping_memory(shape: tuple, strides: tuple):
@@ -34,7 +34,7 @@ def _maybe_overlapping_memory(shape: tuple, strides: tuple):
         bool: Existence of the overlapping memory
     """
     max_ptr_in_slice = 0
-    for stride, size in sorted(zip((abs(s) for s in strides), shape)):
+    for stride, size in sorted(zip([abs(s) for s in strides], shape)):
         if stride <= max_ptr_in_slice:
             return True
         max_ptr_in_slice += stride * (size - 1)
@@ -308,22 +308,22 @@ class AsStridedGrad(function_node.FunctionNode):
         if 0 in gy.shape:
             return cuda.get_array_module(gy).zeros(input_geometry.shape)
         else:
-            out_shape = tuple((self.shape[i] for i in range(gy.ndim) if
-                               self.shape[i] != 1 and self.strides[i] != 0))
-            out_strides = tuple((self.strides[i] for i in range(gy.ndim) if
-                                 self.shape[i] != 1 and self.strides[i] != 0))
+            out_shape = tuple([self.shape[i] for i in range(gy.ndim) if
+                               self.shape[i] != 1 and self.strides[i] != 0])
+            out_strides = tuple([self.strides[i] for i in range(gy.ndim) if
+                                 self.shape[i] != 1 and self.strides[i] != 0])
             gy = gy.sum(
-                tuple((i for i in range(gy.ndim) if self.strides[i] == 0)))
+                tuple([i for i in range(gy.ndim) if self.strides[i] == 0]))
             gy = gy.squeeze()
 
         out_storage_offset = self.storage_offset
 
         inp_shape = tuple(
-            (input_geometry.shape[i] for i in range(input_geometry.ndim) if
-             input_geometry.shape[i] != 1))
+            [input_geometry.shape[i] for i in range(input_geometry.ndim) if
+             input_geometry.shape[i] != 1])
         inp_strides = tuple(
-            (input_geometry.strides[i] for i in range(input_geometry.ndim) if
-             input_geometry.shape[i] != 1))
+            [input_geometry.strides[i] for i in range(input_geometry.ndim) if
+             input_geometry.shape[i] != 1])
         inp_storage_offset = input_geometry.storage_offset
 
         #  2. calculate minimum required storage for gradient computation
