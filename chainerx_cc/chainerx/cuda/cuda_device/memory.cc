@@ -17,21 +17,21 @@ namespace chainerx {
 namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    void* ptr = device_memory_pool_->Malloc(bytesize);
-    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{device_memory_pool_}](void* ptr) {
-                                     if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
-                                         pool->FreeNoExcept(ptr);
-                                     }
-                                 }};
+    auto deleter = [weak_pool = std::weak_ptr<MemoryPool>{device_memory_pool_}](void* ptr) {
+        if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
+            pool->FreeNoExcept(ptr);
+        }
+    };
+    return std::shared_ptr<void>{device_memory_pool_->Malloc(bytesize), std::move(deleter)};
 }
 
 std::shared_ptr<void> CudaDevice::AllocatePinnedMemory(size_t bytesize) {
-    void* ptr = pinned_memory_pool_->Malloc(bytesize);
-    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{pinned_memory_pool_}](void* ptr) {
-                                     if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
-                                         pool->FreeNoExcept(ptr);
-                                     }
-                                 }};
+    auto deleter = [weak_pool = std::weak_ptr<MemoryPool>{pinned_memory_pool_}](void* ptr) {
+        if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
+            pool->FreeNoExcept(ptr);
+        }
+    };
+    return std::shared_ptr<void>{pinned_memory_pool_->Malloc(bytesize), std::move(deleter)};
 }
 
 void CudaDevice::MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize) {
