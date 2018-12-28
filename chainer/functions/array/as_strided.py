@@ -19,7 +19,7 @@ def _step2byte(iterable, itemsize):
     return tuple([i * itemsize for i in iterable])
 
 
-def _maybe_overlapping_memory(shape: tuple, strides: tuple):
+def _maybe_overlapping_memory(shape, strides):
     """Returns bool value indicating the array with such shape and strides
     might have overlapping memory.
 
