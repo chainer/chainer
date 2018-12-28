@@ -3,7 +3,7 @@ import unittest
 from chainer import testing, Variable, grad
 
 import numpy as np
-import cupy as cp
+import chainer.backends.cuda.cupy as cp
 
 from chainer.functions import as_strided
 from chainer.functions.array.as_strided import _stride_array
