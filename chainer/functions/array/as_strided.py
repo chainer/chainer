@@ -178,7 +178,7 @@ def _stride_array(array, shape, strides, storage_offset):
 
 
 class TensorGeometry(object):
-    def __init__(self, array: np.ndarray):
+    def __init__(self, array):
         """Information about the view of array
 
         Args:
