@@ -28,8 +28,7 @@ def cast(x, typ):
     """Cast an input variable to a given type.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable to be casted. A \
             :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         typ (:class:`str` of dtype or :class:`numpy.dtype`):

@@ -15,6 +15,8 @@ public:
 
 }  // namespace
 
+// NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
 extern "C" chainerx::Backend* CreateBackend(chainerx::Context& ctx) { return new Backend1{ctx}; }
 
+// NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
 extern "C" void DestroyBackend(chainerx::Backend* backend) { delete backend; }

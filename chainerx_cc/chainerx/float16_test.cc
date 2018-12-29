@@ -74,7 +74,7 @@ TEST(NativeFloat16Test, Float16Zero) {
 }
 
 TEST(NativeFloat16Test, Float16Normalized) {
-    for (double x = 1e-3; x < 1e3; x *= 1.01) {  // NOLINT(clang-analyzer-security.FloatLoopCounter)
+    for (double x = 1e-3; x < 1e3; x *= 1.01) {  // NOLINT(clang-analyzer-security.FloatLoopCounter,cert-flp30-c)
         EXPECT_NE(Half{x}.data() & 0x7c00, 0);
         CheckToHalfFromHalfNear(x, 1e-3);
         CheckToHalfFromHalfNear(-x, 1e-3);
@@ -86,7 +86,7 @@ TEST(NativeFloat16Test, Float16Normalized) {
 }
 
 TEST(NativeFloat16Test, Float16Denormalized) {
-    for (double x = 1e-7; x < 1e-5; x += 1e-7) {  // NOLINT(clang-analyzer-security.FloatLoopCounter)
+    for (double x = 1e-7; x < 1e-5; x += 1e-7) {  // NOLINT(clang-analyzer-security.FloatLoopCounter,cert-flp30-c)
         // Check if the underflow gap around zero is filled with denormal number.
         EXPECT_EQ(Half{x}.data() & 0x7c00, 0x0000);
         EXPECT_NE(Half{x}.data() & 0x03ff, 0x0000);

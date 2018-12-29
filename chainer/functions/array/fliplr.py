@@ -28,7 +28,7 @@ def fliplr(a):
     """Flip array in the left/right direction.
 
     Args:
-        xs (~chainer.Variable): Input variable.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

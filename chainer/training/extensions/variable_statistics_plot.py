@@ -329,7 +329,7 @@ class VariableStatisticsPlot(extension.Extension):
                     if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
-                        # percentile is the mid percentile and the numner of
+                        # percentile is the mid percentile and the number of
                         # percentiles are odd
                         ax.plot(
                             idxs, data[:, col, offset + i], color=_plot_color,
