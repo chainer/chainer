@@ -23,7 +23,7 @@ pybind11_add_module(_core.so MODULE
     )
 
 if(${APPLE})
-    target_link_libraries(_core.so PRIVATE chainerx)
+    target_link_libraries(_core.so PRIVATE "-Wl,-rpath,@loader_path" chainerx)
 else()
     target_link_libraries(_core.so PRIVATE "-Wl,-R,'$ORIGIN/.'" chainerx)
 endif()
