@@ -111,12 +111,17 @@ Array BatchNorm(
                           BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
 
-            std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
-            internal::MakeViewForForwardBackwardOutput(ginputs);
+            Array gx{};
+            Array ggamma{};
+            Array gbeta{};
+            {
+                std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
+                internal::MakeViewForForwardBackwardOutput(ginputs);
 
-            const Array& gx = ginputs[0];
-            const Array& ggamma = ginputs[1];
-            const Array& gbeta = ginputs[2];
+                gx = std::move(ginputs[0]);
+                ggamma = std::move(ginputs[1]);
+                gbeta = std::move(ginputs[2]);
+            }
 
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
@@ -169,18 +174,18 @@ Array BatchNorm(
 
                         Array ggamma2 = r / gamma_reshaped;
 
-                        bctx2.input_grad(0) = gx2;
-                        bctx2.input_grad(1) = ggamma2;
-                        bctx2.input_grad(2) = ggout2;
+                        bctx2.input_grad(0) = std::move(gx2);
+                        bctx2.input_grad(1) = std::move(ggamma2);
+                        bctx2.input_grad(2) = std::move(ggout2);
                     });
                 }
                 bb2.Finalize();
             }
 
             // TODO(niboshi): Assign at once
-            bctx.input_grad(0) = gx;
-            bctx.input_grad(1) = ggamma;
-            bctx.input_grad(2) = gbeta;
+            bctx.input_grad(0) = std::move(gx);
+            bctx.input_grad(1) = std::move(ggamma);
+            bctx.input_grad(2) = std::move(gbeta);
         });
     }
     bb.Finalize();

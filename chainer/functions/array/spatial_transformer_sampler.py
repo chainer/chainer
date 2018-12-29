@@ -10,8 +10,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
+    libcudnn = cuda.libcudnn
+    _sampler_type = cuda.libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
 class SpatialTransformerSampler(function.Function):
@@ -282,7 +282,8 @@ def spatial_transformer_sampler(x, grid, **kwargs):
         cuDNN supports SpatialTransformerSampler from version 5.0.0.
 
     Args:
-        x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
         grid (~chainer.Variable): Coordinate variable of shape
             :math:`(n, 2, h_O, w_O)`. Each coordinate defines the spatial
             location in the input where a sampling kernel is applied to get

@@ -50,12 +50,6 @@ def zoneout(h, x, ratio=.5, **kwargs):
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
         h (~chainer.Variable): Previous variable.
         x (~chainer.Variable): Input variable.

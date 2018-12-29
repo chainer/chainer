@@ -568,7 +568,7 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
                 const Array& gout = *bctx.output_grad();
                 std::vector<Array> gxs = StackGrad(gout, axis);
                 for (size_t i = 0; i < gxs.size(); ++i) {
-                    bctx.input_grad(i) = gxs[i];
+                    bctx.input_grad(i) = std::move(gxs[i]);
                 }
             });
         }

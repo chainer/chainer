@@ -92,7 +92,8 @@ def pad_sequence(xs, length=None, padding=0):
     """Pad given arrays to make a matrix.
 
     Args:
-        xs (list of ~chainer.Variable): Variables you want to concatenate.
+        xs (list of ~chainer.Variable or :ref:`ndarray`):
+            Variables you want to concatenate.
         length (None or int): Size of the first dimension of a padded array.
             If it is ``None``, the longest size of the first dimension of
             ``xs`` is used.

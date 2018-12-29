@@ -56,7 +56,7 @@ trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
 
 # Dump a computational graph from 'loss' variable at the first iteration
 # The "main" refers to the target link of the "main" optimizer.
-trainer.extend(extensions.dump_graph('main/loss'))
+trainer.extend(extensions.DumpGraph('main/loss'))
 
 trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
 

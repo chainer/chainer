@@ -13,7 +13,7 @@ constexpr const char* NativeBackend::kDefaultName;
 
 namespace native_internal {
 
-NativeDevice* CreateDevice(NativeBackend& backend, int index) { return new NativeDevice{backend, index}; }
+gsl::owner<NativeDevice*> CreateDevice(NativeBackend& backend, int index) { return new NativeDevice{backend, index}; }
 
 }  // namespace native_internal
 
