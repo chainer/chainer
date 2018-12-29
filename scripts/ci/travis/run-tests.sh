@@ -58,6 +58,10 @@ step_install_chainer_test_deps() {
         pillow
     )
     pip install "${reqs[@]}"
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        pip install -U 'mypy>=0.650';
+    fi
 }
 
 
@@ -148,6 +152,9 @@ step_chainer_install_from_sdist() {
 
 step_chainer_tests() {
     pytest -m "not slow and not gpu and not cudnn and not ideep" "$REPO_DIR"/tests/chainer_tests
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        (cd "$REPO_DIR" && mypy chainer)
+    fi
 }
 
 

@@ -15,7 +15,7 @@ if cuda.available:
         'gx = y > 0 ? gy : (T)0', 'relu_bwd')
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_RELU
+    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_RELU  # type: ignore
 
 
 class ReLU(function_node.FunctionNode):
