@@ -24,7 +24,7 @@ Functions with Disabled Backprop are Detected on Backward
 ---------------------------------------------------------
 
 Prior to Chainer v6, backpropagation also stops at :class:`~chainer.Variable`\ s that were computed when :obj:`chainer.config.enable_backprop` was set to ``False`` (e.g. :func:`chainer.no_backprop_mode`).
-In Chainer v6, such backpropagation raises ``RuntimeError``.
+In Chainer v6, such backpropagation is warned.
 
 For example, your existing code needs a partial gradient::
 
@@ -34,9 +34,10 @@ For example, your existing code needs a partial gradient::
     y = F.sum(abs(h1 - h2))
     y.backward()
 
-The above code raises an error in Chainer v6::
+The above code emits ``DeprecationWarning`` in Chainer v6::
 
-    RuntimeError: backward is unavailable: Func2 with enable_backprop=False config
+    DeprecationWarning: backward is unavailable: Func2 with enable_backprop=False config
+    Propagating no gradients, but in future this will result in an error. Use the attribute `chainer.Variable.array` to compute partial gradients.
 
 You can rewrite the above code using :attr:`chainer.Variable.array`::
 

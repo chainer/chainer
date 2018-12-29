@@ -21,19 +21,41 @@ def no_backprop_mode():
     :class:`~chainer.Variable` created in this context does not hold a
     reference to the :class:`~chainer.FunctionNode` that created itself.
 
-    *From v6.0.0:* Accumulating gradients from an :class:`~chainer.Variable`
-    by :func:`~chainer.Variable.backward` raises `RuntimeError`.
+    In the following example, ``h`` does not hold a computational graph.
 
-    In the following example, ``y`` is created in this context, which means
-    that calling :func:`~chainer.Variable.backward` on ``y`` fails.
-
-    >>> x = chainer.Variable(np.array([1,], np.float32))
+    >>> x1 = chainer.Variable(np.array(1, np.float32))
+    >>> x2 = chainer.Variable(np.array(2, np.float32))
     >>> with chainer.no_backprop_mode():
-    ...     y = x + 1
-    >>> y.backward()  # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-        ...
-    RuntimeError: backward is unavailable:... _ + 1 ...
+    ...     h = x1 + 3
+    >>> y = h.array * x2
+    >>> y.backward()
+    >>> x1.grad, x2.grad
+    (None, array(4., dtype=float32))
+
+    *From v6.0.0*: A backpropagation should not hit variables created in
+    this context. If :func:`~chainer.Variable.backward` find such variables,
+    it warns that gradients through the variables are simply ignored.
+
+    In the following example, ``h`` is created in this context and ``y``
+    depends on ``h``. The dependency is warned by
+    :func:`~chainer.Variable.backward`.
+
+    >>> x1 = chainer.Variable(np.array(1, np.float32))
+    >>> x2 = chainer.Variable(np.array(2, np.float32))
+    >>> with chainer.no_backprop_mode():
+    ...     h = x1 + 3
+    >>> y = h * x2
+    >>> with warnings.catch_warnings(record=True) as w:
+    ...     warnings.simplefilter('always')
+    ...     y.backward()
+    >>> w, = w
+    >>> print('{}: {}'.format(w.category.__name__, w.message))
+    DeprecationWarning: backward is unavailable: _ + 3 with \
+enable_backprop=False config
+    Propagating no gradients, but in future this will result in an error. Use \
+the attribute `chainer.Variable.array` to compute partial gradients.
+    >>> x1.grad, x2.grad
+    (None, array(4., dtype=float32))
 
     .. seealso::
 
@@ -53,17 +75,20 @@ def force_backprop_mode():
     this method outside of :func:`no_backprop_mode` context, it changes
     nothing.
 
-    In the following example, ``y`` has a computational graph and calling
-    :func:`~chainer.Variable.backward` on ``y`` will compute and accumulate the
-    gradients of the variables in the graph, in this case only ``x``.
+    In the following example, ``y`` has a computational graph whereas ``h``
+    does not. Calling :func:`~chainer.Variable.backward` on ``y`` will
+    compute and accumulate the gradients of the variables in the graph,
+    in this case only ``x2``.
 
-    >>> x = chainer.Variable(np.array([1,], np.float32))
+    >>> x1 = chainer.Variable(np.array(1, np.float32))
+    >>> x2 = chainer.Variable(np.array(2, np.float32))
     >>> with chainer.no_backprop_mode():
+    ...     h = x1 + 3
     ...     with chainer.force_backprop_mode():
-    ...         y = x + 1
+    ...         y = h.array * x2
     >>> y.backward()
-    >>> x.grad
-    array([1.], dtype=float32)
+    >>> x1.grad, x2.grad
+    (None, array(4., dtype=float32))
 
     .. seealso::
 
