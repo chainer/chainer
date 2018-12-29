@@ -48,7 +48,8 @@ def _ensure_shape_dtype(value):
 
 
 def _warn_legacy_to_gpu(src, dst, legacy):
-    if src.xp is cuda.cupy and dst.xp is cuda.cupy:
+    # type: (backend.Device, backend.Device, tp.Optional[bool]) -> bool
+    if isinstance(src, cuda.GpuDevice) and isinstance(dst, cuda.GpuDevice):
         src_id = src.device.id
         dst_id = dst.device.id
         if src_id == dst_id:
