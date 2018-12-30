@@ -39,6 +39,7 @@ class GradTable(object):
     def __init__(self, load_if_new=False):
         self.grads = {}
         self._load_if_new = load_if_new
+        self._reproduce_bug = chainer.config.reproduce_backward_output_bug
 
     def __setitem__(self, node, grad):
         assert node is not None
@@ -63,11 +64,11 @@ class GradTable(object):
         if node in grads:
             return _reduce(grads.pop(node))
 
-        # Reproduce bug before v5
-        flag = chainer.config.reproduce_backward_output_bug
-        if flag:
+        # Reproduce bug before v5.
+        # Variable.backward had the bug, but chainer.grad did not.
+        if self._load_if_new and self._reproduce_bug:
             g = node.grad_var
-            if flag == 'warn' and g is not None:
+            if self._reproduce_bug == 'warn' and g is not None:
                 warnings.warn(
                     '''\
 In future, backpropagation will strictly select variables to compute gradients
@@ -75,6 +76,9 @@ from.  Accumulating gradients from an output variable that does not belong to
 the computational graph but whose creator '{}' does.'''.format(
                         getattr(node.creator, 'name', None)),
                     FutureWarning)
+            return g
+        else:
+            return None
 
     def assert_no_grads(self):
         for gx in self.grads.values():
