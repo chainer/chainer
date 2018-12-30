@@ -44,8 +44,7 @@ def flip(x, axis):
     """Flips an input variable in reverse order along the given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         axis (int): Axis along which the input variable is reversed.
 

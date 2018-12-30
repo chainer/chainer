@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
@@ -68,7 +69,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Insert backward function
               BackwardBuilder bb{"chainer_function", std::move(input_array_refs), std::move(output_array_refs)};
               if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](py::object* ptr) {
+                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](gsl::owner<py::object*> ptr) {
                       py::gil_scoped_acquire acquire;
                       delete ptr;
                   });

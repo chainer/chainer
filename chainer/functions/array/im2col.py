@@ -140,7 +140,8 @@ def im2col(x, ksize, stride=1, pad=0, cover_all=False, dilate=1):
 
 
     Args:
-        x (~chainer.Variable): Input variable of shape :math:`(n, c, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c, h, w)`.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
         stride (int or pair of ints): Stride of filter applications.

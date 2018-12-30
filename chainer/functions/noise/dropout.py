@@ -135,12 +135,6 @@ def dropout(x, ratio=.5, **kwargs):
     mode (i.e., ``chainer.config.train`` is set to ``False``), it does nothing
     and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', boolean)``.
-       See :func:`chainer.using_config`.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):

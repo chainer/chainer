@@ -245,19 +245,6 @@ class GRU(StatefulGRU):
 
     This is an alias of :class:`~chainer.links.StatefulGRU`.
 
-    .. warning::
-
-       In Chainer v1, ``GRU`` was *stateless*,
-       as opposed to the current implementation.
-       To align with LSTM links, we have changed
-       the naming convention from Chainer v2 so that the shorthand name
-       points the stateful links.
-       You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``GRU`` in v1.
-
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
-       for details.
-
     """
 
     def forward(self, *args):

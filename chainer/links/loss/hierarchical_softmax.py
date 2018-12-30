@@ -340,7 +340,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         q = six.moves.queue.PriorityQueue()
         # Add unique id to each entry so that we can compare two entries with
         # same counts.
-        # Note that itreitems randomly order the entries.
+        # Note that iteritems randomly order the entries.
         for uid, (w, c) in enumerate(six.iteritems(word_counts)):
             q.put((c, uid, w))
 

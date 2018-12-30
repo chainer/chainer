@@ -145,7 +145,8 @@ def resize_images(x, output_shape):
       image.
 
     Args:
-        x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
         output_shape (tuple): This is a tuple of length 2 whose values are
             :obj:`(h_O, w_O)`. Note that the order of height and width is
             opposite of the one in OpenCV.

@@ -13,7 +13,7 @@ from chainer.utils import type_check
 import chainerx
 
 if cuda.cudnn_enabled:
-    _cudnn_version = cuda.cuda.cudnn.getVersion()
+    _cudnn_version = cuda.cuda.cudnn.getVersion()  # type: ignore
 
 
 def _pair(x):
@@ -503,22 +503,13 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     When the dilation factor is greater than one, cuDNN is not used unless
     the version is 6.0 or higher.
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h_I, w_I)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_O, c_I, h_K, w_K)`.
-        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
             are equivalent.

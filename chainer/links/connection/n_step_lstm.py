@@ -30,12 +30,6 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
         Calculate all hidden states and cell states.
 
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
-
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
                 is specified zero-vector is used. Its shape is ``(S, B, N)``
@@ -85,12 +79,6 @@ class NStepLSTM(NStepLSTMBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -125,12 +113,6 @@ class NStepBiLSTM(NStepLSTMBase):
     sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
-
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.

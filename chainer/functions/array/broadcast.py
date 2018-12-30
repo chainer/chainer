@@ -34,8 +34,7 @@ def broadcast(*args):
     """Broadcast given variables.
 
     Args:
-        args (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
-        or :class:`cupy.ndarray`):
+        args (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be broadcasted. Each dimension of the shapes \
             of the input variables must have the same size.
 
@@ -110,8 +109,7 @@ def broadcast_to(x, shape):
     """Broadcast a given variable to a given shape.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable be broadcasted. A \
             :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         shape (tuple): Tuple of :class:`int` of the shape of the \

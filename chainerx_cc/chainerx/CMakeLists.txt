@@ -86,20 +86,38 @@ add_library(chainerx SHARED
     thread_local_state.cc
     )
 
-target_link_libraries(chainerx
-    PUBLIC
-    ${CMAKE_DL_LIBS}
-    PRIVATE
-    -Wl,--whole-archive)
-target_link_libraries(chainerx PRIVATE chainerx_routines)
-target_link_libraries(chainerx PRIVATE chainerx_native)
-target_link_libraries(chainerx PRIVATE chainerx_testing)
-if(${CUDA_FOUND})
-    target_link_libraries(chainerx PRIVATE chainerx_cuda)
+if(${APPLE})
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS})
+
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
+
+    if(${CUDA_FOUND})
+      target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,-noall_load)
+else()
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS}
+        PRIVATE
+        -Wl,--whole-archive)
+
+    target_link_libraries(chainerx PRIVATE chainerx_routines)
+    target_link_libraries(chainerx PRIVATE chainerx_native)
+    target_link_libraries(chainerx PRIVATE chainerx_testing)
+
+    if(${CUDA_FOUND})
+        target_link_libraries(chainerx PRIVATE chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,--no-whole-archive)
 endif()
-target_link_libraries(chainerx
-    PRIVATE
-    -Wl,--no-whole-archive)
+
 install(TARGETS chainerx DESTINATION lib)
 
 if(${CHAINERX_BUILD_TEST})
