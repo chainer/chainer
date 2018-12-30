@@ -1472,6 +1472,42 @@ class Variable(object):
     __hash__ = None  # type: tp.Callable[[object], int]
 
 
+def backward(outputs, **kwargs):
+    """Runs from variables simultaneously.
+
+    Args:
+        enable_double_backprop (bool): If ``True``,
+            computational trace of the whole backpropagation procedure is
+            recorded to the computational graph so that one can further do
+            backpropagation from the resulting gradients. Note that
+            enabling it results in larger memory consumption needed to
+            store the gradients w.r.t intermediate variables that are
+            required for the second gradient computation.
+
+    .. seealso::
+       :meth:`chainer.Variable.backward`
+       :func:`chainer.grad`
+
+    """
+    enable_double_backprop, = argument.parse_kwargs(
+        kwargs, ('enable_double_backprop', False),
+        retain_grad='semantics for retain_grad=True is under discussion',
+        loss_scale='chainer.backward does not support loss_scale option',
+    )
+    if not isinstance(outputs, (tuple, list)):
+        raise TypeError(
+            'outputs must be a tuple or a list, not {}.'.format(type(outputs)))
+    for v in outputs:
+        if not isinstance(v, Variable):
+            raise TypeError(
+                'each output must be a Variable, not {}'.format(type(v)))
+        if v.grad is None:
+            warnings.warn(
+                'chainer.backward does not have default grad')
+    with chainer.using_config('enable_backprop', enable_double_backprop):
+        _backprop_to_all(outputs, False, None)
+
+
 def _backprop_to_all(outputs, retain_grad, loss_scale):
     cand_funcs = []
     seen_set = set()
