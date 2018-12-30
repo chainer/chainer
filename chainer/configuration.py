@@ -26,6 +26,7 @@ class GlobalConfig(object):
     use_ideep = None  # type: str
     lazy_grad_sum = None  # type: bool
     cudnn_fast_batch_normalization = None  # type: bool
+    reproduce_backward_output_bug = None  # type: tp.Union[bool, str]
     dtype = None  # type: numpy.dtype
     in_recomputing = None  # type: bool
 
