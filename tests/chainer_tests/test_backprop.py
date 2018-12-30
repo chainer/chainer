@@ -362,4 +362,40 @@ class TestFunctionOutputNone(unittest.TestCase):
         assert isinstance(x1.grad, backend_config.xp.ndarray)
 
 
+class TestVariableBackwardOption(unittest.TestCase):
+
+    def test_backward_output_bug_default(self):
+        x1 = chainer.Variable(numpy.array([0, 1], numpy.float32))
+        x2 = chainer.Variable(numpy.array([2, 3], numpy.float32))
+        y1, y2 = chainer.functions.identity(x1, x2)
+        y1.grad = numpy.array([4, 5], numpy.float32)
+        y2.grad = numpy.array([6, 7], numpy.float32)
+        with testing.assert_warns(FutureWarning):
+            y1.backward()
+        testing.assert_allclose(x1.grad, [4, 5])
+        testing.assert_allclose(x2.grad, [6, 7])
+
+    def test_backward_output_bug_force(self):
+        x1 = chainer.Variable(numpy.array([0, 1], numpy.float32))
+        x2 = chainer.Variable(numpy.array([2, 3], numpy.float32))
+        y1, y2 = chainer.functions.identity(x1, x2)
+        y1.grad = numpy.array([4, 5], numpy.float32)
+        y2.grad = numpy.array([6, 7], numpy.float32)
+        with chainer.using_config('reproduce_backward_output_bug', True):
+            y1.backward()
+        testing.assert_allclose(x1.grad, [4, 5])
+        testing.assert_allclose(x2.grad, [6, 7])
+
+    def test_backward_output_bug_fixed(self):
+        x1 = chainer.Variable(numpy.array([0, 1], numpy.float32))
+        x2 = chainer.Variable(numpy.array([2, 3], numpy.float32))
+        y1, y2 = chainer.functions.identity(x1, x2)
+        y1.grad = numpy.array([4, 5], numpy.float32)
+        y2.grad = numpy.array([6, 7], numpy.float32)
+        with chainer.using_config('reproduce_backward_output_bug', False):
+            y1.backward()
+        testing.assert_allclose(x1.grad, [4, 5])
+        assert x2.grad is None
+
+
 testing.run_module(__name__, __file__)
