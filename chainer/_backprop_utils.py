@@ -1,3 +1,5 @@
+import warnings
+
 import six
 
 import chainer
@@ -29,14 +31,14 @@ class GradTable(object):
     lazily.
 
     Args:
-        load_if_new_leaf (bool): read ``grad_var`` of input node when the node
+        load_if_new (bool): read ``grad_var`` of input node when the node
             has not been added.
 
     """
 
-    def __init__(self, load_if_new_leaf=False):
+    def __init__(self, load_if_new=False):
         self.grads = {}
-        self._load_if_new_leaf = load_if_new_leaf
+        self._load_if_new = load_if_new
 
     def __setitem__(self, node, grad):
         assert node is not None
@@ -46,7 +48,7 @@ class GradTable(object):
         assert node is not None
         grads = self.grads
         if node not in grads:
-            if self._load_if_new_leaf and node.creator_node is None:
+            if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
                 grads[node] = _pure(node.grad_var)
@@ -60,7 +62,19 @@ class GradTable(object):
         grads = self.grads
         if node in grads:
             return _reduce(grads.pop(node))
-        return None
+
+        # Reproduce bug before v5
+        flag = chainer.config.reproduce_backward_output_bug
+        if flag:
+            g = node.grad_var
+            if flag == 'warn' and g is not None:
+                warnings.warn(
+                    '''\
+In future, backpropagation will strictly select variables to compute gradients
+from.  Accumulating gradients from an output variable that does not belong to
+the computational graph but whose creator '{}' does.'''.format(
+                        getattr(node.creator, 'name', None)),
+                    FutureWarning)
 
     def assert_no_grads(self):
         for gx in self.grads.values():

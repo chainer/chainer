@@ -1474,7 +1474,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
             seen_set.add(cand)
 
-    grads = _backprop_utils.GradTable(load_if_new_leaf=True)
+    grads = _backprop_utils.GradTable(load_if_new=True)
 
     root_nodes = set()
     leaf_nodes = set()
