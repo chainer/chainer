@@ -65,10 +65,10 @@ class TestTimerHook(unittest.TestCase):
         # print_report
         s = six.StringIO()
         hook.print_report(file=s)
-        report = s.getvalue().splitlines()
-        assert len(report) == 3
-        assert re.match(r' +Linear +[.0-9a-z]+ +4$', report[1]) is not None
-        assert re.match(r' MyModel +[.0-9a-z]+ +2$', report[2]) is not None
+        report = s.getvalue()
+        assert len(report.splitlines()) == 3
+        assert re.search(r'Linear +[.0-9a-z]+ +4', report) is not None
+        assert re.search(r'MyModel +[.0-9a-z]+ +2', report) is not None
 
     def test_forward_cpu(self):
         self.check_forward(numpy)
