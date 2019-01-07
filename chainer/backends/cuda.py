@@ -87,9 +87,16 @@ if available:
     # with the CUDA backend. This is needed in order to share the GPU memory
     # without having both modules using separate memory pools.
     if chainerx.is_available():
+        param = chainerx.cuda.get_backend_ptr()
+        malloc_func, free_func = chainerx.cuda.get_backend_malloc_free_ptrs()
+
+        # TODO(imanishi): Make sure this allocator works when the global
+        # default context is changed by the user. It currently will not
+        # since the allocator is only configured here once.
+        owner = chainerx._global_context
+
         _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
-            chainerx.cuda.get_backend_ptr(),
-            *chainerx.cuda.get_backend_malloc_free_ptrs())
+            param, malloc_func, free_func, owner)
         cupy.cuda.set_allocator(_chainerx_allocator.malloc)
 
 
