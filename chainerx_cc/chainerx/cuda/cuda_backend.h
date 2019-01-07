@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
@@ -21,7 +22,7 @@ namespace cuda_internal {
 // This function is meant to be used from the backend class. Never use it for other purpose.
 // This is defined in cuda_internal namespace in order to make it a friend of CudaDevice
 // class.
-CudaDevice* CreateDevice(CudaBackend& backend, int index);
+gsl::owner<CudaDevice*> CreateDevice(CudaBackend& backend, int index);
 
 }  // namespace cuda_internal
 

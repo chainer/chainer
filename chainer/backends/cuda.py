@@ -34,6 +34,7 @@ import itertools
 import os
 import threading
 import time
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -44,11 +45,12 @@ from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import intel64
 from chainer.configuration import config
+from chainer import types  # NOQA
 import chainerx
 
-available = False
-cudnn_enabled = False
-_chainerx_allocator = None
+available = False  # type: bool
+cudnn_enabled = False  # type: bool
+_chainerx_allocator = None  # type: tp.Optional[cupy.cuda.memory.ExternalAllocator] # NOQA
 
 try:
     import cupy
@@ -58,27 +60,64 @@ try:
     import cupyx.scipy.linalg  # NOQA
     import cupyx.scipy.special  # NOQA
 
-    from cupy import ndarray  # NOQA
+    from cupy import ndarray  # type: ignore # NOQA
 
-    from cupy.cuda import Device  # NOQA
-    from cupy.cuda import Event  # NOQA
-    from cupy.cuda import Stream  # NOQA
+    from cupy.cuda import Device  # type: ignore # NOQA
+    from cupy.cuda import Event  # type: ignore # NOQA
+    from cupy.cuda import Stream  # type: ignore # NOQA
 
+    libcudnn = cuda.cudnn  # type: tp.Any # NOQA
     available = True
 except Exception as e:
     _resolution_error = e
 
-    class ndarray(object):
-        pass  # for type testing
+    class ndarray(object):  # type: ignore # for type testing
+        @property
+        def shape(self):
+            # type: () -> types.Shape
+            pass
 
-    # for `xp is cuda.cupy` to always work
+        @property
+        def device(self):
+            # type: () -> 'Device'
+            pass
+
+        def get(self, stream=None):
+            # type: (tp.Optional['Stream']) -> numpy.ndarray
+            pass
+
+        def set(self, arr, stream=None):
+            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
+            pass
+
+    class Device(object):  # type: ignore # for type testing
+        def __init__(self, device=None):
+            # type: (tp.Optional[int]) -> None
+            pass
+
+        def __enter__(self):
+            # type: () -> 'Device'
+            pass
+
+        def __exit__(self, *args):
+            # type: (*tp.Any) -> None
+            pass
+
+    class Event(object):  # type: ignore # for type testing
+        pass
+
+    class Stream(object):  # type: ignore # for type testing
+        pass
+
+    # for `xp is cuda.cupy` and `cuda.libcudnn` to always work
     cupy = object()
+    libcudnn = object()
 
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
-        cudnn = cupy.cudnn
+        cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
@@ -87,13 +126,13 @@ if available:
     # with the CUDA backend. This is needed in order to share the GPU memory
     # without having both modules using separate memory pools.
     if chainerx.is_available():
-        param = chainerx.cuda.get_backend_ptr()
-        malloc_func, free_func = chainerx.cuda.get_backend_malloc_free_ptrs()
+        param = chainerx.cuda.get_backend_ptr()  # type: ignore
+        malloc_func, free_func = chainerx.cuda.get_backend_malloc_free_ptrs()  # type: ignore # NOQA
 
         # TODO(imanishi): Make sure this allocator works when the global
         # default context is changed by the user. It currently will not
         # since the allocator is only configured here once.
-        owner = chainerx._global_context
+        owner = chainerx._global_context  # type: ignore
 
         _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
             param, malloc_func, free_func, owner)
@@ -122,7 +161,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(object):
+class DummyDeviceType(Device):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -131,6 +170,9 @@ class DummyDeviceType(object):
     """
 
     id = -1
+
+    def __init__(self):
+        pass
 
     def __int__(self):
         return -1
@@ -237,6 +279,7 @@ def _get_device(device_spec):
 # Global states
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
+    # type: (tp.Optional[int]) -> Device
     """Gets the device from an ID integer.
 
     Args:
@@ -251,6 +294,7 @@ def get_device_from_id(device_id):
 
 
 def get_device_from_array(*arrays):
+    # type: (*ndarray) -> Device
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     .. deprecated:: v6.0.0
@@ -333,6 +377,8 @@ def _get_cuda_device(*args):
 
 
 def _get_device_or_current(device):
+    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
+
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.

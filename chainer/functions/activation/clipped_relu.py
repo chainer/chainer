@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU
+    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU  # type: ignore
 
 
 class ClippedReLU(function_node.FunctionNode):

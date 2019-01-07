@@ -78,6 +78,10 @@ step_setup_conda_environment() {
     )
 
     pip install -U "${reqs[@]}"
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        pip install -U 'mypy>=0.650'
+    fi
 }
 
 
@@ -221,6 +225,16 @@ step_python_test_chainerx_nocuda() {
 
     # Run all non-CUDA doctests
     find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+}
+
+
+step_python_typecheck_chainer() {
+    source activate testenv
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        mypy --version
+        (cd "$REPO_DIR" && mypy chainer)
+    fi
 }
 
 
