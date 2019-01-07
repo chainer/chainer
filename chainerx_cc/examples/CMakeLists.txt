@@ -1,1 +1,1 @@
-add_subdirectory(mnist_cc)
+add_subdirectory(mnist)
