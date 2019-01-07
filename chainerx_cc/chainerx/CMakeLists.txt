@@ -34,6 +34,7 @@ install(FILES
     dtype.h
     enum.h
     error.h
+    float16.h
     graph.h
     hash_combine.h
     index_iterator.h
@@ -73,6 +74,7 @@ add_library(chainerx SHARED
     device.cc
     device_id.cc
     dtype.cc
+    float16.cc
     graph.cc
     numeric.cc
     numerical_gradient.cc
@@ -84,20 +86,38 @@ add_library(chainerx SHARED
     thread_local_state.cc
     )
 
-target_link_libraries(chainerx
-    PUBLIC
-    ${CMAKE_DL_LIBS}
-    PRIVATE
-    -Wl,--whole-archive)
-target_link_libraries(chainerx PRIVATE chainerx_routines)
-target_link_libraries(chainerx PRIVATE chainerx_native)
-target_link_libraries(chainerx PRIVATE chainerx_testing)
-if(${CUDA_FOUND})
-    target_link_libraries(chainerx PRIVATE chainerx_cuda)
+if(${APPLE})
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS})
+
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
+
+    if(${CUDA_FOUND})
+      target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,-noall_load)
+else()
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS}
+        PRIVATE
+        -Wl,--whole-archive)
+
+    target_link_libraries(chainerx PRIVATE chainerx_routines)
+    target_link_libraries(chainerx PRIVATE chainerx_native)
+    target_link_libraries(chainerx PRIVATE chainerx_testing)
+
+    if(${CUDA_FOUND})
+        target_link_libraries(chainerx PRIVATE chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,--no-whole-archive)
 endif()
-target_link_libraries(chainerx
-    PRIVATE
-    -Wl,--no-whole-archive)
+
 install(TARGETS chainerx DESTINATION lib)
 
 if(${CHAINERX_BUILD_TEST})
@@ -116,6 +136,7 @@ if(${CHAINERX_BUILD_TEST})
         context_test.cc
         device_test.cc
         dtype_test.cc
+        float16_test.cc
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc

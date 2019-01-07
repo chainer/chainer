@@ -274,7 +274,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                 * _sigmoid_grad(f, sigf, dgx_dg)
 
             if 0 in indexes:
-                # deriative of gx
+                # derivative of gx
                 dgx = chainer.functions.matmul(w, dgx_df[:, None], transa=True)
 
                 # derivative of gW
@@ -286,7 +286,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                     gx, i, chainer.functions.flatten(dgx))
 
             if 1 in indexes:
-                # deriative of gx
+                # derivative of gx
                 shape = ggx[i].shape
                 for ik, ig, idgx_df in six.moves.zip(k, g, dgx_df):
                     ig = chainer.functions.broadcast_to(ig, shape)

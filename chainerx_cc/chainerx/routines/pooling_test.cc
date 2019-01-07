@@ -284,6 +284,7 @@ TEST_P(PoolingTest, MaxPoolBackward) {
             {x},
             {go},
             {eps},
+            2U,
             1e-6,
             1e-3);
 }
@@ -341,6 +342,7 @@ TEST_P(PoolingTest, MaxPoolNoCoverAllBackward) {
             {x},
             {go},
             {eps},
+            2U,
             1e-6,
             1e-3);
 }
@@ -655,6 +657,7 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {
             {x},
             {go},
             {eps},
+            2U,
             1e-6,
             1e-3);
 }
@@ -713,6 +716,7 @@ TEST_P(PoolingTest, AveragePoolPadModeZeroBackward) {
             {x},
             {go},
             {eps},
+            2U,
             1e-6,
             1e-3);
 }

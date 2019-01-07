@@ -45,7 +45,7 @@ add_path PATH "$CONDA_DIR"/bin
 
 run_step() {
     # Runs a single step
-    bash "$REPO_DIR"/chainerx_cc/scripts/ci/run-step.sh "$@"
+    bash "$REPO_DIR"/scripts/ci/run-step.sh "$@"
 }
 
 
@@ -78,6 +78,7 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
     'chainer-py3')
         run_step setup_conda_environment
         CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step python_build
+        run_step python_typecheck_chainer
         run_step python_test_chainer
         ;;
     *)

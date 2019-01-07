@@ -294,14 +294,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     To enable, set `chainer.using_config('autotune', True)`
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
-        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):
             Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.

@@ -1,5 +1,7 @@
 import collections
+import contextlib
 import heapq
+import inspect
 import traceback
 import weakref
 
@@ -145,7 +147,11 @@ class FunctionNode(object):
     _retained_output_data = None
     _local_function_hooks = None
     _supports_static_optimizations = False
-    _is_chainerx = None
+    # True if the function node is operating on ChainerX arrays and it falls
+    # back to NumPy/CuPy implementation.
+    _is_chainerx_fallback_mode = False
+    # chainerx.Device instance if _is_chainerx_fallback_mode == True
+    chainerx_device = None
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
     lazy_grad_sum = False
@@ -187,7 +193,7 @@ class FunctionNode(object):
         instead.
 
         """
-        if self._is_chainerx:
+        if self._is_chainerx_fallback_mode:
             retained_output_data = [
                 var.array for var in self._chainerx_retained_outputs]
         else:
@@ -248,9 +254,10 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        self._is_chainerx, in_data = _extract_apply_in_data(inputs)
+        chainerx_device = None
+        is_chainerx, in_data = _extract_apply_in_data(inputs)
 
-        if self._is_chainerx:
+        if is_chainerx:
             # Try ChainerX C++ implementation.
             # If it's supported, the output arrays are wrapped with Variables
             # and returned.
@@ -271,8 +278,10 @@ Use apply() method instead.\
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()
-            chainerx_in_data, in_data = (
+            chainerx_in_data, in_data, chainerx_device = (
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
+            self._is_chainerx_fallback_mode = True
+            self.chainerx_device = chainerx_device
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -299,7 +308,13 @@ Use apply() method instead.\
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
                 outputs = static_forward_optimizations(self, in_data)
+            elif self._is_chainerx_fallback_mode:
+                # In ChainerX fallback, __class__ is temporarily replaced with
+                # the fabricated one with automatic attirbute fallback.
+                with _chainerx_attribute_fallback(self, chainerx_device):
+                    outputs = self.forward(in_data)
             else:
+                # In normal case, simply run the forward method.
                 outputs = self.forward(in_data)
 
         # Check for output array types
@@ -329,7 +344,7 @@ Use apply() method instead.\
 
         self._output_count = len(outputs)
 
-        if self._is_chainerx:
+        if self._is_chainerx_fallback_mode:
             ret = self._chainerx_apply_fallback_postprocess(
                 chainerx_in_data, inputs, outputs)
 
@@ -398,23 +413,27 @@ Use apply() method instead.\
     def _chainerx_apply_fallback_preprocess(self, in_data, inputs):
         chainerx_in_data = in_data
         in_data = []
-        for i in six.moves.range(len(inputs)):
+        device = None
+        for data, x in six.moves.zip(chainerx_in_data, inputs):
             # Use the cached fallback arrays as inputs if they exist.
-            x = inputs[i]
             x_is_variable = isinstance(x, variable.Variable)
             if x_is_variable and x._chainerx_fallback_array is not None:
-                x_data = x._chainerx_fallback_array
+                fallback_data = x._chainerx_fallback_array
+                if device is None:
+                    device = x.device
             else:
-                x_data = backend.from_chainerx(chainerx_in_data[i])
+                fallback_data = backend.from_chainerx(data)
+                if device is None:
+                    device = backend.ChainerxDevice(data.device)
 
                 # Update the fallback cache if possible.
                 if x_is_variable:
-                    x._chainerx_fallback_array = x_data
+                    x._chainerx_fallback_array = fallback_data
 
-            in_data.append(x_data)
+            in_data.append(fallback_data)
 
         in_data = tuple(in_data)
-        return chainerx_in_data, in_data
+        return chainerx_in_data, in_data, device
 
     def _chainerx_apply_fallback_postprocess(
             self, chainerx_in_data, inputs, outputs):
@@ -680,7 +699,7 @@ Use apply() method instead.\
                            retained_inputs, retained_outputs):
         # Backward wrapper that is called from C++ via a Python binding in case
         # self.apply was called with chainerx.ndarrays.
-        assert self._is_chainerx
+        assert self._is_chainerx_fallback_mode
         assert len(target_input_indexes) > 0
         assert (
             (self._input_indexes_to_retain is None
@@ -766,7 +785,7 @@ Use apply() method instead.\
             return `None`.
 
         """
-        if self._is_chainerx:
+        if self._is_chainerx_fallback_mode:
             return self._chainerx_retained_inputs
 
         if self._input_indexes_to_retain is None or self.inputs is None:
@@ -798,7 +817,7 @@ Use apply() method instead.\
            node of the function node.
 
         """
-        if self._is_chainerx:
+        if self._is_chainerx_fallback_mode:
             return self._chainerx_retained_outputs
 
         if self._output_indexes_to_retain is None or self.outputs is None:
@@ -1168,3 +1187,69 @@ def _get_ordered_func_heap():
         return func
 
     return heap, push_heap, pop_heap
+
+
+def _make_chainerx_attribute_fallback_class(obj, device):
+    # Creates a fabricated class based on a concerete class
+    # (either FunctionNode or Function),
+    # equipped with the automatic attribute fallback. This is enabled
+    # during FunctionNode.forward(), Function.forward() and
+    # Function.backward().
+    #
+    # In the fallback mechanism, when an array with the fallback ndarray
+    # type (e.g. numpy.ndarray for ChainerX native devices) is assigned
+    # as an attribute, it's automatically converted to a ChainerX ndarray
+    # with the corresponding ChainerX device and stored in that form.
+    # Conversely, when an attribute with ChainerX ndarray type is queried,
+    # it's converted to the fallback ndarray before being returned.
+    # That way, concrete function implementations can use attributes
+    # as ndarray storage, without converting from/to ChainerX manually.
+    #
+    # Note that it works only if the attribute has an ndarray type. If the
+    # array is wrapped in a tuple, for example, no automatic conversion
+    # will be taken place.
+
+    fallback_device = device.fallback_device
+    sup = super(obj.__class__, obj)
+    # Cache to avoid converting same arrays multiple times
+    fallback_array_cache = {}
+
+    # self.__getattribute__ for fallback arrays
+    def getattribute(self, name):
+        value = sup.__getattribute__(name)
+        if isinstance(value, chainerx.ndarray):
+            fallback_arr = fallback_array_cache.get(name)
+            if fallback_arr is None:
+                fallback_arr = backend.from_chainerx(value)
+                fallback_array_cache[name] = fallback_arr
+            return fallback_arr
+        return value
+
+    # self.__setattr__ for fallback arrays
+    def setattr(self, name, value):
+        if isinstance(value, fallback_device.xp.ndarray):
+            fallback_array_cache[name] = value
+            sup.__setattr__(name, backend.to_chainerx(value))
+            return
+        sup.__setattr__(name, value)
+
+    # Return a fabricated FunctionNode class
+    new_class = type(
+        obj.__class__.__name__,
+        inspect.getmro(obj.__class__),
+        {
+            '__getattribute__': getattribute,
+            '__setattr__': setattr,
+        })
+    return new_class
+
+
+@contextlib.contextmanager
+def _chainerx_attribute_fallback(obj, chainerx_device):
+    old_class = obj.__class__
+    obj.__class__ = _make_chainerx_attribute_fallback_class(
+        obj, chainerx_device)
+    try:
+        yield
+    finally:
+        obj.__class__ = old_class

@@ -6,7 +6,6 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
-from chainer import utils
 
 
 def to_device(device, x):
@@ -192,7 +191,7 @@ def _concat_arrays_with_padding(arrays, padding):
         for i in six.moves.range(len(arrays)):
             src = arrays[i]
             slices = tuple(slice(dim) for dim in src.shape)
-            utils._setitem(result, (i,) + slices, src)
+            result[(i,) + slices] = src
 
     return result
 
@@ -238,7 +237,7 @@ class ConcatWithAsyncTransfer(object):
             # * event1 prevents a CPU thread to update arrays that might be
             #   still being used by GPU kernels.
             # * event2 prevents a GPU kernel to read arrays that might be
-            #   still being transfered to GPU.
+            #   still being transferred to GPU.
             self._event1 = cuda.Event()
             self._event2 = cuda.Event()
             self._sync_get = False
@@ -369,7 +368,7 @@ class Conveyor(object):
 
         with cuda.get_device_from_id(self._device):
             if pin_array is None:
-                # The global synchronization below is necceary to ensure ALL
+                # The global synchronization below is necessary to ensure ALL
                 # operations including compute and data transfer submitted
                 # to GPU so far have been completed, in order to avoid possible
                 # memory corruption due to race condition among operations that

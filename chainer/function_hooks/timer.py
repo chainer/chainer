@@ -137,4 +137,5 @@ class TimerHook(function_hook.FunctionHook):
             line = template.format(function_name, elapsed_time, occurrence)
             file.write(line)
             file.write('\n')
-        file.flush()
+        if hasattr(file, 'flush'):
+            file.flush()

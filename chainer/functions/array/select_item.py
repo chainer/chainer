@@ -96,11 +96,9 @@ def select_item(x, t):
     ``y[i] == x[i, t[i]]`` for all ``i``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable storing arrays. A two-dimensional float array.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable storing index numbers. A one-dimensional int array.
             Length of the ``t`` should be equal to ``x.shape[0]``.
 

@@ -30,7 +30,7 @@ class CTCTestBase(object):
             self.gy = numpy.random.uniform(-1, 1, (2,)).astype(self.dtype)
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-3}
+            self.check_forward_options = {'atol': 1e-2}
             self.check_backward_options = {
                 'atol': 1e-3, 'dtype': numpy.float64}
         else:
@@ -223,7 +223,7 @@ class TestCTCBlankSymbol(unittest.TestCase, CTCTestBase):
 
     def setUp(self):
         CTCTestBase.setUp(self)
-        self.x = numpy.random.uniform(-1, 1, (4, 2, 4)).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, (4, 2, 4)).astype(self.dtype)
         self.l = numpy.array([[3, 0, 3, 1, 3],
                               [3, 1, 3, 0, 3]]).astype(numpy.int32)
         self.blank_symbol = 3

@@ -151,6 +151,18 @@ class TestSplitAxis(unittest.TestCase):
             for y in self.ys_expected]
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.inputs = [x]
+        self.grad_outputs = [
+            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
+            for y in self.ys_expected
+        ]
+        self.check_backward_options = {
+            'dtype': numpy.float64,
+            'atol': 1e-4, 'rtol': 1e-4,
+        }
+
+    def _forward(self, x):
+        return functions.split_axis(
+            x, self.ys_section, self.axis, force_tuple=True)
 
     def check_forward(self, inputs, backend_config):
         inputs = backend_config.get_array(inputs)
@@ -159,8 +171,7 @@ class TestSplitAxis(unittest.TestCase):
         x = chainer.Variable(x)
 
         with backend_config:
-            ys = functions.split_axis(
-                x, self.ys_section, self.axis, force_tuple=True)
+            ys = self._forward(x)
 
         for yd, y in zip(self.ys_expected, ys):
             assert y.data.dtype == self.dtype
@@ -173,26 +184,20 @@ class TestSplitAxis(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(self.inputs, backend_config)
 
-    def check_backward(self, inputs, backend_config):
+    def check_backward(self, inputs, grad_outputs, backend_config):
         inputs = backend_config.get_array(inputs)
-
-        x, = inputs
-        x = chainer.Variable(x)
+        grad_outputs = backend_config.get_array(grad_outputs)
 
         with backend_config:
-            ys = functions.split_axis(
-                x, self.ys_section, self.axis, force_tuple=True)
-            for y in ys:
-                y.grad = y.data
-            ys[0].backward()
-
-        testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+            gradient_check.check_backward(
+                self._forward, inputs, grad_outputs,
+                **self.check_backward_options)
 
     def test_backward(self, backend_config):
         # TODO(hvy): Support it
         if self.dtype == numpy.float16 and backend_config.use_chainerx:
             raise unittest.SkipTest('ChainerX does not support float16')
-        self.check_backward(self.inputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(self, inputs, backend_config):
         def f(x):
@@ -222,25 +227,28 @@ class TestSplitAxisNone(unittest.TestCase):
         self.axis = 0
 
         self.inputs = [numpy.array([1, 2], dtype=numpy.float32)]
+        self.grad_outputs = [numpy.array([1], dtype=numpy.float32), None]
+        self.check_backward_options = {
+            'dtype': numpy.float64,
+            'atol': 1e-4, 'rtol': 1e-4,
+        }
 
-    def check_backward(self, inputs, backend_config):
+    def _forward(self, x):
+        return functions.split_axis(
+            x, self.ys_section, self.axis)
+
+    def check_backward(self, inputs, grad_outputs, backend_config):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
-
-        x, = inputs
-        x = chainer.Variable(x)
+            grad_outputs = cuda.to_gpu(grad_outputs)
 
         with backend_config:
-            ys = functions.split_axis(x, self.ys_section, self.axis)
-            # Only set ys[0]
-            ys[0].grad = ys[0].data
-            ys[0].backward()
-
-        gx = numpy.array([1, 0])
-        testing.assert_allclose(gx, x.grad, atol=0, rtol=0)
+            gradient_check.check_backward(
+                self._forward, inputs, grad_outputs,
+                **self.check_backward_options)
 
     def test_backward(self, backend_config):
-        self.check_backward(self.inputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
 
 @inject_backend_tests(['test_forward_force_tuple', 'test_forward_single'])

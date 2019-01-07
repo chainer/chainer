@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer import backend
 from chainer import utils
 import chainerx
@@ -67,22 +68,17 @@ def _as_noncontiguous_array(array):
         if a.size <= 1:
             return a
 
-        xp = backend.get_array_module(a)
-        if xp is not chainerx:
+        device = backend.get_device_from_array(a)
+        xp = device.xp
+        with chainer.using_device(device):
             ret = xp.empty(
                 (a.shape[0] * 2,) + a.shape[1:], dtype=a.dtype)
-            ret[::2] = a
-            ret = ret[::2]
-            assert not ret.flags.c_contiguous
-        else:
-            # TODO(hvy): Unify with the logic above when chainerx.ndarrays
-            # support item assignment.
-            if a.ndim == 1:
-                ret = xp.diag(
-                    xp.diag(a, device=a.device), device=a.device)
-            else:
-                ret = a.T.copy().T
+        ret[::2] = a
+        ret = ret[::2]
+        if device.xp is chainerx:
             assert not ret.is_contiguous
+        else:
+            assert not ret.flags.c_contiguous
 
         return ret
 

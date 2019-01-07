@@ -80,7 +80,7 @@ class PrintHook(function_hook.FunctionHook):
                     v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
                     v.grad = d
                 self._print(v.debug_print())
-        if self.flush:
+        if self.flush and hasattr(self.file, 'flush'):
             self.file.flush()
 
     def forward_preprocess(self, function, in_data):

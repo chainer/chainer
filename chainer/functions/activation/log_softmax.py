@@ -10,7 +10,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG  # type: ignore
 
 
 def logsumexp(x, axis):
@@ -124,8 +124,7 @@ def log_softmax(x, axis=1):
         ``log_softmax`` method is more stable.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
             A :math:`n`-dimensional (:math:`n \\geq 2`) float array.
         axis (int): The axis along which the softmax is to be computed.

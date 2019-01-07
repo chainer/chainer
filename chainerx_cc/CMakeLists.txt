@@ -86,7 +86,7 @@ set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cm
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-    set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -fPIC -pthread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -fPIC -pthread")
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")  # cmake -DCMAKE_BUILD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
     if (${CUDA_FOUND})
@@ -109,6 +109,21 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
     endif()
 endif()
+
+# Compiler-specific workarounds
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$")
+    EXECUTE_PROCESS(COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string)
+    string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
+
+    if(CLANG_VERSION_STRING VERSION_LESS 6.0)
+        # clang<6.0 suggests superfluous braces for std::array initialization.
+        # https://bugs.llvm.org/show_bug.cgi?id=21629
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
+    endif()
+endif()
+
+
 include_directories("${PROJECT_SOURCE_DIR}")
 
 # dl libs
@@ -127,7 +142,7 @@ endif()
 # gsl-lite
 # gsl-lite is a header-only library, we do not need to build and run tests
 get_third_party(gsl-lite)
-include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/gsl-lite/include)
 # ref. https://github.com/martinmoene/gsl-lite#api-macro
 # As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
 # We want to stop it because we get many warnings with nvcc.
@@ -138,15 +153,15 @@ endif()
 
 # optional-lite
 get_third_party(optional-lite)
-include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
     ${CMAKE_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 if(${CHAINERX_BUILD_TEST})
     enable_testing()
 endif()

@@ -178,6 +178,7 @@ TEST_P(NormalizationTest, BatchNormBackward) {
             {x, gamma, beta},
             {go},
             {x_eps, gamma_eps, beta_eps},
+            2U,
             1e-6,
             1e-3);
 }
