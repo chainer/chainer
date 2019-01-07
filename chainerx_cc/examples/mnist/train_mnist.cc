@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
     std::string device_name{"native"};
     std::string mnist_root{"./"};
 
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
         auto read_next_string = [&]() {
