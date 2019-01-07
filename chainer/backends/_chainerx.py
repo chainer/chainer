@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -164,7 +165,11 @@ def _array_from_chainerx(array):
     if array is None:
         return None
     if not isinstance(array, chainerx.ndarray):
-        return array
+        if isinstance(array, chainer.get_array_types()):
+            return array
+        raise TypeError(
+            'Tried to convert to a non-ChainerX array from an invalid type: '
+            '{}'.format(type(array)))
 
     backend_name = array.device.backend.name
     if backend_name == 'native':
