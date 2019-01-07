@@ -137,15 +137,16 @@ def concat_examples(batch, device=None, padding=None):
     if isinstance(batch, examples.Examples):
         if batch.is_tuple:
             return tuple([
-                to_device(device, array) for array in batch.underlying])
+                to_device(device, array)
+                for array in batch.underlying_datasets])
 
         elif batch.is_dict:
             return {
-                to_device(device, batch.underlying[k])
-                for k in batch.underlying}
+                to_device(device, batch.underlying_datasets[k])
+                for k in batch.underlying_datasets}
 
         else:
-            return to_device(device, batch.underlying)
+            return to_device(device, batch.underlying_datasets)
 
     else:
         first_elem = batch[0]

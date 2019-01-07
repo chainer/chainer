@@ -172,7 +172,7 @@ class TextDataset(dataset_mixin.BatchableDatasetMixin):
         finally:
             self._lock.release()
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         ret = [[] for _ in self._fps]
 
         self._lock.acquire()

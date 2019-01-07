@@ -47,7 +47,7 @@ class SerialIterator(iterator.Iterator):
     def __init__(self, dataset, batch_size,
                  repeat=True, shuffle=None, order_sampler=None):
         self.dataset = dataset
-        self.is_batchable = hasattr(dataset, 'get_batched_examples')
+        self.is_batchable = hasattr(dataset, 'get_examples')
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
@@ -77,7 +77,7 @@ class SerialIterator(iterator.Iterator):
             raise StopIteration
 
         if self.is_batchable:
-            batch = self.dataset.get_batched_examples(indices)
+            batch = self.dataset.get_examples(indices)
         else:
             batch = [self.dataset[index] for index in indices]
         return batch

@@ -40,9 +40,10 @@ class DictDataset(object):
         else:
             return batches
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         return examples.Examples({
-            key: dataset[indices]
+            key: dataset[i]
+            for i in indices
             for key, dataset in six.iteritems(self._datasets)})
 
     def __len__(self):

@@ -95,7 +95,7 @@ class ImageDataset(dataset_mixin.BatchableDatasetMixin):
 
         return _postprocess_image(image)
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         return examples.Examples(([self.get_example(i) for i in indices],))
 
 
@@ -167,7 +167,7 @@ class LabeledImageDataset(dataset_mixin.BatchableDatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return _postprocess_image(image), label
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         images = []
         labels = []
         for i in indices:
@@ -226,7 +226,7 @@ class LabeledZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return self._zipfile.get_example(path), label
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         images = []
         labels = []
         for i in indices:
@@ -269,14 +269,14 @@ class MultiZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         lidx = i - self._zpaths_accumlens[tgt]
         return self._zfs[tgt].get_example(lidx)
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         lidxs_by_tgt = [[] for _ in self._zpaths_accumlens]
         for i in indices:
             tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
             lidxs_by_tgt[tgt].append(i - self._zpaths_accumlens[tgt])
 
         return examples.Examples((list(itertools.chain.from_iterable([
-            self._zfs[tgt].get_batched_examples(lidxs_by_tgt[tgt])[0]
+            self._zfs[tgt].get_examples(lidxs_by_tgt[tgt])[0]
             for tgt in range(len(lidxs_by_tgt))])),))
 
 
@@ -338,7 +338,7 @@ class ZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
 
-    def get_batched_examples(self, indices):
+    def get_examples(self, indices):
         # LabeledZippedImageDataset needs file with filename in zip archive
         zfns = [
             self._paths[i_or_filename] if isinstance(
