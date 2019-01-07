@@ -40,7 +40,7 @@ matrix:
       - CHAINER_TRAVIS_TEST="chainer"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
-    - name: "macOS Py27"
+    - name: "macOS Py35"
       os: osx
       language: generic
       env:
@@ -49,7 +49,8 @@ matrix:
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
 
-    - os: osx
+    - name: "macOS Py27"
+      os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
