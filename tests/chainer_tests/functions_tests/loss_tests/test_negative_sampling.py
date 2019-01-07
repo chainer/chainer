@@ -5,7 +5,7 @@ import pytest
 import six
 
 import chainer
-from chainer.backends import _cpu
+from chainer.backend import CpuDevice
 from chainer.backends import cuda
 from chainer import functions
 from chainer.functions.loss import negative_sampling
@@ -17,7 +17,8 @@ from chainer.testing import attr
 def make_sampler(backend_config, high):
     # To fix samples, use fixed samples.
     def sampler(shape):
-        s = (numpy.arange(numpy.prod(shape)) % high).reshape(shape).astype('i')
+        s = numpy.arange(numpy.prod(shape)) % high
+        s = s.reshape(shape).astype(numpy.int32)
         return backend_config.get_array(s)
     return sampler
 
@@ -105,12 +106,13 @@ class TestNegativeSamplingFunction(unittest.TestCase):
 
         # Sampler is deterministic, so y and y_ should equal.
         assert y.dtype == y_.dtype
+        cpu_device = CpuDevice()
         numpy.testing.assert_array_equal(
-            _cpu._to_cpu(y.array), _cpu._to_cpu(y_.array))
+            cpu_device.send(y.array), cpu_device.send(y_.array))
 
         assert y.shape == self.gy.shape
 
-        samples = _cpu._to_cpu(samples)
+        samples = cpu_device.send(samples)
 
         loss = numpy.empty((len(self.x),), self.dtype)
         for i in six.moves.range(len(self.x)):

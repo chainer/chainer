@@ -4,7 +4,7 @@ import numpy
 
 import chainer
 from chainer import backend
-from chainer.backends import _cpu
+from chainer.backend import CpuDevice
 from chainer import links
 from chainer import testing
 
@@ -108,8 +108,9 @@ class TestNegativeSampling(unittest.TestCase):
 
         self.assertEqual(y.shape, self.gy.shape)
 
-        W = _cpu._to_cpu(link.W.data)
-        samples = _cpu._to_cpu(samples)
+        cpu_device = CpuDevice()
+        W = cpu_device.send(link.W.data)
+        samples = cpu_device.send(samples)
 
         loss = numpy.empty((len(self.x),), self.dtype)
         for i in range(len(self.x)):
@@ -167,8 +168,9 @@ class TestNegativeSampling(unittest.TestCase):
             lambda: link(x, t, reduce=self.reduce))
 
         # y and y_ should equal
+        cpu_device = CpuDevice()
         numpy.testing.assert_array_equal(
-            _cpu._to_cpu(y.array), _cpu._to_cpu(y_.array))
+            cpu_device.send(y.array), cpu_device.send(y_.array))
 
     def test_backward_compare_with_numpy(self, backend_config):
         # This test compares gradients with that of NumPy mode.
