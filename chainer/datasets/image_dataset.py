@@ -9,12 +9,14 @@ except ImportError as e:
     _import_error = e
 import bisect
 import io
+import itertools
 import six
 import threading
 import zipfile
 
 import chainer
 from chainer.dataset import dataset_mixin
+from chainer.dataset import examples
 
 
 def _read_image_as_array(path, dtype):
@@ -35,7 +37,7 @@ def _postprocess_image(image):
     return image.transpose(2, 0, 1)
 
 
-class ImageDataset(dataset_mixin.DatasetMixin):
+class ImageDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Dataset of images built from a list of paths to image files.
 
@@ -93,8 +95,11 @@ class ImageDataset(dataset_mixin.DatasetMixin):
 
         return _postprocess_image(image)
 
+    def get_batched_examples(self, indices):
+        return examples.Examples(([self.get_example(i) for i in indices],))
 
-class LabeledImageDataset(dataset_mixin.DatasetMixin):
+
+class LabeledImageDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Dataset of image and label pairs built from a list of paths and labels.
 
@@ -162,8 +167,19 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return _postprocess_image(image), label
 
+    def get_batched_examples(self, indices):
+        images = []
+        labels = []
+        for i in indices:
+            path, int_label = self._pairs[i]
+            full_path = os.path.join(self._root, path)
+            images.append(_read_image_as_array(full_path, self._dtype))
+            labels.append(numpy.array(int_label, dtype=self._label_dtype))
 
-class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
+        return examples.Examples((images, labels))
+
+
+class LabeledZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Dataset of zipped image and label pairs.
 
@@ -210,8 +226,18 @@ class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return self._zipfile.get_example(path), label
 
+    def get_batched_examples(self, indices):
+        images = []
+        labels = []
+        for i in indices:
+            path, int_label = self._pairs[i]
+            images.append(self._zipfile.get_example(path))
+            labels.append(numpy.array(int_label, dtype=self._label_dtype))
 
-class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
+        return examples.Examples((images, labels))
+
+
+class MultiZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
     """Dataset of images built from a list of paths to zip files.
 
     This dataset reads an external image file in given zipfiles. The
@@ -243,8 +269,18 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
         lidx = i - self._zpaths_accumlens[tgt]
         return self._zfs[tgt].get_example(lidx)
 
+    def get_batched_examples(self, indices):
+        lidxs_by_tgt = [[] for _ in self._zpaths_accumlens]
+        for i in indices:
+            tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
+            lidxs_by_tgt[tgt].append(i - self._zpaths_accumlens[tgt])
 
-class ZippedImageDataset(dataset_mixin.DatasetMixin):
+        return examples.Examples((list(itertools.chain.from_iterable([
+            self._zfs[tgt].get_batched_examples(lidxs_by_tgt[tgt])[0]
+            for tgt in range(len(lidxs_by_tgt))])),))
+
+
+class ZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
     """Dataset of images built from a zip file.
 
     This dataset reads an external image file in the given
@@ -301,6 +337,27 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         image_file = io.BytesIO(image_file_mem)
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
+
+    def get_batched_examples(self, indices):
+        # LabeledZippedImageDataset needs file with filename in zip archive
+        zfns = [
+            self._paths[i_or_filename] if isinstance(
+                i_or_filename, six.integer_types) else i_or_filename
+            for i_or_filename in indices]
+
+        # PIL may seek() on the file -- zipfile won't support it
+        image_file_mems = []
+        with self._lock:
+            for zfn in zfns:
+                if self._zf is None or self._zf_pid != os.getpid():
+                    self._zf_pid = os.getpid()
+                    self._zf = zipfile.ZipFile(self._zipfilename)
+                image_file_mems.append(self._zf.read(zfn))
+
+        return examples.Examples(([
+            _postprocess_image(
+                _read_image_as_array(io.BytesIO(image_file_mem), self._dtype))
+            for image_file_mem in image_file_mems],))
 
 
 def _check_pillow_availability():

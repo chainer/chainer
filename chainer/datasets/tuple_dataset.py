@@ -1,6 +1,8 @@
 import numpy
 import six
 
+from chainer.dataset import examples
+
 
 class TupleDataset(object):
 
@@ -47,6 +49,10 @@ class TupleDataset(object):
                     for i in six.moves.range(length)]
         else:
             return tuple(batches)
+
+    def get_batched_examples(self, indices):
+        return examples.Examples(
+            tuple([dataset[indices] for dataset in self._datasets]))
 
     def __len__(self):
         return self._length

@@ -1,5 +1,8 @@
 import numpy
 import six
+import typing as tp  # NOQA
+
+from chainer.dataset import examples
 
 
 class DatasetMixin(object):
@@ -82,5 +85,33 @@ class DatasetMixin(object):
         Returns:
             The i-th example.
 
+        """
+        raise NotImplementedError
+
+
+class BatchableDatasetMixin(DatasetMixin):
+    """Default implementation of dataset indexing with batch operation support.
+
+    BatchableDatasetMixin has the :meth:`get_batched_examples` in addition to
+    the DatasetMixin operators, which provides an optimized implementation for
+    retrieving multiple examples in batch.
+    """
+
+    def get_batched_examples(self, indices):
+        # type: (tp.Union[slice, tp.Sequence, numpy.ndarray]) -> examples.Examples  # NOQA
+        """Returns the examples as the indices parameter specify.
+
+        Implementations should override it. It should raise :class:`IndexError`
+        if the index is invalid.
+
+        Note that it should return a {tuple, dict} of lists of examples for
+        efficiency instead of a list of {tuple, dict} of examples like
+        :meth:`__getitem__`.
+
+        Args:
+            indices (slice, list or numpy.ndarray): Indices of examples.
+
+        Returns:
+            A tuple of dict of lists of examples
         """
         raise NotImplementedError

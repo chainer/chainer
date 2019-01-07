@@ -5,9 +5,10 @@ import threading
 import six
 
 from chainer.dataset import dataset_mixin
+from chainer.dataset import examples
 
 
-class TextDataset(dataset_mixin.DatasetMixin):
+class TextDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Dataset of a line-oriented text file.
 
@@ -170,3 +171,20 @@ class TextDataset(dataset_mixin.DatasetMixin):
             return tuple(lines)
         finally:
             self._lock.release()
+
+    def get_batched_examples(self, indices):
+        ret = [[] for _ in self._fps]
+
+        self._lock.acquire()
+        try:
+            for k, fp in enumerate(self._fps):
+                for idx in indices:
+                    if idx < 0 or len(self._lines) <= idx:
+                        raise IndexError
+                    linenum = self._lines[idx]
+                    fp.seek(self._bounds[k][linenum])
+                    ret[k].append(fp.readline())
+        finally:
+            self._lock.release()
+
+        return examples.Examples(tuple(ret))
