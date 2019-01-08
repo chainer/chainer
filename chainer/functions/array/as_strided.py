@@ -164,12 +164,8 @@ def _stride_array(array, shape, strides, storage_offset):
         return cuda.cupy.ndarray(shape, array.dtype, memptr, strides)
     elif isinstance(array, np.ndarray):
         base_array = _get_base_array(array)
-        if (max_index + 1) * base_array.itemsize > base_array.data.nbytes:
+        if (max_index + 1) * base_array.itemsize > base_array.nbytes:
             raise ValueError("Out of buffer: too large index was specified")
-
-        if not base_array.data.c_contiguous:
-            raise ValueError(
-                "Non-contiguous array: only contiguous array is accepted")
 
         return np.ndarray(shape, base_array.dtype, base_array.data,
                           storage_offset, strides)
