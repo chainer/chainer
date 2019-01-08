@@ -63,8 +63,12 @@ void InitChainerxModule(pybind11::module& m) {
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 
     // chainerx.cuda
+    //
+    // Define the sub-module only if CUDA is available.
+#ifdef CHAINERX_ENABLE_CUDA
     pybind11::module m_cuda = m.def_submodule("cuda");
     cuda::cuda_internal::InitChainerxCudaModule(m_cuda);
+#endif  // CHAINERX_ENABLE_CUDA
 
     // Modifies __doc__ property of a pybind-generated function object.
     m.def("_set_pybind_doc", [](py::handle obj, const std::string& docstring) {
