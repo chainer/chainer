@@ -158,9 +158,9 @@ Extensions
    :width: 835px
    :height: 353px
 
-Use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
+Extensions can be used to execute code at certain events during the training, for example every epoch or every 1000 iterations. This mechanism is used in Chainer to evaluate models during training, print progress messages, or dump intermediate model files.
 
-If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
+First, use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores. If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -208,7 +208,10 @@ Print selected entries of the log to standard output.
    :lines: 76-79
    :lineno-start: 76
 
-Run the training.
+Main Loop
+~~~~~~~~~
+
+Finally, with the ``trainer`` and all the extensions set up, we can add the line that actually starts the main loop:
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
