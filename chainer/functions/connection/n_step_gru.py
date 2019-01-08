@@ -14,7 +14,6 @@ from chainer.utils import argument
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
@@ -60,14 +59,6 @@ def n_step_gru(
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -162,14 +153,6 @@ def n_step_bigru(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -231,14 +214,6 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     :func:`chainer.functions.n_step_gru`.
     This function's behavior depends on argument ``use_bi_direction``.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -292,9 +267,8 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        handle = cudnn.get_handle()
         states = cuda.get_cudnn_dropout_states()
-        cudnn.set_dropout_descriptor(states._desc, handle, dropout_ratio)
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 

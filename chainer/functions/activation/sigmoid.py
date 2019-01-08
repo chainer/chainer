@@ -8,8 +8,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _mode = libcudnn.CUDNN_ACTIVATION_SIGMOID
+    _mode = cuda.libcudnn.CUDNN_ACTIVATION_SIGMOID
 
 
 class Sigmoid(function_node.FunctionNode):
@@ -17,7 +16,7 @@ class Sigmoid(function_node.FunctionNode):
     """Logistic sigmoid function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -62,7 +61,7 @@ class SigmoidGrad(function_node.FunctionNode):
         self.x = inputs[0]
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('y', 'gy'))
+        type_check._argname(in_types, ('y', 'gy'))
         type_check.expect(in_types[0].dtype.kind == 'f')
         type_check.expect(in_types[1].dtype.kind == 'f')
 
@@ -97,8 +96,7 @@ def sigmoid(x):
      .. math:: f(x)=(1 + \\exp(-x))^{-1}.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     Returns:

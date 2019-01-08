@@ -10,17 +10,14 @@ class Clip(function_node.FunctionNode):
     """Clips (limits) elements of input variable."""
 
     def __init__(self, x_min, x_max):
-        if not isinstance(x_min, float):
-            raise TypeError('x_min must be float value')
-        if not isinstance(x_max, float):
-            raise TypeError('x_max must be float value')
-        # x_min must be lesser than x_max.
-        assert x_min < x_max
+        # x_min must be less than x_max.
+        if x_min >= x_max:
+            raise ValueError('x_min must be less than x_max.')
         self.x_min = x_min
         self.x_max = x_max
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -44,7 +41,7 @@ class ClipGrad(function_node.FunctionNode):
         self.cond = (x_min < x) * (x < x_max)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):

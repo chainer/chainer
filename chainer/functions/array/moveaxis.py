@@ -58,7 +58,7 @@ class Moveaxis(function_node.FunctionNode):
             self.destination = destination
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
         )
@@ -105,7 +105,7 @@ def moveaxis(x, source, destination):
     :func:`chainer.functions.swapaxes`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         source (int or tuple of int):
             Original positions of the axes to move. These must be unique.
         destination (int or tuple of int):

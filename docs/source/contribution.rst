@@ -7,11 +7,6 @@ This is a guide for all contributions to Chainer.
 The development of Chainer is running on `the official repository at GitHub <https://github.com/chainer/chainer>`_.
 Anyone that wants to register an issue or to send a pull request should read through this document.
 
-.. note::
-
-   Many points of this document are updated at v2.
-   We strongly recommend all contributors of v1 to read through the document again.
-
 Classification of Contributions
 -------------------------------
 
@@ -23,7 +18,7 @@ There are several ways to contribute to Chainer community:
 4. Open-sourcing an external example
 5. Writing a post about Chainer
 
-This document mainly focuses on 1 and 2, though other contributions are also appreciated.
+This documentation mainly focuses on 1 and 2, though other contributions are also appreciated.
 
 
 Development Cycle
@@ -50,7 +45,7 @@ As for the backward compatibility, see :ref:`compatibility`.
 Release Cycle
 ~~~~~~~~~~~~~
 
-Starting from v2.0.0, we are developing two tracks of versions at the same time.
+We develop two tracks of versions at the same time.
 The first one is the track of **stable versions**, which is a series of revision updates for the latest major version.
 The second one is the track of **development versions**, which is a series of pre-releases for the upcoming major version.
 
@@ -140,7 +135,7 @@ Issues and PRs are labeled by the following tags:
 * **Feature**: feature requests (issues) and their implementations (PRs)
 * **NoCompat**: disrupts backward compatibility
 * **Test**: test fixes and updates
-* **Document**: document fixes and improvements
+* **Document**: documentation fixes and improvements
 * **Example**: fixes and improvements on the examples
 * **Install**: fixes installation script
 * **Contribution-Welcome**: issues that we request for contribution (only issues are categorized to this)
@@ -407,7 +402,7 @@ The test functions decorated by ``slow`` are skipped if ``-m='not slow'`` is giv
 
 .. note::
    If you want to specify more than two attributes, use ``and`` operator like ``-m='not cudnn and not slow'``.
-   See detail in `the document of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
+   See detail in `the documentation of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
 
 Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **except for tests annotated with ``gpu``, ``multi_gpu`` and ``slow``**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.

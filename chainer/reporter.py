@@ -2,6 +2,7 @@ import collections
 import contextlib
 import copy
 import json
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -12,6 +13,7 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 def _copy_variable(value):
@@ -139,7 +141,7 @@ class Reporter(object):
         observer object if given.
 
         .. note::
-           As of v2.0.0, if a value is of type :class:`~chainer.Variable`, the
+           If a value is of type :class:`~chainer.Variable`, the
            variable is copied without preserving the computational graph and
            the new variable object purged from the graph is stored to the
            observer. This behavior can be changed by setting
@@ -168,7 +170,7 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []
+_reporters = []  # type: tp.Optional[tp.List[Reporter]]
 
 
 def get_current_reporter():
@@ -264,8 +266,8 @@ class Summary(object):
     """
 
     def __init__(self):
-        self._x = 0
-        self._x2 = 0
+        self._x = 0.0
+        self._x2 = 0.0
         self._n = 0
 
     def add(self, value, weight=1):
@@ -279,6 +281,11 @@ class Summary(object):
                 Default is 1 (integer).
 
         """
+        if isinstance(value, chainerx.ndarray):
+            # ChainerX arrays does not support inplace assignment if it's
+            # connected to the backprop graph.
+            value = value.as_grad_stopped()
+
         with _get_device(value):
             self._x += weight * value
             self._x2 += weight * value * value

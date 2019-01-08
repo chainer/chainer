@@ -1,4 +1,7 @@
-import numpy
+import typing as tp  # NOQA
+
+from chainer import types  # NOQA
+from chainer import utils
 
 
 class Initializer(object):
@@ -13,9 +16,12 @@ class Initializer(object):
     """
 
     def __init__(self, dtype=None):
-        self.dtype = dtype
+        # type: (tp.Optional[types.DTypeSpec]) -> None
+
+        self.dtype = dtype  # type: types.DTypeSpec
 
     def __call__(self, array):
+        # type: (types.NdArray) -> None
         """Initializes given array.
 
         This method destructively changes the value of array.
@@ -41,7 +47,7 @@ def get_fans(shape):
     if len(shape) < 2:
         raise ValueError('shape must be of length >= 2: shape={}', shape)
 
-    receptive_field_size = numpy.prod(shape[2:], dtype=numpy.int32)
+    receptive_field_size = utils.size_of_shape(shape[2:])
     fan_in = shape[1] * receptive_field_size
     fan_out = shape[0] * receptive_field_size
     return fan_in, fan_out

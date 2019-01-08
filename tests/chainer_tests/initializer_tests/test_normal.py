@@ -104,7 +104,7 @@ class NormalBase(unittest.TestCase):
                 assert False
 
         sampless = cuda.to_cpu(ws.reshape(n, -1).T)
-        alpha = 0.05 / len(sampless)
+        alpha = 0.01 / len(sampless)
         for samples in sampless:
             _, p = stats.kstest(samples, stats.norm(0, expected_std).cdf)
             assert p >= alpha

@@ -24,12 +24,10 @@ class Uniform(distribution.Distribution):
           \\end{cases}
 
     Args:
-        low(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        lower bound :math:`l`.
-        high(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        higher bound :math:`h`.
+        low(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the lower bound :math:`l`.
+        high(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the higher bound :math:`h`.
     """
 
     def __init__(self, **kwargs):
@@ -98,7 +96,7 @@ class Uniform(distribution.Distribution):
             -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
-                (x.data >= self.low.data) & (x.data < self.high.data)),
+                (x.data >= self.low.data) & (x.data <= self.high.data)),
             logp, xp.array(-xp.inf, logp.dtype))
 
     @property

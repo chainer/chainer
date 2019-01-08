@@ -222,7 +222,7 @@ method to evaluate expression.
     __gt__ = _make_bool_operator('>', '<=', operator.__gt__)
     __ge__ = _make_bool_operator('>=', '<', operator.__ge__)
 
-    # Please refer the Python document to know priority of operators.
+    # Please refer the Python documentation to know priority of operators.
     # https://docs.python.org/3.4/reference/expressions.html
 
     __add__ = _make_bin_operator('+', 4, operator.__add__)
@@ -233,7 +233,7 @@ method to evaluate expression.
     __rmul__ = _flip(__mul__)
 
     if sys.version_info < (3, 0, 0):
-        __div__ = _make_bin_operator('/', 5, operator.__div__)
+        __div__ = _make_bin_operator('/', 5, operator.__div__)  # type: ignore # NOQA
         __rdiv__ = _flip(__div__)
     else:
         __truediv__ = _make_bin_operator('/', 5, operator.__truediv__)
@@ -504,7 +504,7 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
-def argname(in_types, names):
+def _argname(in_types, names):
     """Assigns user friendly names for the input types.
 
     This function also asserts that lenghts of in_types and names are the

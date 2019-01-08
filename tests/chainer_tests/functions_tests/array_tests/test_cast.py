@@ -35,8 +35,8 @@ class TestCast(unittest.TestCase):
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.cast(x, self.out_type)
-        self.assertEqual(y.data.shape, x.data.shape)
-        self.assertEqual(y.data.dtype, self.out_type)
+        assert y.data.shape == x.data.shape
+        assert y.data.dtype == self.out_type
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -65,18 +65,34 @@ class TestNoCast(unittest.TestCase):
 
     def check_forward_no_cast(self, x_data):
         y = functions.cast(x_data, self.dtype)
-        self.assertIsInstance(y, chainer.Variable)
-        self.assertIs(y.data, x_data)
+        assert isinstance(y, chainer.Variable)
+        assert y.data is x_data
 
     def test_forward_no_cast_array(self):
         y = functions.cast(self.x, self.dtype)
-        self.assertIsInstance(y, chainer.Variable)
-        self.assertIs(y.data, self.x)
+        assert isinstance(y, chainer.Variable)
+        assert y.data is self.x
 
     def test_forward_no_cast_variable(self):
+        # If backprop is disabled, it's safe to simply return the input
+        # variable for no-op casts.
         x = chainer.Variable(self.x)
-        y = functions.cast(x, self.dtype)
-        self.assertIs(y, x)
+        with chainer.using_config('enable_backprop', False):
+            y = functions.cast(x, self.dtype)
+        assert y is x
+
+    def test_forward_no_cast_grad(self):
+        # This test would fail if F.cast does not create new function nodes for
+        # no-op casts
+        x = chainer.Variable(self.x)
+        y1 = functions.cast(x, self.dtype)
+        y2 = functions.cast(x, self.dtype)
+        z = y1 + y2
+        gy1, gy2 = chainer.grad([z], [y1, y2], [numpy.ones_like(z.data)])
+        assert gy1.dtype == self.dtype
+        assert gy2.dtype == self.dtype
+        numpy.testing.assert_array_equal(gy1.data, numpy.ones_like(y1.data))
+        numpy.testing.assert_array_equal(gy2.data, numpy.ones_like(y2.data))
 
 
 testing.run_module(__name__, __file__)

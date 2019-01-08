@@ -5,8 +5,6 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.math import exponential
 from chainer.functions.math import log_ndtr
 from chainer.functions.math import ndtr
@@ -30,17 +28,15 @@ class Normal(distribution.Distribution):
             \\exp\\left(-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`. This is the mean parameter.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\sigma`. Either `scale` or `log_scale` (not both) must \
-        have a value.
-        log_scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma)`. Either `scale` or `log_scale` (not \
-        both) must have a value.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`. This is the
+            mean parameter.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\sigma`. Either `scale`
+            or `log_scale` (not both) must have a value.
+        log_scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\log(\\sigma)`. Either
+            `scale` or `log_scale` (not both) must have a value.
 
     """
 
@@ -122,12 +118,7 @@ class Normal(distribution.Distribution):
         else:
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape).astype(numpy.float32)
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
-
-        return noise
+        return self.loc + self.scale * eps
 
     @property
     def stddev(self):

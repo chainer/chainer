@@ -13,11 +13,11 @@ class Dstack(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
-        type_check.argname((in_types[0],), ('x0',))
+        type_check._argname((in_types[0],), ('x0',))
 
         ndim = type_check.eval(in_types[0].ndim)
         for i in six.moves.range(1, type_check.eval(in_types.size())):
-            type_check.argname((in_types[i],), ('x{}'.format(i),))
+            type_check._argname((in_types[i],), ('x{}'.format(i),))
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -54,8 +54,7 @@ def dstack(xs):
     """Concatenate variables along third axis (depth wise).
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same ``ndim``. When the variables have the third axis (i.e.
             :math:`ndim \\geq 3`), the variables must have the same shape

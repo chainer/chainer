@@ -13,7 +13,7 @@ class Diagonal(function_node.FunctionNode):
         self.axis2 = axis2
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         in_type = in_types[0]
         type_check.expect(max(self.axis1, self.axis2) < in_type.ndim)
         type_check.expect(-in_type.ndim <= min(self.axis1, self.axis2))
@@ -60,8 +60,8 @@ def diagonal(x, offset=0, axis1=0, axis2=1):
     Axes other than ``axis1`` and ``axis2`` are regarded as batch dimensions.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable to be sliced.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable to be sliced.
         offset (int): Offset from the principal diagonal. An upper diagonal
             matrix can have nonzero diagonals with nonnegative offsets.
         axis1 (int): First axis (that has row indices) of matrix

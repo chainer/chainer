@@ -6,7 +6,9 @@ import tempfile
 import numpy
 import six
 
+import chainer
 # import classes and functions
+from chainer.utils.array import size_of_shape  # NOQA
 from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
@@ -20,9 +22,9 @@ from chainer.utils.walker_alias import WalkerAlias  # NOQA
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.
 # See: https://github.com/chainer/chainer/issues/5097
 try:
-    collections_abc = collections.abc
+    collections_abc = collections.abc  # type: ignore
 except AttributeError:  # python <3.3
-    collections_abc = collections
+    collections_abc = collections  # type: ignore
 
 
 def force_array(x, dtype=None):
@@ -72,3 +74,12 @@ def _repr_with_named_data(inst, **kwargs):
     return '<{}.{} {}>'.format(
         inst.__module__, class_name,
         ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))
+
+
+def _check_arrays_forward_compatible(arrays, label=None):
+    if not chainer.is_arrays_compatible(arrays):
+        raise TypeError(
+            'incompatible array types are mixed in the forward input{}.\n'
+            'Actual: {}'.format(
+                ' ({})'.format(label) if label is not None else '',
+                ', '.join(str(type(a)) for a in arrays)))
