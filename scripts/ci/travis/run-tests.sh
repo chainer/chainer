@@ -75,7 +75,6 @@ step_before_install_chainer_test() {
         pyenv global $PYTHON_VERSION
         python --version
 
-        brew cask uninstall oclint
         brew install hdf5
     fi
 }
