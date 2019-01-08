@@ -1,4 +1,13 @@
-set(core_srcs
+
+set(module_name _core.so)
+
+if(MSVC)
+    set(PYBIND11_LTO_CXX_FLAGS "" CACHE INTERNAL "")
+    set(PYBIND11_LTO_LINKER_FLAGS "" CACHE INTERNAL "")
+    set(module_name _core.pyd)
+endif()
+
+pybind11_add_module(${module_name} MODULE
     core_module.cc
     array.cc
     array_index.cc
@@ -21,41 +30,17 @@ set(core_srcs
     testing/device_buffer.cc
     testing/testing_module.cc
     )
-
-if(MSVC)
-    add_library(_core.pyd MODULE ${core_srcs})
-
-    target_link_libraries(_core.pyd
-        PRIVATE
-        "-Wl,-flto" pybind11::module
-        "-Wl,-R,'$ORIGIN/.'" chainerx)
-    set_target_properties(_core.pyd
-        PROPERTIES
-        PREFIX "${PYTHON_MODULE_PREFIX}"
-        SUFFIX "${PYTHON_MODULE_SUFFIX}")
-
+    
+if(${APPLE})
+    target_link_libraries(${module_name} PRIVATE "-Wl,-rpath,@loader_path" chainerx)
 else()
-
-    add_library(_core.so MODULE ${core_srcs})
-
-    target_link_libraries(_core.so
-        PRIVATE
-        "-Wl,-flto" pybind11::module
-        "-Wl,-R,'$ORIGIN/.'" chainerx)
-    if(${APPLE})
-        target_link_libraries(_core.so
-            PRIVATE
-           "-flto" pybind11::module
-            chainerx)
-    else()
-        target_link_libraries(_core.so
-            PRIVATE
-            "-Wl,-flto" pybind11::module
-            "-Wl,-R,'$ORIGIN/.'" chainerx)
-    endif()
-    set_target_properties(_core.so
-        PROPERTIES
-        PREFIX "${PYTHON_MODULE_PREFIX}"
-        SUFFIX "${PYTHON_MODULE_SUFFIX}")
-
+    target_link_libraries(${module_name} PRIVATE "-Wl,-R,'$ORIGIN/.'" chainerx)
 endif()
+
+# Visibility (CXX_VISIBILITY_PRESET) must be set to "default" to register custom exceptions, overriding the visibility configured by pybind11_add_module.
+# Note however that this only seems to be an issue when building with libc++.
+set_target_properties(${module_name}
+    PROPERTIES
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_SUFFIX}"
+    CXX_VISIBILITY_PRESET "default")
