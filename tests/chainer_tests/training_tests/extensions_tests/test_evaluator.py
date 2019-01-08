@@ -7,6 +7,7 @@ from chainer import dataset
 from chainer import iterators
 from chainer import testing
 from chainer.training import extensions
+from chainer.iterators._statemachine import IteratorState
 
 
 class DummyModel(chainer.Chain):
@@ -38,6 +39,9 @@ class DummyIterator(dataset.Iterator):
     def __init__(self, return_values):
         self.iterator = iter(return_values)
         self.finalized = False
+
+    def reset(self):
+        self._state = IteratorState(0, 0, False, None)
 
     def __next__(self):
         return next(self.iterator)
