@@ -135,7 +135,7 @@ Updater
    :width: 835px
    :height: 353px
 
-Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
+Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -143,7 +143,7 @@ Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :
    :lines: 49-50
    :lineno-start: 49
 
-Set up the :class:`updater <chainer.training.Updater>` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
+Finally we create a :class:`Trainer <chainer.training.Trainer>` object. The ``trainer`` processes minibatches using the ``updater`` defined above until a certain stop condition is met, and allows to use extensions at certain phases of the training. We set it up to run for 50 epochs and store all files created by extensions (see below) in the ``result`` directory.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
