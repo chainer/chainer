@@ -179,11 +179,6 @@ def _stride_array(array, shape, strides, storage_offset):
 
 class TensorGeometry(object):
     def __init__(self, array):
-        # """Information about the view of array
-        #
-        # Args:
-        #     array (:class:`numpy.ndarray` or :class:`cupy.ndarray`): base array
-        # """
         self.shape = array.shape
         self.strides = _byte2step(array.strides, array.itemsize)
         if isinstance(array, np.ndarray):
@@ -210,23 +205,6 @@ class AsStrided(function_node.FunctionNode):
     """
 
     def __init__(self, shape, strides, storage_offset=None):
-        # """
-        # .. note:
-        #     ``strides`` and ``storage_offset`` is given in the unit of steps
-        #     instead the unit of bytes. This specification differs from that in
-        #     :func:`numpy.lib.stride_tricks.as_strided`.
-        #
-        # Args:
-        #     array (:class:`numpy.ndarray` of :class:`cupy.ndarray`):
-        #         The base array for the returned view.
-        #     shape (tuple of int):
-        #         The shape of the returned view.
-        #     strides (tuple of int):
-        #         The strides of the returned view, given in the unit of steps.
-        #     storage_offset (int):
-        #         The offset from the leftest pointer of allocated memory to
-        #         the first element of returned view, given in the unit of steps.
-        # """
         self.shape = shape
         self.strides = strides
         self.storage_offset = storage_offset
@@ -265,16 +243,6 @@ class AsStridedGrad(function_node.FunctionNode):
     """
 
     def __init__(self, input_geometry, shape, strides, storage_offset):
-        # """
-        #
-        # Args:
-        #     input_geometry (:class:`~chainer.functions.array.as_strided.\
-        #     TensorGeometry):
-        #         The geometry of `gy` (i.e. the input of :func:`as_strided`).
-        #     shape (tuple of int): The shape of ``gx``.
-        #     strides (tuple of int): The strides of ``gx``.
-        #     storage_offset (int): The storage offset of ``gx``.
-        # """
         self.input_geometry = input_geometry
         self.shape = shape
         self.strides = strides
