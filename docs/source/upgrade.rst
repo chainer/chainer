@@ -10,11 +10,12 @@ Most changes are carefully designed not to break existing code; however changes 
 Chainer v6
 ==========
 
-A ``Variable`` is an instances of ``collections.abc.Iterable``
+``Variable`` Became a Subclass of ``collections.abc.Iterable``
 --------------------------------------------------------------
 
 Prior to Chainer v5, :class:`~chainer.Variable` did not implement `__iter__`.
-It is recommended to check types by ``collections.abc.Sequence`` to distinguish :class:`tuple` and :class:`list` from :class:`~chainer.Variable`.
+In Chainer v6, ``issubclass(chainer.Variable, collections.abc.Iterable)`` returns `True`.
+It is recommended to check types by ``isinstance(_, collections.abc.Sequence)`` to distinguish :class:`tuple` and :class:`list` from :class:`~chainer.Variable`.
 
 CuPy Needs To Be Manually Updated
 ---------------------------------
