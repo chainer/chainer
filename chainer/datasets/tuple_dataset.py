@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer.dataset import examples
@@ -43,7 +42,7 @@ class TupleDataset(object):
 
     def __getitem__(self, index):
         batches = [dataset[index] for dataset in self._datasets]
-        if isinstance(index, (slice, list, numpy.ndarray)):
+        if isinstance(index, slice):
             length = len(batches[0])
             return [tuple([batch[i] for batch in batches])
                     for i in six.moves.range(length)]
@@ -51,8 +50,7 @@ class TupleDataset(object):
             return tuple(batches)
 
     def get_examples(self, indices):
-        return examples.Examples(
-            tuple([dataset[i] for i in indices for dataset in self._datasets]))
+        return examples.SampledExamples(tuple(self._datasets), indices)
 
     def __len__(self):
         return self._length

@@ -41,6 +41,27 @@ NdArray = tp.Union[
 """
 
 
+class Dataset(tpe.Protocol):
+    """Protocol class for dataset.
+
+    This is only for PEP 544 compliant static type checkers.
+    """
+
+    def __getitem__(self, index):
+        pass
+
+    def __len__(self):
+        # type: () -> int
+        pass
+
+
+Datasets = tp.Union[
+    tp.Sequence[Dataset],
+    NdArray,
+    tp.Dict[tp.Any, Dataset],
+]
+
+
 Xp = tp.Union[tp.Any]  # TODO(okapies): encode numpy/cupy/ideep/chainerx
 
 
@@ -68,6 +89,13 @@ ScalarValue = tp.Union[
 ]
 """The scalar types supported in :func:`numpy.isscalar`.
 """
+
+
+PaddingSpec = tp.Union[
+    ScalarValue,
+    tp.Tuple[ScalarValue, ...],
+    tp.Dict[tp.Any, ScalarValue]
+]
 
 
 InitializerSpec = tp.Union[AbstractInitializer, ScalarValue, 'numpy.ndarray']

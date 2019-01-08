@@ -187,4 +187,4 @@ class TextDataset(dataset_mixin.BatchableDatasetMixin):
         finally:
             self._lock.release()
 
-        return examples.Examples(tuple(ret))
+        return examples.SampledExamples(tuple(ret))

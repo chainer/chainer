@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer.dataset import examples
@@ -33,7 +32,7 @@ class DictDataset(object):
     def __getitem__(self, index):
         batches = {key: dataset[index]
                    for key, dataset in six.iteritems(self._datasets)}
-        if isinstance(index, (slice, list, numpy.ndarray)):
+        if isinstance(index, slice):
             length = len(six.next(six.itervalues(batches)))
             return [{key: batch[i] for key, batch in six.iteritems(batches)}
                     for i in six.moves.range(length)]
@@ -41,10 +40,7 @@ class DictDataset(object):
             return batches
 
     def get_examples(self, indices):
-        return examples.Examples({
-            key: dataset[i]
-            for i in indices
-            for key, dataset in six.iteritems(self._datasets)})
+        return examples.SampledExamples(self._datasets, indices)
 
     def __len__(self):
         return self._length

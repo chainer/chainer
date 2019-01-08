@@ -2,14 +2,17 @@ import collections
 
 import numpy
 import six
+import typing as tp  # NOQA
 
 import chainer
 from chainer import backend
+from chainer import types  # NOQA
 from chainer.backends import cuda
 from chainer.dataset import examples
 
 
 def to_device(device, x):
+    # type: (tp.Optional[tp.Union[int, types.DeviceSpec]], types.NdArray) -> types.NdArray # NOQA
     """Send an array to a given device.
 
     This method sends a given array to a given device. This method is used in
@@ -34,19 +37,27 @@ def to_device(device, x):
         Converted array.
 
     """
+    # For backward compatibilities
+    device = _resolve_device(device)
+
     if device is None:
         return x
-
-    # For backward compatibilities
-    if isinstance(device, six.integer_types):
-        if device < 0:
-            device = backend.CpuDevice()
-        else:
-            device = backend.get_device(cuda.Device(device))
     else:
-        device = backend.get_device(device)
+        return device.send(x)
 
-    return device.send(x)
+
+def _resolve_device(device_spec):
+    # type: (tp.Optional[tp.Union[int, types.DeviceSpec]]) -> tp.Optional[backend.Device] # NOQA
+
+    if device_spec is None:
+        return None
+    elif isinstance(device_spec, six.integer_types):
+        if device_spec < 0:
+            return backend.CpuDevice()
+        else:
+            return backend.get_device(cuda.Device(device_spec))
+    else:
+        return backend.get_device(device_spec)
 
 
 # TODO(hvy): Write unit tests where batch elements contain Python lists.
@@ -134,19 +145,8 @@ def concat_examples(batch, device=None, padding=None):
     if len(batch) == 0:
         raise ValueError('batch is empty')
 
-    if isinstance(batch, examples.Examples):
-        if batch.is_tuple:
-            return tuple([
-                to_device(device, array)
-                for array in batch.underlying_datasets])
-
-        elif batch.is_dict:
-            return {
-                to_device(device, batch.underlying_datasets[k])
-                for k in batch.underlying_datasets}
-
-        else:
-            return to_device(device, batch.underlying_datasets)
+    if isinstance(batch, examples.SampledExamples):
+        return batch.datasets_to(_resolve_device(device), padding)
 
     else:
         first_elem = batch[0]
