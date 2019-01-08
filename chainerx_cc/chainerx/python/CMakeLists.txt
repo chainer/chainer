@@ -33,21 +33,18 @@ if(${CUDA_FOUND})
         )
 endif()
 
-add_library(_core.so MODULE ${srcs})
+pybind11_add_module(_core.so MODULE ${srcs})
 
 if(${APPLE})
-    target_link_libraries(_core.so
-        PRIVATE
-        "-flto" pybind11::module
-        chainerx)
+    target_link_libraries(_core.so PRIVATE "-Wl,-rpath,@loader_path" chainerx)
 else()
-    target_link_libraries(_core.so
-        PRIVATE
-        "-Wl,-flto" pybind11::module
-        "-Wl,-R,'$ORIGIN/.'" chainerx)
+    target_link_libraries(_core.so PRIVATE "-Wl,-R,'$ORIGIN/.'" chainerx)
 endif()
 
+# Visibility (CXX_VISIBILITY_PRESET) must be set to "default" to register custom exceptions, overriding the visibility configured by pybind11_add_module.
+# Note however that this only seems to be an issue when building with libc++.
 set_target_properties(_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
-    SUFFIX "${PYTHON_MODULE_SUFFIX}")
+    SUFFIX "${PYTHON_MODULE_SUFFIX}"
+    CXX_VISIBILITY_PRESET "default")
