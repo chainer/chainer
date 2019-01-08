@@ -76,7 +76,7 @@ def _max_index(shape, strides, storage_offset):
     Returns:
         int: The rightest pointer in the array
     """
-    sh_st_pos = [sh_st for sh_st in zip(shape, strides) if sh_st[1] < 0]
+    sh_st_pos = [sh_st for sh_st in zip(shape, strides) if sh_st[1] > 0]
     if len(sh_st_pos) == 0:
         return storage_offset
     else:
@@ -185,7 +185,7 @@ class TensorGeometry(object):
             base_array = _get_base_array(array)
             array_ptr = array.__array_interface__['data'][0]
             base_array_ptr = base_array.__array_interface__['data'][0]
-            offset_bytes = base_array_ptr - array_ptr
+            offset_bytes = array_ptr - base_array_ptr
         elif isinstance(array, cuda.ndarray):
             offset_bytes = array.data.ptr - array.data.mem.ptr
         else:
