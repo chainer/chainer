@@ -16,7 +16,7 @@ def skip_not_in_test_target(test_target):
         def new_f(self, *args, **kwargs):
             if test_target not in self.test_targets:
                 self.skipTest(
-                    "\'%s\' is not exist in test_targets." % test_target)
+                    "\'%s\' does not exist in test_targets." % test_target)
             else:
                 f(self, *args, **kwargs)
         return new_f
