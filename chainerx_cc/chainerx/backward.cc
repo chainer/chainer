@@ -552,7 +552,7 @@ void Backward(
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop}.Run();
 }
 
-std::vector<Array> Grad(
+std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id,
@@ -561,8 +561,8 @@ std::vector<Array> Grad(
         return {};
     }
 
-    std::vector<nonstd::optional<Array>> temp_input_grads;
-    temp_input_grads.reserve(inputs.size());
+    std::vector<nonstd::optional<Array>> input_grads;
+    input_grads.reserve(inputs.size());
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
 
@@ -570,20 +570,25 @@ std::vector<Array> Grad(
     // The existing gradients of the inputs are thus not modified.
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
     for (const Array& input : inputs) {
-        const std::shared_ptr<ArrayNode>& input_array_node = internal::GetArrayBody(input)->GetArrayNode(actual_backprop_id);
-        temp_input_grads.emplace_back(nonstd::optional<Array>{});
-        array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&temp_input_grads.back()});
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
+        if (array_body->HasArrayNode(actual_backprop_id)) {
+            const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id);
+            input_grads.emplace_back(nonstd::optional<Array>{});
+            array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&input_grads.back()});
+        } else {
+            input_grads.emplace_back(nonstd::nullopt);
+        }
     }
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map)}.Run();
 
-    std::vector<Array> input_grads;
-    input_grads.reserve(temp_input_grads.size());
-    std::transform(
-            temp_input_grads.begin(),
-            temp_input_grads.end(),
-            std::back_inserter(input_grads),
-            [](const nonstd::optional<Array>& temp_input_grad) { return *temp_input_grad; });
+    // input_grads may contain unmodified array bodies (nullptr) for arrays that are not included in the graph.
+    // Those grads are returned as nullopt.
+    for (nonstd::optional<Array>& grad : input_grads) {
+        if (grad.has_value() && internal::GetArrayBody(*grad) == nullptr) {
+            grad = nonstd::nullopt;
+        }
+    }
 
     return input_grads;
 }

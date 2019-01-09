@@ -52,7 +52,7 @@ void Backward(
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 // Returns gradient arrays for all inputs.
-std::vector<Array> Grad(
+std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
