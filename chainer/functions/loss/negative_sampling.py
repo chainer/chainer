@@ -359,9 +359,12 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
     and :math:`Z` is the normalization constant.
 
     Args:
-        x (~chainer.Variable): Batch of input vectors.
-        t (~chainer.Variable): Vector of ground truth labels.
-        W (~chainer.Variable): Weight matrix.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Batch of input vectors.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Vector of ground truth labels.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight matrix.
         sampler (~types.FunctionType): Sampling function. It takes a shape and
             returns an integer array of the shape. Each element of this array
             is a sample from the word distribution.

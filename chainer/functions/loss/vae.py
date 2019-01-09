@@ -25,11 +25,11 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
     loss values. If it is ``'sum'``, loss values are summed up.
 
     Args:
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing mean of given
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable representing mean of given
             gaussian distribution, :math:`\\mu`.
-        ln_var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing logarithm of
+        ln_var (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable representing logarithm of
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
         reduce (str): Reduction option. Its value must be either
             ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
