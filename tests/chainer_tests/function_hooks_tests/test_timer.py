@@ -16,7 +16,7 @@ from chainer.testing import attr
 def check_history(self, t, function_type, return_type):
     func_name = t[0]
     assert func_name == function_type.__name__
-    self.assertIsInstance(t[1], return_type)
+    assert isinstance(t[1], return_type)
 
 
 class SimpleLink(chainer.Link):
@@ -41,12 +41,12 @@ class TestTimerHookToLink(unittest.TestCase):
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
     def test_name(self):
-        self.assertEqual(self.h.name, 'TimerHook')
+        assert self.h.name == 'TimerHook'
 
     def check_forward(self, x):
         with self.h:
             self.l(chainer.Variable(x))
-        self.assertEqual(1, len(self.h.call_history))
+        assert len(self.h.call_history) == 1
         check_history(self, self.h.call_history[0], basic_math.Mul, float)
 
     def test_forward_cpu(self):
@@ -64,7 +64,7 @@ class TestTimerHookToLink(unittest.TestCase):
         with self.h:
             y.backward()
         # It includes forward of + that accumulates gradients to W and b
-        self.assertEqual(3, len(self.h.call_history), self.h.call_history)
+        assert len(self.h.call_history) == 3
         for entry in self.h.call_history:
             if entry[0] == 'Add':
                 continue
@@ -90,7 +90,7 @@ class TestTimerHookToFunction(unittest.TestCase):
 
     def check_forward(self, x):
         self.f.apply((chainer.Variable(x),))
-        self.assertEqual(1, len(self.h.call_history))
+        assert len(self.h.call_history) == 1
         check_history(self, self.h.call_history[0],
                       functions.math.exponential.Exp, float)
 
@@ -106,7 +106,7 @@ class TestTimerHookToFunction(unittest.TestCase):
         y = self.f.apply((x,))[0]
         y.grad = gy
         y.backward()
-        self.assertEqual(2, len(self.h.call_history))
+        assert len(self.h.call_history) == 2
         check_history(self, self.h.call_history[1],
                       functions.math.exponential.Exp, float)
 
@@ -132,13 +132,13 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
 
         history = dict(self.h.call_history)
-        self.assertEqual(len(history), 2)
-        self.assertIn(self.f._impl_name, history)
-        self.assertIn(g._impl_name, history)
+        assert len(history) == 2
+        assert self.f._impl_name in history
+        assert g._impl_name in history
         f_time = history[self.f._impl_name]
         g_time = history[g._impl_name]
-        self.assertLessEqual(g_time, t2 - t1)
-        self.assertGreaterEqual(f_time, t2 - t1)
+        assert g_time <= t2 - t1
+        assert f_time >= t2 - t1
 
     def test_reentrant_total_time(self):
         g = functions.math.identity.Identity()
@@ -153,8 +153,8 @@ class TestTimerHookToFunction(unittest.TestCase):
         self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
         t3 = time.time()
 
-        self.assertLessEqual(self.h.total_time(), t3 - t0)
-        self.assertGreaterEqual(self.h.total_time(), t2 - t1)
+        assert self.h.total_time() <= t3 - t0
+        assert self.h.total_time() >= t2 - t1
 
 
 class TestTimerPrintReport(unittest.TestCase):
@@ -169,8 +169,8 @@ class TestTimerPrintReport(unittest.TestCase):
         x = self.x
         self.f.apply((chainer.Variable(x),))
         self.f.apply((chainer.Variable(x),))
-        self.assertEqual(2, len(self.h.call_history))
-        self.assertEqual(1, len(self.h.summary()))
+        assert len(self.h.call_history) == 2
+        assert len(self.h.summary()) == 1
 
     def test_print_report(self):
         x = self.x
