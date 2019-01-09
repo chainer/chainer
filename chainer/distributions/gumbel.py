@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
+from chainer.utils import cache
 
 
 EULER = 0.57721566490153286060651209008240243104215933593992
@@ -31,24 +32,28 @@ class Gumbel(distribution.Distribution):
 
     def __init__(self, loc, scale):
         super(Gumbel, self).__init__()
-        self.__loc = chainer.as_variable(loc)
-        self.__scale = chainer.as_variable(scale)
+        self.__loc = loc
+        self.__scale = scale
 
-    @property
+    @cache.cached_property
     def loc(self):
-        return self.__loc
+        return chainer.as_variable(self.__loc)
 
-    @property
+    @cache.cached_property
     def scale(self):
-        return self.__scale
+        return chainer.as_variable(self.__scale)
+
+    @cache.cached_property
+    def _log_scale(self):
+        return exponential.log(self.scale)
 
     @property
     def batch_shape(self):
         return self.loc.shape
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return exponential.log(self.scale) + (EULER + 1)
+        return self._log_scale + (EULER + 1)
 
     @property
     def event_shape(self):
@@ -60,9 +65,9 @@ class Gumbel(distribution.Distribution):
 
     def log_prob(self, x):
         y = (x - self.loc) / self.scale
-        return - exponential.log(self.scale) - y - exponential.exp(-y)
+        return - self._log_scale - y - exponential.exp(-y)
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.loc + EULER * self.scale
 
@@ -81,15 +86,15 @@ class Gumbel(distribution.Distribution):
     def support(self):
         return 'real'
 
-    @property
+    @cache.cached_property
     def variance(self):
-        return numpy.pi ** 2 * self.scale ** 2 / 6
+        return (numpy.pi ** 2 / 6) * self.scale ** 2
 
 
 @distribution.register_kl(Gumbel, Gumbel)
 def _kl_gumbel_gumbel(dist1, dist2):
     scale_1d2 = dist1.scale / dist2.scale
-    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+    return dist2._log_scale - dist1._log_scale \
         + EULER * (scale_1d2 - 1.) \
         + exponential.exp((dist2.loc - dist1.loc) / dist2.scale
                           + lgamma.lgamma(scale_1d2 + 1.)) \
