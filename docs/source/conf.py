@@ -449,6 +449,8 @@ def _get_sourcefile_and_linenumber(obj):
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
+    if 1 == int(os.environ.get('CHAINER_DOCS_SKIP_LINKCODE', 0)):
+        return None
 
     # Import the object from module path
     obj = _import_object_from_name(info['module'], info['fullname'])

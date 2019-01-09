@@ -16,7 +16,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.libcudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
