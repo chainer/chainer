@@ -103,7 +103,10 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
     // Initialize op node queue starting from outputs.
     for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
         forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
-        PushNodeIfNotSeen(candidate_op_nodes, array_node->creator_op_node(), seen_op_nodes);
+        const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
+        if (op_node != nullptr) {
+            PushNodeIfNotSeen(candidate_op_nodes, array_node->creator_op_node(), seen_op_nodes);
+        }
     }
 
     // Traverse op node queue towards inputs.
@@ -540,29 +543,22 @@ void Backward(
     BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
 }
 
-void Backward(
-        const std::vector<ConstArrayRef>& outputs,
-        const std::vector<ConstArrayRef>& inputs,
-        const nonstd::optional<BackpropId>& backprop_id,
-        DoubleBackpropOption double_backprop) {
-    if (inputs.empty() || outputs.empty()) {
-        return;
-    }
-    BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
-    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop}.Run();
-}
-
 std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id,
         DoubleBackpropOption double_backprop) {
-    if (inputs.empty() || outputs.empty()) {
+    if (inputs.empty()) {
         return {};
     }
 
     std::vector<nonstd::optional<Array>> input_grads;
     input_grads.reserve(inputs.size());
+
+    if (outputs.empty()) {
+        input_grads.resize(inputs.size(), nonstd::nullopt);
+        return input_grads;
+    }
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
 
