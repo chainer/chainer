@@ -14,7 +14,10 @@ namespace chainerx {
 namespace cuda {
 
 MallocStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
-    cudaError_t status = cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal);
+    // Note: Unified memory is not used since using it by default
+    // can cause slowdown for some workload. See
+    // https://github.com/chainer/chainer/pull/5912 for the details.
+    cudaError_t status = cudaMalloc(ptr, bytesize);
     switch (status) {
         case cudaSuccess:
             return MallocStatus::kSuccess;

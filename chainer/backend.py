@@ -15,6 +15,7 @@ from chainer.backends._chainerx import to_chainerx  # NOQA
 from chainer.backends._cpu import CpuDevice
 from chainer.backends.cuda import GpuDevice
 from chainer.backends.intel64 import Intel64Device
+from chainer import types  # NOQA
 
 
 def _contains_nan(x):
@@ -70,6 +71,7 @@ def copyto(dst, src):
 
 
 def get_device(device_spec):
+    # type: (types.DeviceSpec) -> Device
     """Returns a device object.
 
     Args:

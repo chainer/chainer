@@ -1,3 +1,4 @@
+import collections
 import functools
 import inspect
 import itertools
@@ -8,7 +9,27 @@ import unittest
 import six
 
 
+# A tuple that represents a test case.
+# For bare (non-generated) test cases, [1] and [2] are None.
+# [0] Test case class
+# [1] Module name in whicn the class is defined
+# [2] Class name
+_TestCaseTuple = collections.namedtuple(
+    '_TestCaseTuple', ('klass', 'module_name', 'class_name'))
+
+
+class _ParameterizedTestCaseBundle(object):
+    def __init__(self, cases):
+        # cases is a list of _TestCaseTuple's
+        assert isinstance(cases, list)
+        assert all(isinstance(tup, _TestCaseTuple) for tup in cases)
+
+        self.cases = cases
+
+
 def _gen_case(base, module, i, param):
+    # Returns a _TestCaseTuple.
+
     cls_name = '%s_param_%d' % (base.__name__, i)
 
     # Add parameters as members
@@ -70,19 +91,48 @@ def _gen_case(base, module, i, param):
     # Add new test class to module
     setattr(module, cls_name, cls)
 
+    return _TestCaseTuple(cls, module.__name__, cls_name)
+
 
 def _gen_cases(name, base, params):
+    # Returns a list of _TestCaseTuple's holding generated test cases.
     module = sys.modules[name]
+    generated_cases = []
     for i, param in enumerate(params):
-        _gen_case(base, module, i, param)
+        c = _gen_case(base, module, i, param)
+        generated_cases.append(c)
+    return generated_cases
 
 
 def parameterize(*params):
-    def f(klass):
-        assert issubclass(klass, unittest.TestCase)
-        _gen_cases(klass.__module__, klass, params)
-        # Remove original base class
-        return None
+    def f(cases):
+        if isinstance(cases, _ParameterizedTestCaseBundle):
+            # The input is a parameterized test case.
+            cases = cases.cases
+        else:
+            # Input is a bare test case, i.e. not one generated from another
+            # parameterize.
+            assert issubclass(cases, unittest.TestCase)
+            cases = [_TestCaseTuple(cases, None, None)]
+
+        generated_cases = []
+        for klass, mod_name, cls_name in cases:
+            assert issubclass(klass, unittest.TestCase)
+            if mod_name is not None:
+                # The input is a parameterized test case.
+                # Remove it from its module.
+                delattr(sys.modules[mod_name], cls_name)
+            else:
+                # The input is a bare test case
+                mod_name = klass.__module__
+
+            # Generate parameterized test cases out of the input test case.
+            l = _gen_cases(mod_name, klass, params)
+            generated_cases += l
+
+        # Return the bundle of generated cases to allow repeated application of
+        # parameterize decorators.
+        return _ParameterizedTestCaseBundle(generated_cases)
     return f
 
 

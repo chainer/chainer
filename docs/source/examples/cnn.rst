@@ -36,6 +36,9 @@ LeNet5
 ''''''
 
 Here, let's start by defining LeNet5 [LeCun98]_ in Chainer.
+In this example, we show 
+`a simplified version of LeNet5 <http://deeplearning.net/tutorial/lenet.html#lenet>`_
+introduced in Deep Learning Tutorials.
 This is a ConvNet model that has 5 layers comprised of 3 convolutional layers
 and 2 fully-connected layers. This was proposed to classify hand-written
 digit images in 1998. In Chainer, the model can be written as follows:
@@ -89,13 +92,7 @@ When it's in training mode, :meth:`forward` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
 
-.. note::
-
-  In Chainer v1, if a function or link behaved differently in
-  training and other modes, it was common that it held an attribute
-  that represented its running mode or was provided with the mode
-  from outside as an argument. In Chainer v2, it is recommended to use
-  the global configuration ``chainer.config.train`` to switch the running mode.
+It is recommended to use the global configuration ``chainer.config.train`` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
 can also write the same model like in this way:

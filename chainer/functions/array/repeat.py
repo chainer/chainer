@@ -42,7 +42,7 @@ class Repeat(function_node.FunctionNode):
         xp = backend.get_array_module(x)
         repeats = self.repeats
 
-        # Workaroud for bug in NumPy 1.9 that specifying one element list to
+        # Workaround for bug in NumPy 1.9 that specifying one element list to
         # `repeats` fails to broadcast.
         if len(repeats) == 1:
             repeats = repeats[0]
@@ -114,8 +114,7 @@ def repeat(x, repeats, axis=None):
     """Construct an array by repeating a given array.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         repeats (:class:`int` or :class:`tuple` of :class:`int` s):
             The number of times which each element of ``x`` is repeated.

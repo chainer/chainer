@@ -418,7 +418,7 @@ def softmax_cross_entropy(
     Returns:
         ~chainer.Variable: A variable holding a scalar array of the cross
         entropy loss.  If ``reduce`` is ``'mean'``, it is a scalar array.
-        If ``reduce`` is ``'no'``, the shape is same as that of ``x``.
+        If ``reduce`` is ``'no'``, the shape is same as that of ``t``.
 
     .. note::
 

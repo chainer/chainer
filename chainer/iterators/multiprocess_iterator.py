@@ -1,7 +1,7 @@
 from __future__ import division
 import datetime
 import multiprocessing
-from multiprocessing import sharedctypes
+from multiprocessing import sharedctypes  # type: ignore
 import signal
 import sys
 import threading
@@ -81,7 +81,7 @@ class MultiprocessIterator(iterator.Iterator):
 
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
@@ -493,7 +493,7 @@ class _PrefetchLoop(object):
         return True
 
 
-# Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
+# Using `parameterized` function (e.g. bound method) with Pool is tricky due to
 # restrictions imposed by Pickle. Picklable types differ across versions.
 # Just using top-level function with globals seems to be safest.
 # it doesn't mean thread safety broken or global variables visible;

@@ -46,8 +46,7 @@ def stack(xs, axis=0):
     """Concatenate variables along a new axis.
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same shape.
         axis (int): The axis along which the arrays will be stacked. The
