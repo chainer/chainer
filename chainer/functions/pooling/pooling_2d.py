@@ -64,7 +64,7 @@ class Pooling2D(function_node.FunctionNode):
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = x[0]
-        y = self.get_retained_outputs()[0].data
+        y = self.get_retained_outputs()[0].array
         gx = cudnn.pooling_backward(
             x, y, gy[0],
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),

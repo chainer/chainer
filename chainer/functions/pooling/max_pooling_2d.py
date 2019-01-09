@@ -177,7 +177,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        x = self.mpool2d.get_retained_inputs()[0].data
+        x = self.mpool2d.get_retained_inputs()[0].array
 
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
@@ -199,7 +199,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
     def forward_gpu(self, gy):
         if self._used_cudnn:
-            x = self.mpool2d.get_retained_inputs()[0].data
+            x = self.mpool2d.get_retained_inputs()[0].array
             return self.mpool2d.backward_gpu((x,), gy)
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
@@ -271,7 +271,7 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x = self.mpool2d.get_retained_inputs()[0].data
+            x = self.mpool2d.get_retained_inputs()[0].array
             return self._forward_gpu_compute_indexes_again((x, inputs[0]))
         else:
             x, = inputs
