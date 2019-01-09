@@ -1,5 +1,7 @@
 import unittest
 
+import chainer.types
+
 
 try:
     import pytest  # NOQA
@@ -10,7 +12,7 @@ except ImportError as e:
 
 if _error is None:
     from chainer.testing._distribution_test import distribution_unittest
-else:
+elif not chainer.types.TYPE_CHECKING:
     class distribution_unittest(unittest.TestCase):
         def test_dummy(self):
             raise RuntimeError('''\
