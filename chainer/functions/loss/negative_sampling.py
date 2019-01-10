@@ -171,6 +171,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                 gW[ik] += ig * ix
         return gx, None, gW
 
+    @chainer.non_deterministic
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, W, gy = inputs

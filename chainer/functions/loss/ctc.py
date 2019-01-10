@@ -151,6 +151,7 @@ class ConnectionistTemporalClassification(function.Function):
             res = create_recurrence_relation(x, self.zero_padding)
         return res.astype(x.dtype, copy=False)
 
+    @chainer.non_deterministic
     # path probability to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):

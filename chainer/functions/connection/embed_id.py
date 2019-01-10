@@ -58,6 +58,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         self.w_shape = w_shape
         self.ignore_label = ignore_label
 
+    @chainer.non_deterministic
     def forward(self, inputs):
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)

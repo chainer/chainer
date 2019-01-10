@@ -212,6 +212,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         self.wxy = wxy
         return ls.sum(),
 
+    @chainer.non_deterministic
     def backward_gpu(self, inputs, grad_outputs):
         x, t, W = inputs
         gloss, = grad_outputs

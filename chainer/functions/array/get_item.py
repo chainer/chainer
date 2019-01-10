@@ -89,6 +89,7 @@ https://github.com/chainer/chainer/issues/new.
         return GetItem(self.slices).apply(ggx)
 
 
+@chainer.non_deterministic
 def get_item(x, slices):
     """Extract elements from array with specified shape, axes and offsets.
 

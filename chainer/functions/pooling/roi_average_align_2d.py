@@ -425,6 +425,7 @@ class ROIAverageAlign2D(function.Function):
 
         return bottom_diff, None, None
 
+    @chainer.non_deterministic
     def backward_gpu(self, inputs, gy):
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
