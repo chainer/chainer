@@ -118,8 +118,7 @@ class ParallelUpdater(standard_updater.StandardUpdater):
         for i, key in enumerate(six.iterkeys(self._models)):
             if isinstance(batch, examples.Examples):
                 in_arrays_list[key] = batch.to_dataset(
-                    indices=slice(i, None, n),
-                    device=self._devices[key])
+                    slice(i, None, n), self._devices[key])
             else:
                 in_arrays_list[key] = self.converter(
                     batch[i::n], self._devices[key])

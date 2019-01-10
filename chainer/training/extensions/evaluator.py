@@ -8,6 +8,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer.dataset import convert
+from chainer.dataset import examples
 from chainer.dataset import iterator as iterator_module
 from chainer import function
 from chainer import iterators
@@ -209,7 +210,11 @@ class Evaluator(extension.Extension):
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self._call_converter(batch, self.device)
+                if isinstance(batch, examples.Examples):
+                    in_arrays = batch.to_dataset(
+                        None, convert.resolve_device(self.device))
+                else:
+                    in_arrays = self._call_converter(batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):
                         eval_func(*in_arrays)
