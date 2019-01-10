@@ -78,10 +78,8 @@ void PushNodeIfNotSeen(std::vector<std::shared_ptr<T>>& nodes, const std::shared
             std::is_same<T, ArrayNode>::value || std::is_same<T, OpNode>::value, "Only ArrayNodes or OpNodes are allowed to be pushed.");
     CHAINERX_ASSERT(node != nullptr);
 
-    T* raw_node = node.get();
-    if (seen_nodes.find(raw_node) == seen_nodes.end()) {
+    if (seen_nodes.emplace(node.get()).second) {
         nodes.emplace_back(node);
-        seen_nodes.emplace(raw_node);
     }
 }
 
