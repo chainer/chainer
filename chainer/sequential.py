@@ -6,7 +6,7 @@ import chainer
 from chainer import function
 
 
-class Sequential(chainer.ChainList):
+class Sequential(chainer.link.ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
@@ -145,7 +145,7 @@ class Sequential(chainer.ChainList):
 
     def __delitem__(self, i):
         layer = self._layers.pop(i)
-        if isinstance(layer, chainer.Link):
+        if isinstance(layer, chainer.link.Link):
             for i, _link in enumerate(self._children):
                 if _link.name == layer.name:
                     del self._children[i]
@@ -235,15 +235,15 @@ class Sequential(chainer.ChainList):
             if isinstance(layer, Sequential):
                 name = layer.__class__.__name__
                 name += '\twhich has {} layers'.format(len(layer))
-            elif isinstance(layer, chainer.Chain):
+            elif isinstance(layer, chainer.link.Chain):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a Chain is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, chainer.ChainList):
+            elif isinstance(layer, chainer.link.ChainList):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a ChainList is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, chainer.Link):
+            elif isinstance(layer, chainer.link.Link):
                 name = layer.__class__.__name__
                 param_info = '\t'
                 for param in sorted(layer.params(), key=lambda p: p.name):
@@ -279,7 +279,7 @@ class Sequential(chainer.ChainList):
                 'given {} is not callable.'.format(layer))
 
         self._layers.insert(i, layer)
-        if isinstance(layer, chainer.Link):
+        if isinstance(layer, chainer.link.Link):
             if i == 0:
                 self._children.insert(0, layer)
             else:
@@ -288,7 +288,7 @@ class Sequential(chainer.ChainList):
                 last_link_pos = 0
                 for j in range(i - 1, -1, -1):
                     # The last link before the given position
-                    if isinstance(self._layers[j], chainer.Link):
+                    if isinstance(self._layers[j], chainer.link.Link):
                         last_link_pos = j
                 self._children.insert(last_link_pos + 1, layer)
             for i, layer in enumerate(self._children):
@@ -319,7 +319,7 @@ class Sequential(chainer.ChainList):
 
         names = []
         for layer in self:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, chainer.link.Link):
                 name = layer.__class__.__name__
             else:
                 name = layer.__name__
@@ -364,7 +364,7 @@ class Sequential(chainer.ChainList):
 
         num = 0
         for layer in self._layers:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, chainer.link.Link):
                 if layer.__class__.__name__ == type_name:
                     num += 1
             else:
@@ -375,7 +375,7 @@ class Sequential(chainer.ChainList):
     def copy(self, mode='share'):
         ret = Sequential()
         for layer in self:
-            if isinstance(layer, chainer.Link):
+            if isinstance(layer, chainer.link.Link):
                 ret.append(layer.copy(mode))
             else:
                 ret.append(copy.copy(layer))
@@ -386,7 +386,7 @@ class Sequential(chainer.ChainList):
             raise ValueError('Objects other than Sequential object cannot be '
                              'copied to a Sequential object.')
         for idx, child in enumerate(self):
-            if isinstance(child, chainer.Link):
+            if isinstance(child, chainer.link.Link):
                 child.copyparams(link[idx], copy_persistent)
 
     def flatten(self):
