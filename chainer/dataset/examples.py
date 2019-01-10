@@ -9,7 +9,6 @@ import chainer
 from chainer import backend
 from chainer import types  # NOQA
 from chainer.backends import cuda
-from chainer.utils import collections_abc
 import chainerx
 
 
@@ -23,13 +22,21 @@ def sample_examples(datasets, indices=None, padding_spec=None):
         return SingleDatasetExamples(datasets, indices, padding_spec)
 
 
-class Examples(collections_abc.Sequence):
+class Examples:
     """
     An immutable list of examples.
     """
 
     def __init__(self):
         super(Examples, self).__init__()
+
+    @abstractmethod
+    def __getitem__(self, index):
+        pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
 
     @abstractmethod
     def to_dataset(self, indices=None, device=None):
