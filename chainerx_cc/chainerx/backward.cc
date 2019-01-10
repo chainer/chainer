@@ -95,7 +95,7 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
     // To extract a subgraph, the graph must be traversed "forwards" starting from the inputs towards the outputs.
 
     // A "forward" mapping of array nodes to op nodes of which the array nodes are inputs.
-    std::unordered_map<ArrayNode*, std::shared_ptr<OpNode>> forward_op_nodes;
+    std::unordered_multimap<ArrayNode*, std::shared_ptr<OpNode>> forward_op_nodes;
     std::unordered_set<OpNode*> seen_op_nodes;
     std::vector<std::shared_ptr<OpNode>> candidate_op_nodes;
     candidate_op_nodes.reserve(output_array_nodes.size());
@@ -111,7 +111,7 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
     // Traverse op node queue towards inputs.
     while (!candidate_op_nodes.empty()) {
-        const std::shared_ptr<OpNode>& op_node = candidate_op_nodes.back();
+        std::shared_ptr<OpNode> op_node = std::move(candidate_op_nodes.back());
         candidate_op_nodes.pop_back();
 
         for (const std::shared_ptr<ArrayNode>& array_node : op_node->input_array_nodes()) {
@@ -142,16 +142,17 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
     // "Forward" traverse array node queue towards outputs.
     while (!candidate_input_array_nodes.empty()) {
         const std::shared_ptr<ArrayNode>& array_node = candidate_input_array_nodes.back();
-        candidate_input_array_nodes.pop_back();
 
         auto it_op_node = forward_op_nodes.find(array_node.get());
         if (it_op_node == forward_op_nodes.end()) {
             // Array node is not mapped. It could be an output of an op node that was not given as output.
+            candidate_input_array_nodes.pop_back();
             continue;
         }
 
         const std::shared_ptr<OpNode>& op_node = it_op_node->second;
         if (op_node == nullptr) {
+            candidate_input_array_nodes.pop_back();
             continue;  // Array node is an output.
         }
 
@@ -175,6 +176,8 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
                 }
             }
         }
+
+        forward_op_nodes.erase(it_op_node);
     }
 
     return input_required_flags;
