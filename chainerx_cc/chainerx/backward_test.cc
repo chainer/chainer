@@ -1263,6 +1263,36 @@ TEST_F(BackpropTest, GradNonTrivialGraph) {
     EXPECT_ARRAY_EQ(Full({1}, 1.0f), *grads.at(1));  // 1 / (x4 - 3)
 }
 
+TEST_F(BackpropTest, GradFromIntermediate) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 1.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+
+    Array x1_initial_grad = Full({1}, 4.0f);
+    Array x2_initial_grad = Full({1}, 5.0f);
+    x1.SetGrad(x1_initial_grad, backprop_id_1);
+    x2.SetGrad(x2_initial_grad, backprop_id_1);
+
+    Array y1 = x1 * x2;
+    Array z1 = y1 * x1;
+
+    std::vector<nonstd::optional<Array>> grads = Grad({y1}, {x1, x2}, backprop_id_1);
+
+    EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
+    EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
+
+    EXPECT_ARRAY_EQ(x1_initial_grad, *x1.GetGrad(backprop_id_1));
+    EXPECT_ARRAY_EQ(x2_initial_grad, *x2.GetGrad(backprop_id_1));
+
+    EXPECT_EQ(grads.size(), 2U);
+    EXPECT_TRUE(grads.at(0).has_value());
+    EXPECT_TRUE(grads.at(1).has_value());
+    EXPECT_ARRAY_EQ(Full({1}, 2.0f), *grads.at(0));
+    EXPECT_ARRAY_EQ(Full({1}, 1.0f), *grads.at(1));
+}
+
 TEST_F(BackpropTest, GradSomeOutputsOmitted) {
     BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id_1 = backprop_scope1.backprop_id();
@@ -1295,6 +1325,43 @@ TEST_F(BackpropTest, GradSomeOutputsOmitted) {
     EXPECT_TRUE(grads.at(0).has_value());
     EXPECT_ARRAY_EQ(Full({1}, 40.0f), *grads.at(0));
     EXPECT_ARRAY_EQ(x1_initial_grad, *x1.GetGrad(backprop_id_1));
+}
+
+TEST_F(BackpropTest, GradDoubleBackwardWithBackward) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id_1);
+    Array x2 = Full({1}, 3.0f).RequireGrad(backprop_id_1);
+
+    Array x1_initial_grad = Full({1}, 5.0f);
+    Array x2_initial_grad = Full({1}, 6.0f);
+    x1.SetGrad(x1_initial_grad, backprop_id_1);
+    x2.SetGrad(x2_initial_grad, backprop_id_1);
+
+    Array y = x1 * x2 * x1 * x2;
+
+    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1, DoubleBackpropOption::kEnable);
+
+    EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
+    EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
+
+    EXPECT_ARRAY_EQ(x1_initial_grad, *x1.GetGrad(backprop_id_1));
+    EXPECT_ARRAY_EQ(x2_initial_grad, *x2.GetGrad(backprop_id_1));
+
+    EXPECT_EQ(grads.size(), 2U);
+    EXPECT_TRUE(grads.at(0).has_value());
+    EXPECT_TRUE(grads.at(1).has_value());
+    EXPECT_ARRAY_EQ(Full({1}, 36.0f), *grads.at(0));
+    EXPECT_ARRAY_EQ(Full({1}, 24.0f), *grads.at(1));
+
+    const Array& gx1 = *grads.at(0);
+    const Array& gx2 = *grads.at(1);
+
+    Backward({gx1, gx2}, backprop_id_1);
+
+    EXPECT_ARRAY_EQ(Full({1}, 47.0f), *x1.GetGrad(backprop_id_1));  // (Initial 5) + 18 + 24
+    EXPECT_ARRAY_EQ(Full({1}, 38.0f), *x2.GetGrad(backprop_id_1));  // (Initial 6) + 24 + 8
 }
 
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
