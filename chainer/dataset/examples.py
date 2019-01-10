@@ -14,7 +14,7 @@ import chainerx
 
 
 def sample_examples(datasets, indices=None, padding_spec=None):
-    # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> "SampledExamples" # NOQA
+    # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> "Examples" # NOQA
     if isinstance(datasets, tuple):
         return TupleDatasetExamples(datasets, indices, padding_spec)
     elif isinstance(datasets, dict):
@@ -23,7 +23,34 @@ def sample_examples(datasets, indices=None, padding_spec=None):
         return SingleDatasetExamples(datasets, indices, padding_spec)
 
 
-class SampledExamples(collections_abc.Sequence):
+class Examples(collections_abc.Sequence):
+    """
+    An immutable list of examples.
+    """
+
+    def __init__(self):
+        super(Examples, self).__init__()
+
+    @abstractmethod
+    def to_dataset(self, device=None):
+        # type: (tp.Optional[backend.Device]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
+        """
+        Return the examples as dataset(s).
+
+        Args:
+            device (device specifier): A device to which each array is sent.
+                If it is omitted, all arrays are left in their original
+                devices. See :meth:`~chainer.dataset.convert.to_device` for
+                more details.
+
+        Returns:
+            Dataset, a tuple of datasets, or a dictionary of datasets. The
+            type depends on the type of each example in the batch.
+        """
+        raise NotImplementedError
+
+
+class AbstractDatasetExamples(Examples):
     """
     An immutable list of examples which are sampled from one or more datasets.
     """
@@ -31,15 +58,10 @@ class SampledExamples(collections_abc.Sequence):
     def __init__(self, datasets, indices=None, padding_spec=None):
         # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
-        super(SampledExamples, self).__init__()
+        super(AbstractDatasetExamples, self).__init__()
         self._datasets = self._sample_datasets(datasets, indices, padding_spec)
 
-    @property
-    def dataset(self):
-        # type: () -> tp.Union[types.Dataset, types.Datasets]
-        return self._datasets
-
-    def dataset_to(self, device):
+    def to_dataset(self, device=None):
         # type: (tp.Optional[backend.Device]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
         if device is None:
             return self._datasets
@@ -55,10 +77,8 @@ class SampledExamples(collections_abc.Sequence):
         raise NotImplementedError
 
 
-class SingleDatasetExamples(SampledExamples):
+class SingleDatasetExamples(AbstractDatasetExamples):
     def __init__(self, datasets, indices=None, padding_spec=None):
-        # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
-
         super(SingleDatasetExamples, self).__init__(
             datasets, indices, padding_spec)
 
@@ -78,10 +98,8 @@ class SingleDatasetExamples(SampledExamples):
         return f(datasets)
 
 
-class TupleDatasetExamples(SampledExamples):
+class TupleDatasetExamples(AbstractDatasetExamples):
     def __init__(self, datasets, indices=None, padding_spec=None):
-        # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
-
         super(TupleDatasetExamples, self).__init__(
             datasets, indices, padding_spec)
 
@@ -116,10 +134,8 @@ class TupleDatasetExamples(SampledExamples):
         return tuple(f(dataset) for dataset in datasets)
 
 
-class DictDatasetExamples(SampledExamples):
+class DictDatasetExamples(AbstractDatasetExamples):
     def __init__(self, datasets, indices=None, padding_spec=None):
-        # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[tp.Sequence[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
-
         super(DictDatasetExamples, self).__init__(
             datasets, indices, padding_spec)
 

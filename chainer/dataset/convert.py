@@ -145,8 +145,9 @@ def concat_examples(batch, device=None, padding=None):
     if len(batch) == 0:
         raise ValueError('batch is empty')
 
-    if isinstance(batch, examples.SampledExamples):
-        return batch.dataset_to(_resolve_device(device))
+    if isinstance(batch, examples.Examples):
+        # padding should be specified in the dataset(s)
+        return batch.to_dataset(_resolve_device(device))
 
     else:
         first_elem = batch[0]
