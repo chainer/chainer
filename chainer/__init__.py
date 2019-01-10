@@ -21,6 +21,8 @@ from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
 
+from chainer import non_deterministic
+
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
