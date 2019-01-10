@@ -192,7 +192,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         self.indexes = intel64.ideep.array(self.indexes)
         gx = intel64.ideep.pooling2D.Backward(
-            intel64.ideep.array(x.data),
+            intel64.ideep.array(x),
             intel64.ideep.array(gy[0]),
             self.indexes, pp)
         return gx,
