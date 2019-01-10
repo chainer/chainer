@@ -100,15 +100,15 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     loss values.
 
     Args:
-        anchor (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The anchor example variable. The shape
+        anchor (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The anchor example variable. The shape
             should be :math:`(N, K)`, where :math:`N` denotes the minibatch
             size, and :math:`K` denotes the dimension of the anchor.
-        positive (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The positive example variable. The shape
+        positive (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The positive example variable. The shape
             should be the same as anchor.
-        negative (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The negative example variable. The shape
+        negative (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The negative example variable. The shape
             should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be a positive
             value.

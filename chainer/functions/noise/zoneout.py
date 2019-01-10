@@ -57,8 +57,8 @@ def zoneout(h, x, ratio=.5, **kwargs):
        See :func:`chainer.using_config`.
 
     Args:
-        h (~chainer.Variable): Previous variable.
-        x (~chainer.Variable): Input variable.
+        h (:class:`~chainer.Variable` or :ref:`ndarray`): Previous variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         ratio (float): Zoneout ratio.
 
     Returns:
