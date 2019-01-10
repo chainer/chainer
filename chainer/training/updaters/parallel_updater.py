@@ -4,6 +4,7 @@ import six
 
 from chainer.backends import cuda
 from chainer.dataset import convert
+from chainer.dataset import examples
 from chainer import function
 from chainer.training.updaters import standard_updater
 
@@ -115,8 +116,13 @@ class ParallelUpdater(standard_updater.StandardUpdater):
         n = len(self._models)
         in_arrays_list = {}
         for i, key in enumerate(six.iterkeys(self._models)):
-            in_arrays_list[key] = self.converter(
-                batch[i::n], self._devices[key])
+            if isinstance(batch, examples.Examples):
+                in_arrays_list[key] = batch.to_dataset(
+                    indices=slice(i, None, n),
+                    device=self._devices[key])
+            else:
+                in_arrays_list[key] = self.converter(
+                    batch[i::n], self._devices[key])
 
         # For reducing memory
         for model in six.itervalues(self._models):

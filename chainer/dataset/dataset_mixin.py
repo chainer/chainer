@@ -99,7 +99,7 @@ class BatchableDatasetMixin(DatasetMixin):
     """
 
     def get_examples(self, indices=None):
-        # type: (tp.Union[slice, tp.List, numpy.ndarray]) -> examples.Examples  # NOQA
+        # type: (tp.Union[slice, tp.List[int], numpy.ndarray]) -> examples.Examples  # NOQA
         """Returns the examples as the indices parameter specify.
 
         Implementations should override it. It should raise :class:`IndexError`

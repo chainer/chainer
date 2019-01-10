@@ -8,7 +8,6 @@ import chainer
 from chainer import backend
 from chainer import types  # NOQA
 from chainer.backends import cuda
-from chainer.dataset import examples
 
 
 def to_device(device, x):
@@ -38,7 +37,7 @@ def to_device(device, x):
 
     """
     # For backward compatibilities
-    device = _resolve_device(device)
+    device = resolve_device(device)
 
     if device is None:
         return x
@@ -46,7 +45,7 @@ def to_device(device, x):
         return device.send(x)
 
 
-def _resolve_device(device_spec):
+def resolve_device(device_spec):
     # type: (tp.Optional[tp.Union[int, types.DeviceSpec]]) -> tp.Optional[backend.Device] # NOQA
 
     if device_spec is None:
@@ -145,37 +144,32 @@ def concat_examples(batch, device=None, padding=None):
     if len(batch) == 0:
         raise ValueError('batch is empty')
 
-    if isinstance(batch, examples.Examples):
-        # padding should be specified in the dataset(s)
-        return batch.to_dataset(_resolve_device(device))
+    first_elem = batch[0]
+
+    if isinstance(first_elem, tuple):
+        result = []
+        if not isinstance(padding, tuple):
+            padding = [padding] * len(first_elem)
+
+        for i in six.moves.range(len(first_elem)):
+            result.append(to_device(device, _concat_arrays(
+                [example[i] for example in batch], padding[i])))
+
+        return tuple(result)
+
+    elif isinstance(first_elem, dict):
+        result = {}
+        if not isinstance(padding, dict):
+            padding = {key: padding for key in first_elem}
+
+        for key in first_elem:
+            result[key] = to_device(device, _concat_arrays(
+                [example[key] for example in batch], padding[key]))
+
+        return result
 
     else:
-        first_elem = batch[0]
-
-        if isinstance(first_elem, tuple):
-            result = []
-            if not isinstance(padding, tuple):
-                padding = [padding] * len(first_elem)
-
-            for i in six.moves.range(len(first_elem)):
-                result.append(to_device(device, _concat_arrays(
-                    [example[i] for example in batch], padding[i])))
-
-            return tuple(result)
-
-        elif isinstance(first_elem, dict):
-            result = {}
-            if not isinstance(padding, dict):
-                padding = {key: padding for key in first_elem}
-
-            for key in first_elem:
-                result[key] = to_device(device, _concat_arrays(
-                    [example[key] for example in batch], padding[key]))
-
-            return result
-
-        else:
-            return to_device(device, _concat_arrays(batch, padding))
+        return to_device(device, _concat_arrays(batch, padding))
 
 
 def _concat_arrays(arrays, padding):

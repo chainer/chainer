@@ -4,6 +4,7 @@ import six
 from chainer import backend
 from chainer.backends import cuda
 from chainer.dataset import convert
+from chainer.dataset import examples
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
 
@@ -194,7 +195,11 @@ class StandardUpdater(_updater.Updater):
     def update_core(self):
         iterator = self._iterators['main']
         batch = iterator.next()
-        in_arrays = self._call_converter(batch, self.device)
+        if isinstance(batch, examples.Examples):
+            in_arrays = batch.to_dataset(
+                device=convert.resolve_device(self.device))
+        else:
+            in_arrays = self._call_converter(batch, self.device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target
