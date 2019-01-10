@@ -103,7 +103,7 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
         const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
         if (op_node != nullptr) {
-            PushNodeIfNotSeen(candidate_op_nodes, array_node->creator_op_node(), seen_op_nodes);
+            PushNodeIfNotSeen(candidate_op_nodes, op_node, seen_op_nodes);
         }
     }
 
