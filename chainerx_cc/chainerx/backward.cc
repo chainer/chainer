@@ -562,14 +562,12 @@ std::vector<nonstd::optional<Array>> Grad(
     if (inputs.empty()) {
         return {};
     }
+    if (outputs.empty()) {
+        return std::vector<nonstd::optional<Array>>(inputs.size(), nonstd::nullopt);
+    }
 
     std::vector<nonstd::optional<Array>> input_grads;
     input_grads.reserve(inputs.size());
-
-    if (outputs.empty()) {
-        input_grads.resize(inputs.size(), nonstd::nullopt);
-        return input_grads;
-    }
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
 
