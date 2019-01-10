@@ -12,7 +12,8 @@ def non_deterministic(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         if configuration.config.check_deterministic:
-            warnings.warn('Non deterministic function of ' + fn.__name__ +
-                          ' called while config.check_deterministic set.')
+            warnings.warn(
+                'Non deterministic function of called while'
+                ' config.check_deterministic set.')
         return fn(*args, **kwargs)
     return wrapper
