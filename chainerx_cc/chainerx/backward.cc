@@ -97,30 +97,32 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
     // A "forward" mapping of array nodes to op nodes of which the array nodes are inputs.
     std::unordered_multimap<ArrayNode*, OpNode*> forward_op_nodes;
-    std::unordered_set<OpNode*> seen_op_nodes;
-    std::vector<OpNode*> candidate_op_nodes;
-    candidate_op_nodes.reserve(output_array_nodes.size());
+    {
+        std::unordered_set<OpNode*> seen_op_nodes;
+        std::vector<OpNode*> candidate_op_nodes;
+        candidate_op_nodes.reserve(output_array_nodes.size());
 
-    // Initialize op node queue starting from outputs.
-    for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
-        forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
-        const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
-        if (op_node != nullptr) {
-            PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
+        // Initialize op node queue starting from outputs.
+        for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
+            forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
+            const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
+            if (op_node != nullptr) {
+                PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
+            }
         }
-    }
 
-    // Traverse op node queue towards inputs.
-    while (!candidate_op_nodes.empty()) {
-        OpNode* op_node = candidate_op_nodes.back();
-        candidate_op_nodes.pop_back();
+        // Traverse op node queue towards inputs.
+        while (!candidate_op_nodes.empty()) {
+            OpNode* op_node = candidate_op_nodes.back();
+            candidate_op_nodes.pop_back();
 
-        for (const std::shared_ptr<ArrayNode>& array_node : op_node->input_array_nodes()) {
-            if (array_node != nullptr) {
-                forward_op_nodes.emplace(array_node.get(), op_node);
-                const std::shared_ptr<OpNode>& creator_op_node = array_node->creator_op_node();
-                if (creator_op_node != nullptr) {  // Creator op node is nullptr for inputs which should be skipped.
-                    PushNodeIfNotSeen(candidate_op_nodes, creator_op_node.get(), seen_op_nodes);
+            for (const std::shared_ptr<ArrayNode>& array_node : op_node->input_array_nodes()) {
+                if (array_node != nullptr) {
+                    forward_op_nodes.emplace(array_node.get(), op_node);
+                    const std::shared_ptr<OpNode>& creator_op_node = array_node->creator_op_node();
+                    if (creator_op_node != nullptr) {  // Creator op node is nullptr for inputs which should be skipped.
+                        PushNodeIfNotSeen(candidate_op_nodes, creator_op_node.get(), seen_op_nodes);
+                    }
                 }
             }
         }
@@ -128,60 +130,62 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
     // Create the subgraph.
     std::unordered_map<OpNode*, std::vector<uint8_t>> input_required_flags;
-    std::unordered_set<ArrayNode*> seen_array_nodes;
-    std::vector<ArrayNode*> candidate_input_array_nodes;
-    std::vector<std::shared_ptr<ArrayNode>> candidate_input_array_nodes_keep_alive;
-    candidate_input_array_nodes.reserve(inputs.size());
+    {
+        std::unordered_set<ArrayNode*> seen_array_nodes;
+        std::vector<ArrayNode*> candidate_input_array_nodes;
+        std::vector<std::shared_ptr<ArrayNode>> candidate_input_array_nodes_keep_alive;
+        candidate_input_array_nodes.reserve(inputs.size());
 
-    // Initialize array node queue with inputs.
-    for (const Array& input : inputs) {
-        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
-        if (array_body->HasArrayNode(backprop_id)) {
-            PushNodeIfNotSeen(candidate_input_array_nodes, array_body->GetArrayNode(backprop_id).get(), seen_array_nodes);
-        }
-    }
-
-    // "Forward" traverse array node queue towards outputs.
-    while (!candidate_input_array_nodes.empty()) {
-        ArrayNode* array_node = candidate_input_array_nodes.back();
-
-        auto it_op_node = forward_op_nodes.find(array_node);
-        if (it_op_node == forward_op_nodes.end()) {
-            // Array node is not mapped. It could be an output of an op node that was not given as output.
-            candidate_input_array_nodes.pop_back();
-            continue;
-        }
-
-        OpNode* op_node = it_op_node->second;
-        if (op_node == nullptr) {
-            candidate_input_array_nodes.pop_back();
-            continue;  // Array node is an output.
-        }
-
-        std::vector<uint8_t>& flags = input_required_flags[op_node];
-        if (flags.empty()) {
-            flags.resize(op_node->input_array_node_count());
-        }
-
-        const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
-        for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
-            if (input_array_nodes[i_input].get() == array_node) {
-                flags[i_input] = static_cast<int8_t>(true);
-                // Cannot break since the same inputs may appear more than once in an op node.
+        // Initialize array node queue with inputs.
+        for (const Array& input : inputs) {
+            const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
+            if (array_body->HasArrayNode(backprop_id)) {
+                PushNodeIfNotSeen(candidate_input_array_nodes, array_body->GetArrayNode(backprop_id).get(), seen_array_nodes);
             }
         }
 
-        for (const nonstd::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
-            if (output_array_node.has_value()) {
-                if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
-                    if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
-                        candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
+        // "Forward" traverse array node queue towards outputs.
+        while (!candidate_input_array_nodes.empty()) {
+            ArrayNode* array_node = candidate_input_array_nodes.back();
+
+            auto it_op_node = forward_op_nodes.find(array_node);
+            if (it_op_node == forward_op_nodes.end()) {
+                // Array node is not mapped. It could be an output of an op node that was not given as output.
+                candidate_input_array_nodes.pop_back();
+                continue;
+            }
+
+            OpNode* op_node = it_op_node->second;
+            if (op_node == nullptr) {
+                candidate_input_array_nodes.pop_back();
+                continue;  // Array node is an output.
+            }
+
+            std::vector<uint8_t>& flags = input_required_flags[op_node];
+            if (flags.empty()) {
+                flags.resize(op_node->input_array_node_count());
+            }
+
+            const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
+            for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
+                if (input_array_nodes[i_input].get() == array_node) {
+                    flags[i_input] = static_cast<int8_t>(true);
+                    // Cannot break since the same inputs may appear more than once in an op node.
+                }
+            }
+
+            for (const nonstd::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
+                if (output_array_node.has_value()) {
+                    if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
+                        if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
+                            candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
+                        }
                     }
                 }
             }
-        }
 
-        forward_op_nodes.erase(it_op_node);
+            forward_op_nodes.erase(it_op_node);
+        }
     }
 
     return input_required_flags;
