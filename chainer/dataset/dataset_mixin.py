@@ -2,6 +2,7 @@ import numpy
 import six
 import typing as tp  # NOQA
 
+from chainer import types  # NOQA
 from chainer.dataset import examples  # NOQA
 
 
@@ -97,20 +98,17 @@ class BatchableDatasetMixin(DatasetMixin):
     retrieving multiple examples in batch.
     """
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
         # type: (tp.Union[slice, tp.List, numpy.ndarray]) -> examples.SampledExamples  # NOQA
         """Returns the examples as the indices parameter specify.
 
         Implementations should override it. It should raise :class:`IndexError`
         if the index is invalid.
 
-        Note that it should return a {tuple, dict} of lists of examples for
-        efficiency instead of a list of {tuple, dict} of examples.
-
         Args:
             indices (slice, list or numpy.ndarray): Indices of examples.
 
         Returns:
-            A tuple or dict of lists of examples
+            the specified examples
         """
         raise NotImplementedError

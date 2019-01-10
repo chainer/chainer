@@ -56,7 +56,7 @@ class Dataset(tpe.Protocol):
 
 
 Datasets = tp.Union[
-    tp.Sequence[Dataset],
+    tp.Sequence[Dataset],  # Sequence includes both List and Tuple
     NdArray,
     tp.Dict[tp.Any, Dataset],
 ]

@@ -146,7 +146,7 @@ def concat_examples(batch, device=None, padding=None):
         raise ValueError('batch is empty')
 
     if isinstance(batch, examples.SampledExamples):
-        return batch.datasets_to(_resolve_device(device), padding)
+        return batch.dataset_to(_resolve_device(device))
 
     else:
         first_elem = batch[0]

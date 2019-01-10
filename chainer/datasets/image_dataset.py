@@ -96,7 +96,7 @@ class ImageDataset(dataset_mixin.BatchableDatasetMixin):
         return _postprocess_image(image)
 
     def get_examples(self, indices):
-        return examples.SampledExamples(
+        return examples.sample_examples(
             ([self.get_example(i) for i in indices],), indices)
 
 
@@ -177,7 +177,7 @@ class LabeledImageDataset(dataset_mixin.BatchableDatasetMixin):
             images.append(_read_image_as_array(full_path, self._dtype))
             labels.append(numpy.array(int_label, dtype=self._label_dtype))
 
-        return examples.SampledExamples((images, labels))
+        return examples.sample_examples((images, labels))
 
 
 class LabeledZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
@@ -235,7 +235,7 @@ class LabeledZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
             images.append(self._zipfile.get_example(path))
             labels.append(numpy.array(int_label, dtype=self._label_dtype))
 
-        return examples.SampledExamples((images, labels))
+        return examples.sample_examples((images, labels))
 
 
 class MultiZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
@@ -276,7 +276,7 @@ class MultiZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
             tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
             lidxs_by_tgt[tgt].append(i - self._zpaths_accumlens[tgt])
 
-        return examples.SampledExamples(
+        return examples.sample_examples(
             (list(itertools.chain.from_iterable([
                 self._zfs[tgt].get_examples(lidxs_by_tgt[tgt])[0]
                 for tgt in range(len(lidxs_by_tgt))])),))
@@ -356,7 +356,7 @@ class ZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
                     self._zf = zipfile.ZipFile(self._zipfilename)
                 image_file_mems.append(self._zf.read(zfn))
 
-        return examples.SampledExamples(([
+        return examples.sample_examples(([
             _postprocess_image(
                 _read_image_as_array(io.BytesIO(image_file_mem), self._dtype))
             for image_file_mem in image_file_mems],))
