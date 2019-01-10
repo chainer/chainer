@@ -69,7 +69,8 @@ def crf1d(cost, xs, ys, reduce='mean'):
 
 
     Args:
-        cost (Variable): A :math:`K \\times K` matrix which holds transition
+        cost (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A :math:`K \\times K` matrix which holds transition
             cost between two labels, where :math:`K` is the number of labels.
         xs (list of Variable): Input vector for each label.
             ``len(xs)`` denotes the length of the sequence,
@@ -152,7 +153,8 @@ def argmax_crf1d(cost, xs):
     """Computes a state that maximizes a joint probability of the given CRF.
 
     Args:
-        cost (Variable): A :math:`K \\times K` matrix which holds transition
+        cost (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A :math:`K \\times K` matrix which holds transition
             cost between two labels, where :math:`K` is the number of labels.
         xs (list of Variable): Input vector for each label.
             ``len(xs)`` denotes the length of the sequence,
@@ -169,9 +171,8 @@ def argmax_crf1d(cost, xs):
         The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
         i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
         data.
-        ``ps`` is a list of :class:`numpy.ndarray` or
-        :class:`cupy.ndarray`, and denotes the state that maximizes the
-        point probability.
+        ``ps`` is a list of :ref:`ndarray`, and denotes the state that
+        maximizes the point probability.
         ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
         the mini-batch size of the corresponding ``xs[i]``. That means,
         ``ps[i].shape == xs[i].shape[0:1]``.
