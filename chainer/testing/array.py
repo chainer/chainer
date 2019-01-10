@@ -39,11 +39,15 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
             tol_err = atol + rtol * numpy.abs(yy).astype(numpy.float64)
             i = numpy.unravel_index(
                 numpy.argmax(err.astype(numpy.float64) - tol_err), err.shape)
+            if yy[i] == 0:
+                rel_err = 'inf'
+            else:
+                rel_err = err[i] / numpy.abs(yy[i])
             f.write(
                 '  i: {}\n'.format(i) +
                 '  x[i]: {}\n'.format(xx[i]) +
                 '  y[i]: {}\n'.format(yy[i]) +
-                '  relative error[i]: {}\n'.format(err[i] / numpy.abs(yy[i])) +
+                '  relative error[i]: {}\n'.format(rel_err) +
                 '  absolute error[i]: {}\n'.format(err[i]))
         opts = numpy.get_printoptions()
         try:
