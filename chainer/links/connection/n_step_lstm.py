@@ -61,8 +61,8 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
             - ``cy`` is an updated cell states whose shape is the same as
               ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(L_i, N)`` for
+              ``ys[i]`` holds hidden states of the last layer corresponding
+              to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
               uni-directional LSTM and ``(L_i, 2N)`` for bi-directional LSTM
               where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
