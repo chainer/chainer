@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 import six
 import typing as tp  # NOQA
 
@@ -30,15 +28,12 @@ class Examples:
     def __init__(self):
         super(Examples, self).__init__()
 
-    @abstractmethod
     def __getitem__(self, index):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def __len__(self):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def to_dataset(self, indices=None, device=None):
         # type: (tp.Optional[tp.Union[int, slice]], tp.Optional[backend.Device]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
         """
@@ -71,16 +66,16 @@ class AbstractDatasetExamples(Examples):
 
     def to_dataset(self, indices=None, device=None):
         if device is None:
-            return self._datasets
+            f = _identity
         else:
-            return self._map_datasets(device.send, self._datasets, indices)
+            f = device.send
 
-    @abstractmethod
+        return self._map_datasets(f, self._datasets, indices)
+
     def _sample_datasets(self, datasets, indices, padding_spec):
         # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> types.Dataset # NOQA
         raise NotImplementedError
 
-    @abstractmethod
     def _map_datasets(self, f, datasets, indices):
         # type: (tp.Callable[[types.Dataset], types.Dataset], tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[int, slice]]) -> types.Dataset # NOQA
         raise NotImplementedError
@@ -99,7 +94,7 @@ class SingleDatasetExamples(AbstractDatasetExamples):
 
     def _sample_datasets(self, datasets, indices, padding_spec):
         if indices is None:
-            indices = six.moves.range(datasets)
+            indices = six.moves.range(len(datasets))
 
         return _sample_with_padding(datasets, indices, padding_spec)
 
@@ -185,6 +180,11 @@ class DictDatasetExamples(AbstractDatasetExamples):
             return {k: f(dataset) for k, dataset in datasets}
         else:
             return {k: f(dataset[indices]) for k, dataset in datasets}
+
+
+def _identity(a):
+    # type: (tp.Any) -> tp.Any
+    return a
 
 
 def _sample_with_padding(dataset, indices, padding=None):
