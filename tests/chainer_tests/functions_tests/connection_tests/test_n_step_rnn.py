@@ -244,7 +244,7 @@ class TestNStepRNN(unittest.TestCase):
 
     def check_call_cudnn_backward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn), \
-             chainer.using_config('train', False):
+                chainer.using_config('train', False):
             hx = _wrap_variable(_to_gpu(self.hx))
             xs = _wrap_variable(_to_gpu(self.xs))
             ws = _wrap_variable(_to_gpu(self.ws))
