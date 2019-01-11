@@ -14,6 +14,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
+from chainer.dataset import examples
 from chainer.training import extensions
 
 
@@ -90,7 +91,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         if self.is_new_epoch:
             self.epoch = epoch
 
-        return list(zip(cur_words, next_words))
+        return examples.sample_from_dataset((cur_words, next_words))
 
     @property
     def epoch_detail(self):
@@ -150,7 +151,10 @@ class BPTTUpdater(training.updaters.StandardUpdater):
             # Concatenate the word IDs to matrices and send them to the device
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
-            x, t = self.converter(batch, self.device)
+            if isinstance(batch, examples.Examples):
+                x, t = batch.to_dataset(self.device)
+            else:
+                x, t = self.converter(batch, self.device)
 
             # Compute the loss at this time step and accumulate it
             loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))

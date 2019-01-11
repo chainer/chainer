@@ -28,6 +28,7 @@ import random
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
+from chainer.dataset import examples
 import chainer.functions as F
 from chainer.functions.loss import softmax_cross_entropy
 import chainer.links as L
@@ -137,7 +138,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
         if self.is_new_epoch:
             self.epoch = epoch
 
-        return list(zip(cur_words, next_words))
+        return examples.sample_from_dataset((cur_words, next_words))
 
     @property
     def epoch_detail(self):

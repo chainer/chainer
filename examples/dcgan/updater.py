@@ -2,6 +2,7 @@
 import chainer
 import chainer.functions as F
 from chainer import Variable
+from chainer.dataset import Examples
 
 
 class DCGANUpdater(chainer.training.updaters.StandardUpdater):
@@ -29,7 +30,10 @@ class DCGANUpdater(chainer.training.updaters.StandardUpdater):
         dis_optimizer = self.get_optimizer('dis')
 
         batch = self.get_iterator('main').next()
-        x_real = Variable(self.converter(batch, self.device)) / 255.
+        if isinstance(batch, Examples):
+            x_real = Variable(batch.to_dataset(self.device)) / 255.
+        else:
+            x_real = Variable(self.converter(batch, self.device)) / 255.
         xp = chainer.backend.get_array_module(x_real.array)
 
         gen, dis = self.gen, self.dis
