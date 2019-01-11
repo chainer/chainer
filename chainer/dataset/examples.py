@@ -7,6 +7,7 @@ import chainer
 from chainer import backend
 from chainer import types  # NOQA
 from chainer.backends import cuda
+from chainer.dataset import convert
 import chainerx
 
 
@@ -43,7 +44,7 @@ def sample_from_dataset(dataset, indices=None, padding_spec=None):
 
 class Examples:
     """
-    A sequence-like collection of examples.
+    A Sequence-like collection of examples.
 
     If you want a customized Examples, you just need to implement
     :meth:`to_dataset` method for :class:`~chainer.training.Updater`
@@ -74,8 +75,9 @@ class Examples:
     def __iter__(self):
         # type: () -> tp.Iterator[tp.Any]
 
-        # It depends on self.__len__ and __getitem__
-        return (self[i] for i in six.moves.xrange(len(self)))
+        return (
+            self[i]  # self.__getitem__
+            for i in six.moves.xrange(len(self)))  # self.__len__
 
     def index(self, value, start=0, stop=None):
         # type: (tp.Any, int, int) -> int
@@ -98,17 +100,21 @@ class Examples:
     def __getitem__(self, index):
         raise NotImplementedError
 
-    def to_dataset(self, indices=None, device=None):
-        # type: (tp.Optional[tp.Union[int, slice]], tp.Optional[backend.Device]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
+    def to_dataset(self, device_spec=None, indices=None):
+        # type: (tp.Optional[tp.Union[int, types.DeviceSpec]], tp.Optional[tp.Union[int, slice]]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
         """
         Return the examples as dataset(s).
 
         Args:
-            indices (None or int or slice): Indices of examples.
-            device (None or device specifier): A device to which each array is
-                sent. If it is omitted, all arrays are left in their original
-                devices. See :meth:`~chainer.dataset.convert.to_device` for
-                more details.
+            device_spec (None or int or device specifier): A device to which
+                examples are sent. If it is a negative integer, an array is
+                sent to CPU. If it is a positive integer, an array is sent to
+                GPU with the given ID. If it is``None``, an array is left in
+                the original device. Also, any of device specifiers described
+                at :class:`~chainer.backend.DeviceId` is accepted.
+            indices (None or int or slice): Indices of examples. This method
+                extracts the specified examples before sending them to the
+                device.
 
         Returns:
             Dataset, a tuple of datasets, or a dictionary of datasets. The
@@ -119,7 +125,7 @@ class Examples:
 
 class AbstractDatasetExamples(Examples):
     """
-    A sequence-like collection of examples sampled from one or more datasets.
+    A Sequence-like collection of examples sampled from one or more datasets.
 
     This is an abstract base class for Single, Tuple and DictDatasetExamples.
     """
@@ -130,13 +136,14 @@ class AbstractDatasetExamples(Examples):
         super(AbstractDatasetExamples, self).__init__()
         self._dataset = self._do_sample(dataset, indices, padding_spec)
 
-    def to_dataset(self, indices=None, device=None):
+    def to_dataset(self, device_spec=None, indices=None):
+        device = convert.resolve_device_spec(device_spec)
         if device is None:
-            f = _identity
+            converter = _identity
         else:
-            f = device.send
+            converter = device.send
 
-        return self._map_datasets(f, self._dataset, indices)
+        return self._map_datasets(converter, self._dataset, indices)
 
     def _do_sample(self, dataset, indices, padding_spec):
         # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> tp.Union[types.Dataset, types.Datasets] # NOQA

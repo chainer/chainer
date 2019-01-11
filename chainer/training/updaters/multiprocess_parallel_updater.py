@@ -58,8 +58,7 @@ class _Worker(multiprocessing.Process):
 
                 batch = self.iterator.next()
                 if isinstance(batch, examples.Examples):
-                    in_arrays = batch.to_dataset(
-                        None, convert.resolve_device(self.device))
+                    in_arrays = batch.to_dataset(self.device)
                 else:
                     in_arrays = self.converter(batch, self.device)
                 observation = {}
@@ -240,8 +239,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             iterator = self.get_iterator('main')
             batch = iterator.next()
             if isinstance(batch, examples.Examples):
-                in_arrays = batch.to_dataset(
-                    None, convert.resolve_device(self._devices[0]))
+                in_arrays = batch.to_dataset(self._devices[0])
             else:
                 in_arrays = self.converter(batch, self._devices[0])
 

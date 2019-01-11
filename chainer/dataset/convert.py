@@ -37,7 +37,7 @@ def to_device(device, x):
 
     """
     # For backward compatibilities
-    device = resolve_device(device)
+    device = resolve_device_spec(device)
 
     if device is None:
         return x
@@ -45,7 +45,7 @@ def to_device(device, x):
         return device.send(x)
 
 
-def resolve_device(device_spec):
+def resolve_device_spec(device_spec):
     # type: (tp.Optional[tp.Union[int, types.DeviceSpec]]) -> tp.Optional[backend.Device] # NOQA
 
     if device_spec is None:

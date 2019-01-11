@@ -196,8 +196,7 @@ class StandardUpdater(_updater.Updater):
         iterator = self._iterators['main']
         batch = iterator.next()
         if isinstance(batch, examples.Examples):
-            in_arrays = batch.to_dataset(
-                None, convert.resolve_device(self.device))
+            in_arrays = batch.to_dataset(self.device, None)
         else:
             in_arrays = self._call_converter(batch, self.device)
 
