@@ -5,6 +5,7 @@ import six
 
 from chainer.backends import cuda
 from chainer.dataset import convert
+from chainer.dataset import examples
 from chainer import reporter
 from chainer.training.updaters import standard_updater
 
@@ -55,10 +56,15 @@ class _Worker(multiprocessing.Process):
                 # For reducing memory
                 self.model.cleargrads()
 
-                batch = self.converter(self.iterator.next(), self.device)
+                batch = self.iterator.next()
+                if isinstance(batch, examples.Examples):
+                    in_arrays = batch.to_dataset(
+                        None, convert.resolve_device(self.device))
+                else:
+                    in_arrays = self.converter(batch, self.device)
                 observation = {}
                 with self.reporter.scope(observation):
-                    loss = _calc_loss(self.model, batch)
+                    loss = _calc_loss(self.model, in_arrays)
 
                 self.model.cleargrads()
                 loss.backward()
@@ -233,9 +239,13 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             optimizer = self.get_optimizer('main')
             iterator = self.get_iterator('main')
             batch = iterator.next()
-            batch = self.converter(batch, self._devices[0])
+            if isinstance(batch, examples.Examples):
+                in_arrays = batch.to_dataset(
+                    None, convert.resolve_device(self._devices[0]))
+            else:
+                in_arrays = self.converter(batch, self._devices[0])
 
-            loss = _calc_loss(self._master, batch)
+            loss = _calc_loss(self._master, in_arrays)
 
             self._master.cleargrads()
             loss.backward()

@@ -50,7 +50,7 @@ class TupleDataset(object):
             return tuple(batches)
 
     def get_examples(self, indices):
-        return examples.sample_examples(tuple(self._datasets), indices)
+        return examples.sample_from_dataset(tuple(self._datasets), indices)
 
     def __len__(self):
         return self._length
