@@ -34,8 +34,7 @@ from chainer.testing import attr
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-@testing.function_test()
-class TestReLU(unittest.TestCase):
+class TestReLU(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
 

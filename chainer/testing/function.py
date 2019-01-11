@@ -1,12 +1,11 @@
 import contextlib
-import os
+import unittest
 
 import numpy
 
 import chainer
 from chainer import backend
 from chainer.testing import array as array_module
-from chainer.testing import condition
 from chainer import utils
 
 
@@ -33,7 +32,7 @@ class FunctionTestError(AssertionError):
             FunctionTestError.fail(message, e)
 
 
-def function_test():
+class FunctionTestCase(unittest.TestCase):
     """A decorator to generate function tests.
 
     This decorator can be applied to a base :class:`unittest.TestCase` class
@@ -146,73 +145,204 @@ def function_test():
                   return expected,
     """
 
-    def wrap(cls):
-        # Assign class attributes
-        attrs = [
-            ('forward_test', True),
-            ('backward_test', True),
-            ('double_backward_test', True),
-            ('dodge_nondifferentiable', False),
-            ('contiguous', None),
-        ]
-        for attr_name, default_value in attrs:
-            if not hasattr(cls, attr_name):
-                setattr(cls, attr_name, default_value)
+    backend_config = None
+    check_forward_options = {}
+    check_backward_options = {}
+    check_double_backward_options = {}
+    forward_test = True
+    backward_test = True
+    double_backward_test = True
+    dodge_nondifferentiable = False
+    contiguous = None
 
-        # Replace __init__
-        cls.__init__ = _FunctionTestTemplate.__dict__['__init__']
+    def before_test(self, test_name):
+        pass
 
-        # Enumerate member methods to copy
-        method_names = []
-        for memb_name in dir(_FunctionTestTemplate):
-            obj = getattr(_FunctionTestTemplate, memb_name)
-            if not hasattr(obj, '_copy_to_test_case'):
-                continue
-            enable_attr_name, = obj._copy_to_test_case
-            if (enable_attr_name is not None
-                    and not getattr(cls, enable_attr_name)):
-                continue
-            method_names.append(memb_name)
+    def forward(self, inputs, device):
+        raise NotImplementedError('forward() is not implemented.')
 
-        # Copy member methods
-        for method_name in method_names:
-            if hasattr(cls, method_name):
-                # Copy only if it's not defined in the concrete class
-                continue
-            setattr(
-                cls,
-                method_name,
-                _FunctionTestTemplate.__dict__[method_name])
+    def forward_expected(self, inputs):
+        raise NotImplementedError('forward_expected() is not implemented.')
 
-        # Configure test repeat count
-        repeat_tests = [
-            # (test method name, environment variable)
-            ('test_forward', 'CHAINER_TEST_FORWARD_REPEAT'),
-            ('test_backward', 'CHAINER_TEST_BACKWARD_REPEAT'),
-            ('test_double_backward', 'CHAINER_TEST_DOUBLE_BACKWARD_REPEAT'),
-        ]
-        for method_name, repeat_var_name in repeat_tests:
-            if not hasattr(cls, method_name):
-                continue
-            rep = int(os.environ.get(repeat_var_name, 1))
-            if rep != 1:
-                rep_method = condition.repeat(rep)(getattr(cls, method_name))
-                setattr(cls, method_name, rep_method)
+    def generate_inputs(self):
+        raise NotImplementedError('generate_inputs() is not implemented.')
 
-        cls._func_template_wrapped_class = cls
-        return cls
+    def generate_grad_outputs(self, outputs_template):
+        grad_outputs = tuple([
+            numpy.random.uniform(-1, 1, a.shape).astype(a.dtype)
+            for a in outputs_template])
+        return grad_outputs
 
-    return wrap
+    def generate_grad_grad_inputs(self, inputs_template):
+        grad_grad_inputs = tuple([
+            numpy.random.uniform(-1, 1, a.shape).astype(a.dtype)
+            for a in inputs_template])
+        return grad_grad_inputs
 
+    def _to_noncontiguous_as_needed(self, contig_arrays):
+        if self.contiguous is None:
+            # non-contiguous
+            return array_module._as_noncontiguous_array(contig_arrays)
+        if self.contiguous == 'C':
+            # C-contiguous
+            return contig_arrays
+        assert False, (
+            'Invalid value of `contiguous`: {}'.format(self.contiguous))
 
-def _copy_to_test_case(enable_attr_name=None):
-    # Mark a method with this decorator to make it transferred to the concrete
-    # test case class. If `enable_attr_name` is given, the transfer is skipped
-    # if the class has this attribute and its value is False.
-    def wrap(meth):
-        meth._copy_to_test_case = (enable_attr_name,)
-        return meth
-    return wrap
+    def _generate_inputs(self):
+        inputs = self.generate_inputs()
+        _check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
+        return inputs
+
+    def _generate_grad_outputs(self, outputs_template):
+        grad_outputs = self.generate_grad_outputs(outputs_template)
+        _check_array_types(
+            grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
+        return grad_outputs
+
+    def _generate_grad_grad_inputs(self, inputs_template):
+        grad_grad_inputs = self.generate_grad_grad_inputs(inputs_template)
+        _check_array_types(
+            grad_grad_inputs, backend.CpuDevice(), 'generate_grad_grad_inputs')
+        return grad_grad_inputs
+
+    def _forward_expected(self, inputs):
+        outputs = self.forward_expected(inputs)
+        _check_array_types(outputs, backend.CpuDevice(), 'forward_expected')
+        return outputs
+
+    def _forward(self, inputs, backend_config):
+        assert all(isinstance(a, chainer.Variable) for a in inputs)
+        with backend_config:
+            outputs = self.forward(inputs, backend_config.device)
+        _check_variable_types(outputs, backend_config.device, 'forward')
+        return outputs
+
+    def test_forward(self, backend_config):
+        """Tests forward computation."""
+
+        self.backend_config = backend_config
+        self.before_test('test_forward')
+
+        cpu_inputs = self._generate_inputs()
+        inputs_copied = [a.copy() for a in cpu_inputs]
+
+        # Compute expected outputs
+        cpu_expected = self._forward_expected(cpu_inputs)
+        inputs = backend_config.get_array(cpu_inputs)
+        inputs = self._to_noncontiguous_as_needed(inputs)
+
+        # Compute actual outputs
+        outputs = self._forward(
+            tuple([chainer.Variable(a) for a in inputs]),
+            backend_config)
+
+        # Check inputs has not changed
+        indices = []
+        for i in range(len(inputs)):
+            try:
+                array_module.assert_allclose(
+                    inputs_copied[i], inputs[i], atol=0, rtol=0)
+            except AssertionError:
+                indices.append(i)
+
+        if len(indices) > 0:
+            FunctionTestError.fail(
+                'Input arrays have been modified during forward.\n'
+                'Indices of modified inputs: {}\n'
+                'Input array shapes and dtypes: {}\n'.format(
+                    ', '.join(str(i) for i in indices),
+                    utils._format_array_props(inputs)))
+
+        _check_forward_output_arrays_equal(
+            cpu_expected,
+            [var.array for var in outputs],
+            'forward', **self.check_forward_options)
+
+    def test_backward(self, backend_config):
+        """Tests backward computation."""
+
+        # avoid cyclic import
+        from chainer import gradient_check
+
+        self.backend_config = backend_config
+        self.before_test('test_backward')
+
+        def f(*args):
+            return self._forward(args, backend_config)
+
+        def do_check():
+            inputs = self._generate_inputs()
+            outputs = self._forward_expected(inputs)
+            grad_outputs = self._generate_grad_outputs(outputs)
+
+            inputs = backend_config.get_array(inputs)
+            grad_outputs = backend_config.get_array(grad_outputs)
+            inputs = self._to_noncontiguous_as_needed(inputs)
+            grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
+
+            with FunctionTestError.raise_if_fail(
+                    'backward is not implemented correctly'):
+                gradient_check.check_backward(
+                    f, inputs, grad_outputs, dtype=numpy.float64,
+                    detect_nondifferentiable=self.dodge_nondifferentiable,
+                    **self.check_backward_options)
+
+        if self.dodge_nondifferentiable:
+            while True:
+                try:
+                    do_check()
+                except gradient_check.NondifferentiableError:
+                    continue
+                else:
+                    break
+        else:
+            do_check()
+
+    def test_double_backward(self, backend_config):
+        """Tests double-backward computation."""
+        # avoid cyclic import
+        from chainer import gradient_check
+
+        self.backend_config = backend_config
+        self.before_test('test_double_backward')
+
+        def f(*args):
+            return self._forward(args, backend_config)
+
+        def do_check():
+            inputs = self._generate_inputs()
+            outputs = self._forward_expected(inputs)
+            grad_outputs = self._generate_grad_outputs(outputs)
+            grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
+
+            inputs = backend_config.get_array(inputs)
+            grad_outputs = backend_config.get_array(grad_outputs)
+            grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
+            inputs = self._to_noncontiguous_as_needed(inputs)
+            grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
+            grad_grad_inputs = (
+                self._to_noncontiguous_as_needed(grad_grad_inputs))
+
+            with backend_config:
+                with FunctionTestError.raise_if_fail(
+                        'double backward is not implemented correctly'):
+                    gradient_check.check_double_backward(
+                        f, inputs, grad_outputs, grad_grad_inputs,
+                        dtype=numpy.float64,
+                        detect_nondifferentiable=self.dodge_nondifferentiable,
+                        **self.check_double_backward_options)
+
+        if self.dodge_nondifferentiable:
+            while True:
+                try:
+                    do_check()
+                except gradient_check.NondifferentiableError:
+                    continue
+                else:
+                    break
+        else:
+            do_check()
 
 
 def _check_array_types(arrays, device, func_name):
@@ -296,219 +426,3 @@ def _check_forward_output_arrays_equal(
                 message,
                 utils._format_array_props(expected_arrays),
                 utils._format_array_props(actual_arrays)))
-
-
-class _FunctionTestTemplate(object):
-
-    backend_config = None
-
-    def __init__(self, *args, **kwargs):
-        super(
-            self._func_template_wrapped_class, self).__init__(*args, **kwargs)
-        self.check_forward_options = {}
-        self.check_backward_options = {}
-        self.check_double_backward_options = {}
-
-    @_copy_to_test_case()
-    def before_test(self, test_name):
-        pass
-
-    @_copy_to_test_case()
-    def forward(self, inputs, device):
-        raise NotImplementedError('forward() is not implemented.')
-
-    @_copy_to_test_case()
-    def forward_expected(self, inputs):
-        raise NotImplementedError('forward_expected() is not implemented.')
-
-    @_copy_to_test_case()
-    def generate_inputs(self):
-        raise NotImplementedError('generate_inputs() is not implemented.')
-
-    @_copy_to_test_case()
-    def generate_grad_outputs(self, outputs_template):
-        grad_outputs = tuple([
-            numpy.random.uniform(-1, 1, a.shape).astype(a.dtype)
-            for a in outputs_template])
-        return grad_outputs
-
-    @_copy_to_test_case()
-    def generate_grad_grad_inputs(self, inputs_template):
-        grad_grad_inputs = tuple([
-            numpy.random.uniform(-1, 1, a.shape).astype(a.dtype)
-            for a in inputs_template])
-        return grad_grad_inputs
-
-    @_copy_to_test_case()
-    def _to_noncontiguous_as_needed(self, contig_arrays):
-        if self.contiguous is None:
-            # non-contiguous
-            return array_module._as_noncontiguous_array(contig_arrays)
-        if self.contiguous == 'C':
-            # C-contiguous
-            return contig_arrays
-        assert False, (
-            'Invalid value of `contiguous`: {}'.format(self.contiguous))
-
-    @_copy_to_test_case()
-    def _generate_inputs(self):
-        inputs = self.generate_inputs()
-        _check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
-        return inputs
-
-    @_copy_to_test_case()
-    def _generate_grad_outputs(self, outputs_template):
-        grad_outputs = self.generate_grad_outputs(outputs_template)
-        _check_array_types(
-            grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
-        return grad_outputs
-
-    @_copy_to_test_case()
-    def _generate_grad_grad_inputs(self, inputs_template):
-        grad_grad_inputs = self.generate_grad_grad_inputs(inputs_template)
-        _check_array_types(
-            grad_grad_inputs, backend.CpuDevice(), 'generate_grad_grad_inputs')
-        return grad_grad_inputs
-
-    @_copy_to_test_case()
-    def _forward_expected(self, inputs):
-        outputs = self.forward_expected(inputs)
-        _check_array_types(outputs, backend.CpuDevice(), 'forward_expected')
-        return outputs
-
-    @_copy_to_test_case()
-    def _forward(self, inputs, backend_config):
-        assert all(isinstance(a, chainer.Variable) for a in inputs)
-        with backend_config:
-            outputs = self.forward(inputs, backend_config.device)
-        _check_variable_types(outputs, backend_config.device, 'forward')
-        return outputs
-
-    @_copy_to_test_case(enable_attr_name='forward_test')
-    def test_forward(self, backend_config):
-        """Tests forward computation."""
-
-        self.backend_config = backend_config
-        self.before_test('test_forward')
-
-        cpu_inputs = self._generate_inputs()
-        inputs_copied = [a.copy() for a in cpu_inputs]
-
-        # Compute expected outputs
-        cpu_expected = self._forward_expected(cpu_inputs)
-        inputs = backend_config.get_array(cpu_inputs)
-        inputs = self._to_noncontiguous_as_needed(inputs)
-
-        # Compute actual outputs
-        outputs = self._forward(
-            tuple([chainer.Variable(a) for a in inputs]),
-            backend_config)
-
-        # Check inputs has not changed
-        indices = []
-        for i in range(len(inputs)):
-            try:
-                array_module.assert_allclose(
-                    inputs_copied[i], inputs[i], atol=0, rtol=0)
-            except AssertionError:
-                indices.append(i)
-
-        if len(indices) > 0:
-            FunctionTestError.fail(
-                'Input arrays have been modified during forward.\n'
-                'Indices of modified inputs: {}\n'
-                'Input array shapes and dtypes: {}\n'.format(
-                    ', '.join(str(i) for i in indices),
-                    utils._format_array_props(inputs)))
-
-        _check_forward_output_arrays_equal(
-            cpu_expected,
-            [var.array for var in outputs],
-            'forward', **self.check_forward_options)
-
-    @_copy_to_test_case(enable_attr_name='backward_test')
-    def test_backward(self, backend_config):
-        """Tests backward computation."""
-
-        # avoid cyclic import
-        from chainer import gradient_check
-
-        self.backend_config = backend_config
-        self.before_test('test_backward')
-
-        def f(*args):
-            return self._forward(args, backend_config)
-
-        def do_check():
-            inputs = self._generate_inputs()
-            outputs = self._forward_expected(inputs)
-            grad_outputs = self._generate_grad_outputs(outputs)
-
-            inputs = backend_config.get_array(inputs)
-            grad_outputs = backend_config.get_array(grad_outputs)
-            inputs = self._to_noncontiguous_as_needed(inputs)
-            grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
-
-            with FunctionTestError.raise_if_fail(
-                    'backward is not implemented correctly'):
-                gradient_check.check_backward(
-                    f, inputs, grad_outputs, dtype=numpy.float64,
-                    detect_nondifferentiable=self.dodge_nondifferentiable,
-                    **self.check_backward_options)
-
-        if self.dodge_nondifferentiable:
-            while True:
-                try:
-                    do_check()
-                except gradient_check.NondifferentiableError:
-                    continue
-                else:
-                    break
-        else:
-            do_check()
-
-    @_copy_to_test_case(enable_attr_name='double_backward_test')
-    def test_double_backward(self, backend_config):
-        """Tests double-backward computation."""
-        # avoid cyclic import
-        from chainer import gradient_check
-
-        self.backend_config = backend_config
-        self.before_test('test_double_backward')
-
-        def f(*args):
-            return self._forward(args, backend_config)
-
-        def do_check():
-            inputs = self._generate_inputs()
-            outputs = self._forward_expected(inputs)
-            grad_outputs = self._generate_grad_outputs(outputs)
-            grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
-
-            inputs = backend_config.get_array(inputs)
-            grad_outputs = backend_config.get_array(grad_outputs)
-            grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-            inputs = self._to_noncontiguous_as_needed(inputs)
-            grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
-            grad_grad_inputs = (
-                self._to_noncontiguous_as_needed(grad_grad_inputs))
-
-            with backend_config:
-                with FunctionTestError.raise_if_fail(
-                        'double backward is not implemented correctly'):
-                    gradient_check.check_double_backward(
-                        f, inputs, grad_outputs, grad_grad_inputs,
-                        dtype=numpy.float64,
-                        detect_nondifferentiable=self.dodge_nondifferentiable,
-                        **self.check_double_backward_options)
-
-        if self.dodge_nondifferentiable:
-            while True:
-                try:
-                    do_check()
-                except gradient_check.NondifferentiableError:
-                    continue
-                else:
-                    break
-        else:
-            do_check()

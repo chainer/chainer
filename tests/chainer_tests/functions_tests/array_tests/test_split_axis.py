@@ -136,8 +136,7 @@ def inject_backend_tests():
     ],
 ))
 @inject_backend_tests()
-@testing.function_test()
-class TestSplitAxis(unittest.TestCase):
+class TestSplitAxis(testing.FunctionTestCase):
 
     def generate_inputs(self):
         shape = self.shape
@@ -161,10 +160,9 @@ class TestSplitAxis(unittest.TestCase):
 
 
 @inject_backend_tests()
-@testing.function_test()
-class TestSplitAxisNone(unittest.TestCase):
+class TestSplitAxisNone(testing.FunctionTestCase):
 
-    double_backward_test = False
+    skip_double_backward_test = True
 
     axis = 0
     ys_section = [1]
@@ -188,11 +186,10 @@ class TestSplitAxisNone(unittest.TestCase):
     {'force_tuple': False},
 )
 @inject_backend_tests()
-@testing.function_test()
-class TestSplitAxisForceArray(unittest.TestCase):
+class TestSplitAxisForceArray(testing.FunctionTestCase):
 
-    backward_test = False
-    double_backward_test = False
+    skip_backward_test = True
+    skip_double_backward_test = True
 
     axis = 1
 

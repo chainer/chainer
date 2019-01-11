@@ -44,8 +44,7 @@ from chainer.utils import type_check
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-@testing.function_test()
-class TestHstack(unittest.TestCase):
+class TestHstack(testing.FunctionTestCase):
 
     def before_test(self, test_name):
         # TODO(niboshi): Support it

@@ -38,8 +38,7 @@ from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-@testing.function_test()
-class TestMaxPoolingND(unittest.TestCase):
+class TestMaxPoolingND(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
 

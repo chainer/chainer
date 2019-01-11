@@ -133,8 +133,7 @@ class FuncGradCorrectlyImplemented(chainer.FunctionNode):
     'shape': [(3, 2), (2,), (1,), (), (2, 0, 3)],
 }))
 @_inject_backend_tests
-@testing.function_test()
-class TestFunctionTestSuccessful(unittest.TestCase):
+class TestFunctionTestSuccessful(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
@@ -170,8 +169,7 @@ class FuncWithIncorrectForward(chainer.FunctionNode):
 }))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
-@testing.function_test()
-class TestFunctionTestIncorrectForward(unittest.TestCase):
+class TestFunctionTestIncorrectForward(testing.FunctionTestCase):
     backward_test = False
     double_backward_test = False
 
@@ -212,8 +210,7 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
 }))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
-@testing.function_test()
-class TestFunctionTestIncorrectBackward(unittest.TestCase):
+class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
     forward_test = False
     double_backward_test = False
 
@@ -270,8 +267,7 @@ class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
 }))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
-@testing.function_test()
-class TestFunctionTestIncorrectDoubleBackward(unittest.TestCase):
+class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
     forward_test = False
     backward_test = False
 
@@ -420,8 +416,7 @@ class FuncGradWithContiguousnessCheck(chainer.FunctionNode):
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=_ContiguousnessMatched)
-@testing.function_test()
-class FunctionTestCaseArrayContiguousnessTest(unittest.TestCase):
+class FunctionTestCaseArrayContiguousnessTest(testing.FunctionTestCase):
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         x2 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)

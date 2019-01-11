@@ -28,8 +28,7 @@ from chainer import utils
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
     ])
-@testing.function_test()
-class TestClippedReLU(unittest.TestCase):
+class TestClippedReLU(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
 
