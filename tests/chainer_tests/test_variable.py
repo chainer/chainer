@@ -2693,6 +2693,47 @@ class TestAsVariable(unittest.TestCase):
         assert y.requires_grad
 
 
+class TestBackward(unittest.TestCase):
+
+    def test_multiple_output(self):
+        x = chainer.Variable(np.array([1, 2], np.float32))
+
+        f = chainer.FunctionNode()
+        f.forward = mock.MagicMock(
+            side_effect=lambda xs: tuple(x * 2 for x in xs))
+        f.backward = mock.MagicMock(
+            side_effect=lambda _, gys: tuple(gy * 2 for gy in gys))
+
+        h, = f.apply((x,))
+        y0 = h * 3
+        y1 = h * 4
+        y0.grad = np.array([1, 10], np.float32)
+        y1.grad = np.array([100, 1000], np.float32)
+        chainer.backward([y0, y1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        assert f.backward.call_count == 1
+
+    def test_warn_default_grad_multiple(self):
+        x = chainer.Variable(np.array(1, np.float32))
+        h = x * 2
+        y0 = h * 3
+        y1 = h * 4
+        with testing.assert_warns(UserWarning):
+            try:
+                chainer.backward([y0, y1])
+            except Exception:
+                pass
+
+    def test_warn_default_grad_nonscalar(self):
+        x = chainer.Variable(np.array([1], np.float32))
+        y = x * 2
+        with testing.assert_warns(UserWarning):
+            try:
+                chainer.backward([y])
+            except Exception:
+                pass
+
+
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'dtype': [np.float16, np.float32, np.float64],
