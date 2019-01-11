@@ -556,6 +556,8 @@ class _CheckBackward(object):
             if g is not None:
                 gx_accum += (g.astype(numpy.float64) * direction).sum()
 
+        _unset_grad(ys)
+
         return gx_accum
 
     def _directional_numeric_gradients(self, directions, y0_data):
@@ -863,6 +865,8 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                         'gradients of some arguments are not calculated')
                 gxs.append(x.grad_var)
 
+        # _unset_grad(y)
+
         return tuple(gxs + [p.grad_var for p in params])
 
     inputs = x_data + y_grad
@@ -895,7 +899,17 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
 def _set_grad(ys, gys):
     assert len(ys) == len(gys)
-    for y, gy in zip(ys, gys):
+    for y in ys:
         assert isinstance(y, chainer.Variable)
+        assert y.grad_var is None
+    for y, gy in zip(ys, gys):
         assert gy is None or isinstance(gy, chainer.Variable)
-        y.grad_var = gy
+        if y.grad_var is None:
+            y.grad_var = gy
+        else:
+            y.grad_var += gy
+
+
+def _unset_grad(ys):
+    for y in ys:
+        y.grad_var = None
