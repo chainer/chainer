@@ -2,6 +2,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -18,64 +19,63 @@ class ELU(function_node.FunctionNode):
 
         type_check.expect(x_type.dtype.kind == 'f')
 
-    def forward_cpu(self, x):
-        self.retain_inputs((0,))
-        y = x[0].copy()
-        neg_indices = x[0] < 0
-        y[neg_indices] = self.alpha * (numpy.expm1(y[neg_indices]))
+    def forward_cpu(self, inputs):
+        if self.alpha < 0:
+            self.retain_inputs((0,))
+        x, = inputs
+        y = x.copy()
+        negzero_indices = y <= 0
+        y[negzero_indices] = self.alpha * numpy.expm1(y[negzero_indices])
+        self.retain_outputs((0,))
         return y,
 
-    def forward_gpu(self, x):
-        self.retain_inputs((0,))
+    def forward_gpu(self, inputs):
+        if self.alpha < 0:
+            self.retain_inputs((0,))
+        x, = inputs
         y = cuda.elementwise(
             'T x, T alpha', 'T y',
-            'y = x >= 0 ? x : (T)(alpha * expm1(x))',
-            'elu_fwd')(
-                x[0], self.alpha)
+            'y = x > 0 ? x : (T)(alpha * expm1(x))',
+            'elu_fwd')(x, self.alpha)
+        self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x, = self.get_retained_inputs()
+        y, = self.get_retained_outputs()
+        if self.alpha < 0:
+            cond, = self.get_retained_inputs()
+        else:
+            cond = y
         gy, = grad_outputs
-        return ELUGrad(self.alpha).apply((x,))[0] * gy,
+        return ELUGrad(self.alpha, cond.array).apply((y,))[0] * gy,
 
 
 class ELUGrad(function_node.FunctionNode):
 
     """Exponential Linear Unit gradient function."""
 
-    def __init__(self, alpha):
+    def __init__(self, alpha, cond):
         self.alpha = alpha
-
-    def check_type_forward(self, in_types):
-        type_check._argname(in_types, ('x',))
-        type_check.expect(in_types[0].dtype.kind == 'f')
+        self.cond = cond
 
     def forward_cpu(self, inputs):
-        x, = inputs
-        gx = numpy.ones_like(x)
-        neg_indices = x < 0
-        gx[neg_indices] *= self.alpha * numpy.exp(x[neg_indices])
-        self.retain_inputs((0,))
-        self.retain_outputs((0,))
+        y, = inputs
+        gx = utils.force_array(y + y.dtype.type(self.alpha))
+        gx[self.cond > 0] = 1
         return gx,
 
     def forward_gpu(self, inputs):
-        x, = inputs
+        y, = inputs
         gx = cuda.elementwise(
-            'T x, T alpha', 'T gx',
-            'gx = x >= 0 ? (T)1 : (T)(alpha * exp(x))',
-            'elu_bwd')(
-                x, self.alpha)
-        self.retain_inputs((0,))
-        self.retain_outputs((0,))
+            'T y, T alpha, T cond', 'T gx',
+            'gx = cond > 0 ? (T)1 : (T)(y + alpha)',
+            'elu_bwd')(y, self.alpha, self.cond)
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        x, = self.get_retained_inputs()
-        gx, = self.get_retained_outputs()
         ggx, = grad_outputs
-        return ggx * gx * (x.data < 0),
+        gy2 = ggx * (self.cond <= 0)
+        return gy2,
 
 
 def elu(x, alpha=1.0):
