@@ -8,7 +8,6 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
-from chainer import FunctionNode
 from chainer import testing
 from chainer import variable
 import chainerx
@@ -530,10 +529,7 @@ class _CheckBackward(object):
         params = self.params
         no_grads = self.no_grads
 
-        # We need to start backprop from a single variable,
-        # so a dummy function `_GradientSetter` is inserted at the end of the
-        # computational graph.
-        y_backward = _apply_grad_setter_func(
+        _set_grad(
             ys,
             [None if gy is None
              # Copy is needed to avoid being updated during backprop, which
@@ -542,7 +538,7 @@ class _CheckBackward(object):
              for gy in self.y_grad])
 
         # Backward
-        y_backward.backward()
+        chainer.backward(ys)
 
         for no_grad, x in six.moves.zip(no_grads, xs):
             if no_grad and x.grad is not None:
@@ -851,11 +847,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         y = _as_tuple(func(*xs))
         _check_outputs_and_grad_outputs(y, gys)
 
-        # Let all elements of y share the same creator.
-        # See the comment in check_backward.
-        y = _apply_grad_setter_func(y, gys)
+        _set_grad(y, gys)
 
-        y.backward(enable_double_backprop=True)
+        chainer.backward(y, enable_double_backprop=True)
 
         gxs = []
         for skip, x in six.moves.zip(first_order_no_grads, xs):
@@ -899,27 +893,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         raise AssertionError(f.getvalue())
 
 
-class _GradientSetter(FunctionNode):
-    def __init__(self, grad):
-        self.grad = grad
-
-    def forward(self, inputs):
-        # output a dummy array.
-        xp = backend.get_array_module(inputs[0])
-        return xp.empty((0,), dtype=numpy.float32),
-
-    def backward(self, inputs, grad_outputs):
-        return self.grad
-
-
-def _apply_grad_setter_func(y, y_grad):
-    # Applies the `_GradientSetter` function.
-    # The gradient setter function accepts any number of upstream outputs as
-    # its inputs, and returns a single output variable with dummy data.
-    # This variable will be later backward()ed and during backprop, this
-    # function returns the given gradients (`y_grad`) on its backward.
-    assert len(y) == len(y_grad)
-    assert all(isinstance(y_, chainer.Variable) for y_ in y)
-    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in y_grad)
-    y, = _GradientSetter(y_grad).apply(y)
-    return y
+def _set_grad(ys, gys):
+    assert len(ys) == len(gys)
+    for y, gy in zip(ys, gys):
+        assert isinstance(y, chainer.Variable)
+        assert gy is None or isinstance(gy, chainer.Variable)
+        y.grad_var = gy
