@@ -529,7 +529,7 @@ class _CheckBackward(object):
         params = self.params
         no_grads = self.no_grads
 
-        _set_grad(
+        ys = _set_grad(
             ys,
             [None if gy is None
              # Copy is needed to avoid being updated during backprop, which
@@ -555,8 +555,6 @@ class _CheckBackward(object):
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
                 gx_accum += (g.astype(numpy.float64) * direction).sum()
-
-        _unset_grad(ys)
 
         return gx_accum
 
@@ -849,7 +847,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         y = _as_tuple(func(*xs))
         _check_outputs_and_grad_outputs(y, gys)
 
-        _set_grad(y, gys)
+        y = _set_grad(y, gys)
 
         chainer.backward(y, enable_double_backprop=True)
 
@@ -901,15 +899,8 @@ def _set_grad(ys, gys):
     assert len(ys) == len(gys)
     for y in ys:
         assert isinstance(y, chainer.Variable)
-        assert y.grad_var is None
+    ys = chainer.functions.math.identity.Identity().apply(ys)
     for y, gy in zip(ys, gys):
         assert gy is None or isinstance(gy, chainer.Variable)
-        if y.grad_var is None:
-            y.grad_var = gy
-        else:
-            y.grad_var += gy
-
-
-def _unset_grad(ys):
-    for y in ys:
-        y.grad_var = None
+        y.grad_var = gy
+    return ys
