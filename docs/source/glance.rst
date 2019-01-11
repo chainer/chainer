@@ -143,7 +143,7 @@ Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :
    :lines: 49-50
    :lineno-start: 49
 
-Finally we create a :class:`Trainer <chainer.training.Trainer>` object. The ``trainer`` processes minibatches using the ``updater`` defined above until a certain stop condition is met, and allows to use extensions at certain phases of the training. We set it up to run for 50 epochs and store all files created by extensions (see below) in the ``result`` directory.
+Finally we create a :class:`Trainer <chainer.training.Trainer>` object. The ``trainer`` processes minibatches using the ``updater`` defined above until a certain stop condition is met and allows the use of extensions during the training. We set it to run for 50 epochs and store all files created by the extensions (see below) in the ``result`` directory.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -158,7 +158,7 @@ Extensions
    :width: 835px
    :height: 353px
 
-Extensions can be used to execute code at certain events during the training, for example every epoch or every 1000 iterations. This mechanism is used in Chainer to evaluate models during training, print progress messages, or dump intermediate model files.
+Extensions can be used to execute code at certain events during the training, such as every epoch or every 1000 iterations. This mechanism is used in Chainer to evaluate models during training, print progress messages, or dump intermediate model files.
 
 First, use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores. If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
 
