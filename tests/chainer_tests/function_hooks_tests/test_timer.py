@@ -1,3 +1,4 @@
+import os
 import time
 import unittest
 
@@ -11,6 +12,14 @@ from chainer import functions
 from chainer.functions.math import basic_math
 from chainer import testing
 from chainer.testing import attr
+
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 def check_history(self, t, function_type, return_type):
@@ -36,7 +45,7 @@ class TestTimerHookToLink(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.l = SimpleLink()
+        self.layer = SimpleLink()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 
@@ -45,7 +54,7 @@ class TestTimerHookToLink(unittest.TestCase):
 
     def check_forward(self, x):
         with self.h:
-            self.l(chainer.Variable(x))
+            self.layer(chainer.Variable(x))
         assert len(self.h.call_history) == 1
         check_history(self, self.h.call_history[0], basic_math.Mul, float)
 
@@ -54,12 +63,12 @@ class TestTimerHookToLink(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.l.to_gpu()
+        self.layer.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x, gy):
         x = chainer.Variable(x)
-        y = self.l(x)
+        y = self.layer(x)
         y.grad = gy
         with self.h:
             y.backward()
@@ -75,7 +84,7 @@ class TestTimerHookToLink(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.l.to_gpu()
+        self.layer.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
@@ -124,11 +133,11 @@ class TestTimerHookToFunction(unittest.TestCase):
         g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
-        t1 = time.time()
+        t1 = _get_time()
         time.sleep(0.001)  # longer than each hook call
         self.h.forward_preprocess(g, (self.x,))
         self.h.forward_postprocess(g, (self.x,))
-        t2 = time.time()
+        t2 = _get_time()
         self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
 
         history = dict(self.h.call_history)
@@ -143,15 +152,15 @@ class TestTimerHookToFunction(unittest.TestCase):
     def test_reentrant_total_time(self):
         g = functions.math.identity.Identity()
 
-        t0 = time.time()
+        t0 = _get_time()
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
-        t1 = time.time()
+        t1 = _get_time()
         self.h.forward_preprocess(g, (self.x,))
         time.sleep(0.001)
         self.h.forward_postprocess(g, (self.x,))
-        t2 = time.time()
+        t2 = _get_time()
         self.h.backward_postprocess(self.f, (self.x,), (self.gy,))
-        t3 = time.time()
+        t3 = _get_time()
 
         assert self.h.total_time() <= t3 - t0
         assert self.h.total_time() >= t2 - t1
