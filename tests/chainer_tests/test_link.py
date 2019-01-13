@@ -624,7 +624,7 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
         else:
             expected_device = source_device
 
-        self.assertEqual(self.link._device, expected_device)
+        self.assertEqual(self.link.device, expected_device)
 
     def test_to_chx(self, backend_config):
         self.link.to_device(backend_config.device)
@@ -647,7 +647,7 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
         else:
             assert False
 
-        self.assertEqual(self.link._device, expected_device)
+        self.assertEqual(self.link.device, expected_device)
 
 
 class TestLinkMissingInitCall(unittest.TestCase):
@@ -773,22 +773,7 @@ class CountParameter(chainer.Parameter):
         super(CountParameter, self).__init__(v.data, name=v.name)
         self.data = v.data
         self.grad = v.grad
-        self.count_to_cpu = 0
-        self.count_to_gpu = 0
-        self.count_to_device = 0
         self.count_zerograd = 0
-
-    def to_cpu(self):
-        self.count_to_cpu += 1
-        return super(CountParameter, self).to_cpu()
-
-    def to_gpu(self, device=None):
-        self.count_to_gpu += 1
-        return super(CountParameter, self).to_gpu(device)
-
-    def to_device(self, device=None):
-        self.count_to_device += 1
-        return super(CountParameter, self).to_device(device)
 
     def zerograd(self):
         self.count_zerograd += 1
@@ -1014,15 +999,6 @@ class TestChain(ChainTestBase, unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_cpu, 0)
-        self.assertEqual(self.l1.x.count_to_gpu, 0)
-        self.assertEqual(self.l1.x.count_to_device, 2)
-        self.assertEqual(self.l2.x.count_to_cpu, 0)
-        self.assertEqual(self.l2.x.count_to_gpu, 0)
-        self.assertEqual(self.l2.x.count_to_device, 2)
-        self.assertEqual(self.l3.x.count_to_cpu, 0)
-        self.assertEqual(self.l3.x.count_to_gpu, 0)
-        self.assertEqual(self.l3.x.count_to_device, 2)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, numpy.ndarray)
@@ -1044,12 +1020,6 @@ class TestChain(ChainTestBase, unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
         self.assertIsNone(self.l3.x.data)
         self.assertIsNone(self.l3.x.grad)
-        self.assertEqual(self.l1.x.count_to_gpu, 0)
-        self.assertEqual(self.l1.x.count_to_device, 1)
-        self.assertEqual(self.l2.x.count_to_gpu, 0)
-        self.assertEqual(self.l2.x.count_to_device, 1)
-        self.assertEqual(self.l3.x.count_to_gpu, 0)
-        self.assertEqual(self.l3.x.count_to_device, 1)
 
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
@@ -1069,9 +1039,6 @@ class TestChain(ChainTestBase, unittest.TestCase):
         self.assertIsInstance(self.l2.x.data, numpy.ndarray)
         self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
         self.assertIsNone(self.l3.x.data)
-        self.assertEqual(self.l1.x.count_to_device, 1)
-        self.assertEqual(self.l2.x.count_to_device, 1)
-        self.assertEqual(self.l3.x.count_to_device, 1)
 
         self.l3.x.initialize((3,))
         self.assertIsInstance(self.l3.x.data, numpy.ndarray)
@@ -2297,6 +2264,135 @@ class TestCallMethod(unittest.TestCase):
     def test_no_call_no_forward(self):
         with self.assertRaises(AttributeError):
             self.model(0)
+
+
+class TestLinkOverrideToDeviceMethodsDeprecated(unittest.TestCase):
+    # Overriding to_cpu, to_gpu, to_intel64 is deprecated.
+    # This test ensures DeprecationWarning is emitted but the overridden
+    # method is actually called.
+
+    def create_link(self, method_name):
+        class ChildLink(chainer.Link):
+            def __init__(self):
+                self.to_method_called = 0
+                super(ChildLink, self).__init__()
+
+            if method_name == 'to_device':
+                def to_device(self, device):
+                    assert False  # never called
+
+            elif method_name == 'to_cpu':
+                def to_cpu(self):
+                    self.to_method_called += 1
+
+            elif method_name == 'to_gpu':
+                def to_gpu(self, device=None):
+                    self.to_method_called += 1
+
+            elif method_name == 'to_intel64':
+                def to_intel64(self):
+                    self.to_method_called += 1
+
+            else:
+                assert False, method_name
+
+        class ParentLink(chainer.Chain):
+            def __init__(self):
+                super(ParentLink, self).__init__()
+                with self.init_scope():
+                    self.child = ChildLink()
+
+        return ParentLink
+
+    # to_device() can never be overridden
+
+    def test_to_device_override(self):
+        cls = self.create_link('to_device')
+        with pytest.raises(TypeError):
+            cls()
+
+    # Deprecation warning on instantiation
+
+    def test_to_cpu_override(self):
+        cls = self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls()
+
+    def test_to_gpu_override(self):
+        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls()
+
+    def test_to_intel64_override(self):
+        cls = self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            cls()
+
+    # Overridden methods are called on to_device()
+
+    def test_to_device_cpu(self):
+        cls = self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_device(numpy)
+        assert l.child.to_method_called == 1
+
+    @attr.gpu
+    def test_to_device_gpu(self):
+        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_device((cuda.cupy, 0))
+        assert l.child.to_method_called == 1
+
+    @attr.multi_gpu(2)
+    def test_to_device_multi_gpu(self):
+        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_device((cuda.cupy, 1))
+        assert l.child.to_method_called == 1
+
+    @attr.ideep
+    def test_to_device_intel64(self):
+        cls = self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_device(intel64)
+        assert l.child.to_method_called == 1
+
+    # Overridden methods are called on to_cpu()/to_gpu()/to_intel()
+
+    def test_to_cpu(self):
+        cls = self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_cpu()
+        assert l.child.to_method_called == 1
+
+    @attr.gpu
+    def test_to_gpu_without_arg(self):
+        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_gpu()
+        assert l.child.to_method_called == 1
+
+    @attr.gpu
+    def test_to_gpu_with_arg(self):
+        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_gpu(0)
+        assert l.child.to_method_called == 1
+
+    @attr.ideep
+    def test_to_intel64(self):
+        cls = self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            l = cls()
+        l.to_intel64()
+        assert l.child.to_method_called == 1
 
 
 testing.run_module(__name__, __file__)

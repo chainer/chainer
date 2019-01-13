@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import _link
 from chainer.backends import cuda
 from chainer import function
 from chainer.initializers import uniform
@@ -64,7 +65,8 @@ class TreeParser(object):
             self.codes[node] = numpy.array(self.code, dtype=self.dtype)
 
 
-class BinaryHierarchicalSoftmaxFunction(function.Function):
+class BinaryHierarchicalSoftmaxFunction(
+        _link.DeviceResident, function.Function):
 
     """Hierarchical softmax function based on a binary tree.
 
@@ -81,6 +83,8 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
     """
 
     def __init__(self, tree, dtype):
+        _link.DeviceResident.__init__(self)
+
         parser = TreeParser(dtype)
         parser.parse(tree)
         paths = parser.get_paths()
@@ -116,16 +120,10 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # TODO(niboshi): Avoid forcing concrete implementations to handle
-        # skip_between_cupy_devices
-        device = chainer.get_device(device)
-        if not (skip_between_cupy_devices
-                and device.xp is cuda.cupy
-                and isinstance(self.paths, cuda.ndarray)):
-            self.paths = device.send(self.paths)
-            self.codes = device.send(self.codes)
-            self.begins = device.send(self.begins)
+    def visit_device_residents(self, visitor):
+        self.paths = visitor.visit_array(self.paths)
+        self.codes = visitor.visit_array(self.codes)
+        self.begins = visitor.visit_array(self.begins)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -310,14 +308,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        self._func._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
-        return super(BinaryHierarchicalSoftmax, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def visit_device_residents(self, visitor):
+        super(BinaryHierarchicalSoftmax, self).visit_device_residents(visitor)
+        visitor.visit_visitable(self._func, visitor)
 
     @staticmethod
     def create_huffman_tree(word_counts):
