@@ -59,6 +59,10 @@ requirements = {
 }
 
 
+if sys.version_info >= (3, 4):  # mypy requires Python 3.4 or later
+    requirements['stylecheck'].append('mypy')
+
+
 def reduce_requirements(key):
     # Resolve recursive requirements notation (-r)
     reqs = requirements[key]
@@ -78,9 +82,6 @@ for k in requirements.keys():
 
 
 extras_require = {k: v for k, v in requirements.items() if k != 'install'}
-if sys.version_info >= (3, 4):  # requires Python 3.4 or later
-    extras_require['test'].append('mypy')
-
 setup_requires = []
 install_requires = requirements['install']
 tests_require = requirements['test']
