@@ -13,26 +13,34 @@ from chainer.training import trigger as trigger_module
 from chainer.utils import argument
 
 
-try:
-    import matplotlib
-    _available = True
-except ImportError:
-    _available = False
+_available = None
 
 
-if _available:
-    if hasattr(matplotlib.colors, 'to_rgba'):
-        _to_rgba = matplotlib.colors.to_rgba
-    else:
-        # For matplotlib 1.x
-        _to_rgba = matplotlib.colors.ColorConverter().to_rgba
-    _plot_color = _to_rgba('#1f77b4')  # C0 color
-    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
-    _plot_common_kwargs = {
-        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
+def _try_import_matplotlib():
+    global matplotlib, _available
+    global _plot_color, _plot_color_trans, _plot_common_kwargs
+    try:
+        import matplotlib
+        _available = True
+    except ImportError:
+        _available = False
+
+    if _available:
+        if hasattr(matplotlib.colors, 'to_rgba'):
+            _to_rgba = matplotlib.colors.to_rgba
+        else:
+            # For matplotlib 1.x
+            _to_rgba = matplotlib.colors.ColorConverter().to_rgba
+        _plot_color = _to_rgba('#1f77b4')  # C0 color
+        _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
+        _plot_common_kwargs = {
+            'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
 
 
 def _check_available():
+    if _available is None:
+        _try_import_matplotlib()
+
     if not _available:
         warnings.warn('matplotlib is not installed on your environment, '
                       'so nothing will be plotted at this time. '
@@ -57,10 +65,10 @@ class Reservoir(object):
 
     """Reservoir sample with a fixed sized buffer."""
 
-    def __init__(self, size, data_shape, dtype='f'):
+    def __init__(self, size, data_shape, dtype=numpy.float32):
         self.size = size
         self.data = numpy.zeros((size,) + data_shape, dtype=dtype)
-        self.idxs = numpy.zeros((size,), dtype='i')
+        self.idxs = numpy.zeros((size,), dtype=numpy.int32)
         self.counter = 0
 
     def add(self, x, idx=None):
@@ -240,7 +248,7 @@ class VariableStatisticsPlot(extension.Extension):
         return _available
 
     def __call__(self, trainer):
-        if _available:
+        if self.available():
             # Dynamically import pyplot to call matplotlib.use()
             # after importing chainer.training.extensions
             import matplotlib.pyplot as plt
@@ -326,7 +334,7 @@ class VariableStatisticsPlot(extension.Extension):
                     if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
-                        # percentile is the mid percentile and the numner of
+                        # percentile is the mid percentile and the number of
                         # percentiles are odd
                         ax.plot(
                             idxs, data[:, col, offset + i], color=_plot_color,

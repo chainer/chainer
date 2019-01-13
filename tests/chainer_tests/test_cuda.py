@@ -7,12 +7,15 @@ import unittest
 import warnings
 
 import numpy
+import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
+import chainer.testing.backend
 
 
 class TestDummyDeviceType(unittest.TestCase):
@@ -464,6 +467,109 @@ class TestToGPUScalar(unittest.TestCase):
         assert y.shape == ()
         assert y.dtype == dtype
         assert y == x
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+class TestGpuDeviceFromArray(unittest.TestCase):
+
+    def test_from_array(self, backend_config):
+        with cuda.Device(backend_config.cuda_device):
+            arr = cuda.ndarray((), numpy.float32)
+        # Test precondition check
+        assert arr.device.id == backend_config.cuda_device
+
+        device = backend.GpuDevice.from_array(arr)
+        assert isinstance(device, backend.GpuDevice)
+        assert (device
+                == chainer.get_device((cuda.cupy, backend_config.cuda_device)))
+
+    def test_get_device_from_array(self, backend_config):
+        with cuda.Device(backend_config.cuda_device):
+            arr = cuda.ndarray((), numpy.float32)
+        # Test precondition check
+        assert arr.device.id == backend_config.cuda_device
+
+        expected_device = backend_config.device
+
+        device = backend.GpuDevice.from_array(arr)
+        assert device == expected_device
+
+        device = backend.get_device_from_array(arr)
+        assert device == expected_device
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
+@attr.gpu
+class TestGpuDeviceFromArrayInvalidArray(unittest.TestCase):
+
+    def test_from_array(self, backend_config):
+        arr = backend_config.get_array(numpy.ndarray((2,), numpy.float32))
+        device = backend.GpuDevice.from_array(arr)
+        assert device is None
+
+
+@testing.parameterize(*testing.product(
+    {
+        'value': [None, 1, ()],
+    }))
+@attr.gpu
+class TestGpuDeviceFromArrayInvalidValue(unittest.TestCase):
+
+    def test_from_array(self):
+        device = backend.GpuDevice.from_array(self.value)
+        assert device is None
+
+
+@testing.parameterize(*testing.product(
+    {
+        'device_id': [0, 1, 99999, numpy.int32(1)],
+    }))
+@attr.gpu
+class TestGpuDeviceFromDeviceId(unittest.TestCase):
+
+    def test_from_device_id(self):
+        device = backend.GpuDevice.from_device_id(self.device_id)
+        assert isinstance(device, backend.GpuDevice)
+        assert device == chainer.get_device((cuda.cupy, self.device_id))
+        assert device.device.id == int(self.device_id)
+
+
+@testing.parameterize(*testing.product(
+    {
+        'device_id': [None, -1, (), 0.0, numpy.float32(0)],
+    }))
+@attr.gpu
+class TestGpuDeviceFromDeviceIdInvalid(unittest.TestCase):
+
+    def test_from_device_id(self):
+        with pytest.raises(ValueError):
+            backend.GpuDevice.from_device_id(self.device_id)
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+class TestGpuDeviceUse(unittest.TestCase):
+
+    def test_use(self, backend_config):
+        device = chainer.get_device((cuda.cupy, backend_config.cuda_device))
+        with cuda.Device(0):
+            device.use()
+            assert device.device == cuda.Device()
 
 
 testing.run_module(__name__, __file__)

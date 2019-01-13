@@ -1,8 +1,9 @@
+import warnings
+
 import chainer
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer import utils
-import warnings
 
 
 class ModifiedXLogX(chainer.function_node.FunctionNode):

@@ -82,11 +82,11 @@ class Iterator(object):
     def serialize(self, serializer):
         """Serializes the internal state of the iterator.
 
-        This is a method to support serializer protocol of Chainer.
+        This is a method to support the serializer protocol of Chainer.
 
         .. note::
            It should only serialize the internal state that changes over the
-           iteration. It should not serializes what is set manually by
+           iteration. It should not serialize what is set manually by
            users such as the batch size.
 
         """

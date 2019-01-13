@@ -1,9 +1,11 @@
 import numpy
 import six
 
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import serializer
+import chainerx
 
 
 class DictionarySerializer(serializer.Serializer):
@@ -46,12 +48,24 @@ class DictionarySerializer(serializer.Serializer):
 
     def __call__(self, key, value):
         key = key.lstrip('/')
-        ret = value
-        if isinstance(value, cuda.ndarray):
-            value = value.get()
-        arr = numpy.asarray(value)
-        self.target[self.path + key] = arr
-        return ret
+        self.target[self.path + key] = (
+            _cpu._to_cpu(value) if value is not None
+            else numpy.asarray(None))
+        return value
+
+
+def serialize(obj):
+    """Serializes an object to a dictionary object.
+
+    Args:
+        obj: Object to be serialized. It must support serialization protocol.
+
+    Returns:
+        dict: Serialized object.
+    """
+    s = DictionarySerializer()
+    s.save(obj)
+    return s.target
 
 
 def save_npz(file, obj, compression=True):
@@ -62,6 +76,7 @@ def save_npz(file, obj, compression=True):
     Args:
         file (str or file-like): Target file to write to.
         obj: Object to be serialized. It must support serialization protocol.
+            If it is a dictionary object, the serialization will be skipped.
         compression (bool): If ``True``, compression in the resulting zip file
             is enabled.
 
@@ -74,12 +89,17 @@ def save_npz(file, obj, compression=True):
             save_npz(f, obj, compression)
         return
 
-    s = DictionarySerializer()
-    s.save(obj)
-    if compression:
-        numpy.savez_compressed(file, **s.target)
+    if isinstance(obj, dict):
+        target = obj
     else:
-        numpy.savez(file, **s.target)
+        s = DictionarySerializer()
+        s.save(obj)
+        target = s.target
+
+    if compression:
+        numpy.savez_compressed(file, **target)
+    else:
+        numpy.savez(file, **target)
 
 
 class NpzDeserializer(serializer.Deserializer):
@@ -143,9 +163,11 @@ class NpzDeserializer(serializer.Deserializer):
         dataset = self.npz[key]
         if dataset[()] is None:
             return None
-
         if value is None:
             return dataset
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.to_numpy(value, copy=False)
+            numpy.copyto(value_view, dataset)
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
@@ -153,7 +175,16 @@ class NpzDeserializer(serializer.Deserializer):
         elif isinstance(value, intel64.mdarray):
             intel64.ideep.basic_copyto(value, numpy.asarray(dataset))
         else:
-            value = type(value)(numpy.asarray(dataset))
+            value_type = type(value)
+            dataset_arr = numpy.asarray(dataset)
+            if (issubclass(dataset_arr.dtype.type, numpy.number)
+                    and not numpy.can_cast(
+                        dataset_arr.dtype, value_type, casting='safe')):
+                raise TypeError(
+                    'Cannot safely deserialize from numpy array with dtype={} '
+                    'into a variable of type {}.'.format(
+                        dataset.dtype, type(value)))
+            value = value_type(dataset_arr)
         return value
 
 

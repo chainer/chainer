@@ -24,7 +24,7 @@ class Dropout(function_node.FunctionNode):
         self.mask = mask
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -48,16 +48,14 @@ class Dropout(function_node.FunctionNode):
                 and self.mask is None):
             self._use_cudnn = True
 
-            handle = cudnn.get_handle()
-
             if hasattr(self, 'states'):
                 # if we already have a dropout mask,
                 # the forward operation is equal to backward.
                 return cuda.get_cudnn_dropout_states().backward(
-                    handle, x[0], self.dropout_ratio, self.states),
+                    None, x[0], self.dropout_ratio, self.states),
 
             self.states, y = cuda.get_cudnn_dropout_states().forward(
-                handle, x[0], self.dropout_ratio)
+                None, x[0], self.dropout_ratio)
             return y,
         else:
             if self.mask is not None:
@@ -120,9 +118,8 @@ class DropoutGradCuDNN(function_node.FunctionNode):
         self.dropout_ratio = dropout_ratio
 
     def forward(self, inputs):
-        handle = cudnn.get_handle()
         return cuda.get_cudnn_dropout_states().backward(
-            handle, inputs[0], self.dropout_ratio, self.states),
+            None, inputs[0], self.dropout_ratio, self.states),
 
     def backward(self, indexes, gy):
         return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
@@ -138,19 +135,12 @@ def dropout(x, ratio=.5, **kwargs):
     mode (i.e., ``chainer.config.train`` is set to ``False``), it does nothing
     and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', boolean)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
-        mask (`ndarray` or None):
+        mask (:ref:`ndarray` or None):
             The mask to be used for dropout.
             You do not have to specify this value, unless you need to make
             results deterministic.
@@ -172,9 +162,9 @@ def dropout(x, ratio=.5, **kwargs):
             When ``return_mask`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            mask (`ndarray`). The mask will be on the same device as the input.
-            The mask will become ``None`` when ``chainer.config.train`` is set
-            to ``False``.
+            mask (:ref:`ndarray`). The mask will be on the same device as the
+            input. The mask will become ``None`` when ``chainer.config.train``
+            is set to ``False``.
 
     See the paper by G. Hinton: `Improving neural networks by preventing \
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
@@ -184,19 +174,19 @@ def dropout(x, ratio=.5, **kwargs):
         >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], np.float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x)
-        >>> y.data
+        >>> y.array
         array([[-2.,  0.],
                [ 4., -6.],
                [-0.,  2.]], dtype=float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x, ratio=0.0) \
 # dropout returns original input if ratio=0.0
-        >>> (x == y.data).all()
+        >>> (x == y.array).all()
         True
         >>> with chainer.using_config('train', False):
         ...     y = F.dropout(x) \
 # dropout in test mode returns original input
-        >>> (x == y.data).all()
+        >>> (x == y.array).all()
         True
 
     """

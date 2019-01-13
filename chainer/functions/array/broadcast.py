@@ -4,6 +4,7 @@ import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Broadcast(function_node.FunctionNode):
@@ -33,8 +34,7 @@ def broadcast(*args):
     """Broadcast given variables.
 
     Args:
-        args (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
-        or :class:`cupy.ndarray`):
+        args (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be broadcasted. Each dimension of the shapes \
             of the input variables must have the same size.
 
@@ -47,11 +47,11 @@ def broadcast(*args):
 
         >>> x = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y = F.broadcast(x)
-        >>> np.all(x == y.data)
+        >>> np.all(x == y.array)
         True
         >>> z = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y, w = F.broadcast(x, z)
-        >>> np.all(x == y.data) & np.all(z == w.data)
+        >>> np.all(x == y.array) & np.all(z == w.array)
         True
 
     """
@@ -68,7 +68,7 @@ class BroadcastTo(function_node.FunctionNode):
         self._shape = tuple(shape)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         ndim = type_check.make_variable(len(self._shape), 'len(shape)')
         type_check.expect(in_types[0].ndim <= ndim)
@@ -83,6 +83,10 @@ class BroadcastTo(function_node.FunctionNode):
                 expect += ' or in_type[0].shape[%d] == 1' % i
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
+
+    def broadcast_to(self, inputs):
+        x, = inputs
+        return chainerx.broadcast_to(x, self.shape),
 
     def forward(self, inputs):
         x, = inputs
@@ -105,8 +109,7 @@ def broadcast_to(x, shape):
     """Broadcast a given variable to a given shape.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable be broadcasted. A \
             :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         shape (tuple): Tuple of :class:`int` of the shape of the \
@@ -121,7 +124,7 @@ def broadcast_to(x, shape):
         >>> x
         array([0, 1, 2])
         >>> y = F.broadcast_to(x, (3, 3))
-        >>> y.data
+        >>> y.array
         array([[0, 1, 2],
                [0, 1, 2],
                [0, 1, 2]])
@@ -129,5 +132,6 @@ def broadcast_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
+
     y, = BroadcastTo(shape).apply((x,))
     return y

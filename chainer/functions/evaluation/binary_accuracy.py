@@ -10,7 +10,7 @@ class BinaryAccuracy(function.Function):
     ignore_label = -1
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -34,15 +34,13 @@ def binary_accuracy(y, t):
     """Computes binary classification accuracy of the minibatch.
 
     Args:
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array whose i-th element indicates the score of
             positive at the i-th sample.
             The prediction label :math:`\\hat t[i]` is ``1`` if
             ``y[i] >= 0``, otherwise ``0``.
 
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array holding a signed integer vector of ground truth labels.
             If ``t[i] == 1``, it indicates that i-th sample is positive.
             If ``t[i] == 0``, it indicates that i-th sample is negative.
@@ -62,17 +60,17 @@ def binary_accuracy(y, t):
         ...               [3.0, -5.0]]) # prediction labels are [1, 0]
         >>> t = np.array([[0, 1],
         ...              [1, 0]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because all samples are correct.
         array(1.)
         >>> t = np.array([[0, 0],
         ...              [1, 1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 50% accuracy because y[0][0] and y[1][0] are correct.
         array(0.5)
         >>> t = np.array([[0, -1],
         ...              [1, -1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because of ignoring y[0][1] and y[1][1].
         array(1.)
     """

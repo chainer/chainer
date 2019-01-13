@@ -22,7 +22,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -114,12 +114,12 @@ def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
     """Computes cross entropy loss for pre-sigmoid activations.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable object holding a matrix whose
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable object holding a matrix whose
             (i, j)-th element indicates the unnormalized log probability of
             the j-th unit at the i-th example.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable object holding a matrix whose
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable object holding a matrix whose
             (i, j)-th element indicates a signed integer vector of
             ground truth labels 0 or 1.
             If ``t[i, j] == -1``, corresponding ``x[i, j]`` is ignored.
@@ -140,7 +140,8 @@ def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
     Returns:
         Variable: A variable object holding an array of the cross entropy.
         If ``reduce`` is ``'mean'``, it is a scalar array.
-        If ``reduce`` is ``'no'``, the shape is same as ``x``.
+        If ``reduce`` is ``'no'``, the shape is same as those of ``x`` and
+        ``t``.
 
     .. note::
 
@@ -164,7 +165,7 @@ astype(np.float32)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[ 0.126928  ,  0.04858735,  0.974077  ],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 

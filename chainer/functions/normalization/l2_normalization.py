@@ -99,7 +99,8 @@ def normalize(x, eps=1e-5, axis=1):
     The default value of :obj:`axis` is determined for backward compatibility.
 
     Args:
-        x (~chainer.Variable): Two dimensional output variable. The first
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Two dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.

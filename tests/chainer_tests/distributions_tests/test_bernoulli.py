@@ -1,11 +1,12 @@
 import unittest
 
+import numpy
+
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({

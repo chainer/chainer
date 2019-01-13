@@ -11,7 +11,7 @@ class Accuracy(function.Function):
         self.ignore_label = ignore_label
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -58,15 +58,13 @@ def accuracy(y, t, ignore_label=None):
     """Computes multiclass classification accuracy of the minibatch.
 
     Args:
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array whose (i, j, k, ...)-th element indicates the score of
             the class j at the (i, k, ...)-th sample.
             The prediction label :math:`\\hat t` is calculated by the formula
             :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
 y(i, j, k, ...)`.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of signed integer):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array of ground truth labels.
         ignore_label (int or None): Skip calculating accuracy
             if the true label is ``ignore_label``.
@@ -85,14 +83,14 @@ y(i, j, k, ...)`.
         ...               [-8.0, 1.0, 2.0], # prediction label is 2
         ...               [-8.0, -1.0, -2.0]]) # prediction label is 1
         >>> t = np.array([1, 0, 2, 1], np.int32)
-        >>> F.accuracy(y, t).data \
+        >>> F.accuracy(y, t).array \
 # 100% accuracy because all samples are correct
         array(1.)
         >>> t = np.array([1, 0, 0, 0], np.int32)
-        >>> F.accuracy(y, t).data \
+        >>> F.accuracy(y, t).array \
 # 50% accuracy because 1st and 2nd samples are correct.
         array(0.5)
-        >>> F.accuracy(y, t, ignore_label=0).data \
+        >>> F.accuracy(y, t, ignore_label=0).array \
 # 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
         array(1.)
 

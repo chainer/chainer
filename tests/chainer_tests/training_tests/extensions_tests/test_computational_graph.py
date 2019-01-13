@@ -77,7 +77,7 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
         updater = training.updaters.StandardUpdater(iterator, optimizer)
         trainer = training.Trainer(updater, (n_epochs, 'epoch'), out=outdir)
 
-        extension = c.dump_graph('main/loss', filename='test.dot')
+        extension = c.DumpGraph('main/loss', filename='test.dot')
         trainer.extend(extension)
 
         # Run

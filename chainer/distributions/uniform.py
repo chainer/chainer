@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -11,6 +9,7 @@ from chainer.functions.math import exponential
 from chainer.functions.math import sqrt
 from chainer import utils
 from chainer.utils import argument
+from chainer.utils import cache
 
 
 class Uniform(distribution.Distribution):
@@ -26,12 +25,10 @@ class Uniform(distribution.Distribution):
           \\end{cases}
 
     Args:
-        low(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        lower bound :math:`l`.
-        high(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        higher bound :math:`h`.
+        low(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the lower bound :math:`l`.
+        high(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the higher bound :math:`h`.
     """
 
     def __init__(self, **kwargs):
@@ -40,37 +37,44 @@ class Uniform(distribution.Distribution):
             low, high, loc, scale = argument.parse_kwargs(
                 kwargs, ('low', low), ('high', high), ('loc', loc),
                 ('scale', scale))
-        if not (low is None or high is None) ^ (loc is None or scale is None):
+        self._use_low_high = low is not None and high is not None
+        self._use_loc_scale = loc is not None and scale is not None
+        if not (self._use_low_high ^ self._use_loc_scale):
             raise ValueError(
                 "Either `low, high` or `loc, scale` (not both) must have a "
                 "value.")
-        with chainer.using_config('enable_backprop', True):
-            if low is None:
-                self.__loc = chainer.as_variable(loc)
-                self.__scale = chainer.as_variable(scale)
-                self.__low = self.__loc
-                self.__high = self.__loc + self.__scale
-            else:
-                self.__low = chainer.as_variable(low)
-                self.__high = chainer.as_variable(high)
-                self.__loc = self.__low
-                self.__scale = self.__high - self.__low
+        self.__low = low
+        self.__high = high
+        self.__loc = loc
+        self.__scale = scale
 
-    @property
+    @cache.cached_property
     def low(self):
-        return self.__low
+        if self._use_low_high:
+            return chainer.as_variable(self.__low)
+        else:
+            return self.loc
 
-    @property
+    @cache.cached_property
     def high(self):
-        return self.__high
+        if self._use_low_high:
+            return chainer.as_variable(self.__high)
+        else:
+            return self.loc + self.scale
 
-    @property
+    @cache.cached_property
     def loc(self):
-        return self.__loc
+        if self._use_loc_scale:
+            return chainer.as_variable(self.__loc)
+        else:
+            return self.low
 
-    @property
+    @cache.cached_property
     def scale(self):
-        return self.__scale
+        if self._use_loc_scale:
+            return chainer.as_variable(self.__scale)
+        else:
+            return self.high - self.low
 
     @property
     def batch_shape(self):
@@ -79,7 +83,7 @@ class Uniform(distribution.Distribution):
     def cdf(self, x):
         return clip.clip((x - self.loc) / self.scale, 0., 1.)
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return exponential.log(self.scale)
 
@@ -100,10 +104,10 @@ class Uniform(distribution.Distribution):
             -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
-                (x.data >= self.low.data) & (x.data < self.high.data)),
-            logp, xp.full_like(logp.array, -numpy.inf))
+                (x.data >= self.low.data) & (x.data <= self.high.data)),
+            logp, xp.array(-xp.inf, logp.dtype))
 
-    @property
+    @cache.cached_property
     def mean(self):
         return (self.high + self.low) / 2
 
@@ -120,7 +124,7 @@ class Uniform(distribution.Distribution):
 
         return noise
 
-    @property
+    @cache.cached_property
     def stddev(self):
         return sqrt.sqrt(self.variance)
 
@@ -128,7 +132,7 @@ class Uniform(distribution.Distribution):
     def support(self):
         return "[low, high]"
 
-    @property
+    @cache.cached_property
     def variance(self):
         return self.scale ** 2 / 12
 
@@ -141,6 +145,6 @@ def _kl_uniform_uniform(dist1, dist2):
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.full_like(dist1.high.data, numpy.inf)
+    inf = xp.array(xp.inf, dist1.high.dtype)
 
     return where.where(is_inf, inf, kl)

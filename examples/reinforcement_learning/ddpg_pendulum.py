@@ -71,7 +71,7 @@ def get_action(policy, obs):
     """Get an action by evaluating a given policy."""
     obs = policy.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
-        action = policy(obs).data[0]
+        action = policy(obs).array[0]
     return chainer.backends.cuda.to_cpu(action)
 
 
@@ -121,7 +121,7 @@ def soft_copy_params(source, target, tau):
     source_params = [param for _, param in sorted(source.namedparams())]
     target_params = [param for _, param in sorted(target.namedparams())]
     for s, t in zip(source_params, target_params):
-        t.data[:] += tau * (s.data - t.data)
+        t.array[:] += tau * (s.array - t.array)
 
 
 def main():

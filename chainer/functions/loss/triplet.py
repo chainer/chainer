@@ -20,7 +20,7 @@ class Triplet(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('anchor', 'positive', 'negative'))
+        type_check._argname(in_types, ('anchor', 'positive', 'negative'))
 
         type_check.expect(
             in_types[0].dtype.kind == 'f',
@@ -100,15 +100,15 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     loss values.
 
     Args:
-        anchor (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The anchor example variable. The shape
+        anchor (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The anchor example variable. The shape
             should be :math:`(N, K)`, where :math:`N` denotes the minibatch
             size, and :math:`K` denotes the dimension of the anchor.
-        positive (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The positive example variable. The shape
+        positive (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The positive example variable. The shape
             should be the same as anchor.
-        negative (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The negative example variable. The shape
+        negative (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The negative example variable. The shape
             should be the same as anchor.
         margin (float): A parameter for triplet loss. It should be a positive
             value.
@@ -141,7 +141,7 @@ astype(np.float32)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([0.11000005, 0.17      ], dtype=float32)
         >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
         variable(0.44000003)

@@ -3,7 +3,7 @@ from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 def create_communicator(
         communicator_name='hierarchical', mpi_comm=None,
-        allreduce_grad_dtype=None):
+        allreduce_grad_dtype=None, batched_copy=False):
     """Create a ChainerMN communicator.
 
     Different communicators provide different approaches of communication, so
@@ -45,12 +45,23 @@ def create_communicator(
     """
 
     if mpi_comm is None:
-        import mpi4py.MPI
+        try:
+            import mpi4py.MPI
+        except ImportError as e:
+            raise ImportError(str(e) + ": "
+                              "ChainerMN requires mpi4py for "
+                              "distributed training. "
+                              "Please read the Chainer official document "
+                              "and setup MPI and mpi4py.")
         mpi_comm = mpi4py.MPI.COMM_WORLD
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
             'allreduce_grad_dtype is only available'
+            'at \'pure_nccl\' communicator.')
+    if communicator_name != 'pure_nccl' and batched_copy:
+        raise ValueError(
+            'batched_copy is only available'
             'at \'pure_nccl\' communicator.')
 
     if communicator_name == 'naive':
@@ -87,7 +98,8 @@ def create_communicator(
         from chainermn.communicators.pure_nccl_communicator \
             import PureNcclCommunicator
         return PureNcclCommunicator(mpi_comm=mpi_comm,
-                                    allreduce_grad_dtype=allreduce_grad_dtype)
+                                    allreduce_grad_dtype=allreduce_grad_dtype,
+                                    batched_copy=batched_copy)
 
     elif communicator_name == 'dummy':
         from chainermn.communicators.dummy_communicator \

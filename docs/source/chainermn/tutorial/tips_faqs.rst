@@ -4,19 +4,27 @@ Tips and FAQs
 
 Using MultiprocessIterator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are using ``MultiprocessIterator`` and communication goes through InfiniBand,
-you would probably face crashing problems.
-This is because ``MultiprocessIterator`` creates child processes by the ``fork`` system call,
-which has `incompatibilities with the design of MPI and InfiniBand <https://www.open-mpi.org/faq/?category=tuning#fork-warning>`_.
-To cope with this issue, we can use ``multiprocessing.set_start_method``
-to change the way to start child processes::
+
+If you are using ``MultiprocessIterator`` and communication goes
+through InfiniBand, you would probably face crashing problems.  This
+is because ``MultiprocessIterator`` creates child processes by the
+``fork`` system call, which has `incompatibilities with the design of MPI and InfiniBand
+<https://www.open-mpi.org/faq/?category=tuning#fork-warning>`_.  To
+cope with this issue, use ``multiprocessing.set_start_method`` to
+start child processes, with a process explicitly forked right after, **before
+communicator is created** as follows::
 
   multiprocessing.set_start_method('forkserver')
+  p = multiprocessing.Process(target=lambda *x: x, args=())
+  p.start()
+  p.join()
 
-Both ``forkserver`` mode and ``spawn`` mode should work.
-Please also refer to our ImageNet example, where ``MultiprocessIterator`` is used.
-Unfortunately, ``multiprocessing.set_start_method`` is only available in Python 3.4+.
-Therefore you need those recent Python versions to use ``MultiprocessIterator``.
+  communicator = chainermn.create_communicator(...)
+
+Either ``forkserver`` mode or ``spawn`` mode should work.  See our
+ImageNet example script for working sample code of
+``MultiprocessIterator`` and ``forkserver``.  Unfortunately,
+``multiprocessing.set_start_method`` is only available in Python 3.4+.
 
 
 Using Your Own Evaluator
