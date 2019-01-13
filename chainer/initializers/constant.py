@@ -1,7 +1,9 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializer
+from chainer import types  # NOQA
 
 
 class Identity(initializer.Initializer):
@@ -29,13 +31,13 @@ class Identity(initializer.Initializer):
             raise ValueError('Identity matrix initialization can only be used '
                              'for 2D squared matrices.')
         array[...] = 0
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         xp.fill_diagonal(array, self.scale)
 
 
 class _Constant(initializer.Initializer):
 
-    fill_value = None
+    fill_value = None  # type: types.ScalarValue
 
     def __init__(self, dtype=None):
         if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray)) or
@@ -48,7 +50,7 @@ class _Constant(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         array[...] = xp.asarray(self.fill_value)
 
 

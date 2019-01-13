@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -79,7 +79,7 @@ class BilinearFunction(function_node.FunctionNode):
         e2 = _as_mat(inputs[1])
         W = inputs[2]
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         # optimize: y = xp.einsum('ij,ik,jkl->il', e1, e2, W)
         y = xp.tensordot(xp.einsum('ij,ik->ijk', e1, e2), W, axes=2)
 
@@ -110,7 +110,7 @@ class BilinearFunctionGrad(function_node.FunctionNode):
         e2 = _as_mat(inputs[1])
         W, gy = inputs[2], inputs[-1]
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         # optimize: gW = xp.einsum('ij,ik,il->jkl', e1, e2, gy)
         gW = xp.einsum('ij,ik->jki', e1, e2).dot(gy)
 
@@ -225,12 +225,18 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
        (concatenation of matrices) by :math:`V`.
 
     Args:
-        e1 (~chainer.Variable): Left input variable.
-        e2 (~chainer.Variable): Right input variable.
-        W (~chainer.Variable): Quadratic weight variable.
-        V1 (~chainer.Variable): Left coefficient variable.
-        V2 (~chainer.Variable): Right coefficient variable.
-        b (~chainer.Variable): Bias variable.
+        e1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Left input variable.
+        e2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Right input variable.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Quadratic weight variable.
+        V1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Left coefficient variable.
+        V2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Right coefficient variable.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable.
 
     Returns:
         ~chainer.Variable: Output variable.

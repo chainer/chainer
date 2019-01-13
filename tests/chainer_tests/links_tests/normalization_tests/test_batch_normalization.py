@@ -462,9 +462,23 @@ class TestChannalSizeInference(unittest.TestCase):
         assert bn.avg_mean is not None
         assert bn.avg_var is not None
 
-    def test_inference(self):
+    def test_inference_cpu(self):
         bn = links.BatchNormalization(axis=self.axis)
         bn(self.x)
+        assert bn.beta.shape == self.expected_size
+        assert bn.gamma.shape == self.expected_size
+        assert bn.avg_mean.shape == self.expected_size
+        assert bn.avg_var.shape == self.expected_size
+
+    @attr.gpu
+    def test_inference_gpu(self):
+        bn = links.BatchNormalization(axis=self.axis)
+        bn.to_gpu()
+        bn(cuda.to_gpu(self.x))
+        assert isinstance(bn.beta.data, cuda.cupy.ndarray)
+        assert isinstance(bn.gamma.data, cuda.cupy.ndarray)
+        assert isinstance(bn.avg_mean, cuda.cupy.ndarray)
+        assert isinstance(bn.avg_var, cuda.cupy.ndarray)
         assert bn.beta.shape == self.expected_size
         assert bn.gamma.shape == self.expected_size
         assert bn.avg_mean.shape == self.expected_size

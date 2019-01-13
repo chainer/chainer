@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer import backend
 
 
 class AllGather(chainer.Function):
@@ -14,7 +14,7 @@ class AllGather(chainer.Function):
         return self.comm.allgather(x)
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         gxs = self.comm.alltoall(grad_outputs)
         gx = xp.stack(gxs).sum(axis=0)
         return gx,
@@ -51,7 +51,7 @@ class Bcast(chainer.Function):
         self.root = root
 
     def __call__(self, *inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
@@ -75,7 +75,7 @@ class Bcast(chainer.Function):
         gxs = self.comm.gather(gx, self.root)
 
         if self.comm.rank == self.root:
-            xp = cuda.get_array_module(*gxs)
+            xp = backend.get_array_module(*gxs)
             gxs = xp.stack(gxs)
             return gxs.sum(axis=0),
         else:
@@ -91,7 +91,7 @@ class Gather(chainer.Function):
         self.root = root
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, = inputs
         ys = self.comm.gather(x, self.root)
 
@@ -115,7 +115,7 @@ class Scatter(chainer.Function):
         self.root = root
 
     def __call__(self, *inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
@@ -136,7 +136,7 @@ class Scatter(chainer.Function):
         return y,
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         gy, = grad_outputs
         gxs = self.comm.gather(gy, self.root)
 

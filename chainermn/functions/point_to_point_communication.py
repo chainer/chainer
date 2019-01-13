@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.utils
 
 
@@ -19,7 +19,7 @@ class Send(chainer.Function):
             self.peer_rank)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         # The last input is dummy variable, to retain gradient computation
         # of this function.
@@ -34,7 +34,7 @@ class Send(chainer.Function):
         return xp.array([], dtype=xp.float32),
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         dummy_grad = xp.array([], dtype=xp.float32)
         grad = self.comm.recv(self.peer_rank, self.peer_tag)
         if isinstance(grad, tuple):
@@ -53,22 +53,11 @@ class Recv(chainer.Function):
         self.peer_tag = peer_tag
 
     def __call__(self, *inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         if inputs == ():
             # Expected to be invoked without any args in usual case.
-            if chainer.__version__.startswith('1.'):
-                # For backward compatibility.
-                dummy_var = chainer.Variable(
-                    xp.array([], dtype=xp.float32),
-                    volatile='auto')
-            else:
-                # This variable is necessary to backprop correctly
-                # in Chainer v2. This trick relies on the fact
-                # chainer.Variable.requires_grad is True by default
-                # in Chainer v2.0.0.
-                dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
-
+            dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
             dummy_var.name = 'dummy_var'
             return super(Recv, self).__call__(dummy_var)
 
@@ -91,7 +80,7 @@ class Recv(chainer.Function):
         return data
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         self.comm.send(grad_outputs, self.peer_rank, self.peer_tag)
 
         # dummy_var is needed to maintain Chainer's constraint.
@@ -133,7 +122,7 @@ def send(x, communicator, rank, tag=0):
             'rank must be different from communicator rank, '
             'otherwise deadlock occurs')
 
-    xp = cuda.get_array_module(*x)
+    xp = backend.get_array_module(*x)
 
     # Dummy variable to retain gradient computation of send,
     # otherwise the corresponding recv will cause deadlock in backward

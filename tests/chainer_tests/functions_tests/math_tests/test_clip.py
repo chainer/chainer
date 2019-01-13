@@ -13,34 +13,42 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'x_min_max': [
+        (-0.75, 1.53),
+        (numpy.float32(-0.75), numpy.float32(1.53)),
+        (-1, 2),
+    ]
 }))
 class TestClip(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x = numpy.random.uniform(-3, 3, self.shape).astype(self.dtype)
         # Avoid values around x_min and x_max for stability of numerical
         # gradient
+        x_min, x_max = self.x_min_max
+        x_min = float(x_min)
+        x_max = float(x_max)
+        eps = 0.01
         for ind in numpy.ndindex(self.x.shape):
-            if -0.76 < self.x[ind] < -0.74:
+            if x_min - eps < self.x[ind] < x_min + eps:
                 self.x[ind] = -0.5
-            elif 0.74 < self.x[ind] < 0.76:
+            elif x_max - eps < self.x[ind] < x_max + eps:
                 self.x[ind] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.x_min = -0.75
-        self.x_max = 0.75
 
     def check_forward(self, x_data):
+        x_min, x_max = self.x_min_max
         x = chainer.Variable(x_data)
-        y = functions.clip(x, self.x_min, self.x_max)
+        y = functions.clip(x, x_min, x_max)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = self.x.copy()
         for i in numpy.ndindex(self.x.shape):
-            if self.x[i] < self.x_min:
-                y_expect[i] = self.x_min
-            elif self.x[i] > self.x_max:
-                y_expect[i] = self.x_max
+            if self.x[i] < x_min:
+                y_expect[i] = x_min
+            elif self.x[i] > x_max:
+                y_expect[i] = x_max
 
         testing.assert_allclose(y_expect, y.data)
 
@@ -53,7 +61,8 @@ class TestClip(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         def f(x):
-            return functions.clip(x, self.x_min, self.x_max)
+            x_min, x_max = self.x_min_max
+            return functions.clip(x, x_min, x_max)
 
         gradient_check.check_backward(
             f, x_data, y_grad, dtype=numpy.float64)
@@ -67,7 +76,8 @@ class TestClip(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, gx_grad):
         def f(x):
-            return functions.clip(x, self.x_min, self.x_max)
+            x_min, x_max = self.x_min_max
+            return functions.clip(x, x_min, x_max)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, gx_grad, dtype=numpy.float64, atol=1e-3)
@@ -87,7 +97,7 @@ class TestClipInvalidInterval(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
 
     def test_invalid_interval(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             functions.clip(self.x, 1.0, -1.0)
 
 

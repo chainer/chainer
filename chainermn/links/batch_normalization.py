@@ -8,6 +8,8 @@ from chainer import variable
 import numpy
 
 from chainermn.functions.batch_normalization import \
+    get_communication_backend
+from chainermn.functions.batch_normalization import \
     MultiNodeBatchNormalizationFunction
 
 
@@ -38,18 +40,17 @@ class MultiNodeBatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
+        communication_backend (str): ``mpi``, ``nccl`` or ``auto``. It is used
+            to determine communication backend. If ``auto``, use the best
+            communication backend for each communicator.
     """
 
     def __init__(self, size, comm, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+                 initial_gamma=None, initial_beta=None,
+                 communication_backend='auto'):
         chainer.utils.experimental(
             'chainermn.links.MultiNodeBatchNormalization')
-
-        if chainer.__version__.startswith('1.'):
-            raise RuntimeError(
-                'MultiNodeBatchNormalization works only with '
-                'chainer >= 2.0.0.')
 
         super(MultiNodeBatchNormalization, self).__init__()
         self.comm = comm
@@ -61,6 +62,9 @@ class MultiNodeBatchNormalization(link.Link):
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+
+        self._communication_backend = \
+            get_communication_backend(comm, communication_backend)
 
         with self.init_scope():
             if use_gamma:
@@ -98,7 +102,9 @@ class MultiNodeBatchNormalization(link.Link):
                 decay = self.decay
 
             func = MultiNodeBatchNormalizationFunction(
-                self.comm, self.eps, self.avg_mean, self.avg_var, decay)
+                self.comm, self.eps, self.avg_mean, self.avg_var, decay,
+                communication_backend=self._communication_backend)
+
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean

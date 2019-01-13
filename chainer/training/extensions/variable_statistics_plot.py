@@ -6,32 +6,41 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 from chainer.utils import argument
 
 
-try:
-    import matplotlib
-    _available = True
-except ImportError:
-    _available = False
+_available = None
 
 
-if _available:
-    if hasattr(matplotlib.colors, 'to_rgba'):
-        _to_rgba = matplotlib.colors.to_rgba
-    else:
-        # For matplotlib 1.x
-        _to_rgba = matplotlib.colors.ColorConverter().to_rgba
-    _plot_color = _to_rgba('#1f77b4')  # C0 color
-    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
-    _plot_common_kwargs = {
-        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
+def _try_import_matplotlib():
+    global matplotlib, _available
+    global _plot_color, _plot_color_trans, _plot_common_kwargs
+    try:
+        import matplotlib
+        _available = True
+    except ImportError:
+        _available = False
+
+    if _available:
+        if hasattr(matplotlib.colors, 'to_rgba'):
+            _to_rgba = matplotlib.colors.to_rgba
+        else:
+            # For matplotlib 1.x
+            _to_rgba = matplotlib.colors.ColorConverter().to_rgba
+        _plot_color = _to_rgba('#1f77b4')  # C0 color
+        _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
+        _plot_common_kwargs = {
+            'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
 
 
 def _check_available():
+    if _available is None:
+        _try_import_matplotlib()
+
     if not _available:
         warnings.warn('matplotlib is not installed on your environment, '
                       'so nothing will be plotted at this time. '
@@ -56,10 +65,10 @@ class Reservoir(object):
 
     """Reservoir sample with a fixed sized buffer."""
 
-    def __init__(self, size, data_shape, dtype='f'):
+    def __init__(self, size, data_shape, dtype=numpy.float32):
         self.size = size
         self.data = numpy.zeros((size,) + data_shape, dtype=dtype)
-        self.idxs = numpy.zeros((size,), dtype='i')
+        self.idxs = numpy.zeros((size,), dtype=numpy.int32)
         self.counter = 0
 
     def add(self, x, idx=None):
@@ -107,13 +116,6 @@ class Statistician(object):
 
         if self.percentile_sigmas:
             xp = cuda.get_array_module(x)
-            # if xp is numpy:
-            #     p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
-            # else:
-            #     # TODO(hvy): Use percentile from CuPy once it is supported
-            #     p = cuda.to_gpu(
-            #         numpy.percentile(
-            #             cuda.to_cpu(x), self.percentile_sigmas, axis=axis))
             p = xp.percentile(x, self.percentile_sigmas, axis=axis)
             out['percentile'] = p
 
@@ -122,12 +124,12 @@ class Statistician(object):
 
 class VariableStatisticsPlot(extension.Extension):
 
-    """Trainer extension to plot statistics for :class:`Variable`\s.
+    """Trainer extension to plot statistics for :class:`Variable`\\s.
 
     This extension collects statistics for a single :class:`Variable`, a list
-    of :class:`Variable`\s or similarly a single or a list of
-    :class:`Link`\s containing one or more :class:`Variable`\s. In case
-    multiple :class:`Variable`\s are found, the means are computed. The
+    of :class:`Variable`\\s or similarly a single or a list of
+    :class:`Link`\\s containing one or more :class:`Variable`\\s. In case
+    multiple :class:`Variable`\\s are found, the means are computed. The
     collected statistics are plotted and saved as an image in the directory
     specified by the :class:`Trainer`.
 
@@ -246,14 +248,14 @@ class VariableStatisticsPlot(extension.Extension):
         return _available
 
     def __call__(self, trainer):
-        if _available:
+        if self.available():
             # Dynamically import pyplot to call matplotlib.use()
             # after importing chainer.training.extensions
             import matplotlib.pyplot as plt
         else:
             return
 
-        xp = cuda.get_array_module(self._vars[0].data)
+        xp = backend.get_array_module(self._vars[0].data)
         stats = xp.zeros(self._data_shape, dtype=xp.float32)
         for i, k in enumerate(self._keys):
             xs = []
@@ -332,7 +334,7 @@ class VariableStatisticsPlot(extension.Extension):
                     if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
-                        # percentile is the mid percentile and the numner of
+                        # percentile is the mid percentile and the number of
                         # percentiles are odd
                         ax.plot(
                             idxs, data[:, col, offset + i], color=_plot_color,

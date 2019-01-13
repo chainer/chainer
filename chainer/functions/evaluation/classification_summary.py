@@ -3,15 +3,17 @@ from __future__ import division
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
 
 def _fbeta_score(precision, recall, beta):
     beta_square = beta * beta
-    return ((1 + beta_square) * precision * recall /
-            (beta_square * precision + recall)).astype(precision.dtype)
+    return (
+        (1 + beta_square) * precision * recall
+        / (beta_square * precision + recall)
+    ).astype(precision.dtype, copy=False)
 
 
 class ClassificationSummary(function.Function):
@@ -22,7 +24,7 @@ class ClassificationSummary(function.Function):
         self.ignore_label = ignore_label
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -40,10 +42,10 @@ class ClassificationSummary(function.Function):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # numpy.bincount requires int32 on Windows
-        t = t.astype('i', copy=False)
+        t = t.astype(xp.int32, copy=False)
 
         if self.label_num is None:
             label_num = xp.amax(t) + 1
@@ -97,9 +99,10 @@ def classification_summary(y, t, label_num=None, beta=1.0, ignore_label=-1):
     arrays do not contain correct quantities.
 
     Args:
-        y (~chainer.Variable): Variable holding a vector of scores.
-        t (~chainer.Variable): Variable holding a vector of
-            ground truth labels.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a vector of scores.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a vector of ground truth labels.
         label_num (int): The number of classes.
         beta (float): The parameter which determines the weight of
             precision in the F-beta score.

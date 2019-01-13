@@ -6,81 +6,80 @@ cache:
 
 matrix:
   include:
-    - os: linux
-      python: "2.7"
-    - os: linux
-      python: "3.4"
-    - os: linux
+    - name: "Python Style Check"
+      dist: xenial
       python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="python-stylecheck"
 
-    - os: osx
+    - name: "C++ Style Check"
+      language: python
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="c-stylecheck"
+
+    - name: "Ubuntu14.04 Py27"
+      dist: trusty
+      python: "2.7"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - SKIP_CHAINERX=1
+
+    - name: "Ubuntu14.04 Py34"
+      dist: trusty
+      python: "3.4"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - SKIP_CHAINERX=1
+
+    - name: "Ubuntu16.04 Py35 + ChainerX"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
+    - name: "macOS Py35"
+      os: osx
       language: generic
       env:
-      - PYTHON_VERSION=2.7.10
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
-    - os: osx
-      language: generic
-      env:
-      - PYTHON_VERSION=3.4.4
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
-    - os: osx
-      language: generic
-      env:
+      - CHAINER_TRAVIS_TEST="chainer"
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+
+    - name: "macOS Py27"
+      os: osx
+      language: generic
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - PYTHON_VERSION=2.7.10
+      - PYENV_ROOT=~/.pyenv
+      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - SKIP_CHAINERX=1
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
+
+    - name: "macOS Py34"
+      os: osx
+      language: generic
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - PYTHON_VERSION=3.4.4
+      - PYENV_ROOT=~/.pyenv
+      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - SKIP_CHAINERX=1
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
-  # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
-  - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-      brew update >/dev/null;
-      brew outdated pyenv || brew upgrade --quiet pyenv;
-
-      PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION;
-      pyenv global $PYTHON_VERSION;
-      python --version;
-
-      brew cask uninstall oclint;
-      brew install hdf5;
-      brew install open-mpi;
-    fi
+  - bash scripts/ci/travis/run-tests.sh before_install
 
 install:
-  - pip install -U pip wheel
-  - pip install mpi4py
-  - python setup.py sdist
-  - pip install dist/*.tar.gz
-  - travis_wait pip install -U -e .[travis]
+  - travis_wait bash scripts/ci/travis/run-tests.sh install
 
 script:
-  - flake8
-  - autopep8 -r . --diff | tee check_autopep8
-  - test ! -s check_autopep8
-  - pushd tests
-  - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
-  - export OMP_NUM_THREADS=1
-  - (for NP in 1 2; do mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
-  - popd
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      READTHEDOCS=True python setup.py develop;
-    fi
-  - pushd docs
-  - make html
-  - popd
-
-sudo: false
+  - bash scripts/ci/travis/run-tests.sh script
 
 addons:
   apt:
-    packages:
-      - gfortran
-      - libhdf5-serial-dev
-      - liblapack-dev
-      - openmpi-bin
-      - openmpi-common
-      - libopenmpi-dev
+    update: true

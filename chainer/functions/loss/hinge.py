@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -30,7 +31,7 @@ class Hinge(function.Function):
                 'given' % reduce)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't'))
+        type_check._argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(
@@ -94,7 +95,7 @@ class Hinge(function.Function):
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
 
         if self.reduce == 'mean':
@@ -148,12 +149,9 @@ def hinge(x, t, norm='L1', reduce='mean'):
         loss values. If it is ``'mean'``, it takes the mean of loss values.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.float`):
-            Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
-            .
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of signed integer):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            The shape of ``x`` should be (:math:`N`, :math:`K`).
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             The :math:`N`-dimensional label vector with values
             :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).

@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import links
 from chainer import testing
@@ -29,7 +30,7 @@ class TestInceptionBNBase(unittest.TestCase):
             self.stride)
 
     def check_backward(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         x = chainer.Variable(x_data)
         y = self.l(x)
         y.grad = xp.random.randn(*y.data.shape).astype('f')

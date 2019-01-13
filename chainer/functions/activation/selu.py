@@ -17,8 +17,7 @@ def selu(x,
     See: https://arxiv.org/abs/1706.02515
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         alpha (float): Parameter :math:`\\alpha`.
         scale (float): Parameter :math:`\\lambda`.

@@ -1,7 +1,7 @@
 from six import moves
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 from chainer import variable
@@ -47,7 +47,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[1], W.shape[2]
         feature_dim = W.shape[3] * W.shape[4] * W.shape[5]
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         output = xp.empty((x.shape[0], W.shape[0], output_row, output_col,),
                           dtype=x.dtype)
         for i in moves.range(output_row):
@@ -74,7 +74,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         W = Wvar.data
         gyvar, = grad_outputs
         gy = gyvar.data
-        xp = cuda.get_array_module(x, W)
+        xp = backend.get_array_module(x, W)
         stride_row, stride_col = self.sy, self.sx
         output_row, output_col = W.shape[1], W.shape[2]
         ret = []
@@ -142,11 +142,11 @@ def local_convolution_2d(x, W, b=None, stride=1):
       respectively.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h, w)`.
-        W (~chainer.Variable): Weight variable of shape
-            :math:`(c_O, h_O, w_O, c_I, k_H, k_W)`.
-        b (~chainer.Variable):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`): Weight variable of
+            shape :math:`(c_O, h_O, w_O, c_I, k_H, k_W)`.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
             Bias variable of shape :math:`(c_O,h_O,w_O)` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.

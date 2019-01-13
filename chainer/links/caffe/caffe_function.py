@@ -14,7 +14,6 @@ from chainer.links.connection import linear
 from chainer.links.connection import scale
 from chainer.links.normalization import batch_normalization
 from chainer.utils import argument
-from chainer.utils import collections_abc
 
 
 try:
@@ -54,7 +53,7 @@ class _Blob(initializer.Initializer):
         indices = list(range(0, size, self.chunk_size))
 
         # Rather than accessing Protobuf's RepeatedScalar fields directly,
-        # creating a intermediate list by indexing is more efficifent due to
+        # creating a intermediate list by indexing is more efficient due to
         # the implementation of the Python extension of Protobuf.
         # To avoid allocating excessively large lists, we limit the length
         # of lists by `chunk_size`.
@@ -184,12 +183,6 @@ class CaffeFunction(link.Chain):
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
 
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
-
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
                 correspondences between blob names and
@@ -221,7 +214,7 @@ class CaffeFunction(link.Chain):
             func = self.forwards[func_name]
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
-            if not isinstance(output_vars, collections_abc.Iterable):
+            if not isinstance(output_vars, (tuple, list)):
                 output_vars = output_vars,
             for var, name in zip(output_vars, top):
                 variables[name] = var
@@ -547,7 +540,7 @@ def _get_stride(param):
 
 
 def _get_pad(param):
-    if param.pad_h > 0:
+    if param.pad_h > 0 or param.pad_w > 0:
         return param.pad_h, param.pad_w
     elif type(param.pad) == int:
         return param.pad
@@ -600,6 +593,7 @@ def _get_width(blob):
 
 
 # Internal class
+# __call__ must return Variable or tuple
 
 class _SingleArgumentFunction(object):
 

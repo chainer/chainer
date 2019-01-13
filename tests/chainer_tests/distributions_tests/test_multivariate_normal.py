@@ -1,11 +1,12 @@
 import unittest
 
+import numpy
+
 from chainer import cuda
 from chainer import distributions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -61,9 +62,12 @@ class TestMultivariateNormal(testing.distribution_unittest):
 class TestTriangularInv(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.normal(
-            0, 10, size=(self.d, self.d)).astype(self.dtype)
-        self.x = numpy.tril(self.x)
+        while True:
+            self.x = numpy.random.normal(
+                0, 10, size=(self.d, self.d)).astype(self.dtype)
+            self.x = numpy.tril(self.x)
+            if (abs(self.x.diagonal()) > 0.1).all():
+                break
         if not self.lower:
             self.x = self.x.T
         self.gy = numpy.random.normal(size=(self.d, self.d)).astype(self.dtype)

@@ -3,21 +3,13 @@
 API Compatibility Policy
 ========================
 
-This document explains the design policy on compatibilities of Chainer APIs.
+This documentation explains the design policy on compatibilities of Chainer APIs.
 Development team should follow this policy on deciding to add, extend, and change APIs and their behaviors.
 
-This document is written for both users and developers.
+This documentation is written for both users and developers.
 Users can decide the level of dependencies on Chainer’s implementations in their codes based on this document.
-Developers should read through this document before creating pull requests that contain changes on the interface.
-Note that this document may contain ambiguities on the level of supported compatibilities.
-
-
-Targeted Versions
------------------
-
-**This policy is applied to Chainer v2.0.0 and higher.**
-Note that this policy is not applied to Chainer of lower versions.
-For older versions of Chainer, see `the old version of API Compatiblity Policy <https://docs.chainer.org/en/v1.24.0/compatibility.html>`_.
+Developers should read through this documentation before creating pull requests that contain changes on the interface.
+Note that this documentation may contain ambiguities on the level of supported compatibilities.
 
 
 Versioning and Backward Compatibility
@@ -49,13 +41,6 @@ The following list shows an example of what we can do to reduce the cost (*Note:
 - When a definition of a link is changed, we try to enable it to deserialize a model dumped with an older version of Chainer.
   In most cases, we cannot guarantee that a model serialized with a newer version of Chainer is loadable by an older version of Chainer.
 
-.. note::
-
-   Since Chainer v2, we have stopped adopting any solid processes to break backward compatibilities (e.g. a solid schedule for deprecating and removing a feature) in order to keep the development fast enough to support the cutting-edge research.
-   **It does not mean we stop taking care of maintainability of user codes.**
-   We are still paying much attention to not breaking user codes.
-
-
 .. module:: chainer.utils
 
 Experimental APIs
@@ -78,7 +63,7 @@ Any API that is not experimental is called *stable* in this document.
 When users use experimental APIs for the first time, warnings are raised once for each experimental API,
 unless users explicitly disable the emission of the warnings in advance.
 
-See the document of :meth:`chainer.utils.experimental` to know how developers mark APIs as experimental
+See the documentation of :meth:`chainer.utils.experimental` to know how developers mark APIs as experimental
 and how users enable or disable the warnings practically.
 
 .. note::

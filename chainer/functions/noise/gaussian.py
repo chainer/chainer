@@ -27,7 +27,7 @@ class Gaussian(function_node.FunctionNode):
         self.eps = eps
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('mean', 'ln_var'))
+        type_check._argname(in_types, ('mean', 'ln_var'))
 
         m_type, v_type = in_types
         type_check.expect(
@@ -96,12 +96,12 @@ def gaussian(mean, ln_var, **kwargs):
     The inputs must have the same shape.
 
     Args:
-        mean (~chainer.Variable):
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable representing the mean :math:`\\mu`.
-        ln_var (~chainer.Variable):
+        ln_var (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable representing the logarithm of a variance
             :math:`\\log(\\sigma^2)`.
-        eps (`ndarray` or None):
+        eps (:ref:`ndarray` or None):
             The eps value to be used.
             You do not have to specify this value, unless you need to make
             results deterministic.
@@ -120,7 +120,7 @@ def gaussian(mean, ln_var, **kwargs):
             When ``return_eps`` is ``False`` (default), returns the output
             variable with the shape of ``mean`` and/or ``ln_var``.
             When ``True``, returns the tuple of the output variable and eps
-            (`ndarray`).
+            (:ref:`ndarray`).
             The eps will be on the same device as the input (``ln_var``).
 
     """

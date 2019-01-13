@@ -9,6 +9,13 @@ from chainer import testing
 from chainer.training import extensions
 
 
+try:
+    import matplotlib
+    _available = True
+except ImportError:
+    _available = False
+
+
 class TestVariableStatisticsPlot(unittest.TestCase):
 
     def setUp(self):
@@ -30,11 +37,8 @@ class TestVariableStatisticsPlot(unittest.TestCase):
     # because it sometimes does not raise UserWarning despite
     # matplotlib is not installed (this is due to the difference between
     # the behavior of unittest in python2 and that in python3).
-    @unittest.skipUnless(
-        extensions.variable_statistics_plot._available,
-        'matplotlib is not installed')
+    @unittest.skipUnless(_available, 'matplotlib is not installed')
     def test_run_and_save_plot(self):
-        import matplotlib
         matplotlib.use('Agg')
         try:
             self.trainer.run()

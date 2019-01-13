@@ -33,7 +33,7 @@ class DCGANUpdater(chainer.training.StandardUpdater):
 
         batch = self.get_iterator('main').next()
         x_real = Variable(self.converter(batch, self.device)) / 255.
-        xp = chainer.cuda.get_array_module(x_real.data)
+        xp = chainer.backend.get_array_module(x_real.array)
 
         gen, dis = self.gen, self.dis
         batchsize = len(batch)
