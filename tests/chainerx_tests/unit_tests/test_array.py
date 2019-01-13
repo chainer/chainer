@@ -1,4 +1,6 @@
+import copy
 import math
+import pickle
 
 import numpy
 import pytest
@@ -697,3 +699,33 @@ def test_asarray_to_numpy_identity(device, slice1, slice2):
     z = chainerx.to_numpy(y)
     chainerx.testing.assert_array_equal_ex(x, y)
     chainerx.testing.assert_array_equal_ex(x, z, strides_check=False)
+
+
+# TODO(niboshi): Add pickle test involving context destruction and re-creation
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_array_pickle(device):
+    arr = chainerx.array([1, 2], chainerx.float32, device=device)
+    s = pickle.dumps(arr)
+    del arr
+
+    arr2 = pickle.loads(s)
+    assert isinstance(arr2, chainerx.ndarray)
+    assert arr2.device is device
+    assert arr2.dtype == chainerx.float32
+    chainerx.testing.assert_array_equal(
+        arr2,
+        chainerx.array([1, 2], chainerx.float32))
+
+
+# TODO(niboshi): Add deepcopy test with arbitrary context
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_array_deepcopy(device):
+    arr = chainerx.array([1, 2], chainerx.float32, device=device)
+    arr2 = copy.deepcopy(arr)
+
+    assert isinstance(arr2, chainerx.ndarray)
+    assert arr2.device is device
+    assert arr2.dtype == chainerx.float32
+    chainerx.testing.assert_array_equal(
+        arr2,
+        chainerx.array([1, 2], chainerx.float32))
