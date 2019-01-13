@@ -1425,12 +1425,19 @@ class Variable(object):
         grads.assert_no_grads()
 
     def item(self):
-        """Converts the variable with one element to a Python scalar
+        """Converts the variable with one element to a Python scalar.
+
+        This will incur host-device synchronization. Note that ChainerX is not
+        supported.
 
         Returns:
             int or float: The element of the array.
 
         """
+        xp = backend.get_array_module(self.array)
+        if xp is chainerx:
+            raise NotImplementedError(
+                "ChainerX array does not support item method.")
         return self.array.item()
 
     def reshape(self, *shape):

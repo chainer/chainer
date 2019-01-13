@@ -2255,7 +2255,8 @@ class TestReshape(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'shape': [(), (1,), (1, 1), (1, 1, 1), (2,), (2, 3)],
-    'dtype': [np.int16, np.int32, np.int64, np.float32, np.float64],
+    'dtype': [np.int16, np.int32, np.int64,
+              np.float16, np.float32, np.float64],
 }))
 class TestItem(unittest.TestCase):
 
@@ -2277,6 +2278,15 @@ class TestItem(unittest.TestCase):
     @attr.gpu
     def test_gpu(self):
         self.check_item(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_chainerx(self):
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        x = chainerx.array(self.x)
+        var = chainer.Variable(x)
+        with pytest.raises(NotImplementedError):
+            var.item()
 
 
 @testing.parameterize(*testing.product({
