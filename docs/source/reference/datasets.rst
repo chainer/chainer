@@ -182,8 +182,8 @@ TextDataset
 
    chainer.datasets.TextDataset
 
-PickleDatase
-~~~~~~~~~~~~
+PickleDataset
+~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/

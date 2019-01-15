@@ -5,7 +5,9 @@ from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.graph_optimizations import static_code
+from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -61,6 +63,21 @@ class LinearFunction(function_node.FunctionNode):
         y = outputs[0]
         y += bias
 
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support dtype casting in ChainerX
+        if inputs[0].dtype != inputs[1].dtype:
+            return chainer.Fallback
+
+        # Generic implementation
+        if len(inputs) == 3:
+            x, W, b = inputs
+            if x.dtype != b.dtype:
+                return chainer.Fallback
+            return chainerx.linear(x, W, b),
+        else:
+            x, W = inputs
+            return chainerx.linear(x, W),
+
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
@@ -86,7 +103,7 @@ class LinearFunction(function_node.FunctionNode):
         # required that all output arrays of this forward
         # function be allocated explicitly:
         xp = cuda.get_array_module(x)
-        y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+        y = xp.empty((x.shape[0], W.shape[0]), dtype=x.dtype)
 
         # This is required because all of the "static_*()" functions
         # use the convention that any output arrays are supplied
@@ -237,21 +254,20 @@ def linear(x, W, b=None, n_batch_axes=1):
     It accepts two or three arguments: an input minibatch ``x``, a weight
     matrix ``W``, and optionally a bias vector ``b``. It computes
 
-    .. math:: Y = xW^\\top + b.
+    .. math:: y_i = W x_i + b.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable, which is a :math:`(s_1, s_2, \
-            ..., s_n)`-shaped float array. Its first ``n_batch_axes``
-            dimensions are handled as *minibatch dimensions*. The
-            other dimensions are handled as concatenated one dimension whose
-            size must be :math:`(s_{\\rm n\\_batch\\_axes} * ... * s_n = N)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Weight variable of shape :math:`(M, N)`,
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable,
+            which is a :math:`(s_1, s_2, ..., s_n)`-shaped float array.
+            Its first ``n_batch_axes`` dimensions are handled as
+            *minibatch dimensions*. The other dimensions are handled as
+            concatenated one dimension whose size must be
+            :math:`(s_{\\rm n\\_batch\\_axes} * ... * s_n = N)`.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape :math:`(M, N)`,
             where :math:`(N = s_{\\rm n\\_batch\\_axes} * ... * s_n)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Bias variable (optional) of shape
-            :math:`(M,)`.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable (optional) of shape :math:`(M,)`.
         n_batch_axes (int): The number of batch axes. The default is 1. The
             input variable is reshaped into
             (:math:`{\\rm n\\_batch\\_axes} + 1`)-dimensional tensor.
@@ -277,7 +293,7 @@ def linear(x, W, b=None, n_batch_axes=1):
         raise ValueError('n_batch_axes should be greater than 0.')
     if n_batch_axes > 1:
         batch_shape = x.shape[:n_batch_axes]
-        batch_size = numpy.prod(batch_shape)
+        batch_size = utils.size_of_shape(batch_shape)
         x = x.reshape(batch_size, -1)
     elif x.ndim > 2:
         x = x.reshape(x.shape[0], -1)

@@ -1,5 +1,12 @@
 .. module:: chainer.training
 
+
+.. snapshot_writers is referred to from within chainer.training.snapshot docstring.
+.. toctree::
+   :hidden:
+
+   snapshot_writers
+
 Training Tools
 =========================
 
@@ -123,7 +130,7 @@ These extensions provide features to perform reporting of metrics and various st
    chainer.training.extensions.PlotReport
    chainer.training.extensions.VariableStatisticsPlot
 
-   chainer.training.extensions.dump_graph
+   chainer.training.extensions.DumpGraph
 
 Snapshot
 ~~~~~~~~

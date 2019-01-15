@@ -6,6 +6,7 @@ from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 _numpy_supports_0d_bool_index = \
@@ -38,7 +39,10 @@ class GetItem(function_node.FunctionNode):
         type_check._argname(in_types, ('x',))
 
     def forward(self, xs):
-        return utils.force_array(xs[0][self.slices]),
+        slices = tuple([
+            backend.from_chainerx(s) if isinstance(s, chainerx.ndarray) else s
+            for s in self.slices])
+        return utils.force_array(xs[0][slices]),
 
     def backward(self, indexes, gy):
         return GetItemGrad(
@@ -93,8 +97,8 @@ def get_item(x, slices):
     """Extract elements from array with specified shape, axes and offsets.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable to be sliced.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable to be sliced.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
             An object to specify the selection of elements.

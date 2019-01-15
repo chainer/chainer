@@ -60,12 +60,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     def __call__(self, embeddings, labels):
         """
         Args:
-            embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
-            or :class:`cupy.ndarray`): \
+            embeddings (:class:`~chainer.Variable` or :ref:`ndarray`):
                 predicted embedding vectors
                 (batch size, max embedding dimensions, height, width)
 
-            labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+            labels (:ref:`ndarray`):
                 instance segmentation ground truth
                 each unique value has to be denoting one instance
                 (batch size, height, width)
@@ -157,12 +156,11 @@ def discriminative_margin_based_clustering_loss(
         Small regularization loss to penalize weights against overfitting.
 
     Args:
-        embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): \
+        embeddings (:class:`~chainer.Variable` or :ref:`ndarray`):
             predicted embedding vectors
             (batch size, max embedding dimensions, height, width)
 
-        labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+        labels (:ref:`ndarray`):
             instance segmentation ground truth
             each unique value has to be denoting one instance
             (batch size, height, width)

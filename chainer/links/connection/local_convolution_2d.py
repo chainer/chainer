@@ -97,7 +97,7 @@ class LocalConvolution2D(link.Link):
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1], x.shape[2:])
         return local_convolution_2d.local_convolution_2d(
             x, self.W, self.b, self.stride)

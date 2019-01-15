@@ -34,8 +34,7 @@ def copy(x, dst):
     from device to device and from device to host.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable to be copied.
         dst (int): Target device specifier.
 

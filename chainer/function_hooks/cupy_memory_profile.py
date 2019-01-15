@@ -1,12 +1,13 @@
 import collections
 import sys
+import typing as tp  # NOQA
 
 from chainer.backends import cuda
 from chainer import function_hook
 
 
 try:
-    MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook
+    MemoryHook = cuda.cupy.cuda.memory_hook.MemoryHook  # type: tp.Any # to handle https://github.com/python/mypy/issues/2477 # NOQA
     memory_hook_available = True
 except Exception as e:
     _resolution_error = e
@@ -152,7 +153,8 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
                 function_name, used_bytes, acquired_bytes, occurrence)
             file.write(line)
             file.write('\n')
-        file.flush()
+        if hasattr(file, 'flush'):
+            file.flush()
 
 
 class CupyMemoryCumulativeHook(MemoryHook):

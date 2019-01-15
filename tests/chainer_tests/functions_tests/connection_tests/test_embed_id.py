@@ -15,6 +15,9 @@ from chainer.testing import attr
      {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': None},
      {'x_data': [0, 1, -1], 'ignore_label': -1},
      {'x_data': [[0, 1, -1], [-1, 0, 1]], 'ignore_label': -1}],
+    [{'dtype': numpy.float16},
+     {'dtype': numpy.float32},
+     {'dtype': numpy.float64}],
     [{'label_dtype': numpy.int8},
      {'label_dtype': numpy.int16},
      {'label_dtype': numpy.int32},
@@ -24,19 +27,22 @@ class TestEmbedID(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.array(self.x_data, dtype=self.label_dtype)
-        self.W = numpy.random.uniform(-1, 1, (3, 2)).astype('f')
+        self.W = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
         y_shape = self.x.shape + (2,)
-        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(numpy.float32)
-        self.ggW = numpy.random.uniform(-1, 1, (3, 2)).astype('f')
+        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        self.ggW = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
 
         self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_backward_options['dtype'] = numpy.float64
+            self.check_double_backward_options['dtype'] = numpy.float64
 
     def check_forward(self, x_data, W_data):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         y = chainer.functions.embed_id(x, W, self.ignore_label)
-        self.assertEqual(y.data.dtype, numpy.float32)
+        self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = numpy.empty_like(self.gy)
         for i in numpy.ndindex(self.x.shape):
@@ -59,8 +65,7 @@ class TestEmbedID(unittest.TestCase):
             return chainer.functions.embed_id(x, W, self.ignore_label)
 
         gradient_check.check_backward(
-            f, (x_data, W_data), y_grad, dtype=numpy.float64,
-            **self.check_backward_options)
+            f, (x_data, W_data), y_grad, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.gy)
@@ -76,8 +81,7 @@ class TestEmbedID(unittest.TestCase):
                 x_data, W, self.ignore_label)
 
         gradient_check.check_double_backward(
-            f, W_data, gy_data, ggW_data,
-            **self.check_double_backward_options)
+            f, W_data, gy_data, ggW_data, **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.W, self.gy, self.ggW)

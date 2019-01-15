@@ -10,7 +10,6 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 import argparse
-import copy
 import numpy as np
 
 import chainer
@@ -56,7 +55,8 @@ def main():
         with configuration.using_config('train', False):
             # This is optional but can reduce computational overhead.
             with chainer.using_config('enable_backprop', False):
-                for batch in copy.copy(iter):
+                iter.reset()
+                for batch in iter:
                     x, t = convert.concat_examples(batch, args.gpu)
                     loss = evaluator(x, t)
                     sum_perp += loss.array

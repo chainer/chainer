@@ -149,12 +149,9 @@ def hinge(x, t, norm='L1', reduce='mean'):
         loss values. If it is ``'mean'``, it takes the mean of loss values.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.float`):
-            Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
-            .
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of signed integer):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            The shape of ``x`` should be (:math:`N`, :math:`K`).
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             The :math:`N`-dimensional label vector with values
             :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).

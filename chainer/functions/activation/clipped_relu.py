@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU
+    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU  # type: ignore
 
 
 class ClippedReLU(function_node.FunctionNode):
@@ -129,8 +129,7 @@ def clipped_relu(x, z=20.0):
     .. math:: \\text{ClippedReLU}(x, z) = \\min(\\max(0, x), z).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
         z (float): Clipping value. (default = 20.0)
 

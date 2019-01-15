@@ -355,6 +355,7 @@ from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 from chainer.training import extensions
+import chainerx
 np.random.seed(0)
 '''
 
@@ -447,6 +448,8 @@ def _get_sourcefile_and_linenumber(obj):
 
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
+        return None
+    if 1 == int(os.environ.get('CHAINER_DOCS_SKIP_LINKCODE', 0)):
         return None
 
     # Import the object from module path
