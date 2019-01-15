@@ -66,10 +66,10 @@ Configuration Keys
 
    You can change the default value to ``True`` by setting ``CHAINER_KEEP_GRAPH_ON_REPORT`` environment variable to ``1``.
 
-* ``check_deterministic`` (default: ``False``)
+* ``warn_nondeterministic`` (default: ``False``)
    Flag to give warning when a non-deterministic function is used.
 
-   If it is true, then functions that use non-deterministic functions, such as atomicAdd, will give a warning of such.
+   If it is true, then functions that use non-deterministic functions, such as atomicAdd, will give a warning when executed.
 
 * ``train`` (default: ``True``)
    Training mode flag.
