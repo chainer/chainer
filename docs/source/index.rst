@@ -16,8 +16,8 @@ Chainer -- A flexible framework of neural networks
    install
    guides/index
    examples/index
-   chainermn/index
    reference/index
+   chainermn/index
 
 .. toctree::
    :maxdepth: 1

@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -16,7 +16,7 @@ class Square(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.square(x[0], dtype=x[0].dtype)),
 
     def backward(self, indexes, gy):

@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils
@@ -21,7 +21,7 @@ class Fmod(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, divisor = inputs
         m = xp.fmod(x, divisor)
         return utils.force_array(m, x.dtype),

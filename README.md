@@ -1,4 +1,4 @@
-<div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
+<div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
 
 # Chainer: A deep learning framework
 

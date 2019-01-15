@@ -2,6 +2,7 @@ import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -44,7 +45,7 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         a = a.swapaxes(-1, -2)
     if transb and b.ndim != 1:
         b = b.swapaxes(-1, -2)
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
 
     if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)

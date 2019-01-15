@@ -1,7 +1,7 @@
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -29,7 +29,7 @@ class Tile(function_node.FunctionNode):
 
     def forward(self, inputs):
         self._in_shape = inputs[0].shape
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.tile(inputs[0], self.reps),
 
     def backward(self, indexes, grad_outputs):

@@ -1,6 +1,6 @@
 import six
 
-from chainer import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -87,7 +87,7 @@ class Moveaxis(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         self._in_ndim = inputs[0].ndim
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return _moveaxis(inputs[0], self.source, self.destination, xp),
 
     def backward(self, indexes, gy):

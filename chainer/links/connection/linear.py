@@ -125,7 +125,7 @@ class Linear(link.Link):
             x (~chainer.Variable): Batch of input vectors.
             n_batch_axes (int): The number of batch axes. The default is 1. The
                 input variable is reshaped into
-                (:math:`{\\rm n\_batch\_axes} + 1`)-dimensional tensor.
+                (:math:`{\\rm n\\_batch\\_axes} + 1`)-dimensional tensor.
                 This should be greater than 0.
 
         Returns:

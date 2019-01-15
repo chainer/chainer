@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
@@ -184,7 +185,7 @@ class ConnectionistTemporalClassification(function.Function):
 
     def _computes_transition(
             self, prev_prob, path, path_length, cum_prob, y):
-        xp = cuda.get_array_module(prev_prob)
+        xp = backend.get_array_module(prev_prob)
 
         if xp == numpy:
             n_batch, max_path_length = path.shape
@@ -271,7 +272,7 @@ class ConnectionistTemporalClassification(function.Function):
         return _flip_path_probability(prob, input_length, path_length, xp)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         self.input_length, label_length, t, xs = inputs
 
         if chainer.is_debug():
@@ -293,7 +294,7 @@ class ConnectionistTemporalClassification(function.Function):
         return loss,
 
     def backward(self, inputs, grad_output):
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         batch_size = len(inputs[2])
 
         total_probability = _logsumexp(self.prob_trans[0], xp, axis=1)
@@ -398,7 +399,7 @@ def connectionist_temporal_classification(
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
     assert x[0].ndim == 2
 
-    xp = cuda.get_array_module(x[0])
+    xp = backend.get_array_module(x[0])
     if input_length is None:
         input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
     if label_length is None:

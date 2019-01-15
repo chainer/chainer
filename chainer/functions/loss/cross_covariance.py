@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -42,7 +42,7 @@ class CrossCovariance(function_node.FunctionNode):
         covariance /= len(y)
 
         if self.reduce == 'half_squared_sum':
-            xp = cuda.get_array_module(*inputs)
+            xp = backend.get_array_module(*inputs)
             cost = xp.vdot(covariance, covariance)
             cost *= y.dtype.type(0.5)
             return utils.force_array(cost),

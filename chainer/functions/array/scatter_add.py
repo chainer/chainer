@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -36,7 +37,7 @@ class ScatterAdd(function_node.FunctionNode):
         a = xs[0]
         b = xs[1]
         y = a.copy()
-        xp = cuda.get_array_module(a)
+        xp = backend.get_array_module(a)
         if y[self.slices].shape != b.shape:
             raise ValueError(
                 'Chainer does not support automatic broadcasting '

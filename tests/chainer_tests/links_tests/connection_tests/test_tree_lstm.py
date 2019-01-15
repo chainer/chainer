@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -13,7 +14,7 @@ from chainer.testing import condition
 
 def _sigmoid(x):
     half = x.dtype.type(0.5)
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     return xp.tanh(x * half) * half + half
 
 
@@ -21,7 +22,7 @@ def _child_sum_tree_lstm(func, *inputs):
     cs = inputs[:len(inputs) // 2]
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     with cuda.get_device_from_array(x):
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data
@@ -61,7 +62,7 @@ def _nary_tree_lstm(func, *inputs):
     cs = inputs[:len(inputs) // 2]
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     with cuda.get_device_from_array(x):
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data

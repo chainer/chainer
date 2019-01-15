@@ -1,4 +1,5 @@
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -37,7 +38,7 @@ class DiGamma(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         z = self.get_retained_inputs()[0]
-        xp = cuda.get_array_module(*gy)
+        xp = backend.get_array_module(*gy)
         return chainer.functions.polygamma(xp.array(1), z) * gy[0],
 
 

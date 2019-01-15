@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -228,7 +229,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, W, gy = self.get_retained_inputs()
 
-        xp = cuda.get_array_module(x.data)
+        xp = backend.get_array_module(x.data)
 
         if 0 in indexes:
             gx = chainer.Variable(xp.zeros_like(x.data))

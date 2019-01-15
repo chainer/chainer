@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -28,7 +28,7 @@ class CReLU(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.empty(self.get_output_shape(x.shape), dtype=x.dtype)
         y_former, y_latter = xp.split(y, 2, axis=self.axis)
         zero = x.dtype.type(0)

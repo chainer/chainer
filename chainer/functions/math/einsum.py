@@ -1,5 +1,6 @@
 import warnings
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -54,11 +55,11 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
     if sum_ellipsis:
         sum_ndim = y.ndim - len(out_subscript)
         if check_undefined_ellipsis_sum and sum_ndim > 0:
-            warnings.warn(
+            raise ValueError(
                 "einsum should not support summing over Ellipsis, "
                 "while NumPy 1.14 sometimes accidentally supports it. "
-                "This feature will be deleted in a future version "
-                "of Chainer. See also NumPy issues #10926, #9984.",
+                "This feature is no longer supported by Chainer. "
+                "See also NumPy issues #10926, #9984.",
             )
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
 
@@ -93,7 +94,7 @@ class EinSum(function_node.FunctionNode):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
         y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs,
                     check_undefined_ellipsis_sum=True)
@@ -133,7 +134,7 @@ class DiagEinSum(EinSum):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = cuda.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
 
         out_set = set(self.out_sub)

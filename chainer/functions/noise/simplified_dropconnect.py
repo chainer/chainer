@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -65,7 +65,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         if self.mask is None:
             if self.use_batchwise_mask:

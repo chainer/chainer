@@ -14,7 +14,7 @@ from chainer.testing import condition
 
 
 def _to_fcontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 

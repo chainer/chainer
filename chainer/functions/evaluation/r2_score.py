@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
@@ -27,7 +27,7 @@ class R2_score(function.Function):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         pred, true = inputs
         SS_res = xp.asarray(
             xp.sum((pred - true) ** 2, axis=0))

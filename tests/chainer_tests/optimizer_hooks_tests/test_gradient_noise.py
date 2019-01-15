@@ -5,7 +5,7 @@ import numpy as np
 
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.initializers as I
 from chainer import optimizer_hooks
 from chainer import optimizers
@@ -40,7 +40,7 @@ class TestGradientNoise(unittest.TestCase):
     def check_gradient_noise(self):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = cuda.get_array_module(w)
+        xp = backend.get_array_module(w)
         noise_value = xp.asarray(self.noise_value)
         expect = w - g - noise_value
 

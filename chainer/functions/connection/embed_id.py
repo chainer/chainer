@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -29,7 +30,7 @@ class EmbedIDFunction(function_node.FunctionNode):
         x, W = inputs
         self._w_shape = W.shape
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if chainer.is_debug():
             valid_x = xp.logical_and(0 <= x, x < len(W))
             if self.ignore_label is not None:
@@ -59,7 +60,7 @@ class EmbedIDGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gy = inputs
         self._gy_shape = gy.shape
         gW = xp.zeros(self.w_shape, dtype=gy.dtype)
@@ -95,7 +96,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         return gW,
 
     def backward(self, indexes, grads):
-        xp = cuda.get_array_module(*grads)
+        xp = backend.get_array_module(*grads)
         x = self.get_retained_inputs()[0].data
         ggW = grads[0]
 

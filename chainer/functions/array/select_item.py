@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -33,7 +34,7 @@ class SelectItem(function_node.FunctionNode):
                 msg = 'Each label `t` need to satisfty `0 <= t < x.shape[1]`'
                 raise ValueError(msg)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         if xp is numpy:
             # This code is equivalent to `t.choose(x.T)`, but `numpy.choose`
             # does not work when `x.shape[1] > 32`.

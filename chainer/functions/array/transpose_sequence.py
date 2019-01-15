@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -9,7 +10,7 @@ def _transpose(xs, length):
     if length == 0:
         return ()
 
-    xp = cuda.get_array_module(*xs)
+    xp = backend.get_array_module(*xs)
     lengths = numpy.empty(length, dtype='i')
     end = length
     for i, x in enumerate(xs):

@@ -1,4 +1,5 @@
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
@@ -58,7 +59,7 @@ class LogNormal(distribution.Distribution):
         return exponential.exp(self.mu + 0.5 * self.sigma ** 2)
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.mu)
+        xp = backend.get_array_module(self.mu)
         if xp is cuda.cupy:
             eps = xp.random.standard_normal(
                 (n,)+self.mu.shape, dtype=self.mu.dtype)

@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -54,7 +54,7 @@ class GetItemGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         gy, = inputs
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         gx = xp.zeros(self._in_shape, self._in_dtype)
         if xp is numpy:
             try:

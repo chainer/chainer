@@ -41,7 +41,7 @@ class ConvolutionND(link.Link):
             ``cover_all`` needs to be ``False`` if you want to use cuDNN.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
@@ -141,7 +141,7 @@ class ConvolutionND(link.Link):
             raise ValueError('the number of input channels must be'
                              ' divisible by the number of groups')
         W_shape = (
-            int(self.out_channels / self.groups), in_channels) + self.ksize
+            self.out_channels, int(in_channels / self.groups)) + self.ksize
         self.W.initialize(W_shape)
 
     def forward(self, x):
@@ -159,3 +159,41 @@ class ConvolutionND(link.Link):
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all,
             dilate=self.dilate, groups=self.groups)
+
+
+class Convolution1D(ConvolutionND):
+    """1-dimensional convolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.ConvolutionND` by giving 1 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.ConvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False, dilate=1, groups=1):
+        super(Convolution1D, self).__init__(
+            1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all, dilate, groups)
+
+
+class Convolution3D(ConvolutionND):
+    """3-dimensional convolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.ConvolutionND` by giving 3 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.ConvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False, dilate=1, groups=1):
+        super(Convolution3D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all, dilate, groups)

@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 import chainer.utils
@@ -45,7 +45,7 @@ class SelectorBase(function_node.FunctionNode):
     def forward(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return xp.asarray(self._fwd(x[0], xp)),
 
     def backward(self, indexes, gy):
@@ -112,7 +112,7 @@ class IndexSelectorBase(function_node.FunctionNode):
                 )
 
     def forward(self, x):
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return xp.asarray(self._fwd(x[0], xp)),
 
     def backward(self, indexes, grad_outputs):

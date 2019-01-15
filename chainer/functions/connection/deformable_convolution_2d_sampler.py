@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer import backend
 
 from chainer.functions.array import broadcast
 from chainer.functions.array import concat
@@ -112,7 +112,7 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
 def _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w):
     n, khkw2, out_h, out_w = offset.shape
     khkw = int(khkw2 / 2)
-    xp = cuda.get_array_module(offset)
+    xp = backend.get_array_module(offset)
 
     ys, xs = xp.meshgrid(
         xp.arange(0, sy * out_h, sy, dtype=numpy.float32),

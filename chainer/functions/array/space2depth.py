@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -20,7 +20,7 @@ class Space2Depth(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = cuda.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         X = xp.reshape(
             X, (bsize, c, a // self.r, self.r, b // self.r, self.r))

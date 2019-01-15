@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
@@ -534,7 +535,7 @@ def n_step_rnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -637,7 +638,7 @@ def n_step_birnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -794,7 +795,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
-    xp = cuda.get_array_module(hx)
+    xp = backend.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         handle = cudnn.get_handle()

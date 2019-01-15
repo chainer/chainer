@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import digamma
@@ -57,7 +57,7 @@ class Beta(distribution.Distribution):
         return self.a / (self.a + self.b)
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.a)
+        xp = backend.get_array_module(self.a)
         eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)
         noise = chainer.Variable(eps.astype(self.a.dtype))
         return noise

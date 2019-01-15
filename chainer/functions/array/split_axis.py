@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import collections_abc
@@ -106,7 +106,7 @@ class SplitAxis(function_node.FunctionNode):
             return self._forward_ideep(inputs)
 
         x, = inputs
-        self._xp = cuda.get_array_module(x)
+        self._xp = backend.get_array_module(x)
         if self.indices is not None:
             indices_or_sections = self.indices
         else:

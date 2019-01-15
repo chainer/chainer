@@ -1,7 +1,7 @@
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -17,7 +17,7 @@ class Broadcast(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(*shapes)
 
     def forward(self, inputs):
-        self._xp = cuda.get_array_module(*inputs)
+        self._xp = backend.get_array_module(*inputs)
         self._in_shapes = [x.shape for x in inputs]
         self._in_dtypes = [x.dtype for x in inputs]
         return tuple(self._xp.broadcast_arrays(*inputs))
@@ -86,7 +86,7 @@ class BroadcastTo(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         if hasattr(xp, 'broadcast_to'):
             return xp.broadcast_to(x, self._shape),
         else:

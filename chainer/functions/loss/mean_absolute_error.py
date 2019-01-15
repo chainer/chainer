@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -34,7 +34,7 @@ class MeanAbsoluteError(function_node.FunctionNode):
         gy, = grad_outputs
         coeff = gy * gy.data.dtype.type(1. / self.diff.size)
         coeff = chainer.functions.broadcast_to(coeff, self.diff.shape)
-        gx0 = coeff * cuda.get_array_module(gy.data).sign(self.diff)
+        gx0 = coeff * backend.get_array_module(gy.data).sign(self.diff)
         return gx0, -gx0
 
 

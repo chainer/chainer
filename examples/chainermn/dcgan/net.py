@@ -5,13 +5,13 @@ from __future__ import print_function
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.functions as F
 import chainer.links as L
 
 
 def add_noise(h, sigma=0.2):
-    xp = cuda.get_array_module(h.data)
+    xp = backend.get_array_module(h.data)
     if chainer.config.train:
         return h + sigma * xp.random.randn(*h.shape)
     else:

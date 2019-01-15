@@ -43,6 +43,11 @@ If you have been calling :meth:`~chainer.Optimizer.new_epoch` method manually wh
 
 If you implement your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
 
+Extending the Backend Namespace
+-------------------------------
+
+In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
 
 Chainer v4
 ==========

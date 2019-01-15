@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -154,7 +155,7 @@ def n_step_bigru(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Six weight matrices and six bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -288,7 +289,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-    xp = cuda.get_array_module(hx, hx.data)
+    xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         handle = cudnn.get_handle()

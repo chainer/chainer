@@ -88,7 +88,6 @@ you can inject the following code snippet into your script file ::
     import sys
     try:
         import mpi4py.MPI
-        MPI.Abort()
 
   $ mpiexec -n 2 -x CHAINERMN_FORCE_ABORT_ON_EXCEPTION=1 python yourscript.py ...
 

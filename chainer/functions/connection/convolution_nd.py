@@ -2,6 +2,7 @@ import numpy
 from six import moves
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
@@ -152,7 +153,7 @@ class ConvolutionND(function_node.FunctionNode):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
         elif not self._use_cudnn(x, W):
@@ -213,7 +214,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, gy, numpy)
         elif not self._use_cudnn(x, gy):
@@ -392,7 +393,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
             `cover_all` needs to be ``False`` if you want to use cuDNN.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
@@ -461,3 +462,41 @@ astype(np.float32)
     args = (x, W) if b is None else (x, W, b)
     y, = fnode.apply(args)
     return y
+
+
+def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False,
+                   dilate=1, groups=1):
+    """1-dimensional convolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.convolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.convolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)
+
+
+def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False,
+                   dilate=1, groups=1):
+    """3-dimensional convolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.convolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.convolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)

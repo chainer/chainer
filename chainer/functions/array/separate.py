@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.array import stack
 from chainer.utils import type_check
@@ -21,7 +21,7 @@ class Separate(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self._xp = cuda.get_array_module(x)
+        self._xp = backend.get_array_module(x)
         xs = self._xp.split(x, x.shape[self.axis], self.axis)
         ys = [self._xp.squeeze(y, self.axis) for y in xs]
         self._shape = ys[0].shape

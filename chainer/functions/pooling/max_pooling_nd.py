@@ -280,3 +280,49 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
         return out, func.indexes
 
     return func.apply((x,))[0]
+
+
+def max_pooling_1d(x, ksize, stride=None, pad=0, cover_all=True,
+                   return_indices=False):
+    """1-dimensional spatial max pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)
+
+
+def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True,
+                   return_indices=False):
+    """3-dimensional spatial max pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)
