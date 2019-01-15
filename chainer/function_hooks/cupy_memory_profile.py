@@ -176,7 +176,7 @@ class CupyMemoryCumulativeHook(MemoryHook):
                 and chainerx._cuda._chainerx_allocator is not None):
             warnings.warn(
                 '{} is not going to collect any reports since the allocator '
-                'is external from of ChainerX.'.format(self.name))
+                'is external from ChainerX.'.format(self.name))
 
         self.used_bytes = 0
         self.acquired_bytes = 0
