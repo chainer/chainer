@@ -172,6 +172,8 @@ class CupyMemoryCumulativeHook(MemoryHook):
     name = 'CupyMemoryCumulativeHook'
 
     def __init__(self):
+        # TODO(hvy): Remove warning when external allocators can be set and
+        # memory allocations can recorded.
         if (chainerx.is_available()
                 and chainerx._cuda._chainerx_allocator is not None):
             warnings.warn(
