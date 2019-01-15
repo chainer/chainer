@@ -27,8 +27,8 @@ if types.TYPE_CHECKING:
     ]
 
 
-def sample_from_dataset(dataset, indices=None, padding_spec=None):
-    # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> "Examples" # NOQA
+def sample_from_dataset(dataset, indices=None, order=None, padding_spec=None):
+    # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> "Examples" # NOQA
     """
     Sample from the specified dataset(s).
 
@@ -41,6 +41,8 @@ def sample_from_dataset(dataset, indices=None, padding_spec=None):
     Args:
         dataset (list, tuple of lists or dict of lists): Dataset(s).
         indices (None, slice, list or numpy.ndarray): Indices of dataset(s).
+        order (sequence of ints): Permutation of indexes in the base dataset.
+            If this is ``None``, then the ascending order of indexes is used.
         padding_spec: Scalar value for extra elements. If this is None
             (default), an error is raised on shape mismatch. Otherwise,
             an array of minimum dimensionalities that can accommodate
@@ -51,11 +53,11 @@ def sample_from_dataset(dataset, indices=None, padding_spec=None):
         Examples
     """
     if isinstance(dataset, tuple):
-        return TupleDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
+        return TupleDatasetExamples(dataset, indices, order, padding_spec)  # type: ignore # NOQA
     elif isinstance(dataset, dict):
-        return DictDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
+        return DictDatasetExamples(dataset, indices, order, padding_spec)  # type: ignore # NOQA
     else:
-        return SingleDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
+        return SingleDatasetExamples(dataset, indices, order, padding_spec)  # type: ignore # NOQA
 
 
 class Examples:
@@ -167,11 +169,11 @@ class AbstractDatasetExamples(Examples):
 
 
 class SingleDatasetExamples(AbstractDatasetExamples):
-    def __init__(self, dataset, indices=None, padding_spec=None):
-        # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+    def __init__(self, dataset, indices=None, order=None, padding_spec=None):
+        # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
         super(SingleDatasetExamples, self).__init__()
-        self._dataset = _sample_with_padding(dataset, indices, padding_spec)  # type: types.NdArray # NOQA
+        self._dataset = _sample_with_padding(dataset, indices, order, padding_spec)  # type: types.NdArray # NOQA
 
     def __len__(self):
         return len(self._dataset)
@@ -187,8 +189,8 @@ class SingleDatasetExamples(AbstractDatasetExamples):
 
 
 class TupleDatasetExamples(AbstractDatasetExamples):
-    def __init__(self, dataset, indices=None, padding_spec=None):
-        # type: (tp.Tuple[types.Dataset, ...], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+    def __init__(self, dataset, indices=None, order=None, padding_spec=None):
+        # type: (tp.Tuple[types.Dataset, ...], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
         super(TupleDatasetExamples, self).__init__()
 
@@ -200,7 +202,7 @@ class TupleDatasetExamples(AbstractDatasetExamples):
             tuple_paddings = padding_spec  # type: ignore
 
         self._dataset = tuple(
-            _sample_with_padding(dataset[i], indices, tuple_paddings[i])
+            _sample_with_padding(dataset[i], indices, order, tuple_paddings[i])
             for i in six.moves.range(datasets_len))  # type: tp.Tuple[types.NdArray, ...] # NOQA
 
     def __len__(self):
@@ -223,8 +225,8 @@ class TupleDatasetExamples(AbstractDatasetExamples):
 
 
 class DictDatasetExamples(AbstractDatasetExamples):
-    def __init__(self, dataset, indices=None, padding_spec=None):
-        # type: (tp.Mapping[tp.Any, types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+    def __init__(self, dataset, indices=None, order=None, padding_spec=None):
+        # type: (tp.Mapping[tp.Any, types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
         super(DictDatasetExamples, self).__init__()
 
@@ -234,7 +236,7 @@ class DictDatasetExamples(AbstractDatasetExamples):
             dict_paddings = padding_spec
 
         self._dataset = {
-            k: _sample_with_padding(dataset, indices, dict_paddings[k])
+            k: _sample_with_padding(dataset, indices, order, dict_paddings[k])
             for k, dataset in six.iteritems(dataset)}  # type: tp.Mapping[tp.Any, types.NdArray] # NOQA
 
     def __len__(self):
@@ -273,20 +275,20 @@ class ConcatenatedExamples(Examples):
                 for k, e in enumerate(datasets[n][i]):
                     tuple_ds[k].append(e)
             self._examples =\
-                TupleDatasetExamples(tuple_ds, None, padding_spec)  # type: Examples # NOQA
+                TupleDatasetExamples(tuple_ds, None, None, padding_spec)  # type: Examples # NOQA
         elif isinstance(head, dict):
             dict_ds = {key: [] for key in head}  # type: tp.Mapping[tp.Any, tp.List[tp.Any]] # NOQA
             for n, i in ds_idxs:
                 for k, e in six.iteritems(datasets[n][i]):
                     dict_ds[k].append(e)
             self._examples =\
-                DictDatasetExamples(dict_ds, None, padding_spec)
+                DictDatasetExamples(dict_ds, None, None, padding_spec)
         else:
             single_ds = []  # type: tp.List[tp.Any]
             for n, i in ds_idxs:
                 single_ds.append(datasets[n][i])
             self._examples =\
-                SingleDatasetExamples(single_ds, None, padding_spec)
+                SingleDatasetExamples(single_ds, None, None, padding_spec)
 
     @staticmethod
     def _to_dataset_indices(datasets, indices):
@@ -338,25 +340,34 @@ def _identity(a):
     return a
 
 
-def _sample_with_padding(dataset, indices, padding=None):
-    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> types.NdArray # NOQA
+def _sample_with_padding(dataset, indices, order=None, padding=None):
+    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> types.NdArray # NOQA
+
+    if order is None:
+        idxs = indices
+    elif indices is None:
+        idxs = [order[i] for i in six.moves.xrange(len(dataset))]
+    elif isinstance(indices, slice):
+        idxs = [order[i] for i in six.moves.xrange(len(dataset))[indices]]
+    else:
+        idxs = [order[i] for i in indices]
 
     if padding is None:
         if isinstance(dataset, _ndarray_types):
-            if indices is None:
+            if idxs is None:
                 return dataset
             else:
                 # the dataset supports indexing by list and numpy.ndarray
                 # TODO(okapies): replace to take method
-                return dataset[indices]
+                return dataset[idxs]
 
         else:
             # convert types implementing dataset protocol (including list)
             # to ndarray
-            return _dataset_to_ndarray(dataset, indices)
+            return _dataset_to_ndarray(dataset, idxs)
 
     else:
-        return _create_padded_examples(dataset, indices, padding)
+        return _create_padded_examples(dataset, idxs, padding)
 
 
 def _dataset_to_ndarray(dataset, indices=None):

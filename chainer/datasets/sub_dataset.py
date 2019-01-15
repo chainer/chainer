@@ -77,8 +77,23 @@ class SubDataset(dataset_mixin.BatchableDatasetMixin):
         return self._dataset[index]
 
     def get_examples(self, indices=None):
-        return examples.sample_from_dataset(
-            self._dataset[self._start:self._finish], indices)
+        if isinstance(indices, slice):
+            idxs = [self._start + i
+                    for i in six.moves.xrange(self._size)[indices]]
+        else:
+            idxs = []
+            for i in idxs:
+                if i >= 0:
+                    if i >= self._size:
+                        raise IndexError('dataset index out of range')
+                    index = self._start + i
+                else:
+                    if i < -self._size:
+                        raise IndexError('dataset index out of range')
+                    index = self._finish + i
+                idxs.append(index)
+
+        return examples.sample_from_dataset(self._dataset, idxs, self._order)
 
 
 def split_dataset(dataset, split_at, order=None):
