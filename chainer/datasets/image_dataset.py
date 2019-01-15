@@ -95,9 +95,13 @@ class ImageDataset(dataset_mixin.BatchableDatasetMixin):
 
         return _postprocess_image(image)
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
+        if indices is None:
+            idxs = six.moves.xrange(len(self))
+        else:
+            idxs = indices
         return examples.sample_from_dataset(
-            ([self.get_example(i) for i in indices],), indices)
+            ([self.get_example(i) for i in idxs],), idxs)
 
 
 class LabeledImageDataset(dataset_mixin.BatchableDatasetMixin):
@@ -168,10 +172,14 @@ class LabeledImageDataset(dataset_mixin.BatchableDatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return _postprocess_image(image), label
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
         images = []
         labels = []
-        for i in indices:
+        if indices is None:
+            idxs = six.moves.xrange(len(self))
+        else:
+            idxs = indices
+        for i in idxs:
             path, int_label = self._pairs[i]
             full_path = os.path.join(self._root, path)
             images.append(_read_image_as_array(full_path, self._dtype))
@@ -227,10 +235,14 @@ class LabeledZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         label = numpy.array(int_label, dtype=self._label_dtype)
         return self._zipfile.get_example(path), label
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
         images = []
         labels = []
-        for i in indices:
+        if indices is None:
+            idxs = six.moves.xrange(len(self))
+        else:
+            idxs = indices
+        for i in idxs:
             path, int_label = self._pairs[i]
             images.append(self._zipfile.get_example(path))
             labels.append(numpy.array(int_label, dtype=self._label_dtype))
@@ -270,9 +282,13 @@ class MultiZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         lidx = i - self._zpaths_accumlens[tgt]
         return self._zfs[tgt].get_example(lidx)
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
         lidxs_by_tgt = [[] for _ in self._zpaths_accumlens]
-        for i in indices:
+        if indices is None:
+            idxs = six.moves.xrange(len(self))
+        else:
+            idxs = indices
+        for i in idxs:
             tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
             lidxs_by_tgt[tgt].append(i - self._zpaths_accumlens[tgt])
 
@@ -340,12 +356,17 @@ class ZippedImageDataset(dataset_mixin.BatchableDatasetMixin):
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
+        if indices is None:
+            idxs = six.moves.xrange(len(self))
+        else:
+            idxs = indices
+
         # LabeledZippedImageDataset needs file with filename in zip archive
         zfns = [
             self._paths[i_or_filename] if isinstance(
                 i_or_filename, six.integer_types) else i_or_filename
-            for i_or_filename in indices]
+            for i_or_filename in idxs]
 
         # PIL may seek() on the file -- zipfile won't support it
         image_file_mems = []

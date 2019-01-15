@@ -39,7 +39,7 @@ class DictDataset(object):
         else:
             return batches
 
-    def get_examples(self, indices):
+    def get_examples(self, indices=None):
         return examples.sample_from_dataset(self._datasets, indices)
 
     def __len__(self):

@@ -11,6 +11,21 @@ from chainer.dataset import convert
 import chainerx
 
 
+_ndarray_types = (
+    numpy.ndarray,
+    cuda.ndarray,
+    chainerx.ndarray,
+)
+
+
+# only for internal use
+if types.TYPE_CHECKING:
+    _NdArrays = tp.Union[
+        tp.Tuple[types.NdArray],
+        tp.Dict[tp.Any, types.NdArray],
+    ]
+
+
 def sample_from_dataset(dataset, indices=None, padding_spec=None):
     # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> "Examples" # NOQA
     """
@@ -35,11 +50,11 @@ def sample_from_dataset(dataset, indices=None, padding_spec=None):
         Examples
     """
     if isinstance(dataset, tuple):
-        return TupleDatasetExamples(dataset, indices, padding_spec)
+        return TupleDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
     elif isinstance(dataset, dict):
-        return DictDatasetExamples(dataset, indices, padding_spec)
+        return DictDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
     else:
-        return SingleDatasetExamples(dataset, indices, padding_spec)
+        return SingleDatasetExamples(dataset, indices, padding_spec)  # type: ignore # NOQA
 
 
 class Examples:
@@ -52,7 +67,7 @@ class Examples:
     :meth:`__len__` and :meth:`__getitem__` to keep backward compatibility.
 
     Note that it has same methods of :class:`~collections.abc.Sequence` but
-    not actually an instance of Sequence to avoid the overhead of isinstance().
+    not an actual instance of Sequence to avoid the overhead of isinstance().
     """
 
     def __init__(self):
@@ -130,11 +145,11 @@ class AbstractDatasetExamples(Examples):
     This is an abstract base class for Single, Tuple and DictDatasetExamples.
     """
 
-    def __init__(self, dataset, indices=None, padding_spec=None):
-        # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+    # Note: DatasetExamples keep an internal representation of dataset as an
+    # NdArray instead of Dataset.
 
+    def __init__(self):
         super(AbstractDatasetExamples, self).__init__()
-        self._dataset = self._do_sample(dataset, indices, padding_spec)
 
     def to_dataset(self, device_spec=None, indices=None):
         device = convert.resolve_device_spec(device_spec)
@@ -143,21 +158,19 @@ class AbstractDatasetExamples(Examples):
         else:
             converter = device.send
 
-        return self._map_datasets(converter, self._dataset, indices)
+        return self._map_datasets(converter, indices)
 
-    def _do_sample(self, dataset, indices, padding_spec):
-        # type: (tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
-        raise NotImplementedError
-
-    def _map_datasets(self, f, dataset, indices):
-        # type: (tp.Callable[[types.Dataset], types.Dataset], tp.Union[types.Dataset, types.Datasets], tp.Optional[tp.Union[int, slice]]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
+    def _map_datasets(self, f, indices):
+        # type: (tp.Callable[[types.NdArray], types.NdArray], tp.Optional[tp.Union[int, slice]]) -> tp.Union[types.NdArray, _NdArrays] # NOQA
         raise NotImplementedError
 
 
 class SingleDatasetExamples(AbstractDatasetExamples):
     def __init__(self, dataset, indices=None, padding_spec=None):
-        super(SingleDatasetExamples, self).__init__(
-            dataset, indices, padding_spec)
+        # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+
+        super(SingleDatasetExamples, self).__init__()
+        self._dataset = _sample_with_padding(dataset, indices, padding_spec)  # type: types.NdArray # NOQA
 
     def __len__(self):
         return len(self._dataset)
@@ -165,20 +178,32 @@ class SingleDatasetExamples(AbstractDatasetExamples):
     def __getitem__(self, index):
         return self._dataset[index]
 
-    def _do_sample(self, dataset, indices, padding_spec):
-        return _sample_with_padding(dataset, indices, padding_spec)
-
-    def _map_datasets(self, f, dataset, indices):
+    def _map_datasets(self, f, indices):
         if indices is None:
-            return f(dataset)
+            return f(self._dataset)
         else:
-            return f(dataset[indices])
+            return f(self._dataset[indices])
 
 
 class TupleDatasetExamples(AbstractDatasetExamples):
     def __init__(self, dataset, indices=None, padding_spec=None):
-        super(TupleDatasetExamples, self).__init__(
-            dataset, indices, padding_spec)
+        # type: (tp.Tuple[types.Dataset, ...], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+
+        super(TupleDatasetExamples, self).__init__()
+
+        datasets_len = len(dataset)
+
+        if not isinstance(padding_spec, tuple):
+            tuple_paddings = [padding_spec] * datasets_len
+        else:
+            tuple_paddings = padding_spec  # type: ignore
+
+        self._dataset = tuple(
+            _sample_with_padding(dataset[i], indices, tuple_paddings[i])
+            for i in six.moves.range(datasets_len))  # type: tp.Tuple[types.NdArray, ...] # NOQA
+
+    def __len__(self):
+        return len(self._dataset[0])
 
     def __getitem__(self, index):
         ret = [dataset[index] for dataset in self._dataset]
@@ -189,32 +214,30 @@ class TupleDatasetExamples(AbstractDatasetExamples):
         else:
             return tuple(ret)
 
-    def __len__(self):
-        return len(self._dataset[0])
-
-    def _do_sample(self, dataset, indices, padding_spec):
-        datasets_len = len(dataset)
-
-        if not isinstance(padding_spec, tuple):
-            tuple_paddings = [padding_spec] * datasets_len
-        else:
-            tuple_paddings = padding_spec
-
-        return tuple(
-            _sample_with_padding(dataset[i], indices, tuple_paddings[i])
-            for i in six.moves.range(datasets_len))
-
-    def _map_datasets(self, f, dataset, indices):
+    def _map_datasets(self, f, indices):
         if indices is None:
-            return tuple(f(dataset) for dataset in dataset)
+            return tuple(f(d) for d in self._dataset)
         else:
-            return tuple(f(dataset[indices]) for dataset in dataset)
+            return tuple(f(d[indices]) for d in self._dataset)
 
 
 class DictDatasetExamples(AbstractDatasetExamples):
     def __init__(self, dataset, indices=None, padding_spec=None):
-        super(DictDatasetExamples, self).__init__(
-            dataset, indices, padding_spec)
+        # type: (tp.Mapping[tp.Any, types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+
+        super(DictDatasetExamples, self).__init__()
+
+        if not isinstance(padding_spec, dict):
+            dict_paddings = {key: padding_spec for key in dataset}
+        else:
+            dict_paddings = padding_spec
+
+        self._dataset = {
+            k: _sample_with_padding(dataset, indices, dict_paddings[k])
+            for k, dataset in six.iteritems(dataset)}  # type: tp.Mapping[tp.Any, types.NdArray] # NOQA
+
+    def __len__(self):
+        return len(six.next(six.itervalues(self._dataset)))
 
     def __getitem__(self, index):
         ret = {key: array[index]
@@ -226,23 +249,11 @@ class DictDatasetExamples(AbstractDatasetExamples):
         else:
             return ret
 
-    def __len__(self):
-        return len(six.next(six.itervalues(self._dataset)))
-
-    def _do_sample(self, dataset, indices, padding_spec):
-        if not isinstance(padding_spec, dict):
-            dict_paddings = {key: padding_spec for key in self._dataset}
-        else:
-            dict_paddings = padding_spec
-
-        return {k: _sample_with_padding(dataset, indices, dict_paddings[k])
-                for k, dataset in dataset.items()}
-
-    def _map_datasets(self, f, dataset, indices):
+    def _map_datasets(self, f, indices):
         if indices is None:
-            return {k: f(dataset) for k, dataset in dataset}
+            return {k: f(d) for k, d in six.iteritems(self._dataset)}
         else:
-            return {k: f(dataset[indices]) for k, dataset in dataset}
+            return {k: f(d[indices]) for k, d in six.iteritems(self._dataset)}
 
 
 def _identity(a):
@@ -251,13 +262,10 @@ def _identity(a):
 
 
 def _sample_with_padding(dataset, indices, padding=None):
-    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> types.Dataset # NOQA
+    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> types.NdArray # NOQA
 
     if padding is None:
-        if isinstance(dataset, (
-                numpy.ndarray,
-                cuda.ndarray,
-                chainerx.ndarray)):
+        if isinstance(dataset, _ndarray_types):
             if indices is None:
                 return dataset
             else:
@@ -266,29 +274,50 @@ def _sample_with_padding(dataset, indices, padding=None):
                 return dataset[indices]
 
         else:
-            # TODO(okapies): dataset should be ndarray or not?
-            if indices is None:
-                head = dataset[0]
-                target = backend.get_device_from_array(head)
-                with chainer.using_device(target):
-                    return target.xp.asarray(dataset)
-            elif isinstance(indices, slice):
-                head = dataset[indices.indices(len(dataset))[0]]
-                target = backend.get_device_from_array(head)
-                with chainer.using_device(target):
-                    return target.xp.asarray(dataset[indices])
-            else:
-                head = dataset[indices[0]]
-                target = backend.get_device_from_array(head)
-                with chainer.using_device(target):
-                    return target.xp.asarray([dataset[i] for i in indices])
+            # convert types implementing dataset protocol (including list)
+            # to ndarray
+            return _dataset_to_ndarray(dataset, indices)
 
     else:
         return _create_padded_examples(dataset, indices, padding)
 
 
+def _dataset_to_ndarray(dataset, indices=None):
+    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]]) -> types.NdArray # NOQA
+    if indices is None:
+        head = dataset[0]
+        target = backend.get_device_from_array(head)
+        with chainer.using_device(target):
+            if isinstance(dataset, list):
+                return target.xp.asarray(dataset)
+            else:
+                # assume dataset only have __getitem__ and __len__
+                return target.xp.asarray(
+                    [dataset[i]
+                     for i in six.moves.xrange(len(dataset))])
+
+    elif isinstance(indices, slice):
+        head = dataset[indices.indices(len(dataset))[0]]
+        target = backend.get_device_from_array(head)
+        examples = dataset[indices]
+        with chainer.using_device(target):
+            if isinstance(examples, list):
+                return target.xp.asarray(examples)
+            else:
+                # assume dataset only have __getitem__ and __len__
+                return target.xp.asarray(
+                    [examples[i]
+                     for i in six.moves.xrange(len(examples))])
+
+    else:
+        head = dataset[indices[0]]
+        target = backend.get_device_from_array(head)
+        with chainer.using_device(target):
+            return target.xp.asarray([dataset[i] for i in indices])
+
+
 def _create_padded_examples(dataset, indices, padding):
-    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], types.PaddingSpec) -> types.Dataset # NOQA
+    # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], types.PaddingSpec) -> types.NdArray # NOQA
     if indices is None:
         idxs = six.moves.xrange(len(dataset))  # type: tp.Sequence
     elif isinstance(indices, slice):
