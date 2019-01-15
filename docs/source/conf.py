@@ -345,6 +345,7 @@ intersphinx_mapping = {
 }
 
 doctest_global_setup = '''
+import os
 import numpy as np
 import cupy
 import chainer

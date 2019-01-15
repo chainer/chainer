@@ -2,6 +2,7 @@ import unittest
 import warnings
 
 import numpy
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -13,6 +14,9 @@ from chainer.testing import condition
 
 
 @testing.with_requires('theano')
+@pytest.mark.skipif(
+    testing.is_requires_satisfied('Theano<=1.0.3', 'numpy>=1.16.0'),
+    reason='chainer/chainer#5997')
 class TheanoFunctionTestBase(object):
 
     forward_test_options = {}
