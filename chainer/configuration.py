@@ -14,6 +14,7 @@ if types.TYPE_CHECKING:
 class GlobalConfig(object):
 
     debug = None  # type: bool
+    cudnn_deterministic = None  # type: bool
     warn_nondeterministic = None  # type: bool
     enable_backprop = None  # type: bool
     keep_graph_on_report = None  # type: bool
