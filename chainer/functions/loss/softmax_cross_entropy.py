@@ -87,7 +87,6 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             type_check.expect(
                 x_type.dtype.kind == 'f',
                 t_type.dtype.kind == 'f',
-                t_type.ndim == x_type.ndim,
                 x_type.shape == t_type.shape,
             )
 
