@@ -3,7 +3,6 @@ import typing as tp
 import numpy
 
 from chainer import function_node
-from chainerx import cuda
 
 
 # TODO(okapies): Split this into independent .py and .pyi files
