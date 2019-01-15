@@ -50,7 +50,6 @@ import chainerx
 
 available = False  # type: bool
 cudnn_enabled = False  # type: bool
-_chainerx_allocator = None  # type: tp.Optional[cupy.cuda.memory.ExternalAllocator] # NOQA
 
 try:
     import cupy
@@ -121,32 +120,6 @@ if available:
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
-
-    # Replace CuPy's allocator with ChainerX's if ChainerX is available
-    # with the CUDA backend. This is needed in order to share the GPU memory
-    # without having both modules using separate memory pools.
-    if chainerx.is_available():
-        # TODO(imanishi): Make sure this allocator works when the global
-        # default context is changed by the user. It currently will not
-        # since the allocator is only configured here once.
-        owner = chainerx._global_context  # type: ignore
-
-        try:
-            # Raises a BackendError in case the CUDA backend is not available.
-            owner.get_backend('cuda')
-
-            # CUDA backend should be available here.
-            assert hasattr(chainerx, 'cuda')
-            param = chainerx.cuda.get_backend_ptr()
-            malloc_func, free_func = (
-                chainerx.cuda.get_backend_malloc_free_ptrs())
-
-            _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
-                param, malloc_func, free_func, owner)
-
-            cupy.cuda.set_allocator(_chainerx_allocator.malloc)
-        except chainerx.BackendError:
-            pass
 
 
 def check_cuda_available():
