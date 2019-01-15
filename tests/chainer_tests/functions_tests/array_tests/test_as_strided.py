@@ -1,6 +1,6 @@
 import unittest
 
-from chainer import testing, Variable, grad
+from chainer import testing, Variable, grad, cuda
 
 import numpy as np
 
@@ -28,8 +28,7 @@ class TestStrideArray(unittest.TestCase):
 
     @testing.attr.gpu
     def test_flip_gpu(self):
-        import cupy as cp
-        self.check_flip(cp)
+        self.check_flip(cuda.cupy)
 
     def check_broadcast(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
@@ -43,8 +42,7 @@ class TestStrideArray(unittest.TestCase):
 
     @testing.attr.gpu
     def test_broadcast_gpu(self):
-        import cupy as cp
-        self.check_broadcast(cp)
+                self.check_broadcast(cuda.cupy)
 
     def check_unstride(self, xp):
         x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
@@ -57,8 +55,7 @@ class TestStrideArray(unittest.TestCase):
 
     @testing.attr.gpu
     def test_unstride_gpu(self):
-        import cupy as cp
-        self.check_unstride(cp)
+                self.check_unstride(cuda.cupy)
 
     def check_general_stride(self, xp):
         x = xp.arange(8, dtype=self.dtype)
@@ -76,8 +73,7 @@ class TestStrideArray(unittest.TestCase):
 
     @testing.attr.gpu
     def test_general_stride_gpu(self):
-        import cupy as cp
-        self.check_general_stride(cp)
+                self.check_general_stride(cuda.cupy)
 
     def check_invalid_negative_index(self, xp):
         x = xp.arange(8, dtype=self.dtype)
@@ -89,8 +85,7 @@ class TestStrideArray(unittest.TestCase):
 
     @testing.attr.gpu
     def test_invalid_negative_index_gpu(self):
-        import cupy as cp
-        self.check_invalid_negative_index(cp)
+                self.check_invalid_negative_index(cuda.cupy)
 
 
 @testing.parameterize(
@@ -114,8 +109,7 @@ class TestAsStridedForward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_flip_forward_gpu(self):
-        import cupy as cp
-        self.check_flip_forward(cp)
+                self.check_flip_forward(cuda.cupy)
 
     def check_broadcast_forward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
@@ -129,8 +123,7 @@ class TestAsStridedForward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_broadcast_forward_gpu(self):
-        import cupy as cp
-        self.check_broadcast_forward(cp)
+                self.check_broadcast_forward(cuda.cupy)
 
     def check_unstride_forward(self, xp):
         x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
@@ -144,8 +137,7 @@ class TestAsStridedForward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_unstride_forward_gpu(self):
-        import cupy as cp
-        self.check_unstride_forward(cp)
+                self.check_unstride_forward(cuda.cupy)
 
     def check_general_stride(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
@@ -162,8 +154,7 @@ class TestAsStridedForward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_general_stride_forward_gpu(self):
-        import cupy as cp
-        self.check_general_stride(cp)
+                self.check_general_stride(cuda.cupy)
 
 
 @testing.parameterize(
@@ -185,8 +176,7 @@ class TestAsStridedBackward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_flip_backward_gpu(self):
-        import cupy as cp
-        self.check_flip_backward(cp)
+                self.check_flip_backward(cuda.cupy)
 
     def check_broadcast_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
@@ -202,8 +192,7 @@ class TestAsStridedBackward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_broadcast_backward_gpu(self):
-        import cupy as cp
-        self.check_broadcast_backward(cp)
+                self.check_broadcast_backward(cuda.cupy)
 
     def check_unstride_backward(self, xp):
         x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
@@ -218,8 +207,7 @@ class TestAsStridedBackward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_unstride_backward_gpu(self):
-        import cupy as cp
-        self.check_unstride_backward(cp)
+                self.check_unstride_backward(cuda.cupy)
 
     def check_general_stride_backward(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
@@ -242,8 +230,7 @@ class TestAsStridedBackward(unittest.TestCase):
 
     @testing.attr.gpu
     def test_general_stride_backward_gpu(self):
-        import cupy as cp
-        self.check_general_stride_backward(cp)
+                self.check_general_stride_backward(cuda.cupy)
 
 
 @testing.parameterize(
@@ -265,8 +252,7 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     @testing.attr.gpu
     def test_flip_backward_gpu(self):
-        import cupy as cp
-        self.check_flip_backward(cp)
+                self.check_flip_backward(cuda.cupy)
 
     def check_broadcast_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
@@ -281,8 +267,7 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     @testing.attr.gpu
     def test_broadcast_backward_gpu(self):
-        import cupy as cp
-        self.check_broadcast_backward(cp)
+                self.check_broadcast_backward(cuda.cupy)
 
     def check_unstride_backward(self, xp):
         x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
@@ -297,8 +282,7 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     @testing.attr.gpu
     def test_unstride_backward_gpu(self):
-        import cupy as cp
-        self.check_unstride_backward(cp)
+                self.check_unstride_backward(cuda.cupy)
 
     def check_general_stride_backward(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
@@ -315,8 +299,7 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     @testing.attr.gpu
     def test_general_stride_backward_gpu(self):
-        import cupy as cp
-        self.check_general_stride_backward(cp)
+                self.check_general_stride_backward(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)
