@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
+from chainer.utils import non_deterministic
 
 
 def _sigmoid_grad(x, y, gy):
@@ -171,8 +172,8 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                 gW[ik] += ig * ix
         return gx, None, gW
 
-    @chainer.non_deterministic
     def forward_gpu(self, inputs):
+        non_deterministic('atomicAdd')
         self.retain_inputs((0, 1, 2))
         x, W, gy = inputs
 

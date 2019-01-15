@@ -9,6 +9,7 @@ from chainer import function
 from chainer.initializers import uniform
 from chainer import link
 from chainer.utils import type_check
+from chainer.utils import non_deterministic
 from chainer import variable
 
 
@@ -212,8 +213,8 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         self.wxy = wxy
         return ls.sum(),
 
-    @chainer.non_deterministic
     def backward_gpu(self, inputs, grad_outputs):
+        non_deterministic('atomicAdd')
         x, t, W = inputs
         gloss, = grad_outputs
 

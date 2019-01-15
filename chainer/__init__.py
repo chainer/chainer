@@ -5,8 +5,6 @@ import warnings
 
 import numpy
 
-from chainer.non_deterministic import non_deterministic  # NOQA
-
 from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
@@ -185,7 +183,7 @@ def is_arrays_compatible(arrays):
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
-global_config.non_deterministic = False
+global_config.warn_nondeterministic = False
 global_config.enable_backprop = True
 global_config.keep_graph_on_report = bool(int(
     os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))

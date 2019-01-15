@@ -60,7 +60,6 @@ class ScatterAdd(function_node.FunctionNode):
         return ret
 
 
-@chainer.non_deterministic
 def scatter_add(a, slices, b):
     """Adds given values to specified elements of an array.
 

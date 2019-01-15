@@ -13,6 +13,7 @@ from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
+from chainer.utils.non_deterministic import non_deterministic  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
