@@ -2,9 +2,10 @@ import numpy
 import six
 
 from chainer.dataset import dataset_mixin
+from chainer.dataset import examples
 
 
-class SubDataset(dataset_mixin.DatasetMixin):
+class SubDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Subset of a base dataset.
 
@@ -74,6 +75,10 @@ class SubDataset(dataset_mixin.DatasetMixin):
         if self._order is not None:
             index = self._order[index]
         return self._dataset[index]
+
+    def get_examples(self, indices=None):
+        return examples.sample_from_dataset(
+            self._dataset[self._start:self._finish], indices)
 
 
 def split_dataset(dataset, split_at, order=None):

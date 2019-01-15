@@ -1,7 +1,8 @@
 from chainer.dataset import dataset_mixin
+from chainer.dataset import examples
 
 
-class ConcatenatedDataset(dataset_mixin.DatasetMixin):
+class ConcatenatedDataset(dataset_mixin.BatchableDatasetMixin):
 
     """Dataset which concatenates some base datasets.
 
@@ -30,3 +31,6 @@ class ConcatenatedDataset(dataset_mixin.DatasetMixin):
                 return dataset[i]
             i -= len(dataset)
         raise IndexError
+
+    def get_examples(self, indices=None):
+        return examples.ConcatenatedExamples(self._datasets, indices)

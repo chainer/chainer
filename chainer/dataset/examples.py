@@ -1,3 +1,4 @@
+import bisect
 import six
 import typing as tp  # NOQA
 
@@ -254,6 +255,82 @@ class DictDatasetExamples(AbstractDatasetExamples):
             return {k: f(d) for k, d in six.iteritems(self._dataset)}
         else:
             return {k: f(d[indices]) for k, d in six.iteritems(self._dataset)}
+
+
+class ConcatenatedExamples(Examples):
+    def __init__(self, datasets, indices=None, padding_spec=None):
+        # type: (tp.Sequence[types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[types.PaddingSpec]) -> None # NOQA
+        super(ConcatenatedExamples, self).__init__()
+
+        ds_idxs = self._to_dataset_indices(datasets, indices)
+
+        # TODO(okapies): improve performance
+        head_ds, head_idx = ds_idxs[0]
+        head = datasets[head_ds][head_idx]
+        if isinstance(head, tuple):
+            tuple_ds = tuple([[] for _ in six.moves.xrange(len(head))])  # type: tp.Tuple[tp.List[tp.Any], ...] # NOQA
+            for n, i in ds_idxs:
+                for k, e in enumerate(datasets[n][i]):
+                    tuple_ds[k].append(e)
+            self._examples =\
+                TupleDatasetExamples(tuple_ds, None, padding_spec)  # type: Examples # NOQA
+        elif isinstance(head, dict):
+            dict_ds = {key: [] for key in head}  # type: tp.Mapping[tp.Any, tp.List[tp.Any]] # NOQA
+            for n, i in ds_idxs:
+                for k, e in six.iteritems(datasets[n][i]):
+                    dict_ds[k].append(e)
+            self._examples =\
+                DictDatasetExamples(dict_ds, None, padding_spec)
+        else:
+            single_ds = []  # type: tp.List[tp.Any]
+            for n, i in ds_idxs:
+                single_ds.append(datasets[n][i])
+            self._examples =\
+                SingleDatasetExamples(single_ds, None, padding_spec)
+
+    @staticmethod
+    def _to_dataset_indices(datasets, indices):
+        # type: (tp.Sequence[types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]]) -> tp.Sequence[tp.Tuple[int, int]] # NOQA
+
+        if indices is None:
+            n_datasets = sum(
+                len(dataset) for dataset in datasets)  # type: ignore
+            idxs = six.moves.xrange(n_datasets)  # type: tp.Sequence[int]
+        elif isinstance(indices, slice):
+            n_datasets = sum(
+                len(dataset) for dataset in datasets)  # type: ignore
+            idxs = six.moves.xrange(n_datasets)[indices]
+        else:
+            idxs = indices
+
+        # calculate offsets of each dataset
+        offset = 0
+        offsets = []  # type: tp.List[int]
+        for dataset in datasets:
+            offsets.append(offset)
+            offset += len(dataset)
+
+        # e.g. [0, 1, 3, ...] -> [(0, 0), (1, 0), (3, 1), ...]
+        ret = []
+        for i in idxs:
+            if i < 0:
+                raise IndexError
+
+            # bisect_right(offsets, i) >= 1 (because offsets[0] is always 0)
+            ds_idx = bisect.bisect_right(offsets, i) - 1
+            ret.append((ds_idx, i - offsets[ds_idx]))
+
+        return ret
+
+    def __len__(self):
+        # type: () -> int
+        return len(self._examples)
+
+    def __getitem__(self, index):
+        return self._examples[index]
+
+    def to_dataset(self, device_spec=None, indices=None):
+        return self._examples.to_dataset(device_spec, indices)
 
 
 def _identity(a):
