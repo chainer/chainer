@@ -190,8 +190,8 @@ class VariableStatisticsPlot(extension.Extension):
                  trigger=(1, 'epoch'), filename='statistics.png',
                  figsize=None, marker=None, grid=True, **kwargs):
 
-        file_name = argument.parse_kwargs(
-            kwargs, ('file_name', 'statistics.png'),
+        file_name, = argument.parse_kwargs(
+            kwargs, ('file_name', 'statistics.png')
         )
         if filename is None:
             filename = file_name

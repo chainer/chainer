@@ -104,9 +104,7 @@ class PlotReport(extension.Extension):
                  postprocess=None, filename=None, marker='x',
                  grid=True, **kwargs):
 
-        file_name = argument.parse_kwargs(
-            kwargs, ('file_name', 'plot.png'),
-        )
+        file_name, = argument.parse_kwargs(kwargs, ('file_name', 'plot.png'))
         if filename is None:
             filename = file_name
 

@@ -67,7 +67,7 @@ class LogReport(extension.Extension):
         self._postprocess = postprocess
         self._log = []
 
-        log_name = argument.parse_kwargs(
+        log_name, = argument.parse_kwargs(
             kwargs, ('log_name', 'log'),
         )
         if filename is None:
