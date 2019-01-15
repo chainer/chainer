@@ -33,7 +33,7 @@ def cupy_share_allocator(owner=chainerx._global_context):
     malloc_func, free_func = _pybind_cuda.get_backend_malloc_free_ptrs()
 
     global _chainerx_allocator
-    _chainerx_allocator = cupy.cuda.memory.ExternalAllocator(
+    _chainerx_allocator = cupy.cuda.memory.CFunctionAllocator(
         param, malloc_func, free_func, owner)
 
     cupy.cuda.set_allocator(_chainerx_allocator.malloc)
