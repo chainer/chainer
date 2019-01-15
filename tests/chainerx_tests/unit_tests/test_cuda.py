@@ -31,6 +31,8 @@ def test_cupy_share_allocator():
 
         used_bytes = hook.used_bytes
         acquired_bytes = hook.acquired_bytes
+        assert used_bytes > 0
+        assert acquired_bytes > 0
 
         # Create a new array after changing the allocator to the memory pool
         # of ChainerX and make sure that no additional memory has been
