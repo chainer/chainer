@@ -176,9 +176,12 @@ def _test_case_generator(base, method_names, params):
                     and base_method.__name__ not in method_names):
                 return None
 
+            # Bind to a new variable.
+            backend_config2 = backend_config
+
             @functools.wraps(base_method)
             def new_method(self, *args, **kwargs):
-                return base_method(self, backend_config, *args, **kwargs)
+                return base_method(self, backend_config2, *args, **kwargs)
 
             # Apply test marks
             for mark in marks:
