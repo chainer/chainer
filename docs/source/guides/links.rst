@@ -30,10 +30,10 @@ This is the preferred way to initialize these parameters.
 
 .. doctest::
 
-   >>> f.W.data
+   >>> f.W.array
    array([[ 1.0184761 ,  0.23103087,  0.5650746 ],
           [ 1.2937803 ,  1.0782351 , -0.56423163]], dtype=float32)
-   >>> f.b.data
+   >>> f.b.array
    array([0., 0.], dtype=float32)
 
 An instance of the Linear link acts like a usual function:
@@ -42,7 +42,7 @@ An instance of the Linear link acts like a usual function:
 
    >>> x = Variable(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32))
    >>> y = f(x)
-   >>> y.data
+   >>> y.array
    array([[3.1757617, 1.7575557],
           [8.619507 , 7.1809077]], dtype=float32)
 

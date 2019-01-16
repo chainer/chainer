@@ -74,11 +74,11 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     std::unique_ptr<Backend, context_detail::BackendDeleter> backend;
     if (backend_name == native::NativeBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #ifdef CHAINERX_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
         // Load .so file

@@ -77,6 +77,37 @@ class TestSequential(unittest.TestCase):
         self.assertIs(s2[1].W.data, self.l3.W.data)
         self.assertIs(s2[1].W.grad, None)
 
+    def test_copy_with_nonparametric_function(self):
+        self.s1.insert(1, functions.relu)
+        # l1 -> relu -> l2
+
+        # The default copy mode is 'share'
+        s1 = self.s1.copy()
+        self.assertIsNot(s1[0], self.s1[0])  # l1
+        self.assertIs(s1[1], self.s1[1])  # relu
+        self.assertIsNot(s1[2], self.s1[2])  # l2
+
+        # parameters of l1
+        self.assertIsNot(s1[0].W, self.s1[0].W)
+        self.assertIsNot(s1[0].b, self.s1[0].b)
+        # W of the first link has not been initialized
+        self.assertIs(s1[0].W.array, None)
+        self.assertIs(s1[0].W.grad, None)
+        # The bias is initialized
+        self.assertIs(s1[0].b.array, self.s1[0].b.array)
+        self.assertIs(s1[0].b.grad, None)
+
+        # The copied Function should be identical
+        self.assertIs(s1[1], self.s1[1])
+
+        # parameters of l2
+        self.assertIsNot(s1[2].W, self.s1[2].W)
+        self.assertIsNot(s1[2].b, self.s1[2].b)
+        self.assertIs(s1[2].W.array, self.s1[2].W.array)
+        self.assertIs(s1[2].W.grad, None)
+        self.assertIs(s1[2].b.array, self.s1[2].b.array)
+        self.assertIs(s1[2].b.grad, None)
+
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
         s2 = self.s2.copy()

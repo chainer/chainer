@@ -17,6 +17,7 @@ dist/
 htmlcov/
 .idea/
 .cache/
+.mypy_cache/
 .pytest_cache/
 docs/my.model
 docs/my.state

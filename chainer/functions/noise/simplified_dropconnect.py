@@ -157,12 +157,14 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
     before activation.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. Its first dimension ``n`` is assumed
             to be the *minibatch dimension*. The other dimensions are treated
             as concatenated one dimension whose size must be ``N``.
-        W (~chainer.Variable): Weight variable of shape ``(M, N)``.
-        b (~chainer.Variable): Bias variable (optional) of shape ``(M,)``.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape ``(M, N)``.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable (optional) of shape ``(M,)``.
         ratio (float):
             Dropconnect ratio.
         train (bool):

@@ -6,6 +6,7 @@ from chainer import distribution
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
+from chainer.utils import cache
 
 
 class Chisquare(distribution.Distribution):
@@ -24,30 +25,34 @@ class Chisquare(distribution.Distribution):
 
     def __init__(self, k):
         super(Chisquare, self).__init__()
-        self.__k = chainer.as_variable(k)
+        self.__k = k
 
-    @property
+    @cache.cached_property
     def k(self):
-        return self.__k
+        return chainer.as_variable(self.__k)
+
+    @cache.cached_property
+    def _half_k(self):
+        return 0.5 * self.k
 
     @property
     def batch_shape(self):
         return self.k.shape
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return 0.5 * self.k + numpy.log(2.) + lgamma.lgamma(0.5 * self.k) \
-            + (1 - 0.5 * self.k) * digamma.digamma(0.5 * self.k)
+        return self._half_k + numpy.log(2.) + lgamma.lgamma(self._half_k) \
+            + (1 - self._half_k) * digamma.digamma(self._half_k)
 
     @property
     def event_shape(self):
         return ()
 
     def log_prob(self, x):
-        return - lgamma.lgamma(0.5 * self.k) - 0.5 * self.k * numpy.log(2.) \
-            + (0.5 * self.k - 1) * exponential.log(x) - 0.5 * x
+        return - lgamma.lgamma(self._half_k) - self._half_k * numpy.log(2.) \
+            + (self._half_k - 1) * exponential.log(x) - 0.5 * x
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.k
 
@@ -66,6 +71,6 @@ class Chisquare(distribution.Distribution):
     def support(self):
         return 'positive'
 
-    @property
+    @cache.cached_property
     def variance(self):
         return 2 * self.k
