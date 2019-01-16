@@ -19,6 +19,10 @@ After reading this section, you will be able to:
 * Write model-parallel computing in Chainer
 * Write data-parallel computing in Chainer
 
+.. testsetup::
+
+   import cupy
+
 .. testcode::
    :hide:
 
