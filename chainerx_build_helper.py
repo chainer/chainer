@@ -61,11 +61,11 @@ class CMakeBuild(build_ext.build_ext):
                     cfg.upper(), extdir)]
 
             cmake_args += ['-DDEFAULT_CHAINERX_ENABLE_BLAS=OFF']
-            cmake_args += ['-G', 'Visual Studio 15 2017 Win64', '-T', 'llvm']
+            cmake_args += ['-G', 'Visual Studio 15 2017', '-T', 'llvm']
 
-            # if sys.maxsize > 2**32:
-            #     cmake_args += ['-A', 'x64']
-            # build_args += ['--', '/m']
+            if sys.maxsize > 2**32:
+                cmake_args += ['-A', 'x64']
+            build_args += ['--', '/m']
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--']
