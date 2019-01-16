@@ -6,7 +6,7 @@ import unittest
 
 import six
 
-from chainer.testing import _gen
+from chainer.testing import _bundle
 
 
 def _parameterize_test_case_generator(base, params):
@@ -65,7 +65,7 @@ def _parameterize_test_case_generator(base, params):
 
 
 def parameterize(*params):
-    return _gen.make_decorator(
+    return _bundle.make_decorator(
         lambda base: _parameterize_test_case_generator(base, params))
 
 

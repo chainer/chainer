@@ -5,7 +5,7 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import cuda
-from chainer.testing import _gen
+from chainer.testing import _bundle
 from chainer.testing import attr
 import chainerx
 
@@ -186,5 +186,5 @@ def inject_backend_tests(method_names, params):
     if not all(isinstance(d, dict) for d in params):
         raise TypeError('params must be a list of dicts.')
 
-    return _gen.make_decorator(
+    return _bundle.make_decorator(
         lambda base: _test_case_generator(base, method_names, params))
