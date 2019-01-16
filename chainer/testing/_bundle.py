@@ -65,20 +65,20 @@ def make_decorator(test_case_generator):
 
 def _generate_case(base, module, cls_name, mb, method_generator):
     # Returns a _TestCaseTuple.
-    # Add parameters as members
 
-    cls = type(cls_name, (base,), mb)
-
+    members = mb.copy()
     # ismethod for Python 2 and isfunction for Python 3
-    members = inspect.getmembers(
-        cls, predicate=lambda _: inspect.ismethod(_) or inspect.isfunction(_))
-    for name, method in members:
-        if name.startswith('test_'):
-            new_method = method_generator(method)
-            # if new_method is None, the test method will be removed from the
-            # generated test case.
-            if new_method is not None:
-                setattr(cls, name, new_method)
+    base_methods = inspect.getmembers(
+        base, predicate=lambda m: inspect.ismethod(m) or inspect.isfunction(m))
+    for name, value in base_methods:
+        if not name.startswith('test_'):
+            continue
+        value = method_generator(value)
+        # If the return value of method_generator is None, None is assigned
+        # as the value of the test method and it is ignored by pytest.
+        members[name] = value
+
+    cls = type(cls_name, (base,), members)
 
     # Add new test class to module
     setattr(module, cls_name, cls)
