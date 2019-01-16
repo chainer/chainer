@@ -1,4 +1,3 @@
-
 set(module_name _core.so)
 
 if(MSVC)
