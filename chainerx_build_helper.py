@@ -60,7 +60,6 @@ class CMakeBuild(build_ext.build_ext):
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     cfg.upper(), extdir)]
 
-            cmake_args += ['-DDEFAULT_CHAINERX_ENABLE_BLAS=OFF']
             cmake_args += ['-G', 'Visual Studio 15 2017', '-T', 'llvm']
 
             if sys.maxsize > 2**32:
