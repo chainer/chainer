@@ -42,7 +42,7 @@ requirements = {
         'mock',
     ],
     'doctest': [
-        'sphinx==1.8.0',
+        'sphinx==1.8.2',
         'matplotlib',
         'theano',
     ],
