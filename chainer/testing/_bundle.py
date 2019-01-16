@@ -23,6 +23,14 @@ class _ParameterizedTestCaseBundle(object):
 
 
 def make_decorator(test_case_generator):
+    # `test_case_generator` is a callable that receives the source TestCase
+    # class and returns an iterable of generated test cases.
+    # Each element of the iterable is a 3-element tuple:
+    # [0] Generated class name
+    # [1] Dict of members
+    # [2] Method generator
+    # The method generator is also a callable that receives an original test
+    # method and returns a new test method.
 
     def f(cases):
         if isinstance(cases, _ParameterizedTestCaseBundle):
