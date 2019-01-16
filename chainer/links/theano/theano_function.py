@@ -37,7 +37,7 @@ class TheanoFunction(link.Link):
 
     .. rubric:: Example
 
-    .. testcode::
+    .. doctest::
        # See chainer/chainer#5997
        :skipif: os.environ.get('READTHEDOCS') != 'True' \
            and chainer.testing.is_requires_satisfied( \
