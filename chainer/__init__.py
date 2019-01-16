@@ -170,15 +170,15 @@ def is_arrays_compatible(arrays):
     # TODO(niboshi): intel64.mdarray is not supported yet.
     # TODO(niboshi): Delegate array compatibility check to chainerx.
     if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return not any([
-            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+            and any(isinstance(arr, chainerx.ndarray) for arr in arrays)):
+        return not any(
+            isinstance(arr, backends.intel64.mdarray) for arr in arrays)
 
     if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
-    return all([isinstance(a, types) for a in arrays])
+    return all(isinstance(a, types) for a in arrays)
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))

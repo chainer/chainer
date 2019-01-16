@@ -12,8 +12,8 @@ def _fp16_mixed_precision_helper(fn):
     """
     @functools.wraps(fn)
     def wrapper(self, in_data):
-        flag = all([x.dtype.kind != 'f' or x.dtype == numpy.float16
-                    for x in in_data])
+        flag = all(x.dtype.kind != 'f' or x.dtype == numpy.float16
+                   for x in in_data)
 
         in_data1 = []
         for x in in_data:

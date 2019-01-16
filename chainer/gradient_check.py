@@ -54,10 +54,10 @@ def _check_outputs_and_grad_outputs(outputs, grad_outputs):
             'the number of output elements.\n'
             '{}'.format(
                 _make_outputs_props_in_error_message(outputs, grad_outputs)))
-    shapes_match = all([gy is None or y.shape == gy.shape
-                        for y, gy in zip(outputs, grad_outputs)])
-    dtypes_match = all([gy is None or y.dtype == gy.dtype
-                        for y, gy in zip(outputs, grad_outputs)])
+    shapes_match = all(gy is None or y.shape == gy.shape
+                       for y, gy in zip(outputs, grad_outputs))
+    dtypes_match = all(gy is None or y.dtype == gy.dtype
+                       for y, gy in zip(outputs, grad_outputs))
     if not (shapes_match and dtypes_match):
         raise ValueError(
             'Shapes and/or dtypes of outputs and output gradients do not '
@@ -165,9 +165,9 @@ def numerical_grad(
         x[i] = orig + delta
         y = _copy_arrays(f())
         assert len(y) == len(grad_outputs)
-        assert all([
+        assert all(
             gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
-            for y_, gy in zip(y, grad_outputs)])
+            for y_, gy in zip(y, grad_outputs))
         x[i] = orig
         return y
 

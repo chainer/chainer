@@ -56,7 +56,7 @@ class ConvolutionND(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         # TODO(hvy): Support mixed precision.
-        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+        if any(arr.dtype != inputs[0].dtype for arr in inputs[1:]):
             return chainer.Fallback
         # TODO(hvy): Support dilate > 1.
         if any(d != 1 for d in self.dilate):

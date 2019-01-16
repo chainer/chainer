@@ -170,7 +170,7 @@ def get_array_module(*args):
                 for arg in args]
 
     if (chainerx.is_available()
-            and any([isinstance(a, chainerx.ndarray) for a in args])):
+            and any(isinstance(a, chainerx.ndarray) for a in args)):
         return chainerx
     elif cuda.available:
         return cuda.cupy.get_array_module(*args)

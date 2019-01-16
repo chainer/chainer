@@ -12,7 +12,7 @@ class ScatterAdd(function_node.FunctionNode):
 
     def __init__(self, slices):
         if isinstance(slices, list):
-            if all([isinstance(s, int) for s in slices]):
+            if all(isinstance(s, int) for s in slices):
                 slices = slices,
             slices = tuple(slices)
         elif not isinstance(slices, tuple):

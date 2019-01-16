@@ -350,7 +350,7 @@ Use apply() method instead.\
 
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
-            requires_grad = any([x.requires_grad for x in input_vars])
+            requires_grad = any(x.requires_grad for x in input_vars)
 
             ret = tuple(
                 [variable.Variable(y, requires_grad=requires_grad)
@@ -709,9 +709,9 @@ Use apply() method instead.\
             (self._output_indexes_to_retain is None
              and len(retained_outputs) == 0)
             or (len(self._output_indexes_to_retain) == len(retained_outputs)))
-        assert all([
+        assert all(
             a is None or isinstance(a, chainerx.ndarray)
-            for a in grad_outputs])
+            for a in grad_outputs)
 
         self._chainerx_retained_inputs = tuple([
             variable.Variable(
@@ -736,7 +736,7 @@ Use apply() method instead.\
                     for gy in grad_outputs]))
 
         gx_arrs = [gx._data[0] for gx in gxs]
-        assert all([isinstance(gx, chainerx.ndarray) for gx in gx_arrs])
+        assert all(isinstance(gx, chainerx.ndarray) for gx in gx_arrs)
         return gx_arrs
 
     def _backward_target_inputs(self, target_input_indexes, grad_outputs):
@@ -1165,7 +1165,7 @@ def _extract_apply_in_data(inputs):
         if isinstance(x, variable.Variable) else x for x in inputs]
 
     if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
+            and any(isinstance(arr, chainerx.ndarray) for arr in arrays)):
         return True, tuple(backend.to_chainerx(arrays))
     return False, tuple(arrays)
 
