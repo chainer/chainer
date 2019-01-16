@@ -6,27 +6,9 @@ from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import collections_abc
+import chainer.utils.numpy_compat
 from chainer.utils import type_check
 import chainerx
-
-
-_numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'
-
-
-def _fix_numpy_split(ys, x, indices_or_sections, axis):
-    """Make the output of np.split compatible with numpy >= 1.11"""
-    if all(y.ndim == x.ndim for y in ys):
-        return ys
-    tmp = [len(t) for t in numpy.split(
-        numpy.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
-    shape = list(x.shape)
-    for i, t in enumerate(tmp):
-        y = ys[i]
-        if y.ndim != x.ndim:
-            assert y.size == 0
-            shape[axis] = t
-            ys[i] = y.reshape(shape)
-    return ys
 
 
 def _get_indices_or_sections(indices_or_sections):
@@ -116,10 +98,10 @@ class SplitAxis(function_node.FunctionNode):
 
         x, = inputs
         self._xp = backend.get_array_module(x)
-        indices_or_sections = self.indices_or_sections
-        ret = self._xp.split(x, indices_or_sections, self.axis)
-        if self._xp == numpy and not _numpy_split_ok:
-            ret = _fix_numpy_split(ret, x, indices_or_sections, self.axis)
+        split = (
+            chainer.utils.numpy_compat.split if self._xp == numpy
+            else self._xp.split)
+        ret = split(x, self.indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
         return tuple(ret)
 
