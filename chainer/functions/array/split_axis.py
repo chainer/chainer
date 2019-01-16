@@ -1,5 +1,3 @@
-import warnings
-
 import numpy
 import six
 
@@ -15,14 +13,8 @@ import chainerx
 _numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'
 
 
-def _numpy_1_11_split(x, indices_or_sections, axis):
+def _fix_numpy_split(ys, x, indices_or_sections, axis):
     """Make the output of np.split compatible with numpy >= 1.11"""
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore',
-            '.*will retain the shape of arrays with a zero size',
-            FutureWarning)
-        ys = numpy.split(x, indices_or_sections, axis)
     if all(y.ndim == x.ndim for y in ys):
         return ys
     tmp = [len(t) for t in numpy.split(
@@ -125,10 +117,9 @@ class SplitAxis(function_node.FunctionNode):
         x, = inputs
         self._xp = backend.get_array_module(x)
         indices_or_sections = self.indices_or_sections
+        ret = self._xp.split(x, indices_or_sections, self.axis)
         if self._xp == numpy and not _numpy_split_ok:
-            ret = _numpy_1_11_split(x, indices_or_sections, self.axis)
-        else:
-            ret = self._xp.split(x, indices_or_sections, self.axis)
+            ret = _fix_numpy_split(ret, x, indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
         return tuple(ret)
 
