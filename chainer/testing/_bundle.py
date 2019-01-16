@@ -74,7 +74,11 @@ def _generate_case(base, module, cls_name, mb, method_generator):
         cls, predicate=lambda _: inspect.ismethod(_) or inspect.isfunction(_))
     for name, method in members:
         if name.startswith('test_'):
-            setattr(cls, name, method_generator(method))
+            new_method = method_generator(method)
+            # if new_method is None, the test method will be removed from the
+            # generated test case.
+            if new_method is not None:
+                setattr(cls, name, new_method)
 
     # Add new test class to module
     setattr(module, cls_name, cls)
