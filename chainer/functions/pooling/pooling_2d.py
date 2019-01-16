@@ -31,8 +31,6 @@ class Pooling2D(function_node.FunctionNode):
         self.return_indices = return_indices
 
         self._used_cudnn = False
-        self._cudnn_inputs = None
-        self._cudnn_outputs = None
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -60,15 +58,13 @@ class Pooling2D(function_node.FunctionNode):
             x, y,
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
             self._get_pool_mode())
-        self._cudnn_inputs = (x,)
-        self._cudnn_outputs = (y,)
         self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = x[0]
-        y = self._cudnn_outputs[0]
+        y = self.get_retained_outputs()[0].array
         gx = cudnn.pooling_backward(
             x, y, gy[0],
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
