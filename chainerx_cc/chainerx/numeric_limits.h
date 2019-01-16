@@ -2,7 +2,10 @@
 
 #include <cmath>
 #include <cstdint>
+
+#ifdef _WIN32
 #include <limits>
+#endif  // _WIN32
 
 #include "chainerx/macro.h"
 
@@ -72,6 +75,6 @@ struct NumericLimits<double> {
     CHAINERX_HOST_DEVICE static constexpr double LowestOrInf() noexcept { return -HUGE_VAL; }
     CHAINERX_HOST_DEVICE static constexpr double MaxOrInf() noexcept { return HUGE_VAL; }
 };
-#endif
+#endif  // _WIN32
 
 }  // namespace chainerx
