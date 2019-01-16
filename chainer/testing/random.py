@@ -9,6 +9,7 @@ import unittest
 
 
 from chainer.backends import cuda
+from chainer.testing import _gen
 
 
 _old_python_random_state = None
@@ -114,9 +115,18 @@ def fix_random():
                 finally:
                     _teardown_random()
             return test_func
+
+        if isinstance(impl, _gen._ParameterizedTestCaseBundle):
+            cases = impl
         elif isinstance(impl, type) and issubclass(impl, unittest.TestCase):
+            tup = _gen._TestCaseTuple(impl, None, None)
+            cases = _gen._ParameterizedTestCaseBundle([tup])
+        else:
+            raise ValueError('Can\'t apply fix_random to {}'.format(impl))
+
+        for case, _, _ in cases.cases:
             # Applied to test case class
-            klass = impl
+            klass = case
 
             setUp_ = klass.setUp
             tearDown_ = klass.tearDown
@@ -135,8 +145,7 @@ def fix_random():
 
             klass.setUp = setUp
             klass.tearDown = tearDown
-            return klass
-        else:
-            raise ValueError('Can\'t apply fix_random to {}'.format(impl))
+
+        return cases
 
     return decorator
