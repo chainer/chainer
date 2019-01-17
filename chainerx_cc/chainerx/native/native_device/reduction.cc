@@ -7,12 +7,9 @@
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/reduce.h"
+#include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/shape.h"
-
-#ifdef _WIN32
-#include "chainerx/numeric.h"
-#endif  // _WIN32
 
 namespace chainerx {
 namespace native {
@@ -72,7 +69,7 @@ void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
             T Identity() { return NumericLimits<T>::LowestOrInf(); }
             T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) {
-                if (std::isnan(next) || accum < next) {
+                if (chainerx::IsNan(next) || accum < next) {
                     accum = next;
                 }
             }
