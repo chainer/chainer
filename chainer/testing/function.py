@@ -33,57 +33,57 @@ class FunctionTestError(AssertionError):
 
 
 class FunctionTestCase(unittest.TestCase):
-    """A decorator to generate function tests.
+    """A base class for function test cases.
 
-    This decorator can be applied to a base :class:`unittest.TestCase` class
-    to define a set of function tests in the class.
+    Function test cases can inherit from this class to define a set of function
+    tests.
 
     .. rubric:: Required methods
 
-    The base class must at least implement the following three methods.
+    Each concrete class must at least override the following three methods.
 
-    ``forward(inputs, device)``
+    ``forward(self, inputs, device)``
         Implements the target forward function.
         ``inputs`` is a tuple of :class:`~chainer.Variable`\\ s.
         This method is expected to return the output
         :class:`~chainer.Variable`\\ s with the same array types as the inputs.
         ``device`` is the device corresponding to the input arrays.
 
-    ``forward_expected(inputs)``
+    ``forward_expected(self, inputs)``
         Implements the expectation of the target forward function.
         ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s.
         This method is expected to return the output
         :class:`numpy.ndarray`\\ s.
 
-    ``generate_inputs()``
+    ``generate_inputs(self)``
         Returns a tuple of input arrays of type :class:`numpy.ndarray`.
 
     .. rubric:: Optional methods
 
-    Additionally the base class can implement the following methods.
+    Additionally the concrete class can override the following methods.
 
-    ``before_test(test_name)``
+    ``before_test(self, test_name)``
         A callback method called before each test.
         Typically a skip logic is implemented by conditionally raising
         :class:`unittest.SkipTest`.
         ``test_name`` is one of ``'test_forward'``, ``'test_backward'``, and
         ``'test_double_backward'``.
 
-    ``generate_grad_outputs(outputs_template)``
+    ``generate_grad_outputs(self, outputs_template)``
         Returns a tuple of output gradient arrays of type
         :class:`numpy.ndarray`.
         ``outputs_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
-    ``generate_grad_grad_inputs(inputs_template)``
+    ``generate_grad_grad_inputs(self, inputs_template)``
         Returns a tuple of the second order input gradient arrays of type
         :class:`numpy.ndarray`.
         ``input_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
-    .. rubric:: Class attributes
+    .. rubric:: Attributes
 
-    The base class can define the following class attributes to control the
+    The concrete class can override the following attributes to control the
     behavior of the tests.
 
     ``forward_test`` (bool):
@@ -110,7 +110,7 @@ class FunctionTestCase(unittest.TestCase):
 
     .. note::
 
-       This decorator assumes :func:`chainer.testing.inject_backend_tests`
+       This class assumes :func:`chainer.testing.inject_backend_tests`
        is used together. See the example below.
 
     .. admonition:: Example
@@ -123,8 +123,7 @@ class FunctionTestCase(unittest.TestCase):
                   {},  # CPU
                   {'use_cuda': True},  # GPU
               ])
-          @chainer.testing.function_test()
-          class TestReLU(unittest.TestCase):
+          class TestReLU(chainer.testing.FunctionTestCase):
 
               # ReLU function has a non-differentiable point around zero, so
               # dodge_nondifferentiable should be set to True.
