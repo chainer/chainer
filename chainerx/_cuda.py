@@ -13,8 +13,6 @@ try:
 except Exception:
     _cupy_available = False
 
-_chainerx_allocator = None
-
 
 def cupy_share_allocator(owner=chainerx._global_context):
     # Replace CuPy's allocator with ChainerX's if ChainerX is available with
@@ -30,8 +28,7 @@ def cupy_share_allocator(owner=chainerx._global_context):
 
     c_allocator = _pybind_cuda.get_c_allocator()
 
-    global _chainerx_allocator
-    _chainerx_allocator = cupy.cuda.memory.CFunctionAllocator(
+    chainerx_allocator = cupy.cuda.memory.CFunctionAllocator(
         *c_allocator, owner)
 
-    cupy.cuda.set_allocator(_chainerx_allocator.malloc)
+    cupy.cuda.set_allocator(chainerx_allocator.malloc)
