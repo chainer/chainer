@@ -105,6 +105,7 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx': ['py.typed', "*.pyi"],
     }
 
+    # TODO(durswd): Remove build_targets. Because build_targets is used without Windows
     if platform.system() == "Windows":
         build_targets = ['_core.pyd']
     else:
