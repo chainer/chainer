@@ -31,7 +31,7 @@ int setenv(const char* name, const char* value, int overwrite) {
 }
 
 void unsetenv(const char* name) { _putenv_s(name, ""); }
-#endif
+#endif  //_WIN32
 
 namespace chainerx {
 namespace cuda {

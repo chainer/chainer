@@ -364,7 +364,7 @@ TEST(StackVectorTest, Iterator) {
         EXPECT_EQ(9, *it);
         EXPECT_EQ(vec1.begin(), it);
     }
-#endif
+#endif  //_WIN32
 }
 
 TEST(StackVectorTest, EraseMiddle) {

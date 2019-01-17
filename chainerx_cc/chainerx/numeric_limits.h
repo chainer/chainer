@@ -63,7 +63,7 @@ struct NumericLimits<double> {
     CHAINERX_HOST_DEVICE static constexpr double LowestOrInf() noexcept { return -std::numeric_limits<double>::infinity(); }
     CHAINERX_HOST_DEVICE static constexpr double MaxOrInf() noexcept { return std::numeric_limits<double>::infinity(); }
 };
-#else
+#else  //_WIN32
 template <>
 struct NumericLimits<float> {
     CHAINERX_HOST_DEVICE static constexpr float LowestOrInf() noexcept { return -HUGE_VALF; }

@@ -22,7 +22,7 @@ int setenv(const char* name, const char* value, int overwrite) {
     }
     return _putenv_s(name, value);
 }
-#endif
+#endif  //_WIN32
 
 namespace chainerx {
 namespace {

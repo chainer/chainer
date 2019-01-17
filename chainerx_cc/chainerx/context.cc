@@ -3,7 +3,7 @@
 #ifndef _WIN32
 // Windows doesn't support it currently
 #include <dlfcn.h>
-#endif
+#endif  //_WIN32
 
 #include <algorithm>
 #include <atomic>
@@ -56,7 +56,7 @@ Context::~Context() {
     for (void* handle : dlopen_handles_) {
 #ifndef _WIN32
         ::dlclose(handle);
-#endif
+#endif  //_WIN32
     }
 }
 
@@ -88,7 +88,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     } else {
 #ifdef _WIN32
         throw BackendError{"Backend is not supported in Windows."};
-#else
+#else  //_WIN32
         // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
@@ -115,7 +115,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{create_backend(*this),
                                                                            context_detail::BackendDeleter{destroy_backend}};
-#endif
+#endif  //_WIN32
     }
 
     {
