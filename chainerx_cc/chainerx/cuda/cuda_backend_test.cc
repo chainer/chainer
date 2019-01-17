@@ -23,9 +23,9 @@
 #ifdef _WIN32
 int setenv(const char* name, const char* value, int overwrite) {
     if (!overwrite) {
-        size_t requiredCount = 0;
-        auto err = getenv_s(&requiredCount, nullptr, 0, name);
-        if (err != 0 || requiredCount != 0) return err;
+        size_t required_count = 0;
+        auto err = getenv_s(&required_count, nullptr, 0, name);
+        if (err != 0 || required_count != 0) return err;
     }
     return _putenv_s(name, value);
 }
