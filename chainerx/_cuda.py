@@ -14,7 +14,7 @@ except Exception:
     _cupy_available = False
 
 
-def cupy_share_allocator(owner=chainerx._global_context):
+def cupy_share_allocator():
     # Replace CuPy's allocator with ChainerX's if ChainerX is available with
     # the CUDA backend. This is needed in order to share the GPU memory
     # without having both modules using separate memory pools.
@@ -29,6 +29,6 @@ def cupy_share_allocator(owner=chainerx._global_context):
     c_allocator = _pybind_cuda.get_c_allocator()
 
     chainerx_allocator = cupy.cuda.memory.CFunctionAllocator(
-        *c_allocator, owner)
+        *c_allocator, chainerx._global_context)
 
     cupy.cuda.set_allocator(chainerx_allocator.malloc)
