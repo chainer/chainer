@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <utility>
+#include <tuple>
 
 #include <pybind11/pybind11.h>
 
@@ -34,19 +34,16 @@ void Free(void* backend, void* ptr, int device_id) {
     return device.device_memory_pool()->Free(ptr);
 }
 
-intptr_t GetBackendPtr() {
-    return reinterpret_cast<intptr_t>(&GetBackend("cuda"));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
-}
-
-std::pair<intptr_t, intptr_t> GetBackendMallocFreePtrs() {
-    return std::make_pair(
-            reinterpret_cast<intptr_t>(&Malloc), reinterpret_cast<intptr_t>(&Free));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
+std::tuple<intptr_t, intptr_t, intptr_t> GetCAllocator() {
+    return std::make_tuple(
+            reinterpret_cast<intptr_t>(&GetBackend("cuda")),  // NOLINT(cppcoreguidelines-cppcoreguidelines);
+            reinterpret_cast<intptr_t>(&Malloc),  // NOLINT(cppcoreguidelines-cppcoreguidelines);
+            reinterpret_cast<intptr_t>(&Free));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
 }
 
 void InitChainerxCudaModule(py::module& m) {
     // Exposes pointers to objects and functions so that external sources can allocate CUDA memory via ChainerX.
-    m.def("get_backend_ptr", []() -> intptr_t { return GetBackendPtr(); });
-    m.def("get_backend_malloc_free_ptrs", []() -> std::pair<intptr_t, intptr_t> { return GetBackendMallocFreePtrs(); });
+    m.def("get_c_allocator", []() -> std::tuple<intptr_t, intptr_t, intptr_t> { return GetCAllocator(); });
 }
 
 }  // namespace cuda_internal

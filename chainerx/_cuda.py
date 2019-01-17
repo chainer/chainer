@@ -28,11 +28,10 @@ def cupy_share_allocator(owner=chainerx._global_context):
         raise RuntimeError(
             'Cannot share allocator with CuPy since CuPy is not available.')
 
-    param = _pybind_cuda.get_backend_ptr()
-    malloc_func, free_func = _pybind_cuda.get_backend_malloc_free_ptrs()
+    c_allocator = _pybind_cuda.get_c_allocator()
 
     global _chainerx_allocator
     _chainerx_allocator = cupy.cuda.memory.CFunctionAllocator(
-        param, malloc_func, free_func, owner)
+        *c_allocator, owner)
 
     cupy.cuda.set_allocator(_chainerx_allocator.malloc)
