@@ -23,15 +23,15 @@ namespace py = pybind11;
 using CudaDevice = chainerx::cuda::CudaDevice;
 
 void* Malloc(void* backend, size_t bytesize, int device_id) {
-    CudaDevice* device = dynamic_cast<CudaDevice*>(
-            &(reinterpret_cast<Backend*>(backend)->GetDevice(device_id)));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    return device->device_memory_pool()->Malloc(bytesize);
+    CudaDevice& device = dynamic_cast<CudaDevice&>(
+            reinterpret_cast<Backend*>(backend)->GetDevice(device_id));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return device.device_memory_pool()->Malloc(bytesize);
 }
 
 void Free(void* backend, void* ptr, int device_id) {
-    CudaDevice* device = dynamic_cast<CudaDevice*>(
-            &(reinterpret_cast<Backend*>(backend)->GetDevice(device_id)));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    return device->device_memory_pool()->Free(ptr);
+    CudaDevice& device = dynamic_cast<CudaDevice&>(
+            reinterpret_cast<Backend*>(backend)->GetDevice(device_id));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    return device.device_memory_pool()->Free(ptr);
 }
 
 intptr_t GetBackendPtr() {
