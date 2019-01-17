@@ -10,7 +10,7 @@ import numpy as np
 import chainerx as chx
 
 
-class MLP:
+class MLP(object):
 
     def __init__(self):
         self.W1, self.b1 = new_linear_params(784, 1000)

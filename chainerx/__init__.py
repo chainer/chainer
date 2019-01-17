@@ -30,8 +30,8 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import square  # NOQA
     from chainerx.math.misc import clip  # NOQA
+    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
