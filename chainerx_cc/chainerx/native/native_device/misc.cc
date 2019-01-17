@@ -7,7 +7,10 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
+
+#ifdef _WIN32
 #include "chainerx/numeric.h"
+#endif  // _WIN32
 
 namespace chainerx {
 namespace native {
@@ -28,7 +31,7 @@ void NativeDevice::IsNan(const Array& x, const Array& out) {
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsNan(x); }
+            void operator()(int64_t /*i*/, T x, bool& out) { out = std::isnan(x); }
         };
         Elementwise<const T, bool>(Impl{}, x, out);
     });
@@ -39,7 +42,7 @@ void NativeDevice::IsInf(const Array& x, const Array& out) {
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsInf(x); }
+            void operator()(int64_t /*i*/, T x, bool& out) { out = std::isinf(x); }
         };
         Elementwise<const T, bool>(Impl{}, x, out);
     });

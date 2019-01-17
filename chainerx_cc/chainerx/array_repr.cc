@@ -17,8 +17,11 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
-#include "chainerx/numeric.h"
 #include "chainerx/shape.h"
+
+#ifdef _WIN32
+#include "chainerx/numeric.h"
+#endif  // _WIN32
 
 namespace chainerx {
 
@@ -107,7 +110,7 @@ public:
             }
             os << std::scientific << std::left << std::setw(width) << std::setprecision(8) << value;
         } else {
-            if (std::isinf(value) || IsNan(value)) {
+            if (std::isinf(value) || std::isnan(value)) {
                 os << std::right << std::setw(digits_before_point_ + digits_after_point_ + 1) << value;
                 return;
             }

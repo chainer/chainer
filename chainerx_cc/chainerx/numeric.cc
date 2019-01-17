@@ -30,10 +30,10 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
         for (auto it = indexer.It(0); it; ++it) {
             T ai = a_iarray[it];
             T bi = b_iarray[it];
-            if (equal_nan && IsNan(ai) && IsNan(bi)) {
+            if (equal_nan && std::isnan(ai) && std::isnan(bi)) {
                 // nop
             } else if (
-                    IsNan(ai) || IsNan(bi) ||
+                    std::isnan(ai) || std::isnan(bi) ||
                     std::abs(static_cast<double>(ai) - static_cast<double>(bi)) > atol + rtol * std::abs(static_cast<double>(bi))) {
                 return false;
             }
