@@ -96,7 +96,6 @@ set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cm
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     if(MSVC)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     else()
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
@@ -182,6 +181,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
     EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 
+# TODO(durswd): Remove it. It is hack for MSVC+LLVM
 if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang" AND MSVC)
     target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
 endif()
