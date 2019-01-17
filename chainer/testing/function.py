@@ -86,14 +86,14 @@ class FunctionTestCase(unittest.TestCase):
     The concrete class can override the following attributes to control the
     behavior of the tests.
 
-    ``forward_test`` (bool):
-        Whether to test forward computation. ``True`` by default.
+    ``skip_forward_test`` (bool):
+        Whether to skip forward computation test. ``False`` by default.
 
-    ``backward_test`` (bool):
-        Whether to test backward computation. ``True`` by default.
+    ``skip_backward_test`` (bool):
+        Whether to skip backward computation test. ``False`` by default.
 
-    ``double_backward_test`` (bool):
-        Whether to test double-backward computation. ``True`` by default.
+    ``skip_double_backward_test`` (bool):
+        Whether to skip double-backward computation test. ``False`` by default.
 
     ``dodge_nondifferentiable`` (bool):
         Enable non-differentiable point detection in numerical gradient
@@ -148,9 +148,9 @@ class FunctionTestCase(unittest.TestCase):
     check_forward_options = {}
     check_backward_options = {}
     check_double_backward_options = {}
-    forward_test = True
-    backward_test = True
-    double_backward_test = True
+    skip_forward_test = False
+    skip_backward_test = False
+    skip_double_backward_test = False
     dodge_nondifferentiable = False
     contiguous = None
 
@@ -220,6 +220,9 @@ class FunctionTestCase(unittest.TestCase):
     def test_forward(self, backend_config):
         """Tests forward computation."""
 
+        if self.skip_forward_test:
+            raise unittest.SkipTest()
+
         self.backend_config = backend_config
         self.before_test('test_forward')
 
@@ -261,6 +264,9 @@ class FunctionTestCase(unittest.TestCase):
     def test_backward(self, backend_config):
         """Tests backward computation."""
 
+        if self.skip_backward_test:
+            raise unittest.SkipTest()
+
         # avoid cyclic import
         from chainer import gradient_check
 
@@ -300,6 +306,10 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_double_backward(self, backend_config):
         """Tests double-backward computation."""
+
+        if self.skip_double_backward_test:
+            raise unittest.SkipTest()
+
         # avoid cyclic import
         from chainer import gradient_check
 

@@ -170,8 +170,8 @@ class FuncWithIncorrectForward(chainer.FunctionNode):
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectForward(testing.FunctionTestCase):
-    backward_test = False
-    double_backward_test = False
+    skip_backward_test = True
+    skip_double_backward_test = True
 
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
@@ -211,8 +211,8 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
-    forward_test = False
-    double_backward_test = False
+    skip_forward_test = True
+    skip_double_backward_test = True
 
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
@@ -268,8 +268,8 @@ class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
-    forward_test = False
-    backward_test = False
+    skip_forward_test = True
+    skip_backward_test = True
 
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
