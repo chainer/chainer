@@ -59,7 +59,6 @@ Utilities for testing functions.
    :toctree: generated/
    :nosignatures:
 
-   chainer.testing.function_test
    chainer.testing.unary_math_function_unittest
 
 Serialization testing utilities
