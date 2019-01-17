@@ -128,23 +128,28 @@ def fix_random():
             # Applied to test case class
             klass = case
 
-            setUp_ = klass.setUp
-            tearDown_ = klass.tearDown
+            def make_methods():
+                # make_methods is required to bind the variables setUp_ and
+                # tearDown_.
 
-            @functools.wraps(setUp_)
-            def setUp(self):
-                _setup_random()
-                setUp_(self)
+                setUp_ = klass.setUp
+                tearDown_ = klass.tearDown
 
-            @functools.wraps(tearDown_)
-            def tearDown(self):
-                try:
-                    tearDown_(self)
-                finally:
-                    _teardown_random()
+                @functools.wraps(setUp_)
+                def setUp(self):
+                    _setup_random()
+                    setUp_(self)
 
-            klass.setUp = setUp
-            klass.tearDown = tearDown
+                @functools.wraps(tearDown_)
+                def tearDown(self):
+                    try:
+                        tearDown_(self)
+                    finally:
+                        _teardown_random()
+
+                return setUp, tearDown
+
+            klass.setUp, klass.tearDown = make_methods()
 
         return cases
 
