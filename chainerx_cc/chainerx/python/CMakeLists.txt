@@ -29,7 +29,6 @@ pybind11_add_module(${module_name} MODULE
     testing/device_buffer.cc
     testing/testing_module.cc
     )
-    
 if(${APPLE})
     target_link_libraries(${module_name} PRIVATE "-Wl,-rpath,@loader_path" chainerx)
 else()
