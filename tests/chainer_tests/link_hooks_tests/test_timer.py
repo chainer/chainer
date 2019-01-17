@@ -1,4 +1,3 @@
-import math
 import re
 import unittest
 
@@ -55,16 +54,16 @@ class TestTimerHook(unittest.TestCase):
         summary = hook.summary()
         assert sorted(summary.keys()) == ['Linear', 'MyModel']
         assert summary['Linear']['occurrence'] == 4
-        assert math.isclose(
+        numpy.testing.assert_allclose(
             summary['Linear']['elapsed_time'],
             times[0] + times[1] + times[3] + times[4])
         assert summary['MyModel']['occurrence'] == 2
-        assert math.isclose(
+        numpy.testing.assert_allclose(
             summary['MyModel']['elapsed_time'],
             times[2] + times[5])
 
         # print_report
-        s = six.io.StringIO()
+        s = six.StringIO()
         hook.print_report(file=s)
         report = s.getvalue().splitlines()
         assert len(report) == 3

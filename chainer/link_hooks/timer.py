@@ -1,4 +1,5 @@
 import collections
+import os
 import sys
 import time
 
@@ -6,6 +7,16 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import link_hook
+
+
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 class TimerHook(link_hook.LinkHook):
@@ -50,7 +61,7 @@ class TimerHook(link_hook.LinkHook):
 
     def _preprocess(self):
         if self.xp is numpy:
-            start = time.time()
+            start = _get_time()
             self._running_stack.append(start)
         else:
             assert self.xp is cuda.cupy
@@ -67,7 +78,7 @@ class TimerHook(link_hook.LinkHook):
     def _postprocess(self, link):
         if self.xp is numpy:
             start = self._running_stack.pop()
-            stop = time.time()
+            stop = _get_time()
             elapsed_time = stop - start
         else:
             assert self.xp is cuda.cupy
