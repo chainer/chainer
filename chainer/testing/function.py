@@ -1,4 +1,5 @@
 import contextlib
+import typing as tp  # NOQA
 import unittest
 
 import numpy
@@ -145,9 +146,9 @@ class FunctionTestCase(unittest.TestCase):
     """
 
     backend_config = None
-    check_forward_options = {}
-    check_backward_options = {}
-    check_double_backward_options = {}
+    check_forward_options = {}  # type: tp.Dict[str, tp.Any]
+    check_backward_options = {}  # type: tp.Dict[str, tp.Any]
+    check_double_backward_options = {}  # type: tp.Dict[str, tp.Any]
     skip_forward_test = False
     skip_backward_test = False
     skip_double_backward_test = False
