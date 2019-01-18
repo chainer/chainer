@@ -369,7 +369,7 @@ def as_strided(x, shape, strides, storage_offset=None):
         >>> x = Variable(np.arange(4, dtype=np.float32))
         >>> x
         variable([0., 1., 2., 3.])
-        >>> y = F.as_strided(x, (3, 2), (4, 4), 0)
+        >>> y = F.as_strided(x, (3, 2), (1, 1), 0)
         >>> y
         variable([[0., 1.],
                   [1., 2.],
