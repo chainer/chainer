@@ -165,15 +165,20 @@ def get_array_module(*args):
         on the types of the arguments.
 
     """
-    if chainerx.is_available() or cuda.available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
+    is_chainerx_available = chainerx.is_available()
+    if is_chainerx_available or cuda.available:
+        arrays = []
+        for arg in args:
+            # Unwrap arrays
+            if isinstance(arg, chainer.variable.Variable):
+                array = arg.data
+            else:
+                array = arg
+            if is_chainerx_available and isinstance(array, chainerx.ndarray):
+                return chainerx
+            arrays.append(array)
 
-    if (chainerx.is_available()
-            and any([isinstance(a, chainerx.ndarray) for a in args])):
-        return chainerx
-    elif cuda.available:
-        return cuda.cupy.get_array_module(*args)
+        return cuda.cupy.get_array_module(*arrays)
     else:
         return numpy
 
