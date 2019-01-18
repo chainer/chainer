@@ -55,8 +55,6 @@ Conversion to Python scalar
 3
 >>> bool(a)
 True
->>> chx.asscalar(a)
-3.25
 
 Backward
 --------

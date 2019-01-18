@@ -76,6 +76,24 @@ def without_requires(*requirements):
     return unittest.skipIf(skip, msg)
 
 
+def is_requires_satisfied(*requirements):
+    """Returns whether the given requirments are satisfied.
+
+    Args:
+    requirements: A list of string representing the requirements.
+
+    Returns:
+        bool: A boolean indicating whether the given requirements are
+            satisfied.
+    """
+    ws = pkg_resources.WorkingSet()
+    try:
+        ws.require(*requirements)
+    except pkg_resources.ResolutionError:
+        return False
+    return True
+
+
 @contextlib.contextmanager
 def assert_warns(expected):
     with warnings.catch_warnings(record=True) as w:

@@ -11,7 +11,7 @@
 
 #if CHAINERX_DEBUG
 #define CHAINERX_ASSERT assert
-#else
+#else  // CHAINERX_DEBUG
 // This expression suppresses dead code and unused variable warnings of clang-tidy caused by "unused" __VA_ARGS__.
 // We use a lambda call to bypass clant-tidy's dead-code analysis, which currently does not evaluate non-const expressions.
 #define CHAINERX_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))
@@ -36,3 +36,11 @@
     } while (false)
 #endif  // NDEBUG
 #endif  // CHAINERX_NEVER_REACH
+
+#ifndef CHAINERX_VISIBILITY_HIDDEN
+#if defined(WIN32) || defined(_WIN32)
+#define CHAINERX_VISIBILITY_HIDDEN
+#else  // defined(WIN32) || defined(_WIN32)
+#define CHAINERX_VISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#endif  // defined(WIN32) || defined(_WIN32)
+#endif  // CHAINERX_VISIBILITY_HIDDEN

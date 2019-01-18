@@ -13,8 +13,8 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
-from chainer.utils import collections_abc
 from chainer import types  # NOQA
+from chainer.utils import collections_abc
 from chainer import variable
 import chainerx
 
@@ -1179,17 +1179,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (int, Link) -> None
-        pass
-
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (slice, tp.Iterable[Link]) -> None
-        pass
-
-    def __setitem__(self, index, value):  # NOQA
+    def __setitem__(self, index, value):
         # type: (tp.Union[int, slice], tp.Union[Link, tp.Iterable[Link]]) -> None # NOQA
 
         if isinstance(index, int):
@@ -1205,18 +1195,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 'ChainList indices must be integers or slices, not %s' %
                 type(index).__name__)
 
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (int) -> Link
-        pass
-
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (slice) -> collections_abc.MutableSequence[Link]
-        pass
-
-    def __getitem__(self, index):  # NOQA
-        # type: (tp.Union[int, slice]) -> tp.Union[Link, collections_abc.MutableSequence[Link]] # NOQA
+    def __getitem__(self, index):
         """Returns the child at given index.
 
         Args:

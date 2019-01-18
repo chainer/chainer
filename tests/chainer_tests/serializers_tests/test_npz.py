@@ -352,6 +352,18 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             target.child.linear2.b.data, target_child_b)
 
 
+class TestSerialize(unittest.TestCase):
+
+    def test_serialize(self):
+        obj = mock.MagicMock()
+        target = npz.serialize(obj)
+
+        assert obj.serialize.call_count == 1
+        (serializer,), _ = obj.serialize.call_args
+        assert isinstance(serializer, npz.DictionarySerializer)
+        assert isinstance(target, dict)
+
+
 @testing.parameterize(
     {'ignore_names': ['linear/W', 'child/linear2/b']},
     {'ignore_names': lambda key: key in ['linear/W', 'child/linear2/b']},

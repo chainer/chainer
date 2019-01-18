@@ -112,16 +112,14 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
     loss values.
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The first input variable. The shape should be
-            (N, K), where N denotes the mini-batch size, and K denotes the
-            dimension of ``x0``.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The second input variable. The shape should be
-            the same as ``x0``.
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Labels. All values should be 0 or 1. The shape
-            should be ``(N,)``, where N denotes the mini-batch size.
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): The first input
+            variable. The shape should be (N, K), where N denotes the
+            mini-batch size, and K denotes the dimension of ``x0``.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): The second input
+            variable. The shape should be the same as ``x0``.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`): Labels. All values
+            should be 0 or 1. The shape should be ``(N,)``, where N denotes the
+            mini-batch size.
         margin (float): A parameter for contrastive loss. It should be positive
             value.
         reduce (str): Reduction option. Its value must be either

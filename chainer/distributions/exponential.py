@@ -5,6 +5,7 @@ from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import exponential_m1
 from chainer.functions.math import logarithm_1p
+from chainer.utils import cache
 
 
 class Exponential(distribution.Distribution):
@@ -23,11 +24,15 @@ class Exponential(distribution.Distribution):
 
     def __init__(self, lam):
         super(Exponential, self).__init__()
-        self.__lam = chainer.as_variable(lam)
+        self.__lam = lam
 
-    @property
+    @cache.cached_property
     def lam(self):
-        return self.__lam
+        return chainer.as_variable(self.__lam)
+
+    @cache.cached_property
+    def _log_lam(self):
+        return exponential.log(self.lam)
 
     @property
     def batch_shape(self):
@@ -36,9 +41,9 @@ class Exponential(distribution.Distribution):
     def cdf(self, x):
         return - exponential_m1.expm1(-self.lam * x)
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return 1 - exponential.log(self.lam)
+        return 1 - self._log_lam
 
     @property
     def event_shape(self):
@@ -53,14 +58,14 @@ class Exponential(distribution.Distribution):
         return isinstance(self.lam.data, cuda.ndarray)
 
     def log_prob(self, x):
-        logp = exponential.log(self.lam) - self.lam * x
+        logp = self._log_lam - self.lam * x
         xp = logp.xp
         if isinstance(x, chainer.Variable):
             x = x.array
         inf = xp.full_like(logp.array, xp.inf)
         return where.where(xp.asarray(x >= 0), logp, xp.asarray(-inf))
 
-    @property
+    @cache.cached_property
     def mean(self):
         return 1 / self.lam
 
@@ -79,12 +84,12 @@ class Exponential(distribution.Distribution):
     def support(self):
         return 'positive'
 
-    @property
+    @cache.cached_property
     def variance(self):
-        return 1 / self.lam ** 2
+        return self.mean ** 2
 
 
 @distribution.register_kl(Exponential, Exponential)
 def _kl_exponential_exponential(dist1, dist2):
-    return exponential.log(dist1.lam) - exponential.log(dist2.lam) \
+    return dist1._log_lam - dist2._log_lam \
         + dist2.lam / dist1.lam - 1.

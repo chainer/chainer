@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -30,8 +31,8 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import square  # NOQA
     from chainerx.math.misc import clip  # NOQA
+    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
@@ -51,6 +52,10 @@ if _available:
     from chainerx import _docs
     _docs.set_docs()
 
+    from chainerx import _cuda
+    # Share memory pool with CuPy.
+    if bool(int(os.getenv('CHAINERX_CUDA_CUPY_SHARE_ALLOCATOR', '0'))):
+        _cuda.cupy_share_allocator()
 else:
     class ndarray(object):
 

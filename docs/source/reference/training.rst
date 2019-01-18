@@ -1,5 +1,12 @@
 .. module:: chainer.training
 
+
+.. snapshot_writers is referred to from within chainer.training.snapshot docstring.
+.. toctree::
+   :hidden:
+
+   snapshot_writers
+
 Training Tools
 =========================
 
@@ -158,5 +165,6 @@ It is mainly used to determine when to call an extension. It is also used to det
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
+   chainer.training.triggers.OnceTrigger
    chainer.training.triggers.TimeTrigger
 
