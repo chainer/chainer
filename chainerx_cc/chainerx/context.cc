@@ -89,7 +89,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 #ifdef _WIN32
         throw BackendError{"Backend is not supported in Windows."};
 #else  //_WIN32
-        // Load .so file
+       // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
