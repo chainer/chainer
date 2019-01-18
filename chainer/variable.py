@@ -177,11 +177,15 @@ class VariableNode(object):
     # by an old-style Function
     _old_style_grad_generator = None  # type: str
 
-    def __init__(self, variable, name, grad=None):
-        # type: (Variable, tp.Optional[str], tp.Any) -> None
-        if grad is not None:
-            raise ValueError('unexpected keyword argument "grad": '
-                             'pass the gradient to Variable instead')
+    _unexpected_kwargs = {
+        "grad": 'unexpected keyword argument "grad": '
+                'pass the gradient to Variable instead'
+    }
+
+    def __init__(self, variable, name, **kwargs):
+        # type: (Variable, tp.Optional[str], **tp.Any) -> None
+        if kwargs:
+            argument.check_unexpected_kwargs(kwargs, **self._unexpected_kwargs)
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -505,14 +509,21 @@ class Variable(object):
     # instance.
     _grad = None
 
-    def __init__(self,
-                 data=None, name=None, grad=None, requires_grad=True,
-                 volatile=None):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Any) -> None # NOQA
+    _default_args = [
+        ('name', None),
+        ('grad', None),
+        ('requires_grad', True),
+    ]
 
-        if volatile is not None:
-            raise ValueError('volatile argument is not supported anymore. '
-                             'Use chainer.using_config')
+    _unexpected_kwargs = {
+        'volatile': 'volatile argument is not supported anymore. '
+                    'Use chainer.using_config'
+    }
+
+    def __init__(self, data=None, **kwargs):
+        # type: (types.NdArray, **tp.Any) -> None
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, *self._default_args, **self._unexpected_kwargs)
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -535,7 +546,7 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)  # type: ignore
+            self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
