@@ -10,7 +10,7 @@ def fix(x):
        y_i = \\lfix x_i \\rfix
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
