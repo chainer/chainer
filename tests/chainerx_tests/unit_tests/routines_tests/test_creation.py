@@ -46,7 +46,7 @@ def _is_all_finite(obj):
 
 
 # A special parameter object used to represent an unspecified argument.
-class Unspecified:
+class Unspecified(object):
     pass
 
 

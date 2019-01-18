@@ -1,12 +1,4 @@
-set(module_name _core.so)
-
-if(MSVC)
-    set(PYBIND11_LTO_CXX_FLAGS "" CACHE INTERNAL "")
-    set(PYBIND11_LTO_LINKER_FLAGS "" CACHE INTERNAL "")
-    set(module_name _core.pyd)
-endif()
-
-pybind11_add_module(${module_name} MODULE
+set(srcs
     core_module.cc
     array.cc
     array_index.cc
@@ -29,6 +21,28 @@ pybind11_add_module(${module_name} MODULE
     testing/device_buffer.cc
     testing/testing_module.cc
     )
+
+if(${CUDA_FOUND})
+    set(srcs
+        ${srcs}
+        cuda/cuda_module.cc
+        )
+
+    CUDA_ADD_LIBRARY(_core_cuda STATIC
+        cuda/cuda_module.cc
+        )
+endif()
+
+set(module_name _core.so)
+
+if(MSVC)
+    set(PYBIND11_LTO_CXX_FLAGS "" CACHE INTERNAL "")
+    set(PYBIND11_LTO_LINKER_FLAGS "" CACHE INTERNAL "")
+    set(module_name _core.pyd)
+endif()
+
+pybind11_add_module(${module_name} MODULE ${srcs})
+
 if(${APPLE})
     target_link_libraries(${module_name} PRIVATE "-Wl,-rpath,@loader_path" chainerx)
 else()

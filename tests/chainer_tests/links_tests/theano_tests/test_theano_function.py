@@ -13,6 +13,8 @@ from chainer.testing import condition
 
 
 @testing.with_requires('theano')
+# chainer/chainer#5997
+@testing.without_requires('Theano<=1.0.3', 'numpy>=1.16.0')
 class TheanoFunctionTestBase(object):
 
     forward_test_options = {}

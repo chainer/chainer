@@ -4,6 +4,7 @@ from chainer import distribution
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 from chainer import utils
+from chainer.utils import cache
 
 
 class Poisson(distribution.Distribution):
@@ -22,11 +23,15 @@ class Poisson(distribution.Distribution):
 
     def __init__(self, lam):
         super(Poisson, self).__init__()
-        self.__lam = chainer.as_variable(lam)
+        self.__lam = lam
 
-    @property
+    @cache.cached_property
     def lam(self):
-        return self.__lam
+        return chainer.as_variable(self.__lam)
+
+    @cache.cached_property
+    def _log_lam(self):
+        return exponential.log(self.lam)
 
     @property
     def batch_shape(self):
@@ -46,9 +51,9 @@ class Poisson(distribution.Distribution):
         x = x.astype(self.lam.dtype)
         xp1 = (x + 1).astype(self.lam.dtype)
         x, xp1 = utils.force_array(x), utils.force_array(xp1)
-        return x * exponential.log(self.lam) - lgamma.lgamma(xp1) - self.lam
+        return x * self._log_lam - lgamma.lgamma(xp1) - self.lam
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.lam
 
@@ -67,12 +72,12 @@ class Poisson(distribution.Distribution):
     def support(self):
         return 'non negative integer'
 
-    @property
+    @cache.cached_property
     def variance(self):
         return self.lam
 
 
 @distribution.register_kl(Poisson, Poisson)
 def _kl_poisson_poisson(dist1, dist2):
-    return dist1.lam * (exponential.log(dist1.lam)
-                        - exponential.log(dist2.lam)) - dist1.lam + dist2.lam
+    return dist1.lam * (dist1._log_lam
+                        - dist2._log_lam) - dist1.lam + dist2.lam

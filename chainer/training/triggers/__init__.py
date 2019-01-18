@@ -5,4 +5,5 @@ from chainer.training.triggers.manual_schedule_trigger import ManualScheduleTrig
 from chainer.training.triggers.minmax_value_trigger import BestValueTrigger  # NOQA
 from chainer.training.triggers.minmax_value_trigger import MaxValueTrigger  # NOQA
 from chainer.training.triggers.minmax_value_trigger import MinValueTrigger  # NOQA
+from chainer.training.triggers.once_trigger import OnceTrigger  # NOQA
 from chainer.training.triggers.time_trigger import TimeTrigger  # NOQA
