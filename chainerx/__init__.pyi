@@ -512,9 +512,6 @@ def ascontiguousarray(
         device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def asscalar(a: ndarray) -> tp.Any: ...
-
-
 def average_pool(
         x: ndarray,
         ksize: tp.Union[int, tp.Tuple[int, ...]],
