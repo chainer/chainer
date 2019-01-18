@@ -57,7 +57,10 @@ class TestRReLU(unittest.TestCase):
             x_data.dtype)
 
         def f(x):
-            return functions.rrelu(x, self.l, self.u, r=r)
+            return functions.rrelu(
+                x, self.l, self.u,
+                r=r.astype(x.dtype)  # check_backward casts only x
+            )
 
         with chainer.using_config('train', self.train):
             gradient_check.check_backward(
