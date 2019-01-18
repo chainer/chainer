@@ -1,7 +1,8 @@
 import typing as tp
 
-from chainer import function_node
 import numpy
+
+from chainer import function_node
 
 
 # TODO(okapies): Split this into independent .py and .pyi files

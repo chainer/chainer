@@ -1,4 +1,4 @@
-pybind11_add_module(_core.so MODULE
+set(srcs
     core_module.cc
     array.cc
     array_index.cc
@@ -21,6 +21,19 @@ pybind11_add_module(_core.so MODULE
     testing/device_buffer.cc
     testing/testing_module.cc
     )
+
+if(${CUDA_FOUND})
+    set(srcs
+        ${srcs}
+        cuda/cuda_module.cc
+        )
+
+    CUDA_ADD_LIBRARY(_core_cuda STATIC
+        cuda/cuda_module.cc
+        )
+endif()
+
+pybind11_add_module(_core.so MODULE ${srcs})
 
 if(${APPLE})
     target_link_libraries(_core.so PRIVATE "-Wl,-rpath,@loader_path" chainerx)
