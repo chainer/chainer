@@ -180,9 +180,12 @@ class VariableNode(object):
     def __init__(self, variable, name, **kwargs):
         # type: (Variable, tp.Optional[str], **tp.Any) -> None
 
-        if 'grad' in kwargs:
-            raise ValueError('unexpected keyword argument "grad": '
-                             'pass the gradient to Variable instead')
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                grad='unexpected keyword argument "grad": '
+                     'pass the gradient to Variable instead'
+            )
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -510,12 +513,19 @@ class Variable(object):
         # type: (types.NdArray, **tp.Any) -> None
 
         # retrieve keyword-only arguments
-        name = kwargs.get('name', None)
-        grad = kwargs.get('grad', None)
-        requires_grad = kwargs.get('requires_grad', True)
-        if 'volatile' in kwargs:
-            raise ValueError('volatile argument is not supported anymore. '
-                             'Use chainer.using_config')
+        name = kwargs.pop('name', None)
+        grad = kwargs.pop('grad', None)
+        requires_grad = kwargs.pop('requires_grad', True)
+        if kwargs:
+            if 'volatile' in kwargs:
+                raise ValueError('volatile argument is not supported anymore. '
+                                 'Use chainer.using_config')
+            else:
+                unexpected_args = ', '.join(
+                    repr(arg) for arg in sorted(kwargs.keys()))
+                raise TypeError(
+                    '__init__() got unexpected keyword argument(s) {}'.format(
+                        unexpected_args))
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
