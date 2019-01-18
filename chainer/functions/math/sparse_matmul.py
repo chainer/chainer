@@ -6,7 +6,6 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
-from chainer.utils import non_deterministic
 
 try:
     from scipy import sparse
@@ -117,7 +116,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
 
 
 def _cupy_coo_matmul():
-    non_deterministic('atomicAdd')
+    utils.nondeterministic('atomicAdd')
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \

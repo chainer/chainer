@@ -6,7 +6,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-from chainer.utils import non_deterministic
+from chainer import utils
 
 
 class EmbedIDFunction(function_node.FunctionNode):
@@ -60,7 +60,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         self.ignore_label = ignore_label
 
     def forward(self, inputs):
-        non_deterministic('atomicAdd')
+        utils.nondeterministic('atomicAdd')
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)
         x, gy = inputs

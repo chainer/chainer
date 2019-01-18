@@ -2,7 +2,7 @@ import warnings
 from chainer import configuration
 
 
-def non_deterministic(f_name):
+def nondeterministic(f_name):
     """Function to warn non-deterministic functions
 
     If `config.warn_nondeterministic` is True, this function will give a
@@ -11,5 +11,5 @@ def non_deterministic(f_name):
     """
     if configuration.config.warn_nondeterministic:
         warnings.warn(
-            'Non deterministic function of ' + f_name + ' called while'
-            ' config.warn_nondeterministic set.')
+            'Potentially non-deterministic code is being executed while'
+            ' config.warn_nondeterministic set. Source: ' + f_name)

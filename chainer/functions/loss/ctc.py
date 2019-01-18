@@ -8,7 +8,6 @@ from chainer import function
 from chainer import utils
 from chainer.utils import collections_abc
 from chainer.utils import type_check
-from chainer.utils import non_deterministic
 
 
 def _logsumexp(a, xp, axis=None):
@@ -155,7 +154,7 @@ class ConnectionistTemporalClassification(function.Function):
     # path probability to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
-        non_deterministic('atomicAdd')
+        utils.nondeterministic('atomicAdd')
         seq_length = len(multiply_seq)
         n_batch = len(path)
         dtype = multiply_seq.dtype
