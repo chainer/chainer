@@ -11,6 +11,7 @@ from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     't': [[0, 2], [-1, 1, 2]],
     'reduce': ['sum', 'no'],
 }))
@@ -20,19 +21,32 @@ class TestNegativeSampling(unittest.TestCase):
     sample_size = 2
 
     def setUp(self):
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         batch = len(self.t)
         x_shape = (batch, self.in_size)
         self.link = links.NegativeSampling(
             self.in_size, [10, 5, 2, 5, 2], self.sample_size)
         self.link.cleargrads()
-        self.x = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         self.t = numpy.array(self.t).astype(numpy.int32)
 
         if self.reduce == 'no':
             g_shape = self.t.shape
         elif self.reduce == 'sum':
             g_shape = ()
-        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.test_forward_options = {'atol': 1e-2}
+            self.test_backward_options = {'atol': 5e-3}
+        else:
+            self.test_forward_options = {}
+            self.test_backward_options = {'atol': 1e-4}
+
+    def tearDown(self):
+        self._config_user.__exit__(None, None, None)
 
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
@@ -43,7 +57,7 @@ class TestNegativeSampling(unittest.TestCase):
         W = cuda.to_cpu(self.link.W.data)
         samples = cuda.to_cpu(y.creator.samples)
 
-        loss = numpy.empty((len(self.x),), numpy.float32)
+        loss = numpy.empty((len(self.x),), self.dtype)
         for i in range(len(self.x)):
             ix = self.x[i]
             it = self.t[i]
@@ -59,7 +73,7 @@ class TestNegativeSampling(unittest.TestCase):
         if self.reduce == 'sum':
             loss = loss.sum()
 
-        testing.assert_allclose(y.data, loss)
+        testing.assert_allclose(y.data, loss, **self.test_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
@@ -97,7 +111,7 @@ class TestNegativeSampling(unittest.TestCase):
         y_g = self.link(xg, tg)
         y_g.backward()
 
-        testing.assert_allclose(x.grad, xg.grad, atol=1.e-4)
+        testing.assert_allclose(x.grad, xg.grad, **self.test_backward_options)
 
 
 testing.run_module(__name__, __file__)
