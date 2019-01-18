@@ -20,7 +20,7 @@ class TestStrideArray(unittest.TestCase):
     def check_flip(self, xp):
         x = xp.arange(4, dtype=self.dtype)
         y = _stride_array(x, (4,), (-1,), 3)  # [3, 2, 1, 0]
-        y_expected = xp.flip(x, axis=0)
+        y_expected = x[::-1]
         testing.assert_allclose(y, y_expected)
 
     def test_flip_cpu(self):
@@ -45,7 +45,7 @@ class TestStrideArray(unittest.TestCase):
         self.check_broadcast(cuda.cupy)
 
     def check_unstride(self, xp):
-        x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
+        x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
         y = _stride_array(x, (12,), (1,), 0)
         y_expected = xp.arange(12, dtype=self.dtype)
         testing.assert_allclose(y, y_expected)
@@ -101,7 +101,7 @@ class TestAsStridedForward(unittest.TestCase):
         x = xp.arange(4, dtype=self.dtype)
         v = Variable(x)
         y = as_strided(v, (4,), (-1,), 3)
-        y_expected = xp.flip(x, axis=0)
+        y_expected = x[::-1]
         testing.assert_allclose(y.array, y_expected)
 
     def test_flip_forward_cpu(self):
@@ -126,7 +126,7 @@ class TestAsStridedForward(unittest.TestCase):
         self.check_broadcast_forward(cuda.cupy)
 
     def check_unstride_forward(self, xp):
-        x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
+        x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
         v = Variable(x)
         y = as_strided(v, (12,), (1,), 0)
         y_expected = xp.arange(12, dtype=self.dtype)
@@ -195,7 +195,7 @@ class TestAsStridedBackward(unittest.TestCase):
         self.check_broadcast_backward(cuda.cupy)
 
     def check_unstride_backward(self, xp):
-        x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
+        x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
         v = Variable(x)
         y = as_strided(v, (12,), (1,), 0)
         y.grad = xp.ones((12,), dtype=self.dtype)
@@ -270,7 +270,7 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
         self.check_broadcast_backward(cuda.cupy)
 
     def check_unstride_backward(self, xp):
-        x = xp.flip(xp.arange(12, dtype=self.dtype).reshape((3, 4)), 0)
+        x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
         v = Variable(x)
         y = as_strided(v, (12,), (1,), 0)
         y.grad = xp.ones((12,), dtype=self.dtype)
