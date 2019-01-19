@@ -1498,6 +1498,19 @@ class Variable(object):
 
 
 class ChainerxVariable(Variable):
+    """A :class:`Variable` for ChainerX arrays.
+
+    This is implementation details in the framework. The constructor of
+    Variable generates it when you pass :class:`chainerx.ndarray` to
+    data argument. You SHOULD NOT use it directly.
+    """
+
+    # Use the default implementation explicitly to increase the performance
+    def __new__(cls, *args, **kwargs):
+        # type: (tp.Type["ChainerxVariable"], *tp.Any, **tp.Any) -> "ChainerxVariable" # NOQA
+
+        return super(Variable, cls).__new__(cls)
+
     def __init__(self, data=None, name=None, grad=None, requires_grad=True):
         # type: (tp.Optional[chainerx.ndarray], tp.Optional[str], tp.Optional[chainerx.ndarray], bool) -> None # NOQA
 
@@ -1675,6 +1688,12 @@ class Parameter(Variable):
     initializer = None  # type: tp.Optional[tp.Union[tp.Optional[types.AbstractInitializer], types.NdArray]] # NOQA
     # TODO(okapies): fix the behavior when shape is None and remove NdArray
     _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
+
+    # Use the default implementation explicitly to increase the performance
+    def __new__(cls, *args, **kwargs):
+        # type: (tp.Type["Parameter"], *tp.Any, **tp.Any) -> "Parameter" # NOQA
+
+        return super(Variable, cls).__new__(cls)
 
     def __init__(self, initializer=None, shape=None, name=None):
         # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
