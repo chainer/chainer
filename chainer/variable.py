@@ -178,6 +178,8 @@ class VariableNode(object):
     _old_style_grad_generator = None  # type: str
 
     def __init__(self, variable, name, **kwargs):
+        # type: (Variable, tp.Optional[str], **tp.Any) -> None
+
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -507,13 +509,47 @@ class Variable(object):
     # instance.
     _grad = None
 
-    def __init__(self, data=None, **kwargs):
-        # type: (types.NdArray, **tp.Any) -> None
+    # Override the default behavior of __new__ to create an optimized Variable
+    # for ChianerX.
+    def __new__(cls, *args, **kwargs):
+        # type: (tp.Type["Variable"], *tp.Any, **tp.Any) -> "Variable"
 
-        name, grad, requires_grad = argument.parse_kwargs(
-            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
+        # Use the default __new__ in its subclasses
+        if cls is not Variable:
+            return super(Variable, cls).__new__(cls)
+
+        # Retrieve a required argument
+        if args:
+            data = args[0]
+        else:
+            data = kwargs.get('data', None)
+            if data is None:
+                TypeError("__init__() missing 1 required "
+                          "positional argument: 'data'")
+
+        if isinstance(data, chainerx.ndarray):
+            return super(Variable, cls).__new__(ChainerxVariable)
+        else:
+            return super(Variable, cls).__new__(cls)
+
+    def __init__(self, data=None, **kwargs):
+        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
+
+        # Retrieve keyword-only arguments as done in parse_kwargs()
+        # (These checks are required to keep backward compatibility)
+        name = kwargs.pop('name', None)
+        grad = kwargs.pop('grad', None)
+        requires_grad = kwargs.pop('requires_grad', True)
+        if kwargs:
+            if 'volatile' in kwargs:
+                raise ValueError('volatile argument is not supported anymore. '
+                                 'Use chainer.using_config')
+            else:
+                unexpected_args = ', '.join(
+                    repr(arg) for arg in sorted(kwargs.keys()))
+                raise TypeError(
+                    '__init__() got unexpected keyword argument(s) {}'.format(
+                        unexpected_args))
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -531,20 +567,9 @@ class Variable(object):
         self._grad_var = None
         self._device = None
 
-        if isinstance(data, chainerx.ndarray):
-            if not requires_grad and grad is not None:
-                raise ValueError(
-                    'Cannot initialize a variable with gradients if the '
-                    'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
-
-            # ChainerX itself has own node objects, but not exposed to python.
-            self._node = None  # type: tp.Optional[VariableNode]
-            self._chainerx_name = name
-        else:
-            self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
-            self._node = VariableNode(self, name)
-            self._grad = grad
+        self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
+        self._node = VariableNode(self, name)  # type: tp.Optional[VariableNode] # NOQA
+        self._grad = grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -1470,6 +1495,32 @@ class Variable(object):
 
     __array_priority__ = 200  # type: int
     __hash__ = None  # type: tp.Callable[[object], int]
+
+
+class ChainerxVariable(Variable):
+    def __init__(self, data=None, name=None, grad=None, requires_grad=True):
+        # type: (tp.Optional[chainerx.ndarray], tp.Optional[str], tp.Optional[chainerx.ndarray], bool) -> None # NOQA
+
+        # Use a list as a data structure to hold the data array indirectly to
+        # abstract its initialized/uninitialized state.
+
+        self._requires_grad = requires_grad  # type: bool
+        self._loss_scale = None
+        self._grad_var = None
+        self._device = None
+
+        if not requires_grad and grad is not None:
+            raise ValueError(
+                'Cannot initialize a variable with gradients if the '
+                'require_grad argument is False.')
+        self._set_chainerx_array(data, grad)
+
+        # ChainerX itself has own node objects, but not exposed to python.
+        self._node = None  # type: tp.Optional[VariableNode]
+        self._chainerx_name = name
+
+    def __copy__(self):
+        return self._copy_to(ChainerxVariable())
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
