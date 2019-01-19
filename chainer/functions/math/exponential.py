@@ -37,7 +37,14 @@ class Exp(function_node.FunctionNode):
 
 
 def exp(x):
-    """Elementwise exponential function."""
+    """Elementwise exponential function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Exp().apply((x,))[0]
 
 
@@ -68,7 +75,14 @@ class Log(function_node.FunctionNode):
 
 
 def log(x):
-    """Elementwise natural logarithm function."""
+    """Elementwise natural logarithm function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Log().apply((x,))[0]
 
 
@@ -100,7 +114,7 @@ def log2(x):
        y_i = \\log_2 x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -136,7 +150,7 @@ def log10(x):
        y_i = \\log_{10} x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
