@@ -177,10 +177,10 @@ def get_array_module(*args):
             if is_chainerx_available and isinstance(array, chainerx.ndarray):
                 return chainerx
             arrays.append(array)
-
-        return cuda.cupy.get_array_module(*arrays)
-    else:
-        return numpy
+        else:
+            if cuda.available:
+                return cuda.cupy.get_array_module(*arrays)
+    return numpy
 
 
 def get_device_from_array(*arrays):
