@@ -273,7 +273,7 @@ Use apply() method instead.\
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
                 return tuple([
-                    variable.Variable(
+                    variable.ChainerxVariable(
                         y, requires_grad=y.is_backprop_required())
                     for y in outputs])
 
