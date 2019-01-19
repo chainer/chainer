@@ -509,29 +509,6 @@ class Variable(object):
     # instance.
     _grad = None
 
-    # Override the default behavior of __new__ to create an optimized Variable
-    # for ChianerX.
-    def __new__(cls, *args, **kwargs):
-        # type: (tp.Type["Variable"], *tp.Any, **tp.Any) -> "Variable"
-
-        # Use the default __new__ in its subclasses
-        if cls is not Variable:
-            return super(Variable, cls).__new__(cls)
-
-        # Retrieve a required argument
-        if args:
-            data = args[0]
-        else:
-            data = kwargs.get('data', None)
-            if data is None:
-                TypeError("__init__() missing 1 required "
-                          "positional argument: 'data'")
-
-        if isinstance(data, chainerx.ndarray):
-            return super(Variable, cls).__new__(ChainerxVariable)
-        else:
-            return super(Variable, cls).__new__(cls)
-
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
@@ -567,9 +544,20 @@ class Variable(object):
         self._grad_var = None
         self._device = None
 
-        self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
-        self._node = VariableNode(self, name)  # type: tp.Optional[VariableNode] # NOQA
-        self._grad = grad
+        if isinstance(data, chainerx.ndarray):
+            if not requires_grad and grad is not None:
+                raise ValueError(
+                    'Cannot initialize a variable with gradients if the '
+                    'require_grad argument is False.')
+            self._set_chainerx_array(data, grad)
+
+            # ChainerX itself has own node objects, but not exposed to python.
+            self._node = None  # type: tp.Optional[VariableNode]
+            self._chainerx_name = name
+        else:
+            self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
+            self._node = VariableNode(self, name)
+            self._grad = grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -1500,16 +1488,9 @@ class Variable(object):
 class ChainerxVariable(Variable):
     """A :class:`Variable` for ChainerX arrays.
 
-    This is implementation details in the framework. The constructor of
-    Variable generates it when you pass :class:`chainerx.ndarray` to
-    data argument. You SHOULD NOT use it directly.
+    This is implementation details in the framework. You SHOULD NOT use it
+    directly.
     """
-
-    # Use the default implementation explicitly to increase the performance
-    def __new__(cls, *args, **kwargs):
-        # type: (tp.Type["ChainerxVariable"], *tp.Any, **tp.Any) -> "ChainerxVariable" # NOQA
-
-        return super(Variable, cls).__new__(cls)
 
     def __init__(self, data=None, name=None, grad=None, requires_grad=True):
         # type: (tp.Optional[chainerx.ndarray], tp.Optional[str], tp.Optional[chainerx.ndarray], bool) -> None # NOQA
@@ -1688,12 +1669,6 @@ class Parameter(Variable):
     initializer = None  # type: tp.Optional[tp.Union[tp.Optional[types.AbstractInitializer], types.NdArray]] # NOQA
     # TODO(okapies): fix the behavior when shape is None and remove NdArray
     _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
-
-    # Use the default implementation explicitly to increase the performance
-    def __new__(cls, *args, **kwargs):
-        # type: (tp.Type["Parameter"], *tp.Any, **tp.Any) -> "Parameter" # NOQA
-
-        return super(Variable, cls).__new__(cls)
 
     def __init__(self, initializer=None, shape=None, name=None):
         # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
