@@ -305,7 +305,8 @@ class UpdateRule(object):
             param._chainerx_fallback_array = backend.from_chainerx(
                 param.array)
 
-        temp_param = variable.Variable(param._chainerx_fallback_array)
+        temp_param = variable.NonChainerxVariable(
+            param._chainerx_fallback_array)
 
         if grad_array is not None:
             temp_param._set_grad_without_check(

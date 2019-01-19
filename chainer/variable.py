@@ -555,7 +555,7 @@ class Variable(object):
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
-            self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
+            self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
             self._node = VariableNode(self, name)
             self._grad = grad
 
@@ -818,7 +818,7 @@ class Variable(object):
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
-                    self._data[0].as_grad_stopped())
+                    self._data[0].as_grad_stopped())  # type: ignore
             return self._chainerx_nobp_array_cache
 
         return self._data[0]
@@ -830,7 +830,7 @@ class Variable(object):
         if self.xp is chainerx:
             d_old = self._data[0]
             if (d_old is not None
-                    and (d_old.is_backprop_required()
+                    and (d_old.is_backprop_required()  # type: ignore
                          or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
@@ -1483,6 +1483,32 @@ class Variable(object):
 
     __array_priority__ = 200  # type: int
     __hash__ = None  # type: tp.Callable[[object], int]
+
+
+class NonChainerxVariable(Variable):
+    """A :class:`Variable` for non-ChainerX arrays.
+
+    This is implementation details in the framework. You SHOULD NOT use it
+    directly.
+    """
+
+    def __init__(self, data=None, name=None, grad=None, requires_grad=True):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool) -> None # NOQA
+
+        # Use a list as a data structure to hold the data array indirectly to
+        # abstract its initialized/uninitialized state.
+
+        self._requires_grad = requires_grad  # type: bool
+        self._loss_scale = None
+        self._grad_var = None
+        self._device = None
+
+        self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
+        self._node = VariableNode(self, name)
+        self._grad = grad
+
+    def __copy__(self):
+        return self._copy_to(NonChainerxVariable())
 
 
 class ChainerxVariable(Variable):
