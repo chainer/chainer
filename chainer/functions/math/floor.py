@@ -10,7 +10,7 @@ def floor(x):
        y_i = \\lfloor x_i \\rfloor
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
