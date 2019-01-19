@@ -3,7 +3,6 @@ from chainer.testing.backend import BackendConfig  # NOQA
 from chainer.testing.backend import inject_backend_tests  # NOQA
 from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
-from chainer.testing.helper import is_requires_satisfied  # NOQA
 from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
 from chainer.testing.helper import without_requires  # NOQA
