@@ -56,7 +56,14 @@ class SinGrad(function_node.FunctionNode):
 
 
 def sin(x):
-    """Elementwise sin function."""
+    """Elementwise sin function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Sin().apply((x,))[0]
 
 
@@ -109,7 +116,14 @@ class CosGrad(function_node.FunctionNode):
 
 
 def cos(x):
-    """Elementwise cos function."""
+    """Elementwise cos function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Cos().apply((x,))[0]
 
 
@@ -134,7 +148,14 @@ class Tan(function_node.FunctionNode):
 
 
 def tan(x):
-    """Elementwise tan function."""
+    """Elementwise tan function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Tan().apply((x,))[0]
 
 
@@ -198,7 +219,7 @@ def arcsin(x):
        y_i = \\arcsin x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -267,7 +288,7 @@ def arccos(x):
        y_i = \\arccos x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -336,7 +357,7 @@ def arctan(x):
        y_i = \\arctan x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -414,11 +435,9 @@ def arctan2(x1, x2):
     """Elementwise arctangent function with two arguments.
 
     Args:
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
             Y-coordinates.
-        x2 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x2 (:class:`~chainer.Variable` or :ref:`ndarray`):
             X-coordinates.
 
     Returns:

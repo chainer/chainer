@@ -9,13 +9,13 @@ def average(x, axis=None, weights=None, keepdims=False):
     """Calculate weighted average of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Elements to sum.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Elements to sum.
         axis (None or int or tuple of int): Axis which the method is performed.
             With the default (axis = None) it performs a mean over all the
             dimensions of the input array.
-        weights (None or chainer.Variable): An array holding weights to
-            calculate weighted average. If it is ``None``, all weights are
-            assumed to be one.
+        weights (None or :class:`~chainer.Variable` or :ref:`ndarray`):
+            An array holding weights to calculate weighted average.
+            If it is ``None``, all weights are assumed to be one.
             When ``axis`` is ``None``, ``weights`` must have the same shape
             of ``x``. And when ``axis`` is ``int``, it must be 1-D array
             satisfing ``weights.shape == (x.shape[axis],)``.
