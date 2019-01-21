@@ -101,4 +101,30 @@ class TestClipInvalidInterval(unittest.TestCase):
             functions.clip(self.x, 1.0, -1.0)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestClipBorderGrad(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.arange(6, dtype=self.dtype)
+        self.x_min = 1.0
+        self.x_max = 4.0
+        self.expected = numpy.asarray([0, 1, 1, 1, 1, 0], dtype=self.dtype)
+
+    def check_border_grad(self, x, expected):
+        x = chainer.Variable(x)
+        y = functions.clip(x, self.x_min, self.x_max)
+        l = functions.sum(y)
+        l.backward()
+        testing.assert_allclose(x.grad, expected, atol=0, rtol=0)
+
+    def test_border_grad_cpu(self):
+        self.check_border_grad(self.x, self.expected)
+
+    @attr.gpu
+    def test_border_grad_gpu(self):
+        self.check_border_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.expected))
+
+
 testing.run_module(__name__, __file__)
