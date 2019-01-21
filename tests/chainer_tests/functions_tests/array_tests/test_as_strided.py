@@ -8,6 +8,14 @@ from chainer.functions import as_strided
 from chainer.functions.array.as_strided import _stride_array
 
 
+def _broadcast_to(xp, x, shape):
+    if hasattr(xp, 'broadcast_to'):
+        return xp.broadcast_to(x, shape)
+    else:
+        dummy = xp.empty(shape)
+        return xp.broadcast_arrays(x, dummy)[0]
+
+
 @testing.parameterize(
     {'dtype': np.float16},
     {'dtype': np.float32},
@@ -34,7 +42,7 @@ class TestStrideArray(unittest.TestCase):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
         # [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
         y = _stride_array(x, (2, 3, 4), (0, 4, 1), 0)
-        y_expected = xp.broadcast_to(x, (2, 3, 4))
+        y_expected = _broadcast_to(xp, x, (2, 3, 4))
         testing.assert_allclose(y, y_expected)
 
     def test_broadcast_cpu(self):
@@ -115,7 +123,7 @@ class TestAsStridedForward(unittest.TestCase):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
         v = Variable(x)
         y = as_strided(v, (2, 3, 4), (0, 4, 1), 0)
-        y_expected = xp.broadcast_to(x, (2, 3, 4))
+        y_expected = _broadcast_to(xp, x, (2, 3, 4))
         testing.assert_allclose(y.array, y_expected)
 
     def test_broadcast_forward_cpu(self):
