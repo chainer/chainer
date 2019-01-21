@@ -58,7 +58,7 @@ install(FILES
     DESTINATION include/chainerx
     )
 
-add_library(chainerx SHARED
+set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
@@ -85,6 +85,12 @@ add_library(chainerx SHARED
     strides.cc
     thread_local_state.cc
     )
+
+if(MSVC)
+    add_library(chainerx STATIC ${chainerx_srcs})
+else()
+    add_library(chainerx SHARED ${chainerx_srcs})
+endif()
 
 if(${APPLE})
     target_link_libraries(chainerx
