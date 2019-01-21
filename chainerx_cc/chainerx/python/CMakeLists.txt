@@ -22,18 +22,14 @@ set(srcs
     testing/testing_module.cc
     )
 
-if(${CUDA_FOUND})
-    set(srcs
-        ${srcs}
-        cuda/cuda_module.cc
-        )
-
-    CUDA_ADD_LIBRARY(_core_cuda STATIC
-        cuda/cuda_module.cc
-        )
-endif()
-
 pybind11_add_module(_core.so MODULE ${srcs})
+
+# CUDA specific bindings.
+if(${CUDA_FOUND})
+    CUDA_ADD_LIBRARY(_core_cuda STATIC cuda/cuda_module.cc)
+    target_link_libraries(_core_cuda pybind11::module)
+    target_link_libraries(_core.so PRIVATE _core_cuda)
+endif()
 
 if(${APPLE})
     target_link_libraries(_core.so PRIVATE "-Wl,-rpath,@loader_path" chainerx)
