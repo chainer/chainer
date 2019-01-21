@@ -63,10 +63,6 @@ step_install_chainer_test_deps() {
         pillow
     )
     pip install "${reqs[@]}"
-
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        pip install -U 'mypy>=0.650';
-    fi
 }
 
 
@@ -137,6 +133,16 @@ step_python_style_check() {
 }
 
 
+step_python_mypy_check_deps() {
+    pip install -U 'mypy>=0.650'
+}
+
+
+step_python_mypy_check() {
+    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
+}
+
+
 step_chainer_install_from_sdist() {
     # Build sdist.
     # sdist does not support out-of-source build.
@@ -156,9 +162,6 @@ step_chainer_install_from_sdist() {
 
 step_chainer_tests() {
     pytest -m "not slow and not gpu and not cudnn and not ideep" "$REPO_DIR"/tests/chainer_tests
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        (cd "$REPO_DIR" && mypy chainer)
-    fi
 }
 
 
@@ -255,20 +258,22 @@ run_step() {
 
 
 case "${CHAINER_TRAVIS_TEST}" in
-    "python-stylecheck")
+    "python-static-check")
         case "$phase" in
             before_install)
             ;;
             install)
                 run_step install_chainer_style_check_deps
+                run_step python_mypy_check_deps
             ;;
             script)
                 run_step python_style_check
+                run_step python_mypy_check
             ;;
         esac
         ;;
 
-    "c-stylecheck")
+    "c-static-check")
         case "$phase" in
             before_install)
                 run_prestep before_install_chainerx_style_check_deps
