@@ -34,7 +34,7 @@ class MemoryKeeper {
 public:
     ~MemoryKeeper();
 
-    // Registers a memory.
+    // Registers a pointer to a memory chunk.
     // The memory is only freed after all preceding CUDA operations in the stream are finished.
     // TODO(niboshi): Currently only the default stream is supported.
     void Add(cudaStream_t stream, std::shared_ptr<void> memory);
