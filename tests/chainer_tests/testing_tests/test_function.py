@@ -201,7 +201,7 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
         gy1, gy2 = grad_outputs
         x1, x2 = self.get_retained_inputs()
         ggx1, ggx2 = _backward_correct(x1, x2, gy1, gy2)
-        ggx2 = ggx2 + 1  # ! make incorrect
+        ggx2 = ggx2 + 10000  # ! make incorrect
         return utils.force_array(ggx1), utils.force_array(ggx2)
 
 
@@ -258,8 +258,8 @@ class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
         x1, x2, gy1, gy2 = self.get_retained_inputs()
         gx1, gx2, ggy1, ggy2 = _double_backward_correct(
             x1, x2, gy1, gy2, ggx1, ggx2)
-        ggy2 = ggy2 + 1  # ! make incorrect
-        return ggx1, ggx2, ggy1, ggy2
+        ggy2 = ggy2 + 10000  # ! make incorrect
+        return gx1, gx2, ggy1, ggy2
 
 
 @testing.parameterize(*testing.product({
