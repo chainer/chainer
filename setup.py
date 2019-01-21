@@ -151,6 +151,7 @@ setup_kwargs = dict(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.link_hooks',
               'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.optimizer_hooks',

@@ -185,7 +185,7 @@ def _test_case_generator(base, method_names, params):
 
             # Apply test marks
             for mark in marks:
-                mark(new_method)
+                new_method = mark(new_method)
 
             return new_method
 
