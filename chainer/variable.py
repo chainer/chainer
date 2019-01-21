@@ -539,25 +539,40 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
+        if isinstance(data, chainerx.ndarray):
+            self._init_chainerx_variable(data, name, grad, requires_grad)
+        else:
+            self._init_non_chainerx_variable(data, name, grad, requires_grad)
+
+    def _init_chainerx_variable(self, data, name, grad, requires_grad):
+        # type: (tp.Optional[chainerx.ndarray], tp.Optional[str], tp.Optional[chainerx.ndarray], bool) -> None # NOQA
+
         self._requires_grad = requires_grad  # type: bool
         self._loss_scale = None
         self._grad_var = None
         self._device = None
 
-        if isinstance(data, chainerx.ndarray):
-            if not requires_grad and grad is not None:
-                raise ValueError(
-                    'Cannot initialize a variable with gradients if the '
-                    'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
+        if not requires_grad and grad is not None:
+            raise ValueError(
+                'Cannot initialize a variable with gradients if the '
+                'require_grad argument is False.')
+        self._set_chainerx_array(data, grad)
 
-            # ChainerX itself has own node objects, but not exposed to python.
-            self._node = None  # type: tp.Optional[VariableNode]
-            self._chainerx_name = name
-        else:
-            self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
-            self._node = VariableNode(self, name)
-            self._grad = grad
+        # ChainerX itself has own node objects, but not exposed to python.
+        self._node = None  # type: tp.Optional[VariableNode]
+        self._chainerx_name = name
+
+    def _init_non_chainerx_variable(self, data, name, grad, requires_grad):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool) -> None # NOQA
+
+        self._requires_grad = requires_grad  # type: bool
+        self._loss_scale = None
+        self._grad_var = None
+        self._device = None
+
+        self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
+        self._node = VariableNode(self, name)
+        self._grad = grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -1495,17 +1510,7 @@ class NonChainerxVariable(Variable):
     def __init__(self, data=None, name=None, grad=None, requires_grad=True):
         # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool) -> None # NOQA
 
-        # Use a list as a data structure to hold the data array indirectly to
-        # abstract its initialized/uninitialized state.
-
-        self._requires_grad = requires_grad  # type: bool
-        self._loss_scale = None
-        self._grad_var = None
-        self._device = None
-
-        self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
-        self._node = VariableNode(self, name)
-        self._grad = grad
+        self._init_non_chainerx_variable(data, name, grad, requires_grad)
 
     def __copy__(self):
         return self._copy_to(NonChainerxVariable())
@@ -1521,23 +1526,7 @@ class ChainerxVariable(Variable):
     def __init__(self, data=None, name=None, grad=None, requires_grad=True):
         # type: (tp.Optional[chainerx.ndarray], tp.Optional[str], tp.Optional[chainerx.ndarray], bool) -> None # NOQA
 
-        # Use a list as a data structure to hold the data array indirectly to
-        # abstract its initialized/uninitialized state.
-
-        self._requires_grad = requires_grad  # type: bool
-        self._loss_scale = None
-        self._grad_var = None
-        self._device = None
-
-        if not requires_grad and grad is not None:
-            raise ValueError(
-                'Cannot initialize a variable with gradients if the '
-                'require_grad argument is False.')
-        self._set_chainerx_array(data, grad)
-
-        # ChainerX itself has own node objects, but not exposed to python.
-        self._node = None  # type: tp.Optional[VariableNode]
-        self._chainerx_name = name
+        self._init_chainerx_variable(data, name, grad, requires_grad)
 
     def __copy__(self):
         return self._copy_to(ChainerxVariable())
