@@ -540,7 +540,7 @@ class Variable(object):
 
     def _init_attrs(self,
                     data, name, grad, requires_grad, is_chainerx_array):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
@@ -558,7 +558,7 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
+            self._set_chainerx_array(data, grad)  # type: ignore
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
