@@ -273,7 +273,7 @@ Use apply() method instead.\
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
                 return tuple([
-                    variable.UnsafeVariable(
+                    variable._unsafe_variable(
                         y, requires_grad=y.is_backprop_required(),
                         is_chainerx_array=True)
                     for y in outputs])

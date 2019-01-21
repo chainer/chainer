@@ -211,15 +211,15 @@ class TestVariable(unittest.TestCase):
 
     def test_unsafe_init(self):
         a = np.asarray(self.x)
-        x = chainer.variable.UnsafeVariable(a)
+        x = chainer.variable._unsafe_variable(a)
         np.testing.assert_array_equal(x.array, a)
-        assert isinstance(x.node(), chainer.variable.VariableNode)
+        assert isinstance(x.node, chainer.variable.VariableNode)
 
     def test_unsafe_init_explicit(self):
         a = np.asarray(self.x)
-        x = chainer.variable.UnsafeVariable(a, is_chainerx_array=False)
+        x = chainer.variable._unsafe_variable(a, is_chainerx_array=False)
         np.testing.assert_array_equal(x.array, a)
-        assert isinstance(x.node(), chainer.variable.VariableNode)
+        assert isinstance(x.node, chainer.variable.VariableNode)
 
     @attr.chainerx
     def test_chainerx_init(self):
@@ -227,23 +227,23 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         chainerx.testing.assert_array_equal(x.array, a)
         with pytest.raises(RuntimeError):
-            x.node()
+            x.node
 
     @attr.chainerx
     def test_unsafe_chainerx_init(self):
         a = chainerx.asarray(self.x)
-        x = chainer.variable.UnsafeVariable(a)
+        x = chainer.variable._unsafe_variable(a)
         chainerx.testing.assert_array_equal(x.array, a)
         with pytest.raises(RuntimeError):
-            x.node()
+            x.node
 
     @attr.chainerx
     def test_unsafe_chainerx_init_explicit(self):
         a = chainerx.asarray(self.x)
-        x = chainer.variable.UnsafeVariable(a, is_chainerx_array=True)
+        x = chainer.variable._unsafe_variable(a, is_chainerx_array=True)
         chainerx.testing.assert_array_equal(x.array, a)
         with pytest.raises(RuntimeError):
-            x.node()
+            x.node
 
     def check_attributes(self, xp):
         a = get_array(xp, self.x)

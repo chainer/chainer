@@ -538,7 +538,10 @@ class Variable(object):
 
         self._init_attrs(data, name, grad, requires_grad, None)
 
-    def _init_attrs(self, data, name, grad, requires_grad, is_chainerx_array):
+    def _init_attrs(self,
+                    data, name, grad, requires_grad, is_chainerx_array):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
@@ -1597,24 +1600,24 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     grads.assert_no_grads()
 
 
-class UnsafeVariable(Variable):
-    """A :class:`Variable` without the validations for optimizing performance.
+def _unsafe_variable(data, name=None, grad=None, requires_grad=True,
+                     is_chainerx_array=None):
+    # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+    """Create a new :class:`Variable` without the validations for optimizing
+    performance.
 
-    This is implementation details in the framework. You MUST use Variable
-    instead.
+    This is implementation details in the framework. You MUST use Variable's
+    constructor instead.
     """
-    def __init__(self, data=None, name=None, grad=None, requires_grad=True,
-                 is_chainerx_array=None):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
 
-        # This is a specialized constructor which skips the validations.
-        self._init_attrs(data, name, grad, requires_grad, is_chainerx_array)
+    # Create a Variable without invoking __init__
+    var = Variable.__new__(Variable)
+    var._init_attrs(data, name, grad, requires_grad, is_chainerx_array)
 
-    def __copy__(self):
-        return self._copy_to(UnsafeVariable())
+    return var
 
 
-class Parameter(UnsafeVariable):
+class Parameter(Variable):
 
     """Parameter variable that can be registered to a link.
 
