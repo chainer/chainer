@@ -1,10 +1,17 @@
 #include "chainerx/crossplatform.h"
 
+#ifndef _WIN32
+// Windows doesn't support it currently
+#include <dlfcn.h>
+#endif  // _WIN32
 // NOLINTNEXTLINE(modernize-deprecated-headers): clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
 #include <stdlib.h>
 
-#include <nonstd/optional.hpp>
+#include <cerrno>
+#include <cstring>
 #include <string>
+
+#include <nonstd/optional.hpp>
 
 #include "chainerx/error.h"
 
@@ -12,6 +19,7 @@ namespace chainerx {
 namespace crossplatform {
 namespace {
 
+// _WIN32 scoped code is untested.
 #ifdef _WIN32
 int setenv(const char* name, const char* value, int overwrite) {
     if (!overwrite) {
@@ -36,9 +44,17 @@ nonstd::optional<std::string> GetEnv(const std::string& name) {
     return nonstd::nullopt;  // No matching environment variable.
 }
 
-int SetEnv(const std::string& name, const std::string& value) { return setenv(name.c_str(), value.c_str(), 1); }
+void SetEnv(const std::string& name, const std::string& value) {
+    if (setenv(name.c_str(), value.c_str(), 1)) {
+        throw ChainerxError{"Failed to set environment variable ", name, " to ", value, ": ", std::strerror(errno)};
+    }
+}
 
-int UnsetEnv(const std::string& name) { return unsetenv(name.c_str()); }
+void UnsetEnv(const std::string& name) {
+    if (unsetenv(name.c_str())) {
+        throw ChainerxError{"Failed to unset environment variable ", name, ": ", std::strerror(errno)};
+    }
+}
 
 }  // namespace crossplatform
 }  // namespace chainerx

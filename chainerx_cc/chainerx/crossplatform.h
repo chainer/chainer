@@ -9,9 +9,9 @@ namespace crossplatform {
 
 nonstd::optional<std::string> GetEnv(const std::string& name);
 
-int SetEnv(const std::string& name, const std::string& value);
+void SetEnv(const std::string& name, const std::string& value);
 
-int UnsetEnv(const std::string& name);
+void UnsetEnv(const std::string& name);
 
 }  // namespace crossplatform
 }  // namespace chainerx
