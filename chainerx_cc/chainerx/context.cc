@@ -51,9 +51,7 @@ Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
     for (void* handle : dlopen_handles_) {
-#ifndef _WIN32
-        ::dlclose(handle);
-#endif  // _WIN32
+        crossplatform::DlCloseNoExcept(handle);
     }
 }
 
@@ -83,14 +81,12 @@ Backend& Context::GetBackend(const std::string& backend_name) {
                 new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
-#ifdef _WIN32
-        throw BackendError{"Backend is not supported in Windows."};
-#else  // _WIN32
-
         // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
-        void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (handle == nullptr) {
+        void* handle{nullptr};
+        try {
+            handle = crossplatform::DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
+        } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }
         {
@@ -113,7 +109,6 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{create_backend(*this),
                                                                            context_detail::BackendDeleter{destroy_backend}};
-#endif  // _WIN32
     }
 
     {

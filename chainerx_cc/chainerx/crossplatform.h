@@ -13,5 +13,10 @@ void SetEnv(const std::string& name, const std::string& value);
 
 void UnsetEnv(const std::string& name);
 
+// TODO(hvy): flags argument might need to be wrapped as well for various platforms.
+void* DlOpen(const std::string& filename, int flags);
+
+void DlCloseNoExcept(void* handle);
+
 }  // namespace crossplatform
 }  // namespace chainerx

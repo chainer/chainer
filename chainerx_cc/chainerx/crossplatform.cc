@@ -17,10 +17,11 @@
 
 namespace chainerx {
 namespace crossplatform {
-namespace {
 
 // _WIN32 scoped code is untested.
 #ifdef _WIN32
+namespace {
+
 int setenv(const char* name, const char* value, int overwrite) {
     if (!overwrite) {
         size_t required_count = 0;
@@ -33,9 +34,24 @@ int setenv(const char* name, const char* value, int overwrite) {
 }
 
 int unsetenv(const char* name) { return _putenv_s(name, ""); }
-#endif  // _WIN32
+
+void* dlopen(const char* /*filename*/, int /*flags*/) {
+    // TODO(hvy): Implement dlopen for Windows.
+    throw ChainerxError{"dlopen not implemented for Windows."};
+}
+
+int dlclose(void* /*handle*/) {
+    // TODO(hvy): Implement dlclose for Windows.
+    throw ChainerxError{"dlclose not implemented for Windows."};
+}
+
+char* dlerror() {
+    // TODO(hvy): Implement dlerror for Windows.
+    throw ChainerxError{"dlerror not implemented for Windows."};
+}
 
 }  // namespace
+#endif  // _WIN32
 
 nonstd::optional<std::string> GetEnv(const std::string& name) {
     if (const char* value = getenv(name.c_str())) {
@@ -55,6 +71,15 @@ void UnsetEnv(const std::string& name) {
         throw ChainerxError{"Failed to unset environment variable ", name, ": ", std::strerror(errno)};
     }
 }
+
+void* DlOpen(const std::string& filename, int flags) {
+    if (void* handle = dlopen(filename.c_str(), flags)) {
+        return handle;
+    }
+    throw ChainerxError{"Could not load shared object ", filename, ": ", dlerror()};
+}
+
+void DlCloseNoExcept(void* handle) { dlclose(handle); }
 
 }  // namespace crossplatform
 }  // namespace chainerx
