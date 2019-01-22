@@ -79,7 +79,7 @@ void* DlOpen(const std::string& filename, int flags) {
     throw ChainerxError{"Could not load shared object ", filename, ": ", dlerror()};
 }
 
-void DlCloseNoExcept(void* handle) { dlclose(handle); }
+void DlCloseNoExcept(void* handle) noexcept { dlclose(handle); }
 
 }  // namespace crossplatform
 }  // namespace chainerx
