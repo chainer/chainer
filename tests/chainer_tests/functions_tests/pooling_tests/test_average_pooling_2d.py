@@ -84,7 +84,8 @@ class TestAveragePooling2D(unittest.TestCase):
 
         inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
-            inputs = _to_fcontiguous(inputs)
+            with backend_config:
+                inputs = _to_fcontiguous(inputs)
 
         with backend_config:
             x, = inputs
@@ -107,8 +108,9 @@ class TestAveragePooling2D(unittest.TestCase):
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _to_fcontiguous(inputs)
-            grad_outputs = _to_fcontiguous(grad_outputs)
+            with backend_config:
+                inputs = _to_fcontiguous(inputs)
+                grad_outputs = _to_fcontiguous(grad_outputs)
 
         def f(x):
             return functions.average_pooling_2d(x, 3, 2, 1)
@@ -131,9 +133,10 @@ class TestAveragePooling2D(unittest.TestCase):
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _to_fcontiguous(inputs)
-            grad_outputs = _to_fcontiguous(grad_outputs)
-            grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
+            with backend_config:
+                inputs = _to_fcontiguous(inputs)
+                grad_outputs = _to_fcontiguous(grad_outputs)
+                grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
             return functions.average_pooling_2d(x, 3, 2, 1)

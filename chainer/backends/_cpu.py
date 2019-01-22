@@ -14,6 +14,10 @@ class CpuDevice(_backend.Device):
     def xp(self):
         return numpy
 
+    @property
+    def supported_array_types(self):
+        return (numpy.ndarray,)
+
     @staticmethod
     def from_array(array):
         if isinstance(array, numpy.ndarray):

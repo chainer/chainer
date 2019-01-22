@@ -21,6 +21,10 @@ class ChainerxDevice(_backend.Device):
     def xp(self):
         return chainerx
 
+    @property
+    def supported_array_types(self):
+        return (chainerx.ndarray,)
+
     @staticmethod
     def from_array(array):
         if isinstance(array, chainerx.ndarray) and array.device is not None:
@@ -122,6 +126,11 @@ def _array_to_chainerx(array, device=None):
 
     if array is None:
         return None
+
+    if array.dtype not in chainerx.all_dtypes:
+        raise TypeError(
+            'Dtype {} is not supported in ChainerX.'.format(array.dtype.name))
+
     if isinstance(array, chainerx.ndarray):
         if device is None:
             return array

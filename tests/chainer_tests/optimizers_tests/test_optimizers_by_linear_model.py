@@ -129,7 +129,8 @@ class OptimizerTestBase(object):
             # TODO(niboshi): This is temporary workaround.
             # See the comment on Skipped.
             return
-        assert accuracy.data > 0.9
+        with backend_config:
+            assert accuracy.data > 0.9
 
     @attr.multi_gpu(2)
     @condition.retry(10)
