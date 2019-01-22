@@ -13,7 +13,7 @@ def _parameterize_test_case_generator(base, params):
     # Defines the logic to generate parameterized test case classes.
 
     for i, param in enumerate(params):
-        cls_name = '%s_param_%d' % (base.__name__, i)
+        cls_name = '{}_param_{}_{}'.format(base.__name__, i, param)
 
         def __str__(self):
             name = base.__str__(self)
