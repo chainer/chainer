@@ -300,6 +300,9 @@ class TestPureNcclCommunicator(unittest.TestCase):
 class TestDifferentDtype(unittest.TestCase):
 
     def setup(self, gpu):
+        if self.communicator.size != 2:
+            pytest.skip('This test is for two processes')
+
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
             self.device = self.communicator.rank
@@ -307,9 +310,6 @@ class TestDifferentDtype(unittest.TestCase):
         else:
             self.communicator = chainermn.create_communicator('naive')
             self.device = -1
-
-        if self.communicator.size != 2:
-            pytest.skip('This test is for two processes')
 
         # dtypes to be tested
         # DO NOT USE chainer.testing.parameterize
@@ -562,6 +562,9 @@ class TestDifferentDtype(unittest.TestCase):
 class TestNonContiguousArray(unittest.TestCase):
 
     def setup(self, gpu):
+        if self.communicator.size != 2:
+            pytest.skip('This test is for two processes')
+            
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
             self.device = self.communicator.rank
@@ -569,9 +572,6 @@ class TestNonContiguousArray(unittest.TestCase):
         else:
             self.communicator = chainermn.create_communicator('naive')
             self.device = -1
-
-        if self.communicator.size != 2:
-            pytest.skip('This test is for two processes')
 
     def check_send(self):
         if self.communicator.rank == 0:
