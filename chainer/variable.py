@@ -485,6 +485,10 @@ class Variable(object):
 
     """  # NOQA
 
+    # Cached value of `self.xp is chainerx`. It prevents from initializing
+    # self._device as much as possible because it is really costly.
+    _has_chainerx_array = False
+
     # Cached grad-stopped view of chainerx array. This is the return value
     # of `array` and `data` properties.
     _chainerx_nobp_array_cache = None
@@ -496,10 +500,6 @@ class Variable(object):
     _chainerx_grad_cache = None
 
     _chainerx_name = None  # type: tp.Optional[str]
-
-    # Cached value of `self.xp is chainerx`. It prevents from initializing
-    # self._device as much as possible because it is really costly.
-    _has_chainerx_array = False
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
@@ -634,8 +634,8 @@ class Variable(object):
                 if grad is not None:
                     array.set_grad(grad)
             self._data = [array]
-            self._has_chainerx_array = True
 
+        self._has_chainerx_array = True  # even if data is None
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
@@ -1114,6 +1114,7 @@ class Variable(object):
             self._chainerx_name = self._node.name
 
         self._device = device
+        self._has_chainerx_array = is_chainerx
 
         if arr is None:
             return
@@ -1130,7 +1131,6 @@ class Variable(object):
             self._set_chainerx_array(new_arr, new_grad)
         else:
             self._data = [new_arr]
-            self._has_chainerx_array = False
             if grad_var is not None:
                 grad_var.to_device(device)
 

@@ -214,6 +214,7 @@ class TestVariable(unittest.TestCase):
         a = chainerx.asarray(self.x)
         x = chainer.Variable(a)
         chainerx.testing.assert_array_equal(x.array, a)
+        assert x._has_chainerx_array is True
 
     def check_attributes(self, xp):
         a = get_array(xp, self.x)
@@ -225,6 +226,7 @@ class TestVariable(unittest.TestCase):
         assert x.size == self.x.size
         assert x.dtype == self.x.dtype
         assert x.requires_grad
+        assert x._has_chainerx_array is (a is not None and xp is chainerx)
 
     @attr.chainerx
     def test_attributes_chainerx(self):
@@ -240,6 +242,7 @@ class TestVariable(unittest.TestCase):
     def test_uninitialized(self):
         a = chainer.Variable(None)
         assert a.xp is np
+        assert a._has_chainerx_array is False
 
     def check_grad(self, xp, x, g):
         v = chainer.Variable(x)
@@ -916,6 +919,7 @@ class TestVariableToCpu(unittest.TestCase):
         x_var.to_cpu()
 
         assert x_var.xp is np
+        assert x_var._has_chainerx_array is False
         assert x_var.node is not None
         assert isinstance(x_var.data, np.ndarray)
         assert x.shape == x_var.shape
@@ -945,6 +949,7 @@ class TestVariableToCpu(unittest.TestCase):
             assert not set_grad_var or x_var.grad is not gx
 
         assert x_var.xp is not chainerx
+        assert x_var._has_chainerx_array is False
 
     def test_to_cpu_from_cpu(self):
         self.check_to_cpu(self.x, self.gx)
@@ -990,6 +995,7 @@ class TestVariableToGpu(unittest.TestCase):
         x_var.to_gpu(device)
 
         assert x_var.xp is cuda.cupy
+        assert x_var._has_chainerx_array is False
         assert x_var.node is not None
         assert isinstance(x_var.data, cuda.cupy.ndarray)
         assert x.shape == x_var.shape
@@ -1080,6 +1086,7 @@ class TestVariableToChainerX(unittest.TestCase):
         expected_device = self.infer_expected_device(x, gx)
 
         assert x_var.xp is chainerx
+        assert x_var._has_chainerx_array is True
         with pytest.raises(RuntimeError):
             x_var.node
         assert isinstance(x_var.array, chainerx.ndarray)
@@ -1105,6 +1112,7 @@ class TestVariableToChainerX(unittest.TestCase):
             assert x_var.grad_var is None
 
         assert x_var.xp is chainerx
+        assert x_var._has_chainerx_array is True
 
     def test_to_chainerx_from_numpy(self):
         self.check_to_chainerx(self.x, self.gx)
@@ -1181,6 +1189,7 @@ class TestVariableFromChainerX(unittest.TestCase):
         expected_xp, expected_device = self.infer_expected_xp_and_device(x)
 
         assert x_var.xp is expected_xp
+        assert x_var._has_chainerx_array is (expected_xp is chainerx)
         assert x_var.node is not None
         assert isinstance(x_var.array, expected_xp.ndarray)
         assert expected_device is None or x_var.array.device == expected_device
@@ -1215,7 +1224,9 @@ class TestVariableToDevice(unittest.TestCase):
         x_var.to_device(device_spec)
 
         assert x_var.xp is expected_xp
+        assert x_var._has_chainerx_array is (expected_xp is chainerx)
         assert x_var.grad_var.xp is expected_xp
+        assert x_var.grad_var._has_chainerx_array is (expected_xp is chainerx)
 
     def test_to_device_numpy(self):
         self.check_to_device(self.x, self.gx, np, np)
@@ -1436,6 +1447,7 @@ class TestParameterToDevice(unittest.TestCase):
         assert isinstance(x, chainer.Parameter)
         x.to_device(device_spec)
         assert x.xp is expected_xp
+        assert x._has_chainerx_array is (expected_xp is chainerx)
 
     def check_initializer(self, shape, device_spec, expected_xp):
         x = chainer.Parameter(shape=shape)
@@ -1528,6 +1540,7 @@ class TestParameterToChainerX(unittest.TestCase):
         assert isinstance(x, chainer.Parameter)
         x.to_chainerx()
         assert x.xp is chainerx
+        assert x._has_chainerx_array is True
 
     def check_initializer(self, shape):
         x = chainer.Parameter(shape=shape)
@@ -1594,6 +1607,7 @@ class TestParameterFromChainerX(unittest.TestCase):
         assert isinstance(x, chainer.Parameter)
         x.from_chainerx()
         assert x.xp is expected_xp
+        assert x._has_chainerx_array is (expected_xp is chainerx)
 
     def check_initializer(self, shape, expected_xp):
         x = chainer.Parameter(shape=shape)
@@ -1674,6 +1688,7 @@ class TestUninitializedParameter(unittest.TestCase):
     def check_constant_initialization(self, x, a, xp, expected_device):
         x.initialize(a.shape)
         assert isinstance(x.data, xp.ndarray)
+        assert x._has_chainerx_array is (xp is chainerx)
         xp.testing.assert_array_equal(x.data, xp.asarray(a))
         xp.testing.assert_array_equal(x.grad, np.float32('nan'))
         assert backend.get_device_from_array(x.data) == expected_device
@@ -2756,9 +2771,11 @@ class TestIntel64(unittest.TestCase):
     def test_cpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
         assert x.xp is np
+        assert x._has_chainerx_array is False
         prev_x_data = x.data
         x.to_intel64()
         assert x.xp is np
+        assert x._has_chainerx_array is False
 
         # Converted to mdarray only if dtype == float32.
         # Otherwise, data should be left untouched.
