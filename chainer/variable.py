@@ -531,11 +531,8 @@ class Variable(object):
     def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
                         is_chainerx_array=None):
         # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
-        """Create a new :class:`Variable` without the validations for
+        """Creates a new :class:`Variable` without the validations for
         optimizing performance.
-
-        This is implementation details in the framework. You MUST use
-        the Variable's constructor instead.
         """
 
         # Create a Variable without invoking __init__
