@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -16,6 +15,7 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
+#include "chainerx/crossplatform.h"
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #endif  // CHAINERX_ENABLE_CUDA
@@ -30,16 +30,13 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    char* chainerx_path = std::getenv("CHAINERX_PATH");
-    if (chainerx_path != nullptr) {
-        return chainerx_path;
+    if (nonstd::optional<std::string> chainerx_path = crossplatform::GetEnv("CHAINERX_PATH")) {
+        return *chainerx_path;
     }
-
-    char* home_path = std::getenv("HOME");
-    if (home_path == nullptr) {
-        throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
+    if (nonstd::optional<std::string> home_path = crossplatform::GetEnv("HOME")) {
+        return *home_path + "/.chainerx";
     }
-    return std::string(home_path) + "/.chainerx";
+    throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
 }
 
 }  // namespace

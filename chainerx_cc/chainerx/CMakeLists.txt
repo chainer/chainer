@@ -29,6 +29,7 @@ install(FILES
     check_backward.h
     constant.h
     context.h
+    crossplatform.h
     device.h
     device_id.h
     dtype.h
@@ -71,6 +72,7 @@ set(chainerx_srcs
     backward_context.cc
     check_backward.cc
     context.cc
+    crossplatform.cc
     device.cc
     device_id.cc
     dtype.cc
