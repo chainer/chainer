@@ -24,3 +24,4 @@ See :ref:`chainerx_tutorial` for more details.
    limitations
    reference/index
    contribution
+   tips
