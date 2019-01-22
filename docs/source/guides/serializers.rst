@@ -49,6 +49,3 @@ The state of an optimizer can also be saved by the same functions:
 Support of the HDF5 format is enabled if the h5py package is installed.
 Serialization and deserialization with the HDF5 format are almost identical to those with the NPZ format;
 just replace :func:`~chainer.serializers.save_npz` and :func:`~chainer.serializers.load_npz` by :func:`~chainer.serializers.save_hdf5` and :func:`~chainer.serializers.load_hdf5`, respectively.
-
-.. _mnist_mlp_example:
-
