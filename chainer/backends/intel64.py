@@ -15,13 +15,13 @@ _error = None
 
 try:
     import ideep4py as ideep  # NOQA
-    from ideep4py import mdarray  # NOQA
+    from ideep4py import mdarray  # type: ignore # NOQA
     _ideep_version = 2 if hasattr(ideep, '__version__') else 1
 except ImportError as e:
     _error = e
     _ideep_version = None
 
-    class mdarray(object):
+    class mdarray(object):  # type: ignore
         pass  # for type testing
 
 
@@ -34,6 +34,10 @@ class Intel64Device(_backend.Device):
     @property
     def xp(self):
         return numpy
+
+    @property
+    def supported_array_types(self):
+        return (numpy.ndarray, mdarray)
 
     @staticmethod
     def from_array(array):

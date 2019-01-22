@@ -16,13 +16,13 @@ mkdir -p "$WORK_DIR"
 
 step_setup() {
     local this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    source "$this_dir"/setup-ubuntu.sh
+    source "$this_dir"/chainerx/setup-ubuntu.sh
 }
 
 
 step_setup_conda() {
     local this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    source "$this_dir"/setup-conda.sh "$DOWNLOAD_DIR"/conda "$CONDA_DIR"
+    source "$this_dir"/chainerx/setup-conda.sh "$DOWNLOAD_DIR"/conda "$CONDA_DIR"
 
     echo 'PATH="$CONDA_DIR"/bin:"$PATH"' >> "$CHAINERX_CI_BASH_ENV"
 }
@@ -78,6 +78,10 @@ step_setup_conda_environment() {
     )
 
     pip install -U "${reqs[@]}"
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        pip install -U 'mypy>=0.650'
+    fi
 }
 
 
@@ -221,6 +225,16 @@ step_python_test_chainerx_nocuda() {
 
     # Run all non-CUDA doctests
     find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+}
+
+
+step_python_typecheck_chainer() {
+    source activate testenv
+
+    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
+        mypy --version
+        (cd "$REPO_DIR" && mypy chainer)
+    fi
 }
 
 

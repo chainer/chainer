@@ -202,6 +202,11 @@ class Evaluator(extension.Extension):
             iterator.reset()
             it = iterator
         else:
+            warnings.warn(
+                'This iterator does not have the reset method. Evaluator '
+                'copies the iterator instead of resetting. This behavior is '
+                'deprecated. Please implement the reset method.',
+                DeprecationWarning)
             it = copy.copy(iterator)
 
         summary = reporter_module.DictSummary()

@@ -116,7 +116,7 @@ ChainerMN example: MNIST with automatic checkpoints enabled''')
     # Some display and output extensions are necessary only for one worker.
     # (Otherwise, there would just be repeated outputs.)
     if comm.rank == 0:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport())
         trainer.extend(extensions.PrintReport(
             ['epoch', 'main/loss', 'validation/main/loss',

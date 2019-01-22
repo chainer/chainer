@@ -323,8 +323,6 @@ TEST(StackVectorTest, Back) {
 TEST(StackVectorTest, Iterator) {
     StackVector<int, 5> vec1{2, 3};
 
-    EXPECT_EQ(vec1.begin(), &vec1.front());
-    EXPECT_EQ(vec1.end(), &vec1.back() + 1);
     EXPECT_EQ(vec1.begin() + 2, vec1.end());
     EXPECT_EQ(vec1.end() - 2, vec1.begin());
 

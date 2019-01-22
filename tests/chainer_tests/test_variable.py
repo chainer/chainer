@@ -4,6 +4,7 @@ import platform
 import re
 import sys
 import unittest
+import warnings
 
 import mock
 import numpy as np
@@ -2208,6 +2209,14 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
     def test_traceback_gpu(self):
         self.check_traceback(cuda.to_gpu(self.x))
 
+    def test_traceback_numpy_error(self):
+        x = chainer.Variable(np.array(0.))
+        line = inspect.currentframe().f_lineno + 1
+        y = chainer.functions.sqrt(x)  # `line` is THIS line
+        with six.assertRaisesRegex(self, FloatingPointError, 'line %d' % line):
+            with np.errstate(divide='raise'):
+                y.backward()
+
     def test_raise(self):
         x = np.array([1], np.float32)
         x = chainer.Variable(x)
@@ -2575,7 +2584,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
         x = chainer.Variable(np.empty((), np.float32))
-        y = x * 2
+        y = x * 2  # x.grad_var will be different from y.grad_var
         y.backward()
         assert x.grad_var is not y.grad_var
         assert x.grad_var.creator is None
@@ -2619,11 +2628,14 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
 
     def test_default_backward(self):
         x = chainer.Variable(np.empty(1, np.float32))
-        y = F.identity(x)
+        y = x * 2  # x.grad_var will be different from y.grad_var
         with testing.assert_warns(DeprecationWarning):
             y.backward()
         assert x.grad_var.creator is None
-        x.grad_var.backward()
+        with warnings.catch_warnings():
+            # ok to be warned that x.grad_var is old-styled scalar
+            warnings.simplefilter('ignore', DeprecationWarning)
+            x.grad_var.backward()
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
@@ -2632,7 +2644,10 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
-            x.grad_var.backward()
+            with warnings.catch_warnings():
+                # ok to be warned that x.grad_var is old-styled scalar
+                warnings.simplefilter('ignore', DeprecationWarning)
+                x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
         x = chainer.Variable(np.empty(1, np.float32))
@@ -2641,7 +2656,10 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
-            x.grad_var.backward()
+            with warnings.catch_warnings():
+                # ok to be warned that x.grad_var is old-styled scalar
+                warnings.simplefilter('ignore', DeprecationWarning)
+                x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
         x = chainer.Variable(np.empty(1, np.float32))

@@ -54,6 +54,20 @@ class DictionarySerializer(serializer.Serializer):
         return value
 
 
+def serialize(obj):
+    """Serializes an object to a dictionary object.
+
+    Args:
+        obj: Object to be serialized. It must support serialization protocol.
+
+    Returns:
+        dict: Serialized object.
+    """
+    s = DictionarySerializer()
+    s.save(obj)
+    return s.target
+
+
 def save_npz(file, obj, compression=True):
     """Saves an object to the file in NPZ format.
 
@@ -62,6 +76,7 @@ def save_npz(file, obj, compression=True):
     Args:
         file (str or file-like): Target file to write to.
         obj: Object to be serialized. It must support serialization protocol.
+            If it is a dictionary object, the serialization will be skipped.
         compression (bool): If ``True``, compression in the resulting zip file
             is enabled.
 
@@ -74,12 +89,17 @@ def save_npz(file, obj, compression=True):
             save_npz(f, obj, compression)
         return
 
-    s = DictionarySerializer()
-    s.save(obj)
-    if compression:
-        numpy.savez_compressed(file, **s.target)
+    if isinstance(obj, dict):
+        target = obj
     else:
-        numpy.savez(file, **s.target)
+        s = DictionarySerializer()
+        s.save(obj)
+        target = s.target
+
+    if compression:
+        numpy.savez_compressed(file, **target)
+    else:
+        numpy.savez(file, **target)
 
 
 class NpzDeserializer(serializer.Deserializer):

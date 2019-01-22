@@ -28,8 +28,8 @@ container_conda_dir="$container_workspace_dir"/conda
 
 # Temporary docker build context
 context_dir="$(mktemp -d)"
-cp "$host_repo_dir"/chainerx_cc/scripts/ci/setup-ubuntu.sh "$context_dir"/
-cp "$host_repo_dir"/chainerx_cc/scripts/ci/setup-conda.sh "$context_dir"/
+cp "$host_repo_dir"/scripts/ci/chainerx/setup-ubuntu.sh "$context_dir"/
+cp "$host_repo_dir"/scripts/ci/chainerx/setup-conda.sh "$context_dir"/
 sed 's/{{{UID}}}/'"$UID"'/g' "$this_dir"/Dockerfile.template > "$context_dir"/Dockerfile
 
 
@@ -43,7 +43,7 @@ docker build \
 
 
 # Boot docker and run test commands
-test_command=(bash "$container_repo_dir"/chainerx_cc/scripts/ci/jenkins/run.sh)
+test_command=(bash "$container_repo_dir"/scripts/ci/chainerx/jenkins/run.sh)
 
 # Kill the docker container upon receiving signal
 cleanup_container() {

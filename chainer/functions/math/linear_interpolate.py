@@ -82,9 +82,9 @@ def linear_interpolate(p, x, y):
         f(p, x, y) = p x + (1 - p) y.
 
     Args:
-        p (~chainer.Variable): Input variable.
-        x (~chainer.Variable): Input variable.
-        y (~chainer.Variable): Input variable.
+        p (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

@@ -5,7 +5,7 @@ import numpy as np
 import chainerx as chx
 
 
-class Convolution2D:
+class Convolution2D(object):
 
     def __init__(self, in_channels, out_channels, ksize, stride, pad,
                  initialW=None, nobias=False, groups=1):
@@ -43,7 +43,7 @@ class Convolution2D:
                 param.cleargrad()
 
 
-class BatchNormalization:
+class BatchNormalization(object):
 
     def __init__(self, size, dtype=chx.float32):
         shape = size,
@@ -73,7 +73,7 @@ class BatchNormalization:
             param.cleargrad()
 
 
-class Linear:
+class Linear(object):
 
     def __init__(self, n_in, n_out):
         W = np.random.randn(n_in, n_out).astype(np.float32)
@@ -100,7 +100,7 @@ class Linear:
             param.cleargrad()
 
 
-class BottleNeckA:
+class BottleNeckA(object):
 
     def __init__(self, in_size, ch, out_size, stride=2, groups=1):
 
@@ -140,7 +140,7 @@ class BottleNeckA:
             param.update(lr)
 
 
-class BottleNeckB:
+class BottleNeckB(object):
 
     def __init__(self, in_size, ch, groups=1):
         initialW = None
@@ -174,7 +174,7 @@ class BottleNeckB:
             param.update(lr)
 
 
-class Block:
+class Block(object):
 
     def __init__(self, layer, in_size, ch, out_size, stride=2, groups=1):
         self.children = []
@@ -199,7 +199,7 @@ class Block:
             child.update(lr)
 
 
-class ResNet50:
+class ResNet50(object):
 
     insize = 224
 

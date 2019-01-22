@@ -69,7 +69,7 @@ Therefore, it is convenient to register these extensions
 only at workers of rank zero as follows::
 
   if comm.rank == 0:
-      trainer.extend(extensions.dump_graph('main/loss'))
+      trainer.extend(extensions.DumpGraph('main/loss'))
       trainer.extend(extensions.LogReport())
       trainer.extend(extensions.PrintReport(
           ['epoch', 'main/loss', 'validation/main/loss',

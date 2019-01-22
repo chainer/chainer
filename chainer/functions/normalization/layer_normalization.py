@@ -97,14 +97,12 @@ def layer_normalization(x, gamma, beta, eps=1e-5):
     that are computed along the second axis,
     scales and shifts them.
 
-
     Args:
-        x (~chainer.Variable): Batch vectors.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Batch vectors.
             Shape of this value must be `(batch_size, unit_size)`,
             e.g., the output of :func:`~chainer.functions.linear`.
-        gamma (~chainer.Variable): Scaling vectors.
-        beta (~chainer.Variable): Shifting vectors.
-
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling vectors.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting vectors.
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape

@@ -15,6 +15,7 @@ include(cmake/third-party.cmake)
 # Configure options
 option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
 option(CHAINERX_BUILD_TEST "Build test" OFF)
+option(CHAINERX_BUILD_EXAMPLES "Build examples" OFF)
 option(CHAINERX_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 option(CHAINERX_ENABLE_THREAD_SANITIZER "Enable thread sanitizer." OFF)
 
@@ -50,6 +51,11 @@ endif()
 
 # CUDA
 if(${CHAINERX_BUILD_CUDA})
+    if(MSVC)
+        option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
+        set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+    endif()
+
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
         # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
@@ -66,6 +72,11 @@ if(${CHAINERX_BUILD_CUDA})
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
         endif()
+
+        if(MSVC)
+            list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+        endif()
+
     endif()
 endif()
 
@@ -84,8 +95,12 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -fPIC -pthread")
+    if(MSVC)
+        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    else()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -fPIC -pthread")
+    endif()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")  # cmake -DCMAKE_BUILD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
     if (${CUDA_FOUND})
@@ -100,7 +115,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
 
     # cmake -DCHAINERX_WARNINGS_AS_ERRORS=ON|OFF
     if (CHAINERX_WARNINGS_AS_ERRORS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+        if (MSVC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+        endif()
     endif()
 
     # cmake -DCHAINERX_ENABLE_THREAD_SANITIZER=ON|OFF
@@ -111,7 +130,7 @@ endif()
 
 # Compiler-specific workarounds
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$" AND NOT MSVC)
     EXECUTE_PROCESS(COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string)
     string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
 
@@ -141,7 +160,7 @@ endif()
 # gsl-lite
 # gsl-lite is a header-only library, we do not need to build and run tests
 get_third_party(gsl-lite)
-include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/gsl-lite/include)
 # ref. https://github.com/martinmoene/gsl-lite#api-macro
 # As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
 # We want to stop it because we get many warnings with nvcc.
@@ -152,17 +171,28 @@ endif()
 
 # optional-lite
 get_third_party(optional-lite)
-include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
     ${CMAKE_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
+
+# TODO(durswd): Remove it. It is hack for MSVC+LLVM
+if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang" AND MSVC)
+    target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+endif()
+
 if(${CHAINERX_BUILD_TEST})
     enable_testing()
+endif()
+
+# Examples
+if(${CHAINERX_BUILD_EXAMPLES})
+    add_subdirectory(examples)
 endif()
 
 add_subdirectory(chainerx)

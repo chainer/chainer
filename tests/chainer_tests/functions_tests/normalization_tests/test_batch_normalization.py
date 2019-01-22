@@ -192,9 +192,10 @@ class TestBatchNormalization(unittest.TestCase):
         running_var = backend_config.get_array(self.running_var)
 
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            running_mean = _as_noncontiguous_array(running_mean)
-            running_var = _as_noncontiguous_array(running_var)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                running_mean = _as_noncontiguous_array(running_mean)
+                running_var = _as_noncontiguous_array(running_var)
 
         with backend_config:
             y = functions.batch_normalization(
@@ -223,8 +224,9 @@ class TestBatchNormalization(unittest.TestCase):
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
 
         def f(*inputs):
             y = functions.batch_normalization(
@@ -249,9 +251,10 @@ class TestBatchNormalization(unittest.TestCase):
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
+                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
 
         def f(*inputs):
             return functions.batch_normalization(
@@ -347,7 +350,8 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
         inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
 
         with chainer.using_config('enable_backprop', enable_backprop):
             with backend_config:
@@ -371,8 +375,9 @@ class TestFixedBatchNormalization(unittest.TestCase):
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
 
         def f(*inputs):
             y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
@@ -396,9 +401,10 @@ class TestFixedBatchNormalization(unittest.TestCase):
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
+                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
 
         def f(*inputs):
             return functions.fixed_batch_normalization(*inputs, eps=self.eps)
@@ -449,7 +455,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with testing.patch(
-                    'cupy.cuda.cudnn.batchNormalizationForwardTraining'
+                    'cupy.cudnn.batch_normalization_forward_training'
             ) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
@@ -459,7 +465,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
             y = self.forward()
             y.grad = self.gy
             with testing.patch(
-                    'cupy.cuda.cudnn.batchNormalizationBackward'
+                    'cupy.cudnn.batch_normalization_backward'
             ) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

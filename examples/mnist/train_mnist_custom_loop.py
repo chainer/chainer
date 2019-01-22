@@ -8,6 +8,7 @@ applies an optimizer to update the model.
 """
 
 import argparse
+import os
 import re
 
 import numpy
@@ -129,6 +130,8 @@ def main():
                 sum_loss = 0
 
         # Save the model and the optimizer
+        if not os.path.exists(args.out):
+            os.makedirs(args.out)
         print('save the model')
         serializers.save_npz('{}/mlp.model'.format(args.out), model)
         print('save the optimizer')

@@ -251,12 +251,6 @@ class BatchNormalization(link.Link):
         mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
-        .. warning::
-
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', False)``.
-           See :func:`chainer.using_config`.
-
         Args:
             x (Variable): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is

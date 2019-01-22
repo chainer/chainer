@@ -64,7 +64,7 @@ def sqrt(x):
     respect to underlying numpy and cupy specification.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -79,7 +79,7 @@ def rsqrt(x):
        y_i = {1 \\over \\sqrt x_i}.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

@@ -10,12 +10,9 @@ class Clip(function_node.FunctionNode):
     """Clips (limits) elements of input variable."""
 
     def __init__(self, x_min, x_max):
-        if not isinstance(x_min, float):
-            raise TypeError('x_min must be float value')
-        if not isinstance(x_max, float):
-            raise TypeError('x_max must be float value')
-        # x_min must be lesser than x_max.
-        assert x_min < x_max
+        # x_min must be less than x_max.
+        if x_min >= x_max:
+            raise ValueError('x_min must be less than x_max.')
         self.x_min = x_min
         self.x_max = x_max
 
@@ -41,7 +38,7 @@ class Clip(function_node.FunctionNode):
 class ClipGrad(function_node.FunctionNode):
 
     def __init__(self, x, x_min, x_max):
-        self.cond = (x_min < x) * (x < x_max)
+        self.cond = (x_min <= x) * (x <= x_max)
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('gy',))
@@ -67,8 +64,11 @@ def clip(x, x_min, x_max):
     Given an interval ``[x_min, xmax]``, elements outside the interval are
     clipped to the interval edges.
 
+    Its gradients at ``x_min`` and ``x_max`` are regarded as 1.
+
     Args:
-        x (~chainer.Variable): Input variable to be clipped.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable to be clipped.
         x_min (float): Minimum value.
         x_max (float): Maximum value.
 

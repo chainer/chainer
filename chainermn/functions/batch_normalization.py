@@ -13,15 +13,6 @@ import numpy
 import six
 
 
-def _as4darray(arr):
-    if arr.ndim == 0:
-        return arr.reshape(1, 1, 1, 1)
-    elif arr.ndim == 4:
-        return arr
-    else:
-        return arr.reshape(arr.shape[0], -1, 1, 1)
-
-
 def _xhat(x, mean, std, expander):
     x_mu = x - mean[expander]
     x_mu /= std[expander]

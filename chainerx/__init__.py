@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -13,6 +14,7 @@ else:
 
 if _available:
     from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
+    all_dtypes = (bool_, int8, int16, int32, int64, uint8, float32, float64)
 
     from chainerx._core import *  # NOQA
 
@@ -30,23 +32,31 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import square  # NOQA
     from chainerx.math.misc import clip  # NOQA
+    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
+    # Implements ndarray methods in Python
     from chainerx import _ndarray
-    from chainerx import _docs
-
-    # Add workaround implementation for NumPy ndarray-compatible functions
     _ndarray.populate()
 
+    # Temporary workaround implementations that fall back to NumPy/CuPy's
+    # respective functions.
+    from chainerx import _fallback_workarounds
+    _fallback_workarounds.populate()
+
     # Dynamically inject docstrings
+    from chainerx import _docs
     _docs.set_docs()
 
+    from chainerx import _cuda
+    # Share memory pool with CuPy.
+    if bool(int(os.getenv('CHAINERX_CUDA_CUPY_SHARE_ALLOCATOR', '0'))):
+        _cuda.cupy_share_allocator()
 else:
     class ndarray(object):
 

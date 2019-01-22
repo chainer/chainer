@@ -12,14 +12,6 @@ Developers should read through this documentation before creating pull requests 
 Note that this documentation may contain ambiguities on the level of supported compatibilities.
 
 
-Targeted Versions
------------------
-
-**This policy is applied to Chainer v2.0.0 and higher.**
-Note that this policy is not applied to Chainer of lower versions.
-For older versions of Chainer, see `the old version of API Compatiblity Policy <https://docs.chainer.org/en/v1.24.0/compatibility.html>`_.
-
-
 Versioning and Backward Compatibility
 -------------------------------------
 
@@ -48,13 +40,6 @@ The following list shows an example of what we can do to reduce the cost (*Note:
   You have to manually turn on the deprecation warning by ``warnings.simplefilter('always', DeprecationWarning)``.
 - When a definition of a link is changed, we try to enable it to deserialize a model dumped with an older version of Chainer.
   In most cases, we cannot guarantee that a model serialized with a newer version of Chainer is loadable by an older version of Chainer.
-
-.. note::
-
-   Since Chainer v2, we have stopped adopting any solid processes to break backward compatibilities (e.g. a solid schedule for deprecating and removing a feature) in order to keep the development fast enough to support the cutting-edge research.
-   **It does not mean we stop taking care of maintainability of user codes.**
-   We are still paying much attention to not breaking user codes.
-
 
 .. module:: chainer.utils
 

@@ -1,4 +1,9 @@
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
 #include <pybind11/pybind11.h>
+#include <gsl/gsl>
 
 #include "chainerx/python/array.h"
 #include "chainerx/python/array_index.h"
@@ -9,6 +14,7 @@
 #include "chainerx/python/check_backward.h"
 #include "chainerx/python/common.h"
 #include "chainerx/python/context.h"
+#include "chainerx/python/cuda/cuda_module.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
 #include "chainerx/python/error.h"
@@ -56,18 +62,28 @@ void InitChainerxModule(pybind11::module& m) {
     pybind11::module m_testing = m.def_submodule("_testing");
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 
+    // chainerx._pybind_cuda
+    //
+    // Define the sub-module only if CUDA is available.
+#ifdef CHAINERX_ENABLE_CUDA
+    pybind11::module m_cuda = m.def_submodule("_pybind_cuda");
+    cuda::cuda_internal::InitChainerxCudaModule(m_cuda);
+#endif  // CHAINERX_ENABLE_CUDA
+
     // Modifies __doc__ property of a pybind-generated function object.
-    m.def("_set_pybind_doc", [](py::handle obj, std::string docstring) {
+    m.def("_set_pybind_doc", [](py::handle obj, const std::string& docstring) {
         if (!py::isinstance<py::function>(obj)) {
             throw py::type_error{"Object is not a function."};
         }
 
-        // This function is called only sequentially from Python module.
-        // No need of race guard.
-        static std::vector<std::string>* docstrings_keeper = new std::vector<std::string>{};
+        // std::malloc should be used here, since pybind uses std::free to free ml_doc.
+        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
+        gsl::owner<char*> c_docstring = static_cast<char*>(std::malloc(docstring.size() + 1));
+        if (c_docstring == nullptr) {
+            return;
+        }
 
-        docstrings_keeper->emplace_back(std::move(docstring));
-        const char* c_docstring = docstrings_keeper->back().c_str();
+        std::strncpy(c_docstring, docstring.c_str(), docstring.size() + 1);
 
         auto func = py::cast<py::function>(obj);
         auto cfunc = func.cpp_function();

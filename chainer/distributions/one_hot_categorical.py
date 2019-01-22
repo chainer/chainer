@@ -3,6 +3,7 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
 import chainer.functions.math.sum as sum_mod
+from chainer.utils import cache
 
 
 def _stack(xp, xs, axis):
@@ -41,16 +42,15 @@ class OneHotCategorical(distribution.Distribution):
 
     def __init__(self, p):
         super(OneHotCategorical, self).__init__()
-        self.__p = chainer.as_variable(p)
-        self.__log_p = exponential.log(self.__p)
+        self.__p = p
 
-    @property
+    @cache.cached_property
     def p(self):
-        return self.__p
+        return chainer.as_variable(self.__p)
 
-    @property
+    @cache.cached_property
     def log_p(self):
-        return self.__log_p
+        return exponential.log(self.p)
 
     @property
     def batch_shape(self):
@@ -65,9 +65,9 @@ class OneHotCategorical(distribution.Distribution):
         return isinstance(self.p.data, cuda.ndarray)
 
     def log_prob(self, x):
-        return sum_mod.sum(exponential.log(self.p) * x, axis=-1)
+        return sum_mod.sum(self.log_p * x, axis=-1)
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.p
 
@@ -82,7 +82,7 @@ class OneHotCategorical(distribution.Distribution):
         noise = chainer.Variable(eps)
         return noise
 
-    @property
+    @cache.cached_property
     def variance(self):
         return self.p * (1. - self.p)
 
