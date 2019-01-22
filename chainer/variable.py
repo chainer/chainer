@@ -512,21 +512,10 @@ class Variable(object):
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
-        # Retrieve keyword-only arguments as done in parse_kwargs()
-        # (These checks are required to keep backward compatibility)
-        name = kwargs.pop('name', None)
-        grad = kwargs.pop('grad', None)
-        requires_grad = kwargs.pop('requires_grad', True)
-        if kwargs:
-            if 'volatile' in kwargs:
-                raise ValueError('volatile argument is not supported '
-                                 'anymore. Use chainer.using_config')
-            else:
-                unexpected_args = ', '.join(
-                    repr(arg) for arg in sorted(kwargs.keys()))
-                raise TypeError(
-                    '__init__() got unexpected '
-                    'keyword argument(s) {}'.format(unexpected_args))
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
+                     'Use chainer.using_config')
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -536,10 +525,26 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        self._init_attrs(data, name, grad, requires_grad, None)
+        self._init_impl(data, name, grad, requires_grad, None)
 
-    def _init_attrs(self,
-                    data, name, grad, requires_grad, is_chainerx_array):
+    @staticmethod
+    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
+                        is_chainerx_array=None):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+        """Create a new :class:`Variable` without the validations for
+        optimizing performance.
+
+        This is implementation details in the framework. You MUST use
+        the Variable's constructor instead.
+        """
+
+        # Create a Variable without invoking __init__
+        var = Variable.__new__(Variable)
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array)
+
+        return var
+
+    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array):
         # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
 
         # Use a list as a data structure to hold the data array indirectly to
@@ -1598,23 +1603,6 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             x_var._set_grad_var_without_check(gx)
             x_var._loss_scale = loss_scale
     grads.assert_no_grads()
-
-
-def _unsafe_variable(data, name=None, grad=None, requires_grad=True,
-                     is_chainerx_array=None):
-    # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
-    """Create a new :class:`Variable` without the validations for optimizing
-    performance.
-
-    This is implementation details in the framework. You MUST use Variable's
-    constructor instead.
-    """
-
-    # Create a Variable without invoking __init__
-    var = Variable.__new__(Variable)
-    var._init_attrs(data, name, grad, requires_grad, is_chainerx_array)
-
-    return var
 
 
 class Parameter(Variable):

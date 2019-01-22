@@ -177,9 +177,8 @@ def get_array_module(*args):
             if is_chainerx_available and isinstance(array, chainerx.ndarray):
                 return chainerx
             arrays.append(array)
-        else:
-            if cuda.available:
-                return cuda.cupy.get_array_module(*arrays)
+        if cuda.available:
+            return cuda.cupy.get_array_module(*arrays)
     return numpy
 
 

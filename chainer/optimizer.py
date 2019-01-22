@@ -305,7 +305,7 @@ class UpdateRule(object):
             param._chainerx_fallback_array = backend.from_chainerx(
                 param.array)
 
-        temp_param = variable._unsafe_variable(
+        temp_param = variable.Variable._init_unchecked(
             param._chainerx_fallback_array, is_chainerx_array=False)
 
         if grad_array is not None:
