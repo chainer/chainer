@@ -142,6 +142,7 @@ if(${CHAINERX_BUILD_TEST})
         backward_test.cc
         check_backward_test.cc
         context_test.cc
+        crossplatform_test.cc
         device_test.cc
         dtype_test.cc
         float16_test.cc
