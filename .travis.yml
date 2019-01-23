@@ -78,7 +78,11 @@ install:
   - travis_wait bash scripts/ci/travis/run-tests.sh install
 
 script:
-  - bash scripts/ci/travis/run-tests.sh script
+  - bash scripts/ci/travis/run-tests.sh script 1
+  - bash scripts/ci/travis/run-tests.sh script 2
+  - bash scripts/ci/travis/run-tests.sh script 3
+  - bash scripts/ci/travis/run-tests.sh script 4
+  - bash scripts/ci/travis/run-tests.sh script 5
 
 addons:
   apt:

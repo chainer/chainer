@@ -9,7 +9,10 @@ phase="$1"
 
 # Check phase argument
 case "$phase" in
-    before_install|install|script)
+    before_install|install)
+        ;;
+    script)
+        step_num="$2"
         ;;
     *)
         echo "Unknown phase: ${phase}" >&2
@@ -243,8 +246,10 @@ case "${CHAINER_TRAVIS_TEST}" in
                 run_step python_mypy_check_deps
             ;;
             script)
-                run_step python_style_check
-                run_step python_mypy_check
+                case "$step_num" in
+                    1) run_step python_style_check ;;
+                    2) run_step python_mypy_check ;;
+                esac
             ;;
         esac
         ;;
@@ -258,12 +263,13 @@ case "${CHAINER_TRAVIS_TEST}" in
                 run_step install_chainerx_style_check_deps
             ;;
             script)
-                run_step chainerx_cpplint
-                run_step chainerx_clang_format
-
-                run_step chainerx_cmake  # cmake is required for clang-tidy
-                run_step chainerx_clang_tidy normal
-                run_step chainerx_clang_tidy test
+                case "$step_num" in
+                    1) run_step chainerx_cpplint ;;
+                    2) run_step chainerx_clang_format ;;
+                    3) run_step chainerx_cmake ;;  # cmake is required for clang-tidy
+                    4) run_step chainerx_clang_tidy normal ;;
+                    5) run_step chainerx_clang_tidy test ;;
+                esac
             ;;
         esac
         ;;
@@ -285,16 +291,19 @@ case "${CHAINER_TRAVIS_TEST}" in
                 ;;
 
             script)
-                run_step chainer_install_from_sdist
-                run_step chainer_tests
-                run_step chainermn_tests
-
-                if [[ $SKIP_CHAINERX != 1 ]]; then
-                    CHAINER_DOCS_SKIP_LINKCODE=1 \
-                        run_step docs
-                else
-                    echo "Documentation build is skipped as ChainerX is not available.";
-                fi
+                case "$step_num" in
+                    1) run_step chainer_install_from_sdist ;;
+                    2) run_step chainer_tests ;;
+                    3) run_step chainermn_tests ;;
+                    4)
+                        if [[ $SKIP_CHAINERX != 1 ]]; then
+                            CHAINER_DOCS_SKIP_LINKCODE=1 \
+                                run_step docs
+                        else
+                            echo "Documentation build is skipped as ChainerX is not available.";
+                        fi
+                        ;;
+                esac
                 ;;
         esac
         ;;
