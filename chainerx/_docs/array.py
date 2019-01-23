@@ -253,7 +253,7 @@ See the note on :meth:`require_grad` for details.
     _docs.set_doc(
         ndarray.item,
         """item()
-Copies an element of an array to a standard Python scalar and return it.
+Copies an element of an array to a standard Python scalar and returns it.
 
 Returns:
     z:
