@@ -50,8 +50,7 @@ class BaseTest(object):
             assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
             assert hasattr(layer, 'gamma')
-            assert getattr(layer, 'gamma').ndim ==\
-                getattr(layer, hook.weight_name).ndim
+            assert layer.gamma.ndim == 0 and layer.gamma.size == 1
 
     def _init_layer(self):
         hook = SpectralNormalization(use_gamma=self.use_gamma)
@@ -219,8 +218,7 @@ class TestEmbedID(unittest.TestCase, BaseTest):
             assert not hasattr(layer, 'gamma')
         else:  # Use gamma parameter
             assert hasattr(layer, 'gamma')
-            assert getattr(layer, 'gamma').ndim ==\
-                getattr(layer, hook.weight_name).ndim
+            assert layer.gamma.ndim == 0 and layer.gamma.size == 1
 
 
 @testing.parameterize(*testing.product({

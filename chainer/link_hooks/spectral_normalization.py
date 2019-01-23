@@ -226,9 +226,8 @@ class SpectralNormalization(link_hook.LinkHook):
             # Initialize the scaling parameter with the max singular value.
             weight_matrix = self.reshape_W(initialW.array)
             _, s, _ = link.xp.linalg.svd(weight_matrix)
-            gamma_shape = [1] * initialW.ndim
             with link.init_scope():
-                link.gamma = variable.Parameter(s[0], gamma_shape)
+                link.gamma = variable.Parameter(s[0], ())
         self._initialied = True
 
     def normalize_weight(self, link, *args, **kwargs):
