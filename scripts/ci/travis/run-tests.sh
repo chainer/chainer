@@ -2,7 +2,7 @@
 # This script defines CI steps to be run in Travis CI.
 # TODO(niboshi): Definitions of the steps could be merged with scripts/ci/steps.sh.
 
-set -eux
+set -eu
 
 
 phase="$1"
@@ -202,7 +202,7 @@ step_chainerx_clang_format() {
 
 
 step_chainerx_cmake() {
-    CHAINERX_BUILD_DIR="$WORK_DIR"/chainerx_build
+    export CHAINERX_BUILD_DIR="$WORK_DIR"/chainerx_build
     mkdir -p "$CHAINERX_BUILD_DIR"
     pushd "$CHAINERX_BUILD_DIR"
 
@@ -231,7 +231,7 @@ run_step() {
     step="$1"
     shift
     echo "=== Step: $step $@"
-
+    set -x
     step_"$step" "$@"
 }
 
