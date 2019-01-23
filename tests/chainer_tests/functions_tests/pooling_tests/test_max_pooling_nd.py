@@ -54,11 +54,6 @@ class TestMaxPoolingND(testing.FunctionTestCase):
             self.check_double_backward_options.update({
                 'atol': 1e-3, 'rtol': 1e-2})
 
-    def before_test(self, test_name):
-        # TODO(niboshi): Support it
-        if self.backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
     def generate_inputs(self):
         x_shape = (2, 3) + self.in_dims
         x = numpy.random.randn(*x_shape).astype(self.dtype, copy=False)
