@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <list>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
