@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
+#include <sstream>
 #include <type_traits>
 
 #include "chainerx/macro.h"
@@ -193,5 +194,17 @@ private:
     size_type n_{0};
     BaseContainer d_{};
 };
+
+template <typename T, stack_vector_detail::size_type N>
+std::ostream& operator<<(std::ostream& os, const StackVector<T, N>& stack_vector) {
+    os << "[";
+    for (auto iter = stack_vector.begin(); iter != stack_vector.end(); ++iter) {
+        if (iter != stack_vector.begin()) {
+            os << ", ";
+        }
+        os << *iter;
+    }
+    return os << "]";
+}
 
 }  // namespace chainerx

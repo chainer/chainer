@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <list>
+#include <sstream>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -567,6 +568,28 @@ TEST(StackVectorTest, CtorCallCounts) {
     EXPECT_EQ(1, n_normal_ctor);
     EXPECT_EQ(0, n_copy_assign);
     EXPECT_EQ(1, n_move_assign);
+}
+
+template <typename T, stack_vector_detail::size_type N>
+std::string ToString(const StackVector<T, N>& stack_vector) {
+    std::ostringstream os;
+    os << stack_vector;
+    return os.str();
+}
+
+TEST(StackVectorTest, ToString) {
+    {
+        StackVector<int, 5> vec{};
+        EXPECT_EQ("[]", ToString(vec));
+    }
+    {
+        StackVector<int, 5> vec{1};
+        EXPECT_EQ("[1]", ToString(vec));
+    }
+    {
+        StackVector<int, 5> vec{1, 2, 3};
+        EXPECT_EQ("[1, 2, 3]", ToString(vec));
+    }
 }
 
 }  // namespace
