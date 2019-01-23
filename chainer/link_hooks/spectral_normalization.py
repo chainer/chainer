@@ -151,7 +151,7 @@ class SpectralNormalization(link_hook.LinkHook):
         self.factor = factor
         self.weight_name = weight_name
         self.vector_name = weight_name + '_u'
-        self._initialied = False
+        self._initialized = False
         self.axis = 0
         if name is not None:
             self.name = name
@@ -184,7 +184,7 @@ class SpectralNormalization(link_hook.LinkHook):
         # using power iteration method
         link = cb_args.link
         input_variable = cb_args.args[0]
-        if not self._initialied:
+        if not self._initialized:
             self._prepare_parameters(link, input_variable)
         weight = getattr(link, self.weight_name)
         # For link.W or equivalents to be chainer.Parameter
@@ -228,7 +228,7 @@ class SpectralNormalization(link_hook.LinkHook):
             _, s, _ = link.xp.linalg.svd(weight_matrix)
             with link.init_scope():
                 link.gamma = variable.Parameter(s[0], ())
-        self._initialied = True
+        self._initialized = True
 
     def normalize_weight(self, link, *args, **kwargs):
         """Normalize target weight before every single forward computation."""
