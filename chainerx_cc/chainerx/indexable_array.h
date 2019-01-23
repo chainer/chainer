@@ -21,15 +21,14 @@
 namespace chainerx {
 namespace indexable_array_detail {
 
-// Adds `const` to To if From is const
 template <typename To, typename From>
-using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
+using WithConstnessOf = dtype_detail::WithConstnessOf<To, From>;
 
 static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     std::tuple<int64_t, int64_t> range = chainerx::GetDataRange(a.shape(), a.strides(), a.GetItemSize());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
-    const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);
+    const uint8_t* base = static_cast<const uint8_t*>(internal::GetRawOffsetData(a));
     return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
 }
 
@@ -40,9 +39,16 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
+private:
+    template <typename U>
+    using WithConstnessOfT = indexable_array_detail::WithConstnessOf<U, T>;
+    using VoidType = WithConstnessOfT<void>;
+    using DeviceStorageType = TypeToDeviceStorageType<T>;
 
-    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+public:
+    IndexableArray(VoidType* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
+
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
 #if CHAINERX_DEBUG
@@ -56,10 +62,10 @@ public:
 
     CHAINERX_HOST_DEVICE const int64_t* strides() const { return strides_; }
 
-    CHAINERX_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE VoidType* data() const { return data_; }
 
-    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
+        auto data_ptr = static_cast<WithConstnessOfT<uint8_t>*>(data_);
         for (int8_t dim = 0; dim < kNdim; ++dim) {
             data_ptr += strides_[dim] * index[dim];
         }
@@ -67,10 +73,12 @@ public:
         CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
         CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
 #endif  // CHAINERX_DEBUG
-        return *reinterpret_cast<T*>(data_ptr);
+        return *static_cast<DeviceStorageType*>(static_cast<VoidType*>(data_ptr));
     }
 
-    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<kNdim>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE WithConstnessOfT<DeviceStorageType>& operator[](const IndexIterator<kNdim>& it) const {
+        return operator[](it.index());
+    }
 
     // Permutes the axes.
     //
@@ -87,7 +95,7 @@ public:
     }
 
 private:
-    T* data_;
+    WithConstnessOfT<void>* data_;
 #if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
@@ -101,9 +109,16 @@ class IndexableArray<T, 0> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data} { CHAINERX_ASSERT(0 == strides.ndim()); }
+private:
+    template <typename U>
+    using WithConstnessOfT = indexable_array_detail::WithConstnessOf<U, T>;
+    using VoidType = WithConstnessOfT<void>;
+    using DeviceStorageType = TypeToDeviceStorageType<T>;
 
-    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+public:
+    IndexableArray(VoidType* data, const Strides& strides) : data_{data} { CHAINERX_ASSERT(0 == strides.ndim()); }
+
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
     }
 
@@ -113,14 +128,14 @@ public:
 
     CHAINERX_HOST_DEVICE constexpr const int64_t* strides() const { return nullptr; }
 
-    CHAINERX_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE VoidType* data() const { return data_; }
 
-    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
         CHAINERX_ASSERT(index == nullptr || index[0] == 0);
-        return *data_;
+        return *static_cast<WithConstnessOfT<DeviceStorageType>*>(data_);
     }
 
-    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
 
     IndexableArray<T, 0>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
@@ -128,7 +143,7 @@ public:
     }
 
 private:
-    T* data_;
+    WithConstnessOfT<void>* data_;
 };
 
 // Static 1-dimensional specialization.
@@ -137,9 +152,16 @@ class IndexableArray<T, 1> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { CHAINERX_ASSERT(1 == strides.ndim()); }
+private:
+    template <typename U>
+    using WithConstnessOfT = indexable_array_detail::WithConstnessOf<U, T>;
+    using VoidType = WithConstnessOfT<void>;
+    using DeviceStorageType = TypeToDeviceStorageType<T>;
 
-    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+public:
+    IndexableArray(VoidType* data, const Strides& strides) : data_{data}, stride_{strides[0]} { CHAINERX_ASSERT(1 == strides.ndim()); }
+
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
 #if CHAINERX_DEBUG
@@ -153,18 +175,19 @@ public:
 
     CHAINERX_HOST_DEVICE const int64_t* strides() const { return &stride_; }
 
-    CHAINERX_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE VoidType* data() const { return data_; }
 
-    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + stride_ * index[0];
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
+        auto data_ptr = reinterpret_cast<WithConstnessOfT<uint8_t>*>(data_) +
+                        stride_ * index[0];  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 #if CHAINERX_DEBUG
         CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
         CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
 #endif  // CHAINERX_DEBUG
-        return *reinterpret_cast<T*>(data_ptr);
+        return *static_cast<DeviceStorageType*>(static_cast<VoidType*>(data_ptr));
     }
 
-    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
     IndexableArray<T, 1>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
@@ -172,7 +195,7 @@ public:
     }
 
 private:
-    T* data_;
+    WithConstnessOfT<void>* data_;
 #if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
@@ -186,11 +209,18 @@ class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data}, ndim_{strides.ndim()} {
+private:
+    template <typename U>
+    using WithConstnessOfT = indexable_array_detail::WithConstnessOf<U, T>;
+    using VoidType = WithConstnessOfT<void>;
+    using DeviceStorageType = TypeToDeviceStorageType<T>;
+
+public:
+    IndexableArray(WithConstnessOfT<void>* data, const Strides& strides) : data_{data}, ndim_{strides.ndim()} {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
 #if CHAINERX_DEBUG
@@ -204,10 +234,10 @@ public:
 
     CHAINERX_HOST_DEVICE const int64_t* strides() const { return strides_; }
 
-    CHAINERX_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE VoidType* data() const { return data_; }
 
-    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
+        auto data_ptr = static_cast<WithConstnessOfT<uint8_t>*>(data_);
         for (int8_t dim = 0; dim < ndim_; ++dim) {
             data_ptr += strides_[dim] * index[dim];
         }
@@ -215,10 +245,10 @@ public:
         CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
         CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
 #endif  // CHAINERX_DEBUG
-        return *reinterpret_cast<T*>(data_ptr);
+        return *static_cast<DeviceStorageType*>(static_cast<VoidType*>(data_ptr));
     }
 
-    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<kDynamicNdim>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const IndexIterator<kDynamicNdim>& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //
@@ -239,7 +269,7 @@ public:
     }
 
 private:
-    T* data_;
+    WithConstnessOfT<void>* data_;
 #if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};

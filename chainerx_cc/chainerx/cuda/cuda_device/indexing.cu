@@ -12,6 +12,7 @@
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -83,7 +84,7 @@ __global__ void AddAtKernel(
         int64_t axis_pos = it.raw_index() / common_total_size;
         int64_t common_pos = it.raw_index() % common_total_size;
 
-        T out_value = a_iarray[it];
+        cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a_iarray[it]);
 
         for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
             int64_t index = indices_iarray[it_indices];
@@ -97,11 +98,12 @@ __global__ void AddAtKernel(
             CHAINERX_ASSERT(index < axis_dim);
 
             if (index == axis_pos) {
-                out_value += b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)];
+                out_value += cuda_internal::StorageToDataType<const T>(
+                        b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)]);
             }
         }
 
-        out_iarray[it] = out_value;
+        out_iarray[it] = cuda_internal::DataToStorageType<T>(out_value);
     }
 }
 
