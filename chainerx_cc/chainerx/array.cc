@@ -62,6 +62,22 @@ std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arr
     return array_body_ptrs;
 }
 
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& maybe_arrays) {
+    std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
+    std::transform(
+            maybe_arrays.begin(),
+            maybe_arrays.end(),
+            std::back_inserter(array_body_ptrs),
+            [](nonstd::optional<Array>& maybe_array) -> std::shared_ptr<ArrayBody> {
+                if (maybe_array.has_value()) {
+                    return MoveArrayBody(std::move(*maybe_array));
+                } else {
+                    return nullptr;
+                }
+            });
+    return array_body_ptrs;
+}
+
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)

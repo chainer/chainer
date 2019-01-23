@@ -278,6 +278,8 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::m
 
 std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays);
 
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays);
+
 }  // namespace internal
 
 void DebugDumpComputationalGraph(
