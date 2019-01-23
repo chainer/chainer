@@ -302,17 +302,14 @@ class TestDifferentDtype(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
+            self.device = self.communicator.intra_rank
+            chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
+            self.device = -1
 
         if self.communicator.size != 2:
             pytest.skip('This test is for two processes')
-
-        if gpu:
-            self.device = self.communicator.rank
-            chainer.cuda.get_device_from_id(self.device).use()
-        else:
-            self.device = -1
 
         # dtypes to be tested
         # DO NOT USE chainer.testing.parameterize
@@ -567,17 +564,14 @@ class TestNonContiguousArray(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
+            self.device = self.communicator.intra_rank
+            chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
+            self.device = -1
 
         if self.communicator.size != 2:
             pytest.skip('This test is for two processes')
-
-        if gpu:
-            self.device = self.communicator.rank
-            chainer.cuda.get_device_from_id(self.device).use()
-        else:
-            self.device = -1
 
     def check_send(self):
         if self.communicator.rank == 0:
