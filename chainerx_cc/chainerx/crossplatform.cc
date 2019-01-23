@@ -62,13 +62,13 @@ nonstd::optional<std::string> GetEnv(const std::string& name) {
 
 void SetEnv(const std::string& name, const std::string& value) {
     if (setenv(name.c_str(), value.c_str(), 1)) {
-        throw ChainerxError{"Failed to set environment variable ", name, " to ", value, ": ", std::strerror(errno)};
+        throw ChainerxError{"Failed to set environment variable '", name, "' to '", value, "': ", std::strerror(errno)};
     }
 }
 
 void UnsetEnv(const std::string& name) {
     if (unsetenv(name.c_str())) {
-        throw ChainerxError{"Failed to unset environment variable ", name, ": ", std::strerror(errno)};
+        throw ChainerxError{"Failed to unset environment variable '", name, "': ", std::strerror(errno)};
     }
 }
 
@@ -76,7 +76,7 @@ void* DlOpen(const std::string& filename, int flags) {
     if (void* handle = dlopen(filename.c_str(), flags)) {
         return handle;
     }
-    throw ChainerxError{"Could not load shared object ", filename, ": ", dlerror()};
+    throw ChainerxError{"Could not load shared object '", filename, "': ", dlerror()};
 }
 
 void DlCloseNoExcept(void* handle) noexcept { dlclose(handle); }
