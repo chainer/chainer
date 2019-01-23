@@ -28,6 +28,7 @@ esac
 DEFAULT_JOBS=2
 REPO_DIR="$TRAVIS_BUILD_DIR"
 WORK_DIR="$TRAVIS_BUILD_DIR"/_workspace
+CHAINERX_BUILD_DIR="$WORK_DIR"/chainerx_build
 mkdir -p "$WORK_DIR"
 
 
@@ -202,7 +203,6 @@ step_chainerx_clang_format() {
 
 
 step_chainerx_cmake() {
-    export CHAINERX_BUILD_DIR="$WORK_DIR"/chainerx_build
     mkdir -p "$CHAINERX_BUILD_DIR"
     pushd "$CHAINERX_BUILD_DIR"
 
