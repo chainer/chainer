@@ -68,7 +68,7 @@ def calculate_max_singular_value(weight_matrix, u, v):
 
 
 class SpectralNormalization(link_hook.LinkHook):
-    r"""Spectral Normalization link hook implementation.
+    """Spectral Normalization link hook implementation.
 
     This hook normalizes a weight using max singular value and this value
     is computed via power iteration method. Currently, this hook is supposed to
@@ -79,15 +79,15 @@ class SpectralNormalization(link_hook.LinkHook):
     other links like RNNs by specifying ``weight_name``.
     It is highly recommended to add this hook before optimizer setup because
     this hook add a scaling parameter ``gamma`` if ``use_gamma`` is True.
-    Otherwise, the registered ``gamma` will not be updated.
+    Otherwise, the registered ``gamma`` will not be updated.
 
     .. math::
 
-       \bar{\mathbf{W}} &=& \dfrac{\mathbf{W}}{\sigma(\mathbf{W})} \\
-       \text{, where} \ \sigma(\mathbf{W}) &:=&
-        \max_{\mathbf{h}: \mathbf{h} \ne 0}
-       \dfrac{\|\mathbf{W} \mathbf{h}\|_2}{\|\mathbf{h}\|_2}
-        = \max_{\|\mathbf{h}\|_2 \le 1} \|\mathbf{W}\mathbf{h}\|_2
+       \\bar{\\mathbf{W}} &=& \\dfrac{\\mathbf{W}}{\\sigma(\\mathbf{W})} \\\\
+       \\text{, where} \\ \\sigma(\\mathbf{W}) &:=&
+        \\max_{\\mathbf{h}: \\mathbf{h} \\ne 0}
+       \\dfrac{\\|\\mathbf{W} \\mathbf{h}\\|_2}{\\|\\mathbf{h}\\|_2}
+        = \\max_{\\|\\mathbf{h}\\|_2 \\le 1} \\|\\mathbf{W}\\mathbf{h}\\|_2
 
     See: T. Miyato et. al., `Spectral Normalization for Generative Adversarial
     Networks <https://arxiv.org/abs/1802.05957>`_
