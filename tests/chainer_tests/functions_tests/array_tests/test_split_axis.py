@@ -145,11 +145,6 @@ class TestSplitAxis(testing.FunctionTestCase):
         x = numpy.arange(numpy.prod(shape), dtype=dtype).reshape(shape)
         return x,
 
-    def before_test(self, test_name):
-        # TODO(niboshi): Support it
-        if self.backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
     def forward(self, inputs, device):
         x, = inputs
         with warnings.catch_warnings():
