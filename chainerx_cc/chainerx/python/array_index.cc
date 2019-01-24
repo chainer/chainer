@@ -16,10 +16,10 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
     if (handle.is_none()) {
         return ArrayIndex{NewAxis{}};
     }
-    if (py::int_::check_(handle)) {
+    if (py::isinstance<py::int_>(handle)) {
         return ArrayIndex{py::cast<int64_t>(handle)};
     }
-    if (py::slice::check_(handle)) {
+    if (py::isinstance<py::slice>(handle)) {
         return ArrayIndex{MakeSlice(py::cast<py::slice>(handle))};
     }
     throw py::index_error{"only integers, slices (`:`), and chainerx.newaxis (`None`) are valid indices"};
@@ -36,7 +36,7 @@ std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
 }  // namespace
 
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
-    if (py::tuple::check_(handle)) {
+    if (py::isinstance<py::tuple>(handle)) {
         return MakeArrayIndicesFromTuple(py::cast<py::tuple>(handle));
     }
     return {MakeArrayIndex(handle)};
