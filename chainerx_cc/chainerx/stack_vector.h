@@ -195,16 +195,33 @@ private:
     BaseContainer d_{};
 };
 
+// Formatter to print StackVector containing integral elements as e.g. '[]' or '[1, 2, 3]'.
 template <typename T, stack_vector_detail::size_type N>
-std::ostream& operator<<(std::ostream& os, const StackVector<T, N>& stack_vector) {
-    os << "[";
-    for (auto iter = stack_vector.begin(); iter != stack_vector.end(); ++iter) {
-        if (iter != stack_vector.begin()) {
-            os << ", ";
+class DimArgFormatter {
+public:
+    static_assert(std::is_integral<T>::value, "DimArgFormatter requires intergral elements.");
+
+    DimArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
+
+    void Print(std::ostream& os) const {
+        os << "[";
+        for (auto iter = stack_vector_.begin(); iter != stack_vector_.end(); ++iter) {
+            if (iter != stack_vector_.begin()) {
+                os << ", ";
+            }
+            os << *iter;
         }
-        os << *iter;
+        os << "]";
     }
-    return os << "]";
+
+private:
+    const StackVector<T, N>& stack_vector_;
+};
+
+template <typename T, stack_vector_detail::size_type N>
+std::ostream& operator<<(std::ostream& os, const DimArgFormatter<T, N>& formatter) {
+    formatter.Print(os);
+    return os;
 }
 
 }  // namespace chainerx

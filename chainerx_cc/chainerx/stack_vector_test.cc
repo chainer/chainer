@@ -572,24 +572,27 @@ TEST(StackVectorTest, CtorCallCounts) {
 }
 
 template <typename T, stack_vector_detail::size_type N>
-std::string ToString(const StackVector<T, N>& stack_vector) {
+std::string ToDimArgFormatterString(const StackVector<T, N>& stack_vector) {
     std::ostringstream os;
-    os << stack_vector;
+    os << DimArgFormatter<T, N>{stack_vector};
     return os.str();
 }
 
-TEST(StackVectorTest, ToString) {
+TEST(StackVectorTest, DimArgFormatter) {
+    // T must be an integral type since it is formatted with DimArgFormatter.
+    using T = int64_t;
+
     {
-        StackVector<int, 5> vec{};
-        EXPECT_EQ("[]", ToString(vec));
+        StackVector<T, 5> vec{};
+        EXPECT_EQ("[]", ToDimArgFormatterString(vec));
     }
     {
-        StackVector<int, 5> vec{1};
-        EXPECT_EQ("[1]", ToString(vec));
+        StackVector<T, 5> vec{1};
+        EXPECT_EQ("[1]", ToDimArgFormatterString(vec));
     }
     {
-        StackVector<int, 5> vec{1, 2, 3};
-        EXPECT_EQ("[1, 2, 3]", ToString(vec));
+        StackVector<T, 5> vec{1, 2, 3};
+        EXPECT_EQ("[1, 2, 3]", ToDimArgFormatterString(vec));
     }
 }
 
