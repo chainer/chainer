@@ -63,7 +63,7 @@ class BatchRenormalization(BatchNormalization):
             avg_mean = self.avg_mean
             avg_var = self.avg_var
 
-            if chainer.config.in_recomputing:
+            if configuration.config.in_recomputing:
                 # Do not update statistics when extra forward computation is
                 # called.
                 if finetune:
