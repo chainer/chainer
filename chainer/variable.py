@@ -804,6 +804,7 @@ class Variable(object):
                 self._chainerx_nobp_array_cache = (
                     self._data[0].as_grad_stopped())  # type: ignore
             return self._chainerx_nobp_array_cache
+
         return self._data[0]
 
     @array.setter
