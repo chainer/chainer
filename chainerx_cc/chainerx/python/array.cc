@@ -198,7 +198,8 @@ void InitChainerxArray(pybind11::module& m) {
                   return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
               }
               if (py::isinstance<py::array>(indices)) {
-                  return MoveArrayBody(Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
+                  return MoveArrayBody(
+                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
               }
               throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
