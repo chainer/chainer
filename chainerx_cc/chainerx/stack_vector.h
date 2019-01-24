@@ -201,7 +201,7 @@ class DimArgFormatter {
 public:
     static_assert(std::is_integral<T>::value, "DimArgFormatter requires intergral elements.");
 
-    DimArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
+    explicit DimArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
 
     void Print(std::ostream& os) const {
         os << "[";
