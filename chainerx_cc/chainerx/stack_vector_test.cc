@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+#include "chainerx/constant.h"
+
 namespace chainerx {
 namespace {
 
@@ -571,27 +573,23 @@ TEST(StackVectorTest, CtorCallCounts) {
     EXPECT_EQ(1, n_move_assign);
 }
 
-template <typename T, stack_vector_detail::size_type N>
-std::string ToDimsArgFormatterString(const StackVector<T, N>& stack_vector) {
+std::string ToDimsArgFormatterString(const StackVector<int64_t, kMaxNdim>& stack_vector) {
     std::ostringstream os;
-    os << DimsArgFormatter<T, N>{stack_vector};
+    os << DimsArgFormatter{stack_vector};
     return os.str();
 }
 
 TEST(StackVectorTest, DimsArgFormatter) {
-    // T must be an integral type since it is formatted with DimsArgFormatter.
-    using T = int64_t;
-
     {
-        StackVector<T, 5> vec{};
+        StackVector<int64_t, kMaxNdim> vec{};
         EXPECT_EQ("[]", ToDimsArgFormatterString(vec));
     }
     {
-        StackVector<T, 5> vec{1};
+        StackVector<int64_t, kMaxNdim> vec{1};
         EXPECT_EQ("[1]", ToDimsArgFormatterString(vec));
     }
     {
-        StackVector<T, 5> vec{1, 2, 3};
+        StackVector<int64_t, kMaxNdim> vec{1, 2, 3};
         EXPECT_EQ("[1, 2, 3]", ToDimsArgFormatterString(vec));
     }
 }

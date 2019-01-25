@@ -8,6 +8,7 @@
 #include <sstream>
 #include <type_traits>
 
+#include "chainerx/constant.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
@@ -196,12 +197,9 @@ private:
 };
 
 // Formatter to print StackVector containing integral elements as e.g. '[]' or '[1, 2, 3]'.
-template <typename T, stack_vector_detail::size_type N>
 class DimsArgFormatter {
 public:
-    static_assert(std::is_integral<T>::value, "DimsArgFormatter requires intergral elements.");
-
-    explicit DimsArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
+    explicit DimsArgFormatter(const StackVector<int64_t, kMaxNdim>& stack_vector) : stack_vector_{stack_vector} {}
 
     void Print(std::ostream& os) const {
         os << "[";
@@ -215,11 +213,10 @@ public:
     }
 
 private:
-    const StackVector<T, N>& stack_vector_;
+    const StackVector<int64_t, kMaxNdim>& stack_vector_;
 };
 
-template <typename T, stack_vector_detail::size_type N>
-std::ostream& operator<<(std::ostream& os, const DimsArgFormatter<T, N>& formatter) {
+inline std::ostream& operator<<(std::ostream& os, const DimsArgFormatter& formatter) {
     formatter.Print(os);
     return os;
 }
