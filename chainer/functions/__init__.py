@@ -24,6 +24,7 @@ from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
+from chainer.functions.array.as_strided import as_strided  # NOQA
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import broadcast_to  # NOQA
 from chainer.functions.array.cast import cast  # NOQA
@@ -208,10 +209,10 @@ from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-# TODO(kmaehashi) this alias should be removed in
-# https://github.com/chainer/chainer/pull/5198
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
 from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
+from chainer.functions.pooling.roi_max_align_2d import roi_max_align_2d  # NOQA
+from chainer.functions.pooling.roi_max_pooling_2d import roi_max_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA

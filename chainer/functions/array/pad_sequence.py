@@ -56,8 +56,10 @@ class PadSequence(function_node.FunctionNode):
         else:
             # This code assumes that all arrays are c_contiguous
             ptr_shape = (Ellipsis,) + (None,) * xs[0].ndim
-            ptrs = cuda.cupy.array([x.data for x in xs], 'P')[ptr_shape]
-            lengths = cuda.cupy.array([len(x) for x in xs], 'i')[ptr_shape]
+            ptrs = cuda.cupy.array(
+                [x.data for x in xs], numpy.uintp)[ptr_shape]
+            lengths = cuda.cupy.array(
+                [len(x) for x in xs], numpy.int32)[ptr_shape]
             base = utils.size_of_shape(xs[0].shape[1:])
             cuda.elementwise(
                 'P ptr, int32 length, T pad, int32 base, int32 max_length',
@@ -90,7 +92,8 @@ def pad_sequence(xs, length=None, padding=0):
     """Pad given arrays to make a matrix.
 
     Args:
-        xs (list of ~chainer.Variable): Variables you want to concatenate.
+        xs (list of ~chainer.Variable or :ref:`ndarray`):
+            Variables you want to concatenate.
         length (None or int): Size of the first dimension of a padded array.
             If it is ``None``, the longest size of the first dimension of
             ``xs`` is used.

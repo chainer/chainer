@@ -39,7 +39,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 
@@ -215,7 +215,7 @@ def main():
     # Some display and output extensions are necessary only for one worker.
     # (Otherwise, there would just be repeated outputs.)
     if comm.rank == 0:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport(trigger=log_interval))
         trainer.extend(extensions.observe_lr(), trigger=log_interval)
         trainer.extend(extensions.PrintReport([

@@ -60,15 +60,6 @@ It means we can define more complex chains that hold ``MyChain`` objects as thei
    We often define a single forward method of a link by the ``forward`` operator.
    Such links and chains are callable and behave like regular functions of Variables.
 
-.. note::
-
-    In Chainer v1, we could also register the trainable layers
-    (i.e., :class:`~chainer.Link` s) to the model by putting them to the
-    :meth:`~chainer.Chain.__init__` of :class:`~chainer.Chain`
-    or registering them via :meth:`~chainer.Chain.add_link`.
-    But as these ways are deprecated in Chainer v2, users are recommended
-    to use the way explained above.
-
 Another way to define a chain is using the :class:`ChainList` class, which behaves like a list of links:
 
 .. doctest::

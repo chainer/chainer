@@ -1,6 +1,6 @@
-import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
@@ -44,11 +44,11 @@ class LSTMBase(link.Chain):
         forget_bias_init = initializers._get_initializer(self.forget_bias_init)
 
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            lateral_init(self.lateral.W.data[i:i + self.state_size, :])
-            upward_init(self.upward.W.data[i:i + self.state_size, :])
+            lateral_init(self.lateral.W.array[i:i + self.state_size, :])
+            upward_init(self.upward.W.array[i:i + self.state_size, :])
 
         a, i, f, o = lstm._extract_gates(
-            self.upward.b.data.reshape(1, 4 * self.state_size, 1))
+            self.upward.b.array.reshape(1, 4 * self.state_size, 1))
 
         bias_init(a)
         bias_init(i)
@@ -129,9 +129,9 @@ class StatelessLSTM(LSTMBase):
             output of LSTM units.
 
         """
-        if self.upward.W.data is None:
+        if self.upward.W.array is None:
             in_size = x.size // x.shape[0]
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -140,7 +140,7 @@ class StatelessLSTM(LSTMBase):
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
@@ -242,20 +242,22 @@ class LSTM(LSTMBase):
             forget_bias_init)
         self.reset_state()
 
-    def to_cpu(self):
-        super(LSTM, self).to_cpu()
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        super(LSTM, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.c is not None:
-            self.c.to_cpu()
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.c, cuda.ndarray)):
+                self.c.to_device(device)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(LSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
         return self
 
     def set_state(self, c, h):
@@ -270,16 +272,10 @@ class LSTM(LSTMBase):
         """
         assert isinstance(c, variable.Variable)
         assert isinstance(h, variable.Variable)
-        c_ = c
-        h_ = h
-        if self.xp == numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu(self._device_id)
-            h_.to_gpu(self._device_id)
-        self.c = c_
-        self.h = h_
+        c.to_device(self.device)
+        h.to_device(self.device)
+        self.c = c
+        self.h = h
 
     def reset_state(self):
         """Resets the internal state.
@@ -299,8 +295,8 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.W.data is None:
-            with cuda.get_device_from_id(self._device_id):
+        if self.upward.W.array is None:
+            with chainer.using_device(self.device):
                 in_size = utils.size_of_shape(x.shape[1:])
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
@@ -323,15 +319,14 @@ class LSTM(LSTMBase):
             else:
                 lstm_in += self.lateral(self.h)
         if self.c is None:
-            xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype))
+                    self.xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:
             self.h = y
-        elif len(y.data) == 0:
+        elif len(y.array) == 0:
             self.h = h_rest
         else:
             self.h = concat.concat([y, h_rest], axis=0)

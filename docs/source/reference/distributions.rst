@@ -17,9 +17,13 @@ Distributions
    chainer.distributions.Bernoulli
    chainer.distributions.Beta
    chainer.distributions.Categorical
+   chainer.distributions.Cauchy
+   chainer.distributions.Chisquare
    chainer.distributions.Dirichlet
    chainer.distributions.Exponential
    chainer.distributions.Gamma
+   chainer.distributions.Geometric
+   chainer.distributions.Gumbel
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal

@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer.functions.loss import negative_sampling
 from chainer import link
@@ -21,6 +22,7 @@ class NegativeSampling(link.Link):
         counts (int list): Number of each identifiers.
         sample_size (int): Number of negative samples.
         power (float): Power factor :math:`\\alpha`.
+        dtype (numpy.dtype): Type to use in computing.
 
     .. seealso:: :func:`~chainer.functions.negative_sampling` for more detail.
 
@@ -29,28 +31,29 @@ class NegativeSampling(link.Link):
 
     """
 
-    def __init__(self, in_size, counts, sample_size, power=0.75):
+    def __init__(self, in_size, counts, sample_size, power=0.75, dtype=None):
         super(NegativeSampling, self).__init__()
+        dtype = chainer.get_dtype(dtype)
         vocab_size = len(counts)
         self.sample_size = sample_size
-        power = numpy.float32(power)
-        p = numpy.array(counts, power.dtype)
+        power = dtype.type(power)
+        p = numpy.array(counts, dtype)
         numpy.power(p, power, p)
         self.sampler = walker_alias.WalkerAlias(p)
 
         with self.init_scope():
             self.W = variable.Parameter(0, (vocab_size, in_size))
 
-    def to_cpu(self):
-        super(NegativeSampling, self).to_cpu()
-        self.sampler.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(NegativeSampling, self).to_gpu()
-            self.sampler.to_gpu()
-        return self
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        if not (skip_between_cupy_devices
+                and device.xp is cuda.cupy
+                and isinstance(self.sampler, cuda.ndarray)):
+            self.sampler.to_device(device)
+        return super(NegativeSampling, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
 
     def forward(self, x, t, reduce='sum', **kwargs):
         """forward(x, t, reduce='sum', *, return_samples=False)

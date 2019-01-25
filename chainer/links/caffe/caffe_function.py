@@ -53,7 +53,7 @@ class _Blob(initializer.Initializer):
         indices = list(range(0, size, self.chunk_size))
 
         # Rather than accessing Protobuf's RepeatedScalar fields directly,
-        # creating a intermediate list by indexing is more efficifent due to
+        # creating a intermediate list by indexing is more efficient due to
         # the implementation of the Python extension of Protobuf.
         # To avoid allocating excessively large lists, we limit the length
         # of lists by `chunk_size`.
@@ -182,12 +182,6 @@ class CaffeFunction(link.Chain):
         Caffe. On execution, it interprets each layer one by one, and if the
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
-
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
 
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial

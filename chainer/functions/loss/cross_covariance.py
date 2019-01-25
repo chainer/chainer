@@ -93,9 +93,11 @@ def cross_covariance(y, z, reduce='half_squared_sum'):
     of the covarianct matrix.
 
     Args:
-        y (Variable): Variable holding a matrix where the first dimension
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a matrix where the first dimension
             corresponds to the batches.
-        z (Variable): Variable holding a matrix where the first dimension
+        z (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a matrix where the first dimension
             corresponds to the batches.
         reduce (str): Reduction option. Its value must be either
             ``'half_squared_sum'`` or ``'no'``.

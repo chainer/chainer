@@ -72,12 +72,12 @@ def linearize_tree(vocab, root, xp=numpy):
     assert len(lefts) == len(words) - 1
 
     return {
-        'lefts': xp.array(lefts, 'i'),
-        'rights': xp.array(rights, 'i'),
-        'dests': xp.array(dests, 'i'),
-        'words': xp.array(words, 'i'),
-        'labels': xp.array(labels, 'i'),
-        'leaf_labels': xp.array(leaf_labels, 'i'),
+        'lefts': xp.array(lefts, xp.int32),
+        'rights': xp.array(rights, xp.int32),
+        'dests': xp.array(dests, xp.int32),
+        'words': xp.array(words, xp.int32),
+        'labels': xp.array(labels, xp.int32),
+        'leaf_labels': xp.array(leaf_labels, xp.int32),
     }
 
 
@@ -145,11 +145,12 @@ class ThinStackRecursiveNet(chainer.Chain):
         count = 0
         correct = 0
 
-        stack = self.xp.zeros((batch, maxlen * 2, self.n_units), 'f')
+        stack = self.xp.zeros(
+            (batch, maxlen * 2, self.n_units), self.xp.float32)
         for i, (word, label) in enumerate(zip(sequences, leaf_labels)):
             batch = word.shape[0]
             es = self.leaf(word)
-            ds = self.xp.full((batch,), i, 'i')
+            ds = self.xp.full((batch,), i, self.xp.int32)
             y = self.label(es)
             loss += F.softmax_cross_entropy(y, label, normalize=False) * batch
             count += batch
