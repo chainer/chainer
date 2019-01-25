@@ -3,13 +3,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <list>
-#include <sstream>
-#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
-
-#include "chainerx/constant.h"
 
 namespace chainerx {
 namespace {
@@ -571,27 +567,6 @@ TEST(StackVectorTest, CtorCallCounts) {
     EXPECT_EQ(1, n_normal_ctor);
     EXPECT_EQ(0, n_copy_assign);
     EXPECT_EQ(1, n_move_assign);
-}
-
-std::string ToDimsArgFormatterString(const StackVector<int64_t, kMaxNdim>& stack_vector) {
-    std::ostringstream os;
-    os << DimsArgFormatter{stack_vector};
-    return os.str();
-}
-
-TEST(StackVectorTest, DimsArgFormatter) {
-    {
-        StackVector<int64_t, kMaxNdim> vec{};
-        EXPECT_EQ("[]", ToDimsArgFormatterString(vec));
-    }
-    {
-        StackVector<int64_t, kMaxNdim> vec{1};
-        EXPECT_EQ("[1]", ToDimsArgFormatterString(vec));
-    }
-    {
-        StackVector<int64_t, kMaxNdim> vec{1, 2, 3};
-        EXPECT_EQ("[1, 2, 3]", ToDimsArgFormatterString(vec));
-    }
 }
 
 }  // namespace

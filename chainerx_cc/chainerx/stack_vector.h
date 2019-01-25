@@ -5,10 +5,8 @@
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
-#include <sstream>
 #include <type_traits>
 
-#include "chainerx/constant.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
@@ -195,30 +193,5 @@ private:
     size_type n_{0};
     BaseContainer d_{};
 };
-
-// Formatter to print StackVector containing integral elements as e.g. '[]' or '[1, 2, 3]'.
-class DimsArgFormatter {
-public:
-    explicit DimsArgFormatter(const StackVector<int64_t, kMaxNdim>& stack_vector) : stack_vector_{stack_vector} {}
-
-    void Print(std::ostream& os) const {
-        os << "[";
-        for (auto iter = stack_vector_.begin(); iter != stack_vector_.end(); ++iter) {
-            if (iter != stack_vector_.begin()) {
-                os << ", ";
-            }
-            os << *iter;
-        }
-        os << "]";
-    }
-
-private:
-    const StackVector<int64_t, kMaxNdim>& stack_vector_;
-};
-
-inline std::ostream& operator<<(std::ostream& os, const DimsArgFormatter& formatter) {
-    formatter.Print(os);
-    return os;
-}
 
 }  // namespace chainerx
