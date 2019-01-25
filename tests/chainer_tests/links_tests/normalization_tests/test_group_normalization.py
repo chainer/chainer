@@ -14,7 +14,7 @@ from chainer.utils import type_check
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15)],
+    'shape': [(1, 4, 5, 5), (5, 4, 15), (3, 8)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
@@ -150,7 +150,7 @@ class TestDefaultInitializer(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(2,), (2, 3)],
+    'shape': [(2,), ()],
 }))
 class TestInvalidInput(unittest.TestCase):
 
