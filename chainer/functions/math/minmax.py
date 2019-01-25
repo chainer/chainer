@@ -142,7 +142,8 @@ def max(x, axis=None, keepdims=False):
     """Maximum of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Array to be maximized.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Array to be maximized.
         axis (None, int, or tuple of int): Axis over which a max is performed.
             The default (axis = None) is perform a max over all the dimensions
             of the input array.
@@ -157,7 +158,8 @@ def min(x, axis=None, keepdims=False):
     """Minimum of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Array to be minimized.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Array to be minimized.
         axis (None, int, or tuple of int): Axis over which a min is performed.
             The default (axis = None) is perform a min over all the dimensions
             of the input array.
@@ -172,7 +174,8 @@ def argmax(x, axis=None):
     """Returns index which holds maximum of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Array to find maximum elements.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Array to find maximum elements.
         axis (None or int): Axis over which a max is performed.
             The default (axis = None) is perform a max over all the dimensions
             of the input array.
@@ -187,7 +190,8 @@ def argmin(x, axis=None):
     """Returns index which holds minimum of array elements over a given axis.
 
     Args:
-        x (~chainer.Variable): Array to find minimum elements.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Array to find minimum elements.
         axis (None or int): Axis over which a min is performed.
             The default (axis = None) is perform a min over all the dimensions
             of the input array.

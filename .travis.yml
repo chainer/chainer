@@ -6,18 +6,18 @@ cache:
 
 matrix:
   include:
-    - name: "Python Style Check"
+    - name: "Python Static Check"
       dist: xenial
       python: "3.5"
       env:
-      - CHAINER_TRAVIS_TEST="python-stylecheck"
+      - CHAINER_TRAVIS_TEST="python-static-check"
 
-    - name: "C++ Style Check"
+    - name: "C++ Static Check"
       language: python
       dist: xenial
       python: "3.5"
       env:
-      - CHAINER_TRAVIS_TEST="c-stylecheck"
+      - CHAINER_TRAVIS_TEST="c-static-check"
 
     - name: "Ubuntu14.04 Py27"
       dist: trusty

@@ -354,6 +354,7 @@ from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
+from chainer.testing import doctest_helper
 from chainer.training import extensions
 import chainerx
 np.random.seed(0)

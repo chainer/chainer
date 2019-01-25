@@ -130,4 +130,5 @@ Decorators for making a unit test parameterized.
    chainer.testing.parameterize
    chainer.testing.product
    chainer.testing.product_dict
+   chainer.testing.inject_backend_tests
    

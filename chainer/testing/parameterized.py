@@ -1,19 +1,45 @@
 import functools
 import itertools
-import sys
 import types
 import unittest
 
 import six
 
 from chainer.testing import _bundle
+from chainer import utils
+
+
+def _shorten(s, maxlen):
+    # Shortens the string down to maxlen, by replacing the middle part with
+    # a 3-dots string '...'.
+    ellipsis = '...'
+    if len(s) <= maxlen:
+        return s
+    n1 = (maxlen - len(ellipsis)) // 2
+    n2 = maxlen - len(ellipsis) - n1
+    s = s[:n1] + ellipsis + s[-n2:]
+    assert len(s) == maxlen
+    return s
+
+
+def _make_class_name(base_class_name, i_param, param):
+    # Creates a class name for a single combination of parameters.
+    SINGLE_PARAM_MAXLEN = 100  # Length limit of a single parameter value
+    PARAMS_MAXLEN = 5000  # Length limit of the whole parameters part
+    param_strs = [
+        '{}={}'.format(k, _shorten(repr(v), SINGLE_PARAM_MAXLEN))
+        for k, v in param.items()]
+    param_strs = _shorten(', '.join(param_strs), PARAMS_MAXLEN)
+    cls_name = '{}_param_{}_{{{}}}'.format(
+        base_class_name, i_param, param_strs)
+    return cls_name
 
 
 def _parameterize_test_case_generator(base, params):
     # Defines the logic to generate parameterized test case classes.
 
     for i, param in enumerate(params):
-        cls_name = '%s_param_%d' % (base.__name__, i)
+        cls_name = _make_class_name(base.__name__, i, param)
 
         def __str__(self):
             name = base.__str__(self)
@@ -51,14 +77,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Test parameters:\n')
                     for k, v in six.iteritems(param):
                         s.write('  {}: {}\n'.format(k, v))
-                    s.write('\n')
-                    s.write('{}: {}\n'.format(type(e).__name__, e))
-                    e_new = AssertionError(s.getvalue())
-                    if sys.version_info < (3,):
-                        six.reraise(AssertionError, e_new, sys.exc_info()[2])
-                    else:
-                        six.raise_from(
-                            e_new.with_traceback(e.__traceback__), None)
+                    utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method
 
         yield (cls_name, mb, method_generator)

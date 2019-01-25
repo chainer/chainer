@@ -4,6 +4,7 @@ import warnings
 
 import mock
 import numpy
+import pytest
 
 import chainer
 from chainer import backend
@@ -647,6 +648,51 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
             assert False
 
         self.assertEqual(self.link._device, expected_device)
+
+
+class TestLinkMissingInitCall(unittest.TestCase):
+    # Tests for detecting incorrectly written Link subclasses in which
+    # the call to Link.__init__ is missing
+
+    expected_message = r'^Link\.__init__\(\) has not been called\.$'
+
+    def test_missing1(self):
+        # Nothing is done in __init__.
+        # The fault should be detected no later than __call__().
+
+        class Derived(chainer.Link):
+            def __init__(self):
+                pass
+
+            def forward(self, x):
+                return x
+
+        with pytest.raises(RuntimeError, match=self.expected_message):
+            link = Derived()
+            link(numpy.array([1, 2], numpy.float32))
+
+    def test_missing2(self):
+        # init_scope is called.
+        # The fault should be detected at init_scope.
+
+        class Derived(chainer.Link):
+            def __init__(self):
+                with self.init_scope():
+                    pass
+
+        with pytest.raises(RuntimeError, match=self.expected_message):
+            Derived()
+
+    def test_missing3(self):
+        # add_param is called.
+        # The fault should be detected at add_param.
+
+        class Derived(chainer.Link):
+            def __init__(self):
+                self.add_param('p1', (2, 3), numpy.float32)
+
+        with pytest.raises(RuntimeError, match=self.expected_message):
+            Derived()
 
 
 class TestLinkRepeat(unittest.TestCase):

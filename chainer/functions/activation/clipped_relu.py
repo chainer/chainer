@@ -79,8 +79,9 @@ class ClippedReLUGrad2(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
+        x = self.x
         return utils.force_array(
-            gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
+            gy * (0 < x) * (x < self.cap), x.dtype),
 
     def forward_gpu(self, inputs):
         gy, = inputs

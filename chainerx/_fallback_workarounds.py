@@ -5,7 +5,6 @@
 # libraries mentioned above.
 # Functions defined in this file should be considered to have high priority for
 # genuine implementations.
-
 import numpy
 
 import chainerx
@@ -15,6 +14,17 @@ try:
     import cupy
 except Exception:
     cupy = None
+
+
+class _DummyContext:
+    def __enter__(self):
+        pass
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+
+_dummy_context = _DummyContext()
 
 
 def _to_numpy(array):
@@ -57,20 +67,26 @@ def _from_cupy(array):
         array)
 
 
-def _from_chainerx(array):
+def _from_chainerx(array, check_backprop=True):
     # Converts chainerx.ndarray to numpy/cupy.ndarray.
     # Objects with other types are kept intact.
+    # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
     if not isinstance(array, chainerx.ndarray):
-        return array
+        return None, _dummy_context, array
+    if check_backprop and array.is_backprop_required():
+        raise RuntimeError(
+            'ChainerX function fallback using NumPy/CuPy is not '
+            'supported for arrays that are connected to a graph.')
     backend_name = array.device.backend.name
     if backend_name == 'native':
-        return _to_numpy(array)
+        return numpy, _dummy_context, _to_numpy(array)
     if backend_name == 'cuda':
         if cupy is None:
             raise RuntimeError(
                 'ChainerX fallback implementation for cuda backend requires '
                 'cupy to be installed.')
-        return _to_cupy(array)
+        array_cupy = _to_cupy(array)
+        return cupy, array_cupy.device, array_cupy
     raise RuntimeError(
         'ChainerX fallback implementation only supports native or cuda '
         'backends.')
@@ -86,7 +102,42 @@ def _to_chainerx(array):
     return array
 
 
-def populate():
+def _populate_module_functions():
+
+    def _isfinite(arr):
+        xp, dev, arr = _from_chainerx(arr)
+        with dev:
+            ret = xp.isfinite(arr)
+        return _to_chainerx(ret)
+
+    chainerx.isfinite = _isfinite
+
+    def _hstack(arrs):
+        assert len(arrs) > 0
+        arrs2 = []
+        for a in arrs:
+            xp, dev, a2 = _from_chainerx(a)
+            arrs2.append(a2)
+        with dev:
+            ret = xp.hstack(arrs2)
+        return _to_chainerx(ret)
+
+    chainerx.hstack = _hstack
+
+    def _vstack(arrs):
+        assert len(arrs) > 0
+        arrs2 = []
+        for a in arrs:
+            xp, dev, a2 = _from_chainerx(a)
+            arrs2.append(a2)
+        with dev:
+            ret = xp.vstack(arrs2)
+        return _to_chainerx(ret)
+
+    chainerx.vstack = _vstack
+
+
+def _populate_ndarray():
     ndarray = chainerx.ndarray
 
     # __getitem__ with advanced indexing
@@ -100,13 +151,10 @@ def populate():
 
         is_backprop_required = arr.is_backprop_required()
 
-        arr = _from_chainerx(arr)
-        key = _from_chainerx(key)
+        xp, dev, arr = _from_chainerx(arr, check_backprop=False)
+        _, _, key = _from_chainerx(key, check_backprop=False)
 
-        if cupy is not None and isinstance(arr, cupy.ndarray):
-            with arr.device:
-                ret = arr[key]
-        else:
+        with dev:
             ret = arr[key]
 
         # Doing this check after the fallback __getitem__ because the error
@@ -127,15 +175,41 @@ def populate():
                 'ChainerX setitem fallback for advanced indexing is not '
                 'supported for arrays that are connected to a graph.')
 
-        self = _from_chainerx(self)
-        key = _from_chainerx(key)
-        value = _from_chainerx(value)
+        xp, dev, self = _from_chainerx(self)
+        _, _, key = _from_chainerx(key)
+        _, _, value = _from_chainerx(value)
 
-        if cupy is not None and isinstance(self, cupy.ndarray):
-            with self.device:
-                self[key] = value
-        else:
+        with dev:
             self[key] = value
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
+
+    def _min(arr, *args, **kwargs):
+        _, dev, arr = _from_chainerx(arr)
+        with dev:
+            ret = arr.min(*args, **kwargs)
+        return _to_chainerx(ret)
+
+    ndarray.min = _min
+
+    def _all(arr, *args, **kwargs):
+        _, dev, arr = _from_chainerx(arr)
+        with dev:
+            ret = arr.all(*args, **kwargs)
+        return _to_chainerx(ret)
+
+    ndarray.all = _all
+
+    def _any(arr, *args, **kwargs):
+        _, dev, arr = _from_chainerx(arr)
+        with dev:
+            ret = arr.any(*args, **kwargs)
+        return _to_chainerx(ret)
+
+    ndarray.any = _any
+
+
+def populate():
+    _populate_module_functions()
+    _populate_ndarray()
