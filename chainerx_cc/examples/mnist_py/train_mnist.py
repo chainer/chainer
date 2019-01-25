@@ -176,7 +176,6 @@ def get_mnist(path, name):
         # read/frombuffer is used instead of fromfile because fromfile does not
         # handle gzip file correctly
         x = np.frombuffer(fx.read(), dtype=np.uint8).reshape(-1, 784)
-        # x.flags.writeable = True  # TODO(beam2d): remove this workaround
 
     with gzip.open(y_path, 'rb') as fy:
         fy.read(8)  # skip header
