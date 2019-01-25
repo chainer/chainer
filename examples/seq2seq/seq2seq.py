@@ -136,7 +136,7 @@ class CalculateBleu(chainer.training.Extension):
         self.device = device
         self.max_length = max_length
 
-    def __init__(self, trainer):
+    def __call__(self, trainer):
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []
