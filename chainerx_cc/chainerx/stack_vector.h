@@ -197,11 +197,11 @@ private:
 
 // Formatter to print StackVector containing integral elements as e.g. '[]' or '[1, 2, 3]'.
 template <typename T, stack_vector_detail::size_type N>
-class DimArgFormatter {
+class DimsArgFormatter {
 public:
-    static_assert(std::is_integral<T>::value, "DimArgFormatter requires intergral elements.");
+    static_assert(std::is_integral<T>::value, "DimsArgFormatter requires intergral elements.");
 
-    explicit DimArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
+    explicit DimsArgFormatter(const StackVector<T, N>& stack_vector) : stack_vector_{stack_vector} {}
 
     void Print(std::ostream& os) const {
         os << "[";
@@ -219,7 +219,7 @@ private:
 };
 
 template <typename T, stack_vector_detail::size_type N>
-std::ostream& operator<<(std::ostream& os, const DimArgFormatter<T, N>& formatter) {
+std::ostream& operator<<(std::ostream& os, const DimsArgFormatter<T, N>& formatter) {
     formatter.Print(os);
     return os;
 }
