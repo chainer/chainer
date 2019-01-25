@@ -161,6 +161,22 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
+    // TODO(niboshi): Support arguments
+    c.def("item", [](const ArrayBodyPtr& a) -> py::object {
+        Scalar s = AsScalar(Array{a});
+        switch (GetKind(s.dtype())) {
+            case DtypeKind::kBool:
+                return py::bool_{static_cast<bool>(s)};
+            case DtypeKind::kInt:
+                // fallthrough
+            case DtypeKind::kUInt:
+                return py::int_{static_cast<int64_t>(s)};
+            case DtypeKind::kFloat:
+                return py::float_{static_cast<double>(s)};
+            default:
+                CHAINERX_NEVER_REACH();
+        }
+    });
     c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
     c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
