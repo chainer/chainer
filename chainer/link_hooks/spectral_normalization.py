@@ -124,7 +124,7 @@ class SpectralNormalization(link_hook.LinkHook):
 
             >>> l = L.Convolution2D(3, 5, 3)
             >>> hook = chainer.link_hooks.SpectralNormalization()
-            >>> l.add_hook(hook)
+            >>> l = l.add_hook(hook)
             >>> # Check the shape of the first left singular vector.
             >>> getattr(l, hook.vector_name).shape
             (1, 5)
