@@ -181,7 +181,6 @@ def get_mnist(path, name):
     with gzip.open(y_path, 'rb') as fy:
         fy.read(8)  # skip header
         y = np.frombuffer(fy.read(), dtype=np.uint8)
-        # y.flags.writeable = True  # TODO(beam2d): remove this workaround
 
     assert x.shape[0] == y.shape[0]
 
