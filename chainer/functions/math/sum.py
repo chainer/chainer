@@ -72,9 +72,7 @@ def sum(x, axis=None, keepdims=False):
     """Sum of array elements over a given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Elements to sum.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Elements to sum.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axis (None, int, or tuple of int): Axis along which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
@@ -133,9 +131,7 @@ def sum_to(x, shape):
     """Sum elements along axes to output an array of a given shape.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         shape (tuple of int): The target shape.
 
     Returns:

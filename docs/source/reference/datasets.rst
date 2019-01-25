@@ -50,6 +50,8 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.converter
+
    chainer.dataset.concat_examples
    chainer.dataset.ConcatWithAsyncTransfer
    chainer.dataset.to_device

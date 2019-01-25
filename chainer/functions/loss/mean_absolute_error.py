@@ -44,5 +44,14 @@ def mean_absolute_error(x0, x1):
     This function computes mean absolute error between two variables. The mean
     is taken over the minibatch.
 
+    Args:
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable:
+            A variable holding an array representing the mean absolute
+            error of two inputs.
+
     """
     return MeanAbsoluteError().apply((x0, x1))[0]

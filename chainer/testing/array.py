@@ -33,15 +33,22 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
             '  shape: {} {}\n'.format(x.shape, y.shape) +
             '  dtype: {} {}\n'.format(x.dtype, y.dtype))
         if x.shape == y.shape:
-            xx = x if x.ndim != 0 else x.reshape((1,))
-            yy = y if y.ndim != 0 else y.reshape((1,))
+            xx = numpy.atleast_1d(x)
+            yy = numpy.atleast_1d(y)
             err = numpy.abs(xx - yy)
-            i = numpy.unravel_index(numpy.argmax(err), err.shape)
+            tol_err = atol + rtol * numpy.abs(yy).astype(numpy.float64)
+            i = numpy.unravel_index(
+                numpy.argmax(err.astype(numpy.float64) - tol_err), err.shape)
+            if yy[i] == 0:
+                rel_err = 'inf'
+            else:
+                rel_err = err[i] / numpy.abs(yy[i])
             f.write(
                 '  i: {}\n'.format(i) +
                 '  x[i]: {}\n'.format(xx[i]) +
                 '  y[i]: {}\n'.format(yy[i]) +
-                '  err[i]: {}\n'.format(err[i]))
+                '  relative error[i]: {}\n'.format(rel_err) +
+                '  absolute error[i]: {}\n'.format(err[i]))
         opts = numpy.get_printoptions()
         try:
             numpy.set_printoptions(threshold=10000)
@@ -70,11 +77,11 @@ def _as_noncontiguous_array(array):
 
         device = backend.get_device_from_array(a)
         xp = device.xp
+        slices = (slice(None, None, 2),) * a.ndim
         with chainer.using_device(device):
-            ret = xp.empty(
-                (a.shape[0] * 2,) + a.shape[1:], dtype=a.dtype)
-        ret[::2] = a
-        ret = ret[::2]
+            ret = xp.empty(tuple([s * 2 for s in a.shape]), dtype=a.dtype)
+            ret[slices] = a
+            ret = ret[slices]
         if device.xp is chainerx:
             assert not ret.is_contiguous
         else:

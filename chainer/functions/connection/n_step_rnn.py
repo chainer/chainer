@@ -295,6 +295,10 @@ class BaseNStepRNN(function.Function):
             return hy, ys
 
     def backward(self, inputs, grads):
+        if not configuration.config.train:
+            raise RuntimeError('cuDNN does not support backward computation '
+                               'of RNN in testing mode')
+
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs

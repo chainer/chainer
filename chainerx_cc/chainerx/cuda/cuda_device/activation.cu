@@ -29,7 +29,7 @@ struct IfLessElseASSAImpl {
 
 void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);

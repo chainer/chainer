@@ -21,11 +21,16 @@ esac
 # Assign default values
 : "${MATRIX_EVAL:=}"
 : "${SKIP_CHAINERX:=0}"
+: "${CHAINER_TEST_STATUS:=0}"
 
 DEFAULT_JOBS=2
 REPO_DIR="$TRAVIS_BUILD_DIR"
 WORK_DIR="$TRAVIS_BUILD_DIR"/_workspace
 mkdir -p "$WORK_DIR"
+
+# Env script which is sourced before each step
+CHAINER_BASH_ENV="$WORK_DIR"/_chainer_bash_env
+touch "$CHAINER_BASH_ENV"
 
 
 # Test step definitions
@@ -58,10 +63,6 @@ step_install_chainer_test_deps() {
         pillow
     )
     pip install "${reqs[@]}"
-
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        pip install -U 'mypy>=0.650';
-    fi
 }
 
 
@@ -75,7 +76,6 @@ step_before_install_chainer_test() {
         pyenv global $PYTHON_VERSION
         python --version
 
-        brew cask uninstall oclint
         brew install hdf5
     fi
 }
@@ -133,6 +133,16 @@ step_python_style_check() {
 }
 
 
+step_python_mypy_check_deps() {
+    pip install -U 'mypy>=0.650'
+}
+
+
+step_python_mypy_check() {
+    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
+}
+
+
 step_chainer_install_from_sdist() {
     # Build sdist.
     # sdist does not support out-of-source build.
@@ -152,9 +162,6 @@ step_chainer_install_from_sdist() {
 
 step_chainer_tests() {
     pytest -m "not slow and not gpu and not cudnn and not ideep" "$REPO_DIR"/tests/chainer_tests
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        (cd "$REPO_DIR" && mypy chainer)
-    fi
 }
 
 
@@ -210,6 +217,8 @@ step_chainerx_cmake() {
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
         "$REPO_DIR"/chainerx_cc
     popd
+
+    echo "CHAINERX_BUILD_DIR=\"$CHAINERX_BUILD_DIR\"" >> "$CHAINER_BASH_ENV"
 }
 
 
@@ -222,42 +231,62 @@ step_chainerx_clang_tidy() {
 }
 
 
-run_step() {
+run_prestep() {
+    # Failure immediately stops the script.
+
     step="$1"
     shift
     echo "=== Step: $step $@"
+
+    source "$CHAINER_BASH_ENV"
 
     step_"$step" "$@"
 }
 
 
+run_step() {
+    # In case of failure, CHAINER_TEST_STATUS is incremented by 1.
+
+    step="$1"
+    shift
+    echo "=== Step: $step $@"
+
+    source "$CHAINER_BASH_ENV"
+
+    step_"$step" "$@" || CHAINER_TEST_STATUS=$((CHAINER_TEST_STATUS + 1))
+}
+
+
 case "${CHAINER_TRAVIS_TEST}" in
-    "python-stylecheck")
+    "python-static-check")
         case "$phase" in
             before_install)
             ;;
             install)
                 run_step install_chainer_style_check_deps
+                run_step python_mypy_check_deps
             ;;
             script)
                 run_step python_style_check
+                run_step python_mypy_check
             ;;
         esac
         ;;
 
-    "c-stylecheck")
+    "c-static-check")
         case "$phase" in
             before_install)
-                run_step before_install_chainerx_style_check_deps
+                run_prestep before_install_chainerx_style_check_deps
             ;;
             install)
-                run_step install_chainerx_style_check_deps
+                run_prestep install_chainerx_style_check_deps
+
+                run_prestep chainerx_cmake  # cmake is required for clang-tidy
             ;;
             script)
                 run_step chainerx_cpplint
                 run_step chainerx_clang_format
 
-                run_step chainerx_cmake  # cmake is required for clang-tidy
                 run_step chainerx_clang_tidy normal
                 run_step chainerx_clang_tidy test
             ;;
@@ -268,20 +297,21 @@ case "${CHAINER_TRAVIS_TEST}" in
         case "$phase" in
             before_install)
                 eval "${MATRIX_EVAL}"
-                run_step before_install_chainer_test
-                run_step before_install_chainermn_test_deps
+                run_prestep before_install_chainer_test
+                run_prestep before_install_chainermn_test_deps
                 ;;
 
             install)
                 pip install -U pip wheel
 
-                run_step install_chainer_test_deps
-                run_step install_chainer_docs_deps
-                run_step install_chainermn_test_deps
+                run_prestep install_chainer_test_deps
+                run_prestep install_chainer_docs_deps
+                run_prestep install_chainermn_test_deps
+
+                run_prestep chainer_install_from_sdist
                 ;;
 
             script)
-                run_step chainer_install_from_sdist
                 run_step chainer_tests
                 run_step chainermn_tests
 
@@ -299,3 +329,6 @@ case "${CHAINER_TRAVIS_TEST}" in
         exit 1
         ;;
 esac
+
+# In "script" phases, the number of failed steps is assigned to this variable.
+exit $CHAINER_TEST_STATUS

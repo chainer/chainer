@@ -8,6 +8,7 @@ from chainer import types  # NOQA
 
 if types.TYPE_CHECKING:
     import numpy  # NOQA
+
     from chainer.graph_optimizations import static_graph  # NOQA
 
 

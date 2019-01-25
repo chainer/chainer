@@ -1,4 +1,4 @@
-__version__ = '6.0.0b1'
+__version__ = '6.0.0b2'
 
 
 _optional_dependencies = [
@@ -12,7 +12,7 @@ _optional_dependencies = [
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==6.0.0b1',
+        'specifier': '==6.0.0b2',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {

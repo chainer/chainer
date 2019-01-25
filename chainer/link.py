@@ -13,8 +13,8 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
-from chainer.utils import collections_abc
 from chainer import types  # NOQA
+from chainer.utils import collections_abc
 from chainer import variable
 import chainerx
 

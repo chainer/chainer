@@ -11,8 +11,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators._statemachine import (IteratorState,
-                                             iterator_statemachine)
+from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -257,8 +256,8 @@ class MultiprocessIterator(iterator.Iterator):
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
-        self._state = IteratorState(current_position, epoch, is_new_epoch,
-                                    order)
+        self._state = _statemachine.IteratorState(
+            current_position, epoch, is_new_epoch, order)
         self._comm.reset(self._state)
 
     @property
@@ -396,7 +395,7 @@ class _PrefetchLoop(object):
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
 
-        self.prefetch_state, indices = iterator_statemachine(
+        self.prefetch_state, indices = _statemachine.iterator_statemachine(
             self.prefetch_state, self.batch_size, self.repeat,
             self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration
@@ -473,7 +472,7 @@ class _PrefetchLoop(object):
         elif status == _Communicator.STATUS_TERMINATE:
             return False  # stop loop
 
-        self.prefetch_state, indices = iterator_statemachine(
+        self.prefetch_state, indices = _statemachine.iterator_statemachine(
             self.prefetch_state, self.batch_size, self.repeat,
             self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration

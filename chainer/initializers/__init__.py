@@ -3,9 +3,9 @@ import typing as tp  # NOQA
 import numpy
 
 import chainer
+from chainer.backends import _chainerx  # NOQA
 from chainer.backends import _cpu
 from chainer.backends import cuda
-from chainer.backends import _chainerx  # NOQA
 import chainerx
 
 # import class and function

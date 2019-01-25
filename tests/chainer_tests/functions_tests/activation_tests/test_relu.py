@@ -5,124 +5,52 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
+    'contiguous': [None, 'C'],
 }))
 @testing.fix_random()
-@backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+@testing.inject_backend_tests(
+    None,
     # CPU tests
-    testing.product({
-        'use_cuda': [False],
-        'use_ideep': ['never', 'always'],
-    })
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
     })
     # ChainerX tests
     + [
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-class TestReLU(unittest.TestCase):
+class TestReLU(testing.FunctionTestCase):
 
-    def setUp(self):
-        # Avoid unstability of numerical grad
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        x[(-0.1 < x) & (x < 0.1)] = 0.5
-        gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.inputs = [x]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx]
-        self.check_backward_options = {}
-        self.check_double_backward_options = {}
-        if self.dtype == numpy.float16:
-            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        return x,
 
-    def forward_cpu(self, inputs):
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.relu(x),
+
+    def forward_expected(self, inputs):
         x, = inputs
         expected = x.copy()
         expected[expected < 0] = 0
         return expected,
-
-    def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        inputs = self.inputs
-        y_expected, = self.forward_cpu(inputs)
-
-        inputs = backend_config.get_array(inputs)
-
-        if not self.c_contiguous:
-            inputs = testing.array._as_noncontiguous_array(inputs)
-
-        x_data, = inputs
-        x = chainer.Variable(x_data)
-        with backend_config:
-            y = functions.relu(x)
-        assert y.data.dtype == self.dtype
-
-        testing.assert_allclose(y_expected, y.data)
-
-    def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-
-        if not self.c_contiguous:
-            inputs = testing.array._as_noncontiguous_array(inputs)
-            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
-
-        with backend_config:
-            gradient_check.check_backward(
-                functions.relu, inputs, grad_outputs, dtype=numpy.float64,
-                **self.check_backward_options)
-
-    def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-        grad_grad_inputs = self.grad_grad_inputs
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-
-        if not self.c_contiguous:
-            inputs = testing.array._as_noncontiguous_array(inputs)
-            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = (
-                testing.array._as_noncontiguous_array(grad_grad_inputs))
-
-        x, = inputs
-        gy, = grad_outputs
-        ggx, = grad_grad_inputs
-        with backend_config:
-            gradient_check.check_double_backward(
-                functions.relu, x, gy, ggx, dtype=numpy.float64,
-                **self.check_double_backward_options)
 
 
 @testing.parameterize(*testing.product({

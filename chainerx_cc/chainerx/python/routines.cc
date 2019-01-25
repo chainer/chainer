@@ -328,23 +328,6 @@ void InitChainerxLogic(pybind11::module& m) {
 
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
-    m.def("asscalar",
-          [](const ArrayBodyPtr& a) -> py::object {
-              Scalar s = AsScalar(Array{a});
-              switch (GetKind(s.dtype())) {
-                  case DtypeKind::kBool:
-                      return py::bool_{static_cast<bool>(s)};
-                  case DtypeKind::kInt:
-                      // fallthrough
-                  case DtypeKind::kUInt:
-                      return py::int_{static_cast<int64_t>(s)};
-                  case DtypeKind::kFloat:
-                      return py::float_{static_cast<double>(s)};
-                  default:
-                      CHAINERX_NEVER_REACH();
-              }
-          },
-          py::arg("a"));
     m.def("transpose",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Transpose(Array{a}, ToAxes(axes)));

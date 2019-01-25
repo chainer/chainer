@@ -34,15 +34,13 @@ def binary_accuracy(y, t):
     """Computes binary classification accuracy of the minibatch.
 
     Args:
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array whose i-th element indicates the score of
             positive at the i-th sample.
             The prediction label :math:`\\hat t[i]` is ``1`` if
             ``y[i] >= 0``, otherwise ``0``.
 
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Array holding a signed integer vector of ground truth labels.
             If ``t[i] == 1``, it indicates that i-th sample is positive.
             If ``t[i] == 0``, it indicates that i-th sample is negative.

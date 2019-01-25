@@ -6,6 +6,7 @@ from chainer.functions.array import where
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
+from chainer.utils import cache
 
 
 class Gamma(distribution.Distribution):
@@ -21,22 +22,22 @@ class Gamma(distribution.Distribution):
 
     def __init__(self, k, theta):
         super(Gamma, self).__init__()
-        self.__k = chainer.as_variable(k)
-        self.__theta = chainer.as_variable(theta)
+        self.__k = k
+        self.__theta = theta
 
-    @property
+    @cache.cached_property
     def k(self):
-        return self.__k
+        return chainer.as_variable(self.__k)
 
-    @property
+    @cache.cached_property
     def theta(self):
-        return self.__theta
+        return chainer.as_variable(self.__theta)
 
     @property
     def batch_shape(self):
         return self.k.shape
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return self.k + exponential.log(self.theta) + lgamma.lgamma(self.k) \
             + (1 - self.k) * digamma.digamma(self.k)
@@ -58,7 +59,7 @@ class Gamma(distribution.Distribution):
             x = x.array
         return where.where(xp.asarray(x >= 0), logp, xp.asarray(-inf))
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.k * self.theta
 
@@ -77,9 +78,9 @@ class Gamma(distribution.Distribution):
     def support(self):
         return 'positive'
 
-    @property
+    @cache.cached_property
     def variance(self):
-        return self.k * self.theta * self.theta
+        return self.mean * self.theta
 
 
 @distribution.register_kl(Gamma, Gamma)

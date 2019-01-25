@@ -188,7 +188,8 @@ def matmul(a, b, transa=False, transb=False):
     """Computes the matrix multiplication of two arrays.
 
     Args:
-        a (Variable): The left operand of the matrix multiplication.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The left operand of the matrix multiplication.
             If ``a`` and ``b`` are both 1-D arrays, ``matmul`` returns a dot
             product of vector `a` and vector `b`. If 2-D arrays, ``matmul``
             returns matrix product of ``a`` and ``b``. If either's dimension is
@@ -196,7 +197,8 @@ def matmul(a, b, transa=False, transb=False):
             the last two indexes. ``matmul`` returns a stack of each two
             arrays. In this case, ``a`` and ``b`` are broadcasted along axes
             except the last two.
-        b (Variable): The right operand of the matrix multiplication.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The right operand of the matrix multiplication.
             Its array is treated as a matrix in the same way as ``a``'s array.
         transa (bool): If ``True``, each matrices in ``a`` will be transposed.
             If ``a.ndim == 1``, do nothing.
@@ -306,12 +308,14 @@ def batch_matmul(a, b, transa=False, transb=False):
     """Computes the batch matrix multiplications of two sets of arrays.
 
     Args:
-        a (Variable): The left operand of the batch matrix multiplications.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The left operand of the batch matrix multiplications.
             A 2-D array of shape ``(B, N)`` is considered as B
             :math:`N \\times 1` matrices.
             A 3-D array of shape ``(B, M, N)`` is considered as B
             :math:`M \\times N` matrices.
-        b (Variable): The right operand of the batch matrix multiplications.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            The right operand of the batch matrix multiplications.
             Its array is treated as matrices in the same way as ``a``'s array.
         transa (bool): If ``True``, transpose each matrix in ``a``.
         transb (bool): If ``True``, transpose each matrix in ``b``.

@@ -14,6 +14,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'alpha': [(-2.0, 0.0), 0.0, (0.0, 2.0)],
 }))
 @testing.fix_random()
 class TestELU(unittest.TestCase):
@@ -24,7 +25,8 @@ class TestELU(unittest.TestCase):
         self.x[(-0.01 < self.x) & (self.x < 0.01)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.alpha = random.random()
+        if isinstance(self.alpha, tuple):
+            self.alpha = random.uniform(self.alpha[0], self.alpha[1])
         self.check_forward_options = {}
         self.check_backward_options = {}
         if self.dtype == numpy.float16:
