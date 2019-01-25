@@ -1,3 +1,5 @@
+.. _mnist_mlp_example:
+
 MNIST using Trainer
 ```````````````````
 
