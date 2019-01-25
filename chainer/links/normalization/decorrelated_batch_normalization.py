@@ -36,7 +36,8 @@ class DecorrelatedBatchNormalization(link.Link):
         size (int or tuple of ints): Size (or shape) of channel
             dimensions.
         groups (int): Number of groups to use for group whitening.
-        decay (float): Decay rate of moving average. It is used on training.
+        decay (float): Decay rate of moving average
+            which is used during training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
 
@@ -47,12 +48,13 @@ class DecorrelatedBatchNormalization(link.Link):
        :func:`~chainer.functions.fixed_decorrelated_batch_normalization`
 
     Attributes:
-        expected_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        expected_projection (numpy.ndarray or cupy.ndarray): Population
+        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        avg_projection (numpy.ndarray or cupy.ndarray): Population
             projection.
         groups (int): Number of groups to use for group whitening.
         N (int): Count of batches given for fine-tuning.
-        decay (float): Decay rate of moving average. It is used on training.
+        decay (float): Decay rate of moving average
+            which is used during training.
         ~DecorrelatedBatchNormalization.eps (float): Epsilon value for
             numerical stability. This value is added to the batch variances.
 
@@ -61,17 +63,17 @@ class DecorrelatedBatchNormalization(link.Link):
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
                  dtype=numpy.float32):
         super(DecorrelatedBatchNormalization, self).__init__()
-        self.expected_mean = numpy.zeros(size // groups, dtype=dtype)
-        self.register_persistent('expected_mean')
-        self.expected_projection = numpy.eye(size // groups, dtype=dtype)
-        self.register_persistent('expected_projection')
+        self.avg_mean = numpy.zeros(size // groups, dtype=dtype)
+        self.register_persistent('avg_mean')
+        self.avg_projection = numpy.eye(size // groups, dtype=dtype)
+        self.register_persistent('avg_projection')
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
         self.groups = groups
 
-    def __call__(self, x, **kwargs):
+    def forward(self, x, **kwargs):
         """Invokes the forward propagation of DecorrelatedBatchNormalization.
 
         In training mode, the DecorrelatedBatchNormalization computes moving
@@ -79,7 +81,7 @@ class DecorrelatedBatchNormalization(link.Link):
         and normalizes the input using batch statistics.
 
         Args:
-            x (Variable): Input variable.
+            x (:class:`~chainer.Variable`): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is
                 ``True``, DecorrelatedBatchNormalization runs in fine-tuning
                 mode; it accumulates the input array to compute population
@@ -98,12 +100,14 @@ class DecorrelatedBatchNormalization(link.Link):
 
             ret = functions.decorrelated_batch_normalization(
                 x, groups=self.groups, eps=self.eps,
-                expected_mean=self.expected_mean,
-                expected_projection=self.expected_projection, decay=decay)
+                running_mean=self.avg_mean,
+                running_projection=self.avg_projection, decay=decay)
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.expected_mean)
-            projection = variable.Variable(self.expected_projection)
+            # mean = variable.Variable(self.avg_mean)
+            # projection = variable.Variable(self.avg_projection)
+            mean = self.avg_mean
+            projection = self.avg_projection
             ret = functions.fixed_decorrelated_batch_normalization(
                 x, mean, projection, groups=self.groups)
         return ret

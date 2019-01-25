@@ -1,5 +1,4 @@
 from chainer.backends import cuda
-from chainer import function
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
@@ -11,8 +10,8 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
                  decay=0.9):
         self.groups = groups
 
-        self.expected_mean = mean
-        self.expected_projection = projection
+        self.running_mean = mean
+        self.running_projection = projection
 
         self.eps = eps
         self.decay = decay
@@ -42,11 +41,11 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         for i in spatial_axis:
             m *= x.shape[i]
 
-        if self.expected_mean is None:
-            self.expected_mean = xp.zeros(C, dtype=x.dtype)
-            self.expected_projection = xp.eye(C, dtype=x.dtype)
+        if self.running_mean is None:
+            self.running_mean = xp.zeros(C, dtype=x.dtype)
+            self.running_projection = xp.eye(C, dtype=x.dtype)
 
-        if self.groups > 1:
+        if g > 1:
             x = x.reshape((b * g, C, ) + x.shape[2:])
         x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
 
@@ -54,8 +53,8 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         x_hat = x_hat - mean[:, None]
         self.eps = x.dtype.type(self.eps)
 
-        I = self.eps * xp.eye(C, dtype=x.dtype)
-        cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + I
+        identity = self.eps * xp.eye(C, dtype=x.dtype)
+        cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + identity
         self.eigvals, self.eigvectors = xp.linalg.eigh(cov)
         U = xp.diag(self.eigvals ** -0.5).dot(self.eigvectors.T)
         self.y_hat_pca = U.dot(x_hat)  # PCA whitening
@@ -69,11 +68,11 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         # Update running statistics
         q = x.size // C
         adjust = q / max(q - 1., 1.)  # unbiased estimation
-        self.expected_mean *= self.decay
-        self.expected_mean += (1 - self.decay) * mean
-        self.expected_projection *= self.decay
+        self.running_mean *= self.decay
+        self.running_mean += (1 - self.decay) * mean
+        self.running_projection *= self.decay
         projection = self.eigvectors.dot(U)
-        self.expected_projection += (1 - self.decay) * adjust * projection
+        self.running_projection += (1 - self.decay) * adjust * projection
 
         return y,
 
@@ -82,10 +81,10 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
 
         f = DecorrelatedBatchNormalizationGrad(
             self.groups, self.eigvals, self.eigvectors, self.y_hat_pca)
-        return f(gy),
+        return f.apply((gy,))
 
 
-class DecorrelatedBatchNormalizationGrad(function.Function):
+class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
     def __init__(self, groups, eigvals, eigvectors, y_hat_pca):
         self.groups = groups
@@ -125,7 +124,8 @@ class DecorrelatedBatchNormalizationGrad(function.Function):
         F_c = gy_hat_pca.dot(self.y_hat_pca.T) / gy.dtype.type(m)
         M = xp.diag(xp.diag(F_c))
 
-        S = 2 * _sym(K.T * (V.dot(F_c.T) + V_sqrt.dot(F_c).dot(V_sqrt)))
+        mat = K.T * (V.dot(F_c.T) + V_sqrt.dot(F_c).dot(V_sqrt))
+        S = mat + mat.T
         R = gy_hat_pca - f[:, None] + (S - M).T.dot(self.y_hat_pca)
         gx_hat = R.T.dot(V_invsqrt).dot(self.eigvectors.T).T
 
@@ -138,6 +138,7 @@ class DecorrelatedBatchNormalizationGrad(function.Function):
         return gx,
 
     def backward(self, inputs, grad_outputs):
+        # TODO(crcrpar): Implement this.
         raise NotImplementedError
 
 
@@ -183,10 +184,6 @@ class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         raise NotImplementedError
 
 
-def _sym(x):
-    return (x + x.T) / 2
-
-
 def decorrelated_batch_normalization(x, **kwargs):
     """Decorrelated batch normalization function.
 
@@ -194,15 +191,14 @@ def decorrelated_batch_normalization(x, **kwargs):
     batch statistics to make the output zero-mean and decorrelated.
 
     Args:
-        x (Variable): Input variable.
+        x (:class:`~chainer.Variable`): Input variable.
         groups (int): Number of groups to use for group whitening.
         eps (float): Epsilon value for numerical stability.
-        expected_mean (numpy.ndarray or cupy.ndarray):
-            Expected value of the mean. This is a
+        running_mean (:ref:`ndarray`): Expected value of the mean. This is a
             running average of the mean over several mini-batches using
             the decay parameter. If ``None``, the expected mean is initialized
             to zero.
-        expected_projection (numpy.ndarray or cupy.ndarray):
+        running_projection (:ref:`ndarray`):
             Expected value of the project matrix. This is a
             running average of the projection over several mini-batches using
             the decay parameter. If ``None``, the expected projected is
@@ -215,13 +211,13 @@ def decorrelated_batch_normalization(x, **kwargs):
     .. seealso:: :class:`links.DecorrelatedBatchNormalization`
 
     """  # NOQA
-    groups, eps, expected_mean, expected_projection, decay = \
+    groups, eps, running_mean, running_projection, decay = \
         argument.parse_kwargs(
-            kwargs, ('groups', 16), ('eps', 2e-5), ('expected_mean', None),
-            ('expected_projection', None), ('decay', 0.9))
+            kwargs, ('groups', 16), ('eps', 2e-5), ('running_mean', None),
+            ('running_projection', None), ('decay', 0.9))
 
-    f = DecorrelatedBatchNormalizationFunction(groups, eps, expected_mean,
-                                               expected_projection,
+    f = DecorrelatedBatchNormalizationFunction(groups, eps, running_mean,
+                                               running_projection,
                                                decay)
     return f.apply((x,))[0]
 
@@ -235,9 +231,11 @@ def fixed_decorrelated_batch_normalization(x, mean, projection, **kwargs):
     batch statistics cannot be used for prediction consistency.
 
     Args:
-        x (Variable): Input variable.
-        mean (Variable): Shifting parameter of input.
-        projection (Variable): Projection matrix for decorrelation of input.
+        x (:class:`~chainer.Variable`): Input variable.
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Shifting parameter of input.
+        projection (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Projection matrix for decorrelation of input.
         groups (int): Number of groups to use for group whitening.
 
 

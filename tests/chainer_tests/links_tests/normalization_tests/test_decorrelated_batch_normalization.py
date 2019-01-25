@@ -79,8 +79,8 @@ class BatchNormalizationTest(unittest.TestCase):
             self.mean = numpy.random.uniform(-1, 1, (C,)).astype(self.dtype)
             self.projection = numpy.random.uniform(0.5, 1, (C, C)).astype(
                 self.dtype)
-            self.link.expected_mean[...] = self.mean
-            self.link.expected_projection[...] = self.projection
+            self.link.avg_mean[...] = self.mean
+            self.link.avg_projection[...] = self.projection
         else:
             spatial_axis = tuple(range(head_ndim, self.x.ndim))
             x_hat = self.x.reshape((5 * self.groups, C, ) + self.x.shape[2:])
