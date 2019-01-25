@@ -4,7 +4,6 @@ from chainer import configuration
 from chainer import functions
 from chainer import link
 from chainer.utils import argument
-from chainer import variable
 
 
 class DecorrelatedBatchNormalization(link.Link):
