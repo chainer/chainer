@@ -209,11 +209,41 @@ class TestVariable(unittest.TestCase):
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
+    def test_init_unchecked(self):
+        a = np.asarray(self.x)
+        x = chainer.Variable._init_unchecked(a)
+        np.testing.assert_array_equal(x.array, a)
+        assert isinstance(x.node, chainer.variable.VariableNode)
+
+    def test_init_unchecked_explicit(self):
+        a = np.asarray(self.x)
+        x = chainer.Variable._init_unchecked(a, is_chainerx_array=False)
+        np.testing.assert_array_equal(x.array, a)
+        assert isinstance(x.node, chainer.variable.VariableNode)
+
     @attr.chainerx
     def test_chainerx_init(self):
         a = chainerx.asarray(self.x)
         x = chainer.Variable(a)
         chainerx.testing.assert_array_equal(x.array, a)
+        with pytest.raises(RuntimeError):
+            x.node
+
+    @attr.chainerx
+    def test_chainerx_init_unchecked(self):
+        a = chainerx.asarray(self.x)
+        x = chainer.Variable._init_unchecked(a)
+        chainerx.testing.assert_array_equal(x.array, a)
+        with pytest.raises(RuntimeError):
+            x.node
+
+    @attr.chainerx
+    def test_chainerx_init_unchecked_explicit(self):
+        a = chainerx.asarray(self.x)
+        x = chainer.Variable._init_unchecked(a, is_chainerx_array=True)
+        chainerx.testing.assert_array_equal(x.array, a)
+        with pytest.raises(RuntimeError):
+            x.node
 
     def check_attributes(self, xp):
         a = get_array(xp, self.x)

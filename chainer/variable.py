@@ -178,6 +178,8 @@ class VariableNode(object):
     _old_style_grad_generator = None  # type: str
 
     def __init__(self, variable, name, **kwargs):
+        # type: (Variable, tp.Optional[str], **tp.Any) -> None
+
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -510,12 +512,12 @@ class Variable(object):
     _grad = None
 
     def __init__(self, data=None, **kwargs):
-        # type: (types.NdArray, **tp.Any) -> None
+        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
+                     'Use chainer.using_config')
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -525,6 +527,25 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
+        self._init_impl(data, name, grad, requires_grad, None)
+
+    @staticmethod
+    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
+                        is_chainerx_array=None):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+        """Creates a new :class:`Variable` without the validations for
+        optimizing performance.
+        """
+
+        # Create a Variable without invoking __init__
+        var = Variable.__new__(Variable)
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array)
+
+        return var
+
+    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
+
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
@@ -533,18 +554,21 @@ class Variable(object):
         self._grad_var = None
         self._device = None
 
-        if isinstance(data, chainerx.ndarray):
+        if is_chainerx_array is None:
+            is_chainerx_array = isinstance(data, chainerx.ndarray)
+
+        if is_chainerx_array:
             if not requires_grad and grad is not None:
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
+            self._set_chainerx_array(data, grad)  # type: ignore
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
-            self._data = [data]  # type: tp.List[tp.Optional[chainerx.ndarray]]
+            self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
             self._node = VariableNode(self, name)
             self._grad = grad
 
@@ -808,7 +832,7 @@ class Variable(object):
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
-                    self._data[0].as_grad_stopped())
+                    self._data[0].as_grad_stopped())  # type: ignore
             return self._chainerx_nobp_array_cache
 
         return self._data[0]
@@ -820,7 +844,7 @@ class Variable(object):
         if self.xp is chainerx:
             d_old = self._data[0]
             if (d_old is not None
-                    and (d_old.is_backprop_required()
+                    and (d_old.is_backprop_required()  # type: ignore
                          or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
