@@ -428,9 +428,11 @@ class VariableNode(object):
                 self._old_style_grad_generator)
 
 
-def _create_variable(data, name, grad, requires_grad):
-    return Variable(
+def _create_variable(data, name, grad, requires_grad, device):
+    var = Variable(
         data, name=name, grad=grad, requires_grad=requires_grad)
+    var.to_device(device)
+    return var
 
 
 class Variable(object):
@@ -555,8 +557,9 @@ class Variable(object):
         return target
 
     def __reduce__(self):
-        return _create_variable, (self.array, self.name, self.grad,
-                                  self._requires_grad)
+        args = (
+            self.array, self.name, self.grad, self._requires_grad, self.device)
+        return _create_variable, args
 
     def __repr__(self):
         return variable_repr(self)
@@ -1660,8 +1663,10 @@ class Parameter(Variable):
         return self._copy_to(Parameter())
 
     def __reduce__(self):
-        return _recover_parameter, (self.array, self.name, self.grad,
-                                    self.initializer, self.update_rule)
+        args = (
+            self.array, self.name, self.grad, self.initializer,
+            self.update_rule, self.device)
+        return _recover_parameter, args
 
     def to_cpu(self):
         return self.to_device(backend.CpuDevice())
@@ -1823,11 +1828,12 @@ def as_array(obj):
     return obj
 
 
-def _recover_parameter(data, name, grad, initializer, update_rule):
+def _recover_parameter(data, name, grad, initializer, update_rule, device):
     p = Parameter(initializer=initializer, name=name)
     p.array = data
     p.grad = grad
     p.update_rule = update_rule
+    p.to_device(device)
     return p
 
 

@@ -146,6 +146,13 @@ void InitChainerxArray(pybind11::module& m) {
               std::shared_ptr<void> data{c_ptr, [base](void*) {}};
               return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
+    c.def(py::pickle(
+            [](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(self, true), self->device()); },
+            [](py::tuple state) -> ArrayBodyPtr {
+                py::array numpy_array = state[0];
+                Device& device = py::cast<Device&>(state[1]);
+                return MakeArrayFromNumpyArray(numpy_array, device);
+            }));
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
         if (self->ndim() == 0) {
