@@ -1,7 +1,7 @@
 from __future__ import division
 import datetime
 import multiprocessing
-from multiprocessing import sharedctypes  # type: ignore
+from multiprocessing import sharedctypes  # type: ignore  # mypy cannot find it
 import signal
 import sys
 import threading

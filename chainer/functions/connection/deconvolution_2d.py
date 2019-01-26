@@ -13,7 +13,7 @@ from chainer.utils import type_check
 import chainerx
 
 if cuda.cudnn_enabled:
-    _cudnn_version = cuda.cuda.cudnn.getVersion()  # type: ignore
+    _cudnn_version = cuda.cuda.cudnn.getVersion()  # type: ignore  # mypy cannot find cuda.cuda  # NOQA
 
 
 def _pair(x):

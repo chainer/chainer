@@ -106,12 +106,12 @@ class Linear(link.Link):
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)  # type: variable.Variable  # NOQA
+            self.W = variable.Parameter(W_initializer)
             if in_size is not None:
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None  # type: tp.Optional[variable.Variable]
+                self.b = None  # type: tp.Optional[variable.Parameter]
             else:
                 if initial_bias is None:
                     initial_bias = 0
@@ -121,7 +121,7 @@ class Linear(link.Link):
     def _initialize_params(self, in_size):
         # type: (int) -> None
 
-        self.W.initialize((self.out_size, in_size))  # type: ignore
+        self.W.initialize((self.out_size, in_size))
 
     def forward(self, x, n_batch_axes=1):
         # type: (variable.Variable, int) -> variable.Variable

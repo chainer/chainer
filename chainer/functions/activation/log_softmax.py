@@ -10,7 +10,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG  # type: ignore
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG  # type: ignore  # mypy cannot find cuda.cuda  # NOQA
 
 
 def logsumexp(x, axis):

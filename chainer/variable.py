@@ -511,6 +511,8 @@ class Variable(object):
     # instance.
     _grad = None
 
+    _data = None  # type: tp.List[tp.Optional[types.NdArray]]
+
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
@@ -562,13 +564,13 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)  # type: ignore
+            self._set_chainerx_array(data, grad)  # type: ignore  # data is typed as types.NdArray  # NOQA
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
-            self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
+            self._data = [data]
             self._node = VariableNode(self, name)
             self._grad = grad
 
@@ -829,10 +831,11 @@ class Variable(object):
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
         if self.xp is chainerx:
-            if (self._chainerx_nobp_array_cache is None
-                    and self._data[0] is not None):
-                self._chainerx_nobp_array_cache = (
-                    self._data[0].as_grad_stopped())  # type: ignore
+            if self._chainerx_nobp_array_cache is None:
+                data = self._data[0]
+                if data is not None:
+                    assert isinstance(data, chainerx.ndarray)
+                    self._chainerx_nobp_array_cache = data.as_grad_stopped()
             return self._chainerx_nobp_array_cache
 
         return self._data[0]
@@ -843,8 +846,9 @@ class Variable(object):
 
         if self.xp is chainerx:
             d_old = self._data[0]
+            assert d_old is None or isinstance(d_old, chainerx.ndarray)
             if (d_old is not None
-                    and (d_old.is_backprop_required()  # type: ignore
+                    and (d_old.is_backprop_required()
                          or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
@@ -852,7 +856,8 @@ class Variable(object):
 
             self._set_chainerx_array(d, None)
         else:
-            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
+            assert self._node is not None
+            self._node._update_data_info(d)
             self._data[0] = d
 
     @property

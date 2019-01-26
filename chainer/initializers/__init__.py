@@ -75,7 +75,8 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
-        chx_device = backend_device.device  # type: ignore
+        assert isinstance(backend_device, _chainerx.ChainerxDevice)
+        chx_device = backend_device.device
         # TODO(okapies): remove 'type: ignore' when chainerx implements sequence support for empty() # NOQA
         array = chainerx.empty(shape, dtype=dtype, device=chx_device)  # type: ignore # NOQA
         if chx_device.backend.name == 'native':

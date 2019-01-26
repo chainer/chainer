@@ -37,14 +37,14 @@ def _is_shape(value):
 
 
 def _ensure_shape_dtype(value):
-    # type: (tp.Optional[tp.Any]) -> tp.Tuple[tp.Optional[types.ShapeSpec], types.DTypeSpec] # NOQA
+    # type: (tp.Optional[tp.Any]) -> tp.Any
 
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
         return value, numpy.float32
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
-        return value  # type: ignore
+        return value
 
 
 class Link(object):
@@ -281,7 +281,7 @@ class Link(object):
         forward = getattr(super(Link, self), '__call__', None)
         if forward is None:
             # forward is implemented in the child classes
-            forward = self.forward  # type: ignore
+            forward = self.forward  # type: ignore  # mypy cannot find self.forward  # NOQA
         out = forward(*args, **kwargs)
 
         # Call forward_postprocess hook
@@ -765,7 +765,8 @@ device.
                 if isinstance(param.data, numpy.ndarray):
                     numpy.copyto(param.data, data)
                 else:
-                    param.data.set(numpy.asarray(data))  # type: ignore
+                    assert isinstance(param.data, cuda.cupy.ndarray)
+                    param.data.set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
@@ -1031,15 +1032,17 @@ class Chain(Link):
     def copy(self, mode='share'):
         # type: (str) -> 'Chain'
 
-        ret = super(Chain, self).copy()  # type: ignore # should be Chain
-        ret._children = set(ret._children)  # type: ignore
-        d = ret.__dict__  # type: tp.Dict[str, Link]
-        for name in ret._children:  # type: ignore
+        ret = super(Chain, self).copy()
+        assert isinstance(ret, Chain)
+
+        ret._children = set(ret._children)
+        d = ret.__dict__
+        for name in ret._children:
             # copy child links recursively
             copied = d[name].copy(mode)
             copied.name = name
             d[name] = copied
-        return ret  # type: ignore
+        return ret
 
     def to_chainerx(self):
         # type: () -> 'Chain'
@@ -1195,12 +1198,13 @@ class ChainList(Link, collections_abc.MutableSequence):
         # type: (tp.Union[int, slice], tp.Union[Link, tp.Iterable[Link]]) -> None # NOQA
 
         if isinstance(index, int):
-            link = value  # type: ignore # should be Link
-            link.name = str(index)  # type: ignore
-            self._children[index] = link  # type: ignore
+            assert isinstance(value, Link)
+            link = value
+            link.name = str(index)
+            self._children[index] = link
         elif isinstance(index, slice):
-            self._children[index] = value  # type: ignore # should be Iterable[Link] # NOQA
-            for i, c in enumerate(self._children):  # type: ignore
+            self._children[index] = value  # type: ignore # value is typed as Union, but Iterable is required  # NOQA
+            for i, c in enumerate(self._children):
                 c.name = str(i)
         else:
             raise TypeError(
@@ -1267,14 +1271,16 @@ class ChainList(Link, collections_abc.MutableSequence):
     def copy(self, mode='share'):
         # type: (str) -> 'ChainList'
         """Returns a deep copy of the chainlist."""
-        ret = super(ChainList, self).copy()  # type: ignore # should be ChainList # NOQA
-        ret._children = list(ret._children)  # type: ignore # copy
-        children = ret._children  # type: ignore
+        ret = super(ChainList, self).copy()
+        assert isinstance(ret, ChainList)
+
+        ret._children = list(ret._children)
+        children = ret._children
         for i, child in enumerate(children):
             child = child.copy(mode)
             child.name = str(i)
             children[i] = child
-        return ret  # type: ignore
+        return ret
 
     def to_chainerx(self):
         # type: () -> 'ChainList'
@@ -1346,16 +1352,20 @@ class ChainList(Link, collections_abc.MutableSequence):
     def copyparams(self, link, copy_persistent=True):
         # type: (Link, bool) -> None # link is actually a ChainList
 
+        assert isinstance(link, ChainList)
+
         super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx], copy_persistent)  # type: ignore
+            child.copyparams(link[idx], copy_persistent)
 
     def addgrads(self, link):
         # type: (Link) -> None # link is actually a ChainList
 
+        assert isinstance(link, ChainList)
+
         super(ChainList, self).addgrads(link)
         for idx, child in enumerate(self._children):
-            child.addgrads(link[idx])  # type: ignore
+            child.addgrads(link[idx])
 
     def serialize(self, serializer):
         # type: (chainer.AbstractSerializer) -> None
