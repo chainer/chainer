@@ -22,14 +22,14 @@ def _decorrelated_batch_normalization(args):
     g = groups
     C = c // g
 
-    x = x.reshape((b * g, C, ) + x.shape[2:])
-    x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
+    x = x.reshape((b * g, C) + x.shape[2:])
+    x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
 
     y_hat = projection.dot(x_hat - mean[:, None])
 
-    y = y_hat.reshape((C, b * g,) + x.shape[2:]).transpose(
+    y = y_hat.reshape((C, b * g) + x.shape[2:]).transpose(
         (1, 0) + spatial_axis)
-    y = y.reshape((-1, c, ) + x.shape[2:])
+    y = y.reshape((-1, c) + x.shape[2:])
     return y
 
 
@@ -43,8 +43,8 @@ def _calc_projection(x, mean, eps, groups):
     for i in spatial_axis:
         m *= x.shape[i]
 
-    x = x.reshape((b * g, C, ) + x.shape[2:])
-    x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
+    x = x.reshape((b * g, C) + x.shape[2:])
+    x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
 
     mean = x_hat.mean(axis=1)
     x_hat = x_hat - mean[:, None]
@@ -91,8 +91,8 @@ class TestDecorrelatedBatchNormalization(unittest.TestCase):
         gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
 
         spatial_axis = tuple(range(head_ndim, x.ndim))
-        x_hat = x.reshape((5 * self.groups, C, ) + x.shape[2:])
-        x_hat = x_hat.transpose((1, 0) + spatial_axis).reshape((C, -1))
+        x_hat = x.reshape((5 * self.groups, C) + x.shape[2:])
+        x_hat = x_hat.transpose((1, 0) + spatial_axis).reshape(C, -1)
         mean = x_hat.mean(axis=1)
         projection = _calc_projection(x, mean, self.eps, self.groups)
 
@@ -104,8 +104,8 @@ class TestDecorrelatedBatchNormalization(unittest.TestCase):
         self.grad_outputs = [gy]
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3, 'dtype':
-                                       numpy.float64}
+        self.check_backward_options = {
+            'atol': 1e-4, 'rtol': 1e-3, 'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_backward_options = {
@@ -131,10 +131,10 @@ class TestDecorrelatedBatchNormalization(unittest.TestCase):
             y = functions.decorrelated_batch_normalization(
                 *inputs, groups=self.groups, decay=self.decay,
                 eps=self.eps)
-        assert y.data.dtype == self.dtype
+        assert y.dtype == self.dtype
 
         testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
+            y_expected, y.array, **self.check_forward_options)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
@@ -203,7 +203,7 @@ class TestFixedDecorrelatedBatchNormalization(unittest.TestCase):
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
-        y_expect = _decorrelated_batch_normalization(inputs + [self.groups, ])
+        y_expect = _decorrelated_batch_normalization(inputs + [self.groups])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -217,10 +217,10 @@ class TestFixedDecorrelatedBatchNormalization(unittest.TestCase):
         with backend_config:
             y = functions.fixed_decorrelated_batch_normalization(
                 *inputs, groups=self.groups)
-        assert y.data.dtype == self.dtype
+        assert y.dtype == self.dtype
 
         testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
+            y_expected, y.array, **self.check_forward_options)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
