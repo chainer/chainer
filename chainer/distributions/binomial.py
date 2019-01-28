@@ -3,7 +3,6 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import broadcast
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
@@ -57,14 +56,11 @@ class Binomial(distribution.Distribution):
             x = x.astype(self.p.dtype)
         xp = cuda.get_array_module(x)
 
-        bp = broadcast.broadcast_to(self.p, x.shape)
-        bn = xp.broadcast_to(n, x.shape)
+        constraint = xp.bitwise_and(x >= 0, x <= n)
 
-        constraint = xp.bitwise_and(x >= 0, x <= bn)
-
-        log_p = lgamma.lgamma(bn + 1) - lgamma.lgamma(x + 1) \
-            - lgamma.lgamma(bn - x + 1) + x * exponential.log(bp) \
-            + (bn - x) * exponential.log(1 - bp)
+        log_p = lgamma.lgamma(n + 1) - lgamma.lgamma(x + 1) \
+            - lgamma.lgamma(n - x + 1) + x * exponential.log(self.p) \
+            + (n - x) * exponential.log(1 - self.p)
         return where.where(constraint, log_p, - numpy.inf * xp.ones_like(x))
 
     @property
