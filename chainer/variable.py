@@ -1501,7 +1501,7 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    OrderedDict = chainer.utils._collections.OrderedDict
+    OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
 
     cand_funcs = []
     seen_set = set()
