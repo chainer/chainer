@@ -205,28 +205,6 @@ step_python_test_chainerx() {
 }
 
 
-step_python_test_chainerx_nocuda() {
-    source activate testenv
-
-    # Run all non-CUDA tests except doctests
-    # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
-
-    COVERAGE_FILE="$WORK_DIR"/coverage-data \
-    pytest \
-        -m='not cuda' \
-        -p no:doctest \
-        --showlocals \
-        --cov=chainerx \
-        --no-cov-on-fail \
-        --cov-fail-under=50 \
-        --cov-report html:"$WORK_DIR"/coverage-html/python \
-        "$REPO_DIR"/tests/chainerx_tests
-
-    # Run all non-CUDA doctests
-    find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
-}
-
-
 step_python_mypy_check() {
     source activate testenv
 
