@@ -792,13 +792,14 @@ Use apply() method instead.\
         if self._input_indexes_to_retain is None or self.inputs is None:
             return ()
 
-        # TODO(hvy): It should be safe to remove this check.
-        if self._input_indexes_to_retain is None:
-            raise ValueError(self._get_error_message(
-                'retain_inputs is not called in forward.'))
-
-        return tuple([self.inputs[index].get_variable()
-                      for index in self._input_indexes_to_retain])
+        retained_inputs = []
+        for index in self._input_indexes_to_retain:
+            input = self.inputs[index]
+            if input.data is None:
+                retained_inputs.append(None)
+            else:
+                retained_inputs.append(input.get_variable())
+        return tuple(retained_inputs)
 
     def get_retained_outputs(self):
         """Returns a tuple of retained output variables.
