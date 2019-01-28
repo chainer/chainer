@@ -19,6 +19,7 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer import types  # NOQA
 from chainer.utils import argument
+import chainer.utils._collections
 import chainerx
 
 
@@ -1500,6 +1501,8 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
+    OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
+
     cand_funcs = []
     seen_set = set()
 
@@ -1563,7 +1566,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             # Keep the order for the portability, rather than
             # in_grad = {x: grads.get_as_list(x)
             #            for x in set(target_inputs)}
-            in_grad = collections.OrderedDict()
+            in_grad = OrderedDict()
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
