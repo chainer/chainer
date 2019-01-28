@@ -1501,7 +1501,7 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    OrderedDict3 = chainer.utils._collections.OrderedDict
+    OrderedDict = chainer.utils._collections.OrderedDict
 
     cand_funcs = []
     seen_set = set()
@@ -1566,7 +1566,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             # Keep the order for the portability, rather than
             # in_grad = {x: grads.get_as_list(x)
             #            for x in set(target_inputs)}
-            in_grad = OrderedDict3()
+            in_grad = OrderedDict()
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
