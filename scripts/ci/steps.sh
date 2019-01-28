@@ -228,13 +228,11 @@ step_python_test_chainerx_nocuda() {
 }
 
 
-step_python_typecheck_chainer() {
+step_python_mypy_check() {
     source activate testenv
 
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        mypy --version
-        (cd "$REPO_DIR" && mypy chainer)
-    fi
+    mypy --version
+    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
 }
 
 
