@@ -1,9 +1,11 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class ScatterAdd(function_node.FunctionNode):
@@ -27,7 +29,7 @@ class ScatterAdd(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         n_nones = len([item for item in self.slices if item is None])
         valid_slice = len(self.slices) - n_nones
         type_check.expect(in_types[0].ndim >= valid_slice)
@@ -36,15 +38,18 @@ class ScatterAdd(function_node.FunctionNode):
         a = xs[0]
         b = xs[1]
         y = a.copy()
-        xp = cuda.get_array_module(a)
-        if y[self.slices].shape != b.shape:
+        xp = backend.get_array_module(a)
+        slices = tuple([
+            backend.from_chainerx(s) if isinstance(s, chainerx.ndarray) else s
+            for s in self.slices])
+        if y[slices].shape != b.shape:
             raise ValueError(
                 'Chainer does not support automatic broadcasting '
                 'of variables.')
         if xp is numpy:
-            numpy.add.at(y, self.slices, b),
+            numpy.add.at(y, slices, b),
         else:
-            cuda.cupyx.scatter_add(y, self.slices, b),
+            cuda.cupyx.scatter_add(y, slices, b),
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -67,13 +72,14 @@ def scatter_add(a, slices, b):
     The value of the original ``a`` is not changed.
 
     Args:
-        a (~chainer.Variable): A variable.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): A variable.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
             It is an integer, a slice, an ellipsis,
             a numpy.newaxis, an integer array-like, a boolean array-like
             or tuple of them.
-        b (~chainer.Variable): A variable that is scatter added to ``a``.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable that is scatter added to ``a``.
             Its shape has to equal ``a[slices]`` because broadcasting
             of variables is not supported.
 

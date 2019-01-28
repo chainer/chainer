@@ -127,7 +127,7 @@ class Decoder(chainer.Chain):
         xs = [x[::-1] for x in xs]
         batch = len(xs)
 
-        eos = self.xp.zeros(1, 'i')
+        eos = self.xp.zeros(1, self.xp.int32)
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -154,7 +154,7 @@ class Decoder(chainer.Chain):
         with chainer.no_backprop_mode():
             with chainer.using_config('train', False):
                 result = []
-                ys = self.xp.zeros(batch, 'i')
+                ys = self.xp.zeros(batch, self.xp.int32)
                 eys = self.embed_y(ys)
                 eys = chainer.functions.split_axis(
                     eys, batch, 0, force_tuple=True)
@@ -164,7 +164,7 @@ class Decoder(chainer.Chain):
 
                 cys = chainer.functions.concat(ys, axis=0)
                 wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                ys = self.xp.argmax(wy.data, axis=1).astype(self.xp.int32)
                 result.append(ys)
 
                 # Recursively decode using the previously predicted token.
@@ -176,7 +176,7 @@ class Decoder(chainer.Chain):
                     h, c, ys = self.mn_decoder.actual_rnn(h, c, eys)
                     cys = chainer.functions.concat(ys, axis=0)
                     wy = self.W(cys)
-                    ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                    ys = self.xp.argmax(wy.data, axis=1).astype(self.xp.int32)
                     result.append(ys)
 
         result = cuda.to_cpu(self.xp.stack(result).T)
@@ -200,7 +200,8 @@ def convert(batch, device):
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            sections = numpy.cumsum(
+                [len(x) for x in batch[:-1]], dtype=numpy.int32)
             concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
@@ -495,7 +496,7 @@ def main():
         words = europal.split_sentence(source)
         print('# source : ' + ' '.join(words))
         x = model.xp.array(
-            [source_ids.get(w, 1) for w in words], 'i')
+            [source_ids.get(w, 1) for w in words], model.xp.int32)
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print('#  result : ' + ' '.join(words))

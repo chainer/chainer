@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
@@ -53,7 +53,7 @@ def position_encode(embed, sentences):
 
     """
 
-    xp = cuda.get_array_module(sentences)
+    xp = backend.get_array_module(sentences)
     e = embed(sentences)
     n_words, n_units = e.shape[-2:]
 
@@ -61,7 +61,7 @@ def position_encode(embed, sentences):
     # Note that when the length is zero, its embedding is always zero and
     # is ignored.
     length = xp.maximum(
-        xp.sum((sentences != 0).astype('f'), axis=-1), 1)
+        xp.sum((sentences != 0).astype(xp.float32), axis=-1), 1)
     length = length.reshape((length.shape + (1, 1)))
     k = xp.arange(1, n_units + 1, dtype=numpy.float32) / n_units
     i = xp.arange(1, n_words + 1, dtype=numpy.float32)[:, None]
@@ -109,7 +109,7 @@ class Memory(object):
         self.c = self.encoder(self.C, sentences)
 
     def query(self, u):
-        xp = cuda.get_array_module(u)
+        xp = backend.get_array_module(u)
         size = self.m.shape[1]
         inds = xp.arange(size - 1, -1, -1, dtype=numpy.int32)
         tm = self.TA(inds)
@@ -158,7 +158,7 @@ class MemNN(chainer.Chain):
 
     def fix_ignore_label(self):
         for embed in self.embeds:
-            embed.W.data[0, :] = 0
+            embed.W.array[0, :] = 0
 
     def register_all(self, sentences):
         for memory in self.memories:
@@ -197,7 +197,7 @@ def convert_data(train_data, max_memory):
                 all_data.append({
                     'sentences': mem.copy(),
                     'question': query,
-                    'answer': numpy.array(sent.answer, 'i'),
+                    'answer': numpy.array(sent.answer, numpy.int32),
                 })
 
     return all_data

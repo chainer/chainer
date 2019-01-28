@@ -10,7 +10,7 @@ class MeanSquaredError(function_node.FunctionNode):
     """Mean squared error (a.k.a. Euclidean loss) function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check._argname(in_types, ('x0', 'x1'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -47,10 +47,8 @@ def mean_squared_error(x0, x1):
     is taken over the minibatch. Note that the error is not scaled by 1/2.
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable:

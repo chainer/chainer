@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils
@@ -14,7 +14,7 @@ class _SetItemZero(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros(self.mask.shape, x.dtype)
         y[self.mask] = x
         return y,
@@ -43,7 +43,7 @@ class NormalizeL2(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         # Note: Passing dtype argument to numpy.sqrt() because NumPy in
         # Python 2 looks to return a casted value to float32 when it takes a
         # float16 value.
@@ -99,7 +99,8 @@ def normalize(x, eps=1e-5, axis=1):
     The default value of :obj:`axis` is determined for backward compatibility.
 
     Args:
-        x (~chainer.Variable): Two dimensional output variable. The first
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Two dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.

@@ -10,7 +10,7 @@ from chainer.utils import type_check
 class BatchL2NormSquared(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(
@@ -72,10 +72,10 @@ def batch_l2_norm_squared(x):
     along batch axis is done.
 
     Args:
-        x (~chainer.Variable): Input variable. The first dimension is assumed
-            to be the *minibatch dimension*. If ``x`` has more than two
-            dimensions all but the first dimension are flattened to one
-            dimension.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            The first dimension is assumed to be the *minibatch dimension*.
+            If ``x`` has more than two dimensions all but the first dimension
+            are flattened to one dimension.
 
     Returns:
         ~chainer.Variable: Two dimensional output variable.

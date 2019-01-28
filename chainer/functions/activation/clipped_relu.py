@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU
+    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU  # type: ignore
 
 
 class ClippedReLU(function_node.FunctionNode):
@@ -32,7 +32,7 @@ class ClippedReLU(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -74,13 +74,14 @@ class ClippedReLUGrad2(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
         gy, = inputs
+        x = self.x
         return utils.force_array(
-            gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
+            gy * (0 < x) * (x < self.cap), x.dtype),
 
     def forward_gpu(self, inputs):
         gy, = inputs
@@ -104,7 +105,7 @@ class ClippedReLUGrad3(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -129,8 +130,7 @@ def clipped_relu(x, z=20.0):
     .. math:: \\text{ClippedReLU}(x, z) = \\min(\\max(0, x), z).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
         z (float): Clipping value. (default = 20.0)
 
@@ -147,9 +147,9 @@ def clipped_relu(x, z=20.0):
         >>> np.any(x > z)
         True
         >>> y = F.clipped_relu(x, z=z)
-        >>> np.any(y.data < 0)
+        >>> np.any(y.array < 0)
         False
-        >>> np.any(y.data > z)
+        >>> np.any(y.array > z)
         False
 
     """

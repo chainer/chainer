@@ -3,17 +3,19 @@ import math
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
 from chainer import utils
+from chainer.utils import cache
 
 
 class LaplaceCDF(chainer.function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = 0.5 - 0.5 * xp.sign(x) * xp.expm1(-abs(x))
         self.retain_outputs((0,))
         return utils.force_array(y, x.dtype),
@@ -29,7 +31,7 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         h = 1 - 2 * x
         return utils.force_array(xp.sign(h) * xp.log1p(-abs(h)), x.dtype),
 
@@ -60,18 +62,24 @@ class Laplace(distribution.Distribution):
             \\exp\\left(-\\frac{|x-\\mu|}{b}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`b`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter
+            of distribution representing the scale :math:`b`.
     """
 
     def __init__(self, loc, scale):
         super(Laplace, self).__init__()
-        self.loc = chainer.as_variable(loc)
-        self.scale = chainer.as_variable(scale)
+        self.__loc = loc
+        self.__scale = scale
+
+    @cache.cached_property
+    def loc(self):
+        return chainer.as_variable(self.__loc)
+
+    @cache.cached_property
+    def scale(self):
+        return chainer.as_variable(self.__scale)
 
     @property
     def batch_shape(self):
@@ -80,7 +88,7 @@ class Laplace(distribution.Distribution):
     def cdf(self, x):
         return _laplace_cdf((x - self.loc) / self.scale)
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return 1. + exponential.log(2 * self.scale)
 
@@ -99,11 +107,11 @@ class Laplace(distribution.Distribution):
         scale = self.scale
         return - exponential.log(2 * scale) - abs(x - self.loc) / scale
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.loc
 
-    @property
+    @cache.cached_property
     def mode(self):
         return self.loc
 
@@ -121,7 +129,7 @@ class Laplace(distribution.Distribution):
 
         return self.scale * eps + self.loc
 
-    @property
+    @cache.cached_property
     def stddev(self):
         return math.sqrt(2) * self.scale
 
@@ -129,7 +137,7 @@ class Laplace(distribution.Distribution):
     def support(self):
         return 'real'
 
-    @property
+    @cache.cached_property
     def variance(self):
         return 2 * self.scale ** 2
 

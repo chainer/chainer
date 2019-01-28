@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.array import flip
 from chainer.utils import type_check
@@ -14,7 +14,7 @@ class Cumsum(function_node.FunctionNode):
             raise TypeError('axis must be int or None')
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
@@ -26,7 +26,7 @@ class Cumsum(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         self._in_shape = x.shape
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.cumsum(x, axis=self.axis),
 
     def backward(self, indexes, grad_outputs):
@@ -46,8 +46,7 @@ def cumsum(x, axis=None):
     """Cumulative sum of array elements over a given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-           :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Elements to calculate the cumulative sum.
         axis (int or None):
             Axis along which the cumulative sum is taken.

@@ -7,7 +7,7 @@ from chainer.utils import type_check
 class LinearInterpolate(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('p', 'x', 'y'))
+        type_check._argname(in_types, ('p', 'x', 'y'))
         p_type, x_type, y_type = in_types
 
         type_check.expect(
@@ -82,9 +82,9 @@ def linear_interpolate(p, x, y):
         f(p, x, y) = p x + (1 - p) y.
 
     Args:
-        p (~chainer.Variable): Input variable.
-        x (~chainer.Variable): Input variable.
-        y (~chainer.Variable): Input variable.
+        p (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

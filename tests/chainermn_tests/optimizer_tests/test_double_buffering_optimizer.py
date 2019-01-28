@@ -43,7 +43,8 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
         self.optimizer.target.a.W.grad[:] = self.comm.rank
@@ -121,7 +122,8 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
 

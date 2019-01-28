@@ -18,12 +18,18 @@ class ManualScheduleTrigger(object):
         unit (str): Unit of the time specified by ``points``. It must be
             either ``'iteration'`` or ``'epoch'``.
 
+    Attributes:
+        finished (bool): Flag that indicates whether or not this trigger will
+        fire in the future. This flag is used to determine if the extension
+        should be initialized after resume.
+
     """
 
     def __init__(self, points, unit):
         assert unit == 'epoch' or unit == 'iteration'
         self.points = (points if isinstance(points, list) else [points])
         self.unit = unit
+        self.finished = False
 
         self._previous_iteration = 0
         self._previous_epoch_detail = 0.
@@ -54,6 +60,13 @@ class ManualScheduleTrigger(object):
             fire = any(
                 previous_epoch_detail < p <= epoch_detail
                 for p in self.points)
+
+            if hasattr(self, '_finished_is_tmp'):
+                del self._finished_is_tmp
+                if epoch_detail >= max(self.points):
+                    self.finished = True
+            if fire and epoch_detail >= max(self.points):
+                self.finished = True
         else:
             iteration = updater.iteration
             previous_iteration = self._previous_iteration
@@ -66,6 +79,13 @@ class ManualScheduleTrigger(object):
             fire = any(
                 previous_iteration < p <= iteration
                 for p in self.points)
+
+            if hasattr(self, '_finished_is_tmp'):
+                del self._finished_is_tmp
+                if iteration >= max(self.points):
+                    self.finished = True
+            if fire and iteration >= max(self.points):
+                self.finished = True
 
         # save current values
         self._previous_iteration = updater.iteration
@@ -99,3 +119,14 @@ class ManualScheduleTrigger(object):
                 'it may not work correctly.')
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
+
+        try:
+            self.finished = serializer('finished', self.finished)
+        except KeyError:
+            warnings.warn(
+                'The flag of finished is not saved.'
+                'ManualScheduleTrigger set the flag to `False` to force'
+                'initialization and reset in next `__call__`.')
+            # set False to force initialization.
+            self.finished = False
+            self._finished_is_tmp = True

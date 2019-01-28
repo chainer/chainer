@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -14,12 +15,12 @@ class Sin(function_node.FunctionNode):
         return 'sin'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sin(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -55,7 +56,14 @@ class SinGrad(function_node.FunctionNode):
 
 
 def sin(x):
-    """Elementwise sin function."""
+    """Elementwise sin function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Sin().apply((x,))[0]
 
 
@@ -66,12 +74,12 @@ class Cos(function_node.FunctionNode):
         return 'cos'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.cos(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -108,7 +116,14 @@ class CosGrad(function_node.FunctionNode):
 
 
 def cos(x):
-    """Elementwise cos function."""
+    """Elementwise cos function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Cos().apply((x,))[0]
 
 
@@ -119,12 +134,12 @@ class Tan(function_node.FunctionNode):
         return 'tan'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.tan(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -133,7 +148,14 @@ class Tan(function_node.FunctionNode):
 
 
 def tan(x):
-    """Elementwise tan function."""
+    """Elementwise tan function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Tan().apply((x,))[0]
 
 
@@ -144,12 +166,12 @@ class Arcsin(function_node.FunctionNode):
         return 'arcsin'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arcsin(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -197,7 +219,7 @@ def arcsin(x):
        y_i = \\arcsin x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -212,12 +234,12 @@ class Arccos(function_node.FunctionNode):
         return 'arccos'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arccos(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -266,7 +288,7 @@ def arccos(x):
        y_i = \\arccos x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -281,12 +303,12 @@ class Arctan(function_node.FunctionNode):
         return 'arctan'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arctan(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -335,7 +357,7 @@ def arctan(x):
        y_i = \\arctan x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -350,13 +372,13 @@ class Arctan2(function_node.FunctionNode):
         return 'arctan2'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(in_types[0].dtype.kind == 'f')
         type_check.expect(in_types[1].dtype.kind == 'f')
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x1, x2 = inputs
         return utils.force_array(xp.arctan2(x1, x2)),
 
@@ -413,11 +435,9 @@ def arctan2(x1, x2):
     """Elementwise arctangent function with two arguments.
 
     Args:
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
             Y-coordinates.
-        x2 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x2 (:class:`~chainer.Variable` or :ref:`ndarray`):
             X-coordinates.
 
     Returns:

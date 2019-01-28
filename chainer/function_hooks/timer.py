@@ -1,10 +1,22 @@
+import os
 import sys
 import time
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_hook
+
+
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 class TimerHook(function_hook.FunctionHook):
@@ -46,7 +58,7 @@ class TimerHook(function_hook.FunctionHook):
 
     def _preprocess(self):
         if self.xp == numpy:
-            start = time.time()
+            start = _get_time()
             self._running_stack.append(start)
         else:
             start = cuda.Event()
@@ -56,17 +68,17 @@ class TimerHook(function_hook.FunctionHook):
         self._depth += 1
 
     def forward_preprocess(self, function, in_data):
-        self.xp = cuda.get_array_module(*in_data)
+        self.xp = backend.get_array_module(*in_data)
         self._preprocess()
 
     def backward_preprocess(self, function, in_data, out_grad):
-        self.xp = cuda.get_array_module(*(in_data + out_grad))
+        self.xp = backend.get_array_module(*(in_data + out_grad))
         self._preprocess()
 
     def _postprocess(self, function):
         if self.xp == numpy:
             start = self._running_stack.pop()
-            stop = time.time()
+            stop = _get_time()
             elapsed_time = stop - start
         else:
             start, stop = self._running_stack.pop()
@@ -83,12 +95,12 @@ class TimerHook(function_hook.FunctionHook):
             self._total_time += elapsed_time
 
     def forward_postprocess(self, function, in_data):
-        xp = cuda.get_array_module(*in_data)
+        xp = backend.get_array_module(*in_data)
         assert xp == self.xp
         self._postprocess(function)
 
     def backward_postprocess(self, function, in_data, out_grad):
-        xp = cuda.get_array_module(*(in_data + out_grad))
+        xp = backend.get_array_module(*(in_data + out_grad))
         assert xp == self.xp
         self._postprocess(function)
 
@@ -101,7 +113,7 @@ class TimerHook(function_hook.FunctionHook):
 
         Returns:
             A summarized dictionary whose keys are function names and
-            values are dictionaries of `elapsed_time` and `occurrrence`.
+            values are dictionaries of `elapsed_time` and `occurrence`.
         """
         summary = {}
         for function_name, elapsed_time in self.call_history:
@@ -136,4 +148,5 @@ class TimerHook(function_hook.FunctionHook):
             line = template.format(function_name, elapsed_time, occurrence)
             file.write(line)
             file.write('\n')
-        file.flush()
+        if hasattr(file, 'flush'):
+            file.flush()

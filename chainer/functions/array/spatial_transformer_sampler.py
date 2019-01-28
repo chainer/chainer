@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
@@ -9,8 +10,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
+    libcudnn = cuda.libcudnn
+    _sampler_type = cuda.libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
 class SpatialTransformerSampler(function.Function):
@@ -22,8 +23,8 @@ class SpatialTransformerSampler(function.Function):
         x_type = in_types[0]
         grid_type = in_types[1]
         type_check.expect(
-            x_type.dtype.char == 'f',
-            grid_type.dtype.char == 'f',
+            x_type.dtype.kind == 'f',
+            grid_type.dtype == x_type.dtype,
             x_type.ndim == 4,
             grid_type.ndim == 4,
             grid_type.shape[1] == 2,
@@ -52,8 +53,9 @@ class SpatialTransformerSampler(function.Function):
             cuda.cupy.cudnn.create_spatial_transformer_descriptor(
                 _sampler_type, grid.dtype, len(shape), shape.ctypes.data)
 
-        one = numpy.array(1, dtype=x.dtype).ctypes
-        zero = numpy.array(0, dtype=x.dtype).ctypes
+        dtype = numpy.float64 if x.dtype == numpy.float64 else numpy.float32
+        one = numpy.array(1, dtype=dtype).ctypes
+        zero = numpy.array(0, dtype=dtype).ctypes
         libcudnn.spatialTfSamplerForward(
             handle, self.st_desc.value, one.data,
             x_desc.value, x.data.ptr, grid_t.data.ptr, zero.data,
@@ -62,7 +64,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _forward(self, inputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
 
@@ -96,10 +98,10 @@ class SpatialTransformerSampler(function.Function):
         w2 = (u_clipped - u0) * (v1 - v_clipped)
         w3 = (u1 - u_clipped) * (v_clipped - v0)
         w4 = (u_clipped - u0) * (v_clipped - v0)
-        w1 = w1.astype(x_pad.dtype)
-        w2 = w2.astype(x_pad.dtype)
-        w3 = w3.astype(x_pad.dtype)
-        w4 = w4.astype(x_pad.dtype)
+        w1 = w1.astype(x_pad.dtype, copy=False)
+        w2 = w2.astype(x_pad.dtype, copy=False)
+        w3 = w3.astype(x_pad.dtype, copy=False)
+        w4 = w4.astype(x_pad.dtype, copy=False)
 
         x_indexed_1 = xp.concatenate([xp.expand_dims(
             x_pad[b, :, v0[b], u0[b]], axis=0) for b in range(B)], axis=0)
@@ -138,8 +140,9 @@ class SpatialTransformerSampler(function.Function):
         dx_desc = cudnn.create_tensor_descriptor(gx)
         dy_desc = cudnn.create_tensor_descriptor(gy)
 
-        one = numpy.array(1, dtype=x.dtype).ctypes
-        zero = numpy.array(0, dtype=x.dtype).ctypes
+        dtype = numpy.float64 if x.dtype == numpy.float64 else numpy.float32
+        one = numpy.array(1, dtype=dtype).ctypes
+        zero = numpy.array(0, dtype=dtype).ctypes
         libcudnn.spatialTfSamplerBackward(
             handle, self.st_desc.value,
             one.data,
@@ -154,7 +157,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _backward(self, inputs, grad_outputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         gy, = grad_outputs
 
         B, C, H, W = x.shape
@@ -189,10 +192,10 @@ class SpatialTransformerSampler(function.Function):
         wu1 = u1 - u_clipped
         wv0 = v_clipped - v0
         wv1 = v1 - v_clipped
-        wu0 = wu0.astype(gy.dtype)
-        wu1 = wu1.astype(gy.dtype)
-        wv0 = wv0.astype(gy.dtype)
-        wv1 = wv1.astype(gy.dtype)
+        wu0 = wu0.astype(gy.dtype, copy=False)
+        wu1 = wu1.astype(gy.dtype, copy=False)
+        wv0 = wv0.astype(gy.dtype, copy=False)
+        wv1 = wv1.astype(gy.dtype, copy=False)
 
         # --- gu, gv
         x_indexed_1 = xp.concatenate([xp.expand_dims(
@@ -279,7 +282,8 @@ def spatial_transformer_sampler(x, grid, **kwargs):
         cuDNN supports SpatialTransformerSampler from version 5.0.0.
 
     Args:
-        x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
         grid (~chainer.Variable): Coordinate variable of shape
             :math:`(n, 2, h_O, w_O)`. Each coordinate defines the spatial
             location in the input where a sampling kernel is applied to get

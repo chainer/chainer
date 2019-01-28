@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -11,13 +12,13 @@ from chainer.testing import attr
 
 
 def _sigmoid(x):
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     half = x.dtype.type(0.5)
     return xp.tanh(x * half) * half + half
 
 
 def _gru(func, h, x):
-    xp = cuda.get_array_module(h, x)
+    xp = backend.get_array_module(h, x)
 
     r = _sigmoid(x.dot(func.W_r.W.data.T) + h.dot(func.U_r.W.data.T))
     z = _sigmoid(x.dot(func.W_z.W.data.T) + h.dot(func.U_z.W.data.T))

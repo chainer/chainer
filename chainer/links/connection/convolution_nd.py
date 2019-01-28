@@ -63,7 +63,7 @@ class ConvolutionND(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(2 * 5 * 5 * 5, dtype='f').reshape(1, 2, 5, 5, 5)
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype=np.float32).reshape(1, 2, 5, 5, 5)
 
         1. Give the first four arguments explicitly:
 
@@ -141,7 +141,7 @@ class ConvolutionND(link.Link):
             raise ValueError('the number of input channels must be'
                              ' divisible by the number of groups')
         W_shape = (
-            int(self.out_channels / self.groups), in_channels) + self.ksize
+            self.out_channels, int(in_channels / self.groups)) + self.ksize
         self.W.initialize(W_shape)
 
     def forward(self, x):
@@ -154,7 +154,7 @@ class ConvolutionND(link.Link):
             ~chainer.Variable: Output of convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all,

@@ -26,6 +26,7 @@ import googlenet
 import googlenetbn
 import nin
 import resnet50
+import resnext50
 import train_imagenet
 
 
@@ -38,7 +39,7 @@ def main():
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
-        'resnext50': resnet50.ResNeXt50,
+        'resnext50': resnext50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -113,7 +114,7 @@ def main():
 
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

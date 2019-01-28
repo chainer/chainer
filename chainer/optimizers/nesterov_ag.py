@@ -1,8 +1,22 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class NesterovAGHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of Nesterov's Accelerated Gradient.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        momentum = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: NesterovAGHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 _default_hyperparam.momentum = 0.9
 
@@ -32,7 +46,7 @@ class NesterovAGRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 

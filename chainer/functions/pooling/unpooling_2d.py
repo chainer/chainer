@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
@@ -43,7 +44,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
                       (1, 1, self.kh, self.kw, 1, 1))
         if xp is numpy:

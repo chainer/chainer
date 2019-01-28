@@ -1,5 +1,6 @@
 import warnings
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.array import broadcast
 from chainer.functions.array import reshape
@@ -16,8 +17,7 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
 
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Batch tensors.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Batch tensors.
             First dimension of this value must be the size of minibatch and
             second dimension must be the number of channels.
             Moreover, this value must have one or more following dimensions,
@@ -25,8 +25,10 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         groups (int):
             The number of channel groups.
             This value must be a divisor of the number of channels.
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Scaling parameter.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Shifting parameter.
         eps (float): Epsilon value for numerical stability of normalization.
 
 
@@ -44,7 +46,7 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
     if not isinstance(groups, int):
         raise TypeError('Argument: \'groups\' type must be (int).')
 
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
 
     batch_size, channels = x.shape[:2]
     original_shape = x.shape

@@ -1,10 +1,24 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class SMORMS3Hyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of Simon Funk's SMORMS3.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        eps = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: SMORMS3Hyperparameter # NOQA
 _default_hyperparam.lr = 0.001
 _default_hyperparam.eps = 1e-16
 
@@ -34,7 +48,7 @@ class SMORMS3Rule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['mem'] = xp.ones_like(param.data)
             self.state['g'] = xp.zeros_like(param.data)

@@ -133,7 +133,7 @@ reshape(1, 3, 10, 10)
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return dilated_convolution_2d.dilated_convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.dilate)

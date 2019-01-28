@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import configuration
 from chainer import function_node
 from chainer.utils import argument
@@ -21,7 +21,7 @@ class Zoneout(function_node.FunctionNode):
         self.retain_inputs(())
 
         h, x = inputs
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         if xp is numpy:
             flag_x = xp.random.rand(*x.shape) >= self.zoneout_ratio
         else:
@@ -50,15 +50,9 @@ def zoneout(h, x, ratio=.5, **kwargs):
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        h (~chainer.Variable): Previous variable.
-        x (~chainer.Variable): Input variable.
+        h (:class:`~chainer.Variable` or :ref:`ndarray`): Previous variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         ratio (float): Zoneout ratio.
 
     Returns:

@@ -1,5 +1,7 @@
 import copy
 
+from chainer.backends import cuda
+
 
 class Distribution(object):
 
@@ -79,7 +81,7 @@ class Distribution(object):
         """Returns the shape of a batch.
 
         Returns:
-            tuple: The shape of a sample that is not identical and indipendent.
+            tuple: The shape of a sample that is not identical and independent.
 
         """
         raise NotImplementedError
@@ -88,9 +90,8 @@ class Distribution(object):
         """Evaluates the cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Cumulative distribution function value evaluated
@@ -132,9 +133,8 @@ class Distribution(object):
         """Evaluates the inverse cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Inverse cumulative distribution function value
@@ -147,9 +147,8 @@ class Distribution(object):
         """Evaluates the log of cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of cumulative distribution function
@@ -162,9 +161,8 @@ class Distribution(object):
         """Evaluates the logarithm of probability at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of probability evaluated at `x`.
@@ -176,9 +174,8 @@ class Distribution(object):
         """Evaluates the logarithm of survival function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of survival function value evaluated
@@ -207,13 +204,22 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    @property
+    def params(self):
+        """Returns the parameters of the distribution.
+
+        Returns:
+            dict: The parameters of the distribution.
+
+        """
+        raise NotImplementedError
+
     def perplexity(self, x):
         """Evaluates the perplexity function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Perplexity function value evaluated at `x`.
@@ -225,9 +231,8 @@ class Distribution(object):
         """Evaluates probability at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Probability evaluated at `x`.
@@ -303,9 +308,8 @@ class Distribution(object):
         """Evaluates the survival function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Survival function value evaluated at `x`.
@@ -322,6 +326,15 @@ class Distribution(object):
 
         """
         raise NotImplementedError
+
+    @property
+    def xp(self):
+        """Array module for the distribution.
+
+        Depending on which of CPU/GPU this distribution is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+        """
+        return cuda.get_array_module(*self.params.values())
 
 
 _KLDIVERGENCE = {}

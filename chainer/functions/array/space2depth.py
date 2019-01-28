@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -12,7 +12,7 @@ class Space2Depth(function_node.FunctionNode):
         self.r = r
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4
@@ -20,7 +20,7 @@ class Space2Depth(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = cuda.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         X = xp.reshape(
             X, (bsize, c, a // self.r, self.r, b // self.r, self.r))
@@ -39,8 +39,7 @@ def space2depth(X, r):
     """Computes the space2depth transformation for subpixel calculations.
 
     Args:
-        X (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        X (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a 4d array of shape
             ``(batch, channel, dim1 * r, dim2 * r)``.
         r (int): the downscaling factor.
@@ -69,7 +68,7 @@ def space2depth(X, r):
         >>> y = F.space2depth(X, 2)
         >>> y.shape
         (1, 4, 2, 3)
-        >>> y.data
+        >>> y.array
         array([[[[ 0.,  2.,  4.],
                  [12., 14., 16.]],
         <BLANKLINE>
