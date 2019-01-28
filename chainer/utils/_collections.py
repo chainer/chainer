@@ -5,11 +5,17 @@ import six
 
 
 if six.PY3:
-    RefCountFriendlyOrderedDict = collections.OrderedDict
+    OrderedDict = collections.OrderedDict
 else:
     # Reference counting cannot free keys in old `collections.OrderedDict`,
     # where a doubly linked list is used to maintain the order.
-    class RefCountFriendlyOrderedDict(object):
+    class OrderedDict(object):
+        """Dictionary that remembers insertion order
+
+        This class wraps `collections.OrderedDict` to free keys by reference
+        counting.
+        """
+
         def __init__(self):
             self.keys = set()
             self.dict = collections.OrderedDict()

@@ -1501,7 +1501,7 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    OrderedDict3 = chainer.utils._collections.RefCountFriendlyOrderedDict
+    OrderedDict3 = chainer.utils._collections.OrderedDict
 
     cand_funcs = []
     seen_set = set()
