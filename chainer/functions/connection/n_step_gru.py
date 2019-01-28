@@ -266,7 +266,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     xp = backend.get_array_module(hx, hx.data)
 
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
+    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
         states = cuda.get_cudnn_dropout_states()
         states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]

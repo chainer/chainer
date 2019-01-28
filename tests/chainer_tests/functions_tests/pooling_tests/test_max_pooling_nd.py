@@ -200,7 +200,7 @@ class TestMaxPoolingNDIndices(unittest.TestCase):
                     [xx[2:4, 0:2].ravel().argmax(),
                      xx[2:4, 2:4].ravel().argmax()],
                 ])
-        if out.xp is not numpy:
+        if out.xp is cuda.cupy:
             expect = cuda.to_gpu(expect)
         assert (expect == indices).all()
 

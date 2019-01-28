@@ -31,7 +31,7 @@ class TestTimerHook(unittest.TestCase):
 
     def check_forward(self, xp):
         link = MyModel()
-        if xp is not numpy:
+        if xp is cuda.cupy:
             link = link.to_gpu()
         hook = link_hooks.TimerHook()
 

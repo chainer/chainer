@@ -70,7 +70,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
                 width = w
             else:
                 width = numpy.tensordot(width[..., None], w[None, ...], axes=1)
-        if xp is not numpy:
+        if xp is cuda.cupy:
             width = cuda.cupy.array(width)
         return width
 
