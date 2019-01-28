@@ -143,6 +143,11 @@ step_chainer_tests() {
 }
 
 
+step_chainerx_python_tests() {
+    pytest "$REPO_DIR"/tests/chainerx_tests
+}
+
+
 step_chainermn_tests() {
     for NP in 1 2; do
         OMP_NUM_THREADS=1 \
