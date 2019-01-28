@@ -35,8 +35,10 @@ def squared_difference(x1, x2):
     """Squared difference of input variables.
 
     Args:
-        x1 (~chainer.Variable): Input variables to be compared.
-        x2 (~chainer.Variable): Input variables to be compared.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
+        x2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
 
     Returns:
         ~chainer.Variable: ``(x1 - x2) ** 2`` element-wise.

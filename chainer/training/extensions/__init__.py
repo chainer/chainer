@@ -19,6 +19,7 @@ from chainer.training.extensions.step_shift import StepShift  # NOQA
 from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA
 from chainer.training.extensions.variable_statistics_plot import VariableStatisticsPlot  # NOQA
+from chainer.training.extensions.variable_unchain import unchain_variables  # NOQA
 from chainer.training.extensions.warmup_shift import WarmupShift  # NOQA
 
 # Alias

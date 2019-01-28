@@ -6,10 +6,12 @@ import six
 
 import chainer
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import FunctionNode
 from chainer import testing
+from chainer import utils
 from chainer import variable
 import chainerx
 
@@ -36,15 +38,11 @@ def _ones_like(arr):
 
 
 def _make_outputs_props_in_error_message(outputs, grad_outputs):
-    def format_props(arr):
-        return '{}:{}'.format(arr.shape, arr.dtype.name)
-
     return (
         'Output shapes and dtypes         : {}\n'
         'Output gradient shapes and dtypes: {}'.format(
-            ', '.join(format_props(y) for y in outputs),
-            ', '.join('None' if gy is None else format_props(gy)
-                      for gy in grad_outputs)))
+            utils._format_array_props(outputs),
+            utils._format_array_props(grad_outputs)))
 
 
 def _check_outputs_and_grad_outputs(outputs, grad_outputs):
@@ -115,6 +113,12 @@ def numerical_grad(
         tuple: Numerical gradient arrays corresponding to ``inputs``.
 
     """
+    # TODO(niboshi): Deprecate `center_outputs` argument.
+    # If dtype of this argument is not float64, often the resolution is
+    # insufficient for numerical gradient calculation. We might use it only
+    # when its dtype is float64, but it would be better to simply remove it.
+    center_outputs = None
+
     assert eps > 0
     assert isinstance(inputs, (tuple, list))
     for x in inputs:
@@ -123,13 +127,19 @@ def numerical_grad(
                 'The dtype of input arrays must be kind of float')
 
     inputs = tuple(inputs)
-    grad_outputs = tuple(grad_outputs)
+    # Cast grad_outputs to float64
+    grad_outputs = tuple([
+        None if g is None
+        else numpy.float64(g) if numpy.isscalar(g)
+        else g.astype(numpy.float64)
+        for g in grad_outputs])
 
     if not chainer.is_arrays_compatible(
             [a for a in inputs + grad_outputs if not numpy.isscalar(a)]):
         raise RuntimeError('Do not mix GPU and CPU arrays in `numerical_grad`')
 
-    xp = backend.get_array_module(*(inputs + grad_outputs))
+    device = backend.get_device_from_array(*(inputs + grad_outputs))
+    xp = device.xp
 
     if xp is cuda.cupy:
         numerical_grad_kernel_1 = cuda.reduce(
@@ -222,7 +232,7 @@ def numerical_grad(
                     s.write('y[x+eps  ]: {}\n'.format(yss[4][i_out]))
                     raise NondifferentiableError(s.getvalue())
 
-                any_nonfinite |= not all(_.all() for _ in isfinites)
+                any_nonfinite |= not all((_).all() for _ in isfinites)
 
             if not any_nonfinite:
                 # Stack flattened outputs to make (5, *)-shaped 2D array
@@ -230,13 +240,13 @@ def numerical_grad(
                     [xp.hstack([y.ravel() for y in ys]) for ys in yss])
                 assert ystack.ndim == 2 and ystack.shape[0] == len(yss)
                 # Fit to quadratic
-                if xp is cuda.cupy:
-                    ystack = ystack.get()
+                if xp is not numpy:
+                    ystack = _cpu._to_cpu(ystack)
                 polyfit = numpy.polynomial.polynomial.polyfit
                 _, (residuals, _, _, _) = polyfit(
                     range(len(yss)), ystack, deg=2, full=True)
-                if xp is cuda.cupy:
-                    residuals = xp.array(residuals)
+                if xp is not numpy:
+                    residuals = device.send(residuals)
                 residuals = xp.sqrt(residuals / len(yss))
 
                 # Check for error for each output array
@@ -254,7 +264,7 @@ def numerical_grad(
                     # Restore the shape of flattened residual
                     res = residuals[cumsize - size:cumsize]
                     res = res.reshape(shape)
-                    det = xp.asarray(
+                    det = utils.force_array(
                         diff_atol + diff_rtol * (ymax - ymin) < res)
                     # Constant output = not nondifferentiable
                     det[ymax == ymin] = False
@@ -538,6 +548,7 @@ class _CheckBackward(object):
             [None if gy is None
              # Copy is needed to avoid being updated during backprop, which
              # would affect the numerical gradient.
+             # TODO(niboshi): Preserve strides, for testing purpose.
              else chainer.Variable(gy.copy(), requires_grad=False)
              for gy in self.y_grad])
 
@@ -640,7 +651,7 @@ class _CheckBackward(object):
         gx, = numerical_grad(
             g, (delta,), y_grad, eps=eps,
             detect_nondifferentiable=detect_nondifferentiable,
-            center_outputs=y0_data)
+            center_outputs=y0_data, diff_atol=0, diff_rtol=self.rtol)
 
         return gx
 

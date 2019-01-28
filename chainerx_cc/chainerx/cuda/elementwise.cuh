@@ -67,7 +67,7 @@ void Elementwise(Op&& op, const Arrays&... args) {
             elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             return;
     }
-#endif
+#endif  // NDEBUG
 
     elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
 }

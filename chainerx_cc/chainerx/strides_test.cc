@@ -125,7 +125,7 @@ TEST(StridesTest, CheckEqual) {
 
 TEST(StridesTest, Iterator) {
     const Strides strides = {48, 16, 4};
-    CheckSpanEqual({48, 16, 4}, gsl::make_span(strides.begin(), strides.end()));
+    CheckSpanEqual({48, 16, 4}, gsl::make_span(std::vector<int64_t>{strides.begin(), strides.end()}));
     CheckSpanEqual({4, 16, 48}, gsl::make_span(std::vector<int64_t>{strides.rbegin(), strides.rend()}));
 }
 
