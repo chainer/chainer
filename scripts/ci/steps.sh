@@ -147,7 +147,6 @@ step_cmake() {
         -DCHAINERX_BUILD_PYTHON=OFF \
         -DCHAINERX_WARNINGS_AS_ERRORS=ON \
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
-        -DCHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND=ON \
         "$CHAINERX_DIR"
     popd
 }
