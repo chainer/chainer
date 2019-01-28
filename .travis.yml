@@ -62,7 +62,6 @@ matrix:
       python: "3.7"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
-      - SKIP_CHAINERX=1
       - SKIP_CHAINERMN=1
 
     - name: "macOS Py27"
