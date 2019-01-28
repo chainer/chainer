@@ -114,6 +114,21 @@ case "${CHAINER_TRAVIS_TEST}" in
                 ;;
         esac
         ;;
+
+    "chainerx-cpp")
+        case "$phase" in
+            before_install)
+            ;;
+            install)
+                run_prestep chainerx_cmake
+                run_prestep chainerx_make
+            ;;
+            script)
+                run_step chainerx_ctest
+            ;;
+        esac
+        ;;
+
     *)
         echo "Unknown value of CHAINER_TRAVIS_TEST: ${CHAINER_TRAVIS_TEST}" >&2
         exit 1

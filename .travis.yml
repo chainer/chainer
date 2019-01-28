@@ -40,6 +40,13 @@ matrix:
       - CHAINER_TRAVIS_TEST="chainer"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
+    - name: "Ubuntu16.04 Py35 + ChainerX (C++ test)"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="chainerx-cpp"
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
     - name: "macOS Py35"
       os: osx
       language: generic

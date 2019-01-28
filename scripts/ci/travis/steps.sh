@@ -156,6 +156,37 @@ step_docs() {
 }
 
 
+step_chainerx_cmake() {
+    CHAINERX_BUILD_DIR="$WORK_DIR"/chainerx_build
+    mkdir -p "$CHAINERX_BUILD_DIR"
+    pushd "$CHAINERX_BUILD_DIR"
+
+    cmake \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCHAINERX_BUILD_CUDA=OFF \
+        -DCHAINERX_BUILD_TEST=ON \
+        -DCHAINERX_BUILD_PYTHON=OFF \
+        -DCHAINERX_WARNINGS_AS_ERRORS=ON \
+        -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
+        "$REPO_DIR"/chainerx_cc
+    popd
+
+    echo "CHAINERX_BUILD_DIR=\"$CHAINERX_BUILD_DIR\"" >> "$CHAINER_BASH_ENV"
+}
+
+
+step_chainerx_make() {
+    make -C "$CHAINERX_BUILD_DIR" --output-sync
+}
+
+
+step_chainerx_ctest() {
+    pushd "$CHAINERX_BUILD_DIR"
+    ctest -V
+    popd
+}
+
+
 step_before_install_chainerx_style_check_deps() {
     [ $TRAVIS_OS_NAME = "linux" ]  # currently only tested in linux
 
