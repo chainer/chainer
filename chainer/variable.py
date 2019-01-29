@@ -15,6 +15,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
+import chainer.utils._collections
 from chainer.utils import argument
 
 
@@ -984,6 +985,9 @@ Actual: {0}'''.format(type(data))
         if self.creator_node is None:
             return
 
+        # fix py2 memory leak
+        OrderedDict = chainer.utils._collections.OrderedDict
+
         cand_funcs = []
         seen_set = set()
         grads = _backprop_utils.GradTable(load_if_new=True)
@@ -1046,7 +1050,7 @@ Actual: {0}'''.format(type(data))
                 # Keep the order for the portability, rather than
                 # in_grad = {x: grads.get_as_list(x)
                 #            for x in set(target_inputs)}
-                in_grad = collections.OrderedDict()
+                in_grad = OrderedDict()
                 for x in target_inputs:
                     if x not in in_grad:
                         in_grad[x] = grads.get_as_list(x)
