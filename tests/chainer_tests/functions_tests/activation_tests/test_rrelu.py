@@ -13,7 +13,7 @@ from chainer.testing import attr
 
 @testing.parameterize(*testing.product({
     'train': [True, False],
-    'shape': [(3, 2), (5, 6)],
+    'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestRReLU(unittest.TestCase):
@@ -78,7 +78,7 @@ class TestRReLU(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'specify_r': [True, False],
     'train': [True, False],
-    'shape': [(3, 2), (5, 6)],
+    'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestRReLUR(unittest.TestCase):
