@@ -104,7 +104,7 @@ TEST(AxesTest, Compare) {
 
 TEST(AxesTest, Iterator) {
     const Axes axes = {2, 0, 3};
-    CheckSpanEqual({2, 0, 3}, gsl::make_span(axes.begin(), axes.end()));
+    CheckSpanEqual({2, 0, 3}, gsl::make_span(std::vector<int8_t>{axes.begin(), axes.end()}));
     CheckSpanEqual({3, 0, 2}, gsl::make_span(std::vector<int8_t>{axes.rbegin(), axes.rend()}));
 }
 

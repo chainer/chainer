@@ -67,8 +67,10 @@ def minimum(x1, x2):
     """Element-wise minimum of input variables.
 
     Args:
-        x1 (~chainer.Variable): Input variables to be compared.
-        x2 (~chainer.Variable): Input variables to be compared.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
+        x2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
 
     Returns:
         ~chainer.Variable: Output variable.

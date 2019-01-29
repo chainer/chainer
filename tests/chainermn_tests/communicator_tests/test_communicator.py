@@ -302,7 +302,7 @@ class TestDifferentDtype(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
-            self.device = self.communicator.rank
+            self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
@@ -564,7 +564,7 @@ class TestNonContiguousArray(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
-            self.device = self.communicator.rank
+            self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')

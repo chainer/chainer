@@ -1,5 +1,10 @@
 import os
 
+try:
+    import cupy
+except Exception:
+    cupy = None
+
 import chainerx
 
 
@@ -23,3 +28,12 @@ def get_cuda_limit():
                 'CHAINERX_TEST_DUDA_DEVICE_LIMIT must be non-negative '
                 'integer: {}'.format(_cuda_limit))
     return _cuda_limit
+
+
+def get_current_device():
+    # Returns the current CUDA device.
+    # Returns None if cupy is not installed.
+    # TODO(niboshi): Better remove dependency to cupy
+    if cupy is None:
+        return None
+    return cupy.cuda.runtime.getDevice()

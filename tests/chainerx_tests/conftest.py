@@ -13,6 +13,11 @@ def pytest_runtest_setup(item):
     _setup_cuda_marker(item)
 
 
+def pytest_runtest_teardown(item, nextitem):
+    current_device = cuda_utils.get_current_device()
+    assert current_device is None or current_device == 0
+
+
 def pytest_generate_tests(metafunc):
     marker = [
         m for m in metafunc.definition.iter_markers()

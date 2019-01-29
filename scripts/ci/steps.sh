@@ -147,7 +147,6 @@ step_cmake() {
         -DCHAINERX_BUILD_PYTHON=OFF \
         -DCHAINERX_WARNINGS_AS_ERRORS=ON \
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
-        -DCHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND=ON \
         "$CHAINERX_DIR"
     popd
 }
@@ -228,13 +227,11 @@ step_python_test_chainerx_nocuda() {
 }
 
 
-step_python_typecheck_chainer() {
+step_python_mypy_check() {
     source activate testenv
 
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        mypy --version
-        (cd "$REPO_DIR" && mypy chainer)
-    fi
+    mypy --version
+    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
 }
 
 

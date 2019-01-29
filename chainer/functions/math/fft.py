@@ -45,13 +45,13 @@ def fft(x):
 
     Args:
         x (tuple): ``(real, imag)`` where ``real`` is a
-            :class:`~chainer.Variable` storing the real part and
-            ``imag`` is a :class:`~chainer.Variable` storing the imaginary
-            part.
+            :class:`~chainer.Variable` or an :ref:`ndarray` storing the real
+            part and ``imag`` is a :class:`~chainer.Variable` or an
+            :ref:`ndarray` storing the imaginary part.
 
     Returns:
-        tuple: Returns ``(ry, ri)`` where ``ry`` is the real part of
-        the result and ``ri`` is the imaginary part of the result.
+        tuple: Returns ``(ry, iy)`` where ``ry`` is the real part of
+        the result and ``iy`` is the imaginary part of the result.
 
     .. note::
        Currently this function supports a tuple as input. It will support a
@@ -67,13 +67,13 @@ def ifft(x):
 
     Args:
         x (tuple): ``(real, imag)`` where ``real`` is a
-            :class:`~chainer.Variable` storing the real part and
-            ``imag`` is a :class:`~chainer.Variable` storing the imaginary
-            part.
+            :class:`~chainer.Variable` or an :ref:`ndarray` storing the real
+            part and ``imag`` is a :class:`~chainer.Variable` or an
+            :ref:`ndarray` storing the imaginary part.
 
     Returns:
-        tuple: Returns ``(ry, ri)`` where ``ry`` is the real part of
-        the result and ``ri`` is the imaginary part of the result.
+        tuple: Returns ``(ry, iy)`` where ``ry`` is the real part of
+        the result and ``iy`` is the imaginary part of the result.
 
     .. note::
        Currently this function supports a tuple as input. It will support a
