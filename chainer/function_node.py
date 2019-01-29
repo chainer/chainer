@@ -1160,15 +1160,33 @@ def _extract_apply_in_data(inputs):
     if len(inputs) == 0:
         return False, ()
 
-    # Unwrap arrays
-    arrays = [
-        (x._data[0] if x.xp is chainerx else x.array)
-        if isinstance(x, variable.Variable) else x for x in inputs]
+    if chainerx.is_available():
+        has_chainerx_array = False
 
-    if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, tuple(backend.to_chainerx(arrays))
-    return False, tuple(arrays)
+        # Unwrap arrays
+        arrays = []
+        for x in inputs:
+            if isinstance(x, variable.Variable):
+                if x._has_chainerx_array:
+                    arrays.append(x._data[0])
+                    has_chainerx_array = True
+                else:
+                    arrays.append(x.array)
+            else:  # x is ndarray
+                arrays.append(x)
+                if not has_chainerx_array:
+                    if isinstance(x, chainerx.ndarray):
+                        has_chainerx_array = True
+
+        if has_chainerx_array:
+            return True, tuple(backend.to_chainerx(arrays))
+        else:
+            return False, tuple(arrays)
+
+    else:
+        return False, tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
 
 
 def _get_ordered_func_heap():
