@@ -46,7 +46,7 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         x.mean(axis=axis, out=tmp[:gamma.size])
         xp.square(x).mean(axis=axis, out=tmp[gamma.size:])
-        if xp is not numpy:
+        if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
         mpi_comm.Allreduce(
             self.mpi4py_module.IN_PLACE,
@@ -62,7 +62,7 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         gy.sum(axis=axis, out=tmp[:gamma.size])
         (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:])
-        if xp is not numpy:
+        if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
         mpi_comm.Allreduce(
             self.mpi4py_module.IN_PLACE,

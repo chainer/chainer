@@ -613,7 +613,7 @@ class _BNMode(object):
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        return (xp is not numpy and
+        return (xp is cuda.cupy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
                 self.cudnn_dtype_ok)
