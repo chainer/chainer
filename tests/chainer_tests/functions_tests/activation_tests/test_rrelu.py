@@ -3,10 +3,8 @@ import unittest
 import numpy
 
 import chainer
-from chainer import backend
 from chainer import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
@@ -16,63 +14,59 @@ from chainer.testing import attr
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestRReLU(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+)
+class TestRReLU(testing.FunctionTestCase):
 
-    def setUp(self):
-        # Avoid unstability of numerical grad
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+    dodge_nondifferentiable = True
+
+    def before_test(self, test_name):
         # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
         if self.l >= self.u:
             self.l, self.u = self.u, self.l
-        self.check_forward_options = {}
-        self.check_backward_options = {}
+
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        xp = backend.get_array_module(x)
+        # cast self.r later because check_backward casts only x
+        self.r = numpy.random.uniform(self.l, self.u, self.shape)
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
+
+    def forward(self, inputs, device):
+        x, = inputs
+        r = self.r
+        r = device.send(r)
+        r = r.astype(x.dtype)
         with chainer.using_config('train', self.train):
-            y, r = functions.rrelu(x, l=self.l, u=self.u, return_r=True)
-        self.assertEqual(y.data.dtype, self.dtype)
-        expected = xp.where(x_data >= 0, x_data, x_data * r)
-        testing.assert_allclose(
-            expected, y.data, **self.check_forward_options)
+            y = functions.rrelu(x, l=self.l, u=self.u, r=r)
+        return y,
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        xp = backend.get_array_module(x_data)
-        r = xp.random.uniform(self.l, self.u, x_data.shape).astype(
-            x_data.dtype)
-
-        def f(x):
-            return functions.rrelu(
-                x, self.l, self.u,
-                r=r.astype(x.dtype)  # check_backward casts only x
-            )
-
-        with chainer.using_config('train', self.train):
-            gradient_check.check_backward(
-                f, x_data, y_grad, dtype=numpy.float64,
-                **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def forward_expected(self, inputs):
+        x, = inputs
+        r = self.r.astype(self.dtype)
+        if self.train:
+            expected = numpy.where(x >= 0, x, x * r)
+        else:
+            r_test = ((self.l + self.u) * 0.5).astype(self.dtype)
+            expected = numpy.where(x >= 0, x, x * r_test)
+        return expected,
 
 
 @testing.parameterize(*testing.product({
