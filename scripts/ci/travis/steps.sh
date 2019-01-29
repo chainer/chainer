@@ -21,7 +21,10 @@ _install_chainer_deps() {
     # It's not possible to install only requirements.
     # Chainer is uninstalled after the installation.
     # TODO(niboshi): Use other installation tool
-    pip install -e "$REPO_DIR"["$extras"]
+    # On Windows pip does not seem to support installing extras with full path.
+    pushd "$REPO_DIR"
+    pip install -e .["$extras"]
+    popd
     pip uninstall -y chainer
 }
 
@@ -139,7 +142,14 @@ step_chainer_install_from_sdist() {
 
 
 step_chainer_tests() {
-    pytest -m "not slow and not gpu and not cudnn and not ideep" "$REPO_DIR"/tests/chainer_tests
+    local mark="not slow and not gpu and not cudnn and not ideep"
+
+    # On Windows theano fails to import
+    if [[ $TRAVIS_OS_NAME == "windows" ]]; then
+        mark="$mark and not theano"
+    fi
+
+    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 

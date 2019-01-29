@@ -56,6 +56,15 @@ matrix:
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
 
+    - name: "Windows"
+      os: windows
+      language: shell
+      python: "3.7"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - SKIP_CHAINERX=1
+      - SKIP_CHAINERMN=1
+
     - name: "macOS Py27"
       os: osx
       language: generic
