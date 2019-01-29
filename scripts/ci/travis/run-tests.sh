@@ -106,6 +106,11 @@ case "${CHAINER_TRAVIS_TEST}" in
                 run_step chainermn_tests
 
                 if [[ $SKIP_CHAINERX != 1 ]]; then
+                    CHAINERX_TEST_CUDA_DEVICE_LIMIT=0 \
+                        run_step chainerx_python_tests
+                fi
+
+                if [[ $SKIP_CHAINERX != 1 ]]; then
                     CHAINER_DOCS_SKIP_LINKCODE=1 \
                         run_step docs
                 else
