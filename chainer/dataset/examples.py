@@ -65,9 +65,10 @@ class Examples:
     A Sequence-like collection of examples.
 
     If you want a customized Examples, you just need to implement
-    :meth:`to_dataset` method for :class:`~chainer.training.Updater`
-    which supports Examples, but we also recommend you to implement
-    :meth:`__len__` and :meth:`__getitem__` to keep backward compatibility.
+    :meth:`to_dataset` method for :class:`~chainer.training.Updater` or
+    :class:`~chainer.training.extensions.Evaluator` which supports Examples,
+    but we also recommend you to implement :meth:`__len__` and
+    :meth:`__getitem__` to keep backward compatibility.
 
     Note that it has same methods of :class:`~collections.abc.Sequence` but
     not an actual instance of Sequence to avoid the overhead of isinstance().
@@ -118,8 +119,8 @@ class Examples:
     def __getitem__(self, index):
         raise NotImplementedError
 
-    def to_dataset(self, device_spec=None, indices=None):
-        # type: (tp.Optional[tp.Union[int, types.DeviceSpec]], tp.Optional[tp.Union[int, slice]]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
+    def to_dataset(self, device_spec=None, indices=None, func=None):
+        # type: (tp.Optional[tp.Union[int, types.DeviceSpec]], tp.Optional[tp.Union[int, slice]], tp.Callable[[tp.Union[types.Dataset, types.Datasets]], tp.Union[types.Dataset, types.Datasets]]) -> tp.Union[types.Dataset, types.Datasets] # NOQA
         """
         Return the examples as dataset(s).
 
@@ -133,6 +134,8 @@ class Examples:
             indices (None or int or slice): Indices of examples. This method
                 extracts the specified examples before sending them to the
                 device.
+            func (callable): A function which is applied to the dataset(s)
+                after sent to the specified device
 
         Returns:
             Dataset, a tuple of datasets, or a dictionary of datasets. The
@@ -141,34 +144,7 @@ class Examples:
         raise NotImplementedError
 
 
-class AbstractDatasetExamples(Examples):
-    """
-    A Sequence-like collection of examples sampled from one or more datasets.
-
-    This is an abstract base class for Single, Tuple and DictDatasetExamples.
-    """
-
-    # Note: DatasetExamples keep an internal representation of dataset as an
-    # NdArray instead of Dataset.
-
-    def __init__(self):
-        super(AbstractDatasetExamples, self).__init__()
-
-    def to_dataset(self, device_spec=None, indices=None):
-        device = convert.resolve_device_spec(device_spec)
-        if device is None:
-            converter = _identity
-        else:
-            converter = device.send
-
-        return self._map_datasets(converter, indices)
-
-    def _map_datasets(self, f, indices):
-        # type: (tp.Callable[[types.NdArray], types.NdArray], tp.Optional[tp.Union[int, slice]]) -> tp.Union[types.NdArray, _NdArrays] # NOQA
-        raise NotImplementedError
-
-
-class SingleDatasetExamples(AbstractDatasetExamples):
+class SingleDatasetExamples(Examples):
     def __init__(self, dataset, indices=None, order=None, padding_spec=None):
         # type: (types.Dataset, tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
@@ -181,14 +157,19 @@ class SingleDatasetExamples(AbstractDatasetExamples):
     def __getitem__(self, index):
         return self._dataset[index]
 
-    def _map_datasets(self, f, indices):
+    def to_dataset(self, device_spec=None, indices=None, func=None):
+        device = convert.resolve_device_spec(device_spec)
+        send = device.send if device is not None else _identity
+
         if indices is None:
-            return f(self._dataset)
+            ret = send(self._dataset)
         else:
-            return f(self._dataset[indices])
+            ret = send(self._dataset[indices])
+
+        return ret if func is None else func(ret)
 
 
-class TupleDatasetExamples(AbstractDatasetExamples):
+class TupleDatasetExamples(Examples):
     def __init__(self, dataset, indices=None, order=None, padding_spec=None):
         # type: (tp.Tuple[types.Dataset, ...], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
@@ -217,14 +198,19 @@ class TupleDatasetExamples(AbstractDatasetExamples):
         else:
             return tuple(ret)
 
-    def _map_datasets(self, f, indices):
+    def to_dataset(self, device_spec=None, indices=None, func=None):
+        device = convert.resolve_device_spec(device_spec)
+        send = device.send if device is not None else _identity
+
         if indices is None:
-            return tuple(f(d) for d in self._dataset)
+            ret = tuple(send(d) for d in self._dataset)
         else:
-            return tuple(f(d[indices]) for d in self._dataset)
+            ret = tuple(send(d[indices]) for d in self._dataset)
+
+        return ret if func is None else func(*ret)
 
 
-class DictDatasetExamples(AbstractDatasetExamples):
+class DictDatasetExamples(Examples):
     def __init__(self, dataset, indices=None, order=None, padding_spec=None):
         # type: (tp.Mapping[tp.Any, types.Dataset], tp.Optional[tp.Union[slice, tp.List[int], numpy.ndarray]], tp.Optional[tp.Sequence[int]], tp.Optional[types.PaddingSpec]) -> None # NOQA
 
@@ -252,11 +238,18 @@ class DictDatasetExamples(AbstractDatasetExamples):
         else:
             return ret
 
-    def _map_datasets(self, f, indices):
+    def to_dataset(self, device_spec=None, indices=None, func=None):
+        device = convert.resolve_device_spec(device_spec)
+        send = device.send if device is not None else _identity
+
         if indices is None:
-            return {k: f(d) for k, d in six.iteritems(self._dataset)}
+            ret = {
+                k: send(d) for k, d in six.iteritems(self._dataset)}
         else:
-            return {k: f(d[indices]) for k, d in six.iteritems(self._dataset)}
+            ret = {
+                k: send(d[indices]) for k, d in six.iteritems(self._dataset)}
+
+        return ret if func is None else func(**ret)
 
 
 class ConcatenatedExamples(Examples):
@@ -331,8 +324,8 @@ class ConcatenatedExamples(Examples):
     def __getitem__(self, index):
         return self._examples[index]
 
-    def to_dataset(self, device_spec=None, indices=None):
-        return self._examples.to_dataset(device_spec, indices)
+    def to_dataset(self, device_spec=None, indices=None, func=None):
+        return self._examples.to_dataset(device_spec, indices, func)
 
 
 def _identity(a):
