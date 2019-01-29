@@ -847,22 +847,22 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (chainerx.ndarray) -> None
+        # type: (types.NdArray) -> None
 
         if self.xp is chainerx:
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()  # type: ignore
-                         or d.is_backprop_required())):
+                         or d.is_backprop_required())):  # type: ignore
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            self._set_chainerx_array(d, None)
+            self._set_chainerx_array(d, None)  # type: ignore
         else:
             self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
             self._data[0] = d
-            self._has_chainerx_array = isinstance(d, chainerx.ndarray)
+            self._has_chainerx_array = False
 
     @property
     def data(self):

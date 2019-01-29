@@ -209,21 +209,21 @@ class TestVariable(unittest.TestCase):
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
-    def test_init(self):
+    def test_numpy_init(self):
         a = np.asarray(self.x)
         x = chainer.Variable(a)
         np.testing.assert_array_equal(x.array, a)
         assert x._has_chainerx_array is False
         assert isinstance(x.node, chainer.variable.VariableNode)
 
-    def test_init_unchecked(self):
+    def test_numpy_init_unchecked(self):
         a = np.asarray(self.x)
         x = chainer.Variable._init_unchecked(a)
         np.testing.assert_array_equal(x.array, a)
         assert x._has_chainerx_array is False
         assert isinstance(x.node, chainer.variable.VariableNode)
 
-    def test_init_unchecked_explicit(self):
+    def test_numpy_init_unchecked_explicit(self):
         a = np.asarray(self.x)
         x = chainer.Variable._init_unchecked(a, is_chainerx_array=False)
         np.testing.assert_array_equal(x.array, a)
