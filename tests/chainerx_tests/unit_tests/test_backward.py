@@ -13,7 +13,7 @@ def _assert_arrays_equal(array1, array2):
 
 
 def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
-    # Checks for test validity
+    # Checks for test validity.
     assert callable(fprop)
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -22,20 +22,20 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
     assert all([(isinstance(a, chainerx.ndarray) or a ==
                  chainerx.ChainerxError) for a in expected_gxs])
 
-    # Forward
+    # Forward.
     ys = fprop(*xs)
 
-    # Set output gradients
+    # Set output gradients.
     if gys is not None:
         assert len(gys) == len(ys)
         for y, gy in zip(ys, gys):
             assert not y.is_grad_required()
             y.set_grad(gy, backprop_id)
 
-    # Backward
+    # Backward.
     chainerx.backward(ys, backprop_id)
 
-    # Check gradients of input arrays
+    # Check gradients of input arrays.
     for x, expected_gx in zip(xs, expected_gxs):
         if expected_gx is chainerx.ChainerxError:
             with pytest.raises(chainerx.ChainerxError):
@@ -44,7 +44,7 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
             gx = x.get_grad(backprop_id)
             _assert_arrays_equal(gx, expected_gx)
 
-    # Check gradients of output arrays
+    # Check gradients of output arrays.
     if gys is None:
         gys = (None,) * len(xs)
     for y, gy in zip(ys, gys):
@@ -55,6 +55,73 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
         else:
             assert y.is_grad_required(backprop_id)
             _assert_arrays_equal(gy, y.get_grad(backprop_id))
+
+
+def _check_grad(
+        fprop, xs, expected_gxs, gys=None, backprop_id=None, xs_indices=None,
+        ys_indices=None):
+    # Checks for test validity.
+    assert callable(fprop)
+    assert isinstance(xs, tuple)
+    assert isinstance(expected_gxs, tuple)
+    assert len(xs) == len(expected_gxs)
+    assert all([isinstance(a, chainerx.ndarray) for a in xs])
+    assert all([(isinstance(a, chainerx.ndarray) or a ==
+                 chainerx.ChainerxError) for a in expected_gxs])
+
+    # Forward.
+    ys = fprop(*xs)
+
+    # Set output gradients.
+    if gys is not None:
+        assert len(gys) == len(ys)
+        for y, gy in zip(ys, gys):
+            assert not y.is_grad_required()
+            y.set_grad(gy, backprop_id)
+
+    # Backward using grad.
+    initial_gxs = []
+    for x in xs:
+        if x.is_grad_required():
+            initial_gxs.append(x.get_grad(backprop_id))
+        else:
+            initial_gxs.append(chainerx.ChainerxError)
+
+    if xs_indices is not None:
+        actual_xs = tuple([xs[i] for i in xs_indices])
+    else:
+        actual_xs = xs
+    if ys_indices is not None:
+        actual_ys = tuple([ys[i] for i in ys_indices])
+    else:
+        actual_ys = ys
+    gxs = chainerx.grad(actual_ys, actual_xs, backprop_id)
+
+    # Check gradients.
+    for gx, expected_gx in zip(gxs, expected_gxs):
+        _assert_arrays_equal(gx, expected_gx)
+
+    # Check gradients of output arrays.
+    if gys is None:
+        gys = (None,) * len(xs)
+    for y, gy in zip(ys, gys):
+        if gy is None:
+            assert not y.is_grad_required(backprop_id)
+            with pytest.raises(chainerx.ChainerxError):
+                y.get_grad(backprop_id)
+        else:
+            assert y.is_grad_required(backprop_id)
+            _assert_arrays_equal(gy, y.get_grad(backprop_id))
+
+    # Check initial gradients of inputs and that they are not modified.
+    for x, initial_gx in zip(xs, initial_gxs):
+        if initial_gx is chainerx.ChainerxError:
+            assert not x.is_grad_required(backprop_id)
+            with pytest.raises(chainerx.ChainerxError):
+                x.get_grad(backprop_id)
+        else:
+            assert x.is_grad_required(backprop_id)
+            _assert_arrays_equal(initial_gx, x.get_grad(backprop_id))
 
 
 def _identity(x):
@@ -108,6 +175,16 @@ def test_backward_identity():
     expected_gxs = (chainerx.full(shape, 1, dtype),)
 
     _check_backward(_identity, xs, expected_gxs)
+
+
+def test_grad_identity():
+    shape = (1,)
+    dtype = chainerx.float32
+
+    xs = (chainerx.full(shape, 5, dtype).require_grad(),)
+    expected_gxs = (chainerx.full(shape, 1, dtype),)
+
+    _check_grad(_identity, xs, expected_gxs)
 
 
 def test_backward_add():
