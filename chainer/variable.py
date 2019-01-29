@@ -18,8 +18,8 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer import types  # NOQA
-from chainer.utils import argument
 import chainer.utils._collections
+from chainer.utils import argument
 import chainerx
 
 
