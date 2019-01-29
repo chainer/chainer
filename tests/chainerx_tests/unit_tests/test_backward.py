@@ -90,6 +90,16 @@ def _binary_math_multiple_outputs(x1, x2):
     return (x1 + x2, x1 * x2)
 
 
+def _backward_with_double_backprop(x0, x1):
+    assert x0.is_grad_required()
+
+    h = x0 * (x0 + x1)
+    chainerx.backward(h, enable_double_backprop=True)
+    gx0 = x0.get_grad()
+    x0.cleargrad()
+    return gx0,
+
+
 def test_backward_identity():
     shape = (1,)
     dtype = chainerx.float32
@@ -158,28 +168,6 @@ def test_backward_add_mul_extra_inputs():
         chainerx.ChainerxError)
 
     _check_backward(_add_mul, xs, expected_gxs)
-
-
-def test_backward_sole_array_node():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    x = chainerx.full(shape, 2, dtype).require_grad()
-    expected_gx = chainerx.full(shape, 1, dtype)
-
-    chainerx.backward(x)
-
-    _assert_arrays_equal(x.get_grad(), expected_gx)
-
-
-def _backward_with_double_backprop(x0, x1):
-    assert x0.is_grad_required()
-
-    h = x0 * (x0 + x1)
-    chainerx.backward(h, enable_double_backprop=True)
-    gx0 = x0.get_grad()
-    x0.cleargrad()
-    return gx0,
 
 
 def test_double_backprop():
@@ -288,18 +276,18 @@ def test_backward_given_output_grad():
     _check_backward(_mul, xs, expected_gxs, gys=gys)
 
 
-def test_backward_keyword_arguments():
+def test_backward_multiple_outputs():
     shape = (1,)
     dtype = chainerx.float32
 
-    x = chainerx.full(shape, 2, dtype)
+    xs = (
+        chainerx.full(shape, 3, dtype).require_grad(),
+        chainerx.full(shape, 5, dtype).require_grad(),)
+    expected_gxs = (
+        chainerx.full(shape, 6, dtype),
+        chainerx.full(shape, 4, dtype),)
 
-    with chainerx.backprop_scope('bp1') as backprop_id1:
-        x.require_grad(backprop_id=backprop_id1)
-        chainerx.backward(x, backprop_id=backprop_id1)
-        with pytest.raises(
-                TypeError, match=r'.*incompatible function arguments.*'):
-            chainerx.backward(body=x, backprop_id=backprop_id1)
+    _check_backward(_binary_math_multiple_outputs, xs, expected_gxs)
 
 
 def test_backward_multiple_graphs_basic():
@@ -316,23 +304,6 @@ def test_backward_multiple_graphs_basic():
             chainerx.ChainerxError,)
 
         _check_backward(_mul, xs, expected_gxs, backprop_id=backprop_id1)
-
-
-# TODO(hvy): Move to bottom.
-def test_backward_multiple_graphs_non_existing():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1, \
-            chainerx.backprop_scope('bp2') as backprop_id2:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
-            chainerx.full(shape, 5, dtype).require_grad(backprop_id1),)
-
-        y = xs[0] * xs[1]
-
-        with pytest.raises(chainerx.ChainerxError):
-            chainerx.backward(y, backprop_id2)
 
 
 def test_backward_multiple_graphs_reuse():
@@ -379,27 +350,58 @@ def test_backward_multiple_graphs_reuse():
         assert x2.get_grad(backprop_id1) is None
 
 
-def test_backward_multiple_outputs():
+def test_backward_sole_array_node():
     shape = (1,)
     dtype = chainerx.float32
 
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (
-        chainerx.full(shape, 6, dtype),
-        chainerx.full(shape, 4, dtype),)
+    x = chainerx.full(shape, 2, dtype).require_grad()
+    expected_gx = chainerx.full(shape, 1, dtype)
 
-    _check_backward(_binary_math_multiple_outputs, xs, expected_gxs)
+    chainerx.backward(x)
+
+    _assert_arrays_equal(x.get_grad(), expected_gx)
+
+
+def test_backward_keyword_arguments():
+    shape = (1,)
+    dtype = chainerx.float32
+
+    with chainerx.backprop_scope('bp1') as backprop_id1:
+        x = chainerx.full(shape, 2, dtype).require_grad(backprop_id1)
+
+        chainerx.backward(x, backprop_id=backprop_id1)
+
+        with pytest.raises(
+                TypeError, match=r'.*incompatible function arguments.*'):
+            chainerx.backward(body=x, backprop_id=backprop_id1)
 
 
 def test_create_and_release_backprop_id():
     context = chainerx.Context()
     backprop_id = context.make_backprop_id("bp1")
+
     assert "bp1" == backprop_id.name
     assert context == backprop_id.context
+
     context._check_valid_backprop_id(backprop_id)
 
     context.release_backprop_id(backprop_id)
+
     with pytest.raises(chainerx.ChainerxError):
         context._check_valid_backprop_id(backprop_id)
+
+
+def test_backward_multiple_graphs_non_existing():
+    shape = (1,)
+    dtype = chainerx.float32
+
+    with chainerx.backprop_scope('bp1') as backprop_id1, \
+            chainerx.backprop_scope('bp2') as backprop_id2:
+        xs = (
+            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
+            chainerx.full(shape, 5, dtype).require_grad(backprop_id1),)
+
+        y = xs[0] * xs[1]
+
+        with pytest.raises(chainerx.ChainerxError):
+            chainerx.backward(y, backprop_id2)
