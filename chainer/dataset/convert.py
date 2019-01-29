@@ -120,6 +120,8 @@ def to_device(device, x):
 
 
 def _get_device(device_spec):
+    # type: (tp.Optional[tp.Union[int, types.DeviceSpec]]) -> tp.Optional[backend.Device] # NOQA
+
     # Converts device specificer to a chainer.Device instance.
     # Additionally to chainer.get_device,
     # this function supports the following conversions:
