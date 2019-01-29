@@ -38,11 +38,9 @@ def absolute_error(x0, x1):
         L = |x_0 - x_1|
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-                :class:`cupy.ndarray`):
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`):
             First input variable.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-                :class:`cupy.ndarray`):
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
             Second input variable.
 
     Returns:

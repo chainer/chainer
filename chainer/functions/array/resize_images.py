@@ -17,7 +17,7 @@ class ResizeImages(function_node.FunctionNode):
 
         x_type = in_types[0]
         type_check.expect(
-            x_type.dtype.char == 'f',
+            x_type.dtype == numpy.float32,
             x_type.ndim == 4
         )
 
@@ -76,7 +76,7 @@ class ResizeImagesGrad(function_node.FunctionNode):
 
         gy_type = in_types[0]
         type_check.expect(
-            gy_type.dtype.char == 'f',
+            gy_type.dtype == numpy.float32,
             gy_type.ndim == 4
         )
 
@@ -145,7 +145,8 @@ def resize_images(x, output_shape):
       image.
 
     Args:
-        x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
         output_shape (tuple): This is a tuple of length 2 whose values are
             :obj:`(h_O, w_O)`. Note that the order of height and width is
             opposite of the one in OpenCV.

@@ -122,7 +122,7 @@ class DeformableConvolution2DSampler(link.Link):
             self.b.initialize(self.out_channels)
 
     def forward(self, x, offset):
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return deformable_convolution_2d_sampler(
             x, offset, self.W, self.b, self.stride, self.pad)

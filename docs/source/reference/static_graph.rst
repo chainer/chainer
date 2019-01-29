@@ -1,9 +1,6 @@
 Static Subgraph Optimizations: Usage
 ====================================================
 
-.. module:: chainer.graph_optimizations
-
-
 .. note::
  This is an experimental feature and so the API might change in the future as it is developed.
  
@@ -13,13 +10,19 @@ runs as normal except that an execution trace is also collected. The
 trace is then used to generate optimized code that is will be called instead of the define-by-run
 code starting from the second iteration.
 
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.static_graph
+
 Basic usage
 ------------
 
 To enable static graph optimizations, it is only necessary to add the
-`@static_graph` decorator to a chain's ``__call__()`` method. We will now show how the 
+:func:`chainer.static_graph` decorator to a chain's ``__call__()`` method. We will now show how the 
 Chainer MNIST example can be modified to use this feature. The modified version 
-with static subgraph optimizations is located at `chainer.examples.static_graph_optimizations.mnist`.
+with static subgraph optimizations is located at :tree:`examples/static_graph_optimizations/mnist`.
 
 The first step is to import the necessary packages:
 
@@ -28,8 +31,8 @@ The first step is to import the necessary packages:
    :lines: 15-16
    :caption: train_mnist.py
 
-Since the neural network model `MLP` corresponds to a static graph, we can annotate it as a static graph by 
-using the `@static_graph` decorator on the chain's ``__call__()`` method. This lets the framework know that 
+Since the neural network model ``MLP`` corresponds to a static graph, we can annotate it as a static graph by 
+using the :func:`chainer.static_graph` decorator on the chain's ``__call__()`` method. This lets the framework know that 
 that the define-by-run code of the chain always creates the same graph (that is, it always performs the same 
 sequence of computations) each time it is called. We will refer to such a chain as a **static chain** in 
 the documentation. 
@@ -45,7 +48,7 @@ the documentation.
 
 .. note::
    There are currently some restrictions on how variables can be passed into a static chain's ``__call__()`` 
-   method. Refer to the documentation of `@static_graph` for details.
+   method. Refer to the documentation of :func:`chainer.static_graph` for details.
 
 Recall that the define-by-run code of a static chain's ``__call__()`` method only actually runs during the 
 first iteration and is then replaced by optimized static schedule code. The current implementation only 
@@ -55,14 +58,14 @@ by default, since the define-by-run code is
 only executed during the first iteration. In order to make sure such "side effect" code actually gets 
 called each iteration, we need to put it inside a function or method decorated by :meth:`static_code()`.
 We expect there will rarely be a need to use side-effect code but for completeness, an example of
-a model that uses it is available in the `MLPSideEffect` Chain of the static graph MNIST example. 
+a model that uses it is available in the ``MLPSideEffect`` Chain of the static graph MNIST example. 
 
-In this example, we only need to use `@static_graph` on the model chain, since the whole model is static. 
+In this example, we only need to use :func:`chainer.static_graph` on the model chain, since the whole model is static. 
 However, in more general dynamic models, each of the largest static subgraphs (which should each be 
-written as a chain) should also use `@static_graph`.
+written as a chain) should also use :func:`chainer.static_graph`.
 
 .. note::
-   Nested application of `@static_graph` is not allowed. That is, if a `@static_graph`-decorated chain 
+   Nested application of :func:`chainer.static_graph` is not allowed. That is, if a :func:`chainer.static_graph`-decorated chain 
    calls another chains, only the outermost chain should use the decorator.
 
 
@@ -125,13 +128,13 @@ Limitations and future work
 
 - Optimization switches to let the user select the trade-off between runtime performance and memory usage: The current implementation achieves its speedups mainly by reducing the amount of Python code that needs to run, but does not yet implement advanced optimizations for memory usage or runtime performance. Ideally, the user should be able to adjust performance tuning parameters to control the trade-off between memory consumption and runtime performance.
 
-- Incompatibility with GRU and LSTM links: This feature requires that all input variables to a chain need to explicitly appear in the arguments to the chain's ``__call__()`` method. However, the GRU and LSTM links with state maintain variable attributes of the chain for the RNN state variables. Design changes to support such links and/or modifications to these links are being considered. These links may still be used with the current implementation, as long as the corresponding RNN is unrolled inside of a static chain. For an example of this, see the modified ptb example at `chainer.examples.static_graph_optimizations.ptb`
+- Incompatibility with GRU and LSTM links: This feature requires that all input variables to a chain need to explicitly appear in the arguments to the chain's ``__call__()`` method. However, the GRU and LSTM links with state maintain variable attributes of the chain for the RNN state variables. Design changes to support such links and/or modifications to these links are being considered. These links may still be used with the current implementation, as long as the corresponding RNN is unrolled inside of a static chain. For an example of this, see the modified ptb example at :tree:`examples/static_graph_optimizations/ptb`
 
 - Memory usage: The current implementation caches all static schedules which can lead to high memory usage in some cases. For example, separate schedules are created when the training mode or mini-batch size changes. 
 
 - Advanced graph optimizations: Advanced optimizations such as fusion of operations is not yet implemented.
 
-- Constraints on arguments to a static chain: The current version requires that all input variables used inside `__call__()` of a static chain must either appear in the arguments of this method or be defined in the define-by-run code. Furthermore, any variables that appear in the arguments list must appear by themselves or be contained inside a list or tuple. Arbitrary levels of nesting are allowed.
+- Constraints on arguments to a static chain: The current version requires that all input variables used inside ``__call__()`` of a static chain must either appear in the arguments of this method or be defined in the define-by-run code. Furthermore, any variables that appear in the arguments list must appear by themselves or be contained inside a list or tuple. Arbitrary levels of nesting are allowed.
 
 - Model export: In the case where the complete computation graph for the model is static, it should be possible in principle to export the static schedule in a format that can be run on other platforms and languages. One of the other original motivations for this feature was to support exporting static Chainer models to run on C/C++ and/or optimize the static schedule execution code in Cython/C/C++. However, it seems that ONNX is now fulfilling this purpose and there is a separate ONNX exporter already in development for Chainer. Perhaps these two features can be merged at some point in the future.
 
@@ -140,5 +143,5 @@ Limitations and future work
 Examples
 --------
 
-For additional examples that use this feature, refer to the examples in `chainer.examples.static_graph_optimizations`.
+For additional examples that use this feature, refer to the examples in :tree:`examples/static_graph_optimizations`.
 

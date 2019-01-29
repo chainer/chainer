@@ -1,3 +1,5 @@
+import typing as tp  # NOQA
+
 import chainer
 from chainer import utils
 
@@ -6,6 +8,8 @@ class _ForwardPreprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_preprocess"""
 
     def __init__(self, link, forward_name, args, kwargs):
+        # type: ('chainer.link.Link', str, tp.Tuple[tp.Any, ...], tp.Dict[str, tp.Any]) -> None # NOQA
+
         self.link = link
         self.forward_name = forward_name
         self.args = args
@@ -21,6 +25,8 @@ class _ForwardPostprocessCallbackArgs(object):
     """Callback data for LinkHook.forward_postrocess"""
 
     def __init__(self, link, forward_name, args, kwargs, out):
+        # type: ('chainer.link.Link', str, tp.Tuple[tp.Any, ...], tp.Dict[str, tp.Any], tp.Any) -> None # NOQA
+
         self.link = link
         self.forward_name = forward_name
         self.args = args
@@ -65,7 +71,37 @@ class LinkHook(object):
     in this way are registered to all links within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
-    .. TODO(niboshi): Add example
+    .. admonition:: Example
+
+        The following code is a simple example in which
+        we measure the elapsed time of a part of forward propagation procedure
+        with :class:`~chainer.link_hooks.TimerHook`, which is a subclass of
+        :class:`~chainer.LinkHook`.
+
+        >>> class Model(chainer.Chain):
+        ...   def __init__(self):
+        ...     super(Model, self).__init__()
+        ...     with self.init_scope():
+        ...       self.l = L.Linear(10, 10)
+        ...   def __call__(self, x1):
+        ...     return F.exp(self.l(x1))
+        >>> model1 = Model()
+        >>> model2 = Model()
+        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
+        >>> with chainer.link_hooks.TimerHook() as m:
+        ...   _ = model1(x)
+        ...   y = model2(x)
+        >>> model3 = Model()
+        >>> z = model3(y)
+        >>> print('Total time : {}'.format(m.total_time()))
+        ... # doctest:+ELLIPSIS
+        Total time : ...
+
+    In this example, we measure the elapsed times for each forward
+    propagation of all functions in ``model1`` and ``model2``.
+    Note that ``model3`` is not a target measurement
+    as :class:`~chainer.link_hooks.TimerHook` is unregistered
+    before forward propagation of ``model3``.
 
     .. note::
 
@@ -89,6 +125,8 @@ class LinkHook(object):
     name = 'LinkHook'
 
     def __enter__(self):
+        # type: () -> LinkHook
+
         link_hooks = chainer._get_link_hooks()
         if self.name in link_hooks:
             raise KeyError('hook %s already exists' % self.name)
@@ -103,6 +141,7 @@ class LinkHook(object):
         del link_hooks[self.name]
 
     def added(self, link):
+        # type: (tp.Optional['chainer.link.Link']) -> None
         """Callback function invoked when the link hook is registered
 
         Args:
@@ -113,6 +152,7 @@ class LinkHook(object):
         pass
 
     def deleted(self, link):
+        # type: (tp.Optional['chainer.link.Link']) -> None
         """Callback function invoked when the link hook is unregistered
 
         Args:
@@ -124,6 +164,7 @@ class LinkHook(object):
 
     # forward
     def forward_preprocess(self, args):
+        # type: (_ForwardPreprocessCallbackArgs) -> None
         """Callback function invoked before a forward call of a link.
 
         Args:
@@ -141,6 +182,7 @@ class LinkHook(object):
         pass
 
     def forward_postprocess(self, args):
+        # type: (_ForwardPostprocessCallbackArgs) -> None
         """Callback function invoked after a forward call of a link.
 
         Args:

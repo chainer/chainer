@@ -64,10 +64,10 @@ class Reservoir(object):
 
     """Reservoir sample with a fixed sized buffer."""
 
-    def __init__(self, size, data_shape, dtype='f'):
+    def __init__(self, size, data_shape, dtype=numpy.float32):
         self.size = size
         self.data = numpy.zeros((size,) + data_shape, dtype=dtype)
-        self.idxs = numpy.zeros((size,), dtype='i')
+        self.idxs = numpy.zeros((size,), dtype=numpy.int32)
         self.counter = 0
 
     def add(self, x, idx=None):
@@ -329,7 +329,7 @@ class VariableStatisticsPlot(extension.Extension):
                     if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
-                        # percentile is the mid percentile and the numner of
+                        # percentile is the mid percentile and the number of
                         # percentiles are odd
                         ax.plot(
                             idxs, data[:, col, offset + i], color=_plot_color,

@@ -1,0 +1,4 @@
+Checks:          '-*,boost-*,bugprone-*,cert-*,cppcoreguidelines-*,clang-analyzer-*,google-*,misc-*,modernize-*,performance-*,readability-*,-google-runtime-references,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-modernize-use-auto'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '^chainerx/chainerx/.*'
+AnalyzeTemporaryDtors: false

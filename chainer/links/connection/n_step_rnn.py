@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
@@ -12,7 +12,7 @@ from chainer import variable
 
 
 def argsort_list_descent(lst):
-    return numpy.argsort([-len(x.data) for x in lst]).astype('i')
+    return numpy.argsort([-len(x) for x in lst]).astype(numpy.int32)
 
 
 def permutate_list(lst, indices, inv):
@@ -35,12 +35,6 @@ class NStepRNNBase(link.ChainList):
     :func:`chainer.links.NStepBiRNN`.
 
     This link's behavior depends on argument, ``use_bi_direction``.
-
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.
@@ -107,7 +101,7 @@ class NStepRNNBase(link.ChainList):
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
-        with cuda.get_device_from_id(self._device_id):
+        with chainer.using_device(self.device):
             hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
@@ -131,12 +125,6 @@ class NStepRNNBase(link.ChainList):
 
         Calculate all hidden states and cell states.
 
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
-
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
                 is specified zero-vector is used. Its shape is ``(S, B, N)``
@@ -146,8 +134,8 @@ class NStepRNNBase(link.ChainList):
                 and ``N`` is the dimension of the hidden units.
             xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_t, I)``, where ``L_t`` is the
-                length of a sequence for time ``t``, and ``I`` is the size of
+                a sequence. Its shape is ``(L_i, I)``, where ``L_t`` is the
+                length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
         Returns:
@@ -156,10 +144,10 @@ class NStepRNNBase(link.ChainList):
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(L_t, N)`` for
-              uni-directional RNN and ``(L_t, 2N)`` for bi-directional RNN
-              where ``L_t`` is the length of a sequence for time ``t``,
+              ``ys[i]`` holds hidden states of the last layer corresponding
+              to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
+              uni-directional RNN and ``(L_i, 2N)`` for bi-directional RNN
+              where ``L_t`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)
@@ -227,12 +215,6 @@ class NStepRNNTanh(NStepRNNBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -269,12 +251,6 @@ class NStepRNNReLU(NStepRNNBase):
     sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
-
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.
@@ -313,12 +289,6 @@ class NStepBiRNNTanh(NStepRNNBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -355,12 +325,6 @@ class NStepBiRNNReLU(NStepRNNBase):
     sort inputs in descending order by length, and transpose the sequence.
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
-
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers (int): Number of layers.

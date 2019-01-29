@@ -1,3 +1,8 @@
+import contextlib
+import os
+import shutil
+import traceback
+
 import six
 
 import chainer
@@ -78,13 +83,16 @@ def backprop_step(
     :func:`chainer.grad`.
 
     Args:
-        target_input_indexes (tuple of int): Sorted indices of the input
-            variables w.r.t. which the gradients are required. It is
-            guaranteed that this tuple contains at least one element.
+        func (~chainer.FunctionNode): The function for which gradients are
+            accumulated.
+        target_input_indexes (tuple of int): Sorted indices of the inputs
+            that require gradients. It is guaranteed that this tuple contains
+            at least one element.
         grad_outputs (tuple of Variable): Gradients w.r.t. the output
             variables. If the gradient w.r.t. an output variable is not
             given, the corresponding element is ``None``.
-        grad_inputs (dict): References of radients w.r.t. the input variables.
+        grad_inputs (dict): References of the gradients w.r.t. the input
+            variables.
 
     """
     is_debug = chainer.is_debug()
@@ -99,11 +107,13 @@ def backprop_step(
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes
         ])
-        gxs = func.backward_accumulate(
-            target_input_indexes, grad_outputs, grad_inputs_tuple)
+        with _reraise_forward_stack(func):
+            gxs = func.backward_accumulate(
+                target_input_indexes, grad_outputs, grad_inputs_tuple)
     else:  # otherwise, backward should be overridden
-        gxs = func.backward(
-            target_input_indexes, grad_outputs)
+        with _reraise_forward_stack(func):
+            gxs = func.backward(
+                target_input_indexes, grad_outputs)
 
         if is_debug:
             for gx in gxs:
@@ -174,3 +184,35 @@ def backprop_step(
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
             _reduce(gx)
+
+
+def _get_columns():
+    try:
+        get_terminal_size = shutil.get_terminal_size
+    except AttributeError:
+        return os.getenv('COLUMNS', 80)
+    return get_terminal_size()[0]
+
+
+@contextlib.contextmanager
+def _reraise_forward_stack(func):
+    if func.stack is None:
+        yield
+    else:
+        try:
+            yield
+        except Exception as e:
+            # Reraise any type of exceptions including the following:
+            # - Chainer raises RuntimeError for NaN values; and
+            # - NumPy raises FloatingPointError for invalid values.
+
+            # TODO(kataoka): unify variable._check_grad_type and below
+            additional_message = \
+                '\n{}\nStacktrace of the function is below:\n{}'.format(
+                    '-' * _get_columns(),
+                    ''.join(traceback.format_list(func.stack[:-1])))
+            if e.args:
+                e.args = (e.args[0] + additional_message,) + e.args[1:]
+            else:
+                e.args = (additional_message,)
+            raise

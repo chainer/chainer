@@ -9,8 +9,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
+    libcudnn = cuda.libcudnn
+    _sampler_type = cuda.libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
 class SpatialTransformerGrid(function.Function):
@@ -145,7 +145,8 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
       image.
 
     Args:
-        theta (~chainer.Variable):  An array of shape :math:`(n, 2, 3)`.
+        theta (:class:`~chainer.Variable` or :ref:`ndarray`):
+            An array of shape :math:`(n, 2, 3)`.
             This is a batch of :math:`2 \\times 3` matrix used for
             the warping described above.
         output_shape (tuple): A tuple of 2 elements: :math:`h_O, w_O`.

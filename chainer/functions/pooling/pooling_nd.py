@@ -9,14 +9,14 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         if stride is None:
             stride = ksize
 
@@ -30,6 +30,8 @@ class _PoolingND(function_node.FunctionNode):
         self.pad = conv_nd.as_tuple(pad, ndim)
 
         self.cover_all = cover_all
+        self.return_indices = return_indices
+
         self._used_cudnn = False
 
     def check_type_forward(self, in_types):
@@ -41,6 +43,7 @@ class _PoolingND(function_node.FunctionNode):
         )
 
     def forward_gpu(self, x):
+        self.retain_inputs((0,))
         self._used_cudnn = True
 
         # Implementation using cuDNN.
@@ -55,14 +58,13 @@ class _PoolingND(function_node.FunctionNode):
 
         cudnn.pooling_forward(
             x, y, self.ksize, self.stride, self.pad, self._get_pool_mode())
-
         self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = x[0]
-        y = self.output_data[0]
+        y = self.get_retained_outputs()[0].array
         gx = cudnn.pooling_backward(
             x, y, gy[0],
             self.ksize, self.stride, self.pad, self._get_pool_mode())

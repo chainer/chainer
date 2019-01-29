@@ -42,7 +42,7 @@ class LinearModel(object):
             -1, 1, (self.UNIT_NUM, 1)).astype(dtype)
         self.b = numpy.random.uniform(-1, 1, (1, )).astype(dtype)
 
-    def _train_linear_classifier(self, model, optimizer, gpu):
+    def _train_linear_classifier(self, model, optimizer, backend_config):
         def _make_label(x):
             a = (numpy.dot(x, self.w) + self.b).reshape((self.BATCH_SIZE, ))
             t = numpy.empty_like(a).astype(numpy.int32)
@@ -50,65 +50,68 @@ class LinearModel(object):
             t[a < 0] = 1
             return t
 
-        def _make_dataset(batch_size, unit_num, gpu, dtype):
+        def _make_dataset(batch_size, unit_num, dtype):
             x_data = numpy.random.uniform(
                 -1, 1, (batch_size, unit_num)).astype(dtype)
             t_data = _make_label(x_data)
-            if gpu:
-                x_data = cuda.to_gpu(x_data)
-                t_data = cuda.to_gpu(t_data)
+            x_data = backend_config.get_array(x_data)
+            t_data = backend_config.get_array(t_data)
             x = chainer.Variable(x_data)
-            t = chainer.Variable(t_data)
+            t = chainer.Variable(t_data, requires_grad=False)
             return x, t
 
         for _ in six.moves.range(self.EPOCH):
-            x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
-                                 self.dtype)
+            x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, self.dtype)
             model.cleargrads()
             y = model(x)
             loss = F.softmax_cross_entropy(y, t)
             loss.backward()
             optimizer.update()
 
-        x_test, t_test = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
-                                       self.dtype)
+        x_test, t_test = _make_dataset(
+            self.BATCH_SIZE, self.UNIT_NUM, self.dtype)
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
-    def accuracy(self, backend_config, gpu_device=None):
+    def accuracy(self, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         model = self.model
         optimizer = self.optimizer
         optimizer.setup(model)
 
-        if backend_config.use_cuda:
-            model.to_gpu(device=gpu_device)
-        elif backend_config.use_ideep == 'always':
+        if backend_config.use_ideep == 'always':
             if not intel64.is_ideep_available():
                 # TODO(niboshi): This is temporary workaround.
                 # See the comment on Skipped.
                 raise Skipped('ideep is required to run this test.')
-            model.to_intel64()
 
-        with backend_config:
+        model.to_device(backend_config.device)
+
+        with chainer.using_device(backend_config.device):
             return self._train_linear_classifier(
-                model, optimizer, backend_config.use_cuda)
-
-    def accuracy_gpu(self, device):
-        with cuda.get_device_from_id(device):
-            return self.accuracy(
-                backend.BackendConfig({'use_cuda': True}),
-                device)
+                model, optimizer, backend_config)
 
 
-@backend.inject_backend_tests(
-    ['test_linear_model'],
-    # CPU tests
-    testing.product({
-        'use_cuda': [False],
-        'use_ideep': ['never', 'always'],
-    })
-    # GPU tests
-    + [{'use_cuda': True}])
+_inject_backend_tests = (
+    backend.inject_backend_tests(
+        ['test_linear_model'],
+        # CPU tests
+        testing.product({
+            'use_cuda': [False],
+            'use_ideep': ['never', 'always'],
+        })
+        # GPU tests
+        + [{'use_cuda': True}]
+        # ChainerX tests
+        + [
+            {'use_chainerx': True, 'chainerx_device': 'native:0'},
+            {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        ]))
+
+
 class OptimizerTestBase(object):
 
     def create(self):
@@ -126,14 +129,17 @@ class OptimizerTestBase(object):
             # TODO(niboshi): This is temporary workaround.
             # See the comment on Skipped.
             return
-        assert accuracy.data > 0.9
+        with backend_config:
+            assert accuracy.data > 0.9
 
     @attr.multi_gpu(2)
     @condition.retry(10)
     def test_linear_model_multi_gpu(self):
+        backend_config = backend.BackendConfig(
+            {'use_cuda': True, 'cuda_device': 1})
         with cuda.Device(0):
-            self.assertGreater(
-                cuda.to_cpu(self.model.accuracy_gpu(1).data), 0.9)
+            accuracy = self.model.accuracy(backend_config)
+        self.assertGreater(cuda.to_cpu(accuracy.data), 0.9)
 
     @attr.multi_gpu(2)
     def test_model_setup_multi_gpu(self):
@@ -164,6 +170,7 @@ class OptimizerTestBase(object):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -174,6 +181,7 @@ class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -184,6 +192,7 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -198,6 +207,7 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -208,6 +218,7 @@ class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -218,6 +229,7 @@ class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestMSVAG(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -228,6 +240,7 @@ class TestMSVAG(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class NesterovAG(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -239,6 +252,7 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
     'use_placeholder': [False, True],
     'eps_inside_sqrt': [False, True],
 }))
+@_inject_backend_tests
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -252,6 +266,7 @@ class TestRMSprop(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -262,6 +277,7 @@ class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -272,6 +288,7 @@ class TestSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestSMORMS3(OptimizerTestBase, unittest.TestCase):
 
     def create(self):

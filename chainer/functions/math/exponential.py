@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class Exp(function_node.FunctionNode):
@@ -18,6 +19,9 @@ class Exp(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.exp(x[0]),
 
     def forward_cpu(self, x):
         self.retain_outputs((0,))
@@ -33,7 +37,14 @@ class Exp(function_node.FunctionNode):
 
 
 def exp(x):
-    """Elementwise exponential function."""
+    """Elementwise exponential function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Exp().apply((x,))[0]
 
 
@@ -46,6 +57,9 @@ class Log(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.log(x[0]),
 
     def forward_cpu(self, x):
         self.retain_inputs((0,))
@@ -61,7 +75,14 @@ class Log(function_node.FunctionNode):
 
 
 def log(x):
-    """Elementwise natural logarithm function."""
+    """Elementwise natural logarithm function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Log().apply((x,))[0]
 
 
@@ -93,7 +114,7 @@ def log2(x):
        y_i = \\log_2 x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -129,7 +150,7 @@ def log10(x):
        y_i = \\log_{10} x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

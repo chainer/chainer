@@ -77,7 +77,7 @@ class GroupNormalization(link.Link):
             ~chainer.Variable: Output of the group normalization.
 
         """
-        if self.gamma.data is None:
+        if self.gamma.array is None:
             if x.ndim <= 2:
                 raise ValueError('Input dimension must be grater than 2, '
                                  'including batch size dimension '

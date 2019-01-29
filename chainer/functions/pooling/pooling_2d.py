@@ -18,7 +18,8 @@ class Pooling2D(function_node.FunctionNode):
 
     """Base class of pooling function over a set of 2d planes."""
 
-    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         if stride is None:
             stride = ksize
 
@@ -27,6 +28,8 @@ class Pooling2D(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
+        self.return_indices = return_indices
+
         self._used_cudnn = False
 
     def check_type_forward(self, in_types):
@@ -55,14 +58,13 @@ class Pooling2D(function_node.FunctionNode):
             x, y,
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
             self._get_pool_mode())
-
         self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = x[0]
-        y = self.output_data[0]
+        y = self.get_retained_outputs()[0].array
         gx = cudnn.pooling_backward(
             x, y, gy[0],
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
