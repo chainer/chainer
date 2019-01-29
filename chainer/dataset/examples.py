@@ -158,7 +158,7 @@ class SingleDatasetExamples(Examples):
         return self._dataset[index]
 
     def to_dataset(self, device_spec=None, indices=None, func=None):
-        device = convert.resolve_device_spec(device_spec)
+        device = convert._get_device(device_spec)
         send = device.send if device is not None else _identity
 
         if indices is None:
@@ -199,7 +199,7 @@ class TupleDatasetExamples(Examples):
             return tuple(ret)
 
     def to_dataset(self, device_spec=None, indices=None, func=None):
-        device = convert.resolve_device_spec(device_spec)
+        device = convert._get_device(device_spec)
         send = device.send if device is not None else _identity
 
         if indices is None:
@@ -239,7 +239,7 @@ class DictDatasetExamples(Examples):
             return ret
 
     def to_dataset(self, device_spec=None, indices=None, func=None):
-        device = convert.resolve_device_spec(device_spec)
+        device = convert._get_device(device_spec)
         send = device.send if device is not None else _identity
 
         if indices is None:
