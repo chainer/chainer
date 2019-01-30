@@ -717,12 +717,11 @@ def test_grad_sole_array_node():
     dtype = chainerx.float32
 
     x = chainerx.full(shape, 2, dtype).require_grad()
-    # expected_gx = chainerx.full(shape, 1, dtype)
+    expected_gx = chainerx.full(shape, 1, dtype)
 
-    chainerx.grad([x], [x])
+    gx, = chainerx.grad([x], [x])
 
-    # TODO(hvy): Fix exception.
-    # _assert_arrays_equal(x.get_grad(), expected_gx)
+    _assert_arrays_equal(gx, expected_gx)
 
 
 def test_grad_keyword_arguments():
