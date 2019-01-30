@@ -101,7 +101,7 @@ Configuration Keys
 
    You can change the default value by setting ``CHAINER_USE_CUDNN`` environment variable to any of ``'always'``, ``'auto'`` or ``'never'``.
 
-* ``use_ideep`` (default: ``'auto'``)
+* ``use_ideep`` (default: ``'never'``)
    Flag to configure whether or not to use iDeep.
 
    This is a ternary flag with ``'always'``, ``'auto'``, and ``'never'`` as its allowed values.
