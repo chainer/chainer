@@ -1,5 +1,4 @@
 from chainer import backend
-from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
@@ -107,7 +106,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
             m *= gy.shape[i]
 
         if g > 1:
-            gy = gy.reshape((b * g, C, ) + gy.shape[2:])
+            gy = gy.reshape((b * g, C) + gy.shape[2:])
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(C, -1)
 
         eigvectors = self.eigvectors
@@ -164,6 +163,7 @@ class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1, 2))
         x, mean, projection = inputs
         spatial_ndim = len(x.shape[2:])
         spatial_axis = tuple(range(2, 2 + spatial_ndim))
@@ -185,21 +185,21 @@ class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        raise NotImplementedError
+        x, mean, projection = self.get_retained_inputs()
+        gy,  = grad_outputs
+        f = FixedDecorrelatedBatchNormalizationGrad(self.groups)
+        return f.apply((x, mean, projection, gy))
 
 
 class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, groups, eigvals, eigvectors, y_hat_pca):
+    def __init__(self, groups):
         self.groups = groups
-        self.eigvals = eigvals
-        self.eigvectors = eigvectors
-        self.y_hat_pca = y_hat_pca
 
     def forward(self, inputs):
         self.retain_inputs(())
-        gy = inputs[0]
-        xp = backend.get_array_module(gy)
+        x, mean, projection, gy = inputs
+        print(type(x), type(mean), type(projection), type(gy))
         spatial_ndim = len(gy.shape[2:])
         spatial_axis = tuple(range(2, 2 + spatial_ndim))
         b, c = gy.shape[:2]
@@ -211,39 +211,24 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
         if g > 1:
             gy = gy.reshape((b * g, C) + gy.shape[2:])
+            x = x.reshape((b * g, C) + x.shape[2:])
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(C, -1)
-        gy_hat_pca = self.eigvectors.T.dot(gy_hat)
-        f = gy_hat.pca.mean(axis=1)
-
-        eigvals = self.eigvals
-        K = eigvals[:, None] - eigvals[None, :]
-        valid = K != 0
-        K[valid] = 1 / K[valid]
-        xp.fill_diagonal(K, 0)
-
-        V = xp.diag(eigvals)
-        V_sqrt = xp.diag(eigvals ** 0.5)
-        V_invsqrt = xp.diag(eigvals ** -0.5)
-
-        y_hat_pca = self.y_hat_pca
-        F_c = gy_hat_pca.dot(y_hat_pca.T) / m
-        M = xp.diag(xp.diag(F_c))
-
-        mat = K.T * (V.dot(F_c.T) + V_sqrt.dot(F_c).dot(V_sqrt))
-        S = mat + mat.T
-        R = gy_hat_pca - f[:, None] + (S - M).T.dot(y_hat_pca)
-        gx_hat = R.T.dot(V_invsqrt).dot(self.eigvectors.T).T
-
-        gx = gx_hat.reshape(
+        gy_hat_pca = projection.T.dot(gy_hat)
+        gx = gy_hat_pca.reshape(
             (C, b * g) + gy.shape[2:]).transpose((1, 0) + spatial_axis)
         if g > 1:
             gx = gx.reshape((-1, c) + gy.shape[2:])
+        rhs = x_hat - mean[Ellipsis, None]
+        gprojection = (x_hat - rhs).T.dot(gy_hat)
+        gmean = -gx[:, 0]
         self.retain_outputs(())
-        return gx,
+        return gx, gmean, gprojection
 
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
         raise NotImplementedError
+
 
 def decorrelated_batch_normalization(x, **kwargs):
     """Decorrelated batch normalization function.
