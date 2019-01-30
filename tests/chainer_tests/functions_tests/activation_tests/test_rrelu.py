@@ -9,11 +9,6 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product({
-    'train': [True, False],
-    'shape': [(3, 2), ()],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
 @testing.inject_backend_tests(
     None,
     # CPU tests
@@ -26,6 +21,11 @@ from chainer.testing import attr
         'cuda_device': [0, 1],
     })
 )
+@testing.parameterize(*testing.product({
+    'train': [True, False],
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestRReLU(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
