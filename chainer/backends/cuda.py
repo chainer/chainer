@@ -232,6 +232,10 @@ class GpuDevice(_backend.Device):
     def xp(self):
         return cupy
 
+    @property
+    def supported_array_types(self):
+        return (ndarray,)
+
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
         # instance cannot be used across threads.

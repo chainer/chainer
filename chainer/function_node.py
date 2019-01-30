@@ -10,8 +10,8 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer.backends import cuda
 from chainer import backend
+from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
@@ -273,8 +273,9 @@ Use apply() method instead.\
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
                 return tuple([
-                    variable.Variable(
-                        y, requires_grad=y.is_backprop_required())
+                    variable.Variable._init_unchecked(
+                        y, requires_grad=y.is_backprop_required(),
+                        is_chainerx_array=True)
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()

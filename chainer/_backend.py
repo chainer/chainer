@@ -38,6 +38,17 @@ class Device(object):
         raise NotImplementedError(
             'Device implementation must override this property.')
 
+    @property
+    def supported_array_types(self):
+        """Array types supported by the device.
+
+        Returns:
+            tuple of array types which the device's module functions can
+            handle.
+        """
+        raise NotImplementedError(
+            'Device implementation must override this property.')
+
     def __enter__(self):
         raise RuntimeError(
             'Device class does not support runtime context using `with` '

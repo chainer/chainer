@@ -146,6 +146,13 @@ void InitChainerxArray(pybind11::module& m) {
               std::shared_ptr<void> data{c_ptr, [base](void*) {}};
               return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
+    c.def(py::pickle(
+            [](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(self, true), self->device()); },
+            [](py::tuple state) -> ArrayBodyPtr {
+                py::array numpy_array = state[0];
+                Device& device = py::cast<Device&>(state[1]);
+                return MakeArrayFromNumpyArray(numpy_array, device);
+            }));
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
         if (self->ndim() == 0) {
@@ -156,6 +163,22 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
+    // TODO(niboshi): Support arguments
+    c.def("item", [](const ArrayBodyPtr& a) -> py::object {
+        Scalar s = AsScalar(Array{a});
+        switch (GetKind(s.dtype())) {
+            case DtypeKind::kBool:
+                return py::bool_{static_cast<bool>(s)};
+            case DtypeKind::kInt:
+                // fallthrough
+            case DtypeKind::kUInt:
+                return py::int_{static_cast<int64_t>(s)};
+            case DtypeKind::kFloat:
+                return py::float_{static_cast<double>(s)};
+            default:
+                CHAINERX_NEVER_REACH();
+        }
+    });
     c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
     c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
@@ -244,6 +267,13 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__ge__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} >= Array{rhs}); },
           py::is_operator());
+    c.def("__ge__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array >= FullLike(self_array, rhs, self->device()));
+          },
+          py::is_operator());
     c.def("__lt__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} < Array{rhs}); },
           py::is_operator());
@@ -256,6 +286,13 @@ void InitChainerxArray(pybind11::module& m) {
           py::is_operator());
     c.def("__le__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} <= Array{rhs}); },
+          py::is_operator());
+    c.def("__le__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array <= FullLike(self_array, rhs, self->device()));
+          },
           py::is_operator());
     c.def("__neg__", [](const ArrayBodyPtr& self) { return MoveArrayBody(-Array{self}); });
     c.def("__iadd__",

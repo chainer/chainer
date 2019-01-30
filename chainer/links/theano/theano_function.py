@@ -39,8 +39,7 @@ class TheanoFunction(link.Link):
 
     .. doctest::
        # See chainer/chainer#5997
-       :skipif: os.environ.get('READTHEDOCS') != 'True' \
-           and chainer.testing.is_requires_satisfied( \
+       :skipif: doctest_helper.skipif_requires_satisfied( \
                'Theano<=1.0.3', 'numpy>=1.16.0')
 
        >>> import theano
@@ -84,6 +83,8 @@ Please install theano to activate theano function.
 
   $ pip install theano'''
             raise RuntimeError(msg)
+
+        super(TheanoFunction, self).__init__()
 
         inputs = _to_var_tuple(inputs)
         outputs = _to_var_tuple(outputs)

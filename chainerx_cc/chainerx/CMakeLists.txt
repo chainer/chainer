@@ -31,6 +31,7 @@ install(FILES
     context.h
     device.h
     device_id.h
+    dims.h
     dtype.h
     enum.h
     error.h
@@ -58,7 +59,7 @@ install(FILES
     DESTINATION include/chainerx
     )
 
-add_library(chainerx SHARED
+set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
@@ -73,6 +74,7 @@ add_library(chainerx SHARED
     context.cc
     device.cc
     device_id.cc
+    dims.cc
     dtype.cc
     float16.cc
     graph.cc
@@ -85,6 +87,12 @@ add_library(chainerx SHARED
     strides.cc
     thread_local_state.cc
     )
+
+if(MSVC)
+    add_library(chainerx STATIC ${chainerx_srcs})
+else()
+    add_library(chainerx SHARED ${chainerx_srcs})
+endif()
 
 if(${APPLE})
     target_link_libraries(chainerx
@@ -135,6 +143,7 @@ if(${CHAINERX_BUILD_TEST})
         check_backward_test.cc
         context_test.cc
         device_test.cc
+        dims_test.cc
         dtype_test.cc
         float16_test.cc
         index_iterator_test.cc

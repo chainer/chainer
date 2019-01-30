@@ -1,7 +1,8 @@
 import typing as tp
 
-from chainer import function_node
 import numpy
+
+from chainer import function_node
 
 
 # TODO(okapies): Split this into independent .py and .pyi files
@@ -509,9 +510,6 @@ def ascontiguousarray(
         a: tp.Any,
         dtype: tp.Optional[tp.Any]=None,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-def asscalar(a: ndarray) -> tp.Any: ...
 
 
 def average_pool(
