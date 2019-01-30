@@ -112,19 +112,17 @@ except Exception as e:
 
 
 if available:
-    try:
-        libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
-    except Exception as e:
-        # for `chainer.backends.cuda.libcudnn` to always work
-        libcudnn = object()
-
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
         cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
+        libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
+
+        # for `chainer.backends.cuda.libcudnn` to always work
+        libcudnn = object()
 
 
 def check_cuda_available():
