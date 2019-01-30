@@ -12,7 +12,7 @@ from chainer.training.updaters import standard_updater
 try:
     from cupy.cuda import nccl
     _available = True
-except ImportError:
+except Exception:
     _available = False
 
 import numpy
