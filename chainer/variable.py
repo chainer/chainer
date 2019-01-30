@@ -19,7 +19,7 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer import types  # NOQA
 from chainer.utils import argument
-import chainer.utils.dict
+import chainer.utils._collections
 import chainerx
 
 
@@ -1512,7 +1512,7 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
-    OrderedDict3 = chainer.utils.dict.RefCountFriendlyOrderedDict
+    OrderedDict3 = chainer.utils._collections.RefCountFriendlyOrderedDict
 
     cand_funcs = []
     seen_set = set()
