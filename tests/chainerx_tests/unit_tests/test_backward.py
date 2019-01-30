@@ -64,7 +64,6 @@ def _check_grad(
     assert callable(fprop)
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
-    assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, chainerx.ndarray) for a in xs])
     assert all([(isinstance(a, chainerx.ndarray) or a is None)
                 for a in expected_gxs])
@@ -86,6 +85,7 @@ def _check_grad(
 
     if xs_indices is not None:
         actual_xs = tuple([xs[i] for i in xs_indices])
+        assert len(actual_xs) == len(expected_gxs)
     else:
         actual_xs = xs
     if ys_indices is not None:
@@ -752,6 +752,35 @@ def test_grad_multiple_graphs_non_existing():
 
         with pytest.raises(chainerx.ChainerxError):
             chainerx.grad([y], xs, backprop_id2)
+
+
+@pytest.mark.parametrize('xs_indices', [[], [0], [1], [0, 1], [1, 0]])
+@pytest.mark.parametrize('ys_indices', [[], [0], [1], [0, 1], [1, 0]])
+def test_grad_no_outputs(xs_indices, ys_indices):
+    shape = (1,)
+    dtype = chainerx.float32
+
+    xs = (
+        chainerx.full(shape, 3, dtype).require_grad(),
+        chainerx.full(shape, 5, dtype).require_grad(),)
+
+    gxs = (
+        (chainerx.full(shape, 1, dtype),  # gy1gx1
+         chainerx.full(shape, 1, dtype)),  # gy1gx2
+        (chainerx.full(shape, 5, dtype),  # gy2gx1
+         chainerx.full(shape, 3, dtype)),)  # gy2gx2
+
+    expected_gxs = [None for _ in xs_indices]
+
+    for ys_index in ys_indices:
+        for i, xs_index in enumerate(xs_indices):
+            if expected_gxs[i] is None:
+                expected_gxs[i] = chainerx.full(shape, 0, dtype)
+            expected_gxs[i] += gxs[ys_index][xs_index]
+
+    _check_grad(
+        _binary_math_multiple_outputs, xs, tuple(expected_gxs),
+        xs_indices=xs_indices, ys_indices=ys_indices)
 
 
 def test_create_and_release_backprop_id():
