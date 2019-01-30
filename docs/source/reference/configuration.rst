@@ -69,7 +69,11 @@ Configuration Keys
 * ``warn_nondeterministic`` (default: ``False``)
    Flag to give warning when a non-deterministic function is used. This function is experimental.
 
-   If it is true, then functions that use non-deterministic functions, such as atomicAdd, will give a warning when executed. Note the determinisitic outputs may still result, despite using a nondeterministic function, depending on usage.
+   If it is true, then functions that use non-deterministic functions, such as atomicAdd, will give a warning when executed. 
+   
+   Note that this feature is provided as best-effort. It cannot assure that every nondeterministic function can be detected.  For example, SSE computations in CPU mode may cause non-deterministic behavior that would not raise a warning.
+
+   Also, determinisitic outputs may still result, even if this flag produces a non-deterministic warning. For example, reduction on 1-dim axis should always be deterministic, but it may raise a warning.
 
 * ``train`` (default: ``True``)
    Training mode flag.
