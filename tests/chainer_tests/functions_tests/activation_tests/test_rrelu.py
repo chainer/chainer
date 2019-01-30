@@ -30,7 +30,7 @@ class TestRReLU(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
 
-    def before_test(self, test_name):
+    def setUp(self):
         # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
