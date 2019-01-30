@@ -195,7 +195,9 @@ class FunctionNode(object):
         """
         if self._is_chainerx_fallback_mode:
             retained_output_data = [
-                var.array for var in self._chainerx_retained_outputs]
+                None if var is None
+                else var.array
+                for var in self._chainerx_retained_outputs]
         else:
             if self._retained_output_data is None:
                 raise RuntimeError('retained output data is gone')
@@ -719,7 +721,8 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
-            variable.Variable(
+            None if array is None
+            else variable.Variable(
                 array, requires_grad=(
                     False if array is None else array.is_backprop_required()))
             for array in retained_outputs])
@@ -847,7 +850,11 @@ Use apply() method instead.\
                 outputs_modified = True
             else:
                 output_var = output.get_variable()
-            ret.append(output_var)
+
+            if output_var.array is None:
+                ret.append(None)
+            else:
+                ret.append(output_var)
 
         if outputs_modified:
             self.outputs = tuple(new_outputs)

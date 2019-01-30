@@ -458,7 +458,7 @@ class TestFunctionOutputNone(unittest.TestCase):
                 retained_outputs = self.get_retained_outputs()
                 assert isinstance(retained_outputs, tuple)
                 y2, y3 = retained_outputs
-                assert y3.array is None
+                assert y3 is None
                 assert isinstance(y2.array, backward_xp.ndarray)
 
                 gx1 = 3 * gy2
