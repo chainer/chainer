@@ -1,5 +1,7 @@
 import contextlib
 
+from chainer import types  # NOQA
+
 
 def _convert_arrays(array, func):
     # Converts array or arrays
@@ -68,6 +70,7 @@ class Device(object):
         return _dummy_context()
 
     def send(self, arrays):
+        # type: (types.NdArray) -> types.NdArray
         """Transfers given arrays to the device.
 
         Args:
@@ -77,7 +80,7 @@ class Device(object):
             Transferred arrays.
 
         """
-        return _convert_arrays(arrays, self.send_array)
+        return _convert_arrays(arrays, self.send_array)  # type: ignore # send_array is implemented in subclasses # NOQA
 
     def use(self):
         """Makes this device default on the corresponding module.

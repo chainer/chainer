@@ -542,7 +542,7 @@ device.
         # a different CUDA device.
         backend_device = chainer.get_device(device)
 
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        d = self.__dict__  # type: tp.Any # persistent values can be any type
         for name in self._params:
             if not (skip_between_cupy_devices
                     and backend_device.xp is cuda.cupy

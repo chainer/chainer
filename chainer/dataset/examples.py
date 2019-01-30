@@ -182,9 +182,9 @@ class TupleDatasetExamples(Examples):
         else:
             tuple_paddings = padding_spec  # type: ignore
 
-        self._dataset = tuple(
+        self._dataset = tuple([
             _sample_with_padding(dataset[i], indices, order, tuple_paddings[i])
-            for i in six.moves.range(datasets_len))  # type: tp.Tuple[types.NdArray, ...] # NOQA
+            for i in six.moves.range(datasets_len)])  # type: tp.Tuple[types.NdArray, ...] # NOQA
 
     def __len__(self):
         return len(self._dataset[0])
@@ -193,7 +193,7 @@ class TupleDatasetExamples(Examples):
         ret = [dataset[index] for dataset in self._dataset]
         if isinstance(index, slice):
             length = len(ret[0])
-            return [tuple(dataset[i] for dataset in ret)
+            return [tuple([dataset[i] for dataset in ret])
                     for i in six.moves.range(length)]
         else:
             return tuple(ret)
@@ -203,9 +203,9 @@ class TupleDatasetExamples(Examples):
         send = device.send if device is not None else _identity
 
         if indices is None:
-            ret = tuple(send(d) for d in self._dataset)
+            ret = tuple([send(d) for d in self._dataset])
         else:
-            ret = tuple(send(d[indices]) for d in self._dataset)
+            ret = tuple([send(d[indices]) for d in self._dataset])
 
         return ret if func is None else func(*ret)
 
@@ -422,7 +422,7 @@ def _create_padded_examples(dataset, indices, padding):
         # fill the result with the sampled examples
         for i, j in enumerate(idxs):
             src = dataset[j]
-            slices = tuple(slice(dim) for dim in src.shape)
+            slices = tuple([slice(dim) for dim in src.shape])
             result[(i,) + slices] = src  # type: ignore
 
         return result
