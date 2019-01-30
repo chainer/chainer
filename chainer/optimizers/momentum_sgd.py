@@ -2,9 +2,22 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class MomentumSGDHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of classical momentum SGD.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        momentum = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: MomentumSGDHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 _default_hyperparam.momentum = 0.9
 

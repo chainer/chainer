@@ -34,13 +34,16 @@ def black_out(x, t, W, samples, reduce='mean'):
     a mean of loss values.
 
     Args:
-        x (~chainer.Variable): Batch of input vectors.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Batch of input vectors.
             Its shape should be :math:`(N, D)`.
-        t (~chainer.Variable): Vector of ground truth labels.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Vector of ground truth labels.
             Its shape should be :math:`(N,)`. Each elements :math:`v`
             should satisfy :math:`0 \\geq v \\geq V` or :math:`-1`
             where :math:`V` is the number of label types.
-        W (~chainer.Variable): Weight matrix.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight matrix.
             Its shape should be :math:`(V, D)`
         samples (~chainer.Variable): Negative samples.
             Its shape should be :math:`(N, S)` where :math:`S` is

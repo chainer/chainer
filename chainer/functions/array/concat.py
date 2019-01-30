@@ -77,8 +77,7 @@ def concat(xs, axis=1):
     """Concatenates given variables along an axis.
 
     Args:
-        xs (tuple of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (tuple of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the \
             same shape, except in the dimension corresponding to axis.
         axis (int): The axis along which the arrays will be joined. Default \

@@ -345,8 +345,8 @@ intersphinx_mapping = {
 }
 
 doctest_global_setup = '''
+import os
 import numpy as np
-import cupy
 import chainer
 from chainer.backends import cuda
 from chainer import Function, gradient_check, training, utils, Variable
@@ -448,6 +448,8 @@ def _get_sourcefile_and_linenumber(obj):
 
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
+        return None
+    if 1 == int(os.environ.get('CHAINER_DOCS_SKIP_LINKCODE', 0)):
         return None
 
     # Import the object from module path

@@ -36,3 +36,11 @@
     } while (false)
 #endif  // NDEBUG
 #endif  // CHAINERX_NEVER_REACH
+
+#ifndef CHAINERX_VISIBILITY_HIDDEN
+#if defined(WIN32) || defined(_WIN32)
+#define CHAINERX_VISIBILITY_HIDDEN
+#else
+#define CHAINERX_VISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#endif  // defined(WIN32) || defined(_WIN32)
+#endif  // CHAINERX_VISIBILITY_HIDDEN

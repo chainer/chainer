@@ -151,7 +151,7 @@ class ConnectionistTemporalClassification(function.Function):
             res = create_recurrence_relation(x, self.zero_padding)
         return res.astype(x.dtype, copy=False)
 
-    # path probablity to label probability
+    # path probability to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
         seq_length = len(multiply_seq)
@@ -342,8 +342,7 @@ def connectionist_temporal_classification(
             is the batch size and ``V`` is the number of labels.
             The softmax of ``x[i]`` represents the probabilities of the labels
             at time ``i``.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             A matrix including expected label sequences.
             Its shape is ``(B, M)``, where ``B`` is the batch size and ``M`` is
             the maximum length of the label sequences.
@@ -351,14 +350,12 @@ def connectionist_temporal_classification(
             labels.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
-        input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` or ``None``):
+        input_length (:class:`~chainer.Variable` or :ref:`ndarray`):
             Length of sequence for each of mini batch ``x`` (optional).
             Its shape must be ``(B,)``.
             If the ``input_length`` is omitted or ``None``, it assumes that
             all of ``x`` is valid input.
-        label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` or ``None``):
+        label_length (:class:`~chainer.Variable` or :ref:`ndarray`):
             Length of sequence for each of mini batch ``t`` (optional).
             Its shape must be ``(B,)``.
             If the ``label_length`` is omitted or ``None``, it assumes that
@@ -404,7 +401,7 @@ def connectionist_temporal_classification(
         raise TypeError('blank_symbol must be non-negative integer.')
     assert 0 <= blank_symbol < x[0].shape[1]
     # This implementation only supports 1-dimensional data.
-    # TODO(jnishi): Support d(>1)-dimentinal inputs.
+    # TODO(jnishi): Support d(>1)-dimensional inputs.
     assert x[0].ndim == 2
 
     xp = backend.get_array_module(x[0])

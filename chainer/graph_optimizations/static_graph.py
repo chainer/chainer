@@ -114,7 +114,7 @@ class ScheduleInfo(object):
             self.out_list[ind] = None
 
         for hook in self.return_hooks:
-            # Update the array refernce in unique_arrays to refer to the
+            # Update the array reference in unique_arrays to refer to the
             # array in the results array.
             (ret_index, unique_list_index) = hook
 
@@ -506,7 +506,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 if _is_xp(x):
                     unique_ind = self.get_unique_index_from_array(x)
                     if unique_ind is None:
-                        # Note: we appedn None here because we cannot store any
+                        # Note: we append None here because we cannot store any
                         # additional reference to the array.
                         # Otherwise, it would
                         # prevent garbage collection. Note that a
@@ -573,7 +573,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                         self.array_id_to_unique_index[item_id] = \
                             unique_index
                     else:
-                        # Since all of the return arrays are suppoed to
+                        # Since all of the return arrays are supposed to
                         # have been dynamically allocated inside 'func',
                         # they had better not already be in unique_arrays.
                         # If so, it is an error.
@@ -808,7 +808,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # correspond to parameter arrays or input variables. When a match
         # is found, create a corresponding hook function. This hook will
         # run just before executing the schedule and set the array
-        # references used in the schedule to be consistant with the
+        # references used in the schedule to be consistent with the
         # input variables and parameters.
         assert len(self.unique_arrays) > 0
         for unique_array_index, ar in enumerate(self.unique_arrays):
@@ -920,7 +920,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # We no longer need the backward graph from self.out_vars, so
             # unchain them.
             # todo (vogel): enable this eventually. For now, it
-            # casuses some needed variables to be set to None
+            # causes some needed variables to be set to None
             # in some models such as CIFAR example.
             # for var in self.out_vars:
             #    var.unchain_backward()
