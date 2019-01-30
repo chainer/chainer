@@ -154,7 +154,6 @@ class ConnectionistTemporalClassification(function.Function):
     # path probability to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
-        utils.nondeterministic('atomicAdd')
         seq_length = len(multiply_seq)
         n_batch = len(path)
         dtype = multiply_seq.dtype
@@ -169,6 +168,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
+            utils.nondeterministic('atomicAdd')
             cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',

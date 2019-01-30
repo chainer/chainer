@@ -60,7 +60,6 @@ class EmbedIDGrad(function_node.FunctionNode):
         self.ignore_label = ignore_label
 
     def forward(self, inputs):
-        utils.nondeterministic('atomicAdd')
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)
         x, gy = inputs
@@ -76,6 +75,7 @@ class EmbedIDGrad(function_node.FunctionNode):
                     continue
                 gW[ix] += igy
         else:
+            utils.nondeterministic('atomicAdd')
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, S x, S n_out', 'raw T gW',
