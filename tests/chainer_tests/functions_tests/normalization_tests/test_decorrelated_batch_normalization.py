@@ -66,7 +66,7 @@ def _calc_projection(x, mean, eps, groups):
 class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
     # TODO(crcrpar): Delete this line once double backward of
-    # :func:`chainer.functions.decorrelated_batch_normalization` is
+    # :func:`~chainer.functions.decorrelated_batch_normalization` is
     # implemented.
     skip_double_backward_test = True
 
@@ -133,7 +133,7 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
     # TODO(crcrpar): Delete thie line once double backward of
-    # :func:`chainer.functions.fixed_decorrelated_batch_normalization` is
+    # :func:`~chainer.functions.fixed_decorrelated_batch_normalization` is
     # implemented.
     # skip_backward_test = True
     skip_double_backward_test = True
