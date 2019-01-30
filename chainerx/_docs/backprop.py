@@ -45,11 +45,34 @@ Args:
     # TODO(hvy): Finish writing docs.
     _docs.set_doc(
         chainerx.grad,
-        """backward(outputs, inputs, *, enable_double_backprop=False)
-Runs backpropagation.
+        """grad(outputs, inputs, *, enable_double_backprop=False)
+Computes and returns the gradients of the outputs w.r.t. the inputs.
+
+This function differs from :func:`chainerx.backward` in the sense that
+gradients are returned instead of being added to the gradients held by the
+inputs. Gradients held by the inputs are not modified. Also, instead of
+traversing through the whole graph starting from the outputs, a sub-graph is
+extracted for computation. This means that is is more efficient, especially
+for larger computational graphs.
+
+Args:
+    outputs (list of ndarrays):
+        Output arrays from which backpropagation starts.
+    inputs (list of ndarrays):
+        Input arrays of which this functions computes the gradients w.r.t.
+    enable_double_backprop (bool): If ``True``,
+        a computational trace of the whole backpropagation procedure is
+        recorded to the computational graph so that one can further do
+        backpropagation from the resulting gradients.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s:
+        A list of gradients. The list always has the same length as the number
+        of inputs.
 
 .. seealso::
-    * :meth:`chainerx.backward`
+    * :func:`chainerx.backward`
+    * :func:`chainer.grad`
 """)
 
     _docs.set_doc(
