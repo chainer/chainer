@@ -71,9 +71,8 @@ std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::opti
             [](nonstd::optional<Array>& maybe_array) -> std::shared_ptr<ArrayBody> {
                 if (maybe_array.has_value()) {
                     return MoveArrayBody(std::move(*maybe_array));
-                } else {
-                    return nullptr;
                 }
+                return nullptr;
             });
     return array_body_ptrs;
 }
