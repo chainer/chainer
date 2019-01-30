@@ -26,13 +26,6 @@ matrix:
       - CHAINER_TRAVIS_TEST="chainer"
       - SKIP_CHAINERX=1
 
-    - name: "Ubuntu14.04 Py34"
-      dist: trusty
-      python: "3.4"
-      env:
-      - CHAINER_TRAVIS_TEST="chainer"
-      - SKIP_CHAINERX=1
-
     - name: "Ubuntu16.04 Py35 + ChainerX"
       dist: xenial
       python: "3.5"
