@@ -107,3 +107,6 @@ class DumpGraph(extension.Extension):
     def serialize(self, serializer):
         self._original_flag = serializer('_original_flag', self._original_flag)
         self._flag_called = serializer('_flag_called', self._flag_called)
+
+
+dump_graph = DumpGraph
