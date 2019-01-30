@@ -822,7 +822,7 @@ Use apply() method instead.\
             return self._chainerx_retained_outputs
 
         if self._output_indexes_to_retain is None or self.outputs is None:
-            return
+            return ()
 
         # TODO(hvy): It should be safe to remove this check.
         if self._retained_output_data is None:
