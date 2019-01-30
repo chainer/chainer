@@ -34,8 +34,8 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import function
-from chainer.utils import type_check
 from chainer import utils
+from chainer.utils import type_check
 
 from chainer.functions.pooling.roi_pooling_2d import _roi_pooling_slice
 
