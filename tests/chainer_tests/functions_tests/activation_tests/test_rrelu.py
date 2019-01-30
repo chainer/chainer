@@ -64,7 +64,7 @@ class TestRReLU(testing.FunctionTestCase):
         if self.train:
             expected = numpy.where(x >= 0, x, x * r)
         else:
-            r_test = ((self.l + self.u) * 0.5).astype(self.dtype)
+            r_test = numpy.mean([self.l, self.u], dtype=self.dtype)
             expected = numpy.where(x >= 0, x, x * r_test)
         return expected,
 
