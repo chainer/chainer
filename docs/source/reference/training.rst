@@ -123,7 +123,7 @@ These extensions provide features to perform reporting of metrics and various st
    chainer.training.extensions.PlotReport
    chainer.training.extensions.VariableStatisticsPlot
 
-   chainer.training.extensions.DumpGraph
+   chainer.training.extensions.dump_graph
 
 Snapshot
 ~~~~~~~~
