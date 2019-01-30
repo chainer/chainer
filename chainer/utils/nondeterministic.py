@@ -1,5 +1,6 @@
-import warnings
 from chainer import configuration
+
+import warnings
 
 
 def nondeterministic(f_name):
