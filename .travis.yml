@@ -69,17 +69,6 @@ matrix:
       - SKIP_CHAINERX=1
       if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
-    - name: "macOS Py34"
-      os: osx
-      language: generic
-      env:
-      - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=3.4.4
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      - SKIP_CHAINERX=1
-      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
-
 before_install:
   - bash scripts/ci/travis/run-tests.sh before_install
 
