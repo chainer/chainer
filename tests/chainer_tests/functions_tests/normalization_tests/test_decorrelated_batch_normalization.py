@@ -65,8 +65,7 @@ def _calc_projection(x, mean, eps, groups):
 )
 class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
-    # TODO(crcrpar): Set this variable ``False`` or delete this line once
-    # double backward of
+    # TODO(crcrpar): Delete this line once double backward of
     # :func:`chainer.functions.decorrelated_batch_normalization` is
     # implemented.
     skip_double_backward_test = True
@@ -76,13 +75,10 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
         check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
-            check_forward_options['atol'] = 1e-2
-            check_forward_options['rtol'] = 1e-2
-            check_backward_options['atol'] = 1e-2
-            check_backward_options['rtol'] = 1e-2
+            check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         elif self.dtype == numpy.float32:
-            check_backward_options['atol'] = 1e-2
-            check_backward_options['rtol'] = 1e-2
+            check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         self.check_forward_options = check_forward_options
         self.check_backward_options = check_backward_options
 
@@ -136,8 +132,7 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 )
 class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
-    # TODO(crcrpar): Set this option ``False`` or delete thie line
-    # once double backward of
+    # TODO(crcrpar): Delete thie line once double backward of
     # :func:`chainer.functions.fixed_decorrelated_batch_normalization` is
     # implemented.
     # skip_backward_test = True
