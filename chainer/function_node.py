@@ -599,7 +599,7 @@ Use apply() method instead.\
 
         """
         if self._input_indexes_to_retain is None or self.inputs is None:
-            return
+            return ()
         inputs = self.inputs
         if self._input_indexes_to_retain is None:
             raise ValueError(self._get_error_message(
@@ -626,7 +626,7 @@ Use apply() method instead.\
 
         """
         if self._output_indexes_to_retain is None or self.outputs is None:
-            return
+            return ()
 
         if self._retained_output_data is None:
             raise ValueError(self._get_error_message(
