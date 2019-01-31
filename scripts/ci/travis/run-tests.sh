@@ -97,6 +97,8 @@ case "${CHAINER_TRAVIS_TEST}" in
 
                 if [[ $TRAVIS_OS_NAME == "windows" ]]; then
                     choco install python3
+                    choco install llvm
+                    choco upgrade llvm
 
                     export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
                     echo 'export PATH="/c/Python37:/c/Python37/Scripts:$PATH"' >> $CHAINER_BASH_ENV
@@ -130,11 +132,10 @@ case "${CHAINER_TRAVIS_TEST}" in
                         run_step chainerx_python_tests
                 fi
 
-                if [[ $SKIP_CHAINERX != 1 ]]; then
+                if [[ $SKIP_CHAINERX != 1 && $TRAVIS_OS_NAME != "windows" ]]; then
+
                     CHAINER_DOCS_SKIP_LINKCODE=1 \
                         run_step docs
-                else
-                    echo "Documentation build is skipped as ChainerX is not available.";
                 fi
                 ;;
         esac
