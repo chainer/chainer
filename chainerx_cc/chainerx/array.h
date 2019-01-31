@@ -48,7 +48,12 @@ class Array {
 public:
     Array() = default;
 
-    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_{std::move(body)} {}
+    // TODO(hvy): Consider making this contructor private and prohibit body from being null (assert that given body is not null).
+    explicit Array(std::shared_ptr<internal::ArrayBody> body) : body_{std::move(body)} {
+        if (body_ == nullptr) {
+            throw ChainerxError{"Cannot create an array from null."};
+        }
+    }
 
     // Copy constructor that copies the pointer to the body instead of the body itself.
     //
