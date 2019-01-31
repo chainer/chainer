@@ -46,11 +46,6 @@ from chainer.utils import type_check
     ])
 class TestHstack(testing.FunctionTestCase):
 
-    def before_test(self, test_name):
-        # TODO(niboshi): Support it
-        if self.backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
     def generate_inputs(self):
         return tuple([
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)

@@ -251,6 +251,19 @@ See the note on :meth:`require_grad` for details.
 """)
 
     _docs.set_doc(
+        ndarray.item,
+        """item()
+Copies an element of an array to a standard Python scalar and returns it.
+
+Returns:
+    z:
+        A copy of the specified element of the array as a suitable Python
+        scalar.
+
+.. seealso:: :func:`numpy.item`
+""")
+
+    _docs.set_doc(
         ndarray.max,
         """max(axis=None, keepdims=False)
 Returns the maximum along a given axis.

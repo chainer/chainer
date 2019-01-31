@@ -12,6 +12,7 @@
 #include "chainerx/check_backward.h"
 #include "chainerx/constant.h"
 #include "chainerx/device_id.h"
+#include "chainerx/error.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
@@ -165,6 +166,28 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvCoverAll) {
                 {x, w, b},
                 {e});
     });
+}
+
+TEST_P(ConnectionTest, ConvInvalidStride) {
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{10, 7};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 0};  // Invalid stride element 0.
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>();
+    Array b = testing::BuildArray(b_shape).WithLinearData<float>();
+
+    EXPECT_THROW(Conv(x, w, b, stride, pad), DimensionError);
 }
 
 TEST_P(ConnectionTest, ConvBackward) {
@@ -502,6 +525,28 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvTransposeOutSize) {
                 {x, w, b},
                 {e});
     });
+}
+
+TEST_P(ConnectionTest, ConvTransposeInvalidStride) {
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{5, 3};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{0, 2};  // Invalid stride element 0.
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{in_channels, out_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>();
+    Array b = testing::BuildArray(b_shape).WithLinearData<float>();
+
+    EXPECT_THROW(ConvTranspose(x, w, b, stride, pad), DimensionError);
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {

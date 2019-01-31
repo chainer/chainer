@@ -31,6 +31,7 @@ install(FILES
     context.h
     device.h
     device_id.h
+    dims.h
     dtype.h
     enum.h
     error.h
@@ -73,6 +74,7 @@ set(chainerx_srcs
     context.cc
     device.cc
     device_id.cc
+    dims.cc
     dtype.cc
     float16.cc
     graph.cc
@@ -141,6 +143,7 @@ if(${CHAINERX_BUILD_TEST})
         check_backward_test.cc
         context_test.cc
         device_test.cc
+        dims_test.cc
         dtype_test.cc
         float16_test.cc
         index_iterator_test.cc

@@ -1,3 +1,7 @@
+import copy
+import math
+import pickle
+
 import numpy
 import pytest
 
@@ -40,6 +44,81 @@ def test_init(shape, dtype_spec):
 def test_init_with_device(shape, dtype_spec, device):
     array = chainerx.ndarray(shape, dtype_spec, device=device)
     _check_array(array, dtype_spec, shape, device=device)
+
+
+@pytest.mark.parametrize('value', [
+    0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -
+    1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
+])
+@pytest.mark.parametrize('shape', [
+    (), (1,), (1, 1, 1)
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cast_scalar(device, value, shape, dtype):
+    np_dtype = numpy.dtype(dtype)
+    try:
+        np_value = np_dtype.type(value)
+    except (ValueError, OverflowError):
+        return
+
+    a_np = numpy.asarray([np_value], dtype).reshape(shape)
+    a_chx = chainerx.array(a_np)
+
+    def should_cast_succeed(typ):
+        try:
+            typ(np_value)
+            return True
+        except (ValueError, OverflowError):
+            return False
+
+    # Cast to float
+    if should_cast_succeed(float):
+        assert type(float(a_chx)) is float
+        if math.isnan(float(a_np)):
+            assert math.isnan(float(a_chx))
+        else:
+            assert float(a_np) == float(a_chx)
+    # Cast to int
+    if should_cast_succeed(int):
+        assert type(int(a_chx)) is int
+        assert int(a_np) == int(a_chx)
+    # Cast to bool
+    if should_cast_succeed(bool):
+        assert type(bool(a_chx)) is bool
+        assert bool(a_np) == bool(a_chx)
+
+    # item()
+    item_actual = a_chx.item()
+    np_dtype = numpy.dtype(dtype)
+    item_expected = np_dtype.type(value).item()
+    assert isinstance(item_actual, type(item_expected))
+    assert (
+        (numpy.isnan(item_actual) and numpy.isnan(item_expected))
+        or item_actual == item_expected)
+
+
+@pytest.mark.parametrize('shape', [
+    (0,), (1, 0), (2,), (1, 2), (2, 3),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cast_scalar_invalid(device, shape):
+    dtype = chainerx.float32
+
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
+        float(a)
+
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
+        int(a)
+
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
+        bool(a)
+
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
+        a.item()
 
 
 def test_to_device():
@@ -620,3 +699,33 @@ def test_asarray_to_numpy_identity(device, slice1, slice2):
     z = chainerx.to_numpy(y)
     chainerx.testing.assert_array_equal_ex(x, y)
     chainerx.testing.assert_array_equal_ex(x, z, strides_check=False)
+
+
+# TODO(niboshi): Add pickle test involving context destruction and re-creation
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_array_pickle(device):
+    arr = chainerx.array([1, 2], chainerx.float32, device=device)
+    s = pickle.dumps(arr)
+    del arr
+
+    arr2 = pickle.loads(s)
+    assert isinstance(arr2, chainerx.ndarray)
+    assert arr2.device is device
+    assert arr2.dtype == chainerx.float32
+    chainerx.testing.assert_array_equal(
+        arr2,
+        chainerx.array([1, 2], chainerx.float32))
+
+
+# TODO(niboshi): Add deepcopy test with arbitrary context
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_array_deepcopy(device):
+    arr = chainerx.array([1, 2], chainerx.float32, device=device)
+    arr2 = copy.deepcopy(arr)
+
+    assert isinstance(arr2, chainerx.ndarray)
+    assert arr2.device is device
+    assert arr2.dtype == chainerx.float32
+    chainerx.testing.assert_array_equal(
+        arr2,
+        chainerx.array([1, 2], chainerx.float32))

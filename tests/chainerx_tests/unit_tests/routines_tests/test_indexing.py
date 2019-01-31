@@ -21,6 +21,9 @@ from chainerx_tests import array_utils
     ((3,), -1),
     ((2, 3), 0),
     ((2, 3), 1),
+    ((2, 3), numpy.int8(-1)),
+    ((2, 3), numpy.int32(0)),
+    ((2, 3), numpy.uint64(1)),
     # integer indexining - tuple indexing
     ((3,), (0,)),
     ((3,), (1,)),

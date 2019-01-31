@@ -1,9 +1,9 @@
 import math
 
 from chainer.functions.activation import softplus
+from chainer.functions.math import average
 from chainer.functions.math import exponential
 from chainer.functions.math import sum
-from chainer.functions.math import average
 
 
 def gaussian_kl_divergence(mean, ln_var, reduce='sum'):

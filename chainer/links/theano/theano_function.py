@@ -84,6 +84,8 @@ Please install theano to activate theano function.
   $ pip install theano'''
             raise RuntimeError(msg)
 
+        super(TheanoFunction, self).__init__()
+
         inputs = _to_var_tuple(inputs)
         outputs = _to_var_tuple(outputs)
 

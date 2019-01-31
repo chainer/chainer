@@ -65,7 +65,6 @@ try:
     from cupy.cuda import Event  # type: ignore # NOQA
     from cupy.cuda import Stream  # type: ignore # NOQA
 
-    libcudnn = cuda.cudnn  # type: tp.Any # NOQA
     available = True
 except Exception as e:
     _resolution_error = e
@@ -108,18 +107,22 @@ except Exception as e:
     class Stream(object):  # type: ignore # for type testing
         pass
 
-    # for `xp is cuda.cupy` and `cuda.libcudnn` to always work
+    # for `xp is chainer.backends.cuda.cupy` to always work
     cupy = object()
-    libcudnn = object()
+
 
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
         cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
+        libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
+
+        # for `chainer.backends.cuda.libcudnn` to always work
+        libcudnn = object()
 
 
 def check_cuda_available():

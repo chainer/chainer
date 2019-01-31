@@ -195,7 +195,9 @@ class FunctionNode(object):
         """
         if self._is_chainerx_fallback_mode:
             retained_output_data = [
-                var.array for var in self._chainerx_retained_outputs]
+                None if var is None
+                else var.array
+                for var in self._chainerx_retained_outputs]
         else:
             if self._retained_output_data is None:
                 raise RuntimeError('retained output data is gone')
@@ -273,8 +275,9 @@ Use apply() method instead.\
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
                 return tuple([
-                    variable.Variable(
-                        y, requires_grad=y.is_backprop_required())
+                    variable.Variable._init_unchecked(
+                        y, requires_grad=y.is_backprop_required(),
+                        is_chainerx_array=True)
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()
@@ -718,7 +721,8 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
-            variable.Variable(
+            None if array is None
+            else variable.Variable(
                 array, requires_grad=(
                     False if array is None else array.is_backprop_required()))
             for array in retained_outputs])
@@ -791,13 +795,14 @@ Use apply() method instead.\
         if self._input_indexes_to_retain is None or self.inputs is None:
             return ()
 
-        # TODO(hvy): It should be safe to remove this check.
-        if self._input_indexes_to_retain is None:
-            raise ValueError(self._get_error_message(
-                'retain_inputs is not called in forward.'))
-
-        return tuple([self.inputs[index].get_variable()
-                      for index in self._input_indexes_to_retain])
+        retained_inputs = []
+        for index in self._input_indexes_to_retain:
+            input = self.inputs[index]
+            if input.data is None:
+                retained_inputs.append(None)
+            else:
+                retained_inputs.append(input.get_variable())
+        return tuple(retained_inputs)
 
     def get_retained_outputs(self):
         """Returns a tuple of retained output variables.
@@ -821,7 +826,7 @@ Use apply() method instead.\
             return self._chainerx_retained_outputs
 
         if self._output_indexes_to_retain is None or self.outputs is None:
-            return
+            return ()
 
         # TODO(hvy): It should be safe to remove this check.
         if self._retained_output_data is None:
@@ -845,7 +850,11 @@ Use apply() method instead.\
                 outputs_modified = True
             else:
                 output_var = output.get_variable()
-            ret.append(output_var)
+
+            if output_var.array is None:
+                ret.append(None)
+            else:
+                ret.append(output_var)
 
         if outputs_modified:
             self.outputs = tuple(new_outputs)
@@ -1159,15 +1168,33 @@ def _extract_apply_in_data(inputs):
     if len(inputs) == 0:
         return False, ()
 
-    # Unwrap arrays
-    arrays = [
-        (x._data[0] if x.xp is chainerx else x.array)
-        if isinstance(x, variable.Variable) else x for x in inputs]
+    if chainerx.is_available():
+        has_chainerx_array = False
 
-    if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, tuple(backend.to_chainerx(arrays))
-    return False, tuple(arrays)
+        # Unwrap arrays
+        arrays = []
+        for x in inputs:
+            if isinstance(x, variable.Variable):
+                if x._has_chainerx_array:
+                    arrays.append(x._data[0])
+                    has_chainerx_array = True
+                else:
+                    arrays.append(x.array)
+            else:  # x is ndarray
+                arrays.append(x)
+                if not has_chainerx_array:
+                    if isinstance(x, chainerx.ndarray):
+                        has_chainerx_array = True
+
+        if has_chainerx_array:
+            return True, tuple(backend.to_chainerx(arrays))
+        else:
+            return False, tuple(arrays)
+
+    else:
+        return False, tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
 
 
 def _get_ordered_func_heap():

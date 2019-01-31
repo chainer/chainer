@@ -18,6 +18,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer import types  # NOQA
+import chainer.utils._collections
 from chainer.utils import argument
 import chainerx
 
@@ -430,9 +431,11 @@ class VariableNode(object):
                 self._old_style_grad_generator)
 
 
-def _create_variable(data, name, grad, requires_grad):
-    return Variable(
+def _create_variable(data, name, grad, requires_grad, device):
+    var = Variable(
         data, name=name, grad=grad, requires_grad=requires_grad)
+    var.to_device(device)
+    return var
 
 
 class Variable(object):
@@ -487,6 +490,10 @@ class Variable(object):
 
     """  # NOQA
 
+    # Cached value of `self.xp is chainerx`. It prevents from initializing
+    # self._device as much as possible because it is really costly.
+    _has_chainerx_array = False
+
     # Cached grad-stopped view of chainerx array. This is the return value
     # of `array` and `data` properties.
     _chainerx_nobp_array_cache = None
@@ -510,12 +517,12 @@ class Variable(object):
     _grad = None
 
     def __init__(self, data=None, **kwargs):
-        # type: (types.NdArray, **tp.Any) -> None
+        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
+                     'Use chainer.using_config')
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -525,6 +532,25 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
+        self._init_impl(data, name, grad, requires_grad, None)
+
+    @staticmethod
+    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
+                        is_chainerx_array=None):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+        """Creates a new :class:`Variable` without the validations for
+        optimizing performance.
+        """
+
+        # Create a Variable without invoking __init__
+        var = Variable.__new__(Variable)
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array)
+
+        return var
+
+    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
+
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
@@ -533,12 +559,15 @@ class Variable(object):
         self._grad_var = None
         self._device = None
 
-        if isinstance(data, chainerx.ndarray):
+        if is_chainerx_array is None:
+            is_chainerx_array = isinstance(data, chainerx.ndarray)
+
+        if is_chainerx_array:
             if not requires_grad and grad is not None:
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
+            self._set_chainerx_array(data, grad)  # type: ignore
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
@@ -557,8 +586,9 @@ class Variable(object):
         return target
 
     def __reduce__(self):
-        return _create_variable, (self.array, self.name, self.grad,
-                                  self._requires_grad)
+        args = (
+            self.array, self.name, self.grad, self._requires_grad, self.device)
+        return _create_variable, args
 
     def __repr__(self):
         return variable_repr(self)
@@ -628,6 +658,7 @@ class Variable(object):
                     array.set_grad(grad)
             self._data = [array]
 
+        self._has_chainerx_array = True  # even if data is None
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
@@ -647,8 +678,11 @@ class Variable(object):
     def xp(self):
         # type: () -> tp.Optional[types.Xp]
         """Array module for the data array of this variable."""
-        device = self.device
-        return None if device is None else device.xp
+        if self._has_chainerx_array:
+            return chainerx
+        else:
+            device = self.device
+            return None if device is None else device.xp
 
     @property
     def name(self):
@@ -825,6 +859,7 @@ class Variable(object):
         else:
             self._config_as_non_chainerx(d, None, None)
             self._node._update_data_info(self._data[0])  # type: ignore
+            self._has_chainerx_array = False
 
     @property
     def data(self):
@@ -1082,7 +1117,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self.device.xp is chainerx
+        was_chainerx = self.xp is chainerx
         is_chainerx = device.xp is chainerx
 
         arr = self._data[0]
@@ -1135,6 +1170,7 @@ class Variable(object):
             # Note: It affects the whole behavior of Variable's methods
             #       We need to place this line in this place.
             self._device = dst_device
+            self._has_chainerx_array = True
 
         if array is not None:  # equivalent to (dst_device is not None)
             if array_device == dst_device:
@@ -1168,6 +1204,7 @@ class Variable(object):
             # Note: It affects the whole behavior of Variable's methods
             #       We need to place this line in this place.
             self._device = dst_device
+            self._has_chainerx_array = False
 
         if array is not None:  # equivalent to (dst_device is not None)
             if array_device == dst_device:
@@ -1523,6 +1560,8 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
+    OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
+
     cand_funcs = []
     seen_set = set()
 
@@ -1586,7 +1625,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             # Keep the order for the portability, rather than
             # in_grad = {x: grads.get_as_list(x)
             #            for x in set(target_inputs)}
-            in_grad = collections.OrderedDict()
+            in_grad = OrderedDict()
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
@@ -1710,8 +1749,10 @@ class Parameter(Variable):
         return self._copy_to(Parameter())
 
     def __reduce__(self):
-        return _recover_parameter, (self.array, self.name, self.grad,
-                                    self.initializer, self.update_rule)
+        args = (
+            self.array, self.name, self.grad, self.initializer,
+            self.update_rule, self.device)
+        return _recover_parameter, args
 
     def to_cpu(self):
         return self.to_device(backend.CpuDevice())
@@ -1764,6 +1805,7 @@ class Parameter(Variable):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
+            self._has_chainerx_array = False
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
@@ -1876,11 +1918,12 @@ def as_array(obj):
     return obj
 
 
-def _recover_parameter(data, name, grad, initializer, update_rule):
+def _recover_parameter(data, name, grad, initializer, update_rule, device):
     p = Parameter(initializer=initializer, name=name)
     p.array = data
     p.grad = grad
     p.update_rule = update_rule
+    p.to_device(device)
     return p
 
 

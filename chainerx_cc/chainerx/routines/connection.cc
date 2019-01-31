@@ -13,6 +13,7 @@
 #include "chainerx/backward_context.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
@@ -109,6 +110,9 @@ void ConvCheckNdim(
     }
     if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+    if (std::any_of(stride.begin(), stride.end(), [](int64_t s) { return s <= 0; })) {
+        throw DimensionError{"Stride elements must be greater than 0: ", DimsFormatter{stride}, "."};
     }
 }
 
