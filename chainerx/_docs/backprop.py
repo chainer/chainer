@@ -42,7 +42,6 @@ Args:
     * :meth:`chainerx.ndarray.backward`
 """)
 
-    # TODO(hvy): Finish writing docs.
     _docs.set_doc(
         chainerx.grad,
         """grad(outputs, inputs, *, enable_double_backprop=False)
