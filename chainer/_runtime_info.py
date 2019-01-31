@@ -31,6 +31,7 @@ class _RuntimeInfo(object):
 
     def __str__(self):
         s = six.StringIO()
+        s.write('''```\n''')
         s.write('''Platform: {}\n'''.format(self.platform_version))
         s.write('''Chainer: {}\n'''.format(self.chainer_version))
         s.write('''NumPy: {}\n'''.format(self.numpy_version))
@@ -44,6 +45,7 @@ class _RuntimeInfo(object):
             s.write('''iDeep: Not Available\n''')
         else:
             s.write('''iDeep: {}\n'''.format(self.ideep_version))
+        s.write('''```\n''')
         return s.getvalue()
 
 
