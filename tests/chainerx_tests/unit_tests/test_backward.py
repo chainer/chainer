@@ -121,60 +121,44 @@ def _check_grad(
             _assert_arrays_equal(initial_gx, x.get_grad(backprop_id))
 
 
-def _identity(x):
-    return x.copy(),
+# Delegates work to either _check_backward or _check_grad.
+def _check_backprop(
+        method, fprop, xs, expected_gxs, gys=None, backprop_id=None):
+    assert method in ('backward', 'grad')
+
+    if method == 'backward':
+        expected_gxs = tuple([
+            chainerx.ChainerxError if gx is None else gx
+            for gx in expected_gxs])
+        check_func = _check_backward
+    elif method == 'grad':
+        check_func = _check_grad
+    else:
+        assert False
+
+    check_func(fprop, xs, expected_gxs, gys=gys, backprop_id=backprop_id)
 
 
-def _add(x0, x1):
-    return x0 + x1,
+def parametrize_backprop(argname='method'):
+    return pytest.mark.parametrize(argname, ['backward', 'grad'])
 
 
-def _add_identical_input(x0):
-    return x0 + x0,
-
-
-def _mul(x0, x1):
-    return x0 * x1,
-
-
-def _add_mul(x0, x1, x2):
-    return x0 * (x1 + x2),
-
-
-def _add_mul_identical_input_to_multiple_ops(x0, x1):
-    return x0 * (x0 + x1),
-
-
-def _add_identical_intermediate_input(x0):
-    h = x0 + x0
-    return h + h,
-
-
-def _binary_math_multiple_outputs(x1, x2):
-    return (x1 + x2, x1 * x2)
-
-
-def _backward_with_double_backprop(x0, x1):
-    assert x0.is_grad_required()
-
-    h = x0 * (x0 + x1)
-    chainerx.backward(h, enable_double_backprop=True)
-    gx0 = x0.get_grad()
-    x0.cleargrad()
-    return gx0,
-
-
-def test_backward_identity():
+@parametrize_backprop()
+def test_backprop_identity(method):
     shape = (1,)
     dtype = chainerx.float32
 
     xs = (chainerx.full(shape, 5, dtype).require_grad(),)
     expected_gxs = (chainerx.full(shape, 1, dtype),)
 
-    _check_backward(_identity, xs, expected_gxs)
+    def fprop(x):
+        return x.copy(),
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_add():
+@parametrize_backprop()
+def test_backprop_add(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -185,10 +169,14 @@ def test_backward_add():
         chainerx.full(shape, 1, dtype),
         chainerx.full(shape, 1, dtype),)
 
-    _check_backward(_add, xs, expected_gxs)
+    def fprop(x0, x1):
+        return x0 + x1,
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_mul():
+@parametrize_backprop()
+def test_backprop_mul(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -199,10 +187,14 @@ def test_backward_mul():
         chainerx.full(shape, 5, dtype),
         chainerx.full(shape, 3, dtype),)
 
-    _check_backward(_mul, xs, expected_gxs)
+    def fprop(x0, x1):
+        return x0 * x1,
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_add_mull():
+@parametrize_backprop()
+def test_backprop_add_mul(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -215,10 +207,14 @@ def test_backward_add_mull():
         chainerx.full(shape, 2, dtype),
         chainerx.full(shape, 2, dtype))
 
-    _check_backward(_add_mul, xs, expected_gxs)
+    def fprop(x0, x1, x2):
+        return x0 * (x1 + x2),
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_add_mul_extra_inputs():
+@parametrize_backprop()
+def test_backprop_add_mul_extra_inputs(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -229,12 +225,16 @@ def test_backward_add_mul_extra_inputs():
     expected_gxs = (
         chainerx.full(shape, 6, dtype),
         chainerx.full(shape, 3, dtype),
-        chainerx.ChainerxError)
+        None)
 
-    _check_backward(_add_mul, xs, expected_gxs)
+    def fprop(x0, x1, x2):
+        return x0 * (x1 + x2),
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_double_backprop():
+@parametrize_backprop()
+def test_backward_double_backprop(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -243,12 +243,23 @@ def test_backward_double_backprop():
         chainerx.full(shape, 3, dtype),)
     expected_gxs = (
         chainerx.full(shape, 2, dtype),
-        chainerx.ChainerxError,)
+        None,)
 
-    _check_backward(_backward_with_double_backprop, xs, expected_gxs)
+    def fprop(x0, x1):
+        assert x0.is_grad_required()
+
+        h = x0 * (x0 + x1)
+        chainerx.backward(h, enable_double_backprop=True)
+        gx0 = x0.get_grad()
+        x0.cleargrad()
+        return gx0,
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_multiple_graphs_double_backprop():
+@parametrize_backprop('method0')
+@parametrize_backprop('method1')
+def test_backward_multiple_graphs_double_backprop(method0, method1):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -258,25 +269,31 @@ def test_backward_multiple_graphs_double_backprop():
             chainerx.full(shape, 2, dtype).require_grad(bp_x0),
             chainerx.full(shape, 3, dtype).require_grad(bp_x1),)
         expected_gxs = (
-            chainerx.ChainerxError,
+            None,
             chainerx.full(shape, 2, dtype),)
 
         def fprop(x0, x1):
             assert x0.is_grad_required(bp_x0)
 
             h = x0 * (x0 + x1)
-            chainerx.backward(h, backprop_id=bp_x0)
-            gx0 = x0.get_grad(bp_x0)  # 2x + h
+            if method0 == 'backward':
+                chainerx.backward(h, backprop_id=bp_x0)
+                gx0 = x0.get_grad(bp_x0)
+            elif method0 == 'grad':
+                gx0, = chainerx.grad([h], [x0], backprop_id=bp_x0)
+            else:
+                assert False
 
             assert not gx0.is_backprop_required(bp_x0)
             assert gx0.is_backprop_required(bp_x1)
 
             return x0 * gx0,
 
-        _check_backward(fprop, xs, expected_gxs, backprop_id=bp_x1)
+        _check_backprop(method1, fprop, xs, expected_gxs, backprop_id=bp_x1)
 
 
-def test_backward_identical_input_to_multiple_ops():
+@parametrize_backprop()
+def test_backward_identical_input_to_multiple_ops(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -285,46 +302,61 @@ def test_backward_identical_input_to_multiple_ops():
         chainerx.full(shape, 3, dtype),)
     expected_gxs = (
         chainerx.full(shape, 7, dtype),
-        chainerx.ChainerxError,)
+        None,)
 
-    _check_backward(_add_mul_identical_input_to_multiple_ops, xs, expected_gxs)
+    def fprop(x0, x1):
+        return x0 * (x0 + x1),
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_identical_inputs():
+@parametrize_backprop()
+def test_backward_identical_inputs(method):
     shape = (1,)
     dtype = chainerx.float32
 
     xs = (chainerx.full(shape, 2, dtype).require_grad(),)
     expected_gxs = (chainerx.full(shape, 2, dtype),)
 
-    _check_backward(_add_identical_input, xs, expected_gxs)
+    def fprop(x):
+        return x + x,
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_identical_intermediate_nodes():
+@parametrize_backprop()
+def test_backward_identical_intermediate_nodes(method):
     shape = (1,)
     dtype = chainerx.float32
 
     xs = (chainerx.full(shape, 2, dtype).require_grad(),)
     expected_gxs = (chainerx.full(shape, 4, dtype),)
 
-    _check_backward(_add_identical_intermediate_input, xs, expected_gxs)
+    def fprop(x):
+        h = x + x
+        return h + h,
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_given_input_grad():
+@parametrize_backprop()
+def test_backward_given_input_grad(method):
     shape = (1,)
     dtype = chainerx.float32
 
     xs = (chainerx.full(shape, 1, dtype).require_grad(),)
-    expected_gxs = (chainerx.full(shape, 2, dtype),)
+    expected_gx_value = 2 if method == 'backward' else 1
+    expected_gxs = (chainerx.full(shape, expected_gx_value, dtype),)
 
     def fprop(x):
         x.set_grad(chainerx.full(shape, 1, dtype))
         return x.copy(),
 
-    _check_backward(fprop, xs, expected_gxs)
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_given_output_grad():
+@parametrize_backprop()
+def test_backward_given_output_grad(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -333,14 +365,18 @@ def test_backward_given_output_grad():
         chainerx.full(shape, 3, dtype),)
     expected_gxs = (
         chainerx.full(shape, 6, dtype),
-        chainerx.ChainerxError,)
+        None,)
     gys = (
         chainerx.full(shape, 2, dtype),)
 
-    _check_backward(_mul, xs, expected_gxs, gys=gys)
+    def fprop(x0, x1):
+        return x0 * x1,
+
+    _check_backprop(method, fprop, xs, expected_gxs, gys=gys)
 
 
-def test_backward_multiple_outputs():
+@parametrize_backprop()
+def test_backward_multiple_outputs(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -351,10 +387,14 @@ def test_backward_multiple_outputs():
         chainerx.full(shape, 6, dtype),
         chainerx.full(shape, 4, dtype),)
 
-    _check_backward(_binary_math_multiple_outputs, xs, expected_gxs)
+    def fprop(x0, x1):
+        return x0 + x1, x0 * x1
+
+    _check_backprop(method, fprop, xs, expected_gxs)
 
 
-def test_backward_multiple_graphs_basic():
+@parametrize_backprop()
+def test_backward_multiple_graphs_basic(method):
     shape = (1,)
     dtype = chainerx.float32
 
@@ -365,14 +405,24 @@ def test_backward_multiple_graphs_basic():
             chainerx.full(shape, 5, dtype).require_grad(backprop_id2),)
         expected_gxs = (
             chainerx.full(shape, 5, dtype),
-            chainerx.ChainerxError,)
+            None,)
 
-        _check_backward(_mul, xs, expected_gxs, backprop_id=backprop_id1)
+        def fprop(x0, x1):
+            return x0 * x1,
+
+        _check_backprop(
+            method, fprop, xs, expected_gxs, backprop_id=backprop_id1)
 
 
-def test_backward_multiple_graphs_reuse():
+@parametrize_backprop('method0')
+@parametrize_backprop('method1')
+@parametrize_backprop('method2')
+def test_backward_multiple_graphs_reuse(method0, method1, method2):
     shape = (1,)
     dtype = chainerx.float32
+
+    def fprop(x0, x1):
+        return x0 * x1,
 
     with chainerx.backprop_scope('bp2') as backprop_id2, \
             chainerx.backprop_scope('bp1') as backprop_id1:
@@ -381,9 +431,10 @@ def test_backward_multiple_graphs_reuse():
             chainerx.full(shape, 5, dtype).require_grad(backprop_id2),)
         expected_gxs = (
             chainerx.full(shape, 5, dtype),
-            chainerx.ChainerxError,)
+            None,)
 
-        _check_backward(_mul, xs, expected_gxs, backprop_id=backprop_id1)
+        _check_backprop(
+            method0, fprop, xs, expected_gxs, backprop_id=backprop_id1)
 
         x1, x2 = xs
         x1.cleargrad(backprop_id1)
@@ -393,10 +444,11 @@ def test_backward_multiple_graphs_reuse():
         assert x2.get_grad(backprop_id2) is None
 
         expected_gxs = (
-            chainerx.ChainerxError,
+            None,
             chainerx.full(shape, 2, dtype),)
 
-        _check_backward(_mul, xs, expected_gxs, backprop_id=backprop_id2)
+        _check_backprop(
+            method1, fprop, xs, expected_gxs, backprop_id=backprop_id2)
 
         x1.cleargrad(backprop_id1)
         x2.cleargrad(backprop_id2)
@@ -408,22 +460,73 @@ def test_backward_multiple_graphs_reuse():
             chainerx.full(shape, 5, dtype),
             chainerx.full(shape, 2, dtype),)
 
-        _check_backward(_mul, xs, expected_gxs, backprop_id=backprop_id2)
+        _check_backprop(
+            method2, fprop, xs, expected_gxs, backprop_id=backprop_id2)
 
         assert x1.get_grad(backprop_id1) is None
         assert x2.get_grad(backprop_id1) is None
 
 
-def test_backward_sole_array_node():
+@parametrize_backprop()
+def test_backward_sole_array_node(method):
     shape = (1,)
     dtype = chainerx.float32
 
     x = chainerx.full(shape, 2, dtype).require_grad()
     expected_gx = chainerx.full(shape, 1, dtype)
 
-    chainerx.backward(x)
+    if method == 'backward':
+        chainerx.backward(x)
+        gx = x.get_grad()
+    elif method == 'grad':
+        gx, = chainerx.grad([x], [x])
+    else:
+        assert False
 
-    _assert_arrays_equal(x.get_grad(), expected_gx)
+    _assert_arrays_equal(gx, expected_gx)
+
+
+@parametrize_backprop()
+def test_backward_multiple_graphs_non_existing(method):
+    shape = (1,)
+    dtype = chainerx.float32
+
+    with chainerx.backprop_scope('bp1') as backprop_id1, \
+            chainerx.backprop_scope('bp2') as backprop_id2:
+        xs = (
+            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
+            chainerx.full(shape, 5, dtype).require_grad(backprop_id1),)
+
+        y = xs[0] * xs[1]
+
+        with pytest.raises(chainerx.ChainerxError):
+            if method == 'backward':
+                chainerx.backward(y, backprop_id2)
+            elif method == 'grad':
+                chainerx.grad([y], xs, backprop_id2)
+            else:
+                assert False
+
+
+@parametrize_backprop()
+def test_backprop_multiple_graphs_basic(method):
+    shape = (1,)
+    dtype = chainerx.float32
+
+    with chainerx.backprop_scope('bp1') as backprop_id1, \
+            chainerx.backprop_scope('bp2') as backprop_id2:
+        xs = (
+            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
+            chainerx.full(shape, 5, dtype).require_grad(backprop_id2),)
+        expected_gxs = (
+            chainerx.full(shape, 5, dtype),
+            None,)
+
+        def mul(x0, x1):
+            return x0 * x1,
+
+        _check_backprop(
+            method, mul, xs, expected_gxs, backprop_id=backprop_id1)
 
 
 def test_backward_keyword_arguments():
@@ -440,320 +543,6 @@ def test_backward_keyword_arguments():
             chainerx.backward(body=x, backprop_id=backprop_id1)
 
 
-def test_backward_multiple_graphs_non_existing():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1, \
-            chainerx.backprop_scope('bp2') as backprop_id2:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
-            chainerx.full(shape, 5, dtype).require_grad(backprop_id1),)
-
-        y = xs[0] * xs[1]
-
-        with pytest.raises(chainerx.ChainerxError):
-            chainerx.backward(y, backprop_id2)
-
-
-def test_grad_identity():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (chainerx.full(shape, 1, dtype),)
-
-    _check_grad(_identity, xs, expected_gxs)
-
-
-def test_grad_add():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (
-        chainerx.full(shape, 1, dtype),
-        chainerx.full(shape, 1, dtype),)
-
-    _check_grad(_add, xs, expected_gxs)
-
-
-def test_grad_mul():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (
-        chainerx.full(shape, 5, dtype),
-        chainerx.full(shape, 3, dtype),)
-
-    _check_grad(_mul, xs, expected_gxs)
-
-
-def test_grad_add_mull():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 2, dtype).require_grad(),
-        chainerx.full(shape, 9, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (
-        chainerx.full(shape, 14, dtype),
-        chainerx.full(shape, 2, dtype),
-        chainerx.full(shape, 2, dtype))
-
-    _check_grad(_add_mul, xs, expected_gxs)
-
-
-def test_grad_add_mul_extra_inputs():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 2, dtype).require_grad(),
-        chainerx.full(shape, 4, dtype))
-    expected_gxs = (
-        chainerx.full(shape, 6, dtype),
-        chainerx.full(shape, 3, dtype),
-        None,)
-
-    _check_grad(_add_mul, xs, expected_gxs)
-
-
-def test_grad_double_backprop():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 2, dtype).require_grad(),
-        chainerx.full(shape, 3, dtype),)
-    expected_gxs = (
-        chainerx.full(shape, 2, dtype),
-        None,)
-
-    _check_grad(_backward_with_double_backprop, xs, expected_gxs)
-
-
-@pytest.mark.parametrize('chained_backprop', ['backward', 'grad'])
-def test_grad_multiple_graphs_double_backprop(chained_backprop):
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp_x1') as bp_x1, \
-            chainerx.backprop_scope('bp_x0') as bp_x0:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(bp_x0),
-            chainerx.full(shape, 3, dtype).require_grad(bp_x1),)
-        expected_gxs = (
-            None,
-            chainerx.full(shape, 2, dtype),)
-
-        def fprop(x0, x1):
-            assert x0.is_grad_required(bp_x0)
-
-            h = x0 * (x0 + x1)
-            if chained_backprop == 'backward':
-                chainerx.backward(h, backprop_id=bp_x0)
-                gx0 = x0.get_grad(bp_x0)
-            elif chained_backprop == 'grad':
-                gx0, = chainerx.grad([h], [x0], backprop_id=bp_x0)
-            else:
-                assert False
-
-            assert not gx0.is_backprop_required(bp_x0)
-            assert gx0.is_backprop_required(bp_x1)
-
-            return x0 * gx0,
-
-        _check_grad(fprop, xs, expected_gxs, backprop_id=bp_x1)
-
-
-def test_grad_identical_input_to_multiple_ops():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 2, dtype).require_grad(),
-        chainerx.full(shape, 3, dtype),)
-    expected_gxs = (
-        chainerx.full(shape, 7, dtype),
-        None,)
-
-    _check_grad(_add_mul_identical_input_to_multiple_ops, xs, expected_gxs)
-
-
-def test_grad_identical_inputs():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (chainerx.full(shape, 2, dtype).require_grad(),)
-    expected_gxs = (chainerx.full(shape, 2, dtype),)
-
-    _check_grad(_add_identical_input, xs, expected_gxs)
-
-
-def test_grad_identical_intermediate_nodes():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (chainerx.full(shape, 2, dtype).require_grad(),)
-    expected_gxs = (chainerx.full(shape, 4, dtype),)
-
-    _check_grad(_add_identical_intermediate_input, xs, expected_gxs)
-
-
-def test_grad_given_input_grad():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (chainerx.full(shape, 1, dtype).require_grad(),)
-    expected_gxs = (chainerx.full(shape, 1, dtype),)
-
-    def fprop(x):
-        x.set_grad(chainerx.full(shape, 3, dtype))
-        return x.copy(),
-
-    _check_grad(fprop, xs, expected_gxs)
-
-
-def test_grad_given_output_grad():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 2, dtype).require_grad(),
-        chainerx.full(shape, 3, dtype),)
-    expected_gxs = (
-        chainerx.full(shape, 6, dtype),
-        None,)
-    gys = (
-        chainerx.full(shape, 2, dtype),)
-
-    _check_grad(_mul, xs, expected_gxs, gys=gys)
-
-
-def test_grad_multiple_outputs():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-    expected_gxs = (
-        chainerx.full(shape, 6, dtype),
-        chainerx.full(shape, 4, dtype),)
-
-    _check_grad(_binary_math_multiple_outputs, xs, expected_gxs)
-
-
-def test_grad_multiple_graphs_basic():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1, \
-            chainerx.backprop_scope('bp2') as backprop_id2:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
-            chainerx.full(shape, 5, dtype).require_grad(backprop_id2),)
-        expected_gxs = (
-            chainerx.full(shape, 5, dtype),
-            None,)
-
-        _check_grad(_mul, xs, expected_gxs, backprop_id=backprop_id1)
-
-
-def test_grad_multiple_graphs_reuse():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp2') as backprop_id2, \
-            chainerx.backprop_scope('bp1') as backprop_id1:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
-            chainerx.full(shape, 5, dtype).require_grad(backprop_id2),)
-        expected_gxs = (
-            chainerx.full(shape, 5, dtype),
-            None,)
-
-        _check_grad(_mul, xs, expected_gxs, backprop_id=backprop_id1)
-
-        x1, x2 = xs
-        x1.cleargrad(backprop_id1)
-        x2.cleargrad(backprop_id2)
-
-        assert x1.get_grad(backprop_id1) is None
-        assert x2.get_grad(backprop_id2) is None
-
-        expected_gxs = (
-            None,
-            chainerx.full(shape, 2, dtype),)
-
-        _check_grad(_mul, xs, expected_gxs, backprop_id=backprop_id2)
-
-        x1.cleargrad(backprop_id1)
-        x2.cleargrad(backprop_id2)
-
-        x1.require_grad(backprop_id2)
-        x2.require_grad(backprop_id1)
-
-        expected_gxs = (
-            chainerx.full(shape, 5, dtype),
-            chainerx.full(shape, 2, dtype),)
-
-        _check_grad(_mul, xs, expected_gxs, backprop_id=backprop_id2)
-
-        assert x1.get_grad(backprop_id1) is None
-        assert x2.get_grad(backprop_id1) is None
-
-
-def test_grad_sole_array_node():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    x = chainerx.full(shape, 2, dtype).require_grad()
-    expected_gx = chainerx.full(shape, 1, dtype)
-
-    gx, = chainerx.grad([x], [x])
-
-    _assert_arrays_equal(gx, expected_gx)
-
-
-def test_grad_keyword_arguments():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1:
-        x = chainerx.full(shape, 2, dtype).require_grad(backprop_id1)
-
-        chainerx.grad([x], [x], backprop_id=backprop_id1)
-
-        with pytest.raises(
-                TypeError, match=r'.*incompatible function arguments.*'):
-            chainerx.backward(body=x, backprop_id=backprop_id1)
-
-
-def test_grad_multiple_graphs_non_existing():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1, \
-            chainerx.backprop_scope('bp2') as backprop_id2:
-        xs = (
-            chainerx.full(shape, 2, dtype).require_grad(backprop_id1),
-            chainerx.full(shape, 5, dtype).require_grad(backprop_id1),)
-
-        y = xs[0] * xs[1]
-
-        with pytest.raises(chainerx.ChainerxError):
-            chainerx.grad([y], xs, backprop_id2)
-
-
 @pytest.mark.parametrize('xs_indices', [[], [0], [1], [0, 1], [1, 0]])
 @pytest.mark.parametrize('ys_indices', [[], [0], [1], [0, 1], [1, 0]])
 def test_grad_no_outputs(xs_indices, ys_indices):
@@ -763,13 +552,11 @@ def test_grad_no_outputs(xs_indices, ys_indices):
     xs = (
         chainerx.full(shape, 3, dtype).require_grad(),
         chainerx.full(shape, 5, dtype).require_grad(),)
-
     gxs = (
         (chainerx.full(shape, 1, dtype),  # gy1gx1
          chainerx.full(shape, 1, dtype)),  # gy1gx2
         (chainerx.full(shape, 5, dtype),  # gy2gx1
          chainerx.full(shape, 3, dtype)),)  # gy2gx2
-
     expected_gxs = [None for _ in xs_indices]
 
     for ys_index in ys_indices:
@@ -778,9 +565,12 @@ def test_grad_no_outputs(xs_indices, ys_indices):
                 expected_gxs[i] = chainerx.full(shape, 0, dtype)
             expected_gxs[i] += gxs[ys_index][xs_index]
 
+    def fprop(x0, x1):
+        return x0 + x1, x0 * x1
+
     _check_grad(
-        _binary_math_multiple_outputs, xs, tuple(expected_gxs),
-        xs_indices=xs_indices, ys_indices=ys_indices)
+        fprop, xs, tuple(expected_gxs), xs_indices=xs_indices,
+        ys_indices=ys_indices)
 
 
 def test_create_and_release_backprop_id():
