@@ -511,6 +511,10 @@ class Variable(object):
     # TODO(hvy): Avoid modifying this variable from outside this class.
     _chainerx_fallback_array = None
 
+    _data = None  # type: tp.List[tp.Optional[types.NdArray]]
+
+    _device = None  # type: tp.Optional[backend.Device]
+
     # Used in non-ChainerX variables. The gradient array is stored in
     # this attribute on Variable.grad setter to delay creation of grad_var
     # instance.
@@ -596,6 +600,11 @@ class Variable(object):
     def __str__(self):
         return variable_str(self)
 
+    def _clear_chainerx(self):
+        self._chainerx_nobp_array_cache = None
+        self._chainerx_grad_cache = None
+        self._chainerx_fallback_array = None
+
     def _ensure_grad_var_up_to_date(self):
         # For non-ChainerX, this method creates _grad_var if it's not yet
         # created and _grad is set.
@@ -636,7 +645,6 @@ class Variable(object):
             self._data = [None]
         else:
             # Sets chainerx array and grad.
-            assert isinstance(array, chainerx.ndarray)
             requires_grad = self._requires_grad
 
             if array.is_backprop_required():
@@ -845,21 +853,24 @@ class Variable(object):
     def array(self, d):
         # type: (tp.Optional[types.NdArray]) -> None
 
-        if isinstance(d, chainerx.ndarray):
-            if self.xp is chainerx:
-                d_old = self._data[0]
-                if (d_old is not None
-                        and (d_old.is_backprop_required()  # type: ignore
-                             or d.is_backprop_required())):
-                    raise ValueError(
-                        'Cannot update the array of a Variable if either the '
-                        'existing or the new array requires backprop.')
+        # Note: This line invokes get_device_from_array() twice which
+        #       generates larger overhead.
+        assert self.device == backend.get_device_from_array(d)
 
-            self._config_as_chainerx(d, None, None)
+        if self.xp is chainerx:
+            d_old = self._data[0]
+            if (d_old is not None
+                    and (d_old.is_backprop_required()  # type: ignore
+                         or d.is_backprop_required())):
+                raise ValueError(
+                    'Cannot update the array of a Variable if either the '
+                    'existing or the new array requires backprop.')
+
+            self._set_chainerx_array(d, None)  # type: ignore
         else:
-            self._config_as_non_chainerx(d, None, None)
-            self._node._update_data_info(self._data[0])  # type: ignore
+            self._data[0] = d
             self._has_chainerx_array = False
+            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
 
     @property
     def data(self):
@@ -1117,7 +1128,8 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self.xp is chainerx
+        old_device = self.device
+        was_chainerx = old_device.xp is chainerx
         is_chainerx = device.xp is chainerx
 
         arr = self._data[0]
@@ -1136,93 +1148,48 @@ class Variable(object):
                         'connected to a graph cannot be copied to a ChainerX '
                         'device ({}).'.format(device))
 
-        # retrieve grad before configuring new device
+        # retrieve grad_var before configuring new device
         grad_var = self.grad_var
-        grad = grad_var._data[0] if grad_var is not None else None
 
+        if was_chainerx and not is_chainerx:
+            self._clear_chainerx()
+            self._node = VariableNode(self, self._chainerx_name)
+        elif not was_chainerx and is_chainerx:
+            self._chainerx_name = self._node.name
+
+        # Note: It affects the whole behavior of Variable's methods.
+        #       We must place them in this place.
+        self._device = device
+        self._has_chainerx_array = is_chainerx
+
+        if arr is None or old_device == device:
+            return
+
+        # send array and grad to the specified device
+        new_arr = device.send(arr)
         if is_chainerx:
-            self._config_as_chainerx(arr, grad, device)
+            if grad_var is None:
+                new_grad = None
+            else:
+                new_grad = device.send(grad_var._data[0])
+
+            self._set_chainerx_array(new_arr, new_grad)
         else:
-            self._config_as_non_chainerx(arr, grad, device)
+            self._data = [new_arr]
+            if grad_var is not None:
+                grad_var.to_device(device)
 
-    def _config_as_chainerx(self, array, grad, device):
-        # type: (tp.Optional[types.NdArray], tp.Optional[types.NdArray], tp.Optional[backend.Device]) -> None # NOQA
-
-        if self.xp is not chainerx:
-            # inherit the old attribute
-            self._chainerx_name = self._node.name  # type: ignore
-
+        # ensure that the node tracks the device migration
+        node = self._node
+        if is_chainerx:
             # ChainerX itself has own node objects,
             # ensure that the node is disconnected with this variable.
-            node = self._node
             if node is not None:
-                # Disconnect by replacing with an alternative of dead
-                # weakref
-                node._variable = lambda: None  # type: ignore
+                # Disconnect by replacing with an alternative of dead weakref
+                node._variable = lambda: None
                 self._node = None
-
-        array_device = (
-            backend.get_device_from_array(array)
-            if array is not None else None)
-        dst_device = device if device is not None else array_device
-
-        if dst_device is not None:
-            # Note: It affects the whole behavior of Variable's methods
-            #       We need to place this line in this place.
-            self._device = dst_device
-            self._has_chainerx_array = True
-
-        if array is not None:  # equivalent to (dst_device is not None)
-            if array_device == dst_device:
-                new_arr = array
-                new_grad = grad
-            else:
-                # send array and grad to the specified device
-                new_arr = dst_device.send(array)
-                new_grad = dst_device.send(grad) if grad is not None else None
-
-            self._set_chainerx_array(new_arr, new_grad)  # type: ignore
-
-    def _config_as_non_chainerx(self, array, grad, device):
-        # type: (tp.Optional[types.NdArray], tp.Optional[types.NdArray], tp.Optional[backend.Device]) -> None # NOQA
-
-        if self.xp is chainerx:
-            # inherit the old attribute
-            self._node = VariableNode(self, self._chainerx_name)
-
-            # clean up the chainerx related attributes
-            self._chainerx_nobp_array_cache = None
-            self._chainerx_grad_cache = None
-            self._chainerx_fallback_array = None
-
-        array_device = (
-            backend.get_device_from_array(array)
-            if array is not None else None)
-        dst_device = device if device is not None else array_device
-
-        if dst_device is not None:
-            # Note: It affects the whole behavior of Variable's methods
-            #       We need to place this line in this place.
-            self._device = dst_device
-            self._has_chainerx_array = False
-
-        if array is not None:  # equivalent to (dst_device is not None)
-            if array_device == dst_device:
-                new_arr = array
-                new_grad = grad
-            else:
-                # send array and grad to the specified device
-                new_arr = dst_device.send(array)
-                new_grad = dst_device.send(grad) if grad is not None else None
-
-            self._data[0] = new_arr  # keep placeholder
-            if new_grad is not None:
-                self.grad_var = Variable(new_grad)
-
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:  # type: ignore
-                node.retain_data()  # type: ignore
+        else:
+            node._update_data_info(new_arr)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1805,7 +1772,6 @@ class Parameter(Variable):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
-            self._has_chainerx_array = False
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
@@ -1837,20 +1803,18 @@ class Parameter(Variable):
 
         data = initializers.generate_array(
             self.initializer, shape, xp, device=device)
+        # Convert the array for iDeep.
+        # (generate_array produces numpy array even if device is Intel64)
+        # TODO(niboshi): This could be done in generate_array().
+        if isinstance(device, intel64.Intel64Device):
+            data = device.send_array(data)
+
         ginit = self._grad_initializer
         grad = None if ginit is None else initializers.generate_array(
             ginit, shape, xp, device=device)
 
-        if xp is chainerx:
-            self._config_as_chainerx(data, grad, device)
-        else:
-            self._config_as_non_chainerx(data, grad, device)
-            self._node._update_data_info(self._data[0])  # type: ignore
-
-        # Convert the array for iDeep.
-        # TODO(niboshi): This could be done in generate_array().
-        if isinstance(self._initial_device, intel64.Intel64Device):
-            self.to_intel64()
+        self.array = data
+        self.grad = grad
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
