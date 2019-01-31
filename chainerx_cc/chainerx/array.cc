@@ -56,24 +56,23 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays) {
     std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_body_ptrs), [](Array& array) {
-        return MoveArrayBody(std::move(array));
-    });
+    array_body_ptrs.reserve(arrays.size());
+    for (Array& array : arrays) {
+        array_body_ptrs.emplace_back(MoveArrayBody(std::move(array)));
+    }
     return array_body_ptrs;
 }
 
-std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& maybe_arrays) {
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays) {
     std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
-    std::transform(
-            maybe_arrays.begin(),
-            maybe_arrays.end(),
-            std::back_inserter(array_body_ptrs),
-            [](nonstd::optional<Array>& maybe_array) -> std::shared_ptr<ArrayBody> {
-                if (maybe_array.has_value()) {
-                    return MoveArrayBody(std::move(*maybe_array));
-                }
-                return nullptr;
-            });
+    array_body_ptrs.reserve(arrays.size());
+    for (nonstd::optional<Array>& array : arrays) {
+        if (array.has_value()) {
+            array_body_ptrs.emplace_back(MoveArrayBody(std::move(*array)));
+        } else {
+            array_body_ptrs.emplace_back(nullptr);
+        }
+    }
     return array_body_ptrs;
 }
 
