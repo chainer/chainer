@@ -18,7 +18,7 @@ from chainer import training
         'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4},
     # call on resume
     {
-        'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,},
+        'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4},
     # unaligned epoch
     {
         'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3},
