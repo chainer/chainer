@@ -12,59 +12,30 @@ from chainer.testing import condition
 from chainer import training
 
 
-def get_expected(num, call_on_first=True):
-    return [i == 0 and call_on_first for i in six.moves.range(num)]
-
-
-def get_finished(num, call_on_first=True):
-    return [i > 0 or not call_on_first for i in six.moves.range(num)]
-
-
 @testing.parameterize(
     # basic
     {
-        'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, False),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, False)},
+        'iter_per_epoch': 5, 'call_on_resume': False, 'resume': 4},
     # call on resume
     {
-        'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, True),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, True)},
+        'iter_per_epoch': 5, 'call_on_resume': True, 'resume': 4,},
     # unaligned epoch
     {
-        'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, False),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, False)},
+        'iter_per_epoch': 2.5, 'call_on_resume': False, 'resume': 3},
     # unaligned epoch, call on resume
     {
-        'iter_per_epoch': 2.5, 'call_on_resume': True, 'resume': 3,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, True),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, True)},
+        'iter_per_epoch': 2.5, 'call_on_resume': True, 'resume': 3},
     # tiny epoch
     {
-        'iter_per_epoch': 0.5, 'call_on_resume': False, 'resume': 4,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, False),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, False)},
+        'iter_per_epoch': 0.5, 'call_on_resume': False, 'resume': 4},
     # tiny epoch, call on resume
     {
-        'iter_per_epoch': 0.5, 'call_on_resume': True, 'resume': 4,
-        'expected': get_expected(7),
-        'expected_resume': get_expected(7, True),
-        'finished': get_finished(7),
-        'finished_resume': get_finished(7, True)},
+        'iter_per_epoch': 0.5, 'call_on_resume': True, 'resume': 4},
 )
 class TestOnceTrigger(unittest.TestCase):
+
+    expected = [1] + [0] * 6
+    finished = [0] + [1] * 6
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -76,6 +47,9 @@ class TestOnceTrigger(unittest.TestCase):
             trainer.updater.update()
 
     def test_resumed_trigger(self):
+        if self.call_on_resume:
+            self.expected[self.resume] = 1
+            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -88,7 +62,8 @@ class TestOnceTrigger(unittest.TestCase):
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected_resume, self.finished_resume):
+            for expected, finished in zip(self.expected[self.resume:],
+                                          self.finished[self.resume:]):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
@@ -109,6 +84,9 @@ class TestOnceTrigger(unittest.TestCase):
 
     @condition.repeat(10)
     def test_resumed_trigger_sparse_call(self):
+        if self.call_on_resume:
+            self.expected[self.resume] = 1
+            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         accumulated = False
@@ -125,7 +103,8 @@ class TestOnceTrigger(unittest.TestCase):
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected_resume, self.finished_resume):
+            for expected, finished in zip(self.expected[self.resume:],
+                                          self.finished[self.resume:]):
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
@@ -134,6 +113,9 @@ class TestOnceTrigger(unittest.TestCase):
                     accumulated = False
 
     def test_resumed_trigger_backward_compat(self):
+        if self.call_on_resume:
+            self.expected[self.resume] = 1
+            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -148,7 +130,8 @@ class TestOnceTrigger(unittest.TestCase):
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             with testing.assert_warns(UserWarning):
                 serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected_resume, self.finished_resume):
+            for expected, finished in zip(self.expected[self.resume:],
+                                          self.finished[self.resume:]):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
