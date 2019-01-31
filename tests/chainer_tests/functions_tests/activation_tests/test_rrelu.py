@@ -71,6 +71,7 @@ class TestRReLU(testing.FunctionTestCase):
 
 @testing.parameterize(*testing.product({
     'specify_r': [True, False],
+    'return_r': [True, False],
     'train': [True, False],
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -79,7 +80,6 @@ class TestRReLUR(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
         # Assumption l < u
         self.l = numpy.random.uniform(0, 1)
         self.u = numpy.random.uniform(0, 1)
@@ -90,10 +90,15 @@ class TestRReLUR(unittest.TestCase):
 
     def _check(self):
         r = self.r if self.specify_r else None
+        return_r = self.return_r
         with chainer.using_config('train', self.train):
-            out, out_r = functions.rrelu(
-                self.x, self.l, self.u, r=r, return_r=True)
+            out = functions.rrelu(
+                self.x, self.l, self.u, r=r, return_r=return_r)
 
+        if not return_r:
+            return
+
+        out, out_r = out
         assert isinstance(out_r, type(out.array))
         if r is None:
             assert out_r.shape == out.array.shape
