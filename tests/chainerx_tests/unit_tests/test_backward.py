@@ -389,20 +389,6 @@ def test_backprop_given_output_grad(method):
     _check_backprop(method, fprop, xs, expected_gxs, gys=gys)
 
 
-def test_backprop_keyword_arguments():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    with chainerx.backprop_scope('bp1') as backprop_id1:
-        x = chainerx.full(shape, 2, dtype).require_grad(backprop_id1)
-
-        chainerx.backward(x, backprop_id=backprop_id1)
-
-        with pytest.raises(
-                TypeError, match=r'.*incompatible function arguments.*'):
-            chainerx.backward(body=x, backprop_id=backprop_id1)
-
-
 @parametrize_backprop()
 def test_backprop_multiple_graphs_basic(method):
     shape = (1,)
