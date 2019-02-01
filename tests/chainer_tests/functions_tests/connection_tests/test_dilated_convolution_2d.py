@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
@@ -82,7 +83,7 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
         self.test_forward_consistency(nobias=True)
 
     def check_backward(self, x_data, W_data, b_data, y_grad):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
@@ -173,7 +174,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.convolutionForward') as func:
+            with testing.patch('cupy.cudnn.convolution_forward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -181,7 +182,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
+            name = 'cupy.cudnn.convolution_backward_data'
             with testing.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

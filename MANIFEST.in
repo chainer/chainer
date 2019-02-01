@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+
+graft chainerx
+include chainerx_build_helper.py
+include chainerx_cc/README.md
+include chainerx_cc/LICENSE.txt
+include chainerx_cc/CMakeLists.txt
+graft chainerx_cc/chainerx
+graft chainerx_cc/third_party
+graft chainerx_cc/cmake

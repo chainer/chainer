@@ -27,14 +27,19 @@ class Extension(object):
     specifies them in :meth:`Trainer.extend` method.
 
     Attributes:
-        ~Extension.trigger: Default value of trigger for this extension. It
-            is set to ``(1, 'iteration')`` by default.
-        ~Extension.priority: Default priority of the extension. It is set to
+        trigger: Default value of trigger for this extension. It is set to
+            ``(1, 'iteration')`` by default.
+        priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
+        ~Extension.name: Name of the extension. It is set to
+            ``None`` by default. This value will be overwritten when
+            registering an extension to a trainer. See
+            :meth:`chainer.training.Trainer.extend` for details.
 
     """
     trigger = 1, 'iteration'
     priority = PRIORITY_READER
+    name = None
 
     @property
     def default_name(self):
@@ -98,6 +103,22 @@ class Extension(object):
         """
         pass
 
+    def on_error(self, trainer, exc, tb):
+        """Handles the error raised during training before finalization.
+
+        This method is called when an exception is thrown during the
+        training loop, before finalize. An extension that needs
+        different error handling from finalize, can override this
+        method to handle errors.
+
+        Args:
+            trainer (Trainer): Trainer object that runs the training loop.
+            exc (Exception): arbitrary exception thrown during update loop.
+            tb (traceback): traceback object of the exception
+
+        """
+        pass
+
     def serialize(self, serializer):
         """Serializes the extension state.
 
@@ -109,7 +130,7 @@ class Extension(object):
 
 
 def make_extension(trigger=None, default_name=None, priority=None,
-                   finalizer=None, initializer=None, **kwargs):
+                   finalizer=None, initializer=None, on_error=None, **kwargs):
     """Decorator to make given functions into trainer extensions.
 
     This decorator just adds some attributes to a given function. The value of
@@ -127,12 +148,15 @@ def make_extension(trigger=None, default_name=None, priority=None,
             called at the end of the training loop.
         initializer: Initializer function of this extension. It is called at
             the beginning of the training loop.
+        on_error: Error handler callback function of this extension. It is
+            called after an error is raised during the trainer loop.
 
     """
-    msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
-           'Use initializer= instead.')
-    argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
+               'Use initializer= instead.')
+        argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
+        argument.assert_kwargs_empty(kwargs)
 
     if trigger is None:
         trigger = Extension.trigger
@@ -144,6 +168,7 @@ def make_extension(trigger=None, default_name=None, priority=None,
         ext.default_name = default_name or ext.__name__
         ext.priority = priority
         ext.finalize = finalizer
+        ext.on_error = on_error
         ext.initialize = initializer
         return ext
 

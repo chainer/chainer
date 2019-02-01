@@ -1,5 +1,6 @@
 import six
 
+from chainer import backend
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
@@ -9,13 +10,13 @@ class StandardUpdater(_updater.Updater):
 
     """Standard implementation of Updater.
 
-    This is the standard implementation of :class:`Updater`. It accepts one or
-    more training datasets and one or more optimizers. The default update
-    routine assumes that there is only one training dataset and one optimizer.
-    Users can override this update routine by inheriting this class and
-    overriding the :meth:`update_core` method. Each batch is converted to input
-    arrays by :func:`~chainer.datasets.concat_examples` by default, which can
-    also be manually set by ``converter`` argument.
+    This is the standard implementation of :class:`~chainer.training.Updater`.
+    It accepts one or more training datasets and one or more optimizers.
+    The default update routine assumes that there is only one training dataset
+    and one optimizer. Users can override this update routine by inheriting
+    this class and overriding the :meth:`update_core` method. Each batch is
+    converted to input arrays by :func:`chainer.dataset.concat_examples` by
+    default, which can also be manually set by ``converter`` argument.
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
@@ -28,7 +29,7 @@ class StandardUpdater(_updater.Updater):
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
-            to this function. :func:`~chainer.dataset.concat_examples` is used
+            to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
         device: Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
@@ -42,6 +43,10 @@ class StandardUpdater(_updater.Updater):
             propagated to whole gradients in a computational graph along the
             backprop. The gradients of parameters are divided by the factor
             just before the parameters are to be updated.
+        auto_new_epoch (bool): If ``True``,
+            :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
+            automatically called when the ``is_new_epoch`` attribute of the
+            main iterator is ``True``.
 
     Attributes:
         converter: Converter function.
@@ -49,11 +54,21 @@ class StandardUpdater(_updater.Updater):
                    main optimizer is used instead.
         device: Device to which the training data is sent.
         iteration: Current number of completed updates.
+        auto_new_epoch: If ``True``, :meth:`~chainer.Optimizer.new_epoch` is
+            automatically called by :meth:`update_core`. In this case, the
+            :attr:`~chainer.Optimizer.use_auto_new_epoch` attribute of each
+            optimizer is also set to ``True``. If :meth:`update_core` is
+            overridden, the implementation should correctly call
+            :meth:`~chainer.Optimizer.new_epoch` of each optimizer.
 
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 device=None, loss_func=None, loss_scale=None):
+                 device=None, loss_func=None, loss_scale=None,
+                 auto_new_epoch=True):
+        if device is not None:
+            device = backend._get_device_compat(device)
+
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
@@ -62,9 +77,10 @@ class StandardUpdater(_updater.Updater):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
 
-        if device is not None and device >= 0:
+        if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target.to_gpu(device)
+                optimizer.target._to_device(
+                    device, skip_between_cupy_devices=True)
 
         self.converter = converter
         self.loss_func = loss_func
@@ -75,6 +91,11 @@ class StandardUpdater(_updater.Updater):
         if loss_scale is not None:
             for optimizer in six.itervalues(self._optimizers):
                 optimizer.set_loss_scale(loss_scale)
+
+        self.auto_new_epoch = auto_new_epoch
+        if auto_new_epoch:
+            for o in six.itervalues(self._optimizers):
+                o.use_auto_new_epoch = True
 
     @property
     def epoch(self):
@@ -150,8 +171,9 @@ class StandardUpdater(_updater.Updater):
         self.iteration += 1
 
     def update_core(self):
-        batch = self._iterators['main'].next()
-        in_arrays = self.converter(batch, self.device)
+        iterator = self._iterators['main']
+        batch = iterator.next()
+        in_arrays = convert._call_converter(self.converter, batch, self.device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target
@@ -162,6 +184,9 @@ class StandardUpdater(_updater.Updater):
             optimizer.update(loss_func, **in_arrays)
         else:
             optimizer.update(loss_func, in_arrays)
+
+        if self.auto_new_epoch and iterator.is_new_epoch:
+            optimizer.new_epoch(auto=True)
 
     def serialize(self, serializer):
         """Serializes the current state of the updater object."""

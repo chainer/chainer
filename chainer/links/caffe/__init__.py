@@ -1,4 +1,1 @@
-from chainer.links.caffe import caffe_function
-
-
-CaffeFunction = caffe_function.CaffeFunction
+from chainer.links.caffe.caffe_function import CaffeFunction  # NOQA

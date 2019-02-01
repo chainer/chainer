@@ -54,7 +54,7 @@ class GoogLeNetBN(chainer.Chain):
             self.normb2 = L.BatchNormalization(1024)
             self.outb = L.Linear(None, 1000)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         h = F.max_pooling_2d(
             F.relu(self.norm1(self.conv1(x))),  3, stride=2, pad=1)
         h = F.max_pooling_2d(
@@ -147,19 +147,19 @@ class GoogLeNetBNFp16(GoogLeNetBN):
             self.inc5b = L.InceptionBN(
                 None, 352, 192, 320, 192, 224, 'max', 128,
                 conv_init=W, dtype=dtype)
-            self.out = L.Linear(None, 1000, initialW=W, bias=bias)
+            self.out = L.Linear(None, 1000, initialW=W, initial_bias=bias)
 
             self.conva = L.Convolution2D(None, 128, 1, initialW=W, nobias=True)
             self.norma = L.BatchNormalization(128, dtype=dtype)
             self.lina = L.Linear(None, 1024, initialW=W, nobias=True)
             self.norma2 = L.BatchNormalization(1024, dtype=dtype)
-            self.outa = L.Linear(None, 1000, initialW=W, bias=bias)
+            self.outa = L.Linear(None, 1000, initialW=W, initial_bias=bias)
 
             self.convb = L.Convolution2D(None, 128, 1, initialW=W, nobias=True)
             self.normb = L.BatchNormalization(128, dtype=dtype)
             self.linb = L.Linear(None, 1024, initialW=W, nobias=True)
             self.normb2 = L.BatchNormalization(1024, dtype=dtype)
-            self.outb = L.Linear(None, 1000, initialW=W, bias=bias)
+            self.outb = L.Linear(None, 1000, initialW=W, initial_bias=bias)
 
-    def __call__(self, x, t):
-        return GoogLeNetBN.__call__(self, F.cast(x, self.dtype), t)
+    def forward(self, x, t):
+        return GoogLeNetBN.forward(self, F.cast(x, self.dtype), t)

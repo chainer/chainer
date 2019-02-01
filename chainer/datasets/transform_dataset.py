@@ -7,21 +7,26 @@ class TransformDataset(dataset_mixin.DatasetMixin):
 
     This dataset wraps the base dataset by modifying the behavior of the base
     dataset's :meth:`__getitem__`. Arrays returned by :meth:`__getitem__` of
-    the base dataset with integer as an argument are transformed by the given
-    function :obj:`transform`.
+    the base dataset with an integer as an argument are transformed by the
+    given function :obj:`transform`.
     Also, :meth:`__len__` returns the integer returned by the base dataset's
     :meth:`__len__`.
 
     The function :obj:`transform` takes, as an argument, :obj:`in_data`, which
     is the output of the base dataset's :meth:`__getitem__`, and returns
-    the transformed arrays as output. Please see the following example.
+    the transformed arrays as output. Please see the following example. Since
+    :obj:`in_data` directly refers to the item in the dataset, take care that
+    :obj:`transform` not modify it. For example, note that the line
+    `img = img - 0.5` bellow is correct since it makes a copy of `img`.
+    However, it would be incorrect to use `img -= 0.5` since that would update
+    the contents of the item in the dataset in place, corrupting it.
 
     >>> from chainer.datasets import get_mnist
     >>> from chainer.datasets import TransformDataset
     >>> dataset, _ = get_mnist()
     >>> def transform(in_data):
     ...     img, label = in_data
-    ...     img -= 0.5  # scale to [-0.5, -0.5]
+    ...     img = img - 0.5  # scale to [-0.5, 0.5]
     ...     return img, label
     >>> dataset = TransformDataset(dataset, transform)
 

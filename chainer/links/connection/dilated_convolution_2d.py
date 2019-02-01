@@ -11,6 +11,11 @@ class DilatedConvolution2D(link.Link):
     This link wraps the :func:`~chainer.functions.dilated_convolution_2d`
     function and holds the filter weight and bias vector as parameters.
 
+    .. note::
+       You can also define a dilated convolutional layer by passing ``dilate``
+       argument to :class:`chainer.links.Convolution2D`.
+       The functionality is the same.
+
     Args:
         in_channels (int or None): Number of channels of input arrays.
             If ``None``, parameter initialization will be deferred until the
@@ -118,7 +123,7 @@ reshape(1, 3, 10, 10)
         W_shape = (self.out_channels, in_channels, kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the convolution layer.
 
         Args:
@@ -128,7 +133,7 @@ reshape(1, 3, 10, 10)
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return dilated_convolution_2d.dilated_convolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.dilate)

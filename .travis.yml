@@ -6,71 +6,78 @@ cache:
 
 matrix:
   include:
-    - os: linux
-      python: "2.7"
-    - os: linux
-      python: "3.4"
-    - os: linux
+    - name: "Python Static Check"
+      dist: xenial
       python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="python-static-check"
 
-    - os: osx
+    - name: "C++ Static Check"
+      language: python
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="c-static-check"
+
+    - name: "Ubuntu14.04 Py27"
+      dist: trusty
+      python: "2.7"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - SKIP_CHAINERX=1
+
+    - name: "Ubuntu16.04 Py35 + ChainerX"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
+    - name: "Ubuntu16.04 Py35 + ChainerX (C++ test)"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="chainerx-cpp"
+      - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
+    - name: "macOS Py35"
+      os: osx
       language: generic
       env:
-      - PYTHON_VERSION=2.7.10
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
-    - os: osx
-      language: generic
-      env:
-      - PYTHON_VERSION=3.4.4
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
-    - os: osx
-      language: generic
-      env:
+      - CHAINER_TRAVIS_TEST="chainer"
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
+
+    - name: "Windows"
+      os: windows
+      language: shell
+      python: "3.7"
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - SKIP_CHAINERX=1
+      - SKIP_CHAINERMN=1
+
+    - name: "macOS Py27"
+      os: osx
+      language: generic
+      env:
+      - CHAINER_TRAVIS_TEST="chainer"
+      - PYTHON_VERSION=2.7.10
+      - PYENV_ROOT=~/.pyenv
+      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - SKIP_CHAINERX=1
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
-  # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
-  - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-      brew update >/dev/null;
-      brew outdated pyenv || brew upgrade --quiet pyenv;
-
-      PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION;
-      pyenv global $PYTHON_VERSION;
-      python --version;
-
-      brew cask uninstall oclint;
-      brew install hdf5;
-    fi
+  - bash scripts/ci/travis/run-tests.sh before_install
 
 install:
-  - pip install -U pip wheel
-  - python setup.py sdist
-  - pip install dist/*.tar.gz
-  - travis_wait pip install -U -e .[travis]
+  - travis_wait bash scripts/ci/travis/run-tests.sh install
 
 script:
-  - flake8
-  - autopep8 -r . --diff | tee check_autopep8
-  - test ! -s check_autopep8
-  - cd tests
-  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn and not ideep" chainer_tests
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      cd ..;
-      READTHEDOCS=True python setup.py develop;
-    fi
-
-sudo: false
+  - bash scripts/ci/travis/run-tests.sh script
 
 addons:
   apt:
-    packages:
-      - gfortran
-      - libhdf5-serial-dev
-      - liblapack-dev
+    update: true

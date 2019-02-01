@@ -1,8 +1,8 @@
 import unittest
 
-import chainer
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -12,37 +12,46 @@ from chainer.utils import type_check
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), ()],
+    'shape': [
+        # x1, x2, y
+        ((3, 2), (3, 2), (3, 2)),
+        ((), (), ()),
+        ((3, 2), (3, 1), (3, 2)),
+        ((2,), (3, 2), (3, 2)),
+    ],
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
 class TestMaximum(unittest.TestCase):
 
     def setUp(self):
-        shape = self.shape
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        x1_shape, x2_shape, y_shape = self.shape
+        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
-            eps = 2 ** -3
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {
-                'atol': 1e-2, 'rtol': 1e-1, 'dtype': numpy.float64}
-            self.check_double_backward_options = {
-                'atol': 1e-2, 'rtol': 1e-1, 'dtype': numpy.float64}
-        else:
             eps = 1e-2
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
+        else:
+            eps = 1e-3
         self.check_backward_options['eps'] = eps
-
-        self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.check_double_backward_options['eps'] = eps
 
         # Avoid close values for stability in numerical gradient.
-        idx = abs(self.x1 - self.x2) < 2 * eps
-        self.x1[idx] = -0.5
-        self.x2[idx] = 0.5
+        retry = 0
+        while True:
+            self.x1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+            self.x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+            if (abs(self.x1 - self.x2) >= 2 * eps).all():
+                break
+            retry += 1
+            assert retry <= 10, 'Too many retries to generate inputs'
 
         self.y_expected = numpy.maximum(self.x1, self.x2)
 
@@ -79,16 +88,10 @@ class TestMaximum(unittest.TestCase):
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x1, x2, gy)
 
-    def check_double_backward(
-            self, x1_data, x2_data, y_grad, x1_grad, x2_grad):
-        x = (x1_data, x2_data)
-        x_grad_grad = (x1_grad, x2_grad)
-
-        def func(x1, x2):
-            y = functions.maximum(x1, x2)
-            return y * y
+    def check_double_backward(self, x1, x2, gy, ggx1, ggx2):
         gradient_check.check_double_backward(
-            func, x, y_grad, x_grad_grad, **self.check_double_backward_options)
+            functions.maximum, (x1, x2), gy, (ggx1, ggx2),
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

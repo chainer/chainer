@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -11,14 +11,12 @@ class Cosh(function_node.FunctionNode):
         return 'cosh'
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
+        type_check._argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.cosh(x[0])),
 
     def backward(self, indexes, gy):
@@ -35,7 +33,7 @@ def cosh(x):
        y_i = \\cosh x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -50,14 +48,12 @@ class Sinh(function_node.FunctionNode):
         return 'sinh'
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
+        type_check._argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sinh(x[0])),
 
     def backward(self, x, gy):
@@ -74,7 +70,7 @@ def sinh(x):
        y_i = \\sinh x_i.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

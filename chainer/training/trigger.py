@@ -1,8 +1,4 @@
-from chainer.training.triggers import interval_trigger
-from chainer.training import util
-
-
 # For backward compatibility
-IntervalTrigger = interval_trigger.IntervalTrigger
-get_trigger = util.get_trigger
-_never_fire_trigger = util._never_fire_trigger
+from chainer.training.triggers.interval_trigger import IntervalTrigger  # NOQA
+from chainer.training.util import _never_fire_trigger  # NOQA
+from chainer.training.util import get_trigger  # NOQA

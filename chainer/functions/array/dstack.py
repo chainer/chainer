@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -13,9 +13,11 @@ class Dstack(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
+        type_check._argname((in_types[0],), ('x0',))
 
         ndim = type_check.eval(in_types[0].ndim)
         for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check._argname((in_types[i],), ('x{}'.format(i),))
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -29,7 +31,7 @@ class Dstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.dstack(xs),
 
     def backward(self, indexes, grad_outputs):
@@ -52,8 +54,7 @@ def dstack(xs):
     """Concatenate variables along third axis (depth wise).
 
     Args:
-        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        xs (list of :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variables to be concatenated. The variables must have the
             same ``ndim``. When the variables have the third axis (i.e.
             :math:`ndim \\geq 3`), the variables must have the same shape
@@ -86,7 +87,7 @@ def dstack(xs):
         >>> y = F.dstack((x1, x2))
         >>> y.shape
         (1, 3, 2)
-        >>> y.data
+        >>> y.array
         array([[[1, 2],
                 [2, 3],
                 [3, 4]]])
@@ -108,7 +109,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 2)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  6],
                 [ 1,  7]],
         <BLANKLINE>
@@ -123,7 +124,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 3)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1, 12],
                 [ 2,  3, 13]],
         <BLANKLINE>

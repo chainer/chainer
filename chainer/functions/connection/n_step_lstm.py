@@ -1,25 +1,22 @@
-import itertools
-
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import reshape
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
-from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.utils import argument
 
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    # TODO(unno): Input of the current LSTM implementation is shuffled
     w = stack.stack(ws, axis=1)
     shape = w.shape
     return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
@@ -65,20 +62,12 @@ def n_step_lstm(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+    prepare :math:`8S` weight matrices and :math:`8S` bias vectors.
 
     If the number of layers ``n_layers`` is greater than :math:`1`, the input
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
     Note that all input variables except the first layer may have different
     shape from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): The number of layers.
@@ -117,7 +106,7 @@ def n_step_lstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -225,21 +214,13 @@ def n_step_bilstm(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layer of each direction. So, when :math:`S` layers
-    exist, you need to prepare :math:`16S` weigth matrices and :math:`16S`
+    exist, you need to prepare :math:`16S` weight matrices and :math:`16S`
     bias vectors.
 
     If the number of layers ``n_layers`` is greater than :math:`1`, the input
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
     Note that all input variables except the first layer may have different
     shape from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): The number of layers.
@@ -284,7 +265,7 @@ def n_step_bilstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -395,7 +376,7 @@ def n_step_lstm_base(
             LSTM.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is the same as
@@ -414,32 +395,31 @@ def n_step_lstm_base(
        :func:`chainer.functions.n_step_bilstm`
 
     """
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config',
-        use_cudnn='use_cudnn argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    xp = backend.get_array_module(hx, hx.data)
 
-    xp = cuda.get_array_module(hx, hx.data)
-
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = get_random_state().create_dropout_states(dropout_ratio)
+    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
+        states = cuda.get_cudnn_dropout_states()
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        # flatten all input variables
-        inputs = tuple(itertools.chain(
-            (hx, cx),
-            itertools.chain.from_iterable(ws),
-            itertools.chain.from_iterable(bs),
-            (xs,)))
+
+        w = n_step_rnn.cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, 'lstm', ws, bs)
+
         if use_bi_direction:
             rnn = NStepBiLSTM
         else:
             rnn = NStepLSTM
 
-        hy, cy, ys = rnn(n_layers, states, lengths)(*inputs)
+        hy, cy, ys = rnn(n_layers, states, lengths)(hx, cx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, cy, ys

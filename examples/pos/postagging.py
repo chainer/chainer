@@ -22,7 +22,7 @@ class CRF(chainer.Chain):
             self.feature = L.EmbedID(n_vocab, n_pos)
             self.crf = L.CRF1d(n_pos)
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
         # order of length.
         inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)
@@ -37,15 +37,15 @@ class CRF(chainer.Chain):
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
         loss = self.crf(hs, ys)
-        reporter.report({'loss': loss.data}, self)
+        reporter.report({'loss': loss}, self)
 
         # To predict labels, call argmax method.
         _, predict = self.crf.argmax(hs)
         correct = 0
         total = 0
         for y, p in six.moves.zip(ys, predict):
-            correct += self.xp.sum(y.data == p)
-            total += len(y.data)
+            correct += self.xp.sum(y.array == p)
+            total += len(y)
         reporter.report({'correct': correct}, self)
         reporter.report({'total': total}, self)
 
@@ -95,7 +95,7 @@ def main():
 
     model = CRF(len(vocab), len(pos_vocab))
     if args.gpu >= 0:
-        chainer.backends.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu(args.gpu)
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)

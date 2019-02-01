@@ -1,5 +1,6 @@
 import sys
 import unittest
+import warnings
 
 import numpy
 
@@ -103,7 +104,7 @@ class TestCall(unittest.TestCase):
     def test_eval(self):
         self.assertEqual(6, self.c1.eval())
         self.assertEqual(6, self.c2.eval())
-        # an error is occured in `eval`
+        # an error is occurred in `eval`
         with self.assertRaises(TypeError):
             self.assertEqual(6, self.c3.eval())
 
@@ -308,7 +309,7 @@ class TestLazyGetItem(unittest.TestCase):
         self.t = T.Constant(0)
 
     def test_evaluate_size(self):
-        # __getitem__, __getattr__ and __call__ only make syntax trees, but
+        # __getitem__, __getattr__ and forward only make syntax trees, but
         # they are not evalated yet
         self.assertIsInstance(self.t[1], T.Expr)
         self.assertIsInstance(self.t.x, T.Expr)
@@ -368,7 +369,9 @@ class TestSameTypes(unittest.TestCase):
     def test_all_numpy_subclasses(self):
         x = numpy.array([0])
         y = numpy.array([[1], [2]])
-        z = numpy.matrix("3,4; 5,6")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            z = numpy.matrix("3,4; 5,6")
         self.assertTrue(T.same_types(x, y, z))
 
     @attr.gpu

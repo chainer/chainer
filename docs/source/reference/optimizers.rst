@@ -8,6 +8,7 @@ Optimizers
    chainer.optimizers.AdaDelta
    chainer.optimizers.AdaGrad
    chainer.optimizers.Adam
+   chainer.optimizers.CorrectedMomentumSGD
    chainer.optimizers.MomentumSGD
    chainer.optimizers.NesterovAG
    chainer.optimizers.RMSprop
@@ -34,7 +35,9 @@ Hook functions
    :toctree: generated/
    :nosignatures:
 
-   chainer.optimizer.WeightDecay
-   chainer.optimizer.Lasso
-   chainer.optimizer.GradientClipping
-   chainer.optimizer.GradientNoise
+   chainer.optimizer_hooks.WeightDecay
+   chainer.optimizer_hooks.Lasso
+   chainer.optimizer_hooks.GradientClipping
+   chainer.optimizer_hooks.GradientHardClipping
+   chainer.optimizer_hooks.GradientNoise
+   chainer.optimizer_hooks.GradientLARS

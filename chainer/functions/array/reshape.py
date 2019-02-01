@@ -20,10 +20,7 @@ class Reshape(function_node.FunctionNode):
         assert self._cnt <= 1
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-        )
-
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         if self._cnt == 0:
@@ -39,6 +36,10 @@ class Reshape(function_node.FunctionNode):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
+
     def forward(self, inputs):
         x, = inputs
         return x.reshape(self.shape),
@@ -52,8 +53,7 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         shape (:class:`tuple` of :class:`int` s):
             Expected shape of the output array. The number of elements which
             the array of ``shape`` contains must be equal to that of input
@@ -72,12 +72,12 @@ def reshape(x, shape):
         >>> y = F.reshape(x, (8,))
         >>> y.shape
         (8,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 4, 5, 6, 7, 8])
         >>> y = F.reshape(x, (4, -1))  # the shape of output is inferred
         >>> y.shape
         (4, 2)
-        >>> y.data
+        >>> y.array
         array([[1, 2],
                [3, 4],
                [5, 6],

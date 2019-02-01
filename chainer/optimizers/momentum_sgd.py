@@ -1,9 +1,23 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class MomentumSGDHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of classical momentum SGD.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        momentum = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: MomentumSGDHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 _default_hyperparam.momentum = 0.9
 
@@ -22,6 +36,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
         momentum (float): Exponential decay rate of the first order moment.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
         super(MomentumSGDRule, self).__init__(
@@ -32,12 +47,12 @@ class MomentumSGDRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 
         # For iDeep
-        if intel64.inputs_all_ready((self.state['v'],)):
+        if isinstance(param.data, intel64.mdarray):
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
 
@@ -59,14 +74,16 @@ class MomentumSGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T momentum',
-            'T param, T v',
-            '''v = momentum * v - lr * grad;
-               param += v;''',
-            'momentum_sgd')(
-                grad, self.hyperparam.lr, self.hyperparam.momentum,
-                param.data, self.state['v'])
+        if MomentumSGDRule._kernel is None:
+            MomentumSGDRule._kernel = cuda.elementwise(
+                'T grad, T lr, T momentum',
+                'T param, T v',
+                '''v = momentum * v - lr * grad;
+                   param += v;''',
+                'momentum_sgd')
+        MomentumSGDRule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.momentum, param.data,
+            self.state['v'])
 
 
 class MomentumSGD(optimizer.GradientMethod):

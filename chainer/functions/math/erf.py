@@ -20,7 +20,7 @@ class Erf(function_node.FunctionNode):
         return 'erf'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -58,8 +58,7 @@ def erf(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

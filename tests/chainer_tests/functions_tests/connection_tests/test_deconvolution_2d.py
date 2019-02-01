@@ -7,6 +7,7 @@ from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import array
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
@@ -29,7 +30,7 @@ def _pair(x):
         'dilate': [1],
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],
-        'group': [1, 2],
+        'groups': [1, 2],
     })
     + testing.product({
         'c_contiguous': [False],
@@ -39,7 +40,7 @@ def _pair(x):
         'dilate': [1, 2],
         'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
         'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-        'group': [1, 2],
+        'groups': [1, 2],
     }),
 ])))
 @backend.inject_backend_tests(
@@ -62,14 +63,19 @@ def _pair(x):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-        })]))
+        })])
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    }))
 class TestDeconvolution2DFunction(unittest.TestCase):
 
     def setUp(self):
         in_channels_a_group = 3
         out_channels_a_group = 2
-        self.in_channels = in_channels_a_group * self.group
-        self.out_channels = out_channels_a_group * self.group
+        self.in_channels = in_channels_a_group * self.groups
+        self.out_channels = out_channels_a_group * self.groups
         self.ksize = 3
         self.pad = 1
         kh, kw = _pair(self.ksize)
@@ -123,16 +129,13 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_ideep', 'never'):
             y_cpu = F.deconvolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, group=self.group)
+                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-
-        x, W, b = inputs
+        x, W, b = backend_config.get_array(inputs)
         x = chainer.Variable(x)
         W = chainer.Variable(W)
         b = None if b is None else chainer.Variable(b)
@@ -140,7 +143,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with backend_config:
             y_actual = F.deconvolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, group=self.group)
+                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
 
         assert y_expected.data.dtype == self.x_dtype
         assert y_actual.data.dtype == self.x_dtype
@@ -149,30 +152,23 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward(self, backend_config):
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
 
-        xp = backend_config.xp
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        if not self.c_contiguous:
+            inputs = array._as_noncontiguous_array(inputs)
+            grad_outputs = array._as_noncontiguous_array(grad_outputs)
 
         x_data, W_data, b_data = inputs
         y_grad, = grad_outputs
-
-        if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
 
         args = (x_data, W_data)
         if b_data is not None:
@@ -181,7 +177,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, group=self.group)
+                dilate=self.dilate, groups=self.groups)
 
         with backend_config:
             gradient_check.check_backward(
@@ -189,42 +185,27 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_backward(self, backend_config):
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        xp = backend_config.xp
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        if not self.c_contiguous:
+            inputs = array._as_noncontiguous_array(inputs)
+            grad_outputs = array._as_noncontiguous_array(grad_outputs)
+            grad_grad_inputs = array._as_noncontiguous_array(grad_grad_inputs)
 
         x_data, W_data, b_data = inputs
         y_grad, = grad_outputs
         x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
-
-        if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            x_grad_grad = xp.asfortranarray(x_grad_grad)
-            W_grad_grad = xp.asfortranarray(W_grad_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            assert not x_grad_grad.flags.c_contiguous
-            assert not W_grad_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
-
-                ggb = xp.empty((len(b_data) * 2,), dtype=b_grad_grad.dtype)
-                ggb[::2] = b_grad_grad
-                b_grad_grad = ggb[::2]
-                assert not b_grad_grad.flags.c_contiguous
 
         args = (x_data, W_data)
         grad_grads = (x_grad_grad, W_grad_grad)
@@ -233,10 +214,9 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             grad_grads = grad_grads + (b_grad_grad,)
 
         def f(*args):
-            y = F.deconvolution_2d(
+            return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, group=self.group)
-            return y * y  # make the function nonlinear
+                dilate=self.dilate, groups=self.groups)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -245,16 +225,20 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
+        if backend_config.use_chainerx:
+            # TODO(imanishi): Support float16
+            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(self.inputs, self.grad_outputs,
+                                   self.grad_grad_inputs, backend_config)
 
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
     'cudnn_deterministic': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'group': [1, 2],
+    'groups': [1, 2],
 }))
 @attr.cudnn
 class TestDeconvolution2DCudnnCall(unittest.TestCase):
@@ -262,8 +246,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     def setUp(self):
         in_channels_a_group = 3
         out_channels_a_group = 2
-        self.in_channels = in_channels_a_group * self.group
-        self.out_channels = out_channels_a_group * self.group
+        self.in_channels = in_channels_a_group * self.groups
+        self.out_channels = out_channels_a_group * self.groups
         kh, kw = _pair(3)
         sh, sw = _pair(1)
         ph, pw = _pair(1)
@@ -281,17 +265,17 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (N, self.out_channels, outh, outw)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
-            if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+            if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
                 self.should_call_cudnn = False
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
         return F.deconvolution_2d(x, W, None, stride=1, pad=1,
-                                  group=self.group)
+                                  groups=self.groups)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
+        name = 'cupy.cudnn.convolution_backward_data'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
@@ -300,27 +284,15 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            # This test includes the case in which cudnn < v3
-            # and cudnn_deterministic is True, in which
-            # the backward method of chainer.functions.Deconvolution2D
-            # must raise an error.
-            # But in this case, its forward method should raise
-            # an error as well.
-            # Therefore, we intentionally set cudnn_deterministic
-            # to False so that the forward method does not
-            # raise an error.
-            with chainer.using_config('cudnn_deterministic', False):
-                y = self.forward()
-        y.grad = self.gy
-
-        data_func_name = 'cupy.cuda.cudnn.convolutionForward'
-        filter_func_name = 'cupy.cuda.cudnn.convolutionBackwardFilter_v3'
+        data_func_name = 'cupy.cudnn.convolution_forward'
+        filter_func_name = 'cupy.cudnn.convolution_backward_filter'
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                with testing.patch(data_func_name) as data_func,\
+                y = self.forward()
+                y.grad = self.gy
+                with testing.patch(data_func_name) as data_func, \
                         testing.patch(filter_func_name) as filter_func:
                     y.backward()
                     self.assertEqual(
@@ -333,7 +305,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     'c_contiguous': [True, False],
     'cudnn_deterministic': [True, False],
     'nobias': [True, False],
-    'group': [1, 2],
+    'groups': [1, 2],
 }))
 @attr.gpu
 @attr.cudnn
@@ -345,8 +317,8 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         batch_sz = 2
         in_channels_a_group = 64
         out_channels_a_group = 64
-        in_channels = in_channels_a_group * self.group
-        out_channels = out_channels_a_group * self.group
+        in_channels = in_channels_a_group * self.groups
+        out_channels = out_channels_a_group * self.groups
         kh, kw = (3, 3)
         in_h, in_w = (32, 128)
         out_h, out_w = (63, 255)
@@ -362,21 +334,6 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
 
-    def test_called(self):
-        with testing.patch(
-                'chainer.functions.connection.deconvolution_2d.libcudnn'
-        ) as mlibcudnn:
-            # cuDNN version >= v3 supports `cudnn_deterministic` option
-            x, W, b, y = self._run()
-
-            # in Deconvolution2DFunction.forward_gpu()
-            self.assertFalse(
-                mlibcudnn.getConvolutionBackwardDataAlgorithm.called)
-
-            # in Deconvolution2DFunction.backward_gpu()
-            self.assertFalse(
-                mlibcudnn.getConvolutionBackwardFilterAlgorithm.called)
-
     def test_cudnn_deterministic(self):
         x1, W1, b1, y1 = self._run()
         x2, W2, b2, y2 = self._run()
@@ -385,19 +342,11 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         cuda.cupy.testing.assert_array_equal(y1.data, y2.data)
         cuda.cupy.testing.assert_array_equal(W1.grad, W2.grad)
 
-    def _contiguous(self, x_data, W_data, b_data, gy_data):
-        if not self.c_contiguous:
-            x_data = numpy.asfortranarray(x_data)
-            W_data = numpy.asfortranarray(W_data)
-            gy_data = numpy.asfortranarray(gy_data)
-            self.assertFalse(x_data.flags.c_contiguous)
-            self.assertFalse(W_data.flags.c_contiguous)
-            self.assertFalse(gy_data.flags.c_contiguous)
-            b = numpy.empty((len(b_data) * 2,), dtype=self.b.dtype)
-            b[::2] = b_data
-            b_data = b[::2]
-            self.assertFalse(b_data.flags.c_contiguous)
-        return x_data, W_data, b_data, gy_data
+    def _contiguous(self, *inputs):
+        if self.c_contiguous:
+            return inputs
+        else:
+            return array._as_noncontiguous_array(inputs)
 
     def _run(self):
         with chainer.using_config('cudnn_deterministic', True):
@@ -417,7 +366,7 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         b = None if self.nobias else chainer.Variable(b_data)
         with chainer.using_config('use_cudnn', 'always'):
             y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                                   group=self.group)
+                                   groups=self.groups)
         return x, W, b, y
 
 

@@ -1,10 +1,34 @@
-from __future__ import print_function
 import contextlib
 import sys
 import threading
+import typing as tp  # NOQA
+
+from chainer import types  # NOQA
+
+
+if types.TYPE_CHECKING:
+    import numpy  # NOQA
+
+    from chainer.graph_optimizations import static_graph  # NOQA
 
 
 class GlobalConfig(object):
+
+    debug = None  # type: bool
+    cudnn_deterministic = None  # type: bool
+    enable_backprop = None  # type: bool
+    keep_graph_on_report = None  # type: bool
+    train = None  # type: bool
+    type_check = None  # type: bool
+    use_cudnn = None  # type: str
+    use_cudnn_tensor_core = None  # type: str
+    autotune = None  # type: bool
+    schedule_func = None  # type: tp.Optional[static_graph.StaticScheduleFunction] # NOQA
+    use_ideep = None  # type: str
+    lazy_grad_sum = None  # type: bool
+    cudnn_fast_batch_normalization = None  # type: bool
+    dtype = None  # type: numpy.dtype
+    in_recomputing = None  # type: bool
 
     """The plain object that represents the global configuration of Chainer."""
 
@@ -79,7 +103,7 @@ def _print_attrs(obj, keys, file):
     max_len = max(len(key) for key in keys)
     for key in keys:
         spacer = ' ' * (max_len - len(key))
-        print(u'{} {}{}'.format(key, spacer, getattr(obj, key)), file=file)
+        file.write(u'{} {}{}\n'.format(key, spacer, getattr(obj, key)))
 
 
 global_config = GlobalConfig()

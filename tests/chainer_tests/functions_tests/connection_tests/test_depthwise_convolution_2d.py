@@ -3,8 +3,7 @@ import unittest
 import numpy
 
 from chainer.backends import cuda
-from chainer.functions.connection import convolution_2d
-from chainer.functions.connection import depthwise_convolution_2d
+from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -48,14 +47,13 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
             b_data = sum(numpy.split(b_data, W_data.shape[1]))
             args2 = args2 + (b_data,)
 
-        f1 = depthwise_convolution_2d.DepthwiseConvolution2D(self.stride,
-                                                             self.pad)
-        y1 = f1(*args1)
-        arys = numpy.split(y1.data, self.W.shape[1], axis=1)
+        y1 = functions.depthwise_convolution_2d(
+            *args1, stride=self.stride, pad=self.pad)
+        arys = numpy.split(y1.array, self.W.shape[1], axis=1)
         y1 = sum(arys)
 
-        f2 = convolution_2d.Convolution2DFunction(self.stride, self.pad)
-        y2 = f2.apply(args2)[0].data
+        y2 = functions.convolution_2d(
+            *args2, stride=self.stride, pad=self.pad).array
         testing.assert_allclose(y1, y2, **self.check_forward_options)
 
     def test_forward_cpu(self):
@@ -79,8 +77,8 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
             args = args + (b_data,)
 
         gradient_check.check_backward(
-            depthwise_convolution_2d.DepthwiseConvolution2D(
-                self.stride, self.pad),
+            lambda *inputs: functions.depthwise_convolution_2d(
+                *inputs, stride=self.stride, pad=self.pad),
             args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)

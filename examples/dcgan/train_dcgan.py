@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
 import argparse
 import os
 
@@ -58,8 +56,10 @@ def main():
     def make_optimizer(model, alpha=0.0002, beta1=0.5):
         optimizer = chainer.optimizers.Adam(alpha=alpha, beta1=beta1)
         optimizer.setup(model)
-        optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001), 'hook_dec')
+        optimizer.add_hook(
+            chainer.optimizer_hooks.WeightDecay(0.0001), 'hook_dec')
         return optimizer
+
     opt_gen = make_optimizer(gen)
     opt_dis = make_optimizer(dis)
 
@@ -74,15 +74,18 @@ def main():
         train = chainer.datasets\
             .ImageDataset(paths=image_files, root=args.dataset)
 
+    # Setup an iterator
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
 
-    # Set up a trainer
+    # Setup an updater
     updater = DCGANUpdater(
         models=(gen, dis),
         iterator=train_iter,
         optimizer={
             'gen': opt_gen, 'dis': opt_dis},
         device=args.gpu)
+
+    # Setup a trainer
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     snapshot_interval = (args.snapshot_interval, 'iteration')

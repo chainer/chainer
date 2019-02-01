@@ -12,7 +12,6 @@ You need to install chainer with NCCL to run this example.
 Please see https://github.com/nvidia/nccl#build--run .
 
 """
-from __future__ import print_function
 import argparse
 
 import numpy as np
@@ -27,6 +26,7 @@ import googlenet
 import googlenetbn
 import nin
 import resnet50
+import resnext50
 import train_imagenet
 
 
@@ -39,7 +39,7 @@ def main():
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
-        'resnext50': resnet50.ResNeXt50,
+        'resnext50': resnext50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -75,7 +75,7 @@ def main():
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
 
     # Load the datasets and mean file
@@ -114,7 +114,7 @@ def main():
 
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

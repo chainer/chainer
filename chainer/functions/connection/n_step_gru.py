@@ -1,8 +1,7 @@
-import itertools
-
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -10,13 +9,11 @@ from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
-from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.utils import argument
 
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
@@ -56,20 +53,12 @@ def n_step_gru(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Six weight matrices and six bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -95,7 +84,7 @@ def n_step_gru(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -104,7 +93,7 @@ def n_step_gru(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -157,20 +146,12 @@ def n_step_bigru(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Six weight matrices and six bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -196,7 +177,7 @@ def n_step_bigru(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -207,7 +188,7 @@ def n_step_bigru(
             Bi-direction GRU.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -232,14 +213,6 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     This function is used at  :func:`chainer.functions.n_step_bigru` and
     :func:`chainer.functions.n_step_gru`.
     This function's behavior depends on argument ``use_bi_direction``.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): Number of layers.
@@ -266,7 +239,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -283,31 +256,31 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_birnn`
 
     """  # NOQA
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config',
-        use_cudnn='use_cudnn argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
-    xp = cuda.get_array_module(hx, hx.data)
+    xp = backend.get_array_module(hx, hx.data)
 
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = get_random_state().create_dropout_states(dropout_ratio)
+    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
+        states = cuda.get_cudnn_dropout_states()
+        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        # flatten all input variables
-        inputs = tuple(itertools.chain(
-            (hx,),
-            itertools.chain.from_iterable(ws),
-            itertools.chain.from_iterable(bs),
-            (xs,)))
+
+        w = n_step_rnn.cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, 'gru', ws, bs)
+
         if use_bi_direction:
             rnn = NStepBiGRU
         else:
             rnn = NStepGRU
 
-        hy, ys = rnn(n_layers, states, lengths)(*inputs)
+        hy, ys = rnn(n_layers, states, lengths)(hx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys

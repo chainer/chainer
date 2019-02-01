@@ -1,6 +1,6 @@
-*********
-Reference
-*********
+*************
+API Reference
+*************
 
 .. module:: chainer
 
@@ -8,18 +8,20 @@ Reference
    :maxdepth: 2
 
    variable
-   configuration
-   training
-   debug
-   util
-   check
    functions
    links
+   distributions
    optimizers
-   serializers
    initializers
+   training
    datasets
    iterators
-   triggers
-   caffe
+   serializers
+   util
+   configuration
+   debug
    graph
+   static_graph
+   static_graph_design
+   caffe
+   check

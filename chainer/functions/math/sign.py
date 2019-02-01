@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import utils
 
 
@@ -23,13 +23,14 @@ def sign(x):
         unchains the computational graph.
 
     Args:
-        x (~chainer.Variable): Input variable for which the sign is computed.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable for which the sign is computed.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
     if isinstance(x, chainer.variable.Variable):
-        x = x.data
-    xp = cuda.get_array_module(x)
+        x = x.array
+    xp = backend.get_array_module(x)
     return chainer.as_variable(utils.force_array(xp.sign(x)))

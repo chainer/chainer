@@ -12,12 +12,6 @@ class NStepGRUBase(n_step_rnn.NStepRNNBase):
     :func:`chainer.links.NStepBiRNN`.
     This link's behavior depends on argument, ``use_bi_direction``.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -49,12 +43,6 @@ class NStepGRU(NStepGRUBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -70,6 +58,10 @@ class NStepGRU(NStepGRUBase):
 
     def rnn(self, *args):
         return rnn.n_step_gru(*args)
+
+    @property
+    def n_cells(self):
+        return 1
 
 
 class NStepBiGRU(NStepGRUBase):
@@ -87,12 +79,6 @@ class NStepBiGRU(NStepGRUBase):
     Users just need to call the link with a list of :class:`chainer.Variable`
     holding sequences.
 
-    .. warning::
-
-       ``use_cudnn`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('use_cudnn', use_cudnn)``.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
@@ -108,3 +94,7 @@ class NStepBiGRU(NStepGRUBase):
 
     def rnn(self, *args):
         return rnn.n_step_bigru(*args)
+
+    @property
+    def n_cells(self):
+        return 1

@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
@@ -26,7 +27,7 @@ class MGUBase(link.Chain):
 
 class StatelessMGU(MGUBase):
 
-    __call__ = MGUBase._call_mgu
+    forward = MGUBase._call_mgu
 
 
 class StatefulMGU(MGUBase):
@@ -36,15 +37,18 @@ class StatefulMGU(MGUBase):
         self._state_size = out_size
         self.reset_state()
 
-    def to_cpu(self):
-        super(StatefulMGU, self).to_cpu()
+    def _to_device(self, device, skip_between_cupy_devices=False):
+        # Overrides Link._to_device
+        # TODO(niboshi): Avoid forcing concrete links to override _to_device
+        device = chainer.get_device(device)
+        super(StatefulMGU, self)._to_device(
+            device, skip_between_cupy_devices=skip_between_cupy_devices)
         if self.h is not None:
-            self.h.to_cpu()
-
-    def to_gpu(self, device=None):
-        super(StatefulMGU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            if not (skip_between_cupy_devices
+                    and device.xp is cuda.cupy
+                    and isinstance(self.h, cuda.ndarray)):
+                self.h.to_device(device)
+        return self
 
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)
@@ -58,11 +62,12 @@ class StatefulMGU(MGUBase):
     def reset_state(self):
         self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         if self.h is None:
             n_batch = x.shape[0]
+            dtype = chainer.get_dtype()
             h_data = self.xp.zeros(
-                (n_batch, self._state_size), dtype=numpy.float32)
+                (n_batch, self._state_size), dtype=dtype)
             h = chainer.Variable(h_data)
         else:
             h = self.h

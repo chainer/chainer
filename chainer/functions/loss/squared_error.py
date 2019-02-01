@@ -1,5 +1,3 @@
-import numpy
-
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -10,10 +8,10 @@ class SquaredError(function_node.FunctionNode):
     """Squared error function."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x0', 'x1'))
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
@@ -43,10 +41,8 @@ def squared_error(x0, x1):
     Note that the error is not scaled by 1/2:
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable:

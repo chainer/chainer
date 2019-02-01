@@ -73,6 +73,7 @@ class ProgressBar(extension.Extension):
                 rate = iteration / length
             else:
                 rate = epoch / length
+            rate = min(rate, 1.0)
 
             bar_length = self._bar_length
             marks = '#' * int(rate * bar_length)
@@ -100,6 +101,7 @@ class ProgressBar(extension.Extension):
                 estimated_time = (length - iteration) / speed_t
             else:
                 estimated_time = (length - epoch) / speed_e
+            estimated_time = max(estimated_time, 0.0)
             out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
                       .format(speed_t,
                               datetime.timedelta(seconds=estimated_time)))
@@ -109,7 +111,8 @@ class ProgressBar(extension.Extension):
                 util.set_console_cursor_position(0, -4)
             else:
                 out.write('\033[4A')
-            out.flush()
+            if hasattr(out, 'flush'):
+                out.flush()
 
             if len(recent_timing) > 100:
                 del recent_timing[0]
@@ -121,4 +124,5 @@ class ProgressBar(extension.Extension):
             util.erase_console(0, 0)
         else:
             out.write('\033[J')
-        out.flush()
+        if hasattr(out, 'flush'):
+            out.flush()

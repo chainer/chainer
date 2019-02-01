@@ -3,7 +3,7 @@
 Upgrade Guide from v1 to v2
 ===========================
 
-This document provides detailed information of differences between Chainer v1 and v2.
+This documentation provides detailed information of differences between Chainer v1 and v2.
 You will know by reading it which part of your code is required (or recommended) to be fixed when you upgrade Chainer from v1 to v2.
 
 .. contents::
@@ -184,11 +184,11 @@ Variable is not a part of a computational graph anymore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :class:`Variable` class has been separated into two distinct classes, the :class:`Variable` class and the :class:`VariableNode` class, since Chainer v2.
-Every class:`Variable` object owns its own :class:`VariableNode` object.
+Every :class:`Variable` object owns its own :class:`VariableNode` object.
 A computational graph consists of :class:`Function` objects and :class:`VariableNode` objects.
 When one applies a :class:`Function` to a :class:`Variable`, the :class:`VariableNode` object of the variable is extracted and set to one of the inputs of the function.
 
-Note that the underlying data array of the variable is till held by the :class:`Variable` object.
+Note that the underlying data array of the variable is still held by the :class:`Variable` object.
 It allows each :class:`Function` implementation to release unneeded arrays from the computational graph, resulting in greatly reduced memory consumption.
 
 **This change does not affect most users' code.**
@@ -749,7 +749,7 @@ Instead, the :meth:`Extension.initialize <training.Extension.initialize>` method
 This method is called by :meth:`Trainer.run <training.Trainer.run>` before entering the training loop.
 
 In Chainer v1, the extension is just called before entering the training loop when ``invoke_before_training`` is ``True``.
-**If you have a custom extension that has** ``invoke_before_training=True``**, you have to update the code.**
+**If you have a custom extension that has** ``invoke_before_training=True`` **, you have to update the code.**
 What you have to do is to remove the ``invoke_before_training`` flag and override :meth:`~training.Extension.initialize` method.
 If you are using the :func:`~training.make_extension` decorator, you can set the ``initialize`` function by passing the ``initializer`` argument to :func:`~training.make_extension`.
 

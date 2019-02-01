@@ -124,7 +124,7 @@ class TestConcat(TestCaffeFunctionBaseMock):
 
 class TestConvolution(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Convolution2D.__call__'
+    func_name = 'chainer.links.Convolution2D.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -170,6 +170,59 @@ class TestConvolution(TestCaffeFunctionBaseMock):
 
         numpy.testing.assert_array_equal(
             f.b.data, range(6))
+
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0])
+
+
+class TestDeconvolution(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.links.Deconvolution2D.__call__'
+    in_shapes = [(2, 3)]
+    out_shapes = [(2, 3)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Deconvolution',
+                'bottom': ['x'],
+                'top': ['y'],
+                'convolution_param': {
+                    'kernel_size': [2],
+                    'stride': [3],
+                    'pad': [4],
+                    'group': 3,
+                    'bias_term': True,
+                },
+                'blobs': [
+                    {
+                        'num': 6,
+                        'channels': 4,
+                        'data': list(range(96))
+                    },
+                    {
+                        'data': list(range(12))
+                    }
+                ]
+            }
+        ]
+    }
+
+    def test_deconvolution(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        f = self.func.l1
+        self.assertIsInstance(f, links.Deconvolution2D)
+        for i in range(3):  # 3 == group
+            in_slice = slice(i * 4, (i + 1) * 4)  # 4 == channels
+            out_slice = slice(i * 2, (i + 1) * 2)  # 2 == num / group
+            w = f.W.data[out_slice, in_slice]
+            numpy.testing.assert_array_equal(
+                w.flatten(), range(i * 32, (i + 1) * 32))
+
+        numpy.testing.assert_array_equal(
+            f.b.data, range(12))
 
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(self.inputs[0])
@@ -221,7 +274,7 @@ class TestDropout(TestCaffeFunctionBaseMock):
 
 class TestInnerProduct(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Linear.__call__'
+    func_name = 'chainer.links.Linear.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -271,7 +324,7 @@ class TestInnerProduct(TestCaffeFunctionBaseMock):
 
 class TestInnerProductDim4(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Linear.__call__'
+    func_name = 'chainer.links.Linear.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -573,9 +626,38 @@ class TestLeakyReLU(TestCaffeFunctionBaseMock):
         self.mock.assert_called_once_with(self.inputs[0], slope=0.5)
 
 
+class TestReshape(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.reshape'
+    in_shapes = [(3, 2, 3)]
+    out_shapes = [(3, 6)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Reshape',
+                'bottom': ['x'],
+                'top': ['y'],
+                'reshape_param': {
+                    'shape': {
+                        'dim': [3, 6]
+                    }
+                }
+            }
+        ]
+    }
+
+    def test_reshape(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0], shape=[3, 6])
+
+
 class TestBatchNorm(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.BatchNormalization.__call__'
+    func_name = 'chainer.links.BatchNormalization.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -618,7 +700,7 @@ class TestBatchNorm(TestCaffeFunctionBaseMock):
 
 class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.BatchNormalization.__call__'
+    func_name = 'chainer.links.BatchNormalization.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -802,7 +884,7 @@ class TestEltwiseMax(TestCaffeFunctionBaseMock):
 
 class TestScale(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3), (2, 3)]
     out_shapes = [(2, 3)]
 
@@ -829,7 +911,7 @@ class TestScale(TestCaffeFunctionBaseMock):
 
 class TestScaleOneBottom(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -864,7 +946,7 @@ class TestScaleOneBottom(TestCaffeFunctionBaseMock):
 
 class TestScaleWithBias(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3), (2, 3)]
     out_shapes = [(2, 3)]
 
@@ -901,7 +983,7 @@ class TestScaleWithBias(TestCaffeFunctionBaseMock):
 
 class TestScaleOneBottomWithBias(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 

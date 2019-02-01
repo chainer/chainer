@@ -87,7 +87,7 @@ def split_dataset(dataset, split_at, order=None):
         dataset: Dataset to split.
         split_at (int): Position at which the base dataset is split.
         order (sequence of ints): Permutation of indexes in the base dataset.
-            See the document of :class:`SubDataset` for details.
+            See the documentation of :class:`SubDataset` for details.
 
     Returns:
         tuple: Two :class:`SubDataset` objects. The first subset represents the
@@ -96,9 +96,12 @@ def split_dataset(dataset, split_at, order=None):
 
     """
     n_examples = len(dataset)
+    if not isinstance(split_at, (six.integer_types, numpy.integer)):
+        raise TypeError('split_at must be int, got {} instead'
+                        .format(type(split_at)))
     if split_at < 0:
         raise ValueError('split_at must be non-negative')
-    if split_at >= n_examples:
+    if split_at > n_examples:
         raise ValueError('split_at exceeds the dataset size')
     subset1 = SubDataset(dataset, 0, split_at, order)
     subset2 = SubDataset(dataset, split_at, n_examples, order)
@@ -139,7 +142,7 @@ def split_dataset_n(dataset, n, order=None):
         dataset: Dataset to split.
         n(int): The number of subsets.
         order (sequence of ints): Permutation of indexes in the base dataset.
-            See the document of :class:`SubDataset` for details.
+            See the documentation of :class:`SubDataset` for details.
 
     Returns:
         list: List of ``n`` :class:`SubDataset` objects.

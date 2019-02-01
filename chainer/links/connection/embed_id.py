@@ -40,7 +40,7 @@ class EmbedID(link.Link):
         >>> x
         array([2, 1], dtype=int32)
         >>> y = l(x)
-        >>> y.data
+        >>> y.array
         array([[2., 2., 2.],
                [1., 1., 1.]], dtype=float32)
 
@@ -57,7 +57,7 @@ class EmbedID(link.Link):
                 initialW = normal.Normal(1.0)
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
-    def __call__(self, x):
+    def forward(self, x):
         """Extracts the word embedding of given IDs.
 
         Args:

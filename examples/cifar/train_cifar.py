@@ -1,4 +1,3 @@
-from __future__ import print_function
 import argparse
 
 import chainer
@@ -59,7 +58,7 @@ def main():
 
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
@@ -86,10 +85,11 @@ def main():
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot at each epoch
-    trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
+    trainer.extend(extensions.snapshot(
+        filename='snaphot_epoch_{.updater.epoch}'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())

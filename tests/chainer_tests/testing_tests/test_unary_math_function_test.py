@@ -33,8 +33,7 @@ def dummy_linear(x):
 
 
 @testing.unary_math_function_unittest(dummy_linear,
-                                      func_expected=lambda x, dtype: x,
-                                      is_linear=True)
+                                      func_expected=lambda x, dtype: x)
 class TestIsLinear(unittest.TestCase):
     pass
 

@@ -1,9 +1,21 @@
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class SGDHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of vanilla stochastic gradient descent.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: SGDHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 
 
@@ -20,6 +32,7 @@ class SGDRule(optimizer.UpdateRule):
         lr (float): Learning rate.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None):
         super(SGDRule, self).__init__(
@@ -40,9 +53,11 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise('T grad, T lr', 'T param',
-                         'param -= lr * grad',
-                         'sgd')(grad, self.hyperparam.lr, param.data)
+        if SGDRule._kernel is None:
+            SGDRule._kernel = cuda.elementwise(
+                'T grad, T lr', 'T param',
+                'param -= lr * grad', 'sgd')
+        SGDRule._kernel(grad, self.hyperparam.lr, param.data)
 
 
 class SGD(optimizer.GradientMethod):

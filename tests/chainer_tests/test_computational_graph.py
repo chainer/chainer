@@ -69,6 +69,13 @@ class TestGraphBuilder(unittest.TestCase):
     def test_multiple_outputs4(self):
         _check(self, (self.x, self.y, self.z), 5, 4)
 
+    def test_nontuple_outputs(self):
+        _check(self, self.z, 5, 4)
+
+    def test_raise_array_outputs(self):
+        with self.assertRaises(TypeError):
+            c.build_computational_graph(self.z.array)
+
 
 class TestGraphBuilder2(unittest.TestCase):
 
@@ -211,6 +218,10 @@ class TestGraphBuilderStylization(unittest.TestCase):
         for style in [self.variable_style, self.function_style]:
             for key, value in style.items():
                 self.assertIn('{0}="{1}"'.format(key, value), dotfile_content)
+
+    def test_unsupported_format(self):
+        with self.assertRaises(NotImplementedError):
+            self.g.dump('graphml')
 
 
 class TestGraphBuilderShowName(unittest.TestCase):

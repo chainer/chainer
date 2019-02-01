@@ -60,7 +60,7 @@ class Highway(link.Chain):
                 in_out_size, in_out_size, nobias=nobias,
                 initialW=init_Wt, initial_bias=init_bt)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Computes the output of the Highway module.
 
         Args:

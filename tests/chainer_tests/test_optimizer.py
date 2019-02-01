@@ -1,17 +1,19 @@
 import copy
 import unittest
+import warnings
 
 import mock
 import numpy as np
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
-from chainer import functions
-from chainer import links
 from chainer import optimizer
 from chainer import optimizers
+from chainer import serializer
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestHyperparameter(unittest.TestCase):
@@ -53,21 +55,53 @@ class TestHyperparameter(unittest.TestCase):
         self.assertIs(child_copy.parent, parent_copy)
 
 
+class DummyDeserializer(serializer.Deserializer):
+
+    def __init__(self, target):
+        super(DummyDeserializer, self).__init__()
+        self.target = target
+
+    def __getitem__(self, key):
+        raise NotImplementedError
+
+    def __call__(self, key, value):
+        if value is None:
+            value = self.target[key]
+        elif isinstance(value, np.ndarray):
+            np.copyto(value, self.target[key])
+        else:
+            value = type(value)(np.asarray(self.target[key]))
+        return value
+
+
 class TestUpdateRule(unittest.TestCase):
+
+    class SimpleUpdateRule(optimizer.UpdateRule):
+        def update_core_cpu(self, param):
+            pass
+
+        def update_core_gpu(self, param):
+            pass
 
     def setUp(self):
         self.data = np.ones((2, 3), np.float32)
         self.grad = np.ones_like(self.data)
         self.var = chainer.Variable(self.data, grad=self.grad)
 
-        self.update_rule = optimizer.UpdateRule()
-        self.update_rule.update_core_cpu = mock.MagicMock()
-        self.update_rule.update_core_gpu = mock.MagicMock()
+        update_rule = self.SimpleUpdateRule()
+        update_rule.update_core_cpu = mock.MagicMock(
+            wraps=update_rule.update_core_cpu)
+        update_rule.update_core_gpu = mock.MagicMock(
+            wraps=update_rule.update_core_gpu)
+        update_rule.update_core_chainerx = mock.MagicMock(
+            wraps=update_rule.update_core_chainerx)
+        self.update_rule = update_rule
 
     def test_update_cpu(self):
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
 
     @attr.gpu
     def test_update_gpu(self):
@@ -75,6 +109,25 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
+
+    @attr.chainerx
+    def test_update_chainerx(self):
+        self.var.to_chainerx()
+        self.update_rule.update(self.var)
+        self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_update_chainerx_gpu(self):
+        self.var.to_gpu()
+        self.var.to_chainerx()
+        self.update_rule.update(self.var)
+        self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
 
     def check_add_hook(self, hook):
         self.update_rule.update(self.var)
@@ -177,6 +230,13 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(chainer.Variable(
             cuda.to_gpu(self.data, 1), grad=cuda.to_gpu(self.grad, 1)))
 
+    def get_target(self):
+        target = {}
+        target['t'] = 100
+        target['a'] = 1
+        target['b'] = np.array([2, 3, 4], dtype=np.float32)
+        return target
+
     @attr.gpu
     def test_state_copy_to_cpu(self):
         self.setup_state()
@@ -191,45 +251,129 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update_core = update_core
         self.update_rule.update(self.var)
 
+    @attr.chainerx
+    def test_state_copy_to_chainerx(self):
+        self.setup_state()
 
-class TestOptimizerUtility(unittest.TestCase):
+        def update_core(param):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertIsInstance(
+                self.update_rule.state['b'], chainerx.ndarray)
+
+        self.var.to_cpu()
+        self.update_rule.update(self.var)
+        self.var.to_chainerx()
+        self.update_rule.update_core = update_core
+        self.update_rule.update(self.var)
+
+    def test_deserialize(self):
+        self.setup_state()
+        target = self.get_target()
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNotNone(self.update_rule.state)
+        self.assertEqual(self.update_rule.state['a'], target['a'])
+        np.testing.assert_array_equal(self.update_rule.state['b'], target['b'])
+
+    def test_deserialize_by_strict_deserializer(self):
+        self.setup_state()
+        target = self.get_target()
+        del target['a']
+        with self.assertRaises(KeyError):
+            self.update_rule.serialize(DummyDeserializer(target))
+
+    def test_deserialize_by_nonstrict_deserializer(self):
+        self.setup_state()
+        target = self.get_target()
+        target['a'] = None
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNone(self.update_rule.state)
+
+    def test_deserialize_disabled_update_rule_by_strict_deserializer(self):
+        self.setup_state()
+        self.update_rule.enabled = False
+        target = self.get_target()
+        del target['a']
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNone(self.update_rule.state)
+
+
+class TestOptimizer(unittest.TestCase):
 
     def setUp(self):
-        self.x = np.linspace(-1.0, 1.5, num=6).astype(np.float32).reshape(2, 3)
-        self.a = np.array(2.0)
+        self.optimizer = optimizer.Optimizer()
 
-    def test_sqnorm_cpu(self):
-        # \Sum_{n=0}^{5} (-1.0+0.5n)**2 = 4.75
-        self.assertAlmostEqual(optimizer._sum_sqnorm([self.x]), 4.75)
+    def test_new_epoch(self):
+        self.optimizer.new_epoch()
+        self.assertEqual(1, self.optimizer.epoch)
 
-    def test_sqnorm_scalar_cpu(self):
-        self.assertAlmostEqual(optimizer._sum_sqnorm([self.a]), 4)
+    def test_invalid_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch()
 
-    @attr.gpu
-    def test_sqnorm_gpu(self):
-        x = cuda.to_gpu(self.x)
-        self.assertAlmostEqual(optimizer._sum_sqnorm([x]), 4.75)
+    def test_auto_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        self.optimizer.new_epoch(auto=True)
+        self.assertEqual(1, self.optimizer.epoch)
 
-    @attr.gpu
-    def test_sqnorm_scalar_gpu(self):
-        a = cuda.to_gpu(self.a)
-        self.assertAlmostEqual(optimizer._sum_sqnorm([a]), 4)
+    def test_invalid_auto_new_epoch(self):
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch(auto=True)
 
-    @attr.gpu
-    def test_sqnorm_array(self):
-        x = cuda.to_gpu(self.x)
-        a = cuda.to_gpu(self.a)
-        self.assertAlmostEqual(optimizer._sum_sqnorm(
-            [self.x, self.a, x, a]), 8.75 * 2)
 
-    @attr.multi_gpu(2)
-    def test_sqnorm_array_multi_gpu(self):
-        x0 = cuda.to_gpu(self.x, device=0)
-        x1 = cuda.to_gpu(self.x, device=1)
-        a0 = cuda.to_gpu(self.a, device=0)
-        a1 = cuda.to_gpu(self.a, device=1)
-        self.assertAlmostEqual(optimizer._sum_sqnorm(
-            [self.x, self.a, x0, a0, x1, a1]), 8.75 * 3)
+@attr.chainerx
+class TestOptimizerWithChainerxImplementation(unittest.TestCase):
+    # This test ensures an optimizer can update ChainerX array by overriding
+    # update_core_chainerx().
+
+    def test_upate(self):
+        initial_p = np.array([1., 2., 3.], np.float32)
+        x = chainerx.array([2., 4., 6.], np.float32)
+
+        expected_p = 4. * initial_p - 6. * backend.CpuDevice().send(x)
+
+        class ChainerxUpdateRule(optimizer.UpdateRule):
+            call_count = 0
+
+            def update_core_chainerx(self, param):
+                # p <= 3 * p - 2 * (dy/dp)
+                array = param.array
+                t1 = param.array.as_grad_stopped() * 3.
+                t2 = param.grad.as_grad_stopped() * 2.
+                delta = t1 - t2
+                array += delta
+                self.call_count += 1
+
+        class ChainerxOptimizer(optimizer.GradientMethod):
+            def create_update_rule(self):
+                return ChainerxUpdateRule(self.hyperparam)
+
+        class Link(chainer.Link):
+            def __init__(self):
+                super(Link, self).__init__()
+                with self.init_scope():
+                    self.p = chainer.Parameter(initial_p)
+
+            def forward(self, x):
+                return 3. * x * self.p
+
+        link = Link()
+        link.to_device('native:0')
+        y = link(x)
+        y.backward()
+        optimizer_ = ChainerxOptimizer()
+        optimizer_.setup(link)
+        optimizer_.update()
+
+        assert link.p.update_rule.call_count == 1
+        np.testing.assert_array_equal(
+            backend.CpuDevice().send(link.p.array), expected_p)
 
 
 class TestOptimizerHook(unittest.TestCase):
@@ -241,7 +385,7 @@ class TestOptimizerHook(unittest.TestCase):
             np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
 
     def test_add_hook(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         h1.call_for_each_param = False
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
@@ -249,7 +393,7 @@ class TestOptimizerHook(unittest.TestCase):
         h1.assert_called_with(self.optimizer)
 
     def test_add_hook_call_for_each_param(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         h1.call_for_each_param = True
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
@@ -257,7 +401,7 @@ class TestOptimizerHook(unittest.TestCase):
         h1.assert_called_with(self.target.param.update_rule, self.target.param)
 
     def test_remove_hook(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
         self.optimizer.remove_hook('h1')
@@ -266,9 +410,9 @@ class TestOptimizerHook(unittest.TestCase):
 
     def test_duplicated_hook(self):
         self.optimizer.setup(self.target)
-        self.optimizer.add_hook(lambda s: None, 'h1')
+        self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
         with self.assertRaises(KeyError):
-            self.optimizer.add_hook(lambda s: None, 'h1')
+            self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
 
     def test_invalid_hook(self):
         with self.assertRaises(TypeError):
@@ -288,206 +432,6 @@ class SimpleLink(chainer.Link):
             self.param.grad = g
 
 
-class UninitializedChain(chainer.Chain):
-
-    def __init__(self):
-        super(UninitializedChain, self).__init__()
-        w = 10
-        with self.init_scope():
-            self.f0 = links.Linear(w)
-            self.f1 = links.Linear(w)
-            self.f2 = links.Linear(w)
-        self.count = 0
-
-    def __call__(self, h):
-        h = self.f0(h)
-        if self.count % 2 == 1:
-            h = self.f1(h)
-        h = self.f2(h)
-        self.count += 1
-        return functions.sum(h)
-
-
-class TestOptimizerWeightDecay(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_weight_decay(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-
-        decay = 0.2
-        expect = w - g - decay * w
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.WeightDecay(decay))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_weight_decay_cpu(self):
-        self.check_weight_decay()
-
-    @attr.gpu
-    def test_weight_decay_gpu(self):
-        self.target.to_gpu()
-        self.check_weight_decay()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.WeightDecay(rate=0.0005))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestOptimizerLasso(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_lasso(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        decay = 0.2
-        expect = w - g - decay * xp.sign(w)
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.Lasso(decay))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_lasso_cpu(self):
-        self.check_lasso()
-
-    @attr.gpu
-    def test_lasso_gpu(self):
-        self.target.to_gpu()
-        self.check_lasso()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.Lasso(rate=0.0005))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestOptimizerGradientNoise(unittest.TestCase):
-
-    eta = 0.01
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-        self.noise_value = np.random.normal(
-            loc=0, scale=np.sqrt(self.eta / np.power(1, 0.55)),
-            size=(2, 3)).astype(np.float32)
-
-    def check_gradient_noise(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        noise_value = xp.asarray(self.noise_value)
-
-        expect = w - g - noise_value
-
-        noise = mock.Mock(return_value=noise_value)
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        hook = optimizer.GradientNoise(self.eta, noise_func=noise)
-        opt.add_hook(hook)
-        opt.update()
-
-        testing.assert_allclose(expect, w, rtol=0.4)
-        rule = self.target.param.update_rule
-        noise.assert_called_once_with(xp, (2, 3), np.float32, hook, rule)
-
-    def test_gradient_noise_cpu(self):
-        self.check_gradient_noise()
-
-    @attr.gpu
-    def test_gradient_noise_gpu(self):
-        self.target.to_gpu()
-        self.check_gradient_noise()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.GradientNoise(eta=1))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
-class TestGradientHardClipping(unittest.TestCase):
-
-    def setUp(self):
-        self.target = SimpleLink(
-            np.arange(6, dtype=np.float32).reshape(2, 3),
-            np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
-
-    def check_hardclipping(self):
-        w = self.target.param.data
-        g = self.target.param.grad
-        xp = cuda.get_array_module(w)
-        lower_bound = -0.9
-        upper_bound = 1.1
-        expect = w - xp.clip(g, lower_bound, upper_bound)
-
-        opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
-        opt.add_hook(optimizer.GradientHardClipping(lower_bound, upper_bound))
-        opt.update()
-
-        testing.assert_allclose(expect, w)
-
-    def test_hardclipping_cpu(self):
-        self.check_hardclipping()
-
-    @attr.gpu
-    def test_hardclipping_gpu(self):
-        self.target.to_gpu()
-        self.check_hardclipping()
-
-    def test_call_hooks_uninitialized_param(self):
-        target = UninitializedChain()
-        opt = optimizers.MomentumSGD()
-        opt.setup(target)
-        opt.add_hook(optimizer.GradientClipping(threshold=1))
-        target(np.ones((4, 10), dtype=np.float32))
-        opt.call_hooks()
-
-        # This test is for asserting that calling the hook on a chain
-        # with uninitialized parameters does not crash, so if we reach
-        # here, the test has passed.
-
-
 class TestGradientMethod(unittest.TestCase):
 
     def setUp(self):
@@ -504,6 +448,14 @@ class TestGradientMethod(unittest.TestCase):
 
     def setup_gpu(self, device=None):
         self.target.to_gpu(device)
+        self.optimizer.setup(self.target)
+
+    def setup_chainerx(self, orig_xp):
+        if orig_xp is cuda.cupy:
+            self.target.to_device('cuda:0')
+        else:
+            assert orig_xp is np
+            self.target.to_device('native:0')
         self.optimizer.setup(self.target)
 
     def test_setup(self):
@@ -533,6 +485,17 @@ class TestGradientMethod(unittest.TestCase):
     @attr.gpu
     def test_update_gpu(self):
         self.setup_gpu()
+        self.check_update()
+
+    @attr.chainerx
+    def test_update_chainerx_cpu(self):
+        self.setup_chainerx(np)
+        self.check_update()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_update_chainerx_gpu(self):
+        self.setup_chainerx(cuda.cupy)
         self.check_update()
 
 
@@ -565,9 +528,17 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.target.to_gpu(device)
         self.optimizer.setup(self.target)
 
+    def setup_chainerx(self, orig_xp):
+        if orig_xp is cuda.cupy:
+            self.target.to_device('cuda:0')
+        else:
+            assert orig_xp is np
+            self.target.to_device('native:0')
+        self.optimizer.setup(self.target)
+
     def check_update(self):
         self.optimizer.update()
-        xp = cuda.get_array_module(self.target[0].param)
+        xp = backend.get_array_module(self.target[0].param)
         expected_data = xp.zeros(self.shape, dtype=self.dtype)
         rtol, atol = 1e-4, 1e-5
         if self.dtype is np.float16:
@@ -583,6 +554,22 @@ class TestGradientMethodLossScale(unittest.TestCase):
     @attr.gpu
     def test_update_gpu(self):
         self.setup_gpu()
+        self.check_update()
+
+    @attr.chainerx
+    def test_update_chainerx_cpu(self):
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.setup_chainerx(np)
+        self.check_update()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_update_chainerx_gpu(self):
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.setup_gpu()
+        self.setup_chainerx(cuda.cupy)
         self.check_update()
 
 
@@ -623,6 +610,7 @@ class DummyOptimizer(chainer.GradientMethod):
 class DummyHook(object):
 
     name = 'Dummy'
+    timing = 'pre'
 
     def __init__(self, test):
         self.test = test
@@ -636,6 +624,7 @@ class DummyHook(object):
 class CleargradHook(object):
 
     name = 'Cleargrad'
+    timing = 'pre'
 
     def __init__(self, _):
         pass
@@ -659,6 +648,42 @@ class TestGradientMethodClearGrads(unittest.TestCase):
     def test_update(self):
         self.target.cleargrads()
         self.optimizer.update()
+
+
+class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
+
+    def setUp(self):
+        self.context = warnings.catch_warnings(record=True)
+        self.warnings = self.context.__enter__()
+        warnings.filterwarnings(action='always', category=DeprecationWarning)
+
+    def tearDown(self):
+        self.context.__exit__()
+
+    def test_gradient_clipping(self):
+        chainer.optimizer.GradientClipping(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_gradient_hard_clipping(self):
+        chainer.optimizer.GradientHardClipping(1., 2.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_gradient_noise(self):
+        chainer.optimizer.GradientNoise(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_lasso(self):
+        chainer.optimizer.Lasso(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+    def test_weight_decay(self):
+        chainer.optimizer.WeightDecay(1.)
+        self.assertEqual(len(self.warnings), 1)
+        self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
 
 testing.run_module(__name__, __file__)

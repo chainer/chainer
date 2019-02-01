@@ -1,7 +1,7 @@
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -29,7 +29,7 @@ class Tile(function_node.FunctionNode):
 
     def forward(self, inputs):
         self._in_shape = inputs[0].shape
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.tile(inputs[0], self.reps),
 
     def backward(self, indexes, grad_outputs):
@@ -68,8 +68,7 @@ def tile(x, reps):
 
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. Let the length of ``reps`` be ``d``. If
             ``x.ndim < d``, ``x`` is treated as ``d``-dimensional array by
             prepending new axes. For example, when the shape of ``x`` is
@@ -94,18 +93,18 @@ def tile(x, reps):
         >>> y = F.tile(x, 2)
         >>> y.shape
         (6,)
-        >>> y.data
+        >>> y.array
         array([0, 1, 2, 0, 1, 2])
         >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (2, 6)
-        >>> y.data
+        >>> y.array
         array([[0, 1, 2, 0, 1, 2],
                [0, 1, 2, 0, 1, 2]])
         >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 1, 6)
-        >>> y.data
+        >>> y.array
         array([[[0, 1, 2, 0, 1, 2]],
         <BLANKLINE>
                [[0, 1, 2, 0, 1, 2]]])
@@ -116,13 +115,13 @@ def tile(x, reps):
         >>> y = F.tile(x, 2)
         >>> y.shape
         (2, 4)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 1, 2],
                [3, 4, 3, 4]])
         >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (4, 4)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 1, 2],
                [3, 4, 3, 4],
                [1, 2, 1, 2],
@@ -130,7 +129,7 @@ def tile(x, reps):
         >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 2, 4)
-        >>> y.data
+        >>> y.array
         array([[[1, 2, 1, 2],
                 [3, 4, 3, 4]],
         <BLANKLINE>

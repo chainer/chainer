@@ -1,6 +1,8 @@
 import unittest
+import warnings
 
 import numpy
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -11,13 +13,21 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.with_requires('theano')
+@testing.with_requires('theano')  # TODO(niboshi): Remove me
+# chainer/chainer#5997
+@testing.without_requires('Theano<=1.0.3', 'numpy>=1.16.0')
+@pytest.mark.theano()
 class TheanoFunctionTestBase(object):
 
     forward_test_options = {}
     backward_test_options = {'atol': 1e-4}
 
     def setUp(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            # Theano 1.0.2 causes DeprecationWarning
+            import theano  # NOQA
+
         self.input_data = [
             numpy.random.uniform(
                 -1, 1, d['shape']).astype(getattr(numpy, d['type']))

@@ -1,63 +1,67 @@
-from chainer.backends import cuda
+import chainer
 from chainer import function
+from chainer import function_node
 from chainer import variable
 
 
-class _DummyFunction(function.Function):
+def _call_func(func, xs):
+    outs = func(*xs)
 
-    def __init__(self, grads):
-        self.grads = grads
+    if isinstance(outs, tuple):
+        for i, out in enumerate(outs):
+            if isinstance(out, variable.Variable):
+                continue
+            n = i + 1
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(
+                n if n < 20 else n % 10, 'th')
+            msg = ('{}{} element of a returned tuple is not Variable, '
+                   'but is {}').format(n, suffix, type(out))
+            raise RuntimeError(msg)
+    elif isinstance(outs, variable.Variable):
+        outs = (outs,)
+    else:
+        msg = ('A tuple of Variables or a Variable are expected, but {} '
+               'is returned.'.format(type(outs)))
+        raise RuntimeError(msg)
 
-    def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
-        return xp.array(0),
-
-    def backward(self, inputs, outputs):
-        return self.grads
+    return outs
 
 
-class Forget(function.Function):
+class Forget(function_node.FunctionNode):
 
     def __init__(self, func):
         if not callable(func):
             raise TypeError('func must be callable')
-
         self.func = func
 
-    def _call_func(self, xs):
-        outs = self.func(*xs)
-
-        if isinstance(outs, tuple):
-            for i, out in enumerate(outs):
-                if isinstance(out, variable.Variable):
-                    continue
-                n = i + 1
-                suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(
-                    n if n < 20 else n % 10, 'th')
-                msg = ('{}{} element of a returned tuple is not Variable, '
-                       'but is {}').format(n, suffix, type(out))
-                raise RuntimeError(msg)
-        elif isinstance(outs, variable.Variable):
-            outs = (outs,)
-        else:
-            msg = ('A tuple of Variables or a Variable are expected, but {} '
-                   'is returned.'.format(type(outs)))
-            raise RuntimeError(msg)
-
-        return outs
-
     def forward(self, inputs):
+        self.retain_inputs(tuple(range(len(inputs))))
         with function.no_backprop_mode():
             xs = [variable.Variable(x) for x in inputs]
-            outs = self._call_func(xs)
+            outs = _call_func(self.func, xs)
         return tuple(out.data for out in outs)
 
-    def backward(self, inputs, grads):
-        with function.force_backprop_mode():
-            xs = [variable.Variable(x) for x in inputs]
-            outs = self._call_func(xs)
-            _DummyFunction(grads)(*outs).backward()
-        return tuple(x.grad for x in xs)
+    def backward(self, indexes, grad_outputs):
+        # Double backprop is not allowed
+        if chainer.config.enable_backprop:
+            raise RuntimeError('double backpropagation in functions.forget is '
+                               'not allowed.')
+
+        inputs = self.get_retained_inputs()
+        # Create new variables that have no creators
+        dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
+
+        with function.force_backprop_mode(),\
+                chainer.using_config('in_recomputing', True):
+            outs = _call_func(self.func, dummy_inputs)
+            assert len(outs) == len(grad_outputs)
+
+        for out, grad_output in zip(outs, grad_outputs):
+            out.grad_var = grad_output
+        # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
+        chainer.variable._backprop_to_all(outs, False, None)
+
+        return tuple([inp.grad_var for inp in dummy_inputs])
 
 
 def forget(func, *xs):
@@ -84,7 +88,7 @@ def forget(func, *xs):
        Let ``f`` be a function defined as:
 
        >>> def f(a, b):
-       ...   return a + b + a
+       ...   return (a + b) * a
 
        and, ``x`` and ``y`` be :class:`~chainer.Variable`\\ s:
 
@@ -114,12 +118,27 @@ def forget(func, *xs):
         This conversion takes place to ensure that this function is included
         in the computational graph to enable backward computations.
 
+    .. note::
+
+        ``F.forget`` does not support double backpropagation.
+
+    .. note::
+
+        If you want to use ``F.forget`` to a link which updates the link's
+        internal information every time the forward computation is called,
+        please ensure that the information is updated just once in a single
+        iteration. You may use the ``chainer.config.in_recomputing`` flag to
+        check if the forward computation is the first call in an iteration.
+        Please see the implementation of
+        :class:`~chainer.links.BatchNormalization` for detail.
+
     Args:
         func (callable): A function to call. It needs to be called with
             :class:`~chainer.Variable` object(s) and to return a
             :class:`~chainer.Variable` object or a tuple of
             :class:`~chainer.Variable` objects.
-        xs (~chainer.Variable): Argument variables of the function.
+        xs (:class:`tuple` of :class:`~chainer.Variable` or :ref:`ndarray`):
+            Argument variables of the function.
 
     Returns:
         ~chainer.Variable: A variable ``func`` returns. If it returns a tuple,
@@ -128,4 +147,7 @@ def forget(func, *xs):
     """
     xs = tuple(x if isinstance(x, variable.Variable) else
                variable.Variable(x, requires_grad=True) for x in xs)
-    return Forget(func)(*xs)
+    y = Forget(func).apply(xs)
+    if len(y) == 1:
+        y, = y
+    return y

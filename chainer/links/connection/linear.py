@@ -1,9 +1,10 @@
-import functools
-import operator
+import typing as tp  # NOQA
 
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer import types  # NOQA
+from chainer import utils
 from chainer import variable
 
 
@@ -15,21 +16,26 @@ class Linear(link.Link):
     and holds a weight matrix ``W`` and optionally a bias vector ``b`` as
     parameters.
 
-    The weight matrix ``W`` is initialized with i.i.d. Gaussian samples, each
-    of which has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`. The
-    bias vector ``b`` is of size ``out_size``. Each element is initialized with
-    the ``bias`` value. If ``nobias`` argument is set to ``True``, then this
-    link does not hold a bias vector.
+    If ``initialW`` is left to the default value of ``None``, the weight matrix
+    ``W`` is initialized with i.i.d. Gaussian samples, each of which has zero
+    mean and deviation :math:`\\sqrt{1/\\text{in_size}}`. The bias vector ``b``
+    is of size ``out_size``. If the ``initial_bias`` is to left the default
+    value of ``None``, each element is initialized as zero.  If the ``nobias``
+    argument is set to ``True``, then this link does not hold a bias vector.
 
     Args:
-        in_size (int or None): Dimension of input vectors. If ``None``,
-            parameter initialization will be deferred until the first forward
-            data pass at which time the size will be determined.
-        out_size (int): Dimension of output vectors.
+        in_size (int or None): Dimension of input vectors. If unspecified or
+            ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
+        out_size (int): Dimension of output vectors. If only one value is
+            passed for ``in_size`` and ``out_size``, that value will be used
+            for the ``out_size`` dimension.
         nobias (bool): If ``True``, then this function does not use the bias.
         initialW (:ref:`initializer <initializer>`): Initializer to initialize
             the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
+            its ``ndim`` should be 2. If ``initialW`` is ``None``, then the
+            weights are initialized with i.i.d. Gaussian samples, each of which
+            has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`.
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
@@ -90,6 +96,8 @@ class Linear(link.Link):
 
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
+        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
+
         super(Linear, self).__init__()
 
         if out_size is None:
@@ -98,12 +106,12 @@ class Linear(link.Link):
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer)  # type: variable.Variable  # NOQA
             if in_size is not None:
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None
+                self.b = None  # type: tp.Optional[variable.Variable]
             else:
                 if initial_bias is None:
                     initial_bias = 0
@@ -111,19 +119,26 @@ class Linear(link.Link):
                 self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
-        self.W.initialize((self.out_size, in_size))
+        # type: (int) -> None
 
-    def __call__(self, x):
+        self.W.initialize((self.out_size, in_size))  # type: ignore
+
+    def forward(self, x, n_batch_axes=1):
+        # type: (variable.Variable, int) -> variable.Variable
         """Applies the linear layer.
 
         Args:
             x (~chainer.Variable): Batch of input vectors.
+            n_batch_axes (int): The number of batch axes. The default is 1. The
+                input variable is reshaped into
+                (:math:`{\\rm n\\_batch\\_axes} + 1`)-dimensional tensor.
+                This should be greater than 0.
 
         Returns:
             ~chainer.Variable: Output of the linear layer.
 
         """
-        if self.W.data is None:
-            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+        if self.W.array is None:
+            in_size = utils.size_of_shape(x.shape[1:])
             self._initialize_params(in_size)
-        return linear.linear(x, self.W, self.b)
+        return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)

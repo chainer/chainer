@@ -1,8 +1,8 @@
-import numpy
 import six
 
-from chainer import cuda
+from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -34,15 +34,15 @@ class Repeat(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check._argname(in_types, ('x',))
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         repeats = self.repeats
 
-        # Workaroud for bug in NumPy 1.9 that specifying one element list to
+        # Workaround for bug in NumPy 1.9 that specifying one element list to
         # `repeats` fails to broadcast.
         if len(repeats) == 1:
             repeats = repeats[0]
@@ -68,7 +68,7 @@ class RepeatGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         gy, = inputs
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         repeats = self.repeats
         axis = self.axis
         shape = list(self.in_shape)
@@ -89,7 +89,7 @@ class RepeatGrad(function_node.FunctionNode):
 
         if axis is None:
             pos = 0
-            gx = xp.zeros(int(numpy.prod(shape)), dtype)
+            gx = xp.zeros(utils.size_of_shape(shape), dtype)
             for (i, r) in enumerate(repeats):
                 gx[i] = xp.sum(gy[pos:pos + r])
                 pos += r
@@ -102,7 +102,7 @@ class RepeatGrad(function_node.FunctionNode):
             for (i, r) in enumerate(repeats):
                 src[-1] = slice(pos, pos + r)
                 dst[-1] = slice(i, i + 1)
-                gx[dst] = gy[src].sum(axis=axis, keepdims=True)
+                gx[tuple(dst)] = gy[tuple(src)].sum(axis=axis, keepdims=True)
                 pos += r
         return gx,
 
@@ -114,8 +114,7 @@ def repeat(x, repeats, axis=None):
     """Construct an array by repeating a given array.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         repeats (:class:`int` or :class:`tuple` of :class:`int` s):
             The number of times which each element of ``x`` is repeated.
@@ -133,7 +132,7 @@ def repeat(x, repeats, axis=None):
         >>> y = F.repeat(x, 2)
         >>> y.shape
         (6,)
-        >>> y.data
+        >>> y.array
         array([0, 0, 1, 1, 2, 2])
         >>> x = np.array([[1,2], [3,4]])
         >>> x.shape
@@ -141,13 +140,13 @@ def repeat(x, repeats, axis=None):
         >>> y = F.repeat(x, 3, axis=1)
         >>> y.shape
         (2, 6)
-        >>> y.data
+        >>> y.array
         array([[1, 1, 1, 2, 2, 2],
                [3, 3, 3, 4, 4, 4]])
         >>> y = F.repeat(x, (1, 2), axis=0)
         >>> y.shape
         (3, 2)
-        >>> y.data
+        >>> y.array
         array([[1, 2],
                [3, 4],
                [3, 4]])

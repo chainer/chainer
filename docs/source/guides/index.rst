@@ -1,5 +1,5 @@
-Guides
-======
+Concepts Walkthrough
+====================
 
 .. toctree::
    :maxdepth: 1
@@ -15,3 +15,4 @@ Guides
    gpu
    type_checks
    serializers
+   report

@@ -1,10 +1,26 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class RMSpropGravesHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of Alex Graves's RMSprop.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        alpha = None  # type: float
+        momentum = None  # type: float
+        eps = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: RMSpropGravesHyperparameter # NOQA
 _default_hyperparam.lr = 1e-4
 _default_hyperparam.alpha = 0.95
 _default_hyperparam.momentum = 0.9
@@ -29,6 +45,7 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None,
                  lr=None, alpha=None, momentum=None, eps=None):
@@ -44,7 +61,7 @@ class RMSpropGravesRule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['n'] = xp.zeros_like(param.data)
             self.state['g'] = xp.zeros_like(param.data)
@@ -70,17 +87,19 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
-        cuda.elementwise(
-            'T grad, T lr, T alpha, T momentum, T eps',
-            'T param, T avg_n, T avg_g, T delta',
-            '''avg_n = alpha * avg_n + (1 - alpha) * grad * grad;
-               avg_g = alpha * avg_g + (1 - alpha) * grad;
-               delta = delta * momentum -
-                   lr * grad * rsqrt(avg_n - avg_g * avg_g + eps);
-               param += delta;''',
-            'rmsprop_graves')(
-                grad, hp.lr, hp.alpha, hp.momentum, hp.eps, param.data,
-                self.state['n'], self.state['g'], self.state['delta'])
+        if RMSpropGravesRule._kernel is None:
+            RMSpropGravesRule._kernel = cuda.elementwise(
+                'T grad, T lr, T alpha, T momentum, T eps',
+                'T param, T avg_n, T avg_g, T delta',
+                '''avg_n = alpha * avg_n + (1 - alpha) * grad * grad;
+                   avg_g = alpha * avg_g + (1 - alpha) * grad;
+                   delta = delta * momentum -
+                       lr * grad * rsqrt(avg_n - avg_g * avg_g + eps);
+                   param += delta;''',
+                'rmsprop_graves')
+        RMSpropGravesRule._kernel(
+            grad, hp.lr, hp.alpha, hp.momentum, hp.eps, param.data,
+            self.state['n'], self.state['g'], self.state['delta'])
 
 
 class RMSpropGraves(optimizer.GradientMethod):

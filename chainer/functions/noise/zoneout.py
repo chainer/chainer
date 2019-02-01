@@ -1,13 +1,13 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import configuration
-from chainer import function
+from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
 
 
-class Zoneout(function.Function):
+class Zoneout(function_node.FunctionNode):
 
     """Zoneout regularization."""
 
@@ -21,7 +21,7 @@ class Zoneout(function.Function):
         self.retain_inputs(())
 
         h, x = inputs
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         if xp is numpy:
             flag_x = xp.random.rand(*x.shape) >= self.zoneout_ratio
         else:
@@ -31,8 +31,14 @@ class Zoneout(function.Function):
         self.flag_x = flag_x
         return h * self.flag_h + x * self.flag_x,
 
-    def backward(self, inputs, gy):
-        return gy[0] * self.flag_h, gy[0] * self.flag_x,
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ret = []
+        if 0 in indexes:
+            ret.append(gy * self.flag_h)
+        if 1 in indexes:
+            ret.append(gy * self.flag_x)
+        return ret
 
 
 def zoneout(h, x, ratio=.5, **kwargs):
@@ -44,15 +50,9 @@ def zoneout(h, x, ratio=.5, **kwargs):
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        h (~chainer.Variable): Previous variable.
-        x (~chainer.Variable): Input variable.
+        h (:class:`~chainer.Variable` or :ref:`ndarray`): Previous variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         ratio (float): Zoneout ratio.
 
     Returns:
@@ -62,11 +62,12 @@ def zoneout(h, x, ratio=.5, **kwargs):
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
-        return Zoneout(ratio)(h, x)
+        return Zoneout(ratio).apply((h, x))[0]
     return x

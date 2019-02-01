@@ -76,7 +76,7 @@ class DepthwiseConvolution2D(link.Link):
         if self.b is not None:
             self.b.initialize(self.channel_multiplier * in_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the depthwise convolution layer.
 
         Args:
@@ -87,7 +87,7 @@ class DepthwiseConvolution2D(link.Link):
             ~chainer.Variable: Output of the depthwise convolution.
 
         """
-        if self.W.data is None:
+        if self.W.array is None:
             self._initialize_params(x.shape[1])
         return depthwise_convolution_2d.depthwise_convolution_2d(
             x, self.W, self.b, self.stride, self.pad)

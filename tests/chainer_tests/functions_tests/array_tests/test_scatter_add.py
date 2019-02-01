@@ -11,37 +11,48 @@ from chainer.testing import attr
 from chainer.utils import type_check
 
 
-@testing.parameterize(
-    {'slices': (0, slice(0, 1), numpy.array(-1)), 'b_data': numpy.array([1])},
-    {'slices': (slice(None), 0, [0, 2]),
-     'b_data': numpy.random.uniform(size=(4, 2))},
-    {'slices': ([1, 0], [0, 0], [2, 0]),
-     'b_data': numpy.random.uniform(size=(2,))},
-    {'slices': 1, 'b_data': numpy.random.uniform(size=(2, 3))},
-    {'slices': numpy.array([False, True, False, True]),
-     'b_data': numpy.random.uniform(size=(2, 2, 3))},
-    {'slices': [], 'b_data': numpy.empty(shape=(0, 2, 3))},
-)
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16},
+     {'dtype': numpy.float32},
+     {'dtype': numpy.float64},
+     ],
+    [{'slices': (0, slice(0, 1), numpy.array(-1)), 'b_data': numpy.array([1])},
+     {'slices': (slice(None), 0, [0, 2]),
+      'b_data': numpy.random.uniform(size=(4, 2))},
+     {'slices': ([1, 0], [0, 0], [2, 0]),
+      'b_data': numpy.random.uniform(size=(2,))},
+     {'slices': 1, 'b_data': numpy.random.uniform(size=(2, 3))},
+     {'slices': numpy.array([False, True, False, True]),
+      'b_data': numpy.random.uniform(size=(2, 2, 3))},
+     {'slices': [], 'b_data': numpy.empty(shape=(0, 2, 3))},
+     ]
+))
 class TestScatterAdd(unittest.TestCase):
 
     def setUp(self):
         self.shape = (4, 2, 3)
         self.a_data = numpy.random.uniform(
-            -1, 1, self.shape).astype(numpy.float32)
+            -1, 1, self.shape).astype(self.dtype)
         self.a_data_original = self.a_data.copy()
         self.gy_data = numpy.random.uniform(
-            -1, 1, self.shape).astype(numpy.float32)
-        self.b_data = self.b_data.astype(numpy.float32)
+            -1, 1, self.shape).astype(self.dtype)
+        self.b_data = self.b_data.astype(self.dtype)
         self.gga_data = numpy.random.uniform(
-            -1, 1, self.a_data.shape).astype(numpy.float32)
+            -1, 1, self.a_data.shape).astype(self.dtype)
         self.ggb_data = numpy.random.uniform(
-            -1, 1, self.b_data.shape).astype(numpy.float32)
+            -1, 1, self.b_data.shape).astype(self.dtype)
+
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-4}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.check_backward_options['dtype'] = numpy.float64
+            self.check_double_backward_options['dtype'] = numpy.float64
 
     def check_forward(self, a_data, b_data):
         a = chainer.Variable(a_data)
         b = chainer.Variable(b_data)
         y = functions.scatter_add(a, self.slices, b)
-        self.assertEqual(y.data.dtype, numpy.float32)
+        self.assertEqual(y.data.dtype, self.dtype)
         # Test to make sure that the input values are not changed
         numpy.testing.assert_equal(cuda.to_cpu(a.data), self.a_data_original)
 
@@ -61,7 +72,7 @@ class TestScatterAdd(unittest.TestCase):
             return functions.scatter_add(a, self.slices, b)
 
         gradient_check.check_backward(
-            f, (a_data, b_data), y_grad, atol=1e-3, rtol=1e-3)
+            f, (a_data, b_data), y_grad, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.a_data, self.b_data, self.gy_data)
@@ -74,12 +85,11 @@ class TestScatterAdd(unittest.TestCase):
     def check_double_backward(self, a_data, b_data, y_grad, a_grad_grad,
                               b_grad_grad):
         def f(a, b):
-            y = functions.scatter_add(a, self.slices, b)
-            return y * y
+            return functions.scatter_add(a, self.slices, b)
 
         gradient_check.check_double_backward(
             f, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
-            atol=1e-3, rtol=1e-3)
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.a_data, self.b_data, self.gy_data,
