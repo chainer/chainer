@@ -1,14 +1,15 @@
 from __future__ import print_function
 
-import heapq
+import collections
+import warnings
+
+import numpy
+import onnx
+from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 
 import chainer
-from chainer import function_node
-from chainer import variable
-import numpy
-
-from onnx_chainer import functions
-from onnx_chainer import mapping
+from onnx_chainer import functions, mapping
+from onnx_chainer.testing import test_onnxruntime
 
 try:
     from onnx import checker
@@ -16,9 +17,7 @@ try:
     from onnx import numpy_helper
 
     _available = True
-
-
-except (ImportError, TypeError):
+except ImportError:
     _available = False
 
 
@@ -27,41 +26,137 @@ def _check_available():
         raise ImportError(
             'ONNX is not installed on your environment. Exporting your model '
             'in ONNX format needs the onnx package.\n\n'
-            '  $ pip install onnx==0.2.1\n')
+            '\t$ pip install onnx\n\n')
 
 
-def convert_parameter(parameter, param_names):
+def convert_parameter(parameter):
     if isinstance(parameter, chainer.Parameter):
         array = parameter.array
     elif isinstance(parameter, chainer.Variable):
         array = parameter.array
     elif isinstance(parameter, numpy.ndarray):
         array = parameter
+    else:
+        raise ValueError(
+            'The type of parameter is unknown. It should be either Parameter '
+            'or Variable or ndarray, but the type was {}.'.format(
+                type(parameter)))
     if array.shape == ():
         array = array[None]
-    return numpy_helper.from_array(array, param_names[id(parameter)])
+    return numpy_helper.from_array(array, str(id(parameter)))
 
 
-def create_node(func_name, cand, input_names, param_names, parameters,
-                input_tensors):
+def create_node(
+        func_name, onnx_op_name, opset_version, func, input_names,
+        output_names, parameters):
+    for opver in sorted(mapping.operators[func_name][-1], reverse=True):
+        if opver <= opset_version:
+            break
+    opset_version = opver
+
     converter_name = 'convert_{}'.format(func_name)
     if hasattr(functions, converter_name):
         converter = getattr(functions, converter_name)
         nodes = converter(
-            cand, input_names, param_names, parameters, input_tensors)
+            func, onnx_op_name, opset_version, input_names, output_names,
+            parameters)
     else:
         raise ValueError('{} is not supported.'.format(func_name))
-    for node in nodes:
-        checker.check_node(node)
     return nodes
 
 
+def rename_tensors(model):
+    names = {v.name: v.name for v in model.graph.initializer}
+    op_counts = collections.defaultdict(int)
+
+    for op in model.graph.node:
+        op_name = '{}_{}'.format(op.op_type, op_counts[op.op_type])
+        op_counts[op.op_type] += 1
+
+        for i in range(len(op.input)):
+            if op.input[i] not in names:
+                names[op.input[i]] = 'Input_{}'.format(op_counts['Input'])
+                op_counts['Input'] += 1
+            op.input[i] = names[op.input[i]]
+
+        for i in range(len(op.output)):
+            if len(op.output) <= 1:
+                names[op.output[i]] = op_name
+            else:
+                names[op.output[i]] = '{}_{}'.format(op_name, i)
+            op.output[i] = names[op.output[i]]
+
+    for v in tuple(model.graph.input) + tuple(model.graph.output):
+        if v.name in names:
+            v.name = names[v.name]
+
+
+class ONNXExport(chainer.FunctionHook):
+
+    def __init__(self, opset_version=None):
+        self.graph = []
+        self.additional_parameters = []
+        self.network_inputs = {}
+        self.middle_output_var_to_varnode = {}
+        self.specified_opset_version = opset_version
+
+    def backward_postprocess(self, function, in_data, out_grad):
+        if isinstance(function, chainer.function.FunctionAdapter):
+            function = function.function
+        func_name = function.__class__.__name__
+        input_names = []
+        for i in function.inputs:
+            # 'i' is a VariableNode, so check if it has a Variable/Parameter
+            var = i.get_variable_or_none()
+            if var is None:  # No reference to Variable/Parameter
+                input_names.append(str(id(i)))  # Use VariableNode as is
+
+                # To support networks which have only a single layer
+                if i.creator is None and \
+                        str(id(i)) not in self.network_inputs:
+                    self.network_inputs[str(id(i))] = i
+            else:  # It is a parameter inside a Link or network input
+                input_names.append(str(id(var)))
+                if i.creator is None and \
+                        not isinstance(var, chainer.Parameter):
+                    self.network_inputs[str(id(var))] = var
+
+        # This is to get corresponding VariableNode id from the output
+        # Variable of the network
+        for o in function.outputs:
+            var = o().get_variable_or_none()
+            if var is not None:  # If the output is kept
+                self.middle_output_var_to_varnode[id(var)] = id(o())
+
+        output_names = [str(id(o())) for o in function.outputs]
+
+        onnx_op_name, opset_versions = mapping.operators[func_name]
+        if isinstance(opset_versions, int):
+            opset_version = opset_versions
+        elif self.specified_opset_version is None:
+            # If no opset version is specified,
+            # use the latest version for the operator
+            opset_version = opset_versions[-1]
+        else:
+            # If a version is specified, use the last version <= specified one
+            for opset_version in sorted(opset_versions, reverse=True):
+                if opset_version <= self.specified_opset_version:
+                    break
+
+        nodes = create_node(
+            func_name, onnx_op_name, opset_version, function, input_names,
+            output_names, self.additional_parameters)
+        for node in nodes:
+            if node not in self.graph:
+                self.graph.append(node)
+
+
 def export(model, args, filename=None, export_params=True,
-           graph_name='Graph', save_text=False):
+           graph_name='Graph', save_text=False, opset_version=None):
     """Export function for chainer.Chain in ONNX format.
 
     This function performs a forward computation of the given
-    :class:`~chainer.Chain`, ``model``, by passing the given argments ``args``
+    :class:`~chainer.Chain`, ``model``, by passing the given arguments ``args``
     directly. It means, the output :class:`~chainer.Variable` object ``y`` to
     make the computational graph will be created by:
 
@@ -70,9 +165,9 @@ def export(model, args, filename=None, export_params=True,
     Args:
         model (~chainer.Chain): The model object you want to export in ONNX
             format. It should have :meth:`__call__` method because the second
-            argment ``args`` is directly given to the model by the ``[]``
+            argument ``args`` is directly given to the model by the ``[]``
             accessor.
-        args (list or dict): The argments which are given to the model
+        args (list or dict): The arguments which are given to the model
             directly.
         filename (str or file-like object): The filename used for saving the
             resulting ONNX model. If None, nothing is saved to the disk.
@@ -83,6 +178,10 @@ def export(model, args, filename=None, export_params=True,
             graph in the exported ONNX model.
         save_text (bool): If True, the text format of the output ONNX model is
             also saved with ``.txt`` extention.
+        opset_version (int): The operator set version of ONNX. If not specified
+            or ``None`` is given, the latest opset version of the onnx module
+            is used. If an integer is given, it will be ensured that all the
+            operator version in the exported ONNX file is less than this value.
 
     Returns:
         A ONNX model object.
@@ -91,130 +190,122 @@ def export(model, args, filename=None, export_params=True,
 
     _check_available()
 
-    model.to_cpu()
-    args = list(args) if isinstance(args, (list, tuple)) else [args]
-    for i, arg in enumerate(args):
-        if not isinstance(arg, chainer.Variable):
-            args[i] = chainer.Variable(arg)
+    chainer.config.train = False
+    chainer.config.enable_backprop = True
 
+    model.to_cpu()
+
+    if opset_version is None:
+        opset_version = int(onnx.defs.onnx_opset_version())
+    elif opset_version < test_onnxruntime.MINIMUM_OPSET_VERSION:
+        warnings.warn(
+            'ONNX-Chainer has been tested only with opset_version >= {m}. '
+            'This is because ONNXRuntime supports only opset_version >= {m}. '
+            'The ONNX file exported with your requested opset_version ({o}) '
+            'may cause some problems because the converters used for the '
+            'opset_version have not been tested.'.format(
+                m=test_onnxruntime.MINIMUM_OPSET_VERSION,
+                o=opset_version)
+        )
+
+    # Forward computation
+    if isinstance(args, tuple):
+        args = list(args)
     if isinstance(args, list):
+        for i, arg in enumerate(args):
+            if isinstance(arg, numpy.ndarray):
+                args[i] = chainer.Variable(arg)
         outputs = model(*args)
     elif isinstance(args, dict):
+        for key, arg in args.items():
+            if isinstance(arg, numpy.ndarray):
+                args[key] = chainer.Variable(arg)
         outputs = model(**args)
+    elif isinstance(args, numpy.ndarray):
+        outputs = model(chainer.Variable(args))
+    elif isinstance(args, chainer.Variable):
+        outputs = model(args)
     else:
         raise ValueError(
-            'The \'args\' argument should be a list or dict. But a {} object '
-            'was given.'.format(type(args)))
+            'The \'args\' argument should be a list, tuple, dict, '
+            'numpy array, or Chainer Variable. But a {} object was '
+            'given.'.format(type(args)))
 
-    input_tensor_ids = [id(arg) for arg in args]
-
-    graph = []
-    parameters = []
-    param_names = {}
+    initializers = []
     input_tensors = []
-    for name, param in model.namedparams():
-        param_names[id(param)] = name
-        parameters.append(
-            convert_parameter(param, param_names))
+    for param in model.params():
+        initializers.append(convert_parameter(param))
         param_shape = (1,) if param.shape == () else param.shape
         input_tensors.append(helper.make_tensor_value_info(
-            name, mapping.dtypes[param.array.dtype], param_shape))
+            str(id(param)), NP_TYPE_TO_TENSOR_TYPE[param.array.dtype],
+            param_shape))
 
+    with ONNXExport(opset_version) as o:
+        if isinstance(outputs, (list, tuple)):
+            for output in outputs:
+                output.grad = numpy.ones_like(
+                    output.array, dtype=output.array.dtype)
+                output.backward()
+        elif isinstance(outputs, dict):
+            outputs = list(outputs.values())
+            for output in outputs:
+                output.grad = numpy.ones_like(
+                    output.array, dtype=output.array.dtype)
+                output.backward()
+        elif isinstance(outputs, chainer.Variable):
+            outputs.grad = numpy.ones_like(outputs.array)
+            outputs.backward()
+
+    # If additional parameters are created during conversion
+    if o.additional_parameters:
+        for param in o.additional_parameters:
+            initializers.append(convert_parameter(param))
+            param_shape = (1,) if param.shape == () else param.shape
+            input_tensors.append(helper.make_tensor_value_info(
+                str(id(param)), NP_TYPE_TO_TENSOR_TYPE[param.array.dtype],
+                param_shape))
+
+    # Collect the network inputs
+    for i in o.network_inputs.values():
+        input_tensors.append(helper.make_tensor_value_info(
+            str(id(i)), NP_TYPE_TO_TENSOR_TYPE[i.dtype], i.shape))
+
+    # The graph must be topologically sorted
+    graph = reversed(o.graph)
+
+    # Convert output tensors
+    output_tensors = []
     if isinstance(outputs, dict):
         outputs = list(outputs.values())
     if not isinstance(outputs, (list, tuple)):
         outputs = (outputs,)
-    output_tensor_ids = [id(output) for output in outputs]
 
-    cands = []
-    seen_edges = set()
-    nodes = set()
-    push_count = [0]
-
-    def add_cand(cand):
-        heapq.heappush(cands, (-cand.rank, push_count[0], cand))
-        push_count[0] += 1
-
-    for o in outputs:
-        if isinstance(o, variable.Variable):
-            o = o.node
-        add_cand(o)
-        nodes.add(o)
-
-    while cands:
-        _, _, cand = heapq.heappop(cands)
-        if isinstance(cand, variable.VariableNode):
-            creator = cand.creator_node
-            if creator is not None and (creator, cand) not in seen_edges:
-                add_cand(creator)
-                seen_edges.add((creator, cand))
-                nodes.add(creator)
-                nodes.add(cand)
-
-        elif isinstance(cand, function_node.FunctionNode):
-            func_name = cand.__class__.__name__
-            input_names = []
-            for input_ in cand.inputs:
-                if input_ is not cand and (input_, cand) not in seen_edges:
-                    add_cand(input_)
-                    seen_edges.add((input_, cand))
-                    nodes.add(input_)
-                    nodes.add(cand)
-
-                # When input_ is a parameter
-                if input_.name is not None:
-                    input_names.append(id(input_.get_variable()))
-                    setattr(cand, input_.name, input_.get_variable())
-                else:
-                    if id(input_.get_variable()) in input_tensor_ids:
-                        input_id = id(input_.get_variable())
-                    else:
-                        input_id = id(input_)
-                    input_names.append(input_id)
-
-            for out_ in cand.outputs:
-                out_ = out_()
-                if out_.get_variable() is not None:
-                    out_var = out_.get_variable()
-                    if id(out_var) in output_tensor_ids:
-                        idx = output_tensor_ids.index(id(out_var))
-                        output_tensor_ids[idx] = (
-                            str(id(out_)), mapping.dtypes[out_var.array.dtype],
-                            out_var.shape)
-
-            if func_name in mapping.operators.keys():
-                onnx_nodes = create_node(
-                    func_name, cand, input_names, param_names, parameters,
-                    input_tensors)
-                graph.extend(onnx_nodes)
-
-    # Add all the input values for the network to input_tensors
-    for i, arg in enumerate(args):
-        name = str(id(arg))
-        input_tensors.append(helper.make_tensor_value_info(
-            name, mapping.dtypes[arg.array.dtype], arg.shape))
-
-    output_tensors = []
-    for out_ in output_tensor_ids:
-        output_tensors.append(helper.make_tensor_value_info(*out_))
+    for output in outputs:
+        if id(output) in o.middle_output_var_to_varnode:
+            output_id = str(o.middle_output_var_to_varnode[id(output)])
+        else:
+            output_id = str(id(output))
+        output_tensors.append(helper.make_tensor_value_info(
+            output_id, NP_TYPE_TO_TENSOR_TYPE[output.dtype],
+            output.shape))
 
     if not export_params:
-        parameters = []
+        initializers = []
 
     onnx_graph = helper.make_graph(
-        reversed(graph), graph_name, input_tensors, output_tensors,
-        initializer=parameters)
-
-    checker.check_graph(onnx_graph)
+        graph, graph_name, input_tensors, output_tensors,
+        initializer=initializers)
 
     model = helper.make_model(
         onnx_graph,
         producer_name='Chainer',
-        producer_version=chainer.__version__)
+        producer_version=chainer.__version__,
+        opset_imports=[helper.make_opsetid('', opset_version)]
+    )
 
-    # TODO(mitmul): Remove this
-    model.ir_version = 1
+    model.ir_version = onnx.IR_VERSION
 
+    rename_tensors(model)
     checker.check_model(model)
 
     if filename is not None and isinstance(filename, str):

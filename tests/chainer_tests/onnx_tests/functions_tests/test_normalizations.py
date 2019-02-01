@@ -1,18 +1,33 @@
 import unittest
 
+import numpy as np
+import onnx
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import testing
-import numpy as np
+from onnx_chainer.testing import test_onnxruntime
 
-import onnx_chainer
+
+def _arange(*shape):
+    r = np.prod(shape)
+    return np.arange(r).reshape(shape).astype(np.float32)
 
 
 @testing.parameterize(
-    {'ops': F.local_response_normalization,
-     'input_argname': 'x',
-     'args': {'n': 5, 'k': 2, 'alpha': 1e-4, 'beta': 0.75}},
+    {
+        'name': 'local_response_normalization',
+        'input_argname': 'x',
+        'args': {'k': 1, 'n': 3, 'alpha': 1e-4, 'beta': 0.75},
+        'opset_version': 1
+    },
+    {
+        'name': 'normalize',
+        'input_argname': 'x',
+        'args': {'axis': 1},
+        'opset_version': 1
+    }
 )
 class TestNormalizations(unittest.TestCase):
 
@@ -27,22 +42,27 @@ class TestNormalizations(unittest.TestCase):
                 self.input_argname = input_argname
 
             def __call__(self, x):
-                x = F.identity(x)
                 self.args[self.input_argname] = x
                 return self.ops(**self.args)
 
-        self.model = Model(self.ops, self.args, self.input_argname)
-        self.x = np.zeros((1, 5), dtype=np.float32)
+        ops = getattr(F, self.name)
+        self.model = Model(ops, self.args, self.input_argname)
+        self.x = _arange(1, 5, 3, 3)
+        self.fn = self.name + '.onnx'
 
-    def test_export_test(self):
-        chainer.config.train = False
-        onnx_chainer.export(self.model, self.x)
+    def test_output(self):
+        for opset_version in range(
+                test_onnxruntime.MINIMUM_OPSET_VERSION,
+                onnx.defs.onnx_opset_version() + 1):
+            test_onnxruntime.check_output(
+                self.model, self.x, self.fn, opset_version=opset_version)
 
-    def test_export_train(self):
-        chainer.config.train = True
-        onnx_chainer.export(self.model, self.x)
 
-
+@testing.parameterize(
+    {'opset_version': 1},
+    {'opset_version': 6},
+    {'opset_version': 7},
+)
 class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
@@ -55,16 +75,15 @@ class TestBatchNormalization(unittest.TestCase):
                     self.bn = L.BatchNormalization(5)
 
             def __call__(self, x):
-                x = F.identity(x)
                 return self.bn(x)
 
         self.model = Model()
-        self.x = np.zeros((1, 5), dtype=np.float32)
+        self.x = _arange(1, 5)
+        self.fn = 'BatchNormalization.onnx'
 
-    def test_export_test(self):
-        chainer.config.train = False
-        onnx_chainer.export(self.model, self.x)
-
-    def test_export_train(self):
-        chainer.config.train = True
-        onnx_chainer.export(self.model, self.x)
+    def test_output(self):
+        for opset_version in range(
+                test_onnxruntime.MINIMUM_OPSET_VERSION,
+                onnx.defs.onnx_opset_version() + 1):
+            test_onnxruntime.check_output(
+                self.model, self.x, self.fn, opset_version=opset_version)
