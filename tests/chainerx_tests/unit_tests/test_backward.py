@@ -19,8 +19,8 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
     assert isinstance(expected_gxs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, chainerx.ndarray) for a in xs])
-    assert all([(isinstance(a, chainerx.ndarray) or a ==
-                 chainerx.ChainerxError) for a in expected_gxs])
+    assert all([isinstance(a, chainerx.ndarray) or a is None
+                for a in expected_gxs])
 
     # Forward.
     ys = fprop(*xs)
@@ -37,7 +37,7 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
 
     # Check gradients of input arrays.
     for x, expected_gx in zip(xs, expected_gxs):
-        if expected_gx is chainerx.ChainerxError:
+        if expected_gx is None:
             with pytest.raises(chainerx.ChainerxError):
                 x.get_grad(backprop_id)
         else:
@@ -65,7 +65,7 @@ def _check_grad(
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
     assert all([isinstance(a, chainerx.ndarray) for a in xs])
-    assert all([(isinstance(a, chainerx.ndarray) or a is None)
+    assert all([isinstance(a, chainerx.ndarray) or a is None
                 for a in expected_gxs])
 
     # Forward.
@@ -124,12 +124,7 @@ def _check_grad(
 # Delegates work to either _check_backward or _check_grad.
 def _check_backprop(
         method, fprop, xs, expected_gxs, gys=None, backprop_id=None):
-    assert method in ('backward', 'grad')
-
     if method == 'backward':
-        expected_gxs = tuple([
-            chainerx.ChainerxError if gx is None else gx
-            for gx in expected_gxs])
         check_func = _check_backward
     elif method == 'grad':
         check_func = _check_grad
