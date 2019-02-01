@@ -520,7 +520,7 @@ def test_create_and_release_backprop_id():
 
 @pytest.mark.parametrize('xs_indices', [[], [0], [1], [0, 1], [1, 0]])
 @pytest.mark.parametrize('ys_indices', [[], [0], [1], [0, 1], [1, 0]])
-def test_grad_no_outputs(xs_indices, ys_indices):
+def test_grad_not_all_inputs_outputs_in_graph(xs_indices, ys_indices):
     shape = (1,)
     dtype = chainerx.float32
 
