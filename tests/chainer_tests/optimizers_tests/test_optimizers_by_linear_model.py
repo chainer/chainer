@@ -74,10 +74,6 @@ class LinearModel(object):
         return F.accuracy(y_test, t_test)
 
     def accuracy(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         model = self.model
         optimizer = self.optimizer
         optimizer.setup(model)

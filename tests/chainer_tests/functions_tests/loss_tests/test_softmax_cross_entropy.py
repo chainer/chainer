@@ -155,10 +155,6 @@ class SoftmaxCrossEntropyTestBase(object):
 
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(x)
 
@@ -169,10 +165,6 @@ class SoftmaxCrossEntropyTestBase(object):
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(cuda.to_gpu(x))
 
@@ -223,10 +215,6 @@ class SoftmaxCrossEntropyTestBase(object):
 
     @attr.chainerx
     def test_backward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(x)
 
@@ -242,10 +230,6 @@ class SoftmaxCrossEntropyTestBase(object):
     @attr.chainerx
     @attr.gpu
     def test_backward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(cuda.to_gpu(x))
 
@@ -344,10 +328,6 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
 
     @attr.chainerx
     def test_double_backward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(x)
 
@@ -358,10 +338,6 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
     @attr.chainerx
     @attr.gpu
     def test_double_backward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
             return chainer.backend.to_chainerx(cuda.to_gpu(x))
 

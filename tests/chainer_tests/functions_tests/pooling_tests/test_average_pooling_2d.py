@@ -76,10 +76,6 @@ class TestAveragePooling2D(unittest.TestCase):
         return expect,
 
     def check_forward(self, inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         y_expect, = self.forward_cpu(inputs)
 
         inputs = backend_config.get_array(inputs)
@@ -101,10 +97,6 @@ class TestAveragePooling2D(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
@@ -125,10 +117,6 @@ class TestAveragePooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
