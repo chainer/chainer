@@ -37,6 +37,7 @@ class BatchNormalization(function_node.FunctionNode):
 
     mean = None
     inv_std = None
+    warn_on_single_input = True
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None):
         self.running_mean = mean
@@ -120,7 +121,8 @@ class BatchNormalization(function_node.FunctionNode):
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
 
-        if all(x.shape[i] == 1 for i in self.axis):
+        if self.warn_on_single_input and\
+                all(x.shape[i] == 1 for i in self.axis):
             if 0 in self.axis:
                 warnings.warn(
                     'A batch with no more than one sample has been given'
