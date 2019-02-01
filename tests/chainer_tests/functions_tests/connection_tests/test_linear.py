@@ -10,8 +10,8 @@ from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product({
-    'x_dtype': [numpy.float32, numpy.float64],
-    'W_dtype': [numpy.float32, numpy.float64],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'x_shape': [{'n_batch_axes': 1, 'data_shape': (3,)},
                 {'n_batch_axes': 3, 'data_shape': (3, 5)},
                 ],
@@ -49,6 +49,11 @@ class TestNonparameterizedLinear(testing.FunctionTestCase):
             self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         self.n_batch_axes = self.x_shape['n_batch_axes']
+
+    def before_test(self, test_name):
+        if self.backend_config.use_chainerx:
+            if numpy.float16 in (self.x_dtype, self.W_dtype):
+                raise unittest.SkipTest()
 
     def generate_inputs(self):
         data_shape = self.x_shape['data_shape']
