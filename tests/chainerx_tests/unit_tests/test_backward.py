@@ -532,7 +532,7 @@ def test_grad_not_all_inputs_outputs_in_graph(xs_indices, ys_indices):
          chainerx.full(shape, 1, dtype)),  # gy1gx2
         (chainerx.full(shape, 5, dtype),  # gy2gx1
          chainerx.full(shape, 3, dtype)),)  # gy2gx2
-    expected_gxs = [None for _ in xs_indices]
+    expected_gxs = [None] * len(xs_indices)
 
     for ys_index in ys_indices:
         for i, xs_index in enumerate(xs_indices):
