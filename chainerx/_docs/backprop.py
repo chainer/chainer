@@ -58,7 +58,7 @@ Args:
     outputs (list of ndarrays):
         Output arrays from which backpropagation starts.
     inputs (list of ndarrays):
-        Input arrays of which this functions computes the gradients w.r.t.
+        Input arrays of which this function computes the gradients w.r.t.
     enable_double_backprop (bool): If ``True``,
         a computational trace of the whole backpropagation procedure is
         recorded to the computational graph so that one can further do
