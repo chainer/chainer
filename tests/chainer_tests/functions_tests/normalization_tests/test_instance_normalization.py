@@ -1,5 +1,4 @@
 import numpy
-import unittest
 
 from chainer import functions
 from chainer import testing
@@ -41,12 +40,13 @@ def _fixed_instance_normalization(
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'contiguous': ['C', None],
     'running_statistics': [True, False],
+    'eps': [2e-5],
+    'decay': [0.9],
 })))
 @backend.inject_backend_tests(
     None,
-    # CPU tests
+    # # CPU tests
     testing.product({
         'use_cuda': [False],
         'use_ideep': ['never', 'always'],
@@ -58,29 +58,26 @@ def _fixed_instance_normalization(
         'cudnn_fast_batch_normalization': [True, False],
     })
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+)
 class TestInstanceNormalization(testing.FunctionTestCase):
 
     def setUp(self):
-        self.eps = 2e-5
-        shape = self.shape
-        dtype = self.dtype
+        self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+        self.check_backward_options.update({'atol': 1e-5, 'rtol': 1e-4})
+        self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
         if self.running_statistics:
-            mean = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-            var = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-        else:
-            mean, var = None, None
-        self.running_mean = mean
-        self.running_var = var
-
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-        if dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            c = self.shape[1]
+            self.mean = numpy.random.uniform(-1, 1, c).astype(self.dtype)
+            self.var = numpy.random.uniform(-1, 1, c).astype(self.dtype)
 
     def generate_inputs(self):
         shape, dtype = self.shape, self.dtype
@@ -89,55 +86,37 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         return x, gamma, beta
 
+    def _get(self, device=None):
+        mean, var = None, None
+        if self.running_statistics:
+            mean, var = self.mean.copy(), self.var.copy()
+            if device is not None:
+                mean, var = device.send((mean, var))
+        return mean, var
+
     def forward(self, inputs, device):
         x, gamma, beta = inputs
-
-        def _get_moving_avg(array, device, dtype):
-            if array is None:
-                return array
-            else:
-                new_array = array.copy()
-                new_array = device.send_array(array).astype(dtype)
-                return new_array
-
-        running_mean = _get_moving_avg(self.running_mean, device, x.dtype)
-        running_var = _get_moving_avg(self.running_var, device, x.dtype)
+        mean, var = self._get(device)
         return functions.instance_normalization(
-            x, gamma, beta, running_mean=running_mean,
-            running_var=running_var),
+            x, gamma, beta, running_mean=mean, running_var=var,
+            eps=self.eps, decay=self.decay),
 
     def forward_expected(self, inputs):
         x, gamma, beta = inputs
-
-        def _get_moving_avg(array):
-            if array is None:
-                return array
-            else:
-                return array.copy()
-
-        running_mean = _get_moving_avg(self.running_mean)
-        running_var = _get_moving_avg(self.running_var)
+        mean, var = self._get()
         y = _instance_normalization(
-            x, gamma, beta, running_mean, running_var)
+            x, gamma, beta, mean, var, self.eps, self.decay)
         return y,
-
-    def before_test(self, test_name):
-        if test_name == 'test_double_backward':
-            if self.dtype == numpy.float16 and\
-                    self.backend_config.use_cudnn == 'always':
-                raise unittest.SkipTest
 
 
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': ['C', None],
 })))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
     testing.product({
-        'use_cuda': [False],
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
@@ -147,26 +126,30 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         'cudnn_fast_batch_normalization': [True, False],
     })
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+)
 class TestFixedInstanceNormalization(testing.FunctionTestCase):
 
     def setUp(self):
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+        self.check_backward_options.update({'atol': 1e-5, 'rtol': 1e-4})
+        self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
         shape, dtype = self.shape, self.dtype
         x = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gamma = numpy.random.uniform(0, 1, shape[1]).astype(dtype)
+        gamma = numpy.random.uniform(.5, 1, shape[1]).astype(dtype)
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         mean = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-        var = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
+        var = numpy.random.uniform(.5, 1, shape[1]).astype(dtype)
         return x, gamma, beta, mean, var
 
     def forward(self, inputs, device):

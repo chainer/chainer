@@ -4,7 +4,6 @@ import numpy
 import pytest
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -17,24 +16,25 @@ from chainer.testing import condition
     'shape': [(2, 3, 5, 5), (5, 3, 15)],
     'test': [True, False],
     'track_avg_stats': [True, False],
-    'dtype': [numpy.float32],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
 })))
 class TestInstanceNormalization(unittest.TestCase):
 
     def setUp(self):
+        dtype = self.dtype
         self.link = links.InstanceNormalization(
-            3, track_avg_stats=self.track_avg_stats)
+            3, dtype=self.dtype, track_avg_stats=self.track_avg_stats)
         self.link.cleargrads()
         if self.test and self.track_avg_stats:
-            mean = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
+            mean = numpy.random.uniform(-1, 1, (3,)).astype(dtype)
             self.link.avg_mean[...] = mean
-            var = numpy.random.uniform(0.5, 1, (3,)).astype(numpy.float32)
+            var = numpy.random.uniform(0.5, 1, (3,)).astype(dtype)
             self.link.avg_var[...] = var
 
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        gamma = self.link.gamma.array
-        beta = self.link.beta.array
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(dtype)
+        gamma = self.link.gamma.array.copy()
+        beta = self.link.beta.array.copy()
         shape = self.shape
         ndim = len(shape)
         expander = (None, Ellipsis) + (None,) * (ndim - 2)
@@ -44,7 +44,9 @@ class TestInstanceNormalization(unittest.TestCase):
             mean = self.link.avg_mean
             var = self.link.avg_var
             std = numpy.sqrt(var + self.link.eps)
-            normalized_x = (x_ - numpy.concatenate([mean] * shape[0])[expander]) / numpy.concatenate([std] * shape[0])[expander]
+            normalized_x = (
+                x_ - numpy.concatenate([mean] * shape[0])[expander]
+            ) / numpy.concatenate([std] * shape[0])[expander]
         else:
             aggr_axes = (0,) + tuple(range(2, ndim))
             mean = x_.mean(axis=aggr_axes)
@@ -56,29 +58,31 @@ class TestInstanceNormalization(unittest.TestCase):
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         with chainer.using_config('train', not self.test):
             y = self.link(x)
-        testing.assert_allclose(self.y_expected, y.array)
+        testing.assert_allclose(
+            self.y_expected, y.array, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
     def test_forward_gpu_multi(self):
-        with cuda.get_device_from_id(0):
+        with cuda.get_device_from_id(1):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device_from_id(1):
+        with cuda.get_device_from_id(0):
             self.check_forward(x)
 
     @attr.cudnn
@@ -87,7 +91,6 @@ class TestInstanceNormalization(unittest.TestCase):
         self.test_forward_gpu()
 
     @attr.multi_gpu(2)
-    @condition.retry(3)
     def test_forward_multi_gpu(self):
         with cuda.get_device_from_id(1):
             self.link.to_gpu()
@@ -101,22 +104,26 @@ class TestInstanceNormalization(unittest.TestCase):
             (self.link.gamma, self.link.beta),
             eps=1e-2, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype='f'))
+        # TODO(crcrpar): Support it.
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
+        # TODO(crcrpar): Support it.
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest
         self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype='f'))
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
+        # TODO(crcrpar): Support it.
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest
         self.link.use_cudnn = False
-        self.link(numpy.zeros(self.shape, dtype='f'))
         self.test_backward_gpu()
 
 
@@ -225,7 +232,9 @@ class TestInsanceNormalizationWithoutGammaAndBeta(unittest.TestCase):
             mean = self.link.avg_mean
             var = self.link.avg_var
             std = numpy.sqrt(var + self.link.eps)
-            y_expected = (x_ - numpy.concatenate([mean] * 2)[expander]) / numpy.concatenate([std] * 2)[expander]
+            y_expected = (
+                x_ - numpy.concatenate([mean] * 2)[expander]
+            ) / numpy.concatenate([std] * 2)[expander]
             self.y_expected = y_expected.reshape(shape)
         else:
             aggr_axes = (0, 2, 3)
