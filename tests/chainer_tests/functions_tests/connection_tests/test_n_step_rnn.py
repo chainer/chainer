@@ -269,6 +269,40 @@ class TestNStepRNN(unittest.TestCase):
         self.check_call_cudnn_backward_inference('auto')
 
 
+class TestNStepRNNInconsistentInputSize(unittest.TestCase):
+
+    def testInconsistentInputSize(self):
+        batches = [3, 2, 1]
+        in_size = 3
+        out_size = 2
+        n_layers = 2
+        dropout = 0.0
+
+        h_shape = (n_layers, batches[0], out_size)
+        hx = _wrap_variable(_to_gpu(_shaped_random(h_shape)))
+
+        o = out_size
+        i = in_size
+        ws = []
+        bs = []
+        # The first layer has the different shape
+        ws.append(_shaped_random([(o, i), (o, o)]))
+        bs.append(_shaped_random([o, o]))
+        for _ in range(n_layers - 1):
+            ws.append(_shaped_random([(o, o), (o, o)]))
+            bs.append(_shaped_random([o, o]))
+        ws = _wrap_variable(_to_gpu(ws))
+        bs = _wrap_variable(_to_gpu(bs))
+
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in batches]
+        xs = _wrap_variable(_to_gpu(_shaped_random(x_shape)))
+
+        with self.assertRaises(ValueError):
+            functions.n_step_rnn(
+                n_layers, dropout, hx, ws, bs, xs, activation='tanh')
+
+
 @testing.parameterize(*testing.product({
     'activation': ['tanh', 'relu']
 }))
@@ -495,6 +529,42 @@ class TestNStepBiRNN(unittest.TestCase):
         self.check_call_cudnn_backward('always')
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
+
+
+class TestNStepBiRNNInconsistentInputSize(unittest.TestCase):
+
+    def testInconsistentInputSize(self):
+        batches = [3, 2, 1]
+        in_size = 3
+        out_size = 2
+        n_layers = 2
+        dropout = 0.0
+
+        h_shape = (n_layers * 2, batches[0], out_size)
+        hx = _wrap_variable(_to_gpu(_shaped_random(h_shape)))
+
+        o = out_size
+        i = in_size
+        ws = []
+        bs = []
+        # The first layer has the different shape
+        for di in range(2):
+            ws.append(_shaped_random([(o, i), (o, o)]))
+            bs.append(_shaped_random([o, o]))
+        for _ in range(n_layers - 1):
+            for di in range(2):
+                ws.append(_shaped_random([(o, o * 2), (o, o)]))
+                bs.append(_shaped_random([o, o]))
+        ws = _wrap_variable(_to_gpu(ws))
+        bs = _wrap_variable(_to_gpu(bs))
+
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in batches]
+        xs = _wrap_variable(_to_gpu(_shaped_random(x_shape)))
+
+        with self.assertRaises(ValueError):
+            functions.n_step_birnn(
+                n_layers, dropout, hx, ws, bs, xs, activation='tanh')
 
 
 testing.run_module(__name__, __file__)
