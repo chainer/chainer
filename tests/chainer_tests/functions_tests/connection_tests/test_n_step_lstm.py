@@ -232,6 +232,7 @@ class TestNStepLSTM(unittest.TestCase):
 
 class TestNStepLSTMInconsistentInputSize(unittest.TestCase):
 
+    @attr.cudnn
     def testInconsistentInputSize(self):
         batches = [3, 2, 1]
         in_size = 3
@@ -630,6 +631,7 @@ class TestNStepLSTMDropout(unittest.TestCase):
 
 class TestNStepBiLSTMInconsistentInputSize(unittest.TestCase):
 
+    @attr.cudnn
     def testInconsistentInputSize(self):
         batches = [3, 2, 1]
         in_size = 3

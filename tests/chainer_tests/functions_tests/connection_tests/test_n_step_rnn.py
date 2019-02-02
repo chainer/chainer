@@ -271,6 +271,7 @@ class TestNStepRNN(unittest.TestCase):
 
 class TestNStepRNNInconsistentInputSize(unittest.TestCase):
 
+    @attr.cudnn
     def testInconsistentInputSize(self):
         batches = [3, 2, 1]
         in_size = 3
@@ -533,6 +534,7 @@ class TestNStepBiRNN(unittest.TestCase):
 
 class TestNStepBiRNNInconsistentInputSize(unittest.TestCase):
 
+    @attr.cudnn
     def testInconsistentInputSize(self):
         batches = [3, 2, 1]
         in_size = 3
