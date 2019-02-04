@@ -221,10 +221,13 @@ class FunctionTestCase(unittest.TestCase):
     def _skip_if_chainerx_float16(self, backend_config):
         # This is a dirty workaround to avoid writing the skip logic in every
         # test case.
-        # It assumes that there's an attribute 'dtype' in the test case.
+        # It assumes that there's attributes 'dtype', `x_dtype`, and `W_dtype`
+        # in the test case.
         # TODO(niboshi): Support float16 in ChainerX
-        if (backend_config.use_chainerx
-                and getattr(self, 'dtype', None) == numpy.float16):
+        if (backend_config.use_chainerx and (
+                getattr(self, 'dtype', None) == numpy.float16 or
+                getattr(self, 'x_dtype', None) == numpy.float16 or
+                getattr(self, 'W_dtype', None) == numpy.float16)):
             raise unittest.SkipTest('ChainerX does not support float16')
 
     def test_forward(self, backend_config):
