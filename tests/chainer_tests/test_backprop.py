@@ -240,10 +240,9 @@ class TestFunctionBackprop(unittest.TestCase):
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
         # ChainerX
-        # TODO(niboshi): Fix ChainerX for None inputs
-        # {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        # {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        # {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 class TestFunctionInputNone(unittest.TestCase):
 
