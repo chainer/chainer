@@ -29,10 +29,10 @@ install(FILES
     check_backward.h
     constant.h
     context.h
-    crossplatform.h
     device.h
     device_id.h
     dtype.h
+    dynamic_lib.h
     enum.h
     error.h
     float16.h
@@ -47,6 +47,7 @@ install(FILES
     numeric_limits.h
     op_node.h
     optional_container_arg.h
+    platform.h
     reduction_kernel_arg.h
     scalar.h
     shape.h
@@ -55,6 +56,7 @@ install(FILES
     stack_vector.h
     strides.h
     thread_local_state.h
+    util.h
     chainerx.h
     DESTINATION include/chainerx
     )
@@ -72,23 +74,33 @@ set(chainerx_srcs
     backward_context.cc
     check_backward.cc
     context.cc
-    crossplatform.cc
     device.cc
     device_id.cc
     dtype.cc
+    dynamic_lib.cc
     float16.cc
     graph.cc
     numeric.cc
     numerical_gradient.cc
     op_node.cc
+    platform.cc
     reduction_kernel_arg.cc
     scalar.cc
     shape.cc
     strides.cc
     thread_local_state.cc
+    util.cc
     )
 
 if(MSVC)
+    install(FILES
+        platform/windows.h
+        )
+
+    set(chainerx_srcs
+        "${chainerx_srcs}"
+        platform/windows.cc
+        )
     add_library(chainerx STATIC ${chainerx_srcs})
 else()
     add_library(chainerx SHARED ${chainerx_srcs})
@@ -142,7 +154,6 @@ if(${CHAINERX_BUILD_TEST})
         backward_test.cc
         check_backward_test.cc
         context_test.cc
-        crossplatform_test.cc
         device_test.cc
         dtype_test.cc
         float16_test.cc

@@ -10,10 +10,10 @@
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
-#include "chainerx/crossplatform.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/native/native_backend.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
@@ -68,7 +68,7 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    if (nonstd::optional<std::string> env = crossplatform::GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
+    if (nonstd::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
         cudnn_max_workspace_size_ = std::stoul(*env);
     } else {
         cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;

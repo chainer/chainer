@@ -15,14 +15,15 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "chainerx/crossplatform.h"
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #endif  // CHAINERX_ENABLE_CUDA
+#include "chainerx/dynamic_lib.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/thread_local_state.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace {
@@ -30,10 +31,10 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    if (nonstd::optional<std::string> chainerx_path = crossplatform::GetEnv("CHAINERX_PATH")) {
+    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
         return *chainerx_path;
     }
-    if (nonstd::optional<std::string> home_path = crossplatform::GetEnv("HOME")) {
+    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
         return *home_path + "/.chainerx";
     }
     throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
@@ -51,7 +52,11 @@ Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
     for (void* handle : dlopen_handles_) {
-        crossplatform::DlCloseNoExcept(handle);
+        try {
+            DlClose(handle);
+        } catch (...) {
+            // dtor should not throw any exception.
+        }
     }
 }
 
@@ -85,7 +90,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle{nullptr};
         try {
-            handle = crossplatform::DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
+            handle = DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
         } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }

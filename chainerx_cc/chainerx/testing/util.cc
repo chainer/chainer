@@ -8,9 +8,9 @@
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
-#include "chainerx/crossplatform.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace testing {
@@ -25,10 +25,14 @@ int GetNativeDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    if (nonstd::optional<std::string> env = crossplatform::GetEnv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT")) {
-        limit = std::stoi(*env);
+    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT")) {
+        try {
+            limit = std::stoi(*env);
+        } catch (const std::exception&) {
+            limit = -1;
+        }
         if (limit < 0) {
-            throw ChainerxError{"CHAINERX_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", limit};
+            throw ChainerxError{"CHAINERX_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", *env};
         }
     } else {
         limit = backend.GetDeviceCount();
@@ -42,10 +46,14 @@ int GetCudaDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    if (nonstd::optional<std::string> env = crossplatform::GetEnv("CHAINERX_TEST_CUDA_DEVICE_LIMIT")) {
-        limit = std::stoi(*env);
+    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_CUDA_DEVICE_LIMIT")) {
+        try {
+            limit = std::stoi(*env);
+        } catch (const std::exception&) {
+            limit = -1;
+        }
         if (limit < 0) {
-            throw ChainerxError{"CHAINERX_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", limit};
+            throw ChainerxError{"CHAINERX_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", *env};
         }
     } else {
         limit = backend.GetDeviceCount();

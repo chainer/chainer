@@ -8,7 +8,6 @@
 
 #include "chainerx/array.h"
 #include "chainerx/context.h"
-#include "chainerx/crossplatform.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/device.h"
 #include "chainerx/indexable_array.h"
@@ -17,6 +16,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/testing/threading.h"
 #include "chainerx/testing/util.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
@@ -383,15 +383,15 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
 
 class EnvVarScope {
 public:
-    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)), old_value_{crossplatform::GetEnv(name_)} {
-        crossplatform::SetEnv(name_, value);
+    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)), old_value_{GetEnv(name_)} {
+        SetEnv(name_, value);
     }
 
     ~EnvVarScope() {
         if (old_value_) {
-            crossplatform::SetEnv(name_, *old_value_);
+            SetEnv(name_, *old_value_);
         } else {
-            crossplatform::UnsetEnv(name_);
+            UnsetEnv(name_);
         }
     }
 
