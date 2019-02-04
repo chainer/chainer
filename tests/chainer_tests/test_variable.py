@@ -1533,29 +1533,6 @@ class TestParameterToDevice(unittest.TestCase):
             assert isinstance(p._grad, device.supported_array_types)
 
 
-class TestParameterToDeviceDeviceSpec(unittest.TestCase):
-
-    def check_to_device_spec(self, device_spec, expected_xp):
-        shape = (2, 3)
-        data = np.random.uniform(-1, 1, shape).astype(np.float32)
-        x = chainer.Parameter(data)
-        x.to_device(device_spec)
-        assert x.xp is expected_xp
-        assert x._has_chainerx_array is (expected_xp is chainerx)
-
-    def test_to_device_numpy(self):
-        self.check_to_device_spec(np, np)
-
-    @attr.gpu
-    def test_to_device_cupy(self):
-        self.check_to_device_spec((cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_to_device_chainerx(self):
-        self.check_to_device_spec('native:0', chainerx)
-        self.check_to_device_spec('native', chainerx)
-
-
 @testing.parameterize(
     {'x_shape': (10,)},
     {'x_shape': ()},
