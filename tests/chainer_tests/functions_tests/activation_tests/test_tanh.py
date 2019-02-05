@@ -12,6 +12,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'contiguous': [None, 'C'],
 }))
 @testing.fix_random()
 @testing.inject_backend_tests(
