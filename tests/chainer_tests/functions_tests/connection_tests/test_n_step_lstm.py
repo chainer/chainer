@@ -229,51 +229,42 @@ class TestNStepLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
-
-class TestNStepLSTMInconsistentInputSize(unittest.TestCase):
-
-    @attr.cudnn
-    def testInconsistentInputSize(self):
-        batches = [3, 2, 1]
-        in_size = 3
-        out_size = 2
-        n_layers = 2
-        dropout = 0.0
-
-        h_shape = (n_layers, batches[0], out_size)
-        cx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        cx = _wrap_variable(_to_gpu(cx))
-        hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        hx = _wrap_variable(_to_gpu(hx))
-
-        ws = []
-        bs = []
-        for i in range(n_layers):
-            weights = []
-            biases = []
-            for j in range(8):
-                if i == 0 and j < 4:
-                    w_in = in_size
-                else:
-                    w_in = out_size
-
-                weights.append(numpy.random.uniform(
-                    -1, 1, (out_size, w_in)).astype('f'))
-                biases.append(numpy.random.uniform(
-                    -1, 1, (out_size,)).astype('f'))
-            ws.append(weights)
-            bs.append(biases)
-        ws = _wrap_variable(_to_gpu(ws))
-        bs = _wrap_variable(_to_gpu(bs))
-
-        x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in batches]
-        xs = _wrap_variable(_to_gpu(xs))
-
+    def check_inconsistent_input_size(self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         with self.assertRaises(ValueError):
             functions.n_step_lstm(
-                n_layers, dropout, hx, cx, ws, bs, xs)
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+        self.check_inconsistent_input_size(self.hx, self.cx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+
+        hx = _to_gpu(self.hx)
+        cx = _to_gpu(self.cx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, cx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
 
 
 class TestNStepBiLSTM(unittest.TestCase):
@@ -505,6 +496,43 @@ class TestNStepBiLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
+    def check_inconsistent_input_size(self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
+        with self.assertRaises(ValueError):
+            functions.n_step_bilstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+        self.check_inconsistent_input_size(self.hx, self.cx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+
+        hx = _to_gpu(self.hx)
+        cx = _to_gpu(self.cx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, cx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
+
 
 def _stack_weight(ws):
     # TODO(unno): Input of the current LSTM implementation is shuffled
@@ -627,55 +655,6 @@ class TestNStepLSTMDropout(unittest.TestCase):
                 h_counts[i], total * (1 - self.dropout) ** (self.length * i))
             self.assert_count(
                 c_counts[i], total * (1 - self.dropout) ** (self.length * i))
-
-
-class TestNStepBiLSTMInconsistentInputSize(unittest.TestCase):
-
-    @attr.cudnn
-    def testInconsistentInputSize(self):
-        batches = [3, 2, 1]
-        in_size = 3
-        out_size = 2
-        n_layers = 2
-        dropout = 0.0
-
-        h_shape = (n_layers, batches[0], out_size)
-        cx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        cx = _wrap_variable(_to_gpu(cx))
-        hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        hx = _wrap_variable(_to_gpu(hx))
-
-        ws = []
-        bs = []
-        for i in range(n_layers):
-            for di in [0, 1]:
-                weights = []
-                biases = []
-                for j in range(8):
-                    if i == 0 and j < 4:
-                        w_in = in_size
-                    elif i > 0 and j < 4:
-                        w_in = out_size * 2
-                    else:
-                        w_in = out_size
-
-                weights.append(numpy.random.uniform(
-                    -1, 1, (out_size, w_in)).astype('f'))
-                biases.append(numpy.random.uniform(
-                    -1, 1, (out_size,)).astype('f'))
-            ws.append(weights)
-            bs.append(biases)
-        ws = _wrap_variable(_to_gpu(ws))
-        bs = _wrap_variable(_to_gpu(bs))
-
-        x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in batches]
-        xs = _wrap_variable(_to_gpu(xs))
-
-        with self.assertRaises(ValueError):
-            functions.n_step_bilstm(
-                n_layers, dropout, hx, cx, ws, bs, xs)
 
 
 testing.run_module(__name__, __file__)
