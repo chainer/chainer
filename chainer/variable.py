@@ -640,6 +640,11 @@ class Variable(object):
     def _set_chainerx_array(self, array, grad):
         # type: (tp.Optional[chainerx.ndarray], tp.Optional[chainerx.ndarray]) -> None # NOQA
 
+        # Sets chainerx array and grad.
+        assert array is None or isinstance(array, chainerx.ndarray)
+
+        self._grad = None
+
         # Create a view of the given data to hold internally and modify.
         if array is None:
             self._data = [None]
@@ -1178,6 +1183,8 @@ class Variable(object):
             self._data = [new_arr]
             if grad_var is not None:
                 grad_var.to_device(device)
+                # _grad has been invalidated by grad_var.to_device().
+                self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
         node = self._node

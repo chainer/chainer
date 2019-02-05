@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -19,10 +18,12 @@
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #endif  // CHAINERX_ENABLE_CUDA
+#include "chainerx/dynamic_lib.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/thread_local_state.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace {
@@ -30,16 +31,13 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    char* chainerx_path = std::getenv("CHAINERX_PATH");
-    if (chainerx_path != nullptr) {
-        return chainerx_path;
+    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
+        return *chainerx_path;
     }
-
-    char* home_path = std::getenv("HOME");
-    if (home_path == nullptr) {
-        throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
+    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
+        return *home_path + "/.chainerx";
     }
-    return std::string(home_path) + "/.chainerx";
+    throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
 }
 
 }  // namespace
@@ -54,9 +52,11 @@ Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
     for (void* handle : dlopen_handles_) {
-#ifndef _WIN32
-        ::dlclose(handle);
-#endif  // _WIN32
+        try {
+            DlClose(handle);
+        } catch (...) {
+            // dtor should not throw any exception.
+        }
     }
 }
 
@@ -86,14 +86,12 @@ Backend& Context::GetBackend(const std::string& backend_name) {
                 new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
-#ifdef _WIN32
-        throw BackendError{"Backend is not supported in Windows."};
-#else  // _WIN32
-
         // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
-        void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (handle == nullptr) {
+        void* handle{nullptr};
+        try {
+            handle = DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
+        } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }
         {
@@ -116,7 +114,6 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{create_backend(*this),
                                                                            context_detail::BackendDeleter{destroy_backend}};
-#endif  // _WIN32
     }
 
     {

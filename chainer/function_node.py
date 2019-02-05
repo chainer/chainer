@@ -418,20 +418,23 @@ Use apply() method instead.\
         in_data = []
         device = None
         for data, x in six.moves.zip(chainerx_in_data, inputs):
-            # Use the cached fallback arrays as inputs if they exist.
-            x_is_variable = isinstance(x, variable.Variable)
-            if x_is_variable and x._chainerx_fallback_array is not None:
-                fallback_data = x._chainerx_fallback_array
-                if device is None:
-                    device = x.device
+            if data is None:
+                fallback_data = None
             else:
-                fallback_data = backend.from_chainerx(data)
-                if device is None:
-                    device = backend.ChainerxDevice(data.device)
+                # Use the cached fallback arrays as inputs if they exist.
+                x_is_variable = isinstance(x, variable.Variable)
+                if x_is_variable and x._chainerx_fallback_array is not None:
+                    fallback_data = x._chainerx_fallback_array
+                    if device is None:
+                        device = x.device
+                else:
+                    fallback_data = backend.from_chainerx(data)
+                    if device is None:
+                        device = backend.ChainerxDevice(data.device)
 
-                # Update the fallback cache if possible.
-                if x_is_variable:
-                    x._chainerx_fallback_array = fallback_data
+                    # Update the fallback cache if possible.
+                    if x_is_variable:
+                        x._chainerx_fallback_array = fallback_data
 
             in_data.append(fallback_data)
 
@@ -454,8 +457,9 @@ Use apply() method instead.\
             [] if self._output_indexes_to_retain is None
             else self._output_indexes_to_retain)
 
-        self.inputs = tuple(
-            [variable._ChainerxVariableNodeProps(x) for x in inputs])
+        self.inputs = tuple([
+            None if x is None
+            else variable._ChainerxVariableNodeProps(x) for x in inputs])
 
         ret = tuple([
             _to_variable_with_chainerx_fallback_array(
@@ -717,7 +721,8 @@ Use apply() method instead.\
             for a in grad_outputs])
 
         self._chainerx_retained_inputs = tuple([
-            variable.Variable(
+            None if array is None
+            else variable.Variable(
                 array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
