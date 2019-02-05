@@ -53,7 +53,7 @@ class TestSigmoid(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        y = _sigmoid(x.copy()).astype(self.dtype)
+        y = _sigmoid(x)
         if numpy.isscalar(y):
             y = numpy.asarray(y)
         return y,
