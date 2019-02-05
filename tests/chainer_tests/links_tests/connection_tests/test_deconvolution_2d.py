@@ -23,14 +23,14 @@ def _pair(x):
         'nobias': [True, False],
         'use_cudnn': ['always', 'never'],
         'dilate': [1, 2],
-        'groups': [1, 2],
+        'groups': [1, 3],
     })
 )
 class TestDeconvolution2D(unittest.TestCase):
 
     def setUp(self):
         in_channels = 3
-        out_channels = 2
+        out_channels = 6
         ksize = 3
         stride = 2
         pad = 1
