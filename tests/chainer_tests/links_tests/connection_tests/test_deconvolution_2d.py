@@ -21,7 +21,9 @@ def _pair(x):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': ['always', 'never']
+        'use_cudnn': ['always', 'never'],
+        'dilate': [1, 2],
+        'groups': [1, 2],
     })
 )
 class TestDeconvolution2D(unittest.TestCase):
@@ -33,8 +35,8 @@ class TestDeconvolution2D(unittest.TestCase):
         stride = 2
         pad = 1
         self.link = L.Deconvolution2D(
-            in_channels, out_channels, ksize,
-            stride=stride, pad=pad, nobias=self.nobias)
+            in_channels, out_channels, ksize, stride=stride, pad=pad,
+            nobias=self.nobias, dilate=self.dilate, groups=self.groups)
         self.link.W.data[...] = numpy.random.uniform(
             -1, 1, self.link.W.data.shape).astype(numpy.float32)
         if not self.nobias:
@@ -46,8 +48,8 @@ class TestDeconvolution2D(unittest.TestCase):
         N = 2
         h, w = 3, 2
         kh, kw = _pair(ksize)
-        out_h = conv.get_deconv_outsize(h, kh, stride, pad)
-        out_w = conv.get_deconv_outsize(w, kw, stride, pad)
+        out_h = conv.get_deconv_outsize(h, kh, stride, pad, d=self.dilate)
+        out_w = conv.get_deconv_outsize(w, kw, stride, pad, d=self.dilate)
         self.gy = numpy.random.uniform(
             -1, 1, (N, out_channels, out_h, out_w)).astype(numpy.float32)
         self.x = numpy.random.uniform(
