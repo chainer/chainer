@@ -10,6 +10,6 @@ void* DlOpen(const std::string& filename, int flags) { return platform::DlOpen(f
 
 void DlClose(void* handle) { platform::DlClose(handle); }
 
-void* DlSym(void* handle, const char* name) { platform::DlSym(handle, name); }
+void* DlSym(void* handle, const char* name) { return platform::DlSym(handle, name); }
 
 }  // namespace chainerx
