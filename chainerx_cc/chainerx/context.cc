@@ -1,6 +1,9 @@
 #include "chainerx/context.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#define RTLD_LOCAL 0
+#define RTLD_NOW 0x00002
+#else  // _WIN32
 // Windows doesn't support it currently
 #include <dlfcn.h>
 #endif  // _WIN32
@@ -100,8 +103,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
 
         // Create backend
-        void* ptr_create_backend = ::dlsym(handle, "CreateBackend");
-        void* ptr_destroy_backend = ::dlsym(handle, "DestroyBackend");
+        void* ptr_create_backend = DlSym(handle, "CreateBackend");
+        void* ptr_destroy_backend = DlSym(handle, "DestroyBackend");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto create_backend = reinterpret_cast<Backend* (*)(Context&)>(ptr_create_backend);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

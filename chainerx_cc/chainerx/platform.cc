@@ -20,10 +20,15 @@ namespace platform {
 
 #ifdef _WIN32
 
-using SetEnv = windows::SetEnv;
-using UnsetEnv = windows::UnsetEnv;
-using DlOpen = windows::DlOpen;
-using DlClose = windows::DlClose;
+void SetEnv(const std::string& name, const std::string& value) { windows::SetEnv(name, value); }
+
+void UnsetEnv(const std::string& name) { windows::UnsetEnv(name); }
+
+void* DlOpen(const std::string& filename, int flags) { return windows::DlOpen(filename, flags); }
+
+void DlClose(void* handle) { windows::DlClose(handle); }
+
+void* DlSym(void* handle, const std::string& name) { return windows::DlSym(handle, name); }
 
 #else  // _WIN32
 
@@ -50,6 +55,14 @@ void DlClose(void* handle) {
     if (0 != ::dlclose(handle)) {
         throw ChainerxError{"Failed to close shared object: ", ::dlerror()};
     }
+}
+
+void* DlSym(void* handle, const std::string& name) {
+    if (void* symbol = ::dlsym(handle, name.c_str())) {
+        return symbol;
+    }
+
+    throw ChainerxError{"Failed to get symbol: ", ::dlerror()};
 }
 
 #endif  // _WIN32

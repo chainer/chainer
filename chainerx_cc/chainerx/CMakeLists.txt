@@ -97,6 +97,7 @@ set(chainerx_srcs
 if(MSVC)
     install(FILES
         platform/windows.h
+        DESTINATION include/chainerx/platform
         )
 
     set(chainerx_srcs

@@ -13,5 +13,7 @@ void* DlOpen(const std::string& filename, int flags);
 
 void DlClose(void* handle);
 
+void* DlSym(void* handle, const std::string& name);
+
 }  // namespace platform
 }  // namespace chainerx
