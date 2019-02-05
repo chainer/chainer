@@ -866,7 +866,7 @@ class Variable(object):
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()  # type: ignore
-                         or d.is_backprop_required())):
+                         or d.is_backprop_required())):  # type: ignore
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
@@ -924,7 +924,6 @@ class Variable(object):
     @property
     def grad(self):
         # type: () -> tp.Optional[types.NdArray]
-
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -984,7 +983,6 @@ class Variable(object):
     @property
     def grad_var(self):
         # type: () -> tp.Optional["Variable"]
-
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
