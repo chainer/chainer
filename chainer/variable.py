@@ -1194,7 +1194,8 @@ class Variable(object):
                 node._variable = lambda: None
                 self._node = None
         else:
-            node._update_data_info(new_arr)
+            if node._data is not None:
+                node.retain_data()  # type: ignore # _node has value only when xp is not chainerx # NOQA
 
     def cleargrad(self):
         """Clears the gradient array."""
