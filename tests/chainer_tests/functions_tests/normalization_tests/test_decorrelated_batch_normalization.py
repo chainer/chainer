@@ -4,8 +4,7 @@ from chainer import functions
 from chainer import testing
 
 
-def _decorrelated_batch_normalization(args):
-    x, mean, projection, groups = args
+def _decorrelated_batch_normalization(x, mean, projection, groups):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
     b, c = x.shape[:2]
@@ -104,8 +103,8 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
         mean = x_hat.mean(axis=1)
         projection = _calc_projection(x, mean, self.eps, self.groups)
 
-        args = [x, mean, projection, self.groups]
-        return _decorrelated_batch_normalization(args),
+        return _decorrelated_batch_normalization(
+            x, mean, projection, self.groups),
 
 
 @testing.parameterize(*(testing.product({
@@ -173,8 +172,8 @@ class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
         x, = inputs
         mean = self.mean.copy()
         projection = self.projection.copy()
-        args = [x, mean, projection, self.groups]
-        return _decorrelated_batch_normalization(args),
+        return _decorrelated_batch_normalization(
+            x, mean, projection, self.groups),
 
 
 testing.run_module(__name__, __file__)
