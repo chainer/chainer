@@ -51,7 +51,7 @@ class TestTanh(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        return functions.tanh(x).array,
+        return utils.force_array(numpy.tanh(x)),
 
 
 @testing.parameterize(*testing.product({
