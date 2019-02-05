@@ -6,6 +6,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
+from chainer import utils
 from chainer.testing import attr
 
 
@@ -54,8 +55,7 @@ class TestSigmoid(testing.FunctionTestCase):
     def forward_expected(self, inputs):
         x, = inputs
         y = _sigmoid(x)
-        if numpy.isscalar(y):
-            y = numpy.asarray(y)
+        y = utils.force_array(y)
         return y,
 
     def forward(self, inputs, device):
