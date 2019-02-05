@@ -1,6 +1,7 @@
 #include "chainerx/context.h"
 
 #ifdef _WIN32
+// RTLD_LOCAL and RTLD_NOW are not defined on Windows
 #define RTLD_LOCAL 0
 #define RTLD_NOW 0x00002
 #else  // _WIN32
