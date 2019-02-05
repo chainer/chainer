@@ -229,7 +229,8 @@ class TestNStepLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
-    def check_inconsistent_input_size(self, h_data, c_data, xs_data, ws_data, bs_data):
+    def check_inconsistent_input_size(
+            self, h_data, c_data, xs_data, ws_data, bs_data):
         h = _wrap_variable(h_data)
         c = _wrap_variable(c_data)
         xs = _wrap_variable(xs_data)
@@ -243,7 +244,8 @@ class TestNStepLSTM(unittest.TestCase):
         x_in_size = 4  # inconsistent in_size with that of ws.
         xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
               for b in self.batches]
-        self.check_inconsistent_input_size(self.hx, self.cx, xs, self.ws, self.bs)
+        self.check_inconsistent_input_size(
+            self.hx, self.cx, xs, self.ws, self.bs)
 
     def check_inconsistent_input_size_gpu(self, use_cudnn):
         x_in_size = 4  # inconsistent in_size with that of ws.
@@ -496,7 +498,8 @@ class TestNStepBiLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
-    def check_inconsistent_input_size(self, h_data, c_data, xs_data, ws_data, bs_data):
+    def check_inconsistent_input_size(
+            self, h_data, c_data, xs_data, ws_data, bs_data):
         h = _wrap_variable(h_data)
         c = _wrap_variable(c_data)
         xs = _wrap_variable(xs_data)
@@ -510,7 +513,8 @@ class TestNStepBiLSTM(unittest.TestCase):
         x_in_size = 4  # inconsistent in_size with that of ws.
         xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
               for b in self.batches]
-        self.check_inconsistent_input_size(self.hx, self.cx, xs, self.ws, self.bs)
+        self.check_inconsistent_input_size(
+            self.hx, self.cx, xs, self.ws, self.bs)
 
     def check_inconsistent_input_size_gpu(self, use_cudnn):
         x_in_size = 4  # inconsistent in_size with that of ws.
