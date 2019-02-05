@@ -57,7 +57,6 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
     'misc')
         run_step setup_conda_environment
         run_step python_style_check
-        run_step python_mypy_check
         run_step clang_format
         run_step cpplint
         run_step cmake

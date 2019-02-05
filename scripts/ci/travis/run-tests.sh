@@ -56,11 +56,9 @@ case "${CHAINER_TRAVIS_TEST}" in
             ;;
             install)
                 run_prestep install_chainer_style_check_deps
-                run_prestep python_mypy_check_deps
             ;;
             script)
                 run_step python_style_check
-                run_step python_mypy_check
             ;;
         esac
         ;;
