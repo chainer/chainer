@@ -268,40 +268,41 @@ class TestNStepRNN(unittest.TestCase):
         self.check_call_cudnn_backward_inference('never')
         self.check_call_cudnn_backward_inference('auto')
 
-
-class TestNStepRNNInconsistentInputSize(unittest.TestCase):
-
-    @attr.cudnn
-    def testInconsistentInputSize(self):
-        batches = [3, 2, 1]
-        in_size = 3
-        out_size = 2
-        n_layers = 2
-        dropout = 0.0
-
-        h_shape = (n_layers, batches[0], out_size)
-        hx = _wrap_variable(_to_gpu(_shaped_random(h_shape)))
-
-        o = out_size
-        i = in_size
-        ws = []
-        bs = []
-        # The first layer has the different shape
-        ws.append(_shaped_random([(o, i), (o, o)]))
-        bs.append(_shaped_random([o, o]))
-        for _ in range(n_layers - 1):
-            ws.append(_shaped_random([(o, o), (o, o)]))
-            bs.append(_shaped_random([o, o]))
-        ws = _wrap_variable(_to_gpu(ws))
-        bs = _wrap_variable(_to_gpu(bs))
-
-        x_in_size = 4  # inconsistent in_size with that of ws.
-        x_shape = [(b, x_in_size) for b in batches]
-        xs = _wrap_variable(_to_gpu(_shaped_random(x_shape)))
-
+    def check_inconsistent_input_size(self, h_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         with self.assertRaises(ValueError):
             functions.n_step_rnn(
-                n_layers, dropout, hx, ws, bs, xs, activation='tanh')
+                self.n_layers, self.dropout, h, ws, bs, xs,
+                activation=self.activation)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in self.batches]
+        xs = _shaped_random(x_shape)
+        self.check_inconsistent_input_size(self.hx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in self.batches]
+        xs = _shaped_random(x_shape)
+
+        hx = _to_gpu(self.hx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
 
 
 @testing.parameterize(*testing.product({
@@ -531,42 +532,41 @@ class TestNStepBiRNN(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
-
-class TestNStepBiRNNInconsistentInputSize(unittest.TestCase):
-
-    @attr.cudnn
-    def testInconsistentInputSize(self):
-        batches = [3, 2, 1]
-        in_size = 3
-        out_size = 2
-        n_layers = 2
-        dropout = 0.0
-
-        h_shape = (n_layers * 2, batches[0], out_size)
-        hx = _wrap_variable(_to_gpu(_shaped_random(h_shape)))
-
-        o = out_size
-        i = in_size
-        ws = []
-        bs = []
-        # The first layer has the different shape
-        for di in range(2):
-            ws.append(_shaped_random([(o, i), (o, o)]))
-            bs.append(_shaped_random([o, o]))
-        for _ in range(n_layers - 1):
-            for di in range(2):
-                ws.append(_shaped_random([(o, o * 2), (o, o)]))
-                bs.append(_shaped_random([o, o]))
-        ws = _wrap_variable(_to_gpu(ws))
-        bs = _wrap_variable(_to_gpu(bs))
-
-        x_in_size = 4  # inconsistent in_size with that of ws.
-        x_shape = [(b, x_in_size) for b in batches]
-        xs = _wrap_variable(_to_gpu(_shaped_random(x_shape)))
-
+    def check_inconsistent_input_size(self, h_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
         with self.assertRaises(ValueError):
             functions.n_step_birnn(
-                n_layers, dropout, hx, ws, bs, xs, activation='tanh')
+                self.n_layers, self.dropout, h, ws, bs, xs,
+                activation=self.activation)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in self.batches]
+        xs = _shaped_random(x_shape)
+        self.check_inconsistent_input_size(self.hx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        x_shape = [(b, x_in_size) for b in self.batches]
+        xs = _shaped_random(x_shape)
+
+        hx = _to_gpu(self.hx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
 
 
 testing.run_module(__name__, __file__)

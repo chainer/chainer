@@ -633,6 +633,13 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
+    # Check input size consistency with xs and ws.
+    x_in = xs[0].shape[1]
+    w_in = ws[0][0].shape[1]
+    if x_in != w_in:
+        raise ValueError('Inconsistent input size in input values and weight '
+                         'parameters')
+
     xp = backend.get_array_module(hx)
 
     if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
@@ -640,13 +647,6 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-
-        # Check input size consistency with xs and ws here.
-        x_in = xs[0].shape[0]
-        w_in = ws[0][0].shape[1]
-        if x_in != w_in:
-            raise ValueError('Inconsistent input size in input values and '
-                             'weight parameters')
 
         rnn_mode = 'rnn_%s' % activation
         w = cudnn_rnn_weight_concat(
