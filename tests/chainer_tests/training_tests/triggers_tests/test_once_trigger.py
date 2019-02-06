@@ -46,8 +46,8 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.OnceTrigger(self.call_on_resume)
         for expected, finished in zip(self.expected, self.finished):
-            self.assertEqual(trigger(trainer), expected)
             self.assertEqual(trigger.finished, finished)
+            self.assertEqual(trigger(trainer), expected)
             trainer.updater.update()
 
     def test_resumed_trigger(self):
@@ -57,8 +57,8 @@ class TestOnceTrigger(unittest.TestCase):
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             for expected, finished in zip(self.expected, self.finished):
                 trainer.updater.update()
-                self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger(trainer), expected)
             serializers.save_npz(f.name, trigger)
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
@@ -66,8 +66,8 @@ class TestOnceTrigger(unittest.TestCase):
             for expected, finished in zip(self.expected[self.resume:],
                                           self.finished[self.resume:]):
                 trainer.updater.update()
-                self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger(trainer), expected)
 
     @condition.repeat(10)
     def test_trigger_sparse_call(self):
@@ -78,8 +78,8 @@ class TestOnceTrigger(unittest.TestCase):
         for expected, finished in zip(self.expected, self.finished):
             accumulated = accumulated or expected
             if random.randrange(2):
-                self.assertEqual(trigger(trainer), accumulated)
                 self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger(trainer), accumulated)
                 accumulated = False
             trainer.updater.update()
 
@@ -94,8 +94,8 @@ class TestOnceTrigger(unittest.TestCase):
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
-                    self.assertEqual(trigger(trainer), accumulated)
                     self.assertEqual(trigger.finished, finished)
+                    self.assertEqual(trigger(trainer), accumulated)
                     accumulated = False
             serializers.save_npz(f.name, trigger)
 
@@ -106,8 +106,8 @@ class TestOnceTrigger(unittest.TestCase):
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
-                    self.assertEqual(trigger(trainer), accumulated)
                     self.assertEqual(trigger.finished, finished)
+                    self.assertEqual(trigger(trainer), accumulated)
                     accumulated = False
 
     def test_resumed_trigger_backward_compat(self):
@@ -117,8 +117,8 @@ class TestOnceTrigger(unittest.TestCase):
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             for expected, finished in zip(self.expected, self.finished):
                 trainer.updater.update()
-                self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger(trainer), expected)
             # old version does not save anything
             np.savez(f, dummy=0)
 
@@ -128,8 +128,8 @@ class TestOnceTrigger(unittest.TestCase):
             for expected, finished in zip(self.expected[self.resume:],
                                           self.finished[self.resume:]):
                 trainer.updater.update()
-                self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)
