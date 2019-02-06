@@ -1,10 +1,5 @@
 #include "chainerx/context.h"
 
-#ifndef _WIN32
-// Windows doesn't support it currently
-#include <dlfcn.h>
-#endif  // _WIN32
-
 #include <algorithm>
 #include <atomic>
 #include <mutex>
@@ -90,7 +85,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle{nullptr};
         try {
-            handle = DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
+            handle = DlOpen(so_file_path);
         } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }
@@ -100,8 +95,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
 
         // Create backend
-        void* ptr_create_backend = ::dlsym(handle, "CreateBackend");
-        void* ptr_destroy_backend = ::dlsym(handle, "DestroyBackend");
+        void* ptr_create_backend = DlSym(handle, "CreateBackend");
+        void* ptr_destroy_backend = DlSym(handle, "DestroyBackend");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto create_backend = reinterpret_cast<Backend* (*)(Context&)>(ptr_create_backend);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
