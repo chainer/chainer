@@ -48,7 +48,7 @@ class NStepRNNBase(link.ChainList):
         :func:`chainer.links.NStepBiRNNReLU`
         :func:`chainer.links.NStepBiRNNTanh`
 
-    """  # NOQA
+    """
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
         if kwargs:
