@@ -34,8 +34,12 @@ from chainer import training
 )
 class TestOnceTrigger(unittest.TestCase):
 
-    expected = [1] + [0] * 6
-    finished = [0] + [1] * 6
+    def setUp(self):
+        self.expected = [1] + [0] * 6
+        self.finished = [0] + [1] * 6
+        if self.call_on_resume:
+            self.expected[self.resume] = 1
+            self.finished[self.resume] = 0
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -47,9 +51,6 @@ class TestOnceTrigger(unittest.TestCase):
             trainer.updater.update()
 
     def test_resumed_trigger(self):
-        if self.call_on_resume:
-            self.expected[self.resume] = 1
-            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -84,9 +85,6 @@ class TestOnceTrigger(unittest.TestCase):
 
     @condition.repeat(10)
     def test_resumed_trigger_sparse_call(self):
-        if self.call_on_resume:
-            self.expected[self.resume] = 1
-            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         accumulated = False
@@ -113,9 +111,6 @@ class TestOnceTrigger(unittest.TestCase):
                     accumulated = False
 
     def test_resumed_trigger_backward_compat(self):
-        if self.call_on_resume:
-            self.expected[self.resume] = 1
-            self.finished[self.resume] = 0
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
