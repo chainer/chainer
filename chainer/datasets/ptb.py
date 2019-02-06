@@ -8,7 +8,8 @@ from chainer.dataset import download
 def get_ptb_words():
     """Gets the Penn Tree Bank dataset as long word sequences.
 
-    `Penn Tree Bank <https://web.archive.org/web/19970614160127/http://www.cis.upenn.edu/~treebank/>`_
+    `Penn Tree Bank
+    <https://web.archive.org/web/19970614160127/http://www.cis.upenn.edu/~treebank/>`_
     is originally a corpus of English sentences with linguistic structure
     annotations. This function uses a variant distributed at
     `https://github.com/wojzaremba/lstm <https://github.com/wojzaremba/lstm>`_,
@@ -27,7 +28,7 @@ def get_ptb_words():
        Use :func:`get_ptb_words_vocabulary` to get the mapping between the
        words and word IDs.
 
-    """  # NOQA
+    """
     train = _retrieve_ptb_words('train.npz', _train_url)
     valid = _retrieve_ptb_words('valid.npz', _valid_url)
     test = _retrieve_ptb_words('test.npz', _test_url)
