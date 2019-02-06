@@ -282,8 +282,16 @@ class _XHatGrad(function_node.FunctionNode):
         if 0 in indexes:
             # gx = inv_std * gx_std
             # dgx = dinv_std * gx_std + inv_std * dgx_std
+            #
             # -gx2l = (ggx * dinv_std * gx_std) / dx
-            # -gx_hat2r = (inv_std * ggx * dgx_std) / dx_hat
+            #       = mean(ggx * gx_std) * (dinv_std / dx)
+            #       = -mean(ggx * gx_std) * inv_std^2 * x_hat
+            #       = -inv_std * x_hat * mean(ggx * gx)
+            #
+            # By `gx_std = gx_hat - gx_hat_avg - x_hat * gx_hat_x_hat_avg`,
+            # -gx_hat2r = (ggx * inv_std * dgx_std) / dx_hat
+            #           = -inv_std * (ggx * mean(gx_hat * x_hat) +
+            #                         gx_hat * mean(ggx * x_hat))
 
             gx2l_std = x_hat * F.mean(ggx * gx, axis=1, keepdims=True)
             gx2l, = _MulInvStd(
