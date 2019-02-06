@@ -558,7 +558,8 @@ def n_step_birnn(
 
 def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     activation, use_bi_direction, **kwargs):
-    """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, use_bi_direction)
+    """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, \
+use_bi_direction)
 
     Base function for Stack RNN/BiRNN functions.
 
@@ -618,7 +619,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
 
-    """  # NOQA
+    """
     if kwargs:
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
