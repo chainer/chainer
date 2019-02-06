@@ -408,7 +408,7 @@ def n_step_lstm_base(
     w_in = ws[0][0].shape[1]
     if x_in != w_in:
         raise ValueError('Inconsistent input size in input values and weight '
-                         'parameters')
+                         'parameters: {} != {}'.format(x_in, w_in))
 
     xp = backend.get_array_module(hx, hx.data)
 

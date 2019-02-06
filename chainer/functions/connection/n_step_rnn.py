@@ -638,7 +638,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     w_in = ws[0][0].shape[1]
     if x_in != w_in:
         raise ValueError('Inconsistent input size in input values and weight '
-                         'parameters')
+                         'parameters: {} != {}'.format(x_in, w_in))
 
     xp = backend.get_array_module(hx)
 
