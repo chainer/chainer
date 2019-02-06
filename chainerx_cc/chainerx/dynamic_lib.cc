@@ -6,7 +6,7 @@
 
 namespace chainerx {
 
-void* DlOpen(const std::string& filename, int flags) { return platform::DlOpen(filename, flags); }
+void* DlOpen(const std::string& filename) { return platform::DlOpen(filename); }
 
 void DlClose(void* handle) { platform::DlClose(handle); }
 

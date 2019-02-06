@@ -5,7 +5,7 @@
 namespace chainerx {
 
 // TODO(niboshi): More generalization is needed.
-void* DlOpen(const std::string& filename, int flags);
+void* DlOpen(const std::string& filename);
 
 void DlClose(void* handle);
 

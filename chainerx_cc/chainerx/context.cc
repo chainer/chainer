@@ -1,14 +1,5 @@
 #include "chainerx/context.h"
 
-#ifdef _WIN32
-// RTLD_LOCAL and RTLD_NOW are not defined on Windows
-#define RTLD_LOCAL 0
-#define RTLD_NOW 0x00002
-#else  // _WIN32
-// Windows doesn't support it currently
-#include <dlfcn.h>
-#endif  // _WIN32
-
 #include <algorithm>
 #include <atomic>
 #include <mutex>
@@ -94,7 +85,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle{nullptr};
         try {
-            handle = DlOpen(so_file_path, RTLD_NOW | RTLD_LOCAL);
+            handle = DlOpen(so_file_path);
         } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }

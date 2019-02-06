@@ -24,7 +24,7 @@ void SetEnv(const std::string& name, const std::string& value) { windows::SetEnv
 
 void UnsetEnv(const std::string& name) { windows::UnsetEnv(name); }
 
-void* DlOpen(const std::string& filename, int flags) { return windows::DlOpen(filename, flags); }
+void* DlOpen(const std::string& filename) { return windows::DlOpen(filename); }
 
 void DlClose(void* handle) { windows::DlClose(handle); }
 
@@ -44,8 +44,8 @@ void UnsetEnv(const std::string& name) {
     }
 }
 
-void* DlOpen(const std::string& filename, int flags) {
-    if (void* handle = ::dlopen(filename.c_str(), flags)) {
+void* DlOpen(const std::string& filename) {
+    if (void* handle = ::dlopen(filename.c_str(), RTLD_NOW | RTLD_LOCAL)) {
         return handle;
     }
     throw ChainerxError{"Failed to load shared object '", filename, "': ", ::dlerror()};

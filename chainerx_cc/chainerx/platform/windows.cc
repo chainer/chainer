@@ -24,7 +24,7 @@ void UnsetEnv(const std::string& name) {
     }
 }
 
-void* DlOpen(const std::string& filename, int flags) {
+void* DlOpen(const std::string& filename) {
     // TODO(hvy): Implement dlopen for Windows.
     throw ChainerxError{"dlopen not implemented for Windows."};
 }
