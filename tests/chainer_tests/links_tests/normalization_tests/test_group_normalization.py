@@ -10,7 +10,6 @@ from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.utils import type_check
 
 
 @testing.parameterize(*(testing.product({
@@ -176,7 +175,7 @@ class TestInvalidInitialize(unittest.TestCase):
 
     def test_invalid_groups(self):
         self.link = links.GroupNormalization(groups=3)
-        with self.assertRaises(type_check.InvalidType):
+        with self.assertRaises(ValueError):
             self.link(self.x)
 
     def test_invalid_type_groups(self):

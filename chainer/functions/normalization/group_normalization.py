@@ -35,12 +35,16 @@ class GroupNormalization(function_node.FunctionNode):
             beta_type.ndim == 1,
             gamma_type.dtype == x_type.dtype,
             beta_type.dtype == x_type.dtype,
-            x_type.shape[1] % self.groups == 0,
             x_type.shape[1] == gamma_type.shape[0],
             gamma_type.shape == beta_type.shape,
         )
 
     def forward(self, inputs):
+        if inputs[0].shape[1] % self.groups != 0:
+            raise ValueError('The number of channels {} is not divisible by '
+                             '\'groups\' argument {}.'
+                             .format(inputs[0].shape[1], self.groups))
+
         xp = backend.get_array_module(*inputs)
         if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
             return self.forward_cudnn(inputs)
