@@ -15,16 +15,15 @@ if cuda.cudnn_enabled:
 
 class GroupNormalization(function_node.FunctionNode):
 
-    mean = None
-    inv_std = None
-    dummy_gamma = None
-
     def __init__(self, groups, eps=1e-5):
         if not isinstance(groups, int):
             raise TypeError('Argument: \'groups\' type must be (int).')
 
         self.groups = groups
         self.eps = eps
+        self.mean = None
+        self.inv_std = None
+        self.dummy_gamma = None
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
