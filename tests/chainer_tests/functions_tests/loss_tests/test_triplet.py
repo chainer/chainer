@@ -6,8 +6,8 @@ import six
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
-from chainer import utils
 from chainer.testing import attr
+from chainer import utils
 
 
 @testing.parameterize(*testing.product({
