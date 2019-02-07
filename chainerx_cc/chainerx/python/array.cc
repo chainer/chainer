@@ -93,7 +93,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     return MakeArray(object, dtype_, copy, dev);
 }
 
-ArrayBodyPtr MakeArray(py::handle object, nonstd::optional<Dtype>& dtype, bool copy, Device& device) {
+ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, bool copy, Device& device) {
     // object is chainerx.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
