@@ -1,6 +1,7 @@
 install(FILES
     native_device.h
     native_backend.h
+    data_type.h
     elementwise.h
     reduce.h
     col2im.h

@@ -558,16 +558,12 @@ class TestGradientMethodLossScale(unittest.TestCase):
 
     @attr.chainerx
     def test_update_chainerx_cpu(self):
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.setup_chainerx(np)
         self.check_update()
 
     @attr.chainerx
     @attr.gpu
     def test_update_chainerx_gpu(self):
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.setup_gpu()
         self.setup_chainerx(cuda.cupy)
         self.check_update()

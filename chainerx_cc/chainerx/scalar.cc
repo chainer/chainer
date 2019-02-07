@@ -25,6 +25,7 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
         case Dtype::kUInt8:
             os << static_cast<int64_t>(value);
             break;
+        case Dtype::kFloat16:
         case Dtype::kFloat32:
         case Dtype::kFloat64:
             os << static_cast<double>(value);

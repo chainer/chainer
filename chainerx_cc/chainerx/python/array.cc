@@ -23,6 +23,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
@@ -76,7 +77,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     py::dtype dtype{GetDtypeName(array.dtype())};
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
-    const void* ptr = internal::GetRawOffsetData<void>(array);
+    const void* ptr = internal::GetRawOffsetData(array);
 
     if (copy) {
         return py::array{dtype, shape, strides, ptr};
@@ -468,7 +469,12 @@ void InitChainerxArray(pybind11::module& m) {
             Indexer<> indexer{array.shape()};
 
             for (auto it = indexer.It(0); it; ++it) {
-                list.append(iarray[it]);
+                T value = native::StorageToDataType<const T>(iarray[it]);
+                if (std::is_same<T, chainerx::Float16>::value) {
+                    list.append(static_cast<double>(value));
+                } else {
+                    list.append(value);
+                }
             }
         });
 

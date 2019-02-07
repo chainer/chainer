@@ -432,7 +432,7 @@ _invalid_logsumexp_params = [
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-@chainerx.testing.numpy_chainerx_allclose(rtol=1e-7, atol=0, dtype_check=False)
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
@@ -455,7 +455,7 @@ def test_logsumexp_invalid(device, a_shape, axis, float_dtype, keepdims):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @chainerx.testing.numpy_chainerx_allclose(
-    rtol=1e-7, atol=1e-5, dtype_check=False)
+    atol=1e-5, float16_rtol=3e-3, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)

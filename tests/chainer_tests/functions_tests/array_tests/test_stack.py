@@ -67,9 +67,6 @@ class TestStack(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx(self):
-        # TODO(imanishi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward([chainerx.array(x) for x in self.xs])
 
     def check_backward(self, xs_data, g_data):
@@ -89,9 +86,6 @@ class TestStack(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx(self):
-        # TODO(imanishi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(
             [chainerx.array(x) for x in self.xs], chainerx.array(self.g))
 
@@ -112,9 +106,6 @@ class TestStack(unittest.TestCase):
 
     @attr.chainerx
     def test_double_backward_chainerx(self):
-        # TODO(imanishi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_double_backward(
             backend.to_chainerx(self.xs),
             backend.to_chainerx(self.g),

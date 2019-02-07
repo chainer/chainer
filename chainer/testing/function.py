@@ -218,25 +218,11 @@ class FunctionTestCase(unittest.TestCase):
         _check_variable_types(outputs, backend_config.device, 'forward')
         return outputs
 
-    def _skip_if_chainerx_float16(self, backend_config):
-        # This is a dirty workaround to avoid writing the skip logic in every
-        # test case.
-        # It assumes that there's attributes 'dtype', `x_dtype`, and `W_dtype`
-        # in the test case.
-        # TODO(niboshi): Support float16 in ChainerX
-        if (backend_config.use_chainerx and (
-                getattr(self, 'dtype', None) == numpy.float16 or
-                getattr(self, 'x_dtype', None) == numpy.float16 or
-                getattr(self, 'W_dtype', None) == numpy.float16)):
-            raise unittest.SkipTest('ChainerX does not support float16')
-
     def test_forward(self, backend_config):
         """Tests forward computation."""
 
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
-
-        self._skip_if_chainerx_float16(backend_config)
 
         self.backend_config = backend_config
         self.before_test('test_forward')
@@ -282,8 +268,6 @@ class FunctionTestCase(unittest.TestCase):
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
 
-        self._skip_if_chainerx_float16(backend_config)
-
         # avoid cyclic import
         from chainer import gradient_check
 
@@ -326,8 +310,6 @@ class FunctionTestCase(unittest.TestCase):
 
         if self.skip_double_backward_test:
             raise unittest.SkipTest('skip_double_backward_test is set')
-
-        self._skip_if_chainerx_float16(backend_config)
 
         # avoid cyclic import
         from chainer import gradient_check
