@@ -24,7 +24,7 @@ using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
 ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device);
 
-ArrayBodyPtr MakeArray(pybind11::handle object, nonstd::optional<Dtype>& dtype, bool copy, Device& device);
+ArrayBodyPtr MakeArray(pybind11::handle object, const nonstd::optional<Dtype>& dtype, bool copy, Device& device);
 
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
