@@ -114,16 +114,6 @@ step_python_style_check() {
 }
 
 
-step_python_mypy_check_deps() {
-    pip install -U 'mypy>=0.650'
-}
-
-
-step_python_mypy_check() {
-    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
-}
-
-
 step_chainer_install_from_sdist() {
     # Build sdist.
     # sdist does not support out-of-source build.

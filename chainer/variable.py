@@ -640,6 +640,8 @@ class Variable(object):
         assert array is None or isinstance(array, chainerx.ndarray)
         requires_grad = self._requires_grad
 
+        self._grad = None
+
         if (not requires_grad
                 and array is not None
                 and array.is_backprop_required()):
@@ -1161,6 +1163,8 @@ class Variable(object):
             self._data = [new_arr]
             if grad_var is not None:
                 grad_var.to_device(device)
+                # _grad has been invalidated by grad_var.to_device().
+                self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
         node = self._node
