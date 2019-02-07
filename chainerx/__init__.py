@@ -20,6 +20,8 @@ if _available:
 
     from builtins import bool, int, float  # NOQA
 
+    from chainerx import _device  # NOQA
+
     from chainerx.creation.from_data import asanyarray  # NOQA
     from chainerx.creation.from_data import fromfile  # NOQA
     from chainerx.creation.from_data import fromfunction  # NOQA

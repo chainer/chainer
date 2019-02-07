@@ -305,7 +305,8 @@ class UpdateRule(object):
             param._chainerx_fallback_array = backend.from_chainerx(
                 param.array)
 
-        temp_param = variable.Variable(param._chainerx_fallback_array)
+        temp_param = variable.Variable._init_unchecked(
+            param._chainerx_fallback_array, is_chainerx_array=False)
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
@@ -316,6 +317,9 @@ class UpdateRule(object):
 
         # Restore state arrays
         for state_name, arr in chainerx_state_arrays.items():
+            cur_arr = self.state[state_name]
+            if cur_arr is not arr:
+                arr = backend.to_chainerx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):

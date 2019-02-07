@@ -17,8 +17,8 @@ from chainer.functions.math import exponential
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
-from chainer.utils import type_check
 from chainer.utils import cache
+from chainer.utils import type_check
 
 try:
     import scipy.linalg

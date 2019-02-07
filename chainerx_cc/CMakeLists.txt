@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(chainerx CXX C)
 
 # CMake setup
-if(POLICY ${CMP0054})
-    cmake_policy(SET ${CMP0054} NEW)
+if(POLICY CMP0054)
+    cmake_policy(SET CMP0054 NEW)
 endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -153,8 +153,8 @@ endif()
 # pybind11
 if(${CHAINERX_BUILD_PYTHON})
     get_third_party(pybind11)
-    include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
-    add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/pybind11/include)
+    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/pybind11-build)
 endif()
 
 # gsl-lite
@@ -177,7 +177,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_BINARY_DIR}/googletest-build
+    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 
