@@ -34,15 +34,15 @@ from chainer import training
 )
 class TestOnceTrigger(unittest.TestCase):
 
-    expected = [1] + [0] * 6
-    finished = [0] + [1] * 6
+    expected = [True] + [False] * 6
+    finished = [False] + [True] * 6
 
     def setUp(self):
-        self.resumed_expected = [1] + [0] * 6
-        self.resumed_finished = [0] + [1] * 6
+        self.resumed_expected = [True] + [False] * 6
+        self.resumed_finished = [False] + [True] * 6
         if self.call_on_resume:
-            self.resumed_expected[self.resume] = 1
-            self.resumed_finished[self.resume] = 0
+            self.resumed_expected[self.resume] = True
+            self.resumed_finished[self.resume] = False
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -79,12 +79,15 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         trigger = training.triggers.OnceTrigger(self.call_on_resume)
         accumulated = False
+        accumulated_finished = True
         for expected, finished in zip(self.expected, self.finished):
             accumulated = accumulated or expected
+            accumulated_finished = accumulated_finished and finished
             if random.randrange(2):
-                self.assertEqual(trigger.finished, finished)
+                self.assertEqual(trigger.finished, accumulated_finished)
                 self.assertEqual(trigger(trainer), accumulated)
                 accumulated = False
+                accumulated_finished = True
             trainer.updater.update()
 
     @condition.repeat(10)
@@ -92,16 +95,19 @@ class TestOnceTrigger(unittest.TestCase):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         accumulated = False
+        accumulated_finished = True
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             for expected, finished in zip(self.resumed_expected[:self.resume],
                                           self.resumed_finished[:self.resume]):
                 trainer.updater.update()
                 accumulated = accumulated or expected
+                accumulated_finished = accumulated_finished and finished
                 if random.randrange(2):
-                    self.assertEqual(trigger.finished, finished)
+                    self.assertEqual(trigger.finished, accumulated_finished)
                     self.assertEqual(trigger(trainer), accumulated)
                     accumulated = False
+                    accumulated_finished = True
             serializers.save_npz(f.name, trigger)
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
@@ -110,10 +116,12 @@ class TestOnceTrigger(unittest.TestCase):
                                           self.resumed_finished[self.resume:]):
                 trainer.updater.update()
                 accumulated = accumulated or expected
+                accumulated_finished = accumulated_finished and finished
                 if random.randrange(2):
-                    self.assertEqual(trigger.finished, finished)
+                    self.assertEqual(trigger.finished, accumulated_finished)
                     self.assertEqual(trigger(trainer), accumulated)
                     accumulated = False
+                    accumulated_finished = True
 
     def test_resumed_trigger_backward_compat(self):
         trainer = testing.get_trainer_with_mock_updater(
