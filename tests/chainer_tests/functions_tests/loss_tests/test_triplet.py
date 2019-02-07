@@ -75,20 +75,6 @@ class TestTriplet(testing.FunctionTestCase):
             break
         return a, p, n
 
-    def generate_grad_outputs(self, outputs_template):
-        if self.reduce == 'mean':
-            gy_shape = ()
-        else:
-            gy_shape = self.batchsize,
-        return numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype),
-
-    def generate_grad_grad_inputs(self, inputs_template):
-        x_shape = (self.batchsize, self.input_dim)
-        gga = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        ggp = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        ggn = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        return gga, ggp, ggn
-
     def forward(self, inputs, device):
         anchor, positive, negative = inputs
         return functions.triplet(
