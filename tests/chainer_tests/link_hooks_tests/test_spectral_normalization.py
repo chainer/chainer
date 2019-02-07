@@ -5,8 +5,8 @@ import pytest
 
 import chainer
 from chainer.backends import cuda
-import chainer.links as L
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
+import chainer.links as L
 from chainer import testing
 from chainer.testing import attr
 
@@ -182,12 +182,12 @@ class BaseTest(object):
 
     def test_u_not_updated_in_test_cpu(self):
         if not self.lazy_init:
-                self.check_u_not_updated_in_test(False)
+            self.check_u_not_updated_in_test(False)
 
     @attr.gpu
     def test_u_not_updated_in_test_gpu(self):
         if not self.lazy_init:
-                self.check_u_not_updated_in_test(True)
+            self.check_u_not_updated_in_test(True)
 
 
 @testing.parameterize(*testing.product({

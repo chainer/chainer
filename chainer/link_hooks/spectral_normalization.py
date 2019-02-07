@@ -1,8 +1,8 @@
 from chainer import backend
 from chainer import configuration
 import chainer.functions as F
-import chainer.links as L
 from chainer import link_hook
+import chainer.links as L
 from chainer import variable
 
 
