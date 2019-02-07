@@ -8,8 +8,7 @@ from chainer.dataset import download
 def get_ptb_words():
     """Gets the Penn Tree Bank dataset as long word sequences.
 
-    `Penn Tree Bank
-    <https://web.archive.org/web/19970614160127/http://www.cis.upenn.edu/~treebank/>`_
+    `Penn Tree Bank <https://catalog.ldc.upenn.edu/LDC99T42>`_
     is originally a corpus of English sentences with linguistic structure
     annotations. This function uses a variant distributed at
     `https://github.com/wojzaremba/lstm <https://github.com/wojzaremba/lstm>`_,
