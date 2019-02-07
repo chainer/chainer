@@ -34,12 +34,15 @@ from chainer import training
 )
 class TestOnceTrigger(unittest.TestCase):
 
+    expected = [1] + [0] * 6
+    finished = [0] + [1] * 6
+
     def setUp(self):
-        self.expected = [1] + [0] * 6
-        self.finished = [0] + [1] * 6
+        self.resumed_expected = [1] + [0] * 6
+        self.resumed_finished = [0] + [1] * 6
         if self.call_on_resume:
-            self.expected[self.resume] = 1
-            self.finished[self.resume] = 0
+            self.resumed_expected[self.resume] = 1
+            self.resumed_finished[self.resume] = 0
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -55,7 +58,8 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected, finished in zip(self.expected, self.finished):
+            for expected, finished in zip(self.resumed_expected[:self.resume],
+                                          self.resumed_finished[:self.resume]):
                 trainer.updater.update()
                 self.assertEqual(trigger.finished, finished)
                 self.assertEqual(trigger(trainer), expected)
@@ -63,8 +67,8 @@ class TestOnceTrigger(unittest.TestCase):
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected[self.resume:],
-                                          self.finished[self.resume:]):
+            for expected, finished in zip(self.resumed_expected[self.resume:],
+                                          self.resumed_finished[self.resume:]):
                 trainer.updater.update()
                 self.assertEqual(trigger.finished, finished)
                 self.assertEqual(trigger(trainer), expected)
@@ -90,7 +94,8 @@ class TestOnceTrigger(unittest.TestCase):
         accumulated = False
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected, finished in zip(self.expected, self.finished):
+            for expected, finished in zip(self.resumed_expected[:self.resume],
+                                          self.resumed_finished[:self.resume]):
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
@@ -101,8 +106,8 @@ class TestOnceTrigger(unittest.TestCase):
 
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected[self.resume:],
-                                          self.finished[self.resume:]):
+            for expected, finished in zip(self.resumed_expected[self.resume:],
+                                          self.resumed_finished[self.resume:]):
                 trainer.updater.update()
                 accumulated = accumulated or expected
                 if random.randrange(2):
@@ -115,7 +120,8 @@ class TestOnceTrigger(unittest.TestCase):
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
-            for expected, finished in zip(self.expected, self.finished):
+            for expected, finished in zip(self.resumed_expected[:self.resume],
+                                          self.resumed_finished[:self.resume]):
                 trainer.updater.update()
                 self.assertEqual(trigger.finished, finished)
                 self.assertEqual(trigger(trainer), expected)
@@ -125,8 +131,8 @@ class TestOnceTrigger(unittest.TestCase):
             trigger = training.triggers.OnceTrigger(self.call_on_resume)
             with testing.assert_warns(UserWarning):
                 serializers.load_npz(f.name, trigger)
-            for expected, finished in zip(self.expected[self.resume:],
-                                          self.finished[self.resume:]):
+            for expected, finished in zip(self.resumed_expected[self.resume:],
+                                          self.resumed_finished[self.resume:]):
                 trainer.updater.update()
                 self.assertEqual(trigger.finished, finished)
                 self.assertEqual(trigger(trainer), expected)
