@@ -136,6 +136,14 @@ def _populate_module_functions():
 
     chainerx.vstack = _vstack
 
+    def _repeat(arr, repeats, axis=None):
+        xp, dev, arr = _from_chainerx(arr)
+        with dev:
+            ret = xp.repeat(arr, repeats, axis)
+        return _to_chainerx(ret)
+
+    chainerx.repeat = _repeat
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
