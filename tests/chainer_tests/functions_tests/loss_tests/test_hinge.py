@@ -90,18 +90,12 @@ class TestHinge(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.t))
 
     @attr.gpu
     @attr.chainerx
     def test_forward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(
             backend.to_chainerx(cuda.to_gpu(self.x)),
             backend.to_chainerx(cuda.to_gpu(self.t)))
@@ -133,9 +127,6 @@ class TestHinge(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward_chainerx(
             backend.to_chainerx(self.x),
             backend.to_chainerx(self.t))
@@ -143,9 +134,6 @@ class TestHinge(unittest.TestCase):
     @attr.gpu
     @attr.chainerx
     def test_backward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward_chainerx(
             backend.to_chainerx(cuda.to_gpu(self.x)),
             backend.to_chainerx(cuda.to_gpu(self.t)))

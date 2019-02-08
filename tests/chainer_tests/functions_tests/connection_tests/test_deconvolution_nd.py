@@ -208,10 +208,6 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.chainerx
     @condition.retry(3)
     def test_backward_chainerx_cpu(self):
-        # TODO(imanishi): Support float16
-        if numpy.float16 in [self.x_dtype, self.W_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.W),
             backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
@@ -220,10 +216,6 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_chainerx_gpu(self):
-        # TODO(imanishi): Support float16
-        if numpy.float16 in [self.x_dtype, self.W_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(
             backend.to_chainerx(self.x).to_device('cuda'),
             backend.to_chainerx(self.W).to_device('cuda'),
@@ -289,10 +281,6 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.chainerx
     @condition.retry(3)
     def test_double_backward_chainerx_cpu(self):
-        # TODO(imanishi): Support float16
-        if numpy.float16 in [self.x_dtype, self.W_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = [backend.to_chainerx(_) for _ in [self.x, self.W, self.b]]
         grad_outputs = [backend.to_chainerx(_) for _ in [self.gy]]
         grad_grad_inputs = [backend.to_chainerx(_) for _
@@ -305,10 +293,6 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_double_backward_chainerx_gpu(self):
-        # TODO(imanishi): Support float16
-        if numpy.float16 in [self.x_dtype, self.W_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = [backend.to_chainerx(_).to_device('cuda')
                   for _ in [self.x, self.W, self.b]]
         grad_outputs = [backend.to_chainerx(_).to_device('cuda')

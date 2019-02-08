@@ -19,7 +19,8 @@ namespace {
 
 template <typename T>
 struct AddImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Add(x1, x2); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Add(x1, x2); }
 };
 
 }  // namespace
@@ -38,8 +39,9 @@ namespace {
 
 template <typename T>
 struct AddASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = ArithmeticOps<T>::Add(x1, x2); }
-    T x2;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = ArithmeticOps<CudaType>::Add(x1, x2); }
+    CudaType x2;
 };
 
 }  // namespace
@@ -49,7 +51,8 @@ void CudaDevice::AddAS(const Array& x1, Scalar x2, const Array& out) {
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(AddASImpl<T>{static_cast<T>(x2)}, x1, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, T>(AddASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
     });
 }
 
@@ -57,7 +60,8 @@ namespace {
 
 template <typename T>
 struct SubtractImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }
 };
 
 }  // namespace
@@ -75,8 +79,9 @@ namespace {
 
 template <typename T>
 struct SubtractASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
-    T x2;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }
+    CudaType x2;
 };
 
 }  // namespace
@@ -86,7 +91,8 @@ void CudaDevice::SubtractAS(const Array& x1, Scalar x2, const Array& out) {
     CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(SubtractASImpl<T>{static_cast<T>(x2)}, x1, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, T>(SubtractASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
     });
 }
 
@@ -94,7 +100,8 @@ namespace {
 
 template <typename T>
 struct MultiplyImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Multiply(x1, x2); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Multiply(x1, x2); }
 };
 
 }  // namespace
@@ -113,8 +120,9 @@ namespace {
 
 template <typename T>
 struct MultiplyASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = ArithmeticOps<T>::Multiply(x1, x2); }
-    T x2;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = ArithmeticOps<CudaType>::Multiply(x1, x2); }
+    CudaType x2;
 };
 
 }  // namespace
@@ -124,7 +132,8 @@ void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<T>(x2)}, x1, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
     });
 }
 
@@ -132,7 +141,8 @@ namespace {
 
 template <typename T>
 struct DivideImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Divide(x1, x2); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Divide(x1, x2); }
 };
 
 }  // namespace
@@ -150,8 +160,9 @@ namespace {
 
 template <typename T>
 struct DivideASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = ArithmeticOps<T>::Divide(x1, x2); }
-    T x2;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = ArithmeticOps<CudaType>::Divide(x1, x2); }
+    CudaType x2;
 };
 
 }  // namespace
@@ -161,7 +172,8 @@ void CudaDevice::DivideAS(const Array& x1, Scalar x2, const Array& out) {
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(DivideASImpl<T>{static_cast<T>(x2)}, x1, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, T>(DivideASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
     });
 }
 

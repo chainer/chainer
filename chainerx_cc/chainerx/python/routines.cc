@@ -278,11 +278,22 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& a, py::handle indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
-              return MoveArrayBody(Take(Array{a}, Array{indices}, axis.value()));
+              if (py::isinstance<ArrayBodyPtr>(indices)) {
+                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+              }
+              if (py::isinstance<py::sequence>(indices)) {
+                  nonstd::optional<Dtype> dtype = Dtype::kInt64;
+                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
+              }
+              if (py::isinstance<py::array>(indices)) {
+                  return MoveArrayBody(
+                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
+              }
+              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           py::arg("a"),
           py::arg("indices"),

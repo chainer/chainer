@@ -7,6 +7,7 @@
 #include "chainerx/index_iterator.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/shape.h"
 #include "chainerx/squash_dims.h"
 
@@ -17,7 +18,7 @@ namespace elementwise_detail {
 template <int8_t Ndim, typename Op, typename... Ts>
 void ElementwiseKernel(Op op, const Indexer<Ndim>& indexer, const IndexableArray<Ts, Ndim>&... args) {
     for (auto it = indexer.It(0, 1); it; ++it) {
-        op(it.raw_index(), args[it]...);
+        op(it.raw_index(), native_internal::StorageToDataType<Ts>(args[it])...);
     }
 }
 

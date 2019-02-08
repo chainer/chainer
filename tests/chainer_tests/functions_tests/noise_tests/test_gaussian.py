@@ -43,10 +43,6 @@ class TestGaussian(unittest.TestCase):
             self.check_double_backward_options['dtype'] = numpy.float64
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         m_data, v_data = backend_config.get_array((self.m, self.v))
 
         m = chainer.Variable(m_data)
@@ -68,10 +64,6 @@ class TestGaussian(unittest.TestCase):
         testing.assert_allclose(n1.array, n2.array)
 
     def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         m_data, v_data = backend_config.get_array((self.m, self.v))
         y_grad = backend_config.get_array(self.gy)
         eps = backend_config.get_array(
@@ -88,10 +80,6 @@ class TestGaussian(unittest.TestCase):
             f, (m_data, v_data), y_grad, **self.check_backward_options)
 
     def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         m_data, v_data = backend_config.get_array((self.m, self.v))
         y_grad = backend_config.get_array(self.gy)
         m_grad_grad, v_grad_grad = (

@@ -150,7 +150,7 @@ class FunctionAdapter(function_node.FunctionNode):
         for retained, i_in in six.moves.zip(
                 retained_inputs, self._input_indexes_to_retain):
             inputs[i_in] = retained
-            in_data[i_in] = retained.array
+            in_data[i_in] = None if retained is None else retained.array
         in_data = tuple(in_data)
 
         grad_out_data = tuple([None if grad is None else grad.data
