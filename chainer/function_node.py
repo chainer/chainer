@@ -24,7 +24,7 @@ import chainerx
 
 def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
     # chainerx_array can be None.
-    var = variable.Variable(
+    var = variable.Variable._init_unchecked(
         chainerx_array,
         requires_grad=(
             False if chainerx_array is None
@@ -354,7 +354,8 @@ Use apply() method instead.\
             requires_grad = any([x.requires_grad for x in input_vars])
 
             ret = tuple(
-                [variable.Variable(y, requires_grad=requires_grad)
+                [variable.Variable._init_unchecked(
+                    y, requires_grad=requires_grad)
                  for y in outputs])
 
             if configuration.config.enable_backprop:
@@ -715,11 +716,11 @@ Use apply() method instead.\
             for a in grad_outputs])
 
         self._chainerx_retained_inputs = tuple([
-            variable.Variable(
+            variable.Variable._init_unchecked(
                 array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
-            variable.Variable(
+            variable.Variable._init_unchecked(
                 array, requires_grad=(
                     False if array is None else array.is_backprop_required()))
             for array in retained_outputs])
@@ -840,7 +841,7 @@ Use apply() method instead.\
             if output is None:
                 # The output node is garbage collected, so create a fresh
                 # Variable object.
-                output_var = variable.Variable(data)
+                output_var = variable.Variable._init_unchecked(data)
                 output_var.creator_node = self
                 new_outputs[index] = weakref.ref(output_var.node)
                 outputs_modified = True
@@ -1039,7 +1040,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                     gy_data = numpy.ones_like(y.data)
                 else:
                     gy_data = cuda.cupy.ones_like(y.data)
-                gy = variable.Variable(gy_data, requires_grad=False)
+                gy = variable.Variable._init_unchecked(
+                    gy_data, requires_grad=False)
             if loss_scale is not None:
                 gy.data *= loss_scale
         grads[y.node] = gy

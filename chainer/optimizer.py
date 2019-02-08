@@ -192,7 +192,7 @@ class UpdateRule(object):
 
         if self._use_fp32_update and param.dtype == numpy.float16:
             if self._fp32_param is None:
-                self._fp32_param = variable.Variable(
+                self._fp32_param = variable.Variable._init_unchecked(
                     param.array.astype(numpy.float32),
                     name=param.name)
             fp32_param = self._fp32_param
@@ -351,7 +351,8 @@ class UpdateRule(object):
                 self._state = {}
                 self_copy = copy.copy(self)
                 arr = numpy.empty(1, dtype=numpy.float32)
-                self_copy.init_state(variable.Variable(arr, grad=arr))
+                self_copy.init_state(
+                    variable.Variable._init_unchecked(arr, grad=arr))
 
                 for key in self._state:
                     try:

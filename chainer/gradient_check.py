@@ -526,7 +526,7 @@ class _CheckBackward(object):
         x_data = self.x_data
         params = self.params
 
-        xs = [variable.Variable(x) for x in x_data]
+        xs = [variable.Variable._init_unchecked(x) for x in x_data]
         y = func(*xs)
         y = _as_tuple(y)
 
@@ -586,7 +586,7 @@ class _CheckBackward(object):
 
         xp = device.xp
 
-        x_vars = [variable.Variable(x) for x in x_data]
+        x_vars = [variable.Variable._init_unchecked(x) for x in x_data]
         variables = (
             [x for x, no_grad in six.moves.zip(x_vars, no_grads)
              if not no_grad]
@@ -627,7 +627,7 @@ class _CheckBackward(object):
                     g_x_vars.append(x_vars[i])
                 else:
                     data = perturb(casted_data[j], directions[j])
-                    g_x_vars.append(variable.Variable(data))
+                    g_x_vars.append(variable.Variable._init_unchecked(data))
                     j += 1
             # Parameters
             for i in range(len(params)):

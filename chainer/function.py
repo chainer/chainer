@@ -187,7 +187,7 @@ class FunctionAdapter(function_node.FunctionNode):
                 # Intentionally not passing requires_grad=False so that
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
-                g = variable.Variable(gxs[i])
+                g = variable.Variable._init_unchecked(gxs[i])
                 if g.xp is not chainerx:
                     g.node._old_style_grad_generator = self._function.label
             ret.append(g)
