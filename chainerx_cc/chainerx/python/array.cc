@@ -85,6 +85,26 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     return py::array{dtype, shape, strides, ptr, py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
+py::object MakeCupyArrayFromArray(py::handle self) {
+    Array array = Array{py::cast<ArrayBodyPtr>(self)};
+
+    py::object ndarray_type = py::module::import("cupy").attr("ndarray");
+    py::object memory_pointer_type = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
+    py::object unowned_memory_type = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
+
+    py::dtype dtype{GetDtypeName(array.dtype())};
+    const Shape& shape = array.shape();
+    const Strides& strides = array.strides();
+
+    const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
+    const auto range = GetDataRange(shape, strides, array.GetItemSize());
+    const auto data_size = std::get<1>(range) - std::get<0>(range);
+    const auto device_index = array.device().index();
+    py::object memptr = memory_pointer_type(unowned_memory_type(ptr, data_size, self, device_index), 0);
+
+    return ndarray_type(python_internal::ToTuple(shape), dtype, memptr, python_internal::ToTuple(strides));
+}
+
 }  // namespace
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
@@ -136,6 +156,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("to_numpy", &MakeNumpyArrayFromArray, py::arg("array"), py::arg("copy") = true);
+    m.def("to_cupy", &MakeCupyArrayFromArray, py::arg("array"));
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
