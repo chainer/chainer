@@ -270,7 +270,7 @@ class VariableStatisticsPlot(extension.Extension):
                     stat_list.append(xp.atleast_1d(stat_dict['percentile']))
                 stats[i] = xp.concatenate(stat_list, axis=0)
 
-        if xp != numpy:
+        if xp == cuda.cupy:
             stats = cuda.to_cpu(stats)
         self._samples.add(stats, idx=trainer.updater.iteration)
 

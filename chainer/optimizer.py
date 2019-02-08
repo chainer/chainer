@@ -317,6 +317,9 @@ class UpdateRule(object):
 
         # Restore state arrays
         for state_name, arr in chainerx_state_arrays.items():
+            cur_arr = self.state[state_name]
+            if cur_arr is not arr:
+                arr = backend.to_chainerx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):

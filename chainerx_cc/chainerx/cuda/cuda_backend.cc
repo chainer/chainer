@@ -1,6 +1,5 @@
 #include "chainerx/cuda/cuda_backend.h"
 
-#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -14,6 +13,7 @@
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/native/native_backend.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
@@ -68,11 +68,10 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvVarName);
-    if (env == nullptr) {
-        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
+    if (nonstd::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
+        cudnn_max_workspace_size_ = std::stoul(*env);
     } else {
-        cudnn_max_workspace_size_ = std::stoul(env);
+        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
     }
     return *cudnn_max_workspace_size_;
 }

@@ -713,19 +713,31 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
         return grad_outputs
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_cuda': True},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    ])
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def check_function_node_retain(self, xp):
-        inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
-                  chainer.Variable(xp.array([-1], dtype=numpy.float32),
-                                   requires_grad=False)]
+    def test_retain(self, backend_config):
+        xp = backend_config.xp
+        input_arrs = backend_config.get_array([
+            numpy.array([2], dtype=numpy.float32),
+            numpy.array([-1], dtype=numpy.float32)])
+        inputs = [
+            chainer.Variable(input_arrs[0]),
+            chainer.Variable(input_arrs[1], requires_grad=False)]
         input_arrays = [x.array for x in inputs]
         if xp is not chainerx:
             input_nodes = [x.node for x in inputs]
 
         f = FunctionNodeWithRetaining([1], [0, 1])
         outputs = f.apply(inputs)
-        outputs[0].grad = xp.array([1], dtype=numpy.float32)
+        outputs[0].grad = backend_config.get_array(
+            numpy.array([1], dtype=numpy.float32))
         outputs[0].backward()
         output_arrays = [y.array for y in outputs]
 
@@ -744,16 +756,39 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         xp.testing.assert_array_equal(
             f.retained_backward_outputs[1].array, output_arrays[1])
 
-    def test_retain_cpu(self):
-        self.check_function_node_retain(numpy)
+    def check_no_retain(self, backend_config, skip_call):
+        # This test ensures get_retained_{in,out}puts returns () if no
+        # input/output is retained.
+        # skip_call: If False, retain_{in,out}puts() is not called.
 
-    @attr.gpu
-    def test_retain_gpu(self):
-        self.check_function_node_retain(cuda.cupy)
+        class MyFunc(chainer.FunctionNode):
+            backward_called = 0
 
-    @attr.chainerx
-    def test_retain_chainerx(self):
-        self.check_function_node_retain(chainerx)
+            def forward(self, inputs):
+                x, = inputs
+                if not skip_call:
+                    self.retain_outputs(())
+                    self.retain_inputs(())
+                return x * 3,
+
+            def backward(self, input_indices, grad_outputs):
+                self.backward_called += 1
+                assert self.get_retained_outputs() == ()
+                assert self.get_retained_inputs() == ()
+                gy, = grad_outputs
+                return gy * 3,
+
+        x_arr = backend_config.get_array(numpy.array([1, 2], numpy.float32))
+        x = chainer.Variable(x_arr, requires_grad=True)
+        func = MyFunc()
+        y, = func.apply((x,))
+        y.grad = backend_config.get_array(numpy.array([1, 1], numpy.float32))
+        y.backward()
+        assert func.backward_called == 1
+
+    def test_no_retain(self, backend_config):
+        self.check_no_retain(backend_config, False)
+        self.check_no_retain(backend_config, True)
 
 
 def _get_value(x):

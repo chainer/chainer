@@ -1,5 +1,4 @@
 import unittest
-import warnings
 
 import numpy
 
@@ -147,12 +146,8 @@ class TestSplitAxis(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        with warnings.catch_warnings():
-            if not chainer.functions.array.split_axis._numpy_split_ok:
-                warnings.filterwarnings(
-                    'ignore', category=FutureWarning, module='numpy')
-            return functions.split_axis(
-                x, self.ys_section, self.axis, force_tuple=True)
+        return functions.split_axis(
+            x, self.ys_section, self.axis, force_tuple=True)
 
     def forward_expected(self, inputs):
         x, = inputs

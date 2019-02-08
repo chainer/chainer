@@ -86,7 +86,7 @@ class _RReLUGrad(function_node.FunctionNode):
         return gy,
 
     def backward(self, indexes, grad_outputs):
-        return _RReLUGrad(self.x, self.y, self.r).apply(grad_outputs)
+        return _RReLUGrad(self.y, self.r).apply(grad_outputs)
 
 
 def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):

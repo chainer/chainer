@@ -7,6 +7,7 @@
 #include <limits>
 #endif  // _WIN32
 
+#include "chainerx/float16.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
@@ -49,6 +50,12 @@ template <>
 struct NumericLimits<int64_t> {
     CHAINERX_HOST_DEVICE static constexpr int64_t LowestOrInf() noexcept { return INT64_MIN; }
     CHAINERX_HOST_DEVICE static constexpr int64_t MaxOrInf() noexcept { return INT64_MAX; }
+};
+
+template <>
+struct NumericLimits<chainerx::Float16> {
+    CHAINERX_HOST_DEVICE static constexpr chainerx::Float16 LowestOrInf() noexcept { return chainerx::Float16::FromData(0xfc00); }
+    CHAINERX_HOST_DEVICE static constexpr chainerx::Float16 MaxOrInf() noexcept { return chainerx::Float16::FromData(0x7c00); }
 };
 
 #ifdef _WIN32

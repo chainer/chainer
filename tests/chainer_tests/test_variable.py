@@ -1478,96 +1478,59 @@ class TestParameter(unittest.TestCase):
         assert update_rule.update.call_count == 1
 
 
+@testing.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 @testing.parameterize(
     {'x_shape': (10,)},
     {'x_shape': ()},
 )
 class TestParameterToDevice(unittest.TestCase):
 
-    def check_to_device(self, x, device_spec, expected_xp):
+    def check_to_device(self, x, device):
+        expected_xp = device.xp
         assert isinstance(x, chainer.Parameter)
-        x.to_device(device_spec)
+        x.to_device(device)
         assert x.xp is expected_xp
         assert x._has_chainerx_array is (expected_xp is chainerx)
 
-    def check_initializer(self, shape, device_spec, expected_xp):
-        x = chainer.Parameter(shape=shape)
-        self.check_to_device(x, device_spec, expected_xp)
+    def test_initializer_to_device(self, backend_config):
+        x = chainer.Parameter(shape=self.x_shape)
+        self.check_to_device(x, backend_config.device)
 
-    def check_initialize_by_scalar(self, shape, device_spec, expected_xp):
-        x = chainer.Parameter(2., shape)
-        self.check_to_device(x, device_spec, expected_xp)
+    def test_initialize_by_scalar_to_device(self, backend_config):
+        x = chainer.Parameter(2., self.x_shape)
+        self.check_to_device(x, backend_config.device)
 
-    def check_initialize_by_initializer(self, shape, device_spec, expected_xp):
-        x = chainer.Parameter(initializers.One(), shape)
-        self.check_to_device(x, device_spec, expected_xp)
+    def test_initialize_by_initializer_to_device(self, backend_config):
+        x = chainer.Parameter(initializers.One(), self.x_shape)
+        self.check_to_device(x, backend_config.device)
 
-    def check_initialize_by_none(self, shape, device_spec, expected_xp):
-        x = chainer.Parameter(None, shape)
-        self.check_to_device(x, device_spec, expected_xp)
+    def test_initialize_by_none_to_device(self, backend_config):
+        x = chainer.Parameter(None, self.x_shape)
+        self.check_to_device(x, backend_config.device)
 
-    def check_initialize_by_array(self, shape, device_spec, expected_xp):
-        data = np.random.uniform(-1, 1, shape).astype('f')
+    def test_initialize_by_array_to_device(self, backend_config):
+        data = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
         x = chainer.Parameter(data)
-        self.check_to_device(x, device_spec, expected_xp)
+        self.check_to_device(x, backend_config.device)
 
-    def test_initializer_to_device_numpy(self):
-        self.check_initializer(self.x_shape, np, np)
-
-    @attr.gpu
-    def test_initializer_to_device_cupy(self):
-        self.check_initializer(self.x_shape, (cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_initializer_to_device_chainerx(self):
-        self.check_initializer(self.x_shape, 'native:0', chainerx)
-
-    def test_initialize_by_scalar_to_device_numpy(self):
-        self.check_initialize_by_scalar(self.x_shape, np, np)
-
-    @attr.gpu
-    def test_initialize_by_scalar_to_device_cupy(self):
-        self.check_initialize_by_scalar(
-            self.x_shape, (cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_initialize_by_scalar_to_device_chainerx(self):
-        self.check_initialize_by_scalar(self.x_shape, 'native:0', chainerx)
-
-    def test_initialize_by_initializer_to_device_numpy(self):
-        self.check_initialize_by_initializer(self.x_shape, np, np)
-
-    @attr.gpu
-    def test_initialize_by_initializer_to_device_cupy(self):
-        self.check_initialize_by_initializer(
-            self.x_shape, (cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_initialize_by_initializer_to_device_chainerx(self):
-        self.check_initialize_by_initializer(
-            self.x_shape, 'native:0', chainerx)
-
-    def test_initialize_by_none_to_device_numpy(self):
-        self.check_initialize_by_none(self.x_shape, np, np)
-
-    @attr.gpu
-    def test_initialize_by_none_to_device_cupy(self):
-        self.check_initialize_by_none(self.x_shape, (cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_initialize_by_none_to_device_chainerx(self):
-        self.check_initialize_by_none(self.x_shape, 'native:0', chainerx)
-
-    def test_initialize_by_array_to_device_numpy(self):
-        self.check_initialize_by_array(self.x_shape, np, np)
-
-    @attr.gpu
-    def test_initialize_by_array_to_device_cupy(self):
-        self.check_initialize_by_array(self.x_shape, (cuda.cupy, 0), cuda.cupy)
-
-    @attr.chainerx
-    def test_initialize_by_array_to_device_chainerx(self):
-        self.check_initialize_by_array(self.x_shape, 'native:0', chainerx)
+    def test_internal_grad(self, backend_config):
+        device = backend_config.device
+        p = chainer.Parameter(shape=self.x_shape)
+        p.to_device(device)
+        if device.xp is chainerx:
+            assert p._grad is None
+        else:
+            assert isinstance(p._grad, device.supported_array_types)
 
 
 @testing.parameterize(
@@ -1703,6 +1666,33 @@ class TestParameterFromChainerX(unittest.TestCase):
     def test_initialize_by_array_from_chainerx_chainerx_cuda(self):
         self.check_initialize_by_array(
             self.x_shape, chainerx, cuda.cupy, 'cuda:0')
+
+
+@testing.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+class TestParameterToXpu(unittest.TestCase):
+
+    def _to_xpu(self, var, device):
+        if isinstance(device, backend.CpuDevice):
+            var.to_cpu()
+        elif isinstance(device, backend.GpuDevice):
+            var.to_gpu(device.device.id)
+        elif isinstance(device, backend.Intel64Device):
+            var.to_intel64()
+        else:
+            assert False
+
+    def test_internal_grad(self, backend_config):
+        device = backend_config.device
+        p = chainer.Parameter(shape=(2, 3))
+        self._to_xpu(p, device)
+        assert isinstance(p._grad, device.supported_array_types)
 
 
 class TestUninitializedParameter(unittest.TestCase):
@@ -2316,9 +2306,6 @@ class TestReshape(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx(self):
-        # TODO(imanishi): chainerx does not support fp16 yet
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -2339,9 +2326,6 @@ class TestReshape(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx(self):
-        # TODO(niboshi): Support it
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(chainerx.array(self.x))
 
 
@@ -2372,9 +2356,6 @@ class TestTranspose(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx(self):
-        # TODO(hvy): chainerx does not support fp16 yet
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -2393,9 +2374,6 @@ class TestTranspose(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx(self):
-        # TODO(niboshi): Support it
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(chainerx.array(self.x))
 
 

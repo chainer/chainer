@@ -135,7 +135,41 @@ _take_invalid_params = [
 @pytest.mark.parametrize(
     "shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_take(is_module, xp, shape, indices, axis, device):
+def test_take_list_indices(is_module, xp, shape, indices, axis, device):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+
+    assert isinstance(indices, list)
+
+    if is_module:
+        return xp.take(a, indices, axis)
+    else:
+        return a.take(indices, axis)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize(
+    "shape,indices,axis", _take_valid_params + _take_invalid_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_take_numpy_indices(is_module, xp, shape, indices, axis, device):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+
+    # dtype is cast to int64 since no other dtypes are currently supported by
+    # chainerx.take
+    indices = numpy.array(indices).astype('int64')
+
+    if is_module:
+        return xp.take(a, indices, axis)
+    else:
+        return a.take(indices, axis)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize(
+    "shape,indices,axis", _take_valid_params + _take_invalid_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_take_chainerx_indices(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
 
     # First convert to ndarray since some indices are nested lists which

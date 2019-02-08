@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(chainerx CXX C)
 
 # CMake setup
-if(POLICY ${CMP0054})
-    cmake_policy(SET ${CMP0054} NEW)
+if(POLICY CMP0054)
+    cmake_policy(SET CMP0054 NEW)
 endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})

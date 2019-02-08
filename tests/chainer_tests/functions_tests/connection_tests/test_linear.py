@@ -110,10 +110,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
         return y,
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
 
         y_expected, = self.forward_cpu(inputs)
@@ -135,10 +131,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
             y_expected, y.data, **self.check_forward_options)
 
     def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
         grad_outputs = self.grad_outputs
 
@@ -158,10 +150,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
         grad_outputs = self.grad_outputs
         grad_grad_inputs = self.grad_grad_inputs
