@@ -88,9 +88,11 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
 py::object MakeCupyArrayFromArray(py::handle self) {
     Array array = Array{py::cast<ArrayBodyPtr>(self)};
 
-    py::object ndarray_type = py::module::import("cupy").attr("ndarray");
-    py::object memory_pointer_type = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
-    py::object unowned_memory_type = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
+    py::object cupy_module = py::module::import("cupy");
+    py::object ndarray_type = cupy_module.attr("ndarray");
+    py::object cupy_cuda_memory = cupy_module.attr("cuda").attr("memory");
+    py::object memory_pointer_type = cupy_cuda_memory.attr("MemoryPointer");
+    py::object unowned_memory_type = cupy_cuda_memory.attr("UnownedMemory");
 
     py::dtype dtype{GetDtypeName(array.dtype())};
     const Shape& shape = array.shape();
