@@ -60,7 +60,7 @@ Now you can get four files:
 - Source sentence file: `giga-fren.preprocess.en`
 - Source vocabulary file: `vocab.en`
 - Target sentence file: `giga-fren.preprocess.fr`
-- Source vocabulary file: `vocab.fr`
+- Target vocabulary file: `vocab.fr`
 
 Of course you can apply arbitrary preprocess by making a script.
 
