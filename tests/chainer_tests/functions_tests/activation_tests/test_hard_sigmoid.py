@@ -43,8 +43,6 @@ class TestHardSigmoid(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        # Avoid unstability of numerical grad
-        x[((-0.35 < x) & (x < -0.15)) | ((0.15 < x) & (x < 0.35))] = 0.5
         return x,
 
     def forward(self, inputs, device):
