@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import io
 
 from nltk.translate import bleu_score
 import numpy
@@ -157,12 +158,12 @@ class CalculateBleu(chainer.training.Extension):
 
 
 def count_lines(path):
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         return sum([1 for _ in f])
 
 
 def load_vocabulary(path):
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         # +2 for UNK and EOS
         word_ids = {line.strip(): i + 2 for i, line in enumerate(f)}
     word_ids['<UNK>'] = 0
@@ -175,7 +176,7 @@ def load_data(vocabulary, path):
     bar = progressbar.ProgressBar()
     data = []
     print('loading...: %s' % path)
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         for line in bar(f, max_value=n_lines):
             words = line.strip().split()
             array = numpy.array([vocabulary.get(w, UNK)
