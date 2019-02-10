@@ -13,7 +13,7 @@ from chainer.testing import backend
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
+    'contiguous': [None, 'C'],
 }))
 @backend.inject_backend_tests(
     None,
