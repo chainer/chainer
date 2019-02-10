@@ -56,18 +56,20 @@ class Independent(distribution.Distribution):
     def covariance(self):
         '''Returns the covariance of the distribution based on the original
         i.i.d. distribution. By definition, the covariance of the new
-        distribution becomes block diagonal matrix. Let :math:`\\Sigma_x` be
-        the covariance matrix of the original random variable :math:`x
-        \\in R^d`, and :math:`x^{(1)}, x^{(2)}, \\cdots x^{(m)}` be the
-        :math:`m` i.i.d. random variables, new covariance matrix
-        :math:`\\Sigma_y` of :math:`y = [x^{(1)}, x^{(2)}, \\cdots, x^{(m)}]
-        \\in R^{md}` can be written as
+        distribution becomes block diagonal matrix. Let
+        :math:`\\Sigma_{\\mathbf{x}}` be the covariance matrix of the original
+        random variable :math:`\\mathbf{x} \\in \\mathbb{R}^d`, and
+        :math:`\\mathbf{x}^{(1)}, \\mathbf{x}^{(2)}, \\cdots \\mathbf{x}^{(m)}`
+        be the :math:`m` i.i.d. random variables, new covariance matrix
+        :math:`\\Sigma_{\\mathbf{y}}` of :math:`\\mathbf{y} =
+        [\\mathbf{x}^{(1)}, \\mathbf{x}^{(2)}, \\cdots, \\mathbf{x}^{(m)}] \\in
+        \\mathbb{R}^{md}` can be written as
 
         .. math::
             \\left[\\begin{array}{ccc}
-                    \\Sigma_{x^{1}} &         & 0               \\\\
-                                    & \\ddots &                 \\\\
-                    0               &         & \\Sigma_{x^{m}}
+                    \\Sigma_{\\mathbf{x}^{1}} & & 0 \\\\
+                    & \\ddots & \\\\
+                    0 & & \\Sigma_{\\mathbf{x}^{m}}
             \\end{array} \\right].
 
         Note that this relationship holds only if the covariance matrix of the
