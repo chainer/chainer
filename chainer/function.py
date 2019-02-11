@@ -172,8 +172,10 @@ class FunctionAdapter(function_node.FunctionNode):
             else:
                 gxs = self._function.backward(in_data, grad_out_data)
 
+        # Check gradients
         for x, gx in six.moves.zip(self.inputs, gxs):
-            variable._check_grad_type(self, x, True, gx, False)
+            if gx is not None:
+                variable._check_grad_type(self, x, True, gx)
 
         # Convert input gradients back to ChainerX
         if is_chainerx_fallback_mode:
