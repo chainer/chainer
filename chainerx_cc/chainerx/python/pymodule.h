@@ -16,9 +16,9 @@ public:
         return ret;
     }
 
-    static py::object array() {
+    static py::handle array() {
         // create an instance by lazy initialization
-        static py::object ret = py::module::import("numpy").attr("array");
+        static py::handle ret = py::module::import("numpy").attr("array");
         return ret;
     }
 
@@ -38,9 +38,9 @@ public:
         return ret;
     }
 
-    static py::object ndarray() {
+    static py::handle ndarray() {
         // create an instance by lazy initialization
-        static py::object ret = py::module::import("cupy").attr("ndarray");
+        static py::handle ret = py::module::import("cupy").attr("ndarray");
         return ret;
     }
 
@@ -48,15 +48,15 @@ public:
     public:
         class memory {
         public:
-            static py::object MemoryPointer() {
+            static py::handle MemoryPointer() {
                 // create an instance by lazy initialization
-                static py::object ret = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
+                static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
                 return ret;
             }
 
-            static py::object UnownedMemory() {
+            static py::handle UnownedMemory() {
                 // create an instance by lazy initialization
-                static py::object ret = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
+                static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
                 return ret;
             }
 

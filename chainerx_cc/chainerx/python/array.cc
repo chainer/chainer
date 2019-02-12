@@ -88,7 +88,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
 
 py::object MakeCupyArrayFromArray(py::handle self) {
     Array array = Array{py::cast<ArrayBodyPtr>(self)};
-    Device& device = array.device();
+    const Device& device = array.device();
     // TODO(okapies): rejects if array's device is not compatible with cupy
 
     py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
@@ -136,11 +136,12 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
+    py::handle array_func = numpy::array();
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
     }
-    py::array np_array = numpy::array()(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
+    py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
     // Convert NumPy array to ChainerX array
     return MakeArrayFromNumpyArray(np_array, device);
