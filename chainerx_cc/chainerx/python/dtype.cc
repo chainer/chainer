@@ -10,6 +10,7 @@
 
 #include "chainerx/macro.h"
 #include "chainerx/python/common.h"
+#include "chainerx/python/pymodule.h"
 
 namespace chainerx {
 namespace python {

@@ -55,7 +55,7 @@ namespace py = pybind11;
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
-    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
+    Dtype dtype = GetDtypeFromNumpyDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
     int64_t first{};
@@ -140,7 +140,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
     }
-    py::array np_array = numpy::array(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
+    py::array np_array = numpy::array()(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
     // Convert NumPy array to ChainerX array
     return MakeArrayFromNumpyArray(np_array, device);
