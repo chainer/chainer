@@ -194,7 +194,7 @@ class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
         with pytest.raises(ValueError):
-            variable.VariableNode(chainer.Variable(), '', grad=None)
+            variable.VariableNode(chainer.Variable(), None, '', grad=None)
 
 
 @testing.parameterize(
@@ -961,7 +961,10 @@ class TestVariableToCpu(unittest.TestCase):
 
         assert x_var.xp is np
         assert x_var._has_chainerx_array is False
-        assert x_var.node is not None
+        if requires_grad:
+            assert x_var.node is not None
+        else:
+            assert x_var.node is None
         assert isinstance(x_var.data, np.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
@@ -1037,7 +1040,10 @@ class TestVariableToGpu(unittest.TestCase):
 
         assert x_var.xp is cuda.cupy
         assert x_var._has_chainerx_array is False
-        assert x_var.node is not None
+        if requires_grad:
+            assert x_var.node is not None
+        else:
+            assert x_var.node is None
         assert isinstance(x_var.data, cuda.cupy.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
@@ -1231,7 +1237,7 @@ class TestVariableFromChainerX(unittest.TestCase):
 
         assert x_var.xp is expected_xp
         assert x_var._has_chainerx_array is (expected_xp is chainerx)
-        assert x_var.node is not None
+        assert x_var.node is None
         assert isinstance(x_var.array, expected_xp.ndarray)
         assert expected_device is None or x_var.array.device == expected_device
         assert x.shape == x_var.shape

@@ -62,8 +62,10 @@ class TestDropout(unittest.TestCase):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
 
+        input_vars = [chainer.Variable(x, requires_grad=True) for x in inputs]
+
         with backend_config:
-            y = functions.dropout(*(inputs + [self.ratio]))
+            y = functions.dropout(*(input_vars + [self.ratio]))
 
         if backend_config.use_cudnn == 'always':
             if self.ratio == 0.0:

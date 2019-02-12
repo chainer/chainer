@@ -310,29 +310,29 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
-                outputs = static_forward_optimizations(self, in_data)
+                output_arrs = static_forward_optimizations(self, in_data)
             elif self._is_chainerx_fallback_mode:
                 # In ChainerX fallback, __class__ is temporarily replaced with
                 # the fabricated one with automatic attirbute fallback.
                 with _chainerx_attribute_fallback(self, chainerx_device):
-                    outputs = self.forward(in_data)
+                    output_arrs = self.forward(in_data)
             else:
                 # In normal case, simply run the forward method.
-                outputs = self.forward(in_data)
+                output_arrs = self.forward(in_data)
 
         # Check for output array types
-        if not isinstance(outputs, tuple):
+        if not isinstance(output_arrs, tuple):
             raise TypeError(
                 'forward output must be a tuple ({})\n'
-                'Actual: {}'.format(self.label, type(outputs)))
+                'Actual: {}'.format(self.label, type(output_arrs)))
 
-        if not chainer.is_arrays_compatible(outputs):
+        if not chainer.is_arrays_compatible(output_arrs):
             raise TypeError(
                 'incompatible array types are mixed in the forward output '
                 '({}).\n'
                 'Actual: {}'.format(
                     self.label,
-                    ', '.join(str(type(x)) for x in outputs)))
+                    ', '.join(str(type(x)) for x in output_arrs)))
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
@@ -340,50 +340,75 @@ Use apply() method instead.\
         # NaN check of output values
         if is_debug:
             if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
+                   for out in output_arrs):
                 msg = ('NaN is detected on forward computation of '
                        '{}'.format(self.label))
                 raise RuntimeError(msg)
 
-        self._output_count = len(outputs)
+        self._output_count = len(output_arrs)
 
         if self._is_chainerx_fallback_mode:
-            ret = self._chainerx_apply_fallback_postprocess(
-                chainerx_in_data, inputs, outputs)
+            output_vars = self._chainerx_apply_fallback_postprocess(
+                chainerx_in_data, inputs, output_arrs)
 
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])
 
-            ret = tuple(
+            output_vars = tuple(
                 [variable.Variable(y, requires_grad=requires_grad)
-                 for y in outputs])
+                 for y in output_arrs])
 
-            if configuration.config.enable_backprop:
+            if requires_grad and configuration.config.enable_backprop:
                 # Topological ordering
                 self.rank = max(
                     [x.rank for x in input_vars]) if input_vars else 0
-                # Add backward edges
-                for y in ret:
-                    y.creator_node = self
-                self.inputs = tuple([x.node for x in input_vars])
-                # Add forward edges (must be weak references)
-                self.outputs = tuple([weakref.ref(y.node) for y in ret])
 
+                # Collect variable nodes. Note that they are None for variables
+                # with requires_grad=False.
+                input_nodes = [x.node for x in input_vars]
+                output_nodes = [y.node for y in output_vars]
+
+                # Retain input arrays
                 if self._input_indexes_to_retain is not None:
                     for index in self._input_indexes_to_retain:
-                        input_vars[index].retain_data()
+                        var_node = input_nodes[index]
+                        var = input_vars[index]
+                        arr = var.array
+                        # If a retained input's requires_grad is False,
+                        # create a new variable node and add an edge to it.
+                        if var_node is None:
+                            var_node = variable.VariableNode(var, arr, None)
+                            input_nodes[index] = var_node
+                        var_node.retain_data(arr)
 
+                # Retain output arrays
                 if self._output_indexes_to_retain is not None:
                     retained_data = []
                     for index in self._output_indexes_to_retain:
-                        ret[index].retain_data()
-                        retained_data.append(outputs[index])
+                        arr = output_arrs[index]
+                        output_nodes[index].retain_data(arr)
+                        retained_data.append(arr)
                     self._retained_output_data = tuple(retained_data)
+
+                # Add forward edges from outputs.
+                # These must be weak references.
+                # If an output node is gone, it is re-created using
+                # _retained_output_data.
+                for y in output_vars:
+                    if y.requires_grad:
+                        y.creator_node = self
+                self.outputs = tuple([
+                    None if node is None
+                    else weakref.ref(node)
+                    for node in output_nodes])
+
+                # Add backward edges to inputs.
+                self.inputs = tuple(input_nodes)
 
                 self.lazy_grad_sum = configuration.config.lazy_grad_sum
 
-        return ret
+        return output_vars
 
     def _check_data_type_forward(self, in_data):
         in_type = type_check.get_light_types(in_data)

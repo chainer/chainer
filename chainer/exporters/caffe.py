@@ -165,7 +165,7 @@ class _RetrieveAsCaffeModel(object):
                     setattr(layer.inner_product_param, k, v)
                 _add_blob(layer, list(W.shape), W.data)
                 if b is not None:
-                    b.retain_data()
+                    b.retain_data(b.data)
                     _add_blob(layer, list(b.shape), b.data)
 
         elif func.label in ('Convolution2DFunction',
@@ -202,7 +202,7 @@ class _RetrieveAsCaffeModel(object):
                 _add_blob(layer, [n_out, n_in, kh, kw], W.data)
 
                 if b is not None:
-                    b.retain_data()
+                    b.retain_data(b.data)
                     _add_blob(layer, [n_out], b.data)
 
         elif func.label in ('MaxPooling2D', 'AveragePooling2D'):
@@ -272,7 +272,7 @@ class _RetrieveAsCaffeModel(object):
                 params['top'] = [layer_name]
                 if net is not None:
                     layer = net.layer.add()
-                beta.retain_data()
+                beta.retain_data(beta.data)
                 bias_term = beta.data is not None
                 scale_param = {
                     'axis': 1,

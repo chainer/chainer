@@ -13,6 +13,8 @@ class Concat(function_node.FunctionNode):
 
     """Concatenate multiple tensors towards specified axis."""
 
+    in_shapes = None
+
     # concat along the channel dimension by default
     def __init__(self, axis=1):
         if not isinstance(axis, int):
@@ -42,6 +44,8 @@ class Concat(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
+        self.in_shapes = [x.shape for x in xs]
+
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(xs, (4,))):
             # iDeep implementation
@@ -67,7 +71,7 @@ class Concat(function_node.FunctionNode):
             return grad_outputs
 
         sizes = numpy.array(
-            [v.shape[self.axis] for v in self.inputs[:-1]]
+            [shape[self.axis] for shape in self.in_shapes[:-1]]
         ).cumsum()
         gx, = grad_outputs
         return chainer.functions.split_axis(gx, sizes, self.axis)

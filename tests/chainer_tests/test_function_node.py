@@ -791,6 +791,70 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         self.check_no_retain(backend_config, True)
 
 
+class TestFunctionNodeRetainWithoutRequiresGrad(unittest.TestCase):
+
+    def test_retain_input(self):
+        # Some of input variables are requires_grad=False but still possible to
+        # retain.
+
+        class MyFunc(chainer.FunctionNode):
+            backward_called = 0
+
+            def forward(self, inputs):
+                x, y = inputs
+                self.retain_inputs((0, 1))
+                return x + y,
+
+            def backward(self, input_indexes, grad_outputs):
+                self.backward_called += 1
+                x, y = self.get_retained_inputs()
+                assert x.node is None
+                assert y.node is not None
+                numpy.testing.assert_array_equal(
+                    x.array,
+                    numpy.array([2], numpy.float32))
+                numpy.testing.assert_array_equal(
+                    y.array,
+                    numpy.array([3], numpy.float32))
+                gy, = grad_outputs
+                return gy,
+
+        x = chainer.Variable(
+            numpy.array([2], numpy.float32), requires_grad=False)
+        y = chainer.Variable(
+            numpy.array([3], numpy.float32), requires_grad=True)
+        func = MyFunc()
+        z, = func.apply((x, y))
+        assert z.requires_grad
+        assert z.node is not None
+        z.grad = numpy.array([5], numpy.float32)
+        z.backward()
+        assert func.backward_called == 1
+
+    def test_retain_output(self):
+        # Output variable is requires_grad=False but still possible to retain,
+        # even though backward is never invoked.
+
+        class MyFunc(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, y = inputs
+                self.retain_outputs((0,))
+                return x + y,
+
+            def backward(self, input_indexes, grad_outputs):
+                assert False  # never called
+
+        x = chainer.Variable(
+            numpy.array([2], numpy.float32), requires_grad=False)
+        y = chainer.Variable(
+            numpy.array([3], numpy.float32), requires_grad=False)
+        z, = MyFunc().apply((x, y))
+        assert not z.requires_grad
+        assert z.node is None
+        z.grad = numpy.array([5], numpy.float32)
+        z.backward()
+
+
 def _get_value(x):
     if isinstance(x, chainer.Variable):
         return x.data

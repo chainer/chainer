@@ -178,7 +178,7 @@ class VariableNode(object):
     # by an old-style Function
     _old_style_grad_generator = None  # type: str
 
-    def __init__(self, variable, name, **kwargs):
+    def __init__(self, variable, data, name, **kwargs):
         # type: (Variable, tp.Optional[str], **tp.Any) -> None
 
         if kwargs:
@@ -191,8 +191,7 @@ class VariableNode(object):
         self.name = name
         self._requires_grad = variable.requires_grad
 
-        vdata = variable.data
-        self._update_data_info(vdata)
+        self._update_data_info(data)
 
     @property
     def creator(self):
@@ -397,20 +396,10 @@ class VariableNode(object):
         """
         self.creator_node = None
 
-    def retain_data(self):
+    def retain_data(self, data):
         """Lets the node hold a reference to the underlying data array.
-
-        This method gets the data array of the corresponding variable and keeps
-        it. If the weak reference to the corresponding variable is dead, it
-        raises an error.
-
         """
-        variable = self._variable()
-        if variable is not None:
-            self.data = variable.data
-        else:
-            raise RuntimeError('cannot retain variable data: the variable has '
-                               'been already released')
+        self.data = data
 
     def _update_data_info(self, d):
         if d is None:
@@ -490,6 +479,13 @@ class Variable(object):
 
     """  # NOQA
 
+    # VariableNode instance. This is None for variables with
+    # requires_grad=False and for those that hold ChainerX arrays.
+    _node = None
+
+    # Name. _node holds the same value.
+    _name = None
+
     # Cached value of `self.xp is chainerx`. It prevents from initializing
     # self._device as much as possible because it is really costly.
     _has_chainerx_array = False
@@ -558,6 +554,7 @@ class Variable(object):
         self._loss_scale = None
         self._grad_var = None
         self._device = None
+        self._name = name
 
         if is_chainerx_array is None:
             is_chainerx_array = isinstance(data, chainerx.ndarray)
@@ -570,11 +567,10 @@ class Variable(object):
             self._set_chainerx_array(data, grad)  # type: ignore
 
             # ChainerX itself has own node objects, but not exposed to python.
-            self._node = None  # type: tp.Optional[VariableNode]
-            self._chainerx_name = name
         else:
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
-            self._node = VariableNode(self, name)
+            if requires_grad:
+                self._node = VariableNode(self, data, name)
             self._grad = grad
 
     def __copy__(self):
@@ -582,7 +578,7 @@ class Variable(object):
 
     def _copy_to(self, target):
         target.__dict__ = copy.copy(self.__dict__)
-        target._node = VariableNode(target, self.name)
+        target._node = VariableNode(target, target.array, self.name)
         return target
 
     def __reduce__(self):
@@ -693,16 +689,14 @@ class Variable(object):
 
     @property
     def name(self):
-        if self.xp is chainerx:
-            return self._chainerx_name
-        return self._node.name
+        return self._name
 
     @name.setter
-    def name(self, n):
-        if self.xp is chainerx:
-            self._chainerx_name = n
-            return
-        self._node.name = n
+    def name(self, name):
+        self._name = name
+        node = self._node
+        if node is not None:
+            node.name = name
 
     def summary(self):
         if self.name:
@@ -788,7 +782,8 @@ class Variable(object):
         if self.xp is chainerx:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
-        return self._node.creator
+        node = self._node
+        return None if node is None else node.creator
 
     @creator.setter
     def creator(self, func):
@@ -863,7 +858,9 @@ class Variable(object):
 
             self._set_chainerx_array(d, None)  # type: ignore
         else:
-            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
+            node = self._node
+            if node is not None:
+                self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
             self._data[0] = d
             self._has_chainerx_array = False
 
@@ -999,7 +996,8 @@ class Variable(object):
         if self.xp is chainerx:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node rank.')
-        return self._node.rank
+        node = self._node
+        return 0 if node is None else node.rank
 
     @property
     def node(self):
@@ -1139,9 +1137,9 @@ class Variable(object):
 
         if was_chainerx and not is_chainerx:
             self._clear_chainerx()
-            self._node = VariableNode(self, self._chainerx_name)
         elif not was_chainerx and is_chainerx:
-            self._chainerx_name = self._node.name
+            node = self._node
+            self._name = None if node is None else node.name
 
         self._device = device
         self._has_chainerx_array = is_chainerx
@@ -1153,6 +1151,7 @@ class Variable(object):
             return
 
         new_arr = device.send(arr)
+
         if is_chainerx:
             if grad_var is None:
                 new_grad = None
@@ -1176,8 +1175,12 @@ class Variable(object):
                 node._variable = lambda: None
                 self._node = None
         else:
-            if node._data is not None:
-                node.retain_data()
+            if was_chainerx and self._requires_grad:
+                node = VariableNode(self, new_arr, self._name)
+                self._node = node
+
+            if node is not None and node._data is not None:
+                node.retain_data(new_arr)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1470,14 +1473,6 @@ class Variable(object):
                 add_cand(var.creator_node)
             func.unchain()
 
-    def retain_data(self):
-        """Lets the corresponding variable node keep the underlying array."""
-        if self.xp is chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a retain_data '
-                'method.')
-        self._node.data = self._data[0]
-
     def __lt__(self, other):
         """This operator is not defined for Variable."""
         raise NotImplementedError()
@@ -1537,6 +1532,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             raise NotImplementedError()
 
         y = y_var.node
+        if y is None:
+            continue
         root_nodes.add(y)
         grads[y] = y_var.grad_var
 
@@ -1555,14 +1552,15 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
-            i for i, x in enumerate(inputs) if x.requires_grad
+            i for i, x in enumerate(inputs)
+            if x is not None and x.requires_grad
         ])
         outputs = [y() for y in func.outputs]  # access via weak ref
         out_grad = tuple([grads.pop(y) for y in outputs])
         if not target_input_indexes:
             continue
 
-        in_data = tuple([x.data for x in inputs])
+        in_data = tuple([None if x is None else x.data for x in inputs])
         out_grad_array = tuple(
             [None if g is None else g.array for g in out_grad])
         hooks = chainer.get_function_hooks()
