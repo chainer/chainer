@@ -608,7 +608,7 @@ class Variable(object):
         # _grad_var._data[0] and self._data[0].grad and recreates _grad_var
         # as necessary. (chainerx.ndarray.grad can be altered independently
         # from chainer)
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._grad = None
             # Update gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
@@ -693,13 +693,13 @@ class Variable(object):
 
     @property
     def name(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             return self._chainerx_name
         return self._node.name
 
     @name.setter
     def name(self, n):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._chainerx_name = n
             return
         self._node.name = n
@@ -767,7 +767,7 @@ class Variable(object):
     @property
     def label(self):
         """Short text that represents the variable."""
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node label.')
         return self._node.label
@@ -785,14 +785,14 @@ class Variable(object):
         property returns that node object.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.creator = func
@@ -816,14 +816,14 @@ class Variable(object):
            object.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
@@ -839,7 +839,7 @@ class Variable(object):
         """
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
@@ -852,7 +852,7 @@ class Variable(object):
     def array(self, d):
         # type: (types.NdArray) -> None
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()  # type: ignore
@@ -903,7 +903,7 @@ class Variable(object):
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._set_chainerx_grad(g)
             self._grad_var = None
             return
@@ -924,7 +924,7 @@ class Variable(object):
         and error.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             arr = self._data[0]
             if arr is None or not arr.is_backprop_required():
                 self._chainerx_grad_cache = None
@@ -959,7 +959,7 @@ class Variable(object):
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._set_chainerx_grad(None if gv is None else gv._data[0])
             self._grad_var = gv
             return
@@ -996,14 +996,14 @@ class Variable(object):
 
     @property
     def rank(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
     def node(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node.')
         return self._node
@@ -1057,7 +1057,7 @@ class Variable(object):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             return
 
         if not allow_unchaining and self.creator is not None:
@@ -1092,7 +1092,7 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if self.xp is not chainerx:
+        if self._has_chainerx_array:
             return
 
         if not allow_unchaining and self._data[0].is_backprop_required():
@@ -1203,7 +1203,7 @@ class Variable(object):
         if arr is None:
             return
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             gv = self.grad_var
             if gv is None:
                 self.grad = chainerx.zeros_like(
@@ -1264,7 +1264,7 @@ class Variable(object):
 
         """
         # TODO(sonots): Implement for ChainerX
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise NotImplementedError()
 
         assert var.xp is not chainerx
@@ -1294,7 +1294,7 @@ class Variable(object):
                 one of its outputs.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
@@ -1307,7 +1307,7 @@ class Variable(object):
                 output.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
@@ -1364,7 +1364,7 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
@@ -1434,7 +1434,7 @@ class Variable(object):
         This method is equivalent to ``self.creator_node = None``.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
@@ -1450,7 +1450,7 @@ class Variable(object):
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain_backward '
                 'method.')
@@ -1472,7 +1472,7 @@ class Variable(object):
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a retain_data '
                 'method.')
