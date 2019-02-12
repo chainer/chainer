@@ -1,8 +1,5 @@
-import numpy as np
-
 import chainer
 import chainer.functions as F
-from chainer import initializers
 import chainer.links as L
 
 
