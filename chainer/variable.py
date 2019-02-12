@@ -1092,7 +1092,7 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if self._has_chainerx_array:
+        if not self._has_chainerx_array:
             return
 
         if not allow_unchaining and self._data[0].is_backprop_required():
@@ -1115,7 +1115,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self.xp is chainerx
+        was_chainerx = self._has_chainerx_array
         is_chainerx = device.xp is chainerx
 
         if not allow_unchaining:
