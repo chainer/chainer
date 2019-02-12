@@ -30,11 +30,11 @@ class Independent(distribution.Distribution):
                 self._get_default_reinterpreted_batch_ndims(distribution)
         self.__reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
-        self.__batch_shape = \
-            distribution.batch_shape[:-self.reinterpreted_batch_ndims]
+        batch_ndim = \
+            len(self.distribution.batch_shape) - self.reinterpreted_batch_ndims
+        self.__batch_shape = distribution.batch_shape[:batch_ndim]
         self.__event_shape = \
-            distribution.batch_shape[-self.reinterpreted_batch_ndims:] + \
-            distribution.event_shape
+            distribution.batch_shape[batch_ndim:] + distribution.event_shape
 
     @property
     def distribution(self):
