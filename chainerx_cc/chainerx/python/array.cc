@@ -38,6 +38,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
+#include "chainerx/python/pymodule.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/strides.h"
 
@@ -54,7 +55,7 @@ namespace py = pybind11;
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
-    Dtype dtype = GetDtypeFromNumpyDtype(array.dtype());
+    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
     int64_t first{};
@@ -74,7 +75,7 @@ namespace {
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
 
-    py::dtype dtype{GetDtypeName(array.dtype())};
+    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
     const void* ptr = internal::GetRawOffsetData(array);
@@ -87,24 +88,22 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
 
 py::object MakeCupyArrayFromArray(py::handle self) {
     Array array = Array{py::cast<ArrayBodyPtr>(self)};
+    Device& device = array.device();
+    // TODO(okapies): rejects if array's device is not compatible with cupy
 
-    py::object cupy_module = py::module::import("cupy");
-    py::object ndarray_type = cupy_module.attr("ndarray");
-    py::object cupy_cuda_memory = cupy_module.attr("cuda").attr("memory");
-    py::object memory_pointer_type = cupy_cuda_memory.attr("MemoryPointer");
-    py::object unowned_memory_type = cupy_cuda_memory.attr("UnownedMemory");
-
-    py::dtype dtype{GetDtypeName(array.dtype())};
+    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
 
     const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
     const auto range = GetDataRange(shape, strides, array.GetItemSize());
     const auto data_size = std::get<1>(range) - std::get<0>(range);
-    const auto device_index = array.device().index();
-    py::object memptr = memory_pointer_type(unowned_memory_type(ptr, data_size, self, device_index), 0);
+    const auto device_index = device.index();
 
-    return ndarray_type(python_internal::ToTuple(shape), dtype, memptr, python_internal::ToTuple(strides));
+    py::object memptr = cupy::cuda::memory::MemoryPointer()(cupy::cuda::memory::UnownedMemory()(ptr, data_size, self,
+            device_index), 0);
+
+    return cupy::ndarray()(ToTuple(shape), dtype, memptr, ToTuple(strides));
 }
 
 }  // namespace
@@ -137,12 +136,11 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
-    py::object array_func = py::module::import("numpy").attr("array");
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
     }
-    py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
+    py::array np_array = numpy::array(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
     // Convert NumPy array to ChainerX array
     return MakeArrayFromNumpyArray(np_array, device);

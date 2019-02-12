@@ -1,5 +1,6 @@
 #include "chainerx/python/dtype.h"
 
+#include <mutex>
 #include <string>
 
 #include <pybind11/numpy.h>
@@ -165,6 +166,21 @@ py::object GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
             return m.attr("_float64");
         default:
             CHAINERX_NEVER_REACH();
+    }
+}
+
+py::dtype GetNumpyDtypeFromDtype(Dtype dtype) {
+    static std::unordered_map<Dtype, py::dtype> dtypes;
+    static std::mutex mutex;
+
+    std::lock_guard<std::mutex> lock(mutex);
+    if (dtypes.count(dtype)) {
+        return dtypes[dtype];
+    } else {
+        py::dtype numpy_dtype{GetDtypeName(dtype)};
+        dtypes.insert(std::make_pair(dtype, numpy_dtype));
+
+        return numpy_dtype;
     }
 }
 
