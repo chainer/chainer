@@ -12,6 +12,7 @@ except ImportError:
     _dali_available = False
 
 
+import chainer
 from chainer.backends import cuda
 import ctypes
 
