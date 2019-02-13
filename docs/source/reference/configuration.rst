@@ -69,7 +69,10 @@ Configuration Keys
 * ``warn_nondeterministic`` (default: ``False``)
    Flag to give warning when a non-deterministic function is used. This function is experimental.
 
-   If it is true, then functions that use non-deterministic functions, such as atomicAdd, will give a warning when executed. 
+   If it is true, then functions that use non-deterministic functions and cannot be given a seed, such as atomicAdd, will
+   give a warning when executed. For functions that can take a seed argument, such as
+   :func:`~chainer.datasets.split_dataset_random`, setting the seed should be done when the function is called and will not
+   be flagged by this setting.
    
    Note that this feature is provided as best-effort. It cannot assure that every nondeterministic function can be detected.  For example, SSE computations in CPU mode may cause non-deterministic behavior that would not raise a warning.
 
