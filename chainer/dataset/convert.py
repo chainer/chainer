@@ -24,7 +24,7 @@ def to_device(device, x):
             negative value, an array is sent to CPU. If it is positive, an
             array is sent to GPU with the given ID. If it is ``None``, an
             array is left in the original device.
-        x (numpy.ndarray or cupy.ndarray): An array to send.
+        x (:ref:`ndarray`): An array to send.
 
     Returns:
         Converted array.
