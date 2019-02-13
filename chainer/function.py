@@ -249,7 +249,7 @@ class Function(object):
         behavior of building the computational graph.
 
         Args:
-            inputs: Tuple of input :class:`Variable`, :ref:`ndarray` objects.
+            inputs: Tuple of input :class:`Variable` or :ref:`ndarray` objects.
                 If the input is :ref:`ndarray`, it is automatically wrapped
                 with :class:`Variable`.
 
