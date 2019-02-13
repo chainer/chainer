@@ -223,7 +223,7 @@ def upsampling_2d(
 
     Args:
         x (~chainer.Variable): Input variable.
-        indexes (~numpy.ndarray or ~cupy.ndarray): Index array returned from
+        indexes (:ref:`ndarray`): Index array returned from
             preceding call to :meth:`~chainer.functions.max_pooling_2d`.
         ksize (int or pair of ints): Size of pooling window. ``ksize=k`` and
             ``ksize=(k, k)`` are equivalent.
