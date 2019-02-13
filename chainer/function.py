@@ -249,11 +249,9 @@ class Function(object):
         behavior of building the computational graph.
 
         Args:
-            inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
-                :class:`cupy.ndarray` objects.
-                If the input is an :class:`numpy.ndarray` or a
-                :class:`cupy.ndarray`, it is automatically wrapped with
-                :class:`Variable`.
+            inputs: Tuple of input :class:`Variable` or :ref:`ndarray` objects.
+                If the input is :ref:`ndarray`, it is automatically wrapped
+                with :class:`Variable`.
 
         Returns:
             One :class:`Variable` object or a tuple of multiple
