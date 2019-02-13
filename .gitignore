@@ -25,3 +25,6 @@ docs/my_mnist.model
 docs/mnist_result
 docs/*.png
 /docs/source/**/reference/**/generated
+chainer/functions/.DS_Store
+.DS_Store
+chainer/functions/.DS_Store
