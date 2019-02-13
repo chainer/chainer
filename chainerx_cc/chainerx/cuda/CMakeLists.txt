@@ -34,6 +34,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/indexing.cu
     cuda_device/memory.cc
     cuda_device/misc.cu
+    cuda_device/optimizer.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
     cuda_backend.cc

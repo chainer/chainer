@@ -207,6 +207,20 @@ public:
             const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
             override;
 
+    // optimizer.cu
+
+    void Adam(
+            const Array& grad,
+            Scalar alpha,
+            Scalar beta1,
+            Scalar beta2,
+            Scalar eps,
+            Scalar eta,
+            Scalar weight_decay_rate,
+            const Array& param,
+            const Array& m,
+            const Array& t) override;
+
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},

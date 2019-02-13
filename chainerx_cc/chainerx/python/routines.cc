@@ -753,6 +753,30 @@ void InitChainerxPooling(pybind11::module& m) {
 
 }  // namespace
 
+void InitChainerxOptimizer(pybind11::module& m) {
+    // optimizer routines
+    m.def("adam",
+          [](const ArrayBodyPtr& x,
+             const ArrayBodyPtr& gamma,
+             const ArrayBodyPtr& beta,
+             const ArrayBodyPtr& running_mean,
+             const ArrayBodyPtr& running_var,
+             Scalar eps,
+             Scalar decay,
+             const nonstd::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(
+                      BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis)));
+          },
+          py::arg("x"),
+          py::arg("gamma"),
+          py::arg("beta"),
+          py::arg("running_mean"),
+          py::arg("running_var"),
+          py::arg("eps") = 2e-5,
+          py::arg("decay") = 0.9,
+          py::arg("axis") = nullptr);
+}
+
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
     InitChainerxIndexing(m);
@@ -765,6 +789,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxConnection(m);
     InitChainerxNormalization(m);
     InitChainerxPooling(m);
+    InitChainerxOptimizer(m);
 }
 
 }  // namespace python_internal

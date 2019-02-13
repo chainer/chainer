@@ -160,6 +160,20 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode) override;
 
+    // optimizer.cc
+
+    void Adam(
+            const Array& grad,
+            Scalar alpha,
+            Scalar beta1,
+            Scalar beta2,
+            Scalar eps,
+            Scalar eta,
+            Scalar weight_decay_rate,
+            const Array& param,
+            const Array& m,
+            const Array& t) override;
+
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 

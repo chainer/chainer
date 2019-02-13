@@ -278,6 +278,18 @@ public:
     virtual Array FixedBatchNorm(
             const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis);
 
+    virtual void Adam(
+            const Array& grad,
+            Scalar alpha,
+            Scalar beta1,
+            Scalar beta2,
+            Scalar eps,
+            Scalar eta,
+            Scalar weight_decay_rate,
+            const Array& param,
+            const Array& m,
+            const Array& t) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

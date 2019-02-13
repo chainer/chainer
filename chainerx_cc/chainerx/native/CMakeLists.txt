@@ -23,6 +23,7 @@ add_library(chainerx_native STATIC
     native_device/indexing.cc
     native_device/memory.cc
     native_device/misc.cc
+    native_device/optimizer.cc
     native_device/pool.cc
     native_device/reduction.cc
     native_backend.cc
