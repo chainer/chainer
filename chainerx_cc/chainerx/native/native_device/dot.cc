@@ -127,18 +127,12 @@ T MultiplyAdd(T x, T y, T z) {
 }
 
 Float16 MultiplyAdd(Float16 x, Float16 y, Float16 z) {
-    return static_cast<Float16>(std::fmaf(static_cast<float>(x),
-                                          static_cast<float>(y),
-                                          static_cast<float>(z)));
+    return static_cast<Float16>(std::fmaf(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)));
 }
 
-float MultiplyAdd(float x, float y, float z) {
-    return std::fmaf(x, y, z);
-}
+float MultiplyAdd(float x, float y, float z) { return std::fmaf(x, y, z); }
 
-double MultiplyAdd(double x, double y, double z) {
-    return std::fma(x, y, z);
-}
+double MultiplyAdd(double x, double y, double z) { return std::fma(x, y, z); }
 
 }  // namespace
 
