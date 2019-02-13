@@ -1,5 +1,6 @@
 #include "chainerx/native/native_device.h"
 
+#include <cmath>
 #include <cstdint>
 
 #ifdef CHAINERX_ENABLE_BLAS
@@ -118,6 +119,29 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 }  // namespace
 #endif  // CHAINERX_ENABLE_BLAS
 
+namespace {
+
+template <class T>
+T multiply_add(T x, T y, T z) {
+    return x * y + z;
+}
+
+Float16 multiply_add(Float16 x, Float16 y, Float16 z) {
+    return static_cast<Float16>(std::fmaf(static_cast<float>(x),
+                                          static_cast<float>(y),
+                                          static_cast<float>(z)));
+}
+
+float multiply_add(float x, float y, float z) {
+    return std::fmaf(x, y, z);
+}
+
+double multiply_add(double x, double y, double z) {
+    return std::fma(x, y, z);
+}
+
+}  // namespace
+
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
 
@@ -157,7 +181,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
                     int64_t b_l_j[] = {l, j};
                     T b_value = native_internal::StorageToDataType<const T>(b_iarray[b_l_j]);
                     T& out_value = native_internal::StorageToDataType<T>(out_iarray[out_i_j]);
-                    out_value += a_value * b_value;
+                    out_value = multiply_add(a_value, b_value, out_value);
                 }
             }
         }
