@@ -7,6 +7,7 @@
 
 #include "chainerx/array_index.h"
 
+#include "chainerx/python/pymodule.h"
 #include "chainerx/python/slice.h"
 
 namespace chainerx {
@@ -28,9 +29,7 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
         return ArrayIndex{MakeSlice(py::cast<py::slice>(handle))};
     }
     // NumPy integer scalar
-    // numpy.integer is cached because it's time consuming to import each time.
-    // (py::handle is trivially destructible)
-    static py::handle numpy_integer = py::module::import("numpy").attr("integer");
+    auto& numpy_integer = get_numpy_module().integer();
     static_assert(std::is_trivially_destructible<py::handle>::value, "");
     if (py::isinstance(handle, numpy_integer)) {
         return ArrayIndex{py::cast<int64_t>(handle)};

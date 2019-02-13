@@ -10,6 +10,7 @@
 
 #include "chainerx/macro.h"
 #include "chainerx/python/common.h"
+#include "chainerx/python/pymodule.h"
 
 namespace chainerx {
 namespace python {
@@ -112,7 +113,7 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From NumPy dtype class
-    auto numpy_module = py::module::import("numpy");
+    auto& numpy_module = get_numpy_module().module();
     if (handle.is(numpy_module.attr("bool_"))) {
         return Dtype::kBool;
     }

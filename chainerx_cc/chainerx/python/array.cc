@@ -99,10 +99,14 @@ py::object MakeCupyArrayFromArray(py::handle self) {
     const auto data_size = GetDataSize(shape, strides, array.GetItemSize());
     const auto device_index = device.index();
 
-    py::object memptr = cupy::cuda::memory::MemoryPointer()(cupy::cuda::memory::UnownedMemory()(ptr, data_size, self,
-            device_index), 0);
+    // Convert object to CuPy array using cupy.ndarray()
+    auto& cupy_module = get_cupy_module();
+    auto& memory_pointer = cupy_module.cuda_memory_MemoryPointer();
+    auto& unowned_memory = cupy_module.cuda_memory_UnownedMemory();
+    py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), 0);
 
-    return cupy::ndarray()(ToTuple(shape), dtype, memptr, ToTuple(strides));
+    auto& ndarray = cupy_module.ndarray();
+    return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
 }
 
 }  // namespace
@@ -135,7 +139,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
-    py::handle array_func = numpy::array();
+    auto& array_func = get_numpy_module().numpy_module.array();
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
