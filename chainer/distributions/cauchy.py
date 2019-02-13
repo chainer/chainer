@@ -27,12 +27,10 @@ class Cauchy(distribution.Distribution):
         p(x;x_0,\\gamma) = \\frac{1}{\\pi}\\frac{\\gamma}{(x-x_0)^2+\\gamma^2}
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\x_0`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\gamma`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\x_0`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\gamma`.
     """
 
     def __init__(self, loc, scale):

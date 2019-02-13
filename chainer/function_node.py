@@ -245,9 +245,9 @@ Use apply() method instead.\
 
         Args:
             inputs: Tuple of input variables. Each element can be either
-                :class:`~chainer.Variable`, :class:`numpy.ndarray`,
-                or :class:`cupy.ndarray`. If the element is an ndarray, it is
-                automatically wrapped with :class:`~chainer.Variable`.
+                :class:`~chainer.Variable` or :ref:`ndarray`. If the element
+                is an ndarray, it is automatically wrapped with
+                :class:`~chainer.Variable`.
 
         Returns:
             A tuple of output :class:`~chainer.Variable` objects.
