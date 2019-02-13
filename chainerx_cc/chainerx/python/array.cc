@@ -139,7 +139,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
-    auto& array_func = get_numpy_module().numpy_module.array();
+    auto& array_func = get_numpy_module().array();
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
