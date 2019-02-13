@@ -18,8 +18,8 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer import types  # NOQA
-from chainer.utils import argument
 import chainer.utils._collections
+from chainer.utils import argument
 import chainerx
 
 
@@ -490,6 +490,10 @@ class Variable(object):
 
     """  # NOQA
 
+    # Cached value of `self.xp is chainerx`. It prevents from initializing
+    # self._device as much as possible because it is really costly.
+    _has_chainerx_array = False
+
     # Cached grad-stopped view of chainerx array. This is the return value
     # of `array` and `data` properties.
     _chainerx_nobp_array_cache = None
@@ -636,6 +640,8 @@ class Variable(object):
         assert array is None or isinstance(array, chainerx.ndarray)
         requires_grad = self._requires_grad
 
+        self._grad = None
+
         if (not requires_grad
                 and array is not None
                 and array.is_backprop_required()):
@@ -659,6 +665,7 @@ class Variable(object):
                     array.set_grad(grad)
             self._data = [array]
 
+        self._has_chainerx_array = True  # even if data is None
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
@@ -678,8 +685,11 @@ class Variable(object):
     def xp(self):
         # type: () -> tp.Optional[types.Xp]
         """Array module for the data array of this variable."""
-        device = self.device
-        return None if device is None else device.xp
+        if self._has_chainerx_array:
+            return chainerx
+        else:
+            device = self.device
+            return None if device is None else device.xp
 
     @property
     def name(self):
@@ -840,21 +850,22 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (chainerx.ndarray) -> None
+        # type: (types.NdArray) -> None
 
         if self.xp is chainerx:
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()  # type: ignore
-                         or d.is_backprop_required())):
+                         or d.is_backprop_required())):  # type: ignore
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            self._set_chainerx_array(d, None)
+            self._set_chainerx_array(d, None)  # type: ignore
         else:
             self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
             self._data[0] = d
+            self._has_chainerx_array = False
 
     @property
     def data(self):
@@ -1104,7 +1115,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        was_chainerx = self.device.xp is chainerx
+        was_chainerx = self.xp is chainerx
         is_chainerx = device.xp is chainerx
 
         if not allow_unchaining:
@@ -1133,6 +1144,7 @@ class Variable(object):
             self._chainerx_name = self._node.name
 
         self._device = device
+        self._has_chainerx_array = is_chainerx
 
         if arr is None:
             return
@@ -1151,6 +1163,8 @@ class Variable(object):
             self._data = [new_arr]
             if grad_var is not None:
                 grad_var.to_device(device)
+                # _grad has been invalidated by grad_var.to_device().
+                self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -1746,6 +1760,7 @@ class Parameter(Variable):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
+            self._has_chainerx_array = False
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 

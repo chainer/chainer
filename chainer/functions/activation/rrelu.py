@@ -86,7 +86,7 @@ class _RReLUGrad(function_node.FunctionNode):
         return gy,
 
     def backward(self, indexes, grad_outputs):
-        return _RReLUGrad(self.x, self.y, self.r).apply(grad_outputs)
+        return _RReLUGrad(self.y, self.r).apply(grad_outputs)
 
 
 def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
@@ -108,7 +108,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         l (float): The lower bound of the uniform distribution.
         u (float): The upper bound of the uniform distribution.
-        r (:class:`numpy.ndarray` or None):
+        r (:ref:`ndarray` or None):
             The r to be used for rrelu.
             The shape and dtype must be the same as ``x[0]`` and should be on
             the same device.
@@ -125,7 +125,8 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
         ~chainer.Variable or tuple:
             When ``return_r`` is ``False`` (default), return the output
             variable. Otherwise returnes the tuple of the output variable and
-            ``r`` (ndarray). The ``r`` will be on the same device as the input.
+            ``r`` (:ref:`ndarray`). The ``r`` will be on the same device as
+            the input.
             A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     .. admonition:: Example

@@ -10,7 +10,7 @@ from chainer import variable
 
 class Deconvolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None, *, groups=1)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, outsize=None, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two dimensional deconvolution function.
 
@@ -45,6 +45,9 @@ class Deconvolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         groups (int): The number of groups to use grouped deconvolution. The
             default is one, where grouped deconvolution is not used.
 
@@ -125,8 +128,8 @@ class Deconvolution2D(link.Link):
                  **kwargs):
         super(Deconvolution2D, self).__init__()
 
-        groups, = argument.parse_kwargs(
-            kwargs, ('groups', 1),
+        dilate, groups, = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
@@ -137,6 +140,7 @@ class Deconvolution2D(link.Link):
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
+        self.dilate = _pair(dilate)
         self.outsize = (None, None) if outsize is None else outsize
         self.out_channels = out_channels
         self.groups = int(groups)
@@ -173,7 +177,7 @@ class Deconvolution2D(link.Link):
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.outsize,
-            groups=self.groups)
+            dilate=self.dilate, groups=self.groups)
 
 
 def _pair(x):

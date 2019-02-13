@@ -234,10 +234,10 @@ double HalfToDouble(uint16_t v) {
 
 }  // namespace
 
-Half::Half(float v) : data_{FloatToHalf(v)} {}
-Half::Half(double v) : data_{DoubleToHalf(v)} {}
+Float16::Float16(float v) : data_{FloatToHalf(v)} {}
+Float16::Float16(double v) : data_{DoubleToHalf(v)} {}
 
-Half::operator float() const { return HalfToFloat(data_); }
-Half::operator double() const { return HalfToDouble(data_); }
+Float16::operator float() const { return HalfToFloat(data_); }
+Float16::operator double() const { return HalfToDouble(data_); }
 
 }  // namespace chainerx

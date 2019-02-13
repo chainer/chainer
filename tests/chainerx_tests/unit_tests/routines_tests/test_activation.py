@@ -19,7 +19,7 @@ def test_relu(xp, device, shape, dtype):
         return chainerx.relu(x)
 
 
-@chainerx.testing.numpy_chainerx_allclose(atol=1e-6)
+@chainerx.testing.numpy_chainerx_allclose(atol=1e-6, float16_atol=1e-2)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sigmoid(xp, device, shape, float_dtype):
     # TODO(imanishi): Dtype promotion is not supported yet.

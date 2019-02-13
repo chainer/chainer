@@ -144,6 +144,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_TRUE(internal::GetArrayBody(b)->nodes().empty());
 }
 
+TEST(ArrayInvalidCtorTest, InvalidArrayBody) { EXPECT_THROW(Array{nullptr}, ChainerxError); }
+
 TEST_P(ArrayTest, CopyAssignment) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});

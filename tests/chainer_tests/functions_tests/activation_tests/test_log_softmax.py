@@ -76,10 +76,6 @@ class TestLogSoftmax(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
@@ -110,10 +106,6 @@ class TestLogSoftmax(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
 
     def check_double_backward(self, x_data, gy_data, ggx_data,
@@ -142,10 +134,6 @@ class TestLogSoftmax(unittest.TestCase):
 
     @attr.chainerx
     def test_double_backward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_double_backward(
             chainerx.array(self.x),
             chainerx.array(self.gy),
