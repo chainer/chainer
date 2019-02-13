@@ -96,8 +96,7 @@ py::object MakeCupyArrayFromArray(py::handle self) {
     const Strides& strides = array.strides();
 
     const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
-    const auto range = GetDataRange(shape, strides, array.GetItemSize());
-    const auto data_size = std::get<1>(range) - std::get<0>(range);
+    const auto data_size = GetDataSize(shape, strides, array.GetItemSize());
     const auto device_index = device.index();
 
     py::object memptr = cupy::cuda::memory::MemoryPointer()(cupy::cuda::memory::UnownedMemory()(ptr, data_size, self,
@@ -486,8 +485,7 @@ void InitChainerxArray(pybind11::module& m) {
         return reinterpret_cast<intptr_t>(self->data().get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     });
     c.def_property_readonly("data_size", [](const ArrayBodyPtr& self) -> int64_t {
-        auto range = GetDataRange(self->shape(), self->strides(), self->GetItemSize());
-        return std::get<1>(range) - std::get<0>(range);
+        return GetDataSize(self->shape(), self->strides(), self->GetItemSize());
     });
     // TODO(niboshi): Remove this in favor of data_ptr.
     c.def_property_readonly(

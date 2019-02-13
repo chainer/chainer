@@ -66,4 +66,19 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
     return std::tuple<int64_t, int64_t>{first, last};
 }
 
+int64_t GetDataSize(const Shape& shape, const Strides& strides, size_t item_size) {
+    CHAINERX_ASSERT(shape.ndim() == strides.ndim());
+    int64_t size = item_size;
+
+    for (int8_t i = 0; i < shape.ndim(); ++i) {
+        if (shape[i] == 0) {
+            return 0;
+        }
+        int64_t stride = strides[i];
+        size += (shape[i] - 1) * (stride < 0 ? -stride : stride);
+    }
+    CHAINERX_ASSERT(static_cast<int64_t>(item_size) <= size);
+    return size;
+}
+
 }  // namespace chainerx

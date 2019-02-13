@@ -184,5 +184,36 @@ TEST_P(GetDataRangeTest, GetDataRange) {
     EXPECT_EQ(actual, std::make_tuple(param.first, param.last));
 }
 
+struct GetDataSizeTestParams {
+    Shape shape;
+    Strides strides;
+    size_t itemsize;
+    int64_t size;
+};
+
+class GetDataSizeTest : public ::testing::TestWithParam<GetDataSizeTestParams> {};
+INSTANTIATE_TEST_CASE_P(
+        GetDataSizeTest,
+        GetDataSizeTest,
+        ::testing::Values(
+                GetDataSizeTestParams{{2, 3, 4}, {96, 32, 8}, 8, 192},
+                GetDataSizeTestParams{{10, 12}, {160, 8}, 8, 1536},
+                GetDataSizeTestParams{{}, {}, 8, 8},
+                GetDataSizeTestParams{{3, 0, 3}, {24, 24, 8}, 8, 0},
+                GetDataSizeTestParams{{10, 3, 4}, {-96, 32, 8}, 8, 960},
+                GetDataSizeTestParams{{10, 3, 4}, {-96, -32, -8}, 8, 960},
+                GetDataSizeTestParams{{3, 4}, {8, 24}, 8, 96},
+                GetDataSizeTestParams{{100}, {24}, 8, 2384}));
+
+TEST_P(GetDataSizeTest, GetDataSize) {
+    GetDataSizeTestParams param = GetParam();
+    int64_t actual = GetDataSize(param.shape, param.strides, param.itemsize);
+    EXPECT_EQ(actual, param.size);
+
+    // Its behavior is consistent with GetDataRange
+    std::tuple<int64_t, int64_t> range = GetDataRange(param.shape, param.strides, param.itemsize);
+    EXPECT_EQ(actual, std::get<1>(range) - std::get<0>(range));
+}
+
 }  // namespace
 }  // namespace chainerx
