@@ -42,9 +42,7 @@ struct CHAINERX_VISIBILITY_HIDDEN numpy_module {
     }
 };
 
-inline PYBIND11_NOINLINE void load_numpy_module(numpy_module* &ptr) {
-    ptr = &py::get_or_create_shared_data<numpy_module>("_numpy_module");
-}
+inline PYBIND11_NOINLINE void load_numpy_module(numpy_module*& ptr) { ptr = &py::get_or_create_shared_data<numpy_module>("_numpy_module"); }
 
 inline numpy_module& get_numpy_module() {
     static numpy_module* ptr = nullptr;
@@ -96,9 +94,7 @@ struct CHAINERX_VISIBILITY_HIDDEN cupy_module {
     }
 };
 
-inline PYBIND11_NOINLINE void load_cupy_module(cupy_module* &ptr) {
-    ptr = &py::get_or_create_shared_data<cupy_module>("_cupy_module");
-}
+inline PYBIND11_NOINLINE void load_cupy_module(cupy_module*& ptr) { ptr = &py::get_or_create_shared_data<cupy_module>("_cupy_module"); }
 
 inline cupy_module& get_cupy_module() {
     static cupy_module* ptr = nullptr;

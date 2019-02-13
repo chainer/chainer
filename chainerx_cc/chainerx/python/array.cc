@@ -72,10 +72,10 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
 
 namespace {
 
-py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
+py::array MakeNumpyArrayFromArray(const py::module& m, const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
 
-    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
+    py::object dtype = GetNumpyDtypeFromModule(m, array.dtype());
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
     const void* ptr = internal::GetRawOffsetData(array);
@@ -86,12 +86,12 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     return py::array{dtype, shape, strides, ptr, py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
-py::object MakeCupyArrayFromArray(py::handle self) {
+py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     Array array = Array{py::cast<ArrayBodyPtr>(self)};
     const Device& device = array.device();
     // TODO(okapies): rejects if array's device is not compatible with cupy
 
-    py::dtype dtype = GetNumpyDtypeFromDtype(array.dtype());
+    py::object dtype = GetNumpyDtypeFromModule(m, array.dtype());
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
 
@@ -159,8 +159,11 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
-    m.def("to_numpy", &MakeNumpyArrayFromArray, py::arg("array"), py::arg("copy") = true);
-    m.def("to_cupy", &MakeCupyArrayFromArray, py::arg("array"));
+    m.def("to_numpy",
+          [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
+          py::arg("array"),
+          py::arg("copy") = true);
+    m.def("to_cupy", [m](py::handle array) { return MakeCupyArrayFromArray(m, array); }, py::arg("array"));
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
@@ -178,7 +181,7 @@ void InitChainerxArray(pybind11::module& m) {
               return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
     c.def(py::pickle(
-            [](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(self, true), self->device()); },
+            [m](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), self->device()); },
             [](py::tuple state) -> ArrayBodyPtr {
                 py::array numpy_array = state[0];
                 Device& device = py::cast<Device&>(state[1]);
