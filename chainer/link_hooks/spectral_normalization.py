@@ -127,7 +127,7 @@ class SpectralNormalization(link_hook.LinkHook):
             >>> _ = l.add_hook(hook)
             >>> # Check the shape of the first left singular vector.
             >>> getattr(l, hook.vector_name).shape
-            (1, 5)
+            (5,)
             >>> # Delete SN hook from this link.
             >>> l.delete_hook(hook.name)
 
@@ -136,8 +136,8 @@ class SpectralNormalization(link_hook.LinkHook):
 
             >>> # SN hook handles lazy initialization!
             >>> layer = L.Convolution2D(
-                    5, 3, stride=1, pad=1).add_hook(
-                        chainer.link_hooks.SpectralNormalization())
+            ...     5, 3, stride=1, pad=1).add_hook(
+            ...         chainer.link_hooks.SpectralNormalization())
     """
 
     name = 'SpectralNormalization'
