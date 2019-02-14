@@ -270,7 +270,7 @@ def main():
     parser.add_argument('--validation-interval', type=int, default=4000,
                         help='number of iteration to evlauate the model '
                         'with validation dataset')
-    parser.add_argument('--device', '-d', type=str, default='native',
+    parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
