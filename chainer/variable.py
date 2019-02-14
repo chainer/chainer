@@ -482,9 +482,9 @@ class Variable(object):
         * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     Args:
-        data (numpy.ndarray or cupy.ndarray): Initial data array.
+        data (:ref:`ndarray`): Initial data array.
         name (str): Name of the variable.
-        grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
+        grad (:ref:`ndarray`): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
@@ -639,6 +639,8 @@ class Variable(object):
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
         requires_grad = self._requires_grad
+
+        self._grad = None
 
         if (not requires_grad
                 and array is not None
@@ -1161,6 +1163,8 @@ class Variable(object):
             self._data = [new_arr]
             if grad_var is not None:
                 grad_var.to_device(device)
+                # _grad has been invalidated by grad_var.to_device().
+                self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -1639,7 +1643,7 @@ class Parameter(Variable):
     using its gradient array.
 
     Args:
-        initializer (~chainer.Initializer or numpy.ndarray or cupy.ndarray):
+        initializer (~chainer.Initializer or :ref:`ndarray`):
             Initializer of the data array. If ``shape`` is given, this
             initializer is immediately used to initialize the data array.
             Otherwise, if it is an array, it is immediately used as the data
@@ -1824,7 +1828,7 @@ def as_variable(obj):
     you should use :class:`~chainer.Variable` directly.
 
     Args:
-        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or
             a variable that you want to convert to :class:`~chainer.Variable`.
 
     Returns:
@@ -1853,11 +1857,10 @@ def as_array(obj):
     transparently from an object that could be either a variable or an array.
 
     Args:
-        obj (chainerx.ndarray numpy.ndarray or cupy.ndarray or
-            ~chainer.Variable): An array or a variable.
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or a variable.
 
     Returns:
-        chainerx.ndarray numpy.ndarray or cupy.ndarray or ~chainer.Variable:
+        :ref:`ndarray` or ~chainer.Variable:
         The underlying array object of the argument.
 
     """

@@ -161,10 +161,10 @@ Array GetPadModeIgnorePoolingWidths(
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t i, T& w) {
-                    T start = i * s - p;
+                    T start = static_cast<T>(i) * s - p;
                     T end = start + k;
-                    if (start < 0) {
-                        start = 0;
+                    if (start < T{0}) {
+                        start = T{0};
                     }
                     if (end > d) {
                         end = d;

@@ -59,7 +59,7 @@ class Constant(_Constant):
     """Initializes array with constant value.
 
     Attributes:
-        ~Constant.fill_value (scalar or numpy.ndarray or cupy.ndarray):
+        ~Constant.fill_value (scalar or :ref:`ndarray`):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
         dtype: Data type specifier.

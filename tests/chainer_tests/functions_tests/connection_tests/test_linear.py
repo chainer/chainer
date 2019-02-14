@@ -15,7 +15,7 @@ from chainer.testing import backend
     'x_shape': [{'n_batch_axes': 1, 'data_shape': (3,)},
                 {'n_batch_axes': 3, 'data_shape': (3, 5)},
                 ],
-    'c_contiguous': ['C', None],
+    'contiguous': ['C', None],
     'nobias': [True, False],
 }))
 @backend.inject_backend_tests(
@@ -38,22 +38,11 @@ from chainer.testing import backend
 class TestNonparameterizedLinear(testing.FunctionTestCase):
 
     def setUp(self):
+        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         if self.x_dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        elif self.W_dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        else:
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_forward_options = {'atol': 5e-3, 'rtol': 1e-2}
         self.n_batch_axes = self.x_shape['n_batch_axes']
-
-    def before_test(self, test_name):
-        if self.backend_config.use_chainerx:
-            if numpy.float16 in (self.x_dtype, self.W_dtype):
-                raise unittest.SkipTest()
 
     def generate_inputs(self):
         data_shape = self.x_shape['data_shape']
