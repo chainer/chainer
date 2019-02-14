@@ -1,4 +1,5 @@
 from __future__ import division
+import atexit
 import datetime
 import multiprocessing
 from multiprocessing import sharedctypes  # type: ignore
@@ -615,3 +616,13 @@ def _unpack(data, mem):
     elif t is _PackedNdarray:
         data = data.unpack(mem)
     return data
+
+
+# When the CPython interpreter exits, daemon threads abruptly exits without
+# any Python-level finalization. This makes `thread.is_alive` unreliable.
+# Pooled processes are also terminated by `multiprocessing` module.
+# As there is no way to ensure correct finalization, we simply skip
+# `MultiprocessIterator`'s finalization routine.
+@atexit.register
+def _force_skip_finalization():
+    MultiprocessIterator._finalized = True
