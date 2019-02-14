@@ -131,6 +131,10 @@ class Bernoulli(distribution.Distribution):
     def mean(self):
         return self.p
 
+    @property
+    def params(self):
+        return {'logit': self.logit}
+
     def prob(self, x):
         x = chainer.as_variable(x)
         prob = x * self.p + (1 - x) * (1 - self.p)

@@ -204,6 +204,10 @@ class MultivariateNormal(distribution.Distribution):
         return 'real'
 
     @property
+    def params(self):
+        return {'loc': self.loc, 'scale_tril': self.scale_tril}
+
+    @property
     def covariance(self):
         return matmul.matmul(
             self.scale_tril, transpose.transpose(
