@@ -498,6 +498,18 @@ class CaffeFunction(link.Chain):
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 
+    @_layer('Sigmoid', 'SIGMOID')
+    def _setup_softmax(self, layer):
+        if layer.softmax_param.engine == 0:  # DEFAULT
+            fw = functions.sigmoid
+        elif layer.softmax_param.engine == 1:  # CAFFE
+            fw = _SingleArgumentFunctionWithCudnn(False, functions.sigmoid)
+        elif layer.softmax_param.engine == 2:  # CUDNN
+            fw = _SingleArgumentFunctionWithCudnn(True, functions.sigmoid)
+
+        self.forwards[layer.name] = fw
+        self._add_layer(layer)
+
     @_layer('SoftmaxWithLoss', 'SOFTMAX_LOSS')
     def _setup_softmax_with_loss(self, layer):
         if layer.softmax_param.axis != 1:
