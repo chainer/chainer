@@ -45,7 +45,7 @@ def mean_squared_error(x0, x1):
 
     This function computes mean squared error between two variables. The mean
     is taken over the minibatch. Note that the error is not scaled by 1/2.
-    Arguments x0 and x1 must have the same dimensions!
+    Arguments x0 and x1 must have the same dimensions! Adding documentation here.
 
     See here:
     
