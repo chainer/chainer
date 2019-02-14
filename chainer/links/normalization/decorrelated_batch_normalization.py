@@ -97,10 +97,21 @@ class DecorrelatedBatchNormalization(link.Link):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_projection = self.avg_projection
+
+            if configuration.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1
+                avg_mean = None
+                avg_projection = None
+
             ret = functions.decorrelated_batch_normalization(
                 x, groups=self.groups, eps=self.eps,
-                running_mean=self.avg_mean,
-                running_projection=self.avg_projection, decay=decay)
+                running_mean=avg_mean, running_projection=avg_projection,
+                decay=decay)
         else:
             # Use running average statistics or fine-tuned statistics.
             # mean = variable.Variable(self.avg_mean)

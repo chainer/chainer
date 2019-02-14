@@ -162,7 +162,7 @@ class TestForgetGrad(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'link_name': ['bn', 'brn'],
+    'link_name': ['bn', 'brn', 'dbn'],
     'finetune': [False, True],
 }))
 class TestBatchNormalization(unittest.TestCase):
@@ -177,6 +177,9 @@ class TestBatchNormalization(unittest.TestCase):
                         self.link = links.BatchNormalization(3)
                     elif link_name == 'brn':
                         self.link = links.BatchRenormalization(3)
+                    elif link_name == 'dbn':
+                        self.link = links.DecorrelatedBatchNormalization(
+                            3, groups=3)
                 self.forget = forget
                 self.finetune = finetune
 
