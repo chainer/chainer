@@ -10,8 +10,7 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _decorrelated_batch_normalization(args):
-    x, mean, projection, groups = args
+def _decorrelated_batch_normalization(x, mean, projection, groups):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
     b, c = x.shape[:2]
@@ -98,8 +97,8 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
             y = self.link(x)
             self.assertEqual(y.dtype, self.dtype)
 
-        y_expect = _decorrelated_batch_normalization((
-            self.x, self.mean, self.projection, self.groups))
+        y_expect = _decorrelated_batch_normalization(
+            self.x, self.mean, self.projection, self.groups)
 
         testing.assert_allclose(
             y_expect, y.array, **self.check_forward_options)
