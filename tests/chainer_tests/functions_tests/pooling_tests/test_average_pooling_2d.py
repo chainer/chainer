@@ -35,8 +35,6 @@ from chainer.testing import backend
 class TestAveragePooling2D(testing.FunctionTestCase):
 
     def setUp(self):
-        self.input_shape = (2, 3, 4, 3)
-        self.output_shape = (2, 3, 2, 2)
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
@@ -51,7 +49,7 @@ class TestAveragePooling2D(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        y = numpy.empty(self.output_shape, dtype=self.dtype)
+        y = numpy.empty((2, 3, 2, 2), dtype=self.dtype)
         for k in six.moves.range(2):
             for c in six.moves.range(3):
                 xx = x[k, c]
