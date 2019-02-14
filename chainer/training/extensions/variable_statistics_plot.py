@@ -270,7 +270,7 @@ class VariableStatisticsPlot(extension.Extension):
                     stat_list.append(xp.atleast_1d(stat_dict['percentile']))
                 stats[i] = xp.concatenate(stat_list, axis=0)
 
-        if xp != numpy:
+        if xp == cuda.cupy:
             stats = cuda.to_cpu(stats)
         self._samples.add(stats, idx=trainer.updater.iteration)
 
@@ -329,7 +329,7 @@ class VariableStatisticsPlot(extension.Extension):
                     if n_percentile_odd and i == n_percentile_mid_floor:
                         # Enters at most once per sub-plot, in case there is
                         # only a single percentile to plot or when this
-                        # percentile is the mid percentile and the numner of
+                        # percentile is the mid percentile and the number of
                         # percentiles are odd
                         ax.plot(
                             idxs, data[:, col, offset + i], color=_plot_color,

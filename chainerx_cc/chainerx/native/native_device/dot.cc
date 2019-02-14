@@ -1,5 +1,6 @@
 #include "chainerx/native/native_device.h"
 
+#include <cmath>
 #include <cstdint>
 
 #ifdef CHAINERX_ENABLE_BLAS
@@ -11,6 +12,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
@@ -95,9 +97,9 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 
         const T one = 1;
         const T zero = 0;
-        const T* a_ptr = internal::GetRawOffsetData<const T>(a_config);
-        const T* b_ptr = internal::GetRawOffsetData<const T>(b_config);
-        T* out_ptr = internal::GetRawOffsetData<T>(out_contiguous);
+        const T* a_ptr = static_cast<const T*>(internal::GetRawOffsetData(a_config));
+        const T* b_ptr = static_cast<const T*>(internal::GetRawOffsetData(b_config));
+        T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
         GemmImpl<T>{}(
                 CblasRowMajor, a_layout.trans, b_layout.trans, m, n, k, one, a_ptr, a_layout.ld, b_ptr, b_layout.ld, zero, out_ptr, n);
     };
@@ -117,6 +119,23 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 }  // namespace
 #endif  // CHAINERX_ENABLE_BLAS
 
+namespace {
+
+template <typename T>
+T MultiplyAdd(T x, T y, T z) {
+    return x * y + z;
+}
+
+Float16 MultiplyAdd(Float16 x, Float16 y, Float16 z) {
+    return static_cast<Float16>(std::fmaf(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)));
+}
+
+float MultiplyAdd(float x, float y, float z) { return std::fmaf(x, y, z); }
+
+double MultiplyAdd(double x, double y, double z) { return std::fma(x, y, z); }
+
+}  // namespace
+
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
 
@@ -135,6 +154,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     out.Fill(0);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
+
         IndexableArray<const T, 2> a_iarray{a};
         IndexableArray<const T, 2> b_iarray{b};
         IndexableArray<T, 2> out_iarray{out};
@@ -149,11 +169,13 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
                 int64_t a_i_l[] = {i, l};
-                T a_value = a_iarray[a_i_l];
+                T a_value = native_internal::StorageToDataType<const T>(a_iarray[a_i_l]);
                 for (int64_t j = 0; j < n; ++j) {
                     int64_t out_i_j[] = {i, j};
                     int64_t b_l_j[] = {l, j};
-                    out_iarray[out_i_j] += a_value * b_iarray[b_l_j];
+                    T b_value = native_internal::StorageToDataType<const T>(b_iarray[b_l_j]);
+                    T& out_value = native_internal::StorageToDataType<T>(out_iarray[out_i_j]);
+                    out_value = MultiplyAdd(a_value, b_value, out_value);
                 }
             }
         }

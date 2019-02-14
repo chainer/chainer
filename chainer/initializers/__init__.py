@@ -1,6 +1,9 @@
+import typing as tp  # NOQA
+
 import numpy
 
 import chainer
+from chainer.backends import _chainerx  # NOQA
 from chainer.backends import _cpu
 from chainer.backends import cuda
 import chainerx
@@ -20,9 +23,11 @@ from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
+from chainer import types  # NOQA
 
 
 def generate_array(initializer, shape, xp, dtype=None, device=None):
+    # type: (types.AbstractInitializer, types.ShapeSpec, types.Xp, types.DTypeSpec, types.DeviceSpec) -> types.NdArray  # NOQA
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
@@ -31,8 +36,8 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     used instead. See :ref:`configuration` for the dtype config.
 
     Args:
-        initializer: A callable object that takes :class:`numpy.ndarray`
-             or :class:`cupy.ndarray` and edits its value.
+        initializer: A callable object that takes :ref:`ndarray` and edits its
+            value.
         shape (tuple): Shape of a return array.
         xp (module): :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx`.
         dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
@@ -41,7 +46,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
              :mod:`chainerx`.
 
     Returns:
-        numpy.ndarray, cupy.ndarray, or chainerx.ndarray: An initialized array.
+        :ref:`ndarray`: An initialized array.
 
     """
     dtype_attr = getattr(initializer, 'dtype', None)
@@ -55,14 +60,14 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
 
     if device is None:
         if xp is cuda.cupy:
-            device = chainer.get_device(cuda.Device())
+            backend_device = chainer.get_device(cuda.Device())
         elif xp is chainerx:
-            device = chainer.get_device(chainerx.get_default_device())
+            backend_device = chainer.get_device(chainerx.get_default_device())
         else:
-            device = chainer.get_device(numpy)
+            backend_device = chainer.get_device(numpy)
     else:
-        device = chainer.get_device(device)
-        if xp != device.xp:
+        backend_device = chainer.get_device(device)
+        if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
 
     if xp is chainerx:
@@ -70,11 +75,12 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
-        chx_device = device.device
-        array = chainerx.empty(shape, dtype=dtype, device=chx_device)
+        chx_device = backend_device.device  # type: ignore
+        # TODO(okapies): remove 'type: ignore' when chainerx implements sequence support for empty() # NOQA
+        array = chainerx.empty(shape, dtype=dtype, device=chx_device)  # type: ignore # NOQA
         if chx_device.backend.name == 'native':
             temp_array = _cpu._to_cpu(array)
-            temp_device = cuda.DummyDevice
+            temp_device = cuda.DummyDevice  # type: cuda.Device
         elif chx_device.backend.name == 'cuda':
             temp_array = cuda.to_gpu(array, chx_device.index)
             temp_device = cuda.Device(chx_device.index)
@@ -85,13 +91,15 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
             initializer(temp_array)
         return array
 
-    with chainer.using_device(device):
+    with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)
         initializer(array)
     return array
 
 
 def _get_initializer(initializer):
+    # type: (tp.Optional[types.InitializerSpec]) -> types.AbstractInitializer # NOQA
+
     if initializer is None:
         return LeCunNormal()
     if numpy.isscalar(initializer):

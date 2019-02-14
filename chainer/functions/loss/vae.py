@@ -1,6 +1,7 @@
 import math
 
 from chainer.functions.activation import softplus
+from chainer.functions.math import average
 from chainer.functions.math import exponential
 from chainer.functions.math import sum
 
@@ -22,17 +23,19 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
 
     The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'sum'``, loss values are summed up.
+    loss values. If it is ``'sum'`` or ``'mean'``, loss values are summed up
+    or averaged respectively.
 
     Args:
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing mean of given
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable representing mean of given
             gaussian distribution, :math:`\\mu`.
-        ln_var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing logarithm of
+        ln_var (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A variable representing logarithm of
             variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
         reduce (str): Reduction option. Its value must be either
-            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
+            ``'sum'``, ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError`
+            is raised.
 
     Returns:
         ~chainer.Variable:
@@ -40,19 +43,22 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
             given gaussian distribution and the standard gaussian.
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum'``, the output variable holds a scalar value.
+            If it is ``'sum'`` or ``'mean'``, the output variable holds a
+            scalar value.
 
     """
-    if reduce not in ('sum', 'no'):
+    if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
+            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
+            ' is given' % reduce)
 
     var = exponential.exp(ln_var)
     mean_square = mean * mean
     loss = (mean_square + var - ln_var - 1) * 0.5
     if reduce == 'sum':
         return sum.sum(loss)
+    elif reduce == 'mean':
+        return average.average(loss)
     else:
         return loss
 
@@ -74,7 +80,8 @@ def bernoulli_nll(x, y, reduce='sum'):
 
     The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'sum'``, loss values are summed up.
+    loss values. If it is ``'sum'`` or ``'mean'``, loss values are summed up
+    or averaged respectively.
 
     .. note::
 
@@ -83,30 +90,32 @@ def bernoulli_nll(x, y, reduce='sum'):
        directly.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing the parameter of
-            Bernoulli distribution.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`): A variable
+            representing the parameter of Bernoulli distribution.
         reduce (str): Reduction option. Its value must be either
-            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
+            ``'sum'``, ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError`
+            is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing the negative log-likelihood.
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum'``, the output variable holds a scalar value.
+            If it is ``'sum'`` or ``'mean'``, the output variable holds a
+            scalar value.
 
     """
-    if reduce not in ('sum', 'no'):
+    if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
+            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
+            ' is given' % reduce)
 
     loss = softplus.softplus(y) - x * y
     if reduce == 'sum':
         return sum.sum(loss)
+    elif reduce == 'mean':
+        return average.average(loss)
     else:
         return loss
 
@@ -130,32 +139,33 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
 
     The output is a variable whose value depends on the value of
     the option ``reduce``. If it is ``'no'``, it holds the elementwise
-    loss values. If it is ``'sum'``, loss values are summed up.
+    loss values. If it is ``'sum'`` or ``'mean'``, loss values are summed up
+    or averaged respectively.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing mean of a Gaussian
-            distribution, :math:`\\mu`.
-        ln_var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable representing logarithm of
-            variance of a Gaussian distribution, :math:`\\log(\\sigma^2)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`): A variable
+            representing mean of a Gaussian distribution, :math:`\\mu`.
+        ln_var (:class:`~chainer.Variable` or :ref:`ndarray`): A variable
+            representing logarithm of variance of a Gaussian distribution,
+            :math:`\\log(\\sigma^2)`.
         reduce (str): Reduction option. Its value must be either
-            ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
+            ``'sum'``, ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError`
+            is raised.
 
     Returns:
         ~chainer.Variable:
             A variable representing the negative log-likelihood.
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
-            If it is ``'sum'``, the output variable holds a scalar value.
+            If it is ``'sum'`` or ``'mean'``, the output variable holds a
+            scalar value.
 
     """
-    if reduce not in ('sum', 'no'):
+    if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-            'given' % reduce)
+            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
+            ' is given' % reduce)
 
     x_prec = exponential.exp(-ln_var)
     x_diff = x - mean
@@ -163,5 +173,7 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
     loss = (ln_var + math.log(2 * math.pi)) / 2 - x_power
     if reduce == 'sum':
         return sum.sum(loss)
+    elif reduce == 'mean':
+        return average.average(loss)
     else:
         return loss

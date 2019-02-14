@@ -143,17 +143,14 @@ class StatefulGRU(GRUBase):
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
         init: Initializer for GRU's input units (:math:`W`).
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If it is ``None``, the default initializer is used.
         inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If it is ``None``, the default initializer is used.
         bias_init: Bias initializer.
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If ``None``, the bias is set to zero.
 
     Attributes:
@@ -244,19 +241,6 @@ class GRU(StatefulGRU):
     """Stateful Gated Recurrent Unit function (GRU)
 
     This is an alias of :class:`~chainer.links.StatefulGRU`.
-
-    .. warning::
-
-       In Chainer v1, ``GRU`` was *stateless*,
-       as opposed to the current implementation.
-       To align with LSTM links, we have changed
-       the naming convention from Chainer v2 so that the shorthand name
-       points the stateful links.
-       You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``GRU`` in v1.
-
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
-       for details.
 
     """
 

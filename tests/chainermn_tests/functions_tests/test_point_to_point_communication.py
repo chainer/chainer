@@ -210,7 +210,7 @@ class TestNonVariableInput(unittest.TestCase):
             x = numpy.ones((1, 10)).astype(numpy.float32)
             phi = chainermn.functions.send(
                 x, self.communicator, rank=self.rank_send)
-            x = chainermn.functions.pseudo_connect(phi, x)
+            x, = chainermn.functions.pseudo_connect(phi, x)
             y = chainer.functions.sum(x)
             t = numpy.array(0).astype(numpy.float32)
             z = chainer.functions.mean_squared_error(y, t)

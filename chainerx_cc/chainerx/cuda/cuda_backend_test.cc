@@ -1,8 +1,5 @@
 #include "chainerx/cuda/cuda_backend.h"
 
-// NOLINTNEXTLINE(modernize-deprecated-headers): clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
-#include <stdlib.h>
-
 #include <tuple>
 #include <vector>
 
@@ -19,10 +16,21 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/testing/threading.h"
 #include "chainerx/testing/util.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
 namespace {
+
+template <typename T>
+std::shared_ptr<void> ToHost(const Device& from_device, const std::shared_ptr<void>& mem, size_t size) {
+    if (nullptr != dynamic_cast<native::NativeBackend*>(&from_device.backend())) {
+        return mem;
+    }
+    std::shared_ptr<void> host_mem = std::make_unique<T[]>(size);
+    cudaMemcpy(host_mem.get(), mem.get(), sizeof(T) * size, cudaMemcpyDeviceToHost);
+    return host_mem;
+}
 
 template <typename T>
 void ExpectDataEqual(
@@ -31,8 +39,11 @@ void ExpectDataEqual(
         size_t size,
         Device& expected_ptr_device,
         Device& actual_ptr_device) {
-    auto expected_raw_ptr = static_cast<const T*>(expected.get());
-    auto actual_raw_ptr = static_cast<const T*>(actual.get());
+    std::shared_ptr<void> expected_host = ToHost<T>(expected_ptr_device, expected, size);
+    std::shared_ptr<void> actual_host = ToHost<T>(actual_ptr_device, actual, size);
+
+    auto expected_raw_ptr = static_cast<const T*>(expected_host.get());
+    auto actual_raw_ptr = static_cast<const T*>(actual_host.get());
 
     expected_ptr_device.Synchronize();
     actual_ptr_device.Synchronize();
@@ -55,9 +66,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
         actual.device().Synchronize();
         expected.device().Synchronize();
 
-        for (auto it = indexer.It(0); it; ++it) {
-            EXPECT_EQ(expected_iarray[it], actual_iarray[it]);
-        }
+        ExpectDataEqual<T>(expected.data(), actual.data(), expected.GetTotalSize(), expected.device(), actual.device());
     });
 }
 
@@ -283,13 +292,13 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
     std::shared_ptr<void> trans_data = device0.TransferDataFrom(device1, data, 0, bytesize);
     device0.Synchronize();
 
-    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
+    ExpectDataEqual<uint8_t>(data, trans_data, bytesize, device1, device0);
 
     // Destination is ALWAYS CUDA device
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
     EXPECT_EQ(device0.index(), attr.device);
-    EXPECT_TRUE(IsPointerManagedMemory(trans_data.get()));
+    EXPECT_FALSE(IsPointerManagedMemory(trans_data.get()));
 }
 
 TEST_P(CudaBackendTransferTest, TransferDataTo) {
@@ -305,14 +314,14 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
     std::shared_ptr<void> trans_data = device0.TransferDataTo(device1, data, 0, bytesize);
     device0.Synchronize();
 
-    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
+    ExpectDataEqual<uint8_t>(data, trans_data, bytesize, device0, device1);
 
     if (nullptr != dynamic_cast<CudaBackend*>(&device1.backend())) {
         // Destination is CUDA device
         cudaPointerAttributes attr = {};
         CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
         EXPECT_EQ(device1.index(), attr.device);
-        EXPECT_TRUE(IsPointerManagedMemory(trans_data.get()));
+        EXPECT_FALSE(IsPointerManagedMemory(trans_data.get()));
     } else {
         // Destination is native device
         EXPECT_FALSE(IsPointerCudaMemory(trans_data.get()));
@@ -374,19 +383,13 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
 
 class EnvVarScope {
 public:
-    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)) {
-        const char* old_value = getenv(name_.c_str());
-        if (old_value != nullptr) {
-            old_value_ = std::string(old_value);
-        }
-        setenv(name_.c_str(), value.c_str(), 1);
-    }
+    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)), old_value_{GetEnv(name_)} { SetEnv(name_, value); }
 
     ~EnvVarScope() {
         if (old_value_) {
-            setenv(name_.c_str(), old_value_->c_str(), 1);
+            SetEnv(name_, *old_value_);
         } else {
-            unsetenv(name_.c_str());
+            UnsetEnv(name_);
         }
     }
 

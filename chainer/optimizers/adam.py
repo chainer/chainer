@@ -8,9 +8,27 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class AdamHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of Adam.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        alpha = None  # type: float
+        beta1 = None  # type: float
+        beta2 = None  # type: float
+        eps = None  # type: float
+        eta = None  # type: float
+        weight_decay_rate = None  # type: float
+        amsgrad = None  # type: bool
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: AdamHyperparameter # NOQA
 _default_hyperparam.alpha = 0.001
 _default_hyperparam.beta1 = 0.9
 _default_hyperparam.beta2 = 0.999
@@ -94,9 +112,7 @@ class AdamRule(optimizer.UpdateRule):
                 self.state['vhat'] = xp.zeros_like(param.data)
 
         # For iDeep
-        if (isinstance(param.data, intel64.mdarray)
-                and intel64.inputs_all_ready((self.state['m'],))
-                and intel64.inputs_all_ready((self.state['v'],))):
+        if isinstance(param.data, intel64.mdarray):
             self.state['m'] = intel64.ideep.array(
                 self.state['m'], itype=intel64.ideep.wgt_array)
             self.state['v'] = intel64.ideep.array(

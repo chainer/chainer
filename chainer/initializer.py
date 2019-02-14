@@ -1,3 +1,6 @@
+import typing as tp  # NOQA
+
+from chainer import types  # NOQA
 from chainer import utils
 
 
@@ -13,9 +16,12 @@ class Initializer(object):
     """
 
     def __init__(self, dtype=None):
-        self.dtype = dtype
+        # type: (tp.Optional[types.DTypeSpec]) -> None
+
+        self.dtype = dtype  # type: types.DTypeSpec
 
     def __call__(self, array):
+        # type: (types.NdArray) -> None
         """Initializes given array.
 
         This method destructively changes the value of array.
@@ -24,7 +30,7 @@ class Initializer(object):
         concrete derived classes.
 
         Args:
-            array (numpy.ndarray or cupy.ndarray):
+            array (:ref:`ndarray`):
                 An array to be initialized by this initializer.
 
         """

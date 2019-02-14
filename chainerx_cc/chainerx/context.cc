@@ -1,10 +1,7 @@
 #include "chainerx/context.h"
 
-#include <dlfcn.h>
-
 #include <algorithm>
 #include <atomic>
-#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -16,10 +13,12 @@
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #endif  // CHAINERX_ENABLE_CUDA
+#include "chainerx/dynamic_lib.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/thread_local_state.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace {
@@ -27,16 +26,13 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    char* chainerx_path = std::getenv("CHAINERX_PATH");
-    if (chainerx_path != nullptr) {
-        return chainerx_path;
+    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
+        return *chainerx_path;
     }
-
-    char* home_path = std::getenv("HOME");
-    if (home_path == nullptr) {
-        throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
+    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
+        return *home_path + "/.chainerx";
     }
-    return std::string(home_path) + "/.chainerx";
+    throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
 }
 
 }  // namespace
@@ -51,7 +47,11 @@ Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
     for (void* handle : dlopen_handles_) {
-        ::dlclose(handle);
+        try {
+            DlClose(handle);
+        } catch (...) {
+            // dtor should not throw any exception.
+        }
     }
 }
 
@@ -74,17 +74,19 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     std::unique_ptr<Backend, context_detail::BackendDeleter> backend;
     if (backend_name == native::NativeBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #ifdef CHAINERX_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
+                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
         // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
-        void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (handle == nullptr) {
+        void* handle{nullptr};
+        try {
+            handle = DlOpen(so_file_path);
+        } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }
         {
@@ -93,8 +95,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
 
         // Create backend
-        void* ptr_create_backend = ::dlsym(handle, "CreateBackend");
-        void* ptr_destroy_backend = ::dlsym(handle, "DestroyBackend");
+        void* ptr_create_backend = DlSym(handle, "CreateBackend");
+        void* ptr_destroy_backend = DlSym(handle, "DestroyBackend");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto create_backend = reinterpret_cast<Backend* (*)(Context&)>(ptr_create_backend);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

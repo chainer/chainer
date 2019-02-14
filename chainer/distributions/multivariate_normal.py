@@ -17,6 +17,7 @@ from chainer.functions.math import exponential
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
+from chainer.utils import cache
 from chainer.utils import type_check
 
 try:
@@ -96,6 +97,11 @@ def _batch_triangular_inv(x, lower=True):
     return stack.stack(y)
 
 
+def _triangular_logdet(x):
+    diag = diagonal.diagonal(x, axis1=-2, axis2=-1)
+    return sum_mod.sum(exponential.log(abs(diag)), axis=-1)
+
+
 class MultivariateNormal(distribution.Distribution):
 
     """MultivariateNormal Distribution.
@@ -122,26 +128,35 @@ class MultivariateNormal(distribution.Distribution):
                 kwargs, ('scale_tril', scale_tril))
         if scale_tril is None:
             raise ValueError("`scale_tril` must have a value.")
-        self.loc = chainer.as_variable(loc)
-        self.scale_tril = chainer.as_variable(scale_tril)
-        self.d = self.scale_tril.shape[-1]
+        self.__loc = loc
+        self.__scale_tril = scale_tril
+
+    @cache.cached_property
+    def loc(self):
+        return chainer.as_variable(self.__loc)
+
+    @cache.cached_property
+    def scale_tril(self):
+        return chainer.as_variable(self.__scale_tril)
+
+    @cache.cached_property
+    def _logdet_scale(self):
+        return _triangular_logdet(self.scale_tril)
+
+    @property
+    def d(self):
+        return self.scale_tril.shape[-1]
 
     def __copy__(self):
         return self._copy_to(MultivariateNormal(self.loc, self.scale_tril))
-
-    def _logdet(self, x):
-        diag = diagonal.diagonal(x, axis1=-2, axis2=-1)
-        logdet = sum_mod.sum(
-            exponential.log(abs(diag)), axis=-1)
-        return logdet
 
     @property
     def batch_shape(self):
         return self.loc.shape[:-1]
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return self._logdet(self.scale_tril) + ENTROPYC * self.d
+        return self._logdet_scale + ENTROPYC * self.d
 
     @property
     def event_shape(self):
@@ -165,10 +180,10 @@ class MultivariateNormal(distribution.Distribution):
         m = matmul.matmul(swapaxes.swapaxes(m, -1, -2), m)
         m = squeeze.squeeze(m, axis=-1)
         m = squeeze.squeeze(m, axis=-1)
-        logz = LOGPROBC * self.d - self._logdet(self.scale_tril)
+        logz = LOGPROBC * self.d - self._logdet_scale
         return broadcast.broadcast_to(logz, m.shape) - 0.5 * m
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.loc
 
@@ -190,12 +205,6 @@ class MultivariateNormal(distribution.Distribution):
 
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)
 def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
-    diag = diagonal.diagonal(dist1.scale_tril, axis1=-2, axis2=-1)
-    logdet1 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
-
-    diag = diagonal.diagonal(dist2.scale_tril, axis1=-2, axis2=-1)
-    logdet2 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
-
     scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
         -1, dist2.d, dist2.d))
     trace = sum_mod.sum(matmul.matmul(
@@ -205,4 +214,5 @@ def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
     mu = dist1.loc - dist2.loc
     mah = matmul.matmul(scale_tril_inv2, mu.reshape(-1, dist1.d, 1))
     mah = sum_mod.sum(mah ** 2, axis=-2).reshape(dist1.batch_shape)
-    return logdet2 - logdet1 + 0.5 * trace + 0.5 * mah - 0.5 * dist1.d
+    return dist2._logdet_scale - dist1._logdet_scale \
+        + 0.5 * trace + 0.5 * mah - 0.5 * dist1.d

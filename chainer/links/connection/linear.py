@@ -1,6 +1,9 @@
+import typing as tp  # NOQA
+
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer import types  # NOQA
 from chainer import utils
 from chainer import variable
 
@@ -93,6 +96,8 @@ class Linear(link.Link):
 
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
+        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
+
         super(Linear, self).__init__()
 
         if out_size is None:
@@ -101,12 +106,12 @@ class Linear(link.Link):
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer)  # type: variable.Variable  # NOQA
             if in_size is not None:
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None
+                self.b = None  # type: tp.Optional[variable.Variable]
             else:
                 if initial_bias is None:
                     initial_bias = 0
@@ -114,9 +119,12 @@ class Linear(link.Link):
                 self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
-        self.W.initialize((self.out_size, in_size))
+        # type: (int) -> None
+
+        self.W.initialize((self.out_size, in_size))  # type: ignore
 
     def forward(self, x, n_batch_axes=1):
+        # type: (variable.Variable, int) -> variable.Variable
         """Applies the linear layer.
 
         Args:

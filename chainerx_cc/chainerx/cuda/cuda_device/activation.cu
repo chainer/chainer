@@ -9,8 +9,10 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/numeric.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -20,19 +22,21 @@ namespace {
 
 template <typename T>
 struct IfLessElseASSAImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
-    T x2;
-    T pos;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType neg, CudaType& out) { out = x1 < x2 ? pos : neg; }
+    CudaType x2;
+    CudaType pos;
 };
 
 }  // namespace
 
 void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1, neg, out);
     });
 }
 
@@ -40,7 +44,8 @@ namespace {
 
 template <typename T>
 struct TanhImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::tanh(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Tanh(x); }
 };
 
 }  // namespace

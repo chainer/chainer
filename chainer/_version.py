@@ -1,17 +1,18 @@
-__version__ = '6.0.0b1'
+__version__ = '6.0.0b2'
 
 
 _optional_dependencies = [
     {
         'name': 'CuPy',
         'packages': [
+            'cupy-cuda100',
             'cupy-cuda92',
             'cupy-cuda91',
             'cupy-cuda90',
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==6.0.0b1',
+        'specifier': '==6.0.0b2',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {

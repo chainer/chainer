@@ -32,6 +32,9 @@ class Iterator(object):
 
     """
 
+    def __del__(self):
+        self.finalize()
+
     def __iter__(self):
         """Returns self."""
         return self
@@ -58,35 +61,25 @@ class Iterator(object):
         This method does nothing by default. Implementation may override it to
         better handle the internal resources.
 
+        This method can be called multiple times.
+
         """
         pass
 
     def __enter__(self):
-        """With statement context manager method
-
-        This method does nothing by default. Implementation may override it to
-        better handle the internal resources by with statement.
-
-        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """With statement context manager method
-
-        This method does nothing by default. Implementation may override it to
-        better handle the internal resources by with statement.
-
-        """
-        return None
+        self.finalize()
 
     def serialize(self, serializer):
         """Serializes the internal state of the iterator.
 
-        This is a method to support serializer protocol of Chainer.
+        This is a method to support the serializer protocol of Chainer.
 
         .. note::
            It should only serialize the internal state that changes over the
-           iteration. It should not serializes what is set manually by
+           iteration. It should not serialize what is set manually by
            users such as the batch size.
 
         """

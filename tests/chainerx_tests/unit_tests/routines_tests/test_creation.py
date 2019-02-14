@@ -46,7 +46,7 @@ def _is_all_finite(obj):
 
 
 # A special parameter object used to represent an unspecified argument.
-class Unspecified:
+class Unspecified(object):
     pass
 
 
@@ -600,8 +600,7 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
 def test_full_with_scalar(shape, dtype, value, device):
     scalar = chainerx.Scalar(value, dtype)
     a = chainerx.full(shape, scalar)
-    if (scalar.dtype in (chainerx.float32, chainerx.float64)
-            and math.isnan(float(scalar))):
+    if scalar.dtype.kind == 'f' and math.isnan(float(scalar)):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
         assert a._debug_flat_data == [scalar.tolist()] * a.size
@@ -660,7 +659,7 @@ def test_arange_stop(xp, stop, dtype_spec, device):
     return xp.arange(stop, dtype=dtype_spec)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=5e-3, float16_atol=5e-3)
 @pytest.mark.parametrize('start,stop', [
     (0, 0),
     (0, 3),
@@ -689,7 +688,7 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     return xp.arange(start, stop, dtype=dtype_spec)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3)
 @pytest.mark.parametrize('start,stop,step', [
     (0, 3, 1),
     (0, 0, 2),
@@ -916,7 +915,7 @@ def test_diagflat_invalid_ndim(xp, k, shape, device):
     return xp.diagflat(v, k)
 
 
-@chainerx.testing.numpy_chainerx_allclose()
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('start,stop', [
     (0, 0),

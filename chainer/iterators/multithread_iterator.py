@@ -4,8 +4,7 @@ from multiprocessing import pool
 import numpy
 
 from chainer.dataset import iterator
-from chainer.iterators._statemachine import (IteratorState,
-                                             iterator_statemachine)
+from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -35,7 +34,7 @@ class MultithreadIterator(iterator.Iterator):
         n_threads (int): Number of worker threads.
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
@@ -74,17 +73,11 @@ class MultithreadIterator(iterator.Iterator):
             order = None
         else:
             order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
-        self._state = IteratorState(0, 0, False, order)
+        self._state = _statemachine.IteratorState(0, 0, False, order)
         self._previous_epoch_detail = -1.
 
         # reset internal state
         self._next = None
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.finalize()
 
     def finalize(self):
         pool = self._pool
@@ -134,8 +127,8 @@ class MultithreadIterator(iterator.Iterator):
         epoch = serializer('epoch', self.epoch)
         is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
         order = serializer('_order', self._state.order)
-        self._state = IteratorState(current_position, epoch,
-                                    is_new_epoch, order)
+        self._state = _statemachine.IteratorState(
+            current_position, epoch, is_new_epoch, order)
         self._previous_epoch_detail = serializer(
             'previous_epoch_detail', self._previous_epoch_detail)
         # Old version serialized ``None``.
@@ -150,7 +143,7 @@ class MultithreadIterator(iterator.Iterator):
 
     def _invoke_prefetch(self):
         assert self._next is None
-        self._next_state, indices = iterator_statemachine(
+        self._next_state, indices = _statemachine.iterator_statemachine(
             self._state, self.batch_size, self.repeat, self.order_sampler,
             len(self.dataset))
 

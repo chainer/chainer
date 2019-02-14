@@ -146,6 +146,8 @@ class NumericalGradientTest5(NumericalGradientTest):
 
     in_shapes = ((2, 1), (2, 1))
     gout_shapes = ((2, 1), None, (2, 1))
+    atol = 5e-3
+    rtol = 5e-3
 
     def f(self, xs):
         assert len(xs) == 2

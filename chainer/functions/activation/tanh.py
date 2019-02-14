@@ -9,8 +9,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _mode = libcudnn.CUDNN_ACTIVATION_TANH
+    _mode = cuda.libcudnn.CUDNN_ACTIVATION_TANH
 
 
 class Tanh(function_node.FunctionNode):

@@ -12,7 +12,7 @@ from chainer.training.updaters import standard_updater
 try:
     from cupy.cuda import nccl
     _available = True
-except ImportError:
+except Exception:
     _available = False
 
 import numpy
@@ -45,7 +45,6 @@ class _Worker(multiprocessing.Process):
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
-        gp = None
         while True:
             job, data = self.pipe.recv()
             if job == 'finalize':
@@ -56,13 +55,11 @@ class _Worker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.converter(self.iterator.next(), self.device)
-                observation = {}
-                with self.reporter.scope(observation):
+                with self.reporter.scope({}):  # pass dummy observation
                     loss = _calc_loss(self.model, batch)
 
                 self.model.cleargrads()
                 loss.backward()
-
                 del loss
 
                 gg = gather_grads(self.model)
@@ -78,7 +75,7 @@ class _Worker(multiprocessing.Process):
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
-                gp = None
+                del gp
 
 
 class MultiprocessParallelUpdater(standard_updater.StandardUpdater):

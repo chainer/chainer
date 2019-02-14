@@ -89,7 +89,7 @@ def main():
     if comm.rank == 0:
         # Dump a computational graph from 'loss' variable
         # The "main" refers to the target link of the "main" optimizer.
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
         # Write a log of evaluation statistics for each epoch
         trainer.extend(extensions.LogReport())

@@ -9,6 +9,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 
@@ -18,7 +19,8 @@ namespace {
 
 template <typename T>
 struct ExpImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
 };
 
 }  // namespace
@@ -36,7 +38,8 @@ namespace {
 
 template <typename T>
 struct LogImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
 };
 
 }  // namespace

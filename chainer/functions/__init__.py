@@ -24,6 +24,7 @@ from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
+from chainer.functions.array.as_strided import as_strided  # NOQA
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import broadcast_to  # NOQA
 from chainer.functions.array.cast import cast  # NOQA

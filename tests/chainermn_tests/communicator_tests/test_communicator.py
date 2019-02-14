@@ -5,6 +5,7 @@ import unittest
 
 import chainer
 import chainer.cuda
+import chainer.initializers
 import chainer.links
 import chainer.testing
 import chainer.testing.attr
@@ -30,13 +31,18 @@ from chainermn import nccl
 class ExampleModel(chainer.Chain):
 
     def __init__(self, dtype=None):
+        W = None
+        bias = None
         if dtype is not None:
             self.dtype = dtype
+            W = chainer.initializers.Normal(dtype=self.dtype)
+            bias = chainer.initializers.Zero(dtype=self.dtype)
         super(ExampleModel, self).__init__()
         with self.init_scope():
-            self.a = chainer.links.Linear(2, 3)
-            self.b = chainer.links.Linear(3, 4)
-            self.c = chainer.links.Linear(None, 5)
+            self.a = chainer.links.Linear(2, 3, initialW=W, initial_bias=bias)
+            self.b = chainer.links.Linear(3, 4, initialW=W, initial_bias=bias)
+            self.c = chainer.links.Linear(None, 5, initialW=W,
+                                          initial_bias=bias)
 
 
 class Param(object):
@@ -45,6 +51,7 @@ class Param(object):
         self.nccl1 = False
         self.model_dtype = None
         self.allreduce_grad_dtype = None
+        self.batched_copy = False
         self.__dict__.update(param)
 
 
@@ -93,6 +100,34 @@ gpu_params = [Param(p) for p in [
         'nccl1': False,
         'model_dtype': np.float64,
         'allreduce_grad_dtype': np.float64,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float16,
+        'allreduce_grad_dtype': np.float16,
+        'batched_copy': True,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float16,
+        'allreduce_grad_dtype': np.float32,
+        'batched_copy': True,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float32,
+        'allreduce_grad_dtype': np.float32,
+        'batched_copy': True,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float32,
+        'allreduce_grad_dtype': np.float16,
+        'batched_copy': True,
     }]]
 
 mpi_comm = mpi4py.MPI.COMM_WORLD
@@ -108,11 +143,10 @@ def create_communicator(param, use_gpu):
     if use_gpu and not param.nccl1 and nccl.get_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
 
-    if param.allreduce_grad_dtype is not None:
-        dtype = param.allreduce_grad_dtype
-        communicator = \
-            param.communicator_class(mpi_comm,
-                                     allreduce_grad_dtype=dtype)
+    if param.communicator_class is PureNcclCommunicator:
+        communicator = param.communicator_class(
+            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
+            batched_copy=param.batched_copy)
     else:
         communicator = param.communicator_class(mpi_comm)
 
@@ -268,7 +302,7 @@ class TestDifferentDtype(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
-            self.device = self.communicator.rank
+            self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
@@ -530,7 +564,7 @@ class TestNonContiguousArray(unittest.TestCase):
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('hierarchical')
-            self.device = self.communicator.rank
+            self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')

@@ -129,8 +129,8 @@ As the features above require ChainerX to provide an implementation correspondin
 This approach is taken because the integration with Chainer takes time and we do not want existing Chainer users to have to make severe changes to their code bases in order to try ChainerX.
 The fallback logic simply casts the :class:`chainerx.ndarray`\ s inside the :class:`chainer.Variable` to :class:`numpy.ndarray`\ s or :class:`cupy.ndarray`\ s (without copy) and calls the forward and backward methods respectively.
 
-Run you Chainer code with ChainerX
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Run your Chainer code with ChainerX
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to utilize :data:`chainerx`, you first need to transfer your model to a ChainerX device using :meth:`chainer.Link.to_device`.
 This is a new method that has been introduced to replace :meth:`chainer.Link.to_cpu` and :meth:`chainer.Link.to_gpu`, extending device transfer to arbitrary devices.

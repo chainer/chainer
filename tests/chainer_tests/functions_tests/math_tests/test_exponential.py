@@ -40,10 +40,6 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
 
     def check_forward_chainerx(self, op, op_np):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_forward(op, op_np, chainerx.array(self.x))
 
     def check_backward(self, op, x_data, y_grad):
@@ -58,10 +54,6 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def check_backward_chainerx(self, op):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(
             op, chainerx.array(self.x), chainerx.array(self.gy))
 
@@ -78,10 +70,6 @@ class UnaryFunctionsTestBase(unittest.TestCase):
             self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggy))
 
     def check_double_backward_chainerx(self, op):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_double_backward(op, chainerx.array(
             self.x), chainerx.array(self.gy), chainerx.array(self.ggy))
 

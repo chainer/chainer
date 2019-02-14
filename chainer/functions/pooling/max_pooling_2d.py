@@ -177,7 +177,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
-        x, = self.mpool2d.get_retained_inputs()
+        x = self.mpool2d.get_retained_inputs()[0].array
 
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
@@ -192,14 +192,14 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         self.indexes = intel64.ideep.array(self.indexes)
         gx = intel64.ideep.pooling2D.Backward(
-            intel64.ideep.array(x.data),
+            intel64.ideep.array(x),
             intel64.ideep.array(gy[0]),
             self.indexes, pp)
         return gx,
 
     def forward_gpu(self, gy):
         if self._used_cudnn:
-            x, = self.mpool2d._cudnn_inputs
+            x = self.mpool2d.get_retained_inputs()[0].array
             return self.mpool2d.backward_gpu((x,), gy)
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
@@ -271,7 +271,7 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x, = self.mpool2d._cudnn_inputs
+            x = self.mpool2d.get_retained_inputs()[0].array
             return self._forward_gpu_compute_indexes_again((x, inputs[0]))
         else:
             x, = inputs
@@ -377,8 +377,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             When ``return_indices`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            pooling indices (`ndarray`). Pooling indices will be on the same
-            device as the input.
+            pooling indices (:ref:`ndarray`). Pooling indices will be on the
+            same device as the input.
 
     """
     func = MaxPooling2D(ksize, stride, pad, cover_all, return_indices)

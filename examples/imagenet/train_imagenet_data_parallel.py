@@ -114,7 +114,7 @@ def main():
 
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
                    trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

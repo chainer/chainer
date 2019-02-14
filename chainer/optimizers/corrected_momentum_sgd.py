@@ -2,9 +2,22 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class CorrectedMomentumSGDHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of corrected momentum SGD.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        momentum = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: CorrectedMomentumSGDHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 _default_hyperparam.momentum = 0.9
 
@@ -38,8 +51,7 @@ class CorrectedMomentumSGDRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
 
         # For iDeep
-        if (isinstance(param.data, intel64.mdarray) and
-                intel64.inputs_all_ready((self.state['v'],))):
+        if isinstance(param.data, intel64.mdarray):
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
 

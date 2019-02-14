@@ -8,7 +8,7 @@ from chainerx_tests import array_utils
 
 
 # A special parameter object used to represent an unspecified argument.
-class Unspecified:
+class Unspecified(object):
     pass
 
 
@@ -55,9 +55,10 @@ def test_conv(
         return _create_conv_args(
             xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
             float_dtype)
-    chainerx.testing.assert_allclose(
+    chainerx.testing.assert_allclose_ex(
         chainerx.conv(*create_args(chainerx)),
-        chainer.functions.convolution_nd(*create_args(numpy)).data)
+        chainer.functions.convolution_nd(*create_args(numpy)).data,
+        float16_rtol=3e-3, float16_atol=3e-3, strides_check=False)
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
@@ -143,11 +144,11 @@ def test_conv_transpose(
             xp, device, x_shape, w_shape, b_shape, stride, pad, outsize,
             float_dtype)
 
-    chainerx.testing.assert_allclose(
+    chainerx.testing.assert_allclose_ex(
         chainerx.conv_transpose(
             *create_args(chainerx)),
         chainer.functions.deconvolution_nd(*create_args(numpy)).data,
-        rtol=1e-3)
+        rtol=1e-3, float16_rtol=1e-2, float16_atol=1e-2, strides_check=False)
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad,outsize', [
@@ -220,4 +221,6 @@ def test_linear(device, x_shape, w_shape, b_shape, n_batch_axes, dtype):
     if b is not None:
         numpy_out += b
 
-    chainerx.testing.assert_array_equal(chainerx_out, numpy_out)
+    chainerx.testing.assert_allclose_ex(
+        chainerx_out, numpy_out,
+        float16_rtol=1e-2, float16_atol=1e-2, strides_check=False)

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
@@ -26,6 +27,22 @@ namespace py = pybind11;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
+namespace {
+
+inline bool IsUniqueAndIncreasingIndexes(const std::vector<size_t>& vec, size_t upper) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (i > 0 && vec[i] <= vec[i - 1]) {
+            return false;
+        }
+        if (upper <= vec[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace
+
 void InitChainerxChainerInterop(pybind11::module& m) {
     m.def("_function_node_forward",
           [](py::object function_node,
@@ -33,126 +50,178 @@ void InitChainerxChainerInterop(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& outputs,
              const std::vector<size_t>& input_indexes_to_retain,
              const std::vector<size_t>& output_indexes_to_retain) {
+              // Implementation note:
+              // There are two kinds of indices:
+              // o: Original indices. This is the indices used in Python world. It includes None arrays.
+              // r: Reduced indices. This is the indices that ChainerX C++ impl handles. None arrays are omitted.
+              // o and r are used as abbreviations of these.
+              // i and j are used as variables of respective kinds of indices.
+              CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(input_indexes_to_retain, inputs.size()));
+              CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(output_indexes_to_retain, outputs.size()));
               CHAINERX_ASSERT(std::all_of(outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) {
                   return array_body == nullptr || array_body->nodes().empty();
               }));
+              const size_t chainer_output_count = outputs.size();
 
-              // Prepare input arrays for BackwardBuilder
-              std::vector<Array> input_arrays;
-              std::vector<ConstArrayRef> input_array_refs;
-              input_arrays.reserve(inputs.size());
-              input_array_refs.reserve(inputs.size());
-              for (const ArrayBodyPtr& array_body : inputs) {
-                  input_arrays.emplace_back(array_body);
-                  input_array_refs.emplace_back(input_arrays.back());
-              }
+              // Prepare input/output arrays for BackwardBuilder
+              // {in,out}put_index_map maps original input/output indices to reduced indices where None outputs are omitted
 
-              // Prepare output arrays for BackwardBuilder
-              // output_index_map maps original output indices to reduced indices where None outputs are omitted
-              std::vector<Array> output_arrays;
-              std::vector<ConstArrayRef> output_array_refs;
-              std::vector<nonstd::optional<size_t>> output_index_map;
-              output_arrays.reserve(outputs.size());
-              output_array_refs.reserve(outputs.size());
-              output_index_map.reserve(outputs.size());
-              for (const ArrayBodyPtr& array_body : outputs) {
-                  if (array_body != nullptr) {
-                      output_index_map.emplace_back(output_array_refs.size());
-                      output_arrays.emplace_back(array_body);
-                      output_array_refs.emplace_back(output_arrays.back());
-                  } else {
-                      output_index_map.emplace_back(nonstd::nullopt);
+              auto get_reduced_arrays = [](const std::vector<ArrayBodyPtr>& array_bodies) {
+                  // Given the input/output array bodies, construct an index mapping between original <o> indices and
+                  // reduced <r> indices where None arrays are omitted.
+                  std::vector<Array> reduced_arrays;
+                  std::vector<size_t> index_r2o_map;
+                  std::vector<nonstd::optional<size_t>> index_o2r_map(array_bodies.size());
+                  reduced_arrays.reserve(array_bodies.size());
+                  index_r2o_map.reserve(array_bodies.size());
+                  for (size_t i = 0; i < array_bodies.size(); ++i) {
+                      const ArrayBodyPtr& array_body = array_bodies[i];
+                      if (array_body != nullptr) {
+                          gsl::at(index_o2r_map, i) = index_r2o_map.size();
+                          index_r2o_map.emplace_back(i);
+                          reduced_arrays.emplace_back(array_body);
+                      }
                   }
-              }
+                  return std::make_tuple(std::move(reduced_arrays), std::move(index_r2o_map), std::move(index_o2r_map));
+              };
+
+              // Inputs
+              std::vector<Array> reduced_input_arrays;
+              std::vector<size_t> input_index_r2o_map;
+              std::vector<nonstd::optional<size_t>> input_index_o2r_map;
+              std::vector<ConstArrayRef> reduced_input_array_refs;
+              std::tie(reduced_input_arrays, input_index_r2o_map, input_index_o2r_map) = get_reduced_arrays(inputs);
+              CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(input_index_r2o_map, inputs.size()));
+              CHAINERX_ASSERT(!reduced_input_arrays.empty());
+              CHAINERX_ASSERT(std::all_of(reduced_input_arrays.begin(), reduced_input_arrays.end(), [](const Array& arr) {
+                  return internal::GetArrayBody(arr) != nullptr;
+              }));
+              reduced_input_array_refs.insert(reduced_input_array_refs.begin(), reduced_input_arrays.begin(), reduced_input_arrays.end());
+
+              // Outputs
+              std::vector<Array> reduced_output_arrays;
+              std::vector<size_t> output_index_r2o_map;
+              std::vector<nonstd::optional<size_t>> output_index_o2r_map;
+              std::vector<ConstArrayRef> reduced_output_array_refs;
+              std::tie(reduced_output_arrays, output_index_r2o_map, output_index_o2r_map) = get_reduced_arrays(outputs);
+              CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(output_index_r2o_map, outputs.size()));
+              CHAINERX_ASSERT(!reduced_output_arrays.empty());
+              CHAINERX_ASSERT(std::all_of(reduced_output_arrays.begin(), reduced_output_arrays.end(), [](const Array& arr) {
+                  return internal::GetArrayBody(arr) != nullptr;
+              }));
+              reduced_output_array_refs.insert(
+                      reduced_output_array_refs.begin(), reduced_output_arrays.begin(), reduced_output_arrays.end());
 
               // Insert backward function
-              BackwardBuilder bb{"chainer_function", std::move(input_array_refs), std::move(output_array_refs)};
+              BackwardBuilder bb{"chainer_function", std::move(reduced_input_array_refs), std::move(reduced_output_array_refs)};
               if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](py::object* ptr) {
+                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](gsl::owner<py::object*> ptr) {
                       py::gil_scoped_acquire acquire;
                       delete ptr;
                   });
 
-                  // Retain inputs
-                  std::vector<RetainedInputToken> retained_input_tokens;
-                  retained_input_tokens.reserve(input_indexes_to_retain.size());
-                  for (size_t i : input_indexes_to_retain) {
-                      retained_input_tokens.emplace_back(bb.RetainInput(i));
-                  }
-
-                  // Retain outputs
-                  std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens;
-                  retained_output_tokens.reserve(output_indexes_to_retain.size());
-                  for (size_t i : output_indexes_to_retain) {
-                      if (nonstd::optional<size_t> i_out_reduced = gsl::at(output_index_map, i)) {
-                          retained_output_tokens.emplace_back(bb.RetainOutput(*i_out_reduced));
-                      } else {
-                          retained_output_tokens.emplace_back(nonstd::nullopt);
+                  // Retain inputs/outputs
+                  auto retain_arrays = [](auto retain,
+                                          const std::vector<nonstd::optional<size_t>>& index_o2r_map,
+                                          const std::vector<size_t>& indexes_to_retain) {
+                      // Given the original indices to retain, retain the corresponding arrays and return the retain tokens. If the
+                      // corresponding array was None, the token is nullopt.
+                      using RetainedToken = decltype(retain(size_t{}));
+                      std::vector<nonstd::optional<RetainedToken>> retained_tokens;
+                      retained_tokens.reserve(indexes_to_retain.size());
+                      for (size_t i : indexes_to_retain) {
+                          if (auto j = index_o2r_map[i]) {
+                              retained_tokens.emplace_back(retain(*j));
+                          } else {
+                              // Array to retain was None
+                              retained_tokens.emplace_back(nonstd::nullopt);
+                          }
                       }
-                  }
+                      return retained_tokens;
+                  };
 
-                  bt.Define([function_node_ptr = std::move(function_node_ptr),
-                             output_index_map = std::move(output_index_map),
+                  std::vector<nonstd::optional<RetainedInputToken>> retained_input_tokens =
+                          retain_arrays([&bb](size_t j) { return bb.RetainInput(j); }, input_index_o2r_map, input_indexes_to_retain);
+                  std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens =
+                          retain_arrays([&bb](size_t j) { return bb.RetainOutput(j); }, output_index_o2r_map, output_indexes_to_retain);
+
+                  // Define backward function
+                  bt.Define([chainer_output_count,
+                             function_node_ptr = std::move(function_node_ptr),
+                             input_index_r2o_map = std::move(input_index_r2o_map),
+                             output_index_r2o_map = std::move(output_index_r2o_map),
                              in_toks = std::move(retained_input_tokens),
                              out_toks = std::move(retained_output_tokens)](BackwardContext& bctx) {
-                      // Target input indexes
+                      // Target input indices
+                      // This is reduced <r> indices of grad-required inputs.
                       std::vector<size_t> target_input_indexes;
                       target_input_indexes.reserve(bctx.input_count());
 
-                      for (size_t i_in = 0; i_in < bctx.input_count(); ++i_in) {
-                          if (bctx.is_input_grad_required(i_in)) {
-                              target_input_indexes.emplace_back(i_in);
+                      for (size_t j = 0; j < bctx.input_count(); ++j) {
+                          if (bctx.is_input_grad_required(j)) {
+                              target_input_indexes.emplace_back(j);
                           }
                       }
 
+                      CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(target_input_indexes, bctx.input_count()));
+
                       // Collect incoming output gradients
-                      std::vector<ArrayBodyPtr> grad_outputs;
-                      grad_outputs.reserve(output_index_map.size());
-                      for (const nonstd::optional<size_t>& i_out : output_index_map) {
-                          if (i_out.has_value()) {
-                              CHAINERX_ASSERT(*i_out < bctx.output_count());
-                              if (auto& gy = bctx.output_grad(*i_out)) {
-                                  grad_outputs.emplace_back(internal::GetArrayBody(*gy));
-                              } else {
-                                  grad_outputs.emplace_back(nullptr);
-                              }
-                          } else {
-                              grad_outputs.emplace_back(nullptr);
+                      std::vector<ArrayBodyPtr> chainer_grad_outputs{chainer_output_count};
+                      for (size_t j = 0; j < bctx.output_count(); ++j) {
+                          if (auto& gy = bctx.output_grad(j)) {
+                              size_t chainer_output_index = output_index_r2o_map[j];
+                              chainer_grad_outputs[chainer_output_index] = internal::GetArrayBody(*gy);
                           }
                       }
 
                       // Get retained inputs and outputs
-                      std::vector<ArrayBodyPtr> retained_inputs;
-                      retained_inputs.reserve(in_toks.size());
-                      for (const RetainedInputToken& tok : in_toks) {
-                          retained_inputs.emplace_back(internal::GetArrayBody(bctx.GetRetainedInput(tok)));
-                      }
-                      std::vector<ArrayBodyPtr> retained_outputs;
-                      retained_outputs.reserve(out_toks.size());
-                      for (const nonstd::optional<RetainedOutputToken>& tok : out_toks) {
-                          if (tok.has_value()) {
-                              retained_outputs.emplace_back(internal::GetArrayBody(bctx.GetRetainedOutput(*tok)));
-                          } else {
-                              retained_outputs.emplace_back(nullptr);
+                      auto get_retained_arrays = [](auto get_retained, const auto& tokens) {
+                          std::vector<ArrayBodyPtr> retained_arrays;
+                          retained_arrays.reserve(tokens.size());
+                          for (const auto& tok : tokens) {
+                              if (tok.has_value()) {
+                                  // Retrieve the retained array.
+                                  retained_arrays.emplace_back(internal::GetArrayBody(get_retained(*tok)));
+                              } else {
+                                  // Array to retain was None.
+                                  retained_arrays.emplace_back(nullptr);
+                              }
                           }
-                      }
+                          return retained_arrays;
+                      };
+
+                      std::vector<ArrayBodyPtr> retained_inputs =
+                              get_retained_arrays([&bctx](const RetainedInputToken& tok) { return bctx.GetRetainedInput(tok); }, in_toks);
+                      std::vector<ArrayBodyPtr> retained_outputs = get_retained_arrays(
+                              [&bctx](const RetainedOutputToken& tok) { return bctx.GetRetainedOutput(tok); }, out_toks);
 
                       // Call FunctionNode._backward_chainerx()
-                      std::vector<ArrayBodyPtr> grad_inputs;
+                      std::vector<ArrayBodyPtr> chainer_grad_inputs;
+
                       {
+                          // Target input indices that are passed to backward() of Chainer.
+                          // This is indices of <grad-required> inputs among <all> of the inputs.
+                          std::vector<size_t> chainer_target_input_indexes{};
+                          chainer_target_input_indexes.reserve(target_input_indexes.size());
+                          for (size_t j : target_input_indexes) {
+                              chainer_target_input_indexes.emplace_back(input_index_r2o_map[j]);
+                          }
+
                           py::gil_scoped_acquire acquire;
                           py::object func_backward = function_node_ptr->attr("_backward_chainerx");
-                          py::object py_grad_inputs = func_backward(target_input_indexes, grad_outputs, retained_inputs, retained_outputs);
-                          grad_inputs = py::cast<std::vector<ArrayBodyPtr>>(py_grad_inputs);
+                          py::object py_grad_inputs =
+                                  func_backward(chainer_target_input_indexes, chainer_grad_outputs, retained_inputs, retained_outputs);
+                          chainer_grad_inputs = py::cast<std::vector<ArrayBodyPtr>>(py_grad_inputs);
                       }
-                      CHAINERX_ASSERT(grad_inputs.size() == target_input_indexes.size());
+                      CHAINERX_ASSERT(chainer_grad_inputs.size() == target_input_indexes.size());
 
                       // Store computed input gradients
-                      for (size_t i = 0; i < target_input_indexes.size(); ++i) {
-                          size_t i_in = gsl::at(target_input_indexes, i);
-                          ArrayBodyPtr& gx = gsl::at(grad_inputs, i);
+                      for (size_t k = 0; k < target_input_indexes.size(); ++k) {
+                          size_t j = gsl::at(target_input_indexes, k);
+                          ArrayBodyPtr& gx = gsl::at(chainer_grad_inputs, k);
+                          CHAINERX_ASSERT(gx != nullptr);
 
-                          bctx.input_grad(i_in) = Array{gx};
+                          bctx.input_grad(j) = Array{gx};
                       }
                   });
               }

@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -10,7 +8,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG
+    _algorithm = cuda.cuda.cudnn.CUDNN_SOFTMAX_LOG  # type: ignore
 
 
 def logsumexp(x, axis):
@@ -27,7 +25,7 @@ def logsumexp(x, axis):
 def _log_softmax(x, axis=1):
     if chainer.should_use_cudnn('>=auto'):
         xp = backend.get_array_module(x)
-        if xp is not numpy:
+        if xp is cuda.cupy:
             return cudnn.softmax_forward(x, axis, _algorithm)
     log_z = logsumexp(x, axis)
     y = x - log_z
@@ -80,7 +78,7 @@ class LogSoftmaxGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
         xp = self._x_xp
-        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
+        if xp is cuda.cupy and chainer.should_use_cudnn('>=auto'):
             gx = cudnn.softmax_backward(y, gy, self.axis, _algorithm)
         else:
             gx = gy - xp.exp(y) * gy.sum(axis=self.axis, keepdims=True)

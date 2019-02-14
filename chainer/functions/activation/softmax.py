@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -9,8 +7,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _algorithm = libcudnn.CUDNN_SOFTMAX_ACCURATE
+    _algorithm = cuda.libcudnn.CUDNN_SOFTMAX_ACCURATE
 
 
 class Softmax(function_node.FunctionNode):
@@ -31,7 +28,7 @@ class Softmax(function_node.FunctionNode):
 
     def forward(self, x):
         xp = backend.get_array_module(*x)
-        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
+        if xp is cuda.cupy and chainer.should_use_cudnn('>=auto'):
             y = cudnn.softmax_forward(x[0], self.axis, _algorithm)
         else:
             y = x[0] - x[0].max(axis=self.axis, keepdims=True)
@@ -56,7 +53,7 @@ class _SoftmaxGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
         xp = backend.get_array_module(*y)
-        if xp is not numpy and chainer.should_use_cudnn('>=auto'):
+        if xp is cuda.cupy and chainer.should_use_cudnn('>=auto'):
             gx = cudnn.softmax_backward(y, gy, self.axis, _algorithm)
         else:
             gx = y * gy

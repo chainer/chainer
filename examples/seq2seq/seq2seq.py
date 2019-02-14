@@ -2,18 +2,21 @@
 
 import argparse
 import datetime
+import io
 
 from nltk.translate import bleu_score
 import numpy
 import progressbar
+import re
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 
 UNK = 0
@@ -90,8 +93,8 @@ class Seq2seq(chainer.Chain):
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
         # support NumPy 1.9.
-        result = cuda.to_cpu(
-            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
+        result = chainer.get_device(numpy).send(
+            self.xp.concatenate([x[None, :] for x in result]).T)
 
         # Remove EOS taggs
         outs = []
@@ -103,20 +106,19 @@ class Seq2seq(chainer.Chain):
         return outs
 
 
+@chainer.dataset.converter()
 def convert(batch, device):
     def to_device_batch(batch):
         if device is None:
             return batch
-        elif device < 0:
-            return [chainer.dataset.to_device(device, x) for x in batch]
-        else:
-            xp = cuda.cupy.get_array_module(*batch)
-            concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x)
-                                     for x in batch[:-1]], dtype=numpy.int32)
-            concat_dev = chainer.dataset.to_device(device, concat)
-            batch_dev = cuda.cupy.split(concat_dev, sections)
-            return batch_dev
+        src_xp = backend.get_array_module(*batch)
+        xp = device.xp
+        concat = src_xp.concatenate(batch, axis=0)
+        sections = list(numpy.cumsum(
+            [len(x) for x in batch[:-1]], dtype=numpy.int32))
+        concat_dst = device.send(concat)
+        batch_dst = xp.split(concat_dst, sections)
+        return batch_dst
 
     return {'xs': to_device_batch([x for x, _ in batch]),
             'ys': to_device_batch([y for _, y in batch])}
@@ -128,7 +130,7 @@ class CalculateBleu(chainer.training.Extension):
     priority = chainer.training.PRIORITY_WRITER
 
     def __init__(
-            self, model, test_data, key, batch=100, device=-1, max_length=100):
+            self, model, test_data, key, device, batch=100, max_length=100):
         self.model = model
         self.test_data = test_data
         self.key = key
@@ -136,7 +138,9 @@ class CalculateBleu(chainer.training.Extension):
         self.device = device
         self.max_length = max_length
 
-    def forward(self, trainer):
+    def __call__(self, trainer):
+        device = self.device
+
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []
@@ -144,8 +148,7 @@ class CalculateBleu(chainer.training.Extension):
                 sources, targets = zip(*self.test_data[i:i + self.batch])
                 references.extend([[t.tolist()] for t in targets])
 
-                sources = [
-                    chainer.dataset.to_device(self.device, x) for x in sources]
+                sources = [device.send(x) for x in sources]
                 ys = [y.tolist()
                       for y in self.model.translate(sources, self.max_length)]
                 hypotheses.extend(ys)
@@ -157,12 +160,12 @@ class CalculateBleu(chainer.training.Extension):
 
 
 def count_lines(path):
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         return sum([1 for _ in f])
 
 
 def load_vocabulary(path):
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         # +2 for UNK and EOS
         word_ids = {line.strip(): i + 2 for i, line in enumerate(f)}
     word_ids['<UNK>'] = 0
@@ -175,7 +178,7 @@ def load_data(vocabulary, path):
     bar = progressbar.ProgressBar()
     data = []
     print('loading...: %s' % path)
-    with open(path) as f:
+    with io.open(path, encoding='utf-8') as f:
         for line in bar(f, max_value=n_lines):
             words = line.strip().split()
             array = numpy.array([vocabulary.get(w, UNK)
@@ -213,6 +216,23 @@ def calculate_unknown_ratio(data):
     return unknown / total
 
 
+def parse_device(args):
+    gpu = None
+    if args.gpu is not None:
+        gpu = args.gpu
+    elif re.match(r'(-|\+|)[0-9]+$', args.device):
+        gpu = int(args.device)
+
+    if gpu is not None:
+        if gpu < 0:
+            return chainer.get_device(numpy)
+        else:
+            import cupy
+            return chainer.get_device((cupy, gpu))
+
+    return chainer.get_device(args.device)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('SOURCE', help='source sentence list')
@@ -227,8 +247,6 @@ def main():
                         help='number of sentence pairs in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='resume the training from snapshot')
     parser.add_argument('--save', '-s', default='',
@@ -253,9 +271,30 @@ def main():
     parser.add_argument('--validation-interval', type=int, default=4000,
                         help='number of iteration to evlauate the model '
                         'with validation dataset')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = parse_device(args)
+
+    print('Device: {}'.format(device))
+    print('# Minibatch-size: {}'.format(args.batchsize))
+    print('# epoch: {}'.format(args.epoch))
+    print('')
+
+    # If the device is a ChainerX CUDA device, use the shared device memory
+    # pool between ChainerX and CuPy.
+    if device.xp is chainerx and device.device.backend.name == 'cuda':
+        # TODO(niboshi): The API is provisional.
+        chainerx._cuda.cupy_share_allocator()
 
     # Load pre-processed dataset
     print('[{}] Loading dataset... (this may take several minutes)'.format(
@@ -311,11 +350,12 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Set the current device
+    device.use()
+
     # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device(args.gpu).use()
-        model.to_gpu(args.gpu)
+    model.to_device(device)
 
     # Setup optimizer
     optimizer = chainer.optimizers.Adam()
@@ -326,7 +366,7 @@ def main():
 
     # Setup updater and trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, converter=convert, device=args.gpu)
+        train_iter, optimizer, converter=convert, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.LogReport(
         trigger=(args.log_interval, 'iteration')))
@@ -369,7 +409,7 @@ def main():
             translate, trigger=(args.validation_interval, 'iteration'))
         trainer.extend(
             CalculateBleu(
-                model, test_data, 'validation/main/bleu', device=args.gpu),
+                model, test_data, 'validation/main/bleu', device),
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')

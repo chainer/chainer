@@ -16,7 +16,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.libcudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
@@ -613,7 +613,7 @@ class _BNMode(object):
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        return (xp is not numpy and
+        return (xp is cuda.cupy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
                 self.cudnn_dtype_ok)
@@ -697,28 +697,21 @@ def batch_normalization(x, gamma, beta, **kwargs):
     the total batch size will be considered to be the product of all
     input dimensions except the second dimension.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (numpy.ndarray or cupy.ndarray):
+        running_mean (:ref:`ndarray`):
             Running average of the mean. This is a running average of
             the mean over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
             the array in-place by the new running average.
             If ``None``, the running average is not computed. If this is
             ``None``, then ``runnng_var`` must also be ``None``.
-        running_var (numpy.ndarray or cupy.ndarray):
+        running_var (:ref:`ndarray`):
             Running average of the variance. This is a running average of
             the variance over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
@@ -762,16 +755,15 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of input.
-        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Square of scaling parameter of input.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of input.
+        var (:class:`~chainer.Variable` or :ref:`ndarray`): Square of scaling
+            parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input

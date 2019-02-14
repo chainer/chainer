@@ -14,6 +14,7 @@ from chainer.testing import backend
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'slope': ['random', 0.0],
 }))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -36,7 +37,8 @@ class TestLeakyReLU(unittest.TestCase):
         self.x[(-0.05 < self.x) & (self.x < 0.05)] = 0.5
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.slope = random.random()
+        if self.slope == 'random':
+            self.slope = random.random()
         self.check_forward_options = {}
         self.check_backward_options = {}
         self.check_double_backward_options = {}

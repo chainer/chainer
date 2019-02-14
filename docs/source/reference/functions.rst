@@ -22,11 +22,6 @@ Some functions additionally supports scalar arguments.
 
     If you are implementing your own functions, please see :doc:`../guides/functions`.
 
-.. note::
-   As of v1.5, the concept of parameterized functions are gone, and they are
-   replaced by corresponding :class:`~chainer.Link` implementations. They are
-   found in the :mod:`chainer.links` namespace.
-
 ..
    For contributors that want to update these lists:
 
@@ -85,6 +80,7 @@ Array manipulations
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.as_strided
    chainer.functions.broadcast
    chainer.functions.broadcast_to
    chainer.functions.cast

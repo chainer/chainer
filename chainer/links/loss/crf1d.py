@@ -1,4 +1,5 @@
 from chainer.functions.loss import crf1d
+from chainer import initializers
 from chainer import link
 from chainer import variable
 
@@ -12,6 +13,10 @@ class CRF1d(link.Link):
 
     Args:
         n_label (int): Number of labels.
+        initial_cost (:ref:`initializer <initializer>`): Initializer to
+            initialize the transition cost matrix.
+            If this attribute is not specified,
+            the transition cost matrix is initialized with zeros.
 
     .. seealso:: :func:`~chainer.functions.crf1d` for more detail.
 
@@ -19,10 +24,14 @@ class CRF1d(link.Link):
         cost (~chainer.Variable): Transition cost parameter.
     """
 
-    def __init__(self, n_label):
+    def __init__(self, n_label, initial_cost=None):
         super(CRF1d, self).__init__()
+        if initial_cost is None:
+            initial_cost = initializers.constant.Zero()
+
         with self.init_scope():
-            self.cost = variable.Parameter(0, (n_label, n_label))
+            self.cost = variable.Parameter(initializer=initial_cost,
+                                           shape=(n_label, n_label))
 
     def forward(self, xs, ys, reduce='mean'):
         return crf1d.crf1d(self.cost, xs, ys, reduce)

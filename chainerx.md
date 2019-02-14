@@ -9,7 +9,6 @@ It explains how to install it, the motivation behind it and how to modify your e
 
 - [Installation](#installation)
 - [About ChainerX](#about-chainerx)
-- [Making your script use ChainerX](#making-your-script-use-chainerx)
 - [Known issues](#known-issues)
 - [FAQ](#faq)
 

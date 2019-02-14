@@ -7,11 +7,6 @@ This is a guide for all contributions to Chainer.
 The development of Chainer is running on `the official repository at GitHub <https://github.com/chainer/chainer>`_.
 Anyone that wants to register an issue or to send a pull request should read through this document.
 
-.. note::
-
-   Many points of this documentation are updated at v2.
-   We strongly recommend all contributors of v1 to read through the documentation again.
-
 Classification of Contributions
 -------------------------------
 
@@ -50,7 +45,7 @@ As for the backward compatibility, see :ref:`compatibility`.
 Release Cycle
 ~~~~~~~~~~~~~
 
-Starting from v2.0.0, we are developing two tracks of versions at the same time.
+We develop two tracks of versions at the same time.
 The first one is the track of **stable versions**, which is a series of revision updates for the latest major version.
 The second one is the track of **development versions**, which is a series of pre-releases for the upcoming major version.
 

@@ -21,7 +21,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.libcudnn
     _cudnn_version = libcudnn.getVersion()
 
 
@@ -295,6 +295,10 @@ class BaseNStepRNN(function.Function):
             return hy, ys
 
     def backward(self, inputs, grads):
+        if not configuration.config.train:
+            raise RuntimeError('cuDNN does not support backward computation '
+                               'of RNN in testing mode')
+
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs
@@ -400,14 +404,6 @@ def n_step_rnn(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -503,14 +499,6 @@ def n_step_birnn(
     Note that all input variables except first layer may have different shape
     from the first layer.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -579,14 +567,6 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     This function's behavior depends on following arguments,
     ``activation`` and ``use_bi_direction``.
 
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
-
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -653,9 +633,16 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
+    # Check input size consistency with xs and ws.
+    x_in = xs[0].shape[1]
+    w_in = ws[0][0].shape[1]
+    if x_in != w_in:
+        raise ValueError('Inconsistent input size in input values and weight '
+                         'parameters: {} != {}'.format(x_in, w_in))
+
     xp = backend.get_array_module(hx)
 
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
+    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
         states = cuda.get_cudnn_dropout_states()
         states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
