@@ -491,7 +491,7 @@ class Variable(object):
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
-    """  # NOQA
+    """
 
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(

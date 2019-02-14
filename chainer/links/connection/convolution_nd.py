@@ -100,7 +100,7 @@ class ConvolutionND(link.Link):
             >>> y.shape
             (1, 7, 2, 2, 2)
 
-    """  # NOQA
+    """
 
     def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
                  pad=0, nobias=False, initialW=None, initial_bias=None,

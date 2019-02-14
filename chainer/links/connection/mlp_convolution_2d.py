@@ -6,7 +6,8 @@ from chainer.utils import argument
 
 class MLPConvolution2D(link.ChainList):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, activation=relu.relu, conv_init=None, bias_init=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, \
+pad=0, activation=relu.relu, conv_init=None, bias_init=None)
 
     Two-dimensional MLP convolution layer of Network in Network.
 
@@ -66,7 +67,7 @@ class MLPConvolution2D(link.ChainList):
             Activation function.
             See the description in the arguments for details.
 
-    """  # NOQA
+    """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  activation=relu.relu, *args, **kwargs):
