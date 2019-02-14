@@ -1,7 +1,8 @@
 import typing as tp
 
-from chainer import function_node
 import numpy
+
+from chainer import function_node
 
 
 # TODO(okapies): Split this into independent .py and .pyi files
@@ -450,7 +451,8 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
-    def take(self, indices: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
+    def take(self, indices: tp.Union[tp.Sequence[int], numpy.ndarray, ndarray],
+             axis: tp.Optional[int]=None) -> ndarray: ...
 
     @tp.overload
     def to_device(self, arg0: Device) -> ndarray: ...
@@ -509,9 +511,6 @@ def ascontiguousarray(
         a: tp.Any,
         dtype: tp.Optional[tp.Any]=None,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-def asscalar(a: ndarray) -> tp.Any: ...
 
 
 def average_pool(

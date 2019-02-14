@@ -59,6 +59,7 @@ Utilities for testing functions.
    :toctree: generated/
    :nosignatures:
 
+   chainer.testing.FunctionTestCase
    chainer.testing.unary_math_function_unittest
 
 Serialization testing utilities
@@ -130,4 +131,5 @@ Decorators for making a unit test parameterized.
    chainer.testing.parameterize
    chainer.testing.product
    chainer.testing.product_dict
+   chainer.testing.inject_backend_tests
    

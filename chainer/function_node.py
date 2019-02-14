@@ -10,8 +10,8 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer.backends import cuda
 from chainer import backend
+from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
@@ -195,7 +195,9 @@ class FunctionNode(object):
         """
         if self._is_chainerx_fallback_mode:
             retained_output_data = [
-                var.array for var in self._chainerx_retained_outputs]
+                None if var is None
+                else var.array
+                for var in self._chainerx_retained_outputs]
         else:
             if self._retained_output_data is None:
                 raise RuntimeError('retained output data is gone')
@@ -245,9 +247,9 @@ Use apply() method instead.\
 
         Args:
             inputs: Tuple of input variables. Each element can be either
-                :class:`~chainer.Variable`, :class:`numpy.ndarray`,
-                or :class:`cupy.ndarray`. If the element is an ndarray, it is
-                automatically wrapped with :class:`~chainer.Variable`.
+                :class:`~chainer.Variable` or :ref:`ndarray`. If the element
+                is an ndarray, it is automatically wrapped with
+                :class:`~chainer.Variable`.
 
         Returns:
             A tuple of output :class:`~chainer.Variable` objects.
@@ -273,8 +275,9 @@ Use apply() method instead.\
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
                 return tuple([
-                    variable.Variable(
-                        y, requires_grad=y.is_backprop_required())
+                    variable.Variable._init_unchecked(
+                        y, requires_grad=y.is_backprop_required(),
+                        is_chainerx_array=True)
                     for y in outputs])
 
             # Fall back to FunctionNode.forward()
@@ -415,20 +418,23 @@ Use apply() method instead.\
         in_data = []
         device = None
         for data, x in six.moves.zip(chainerx_in_data, inputs):
-            # Use the cached fallback arrays as inputs if they exist.
-            x_is_variable = isinstance(x, variable.Variable)
-            if x_is_variable and x._chainerx_fallback_array is not None:
-                fallback_data = x._chainerx_fallback_array
-                if device is None:
-                    device = x.device
+            if data is None:
+                fallback_data = None
             else:
-                fallback_data = backend.from_chainerx(data)
-                if device is None:
-                    device = backend.ChainerxDevice(data.device)
+                # Use the cached fallback arrays as inputs if they exist.
+                x_is_variable = isinstance(x, variable.Variable)
+                if x_is_variable and x._chainerx_fallback_array is not None:
+                    fallback_data = x._chainerx_fallback_array
+                    if device is None:
+                        device = x.device
+                else:
+                    fallback_data = backend.from_chainerx(data)
+                    if device is None:
+                        device = backend.ChainerxDevice(data.device)
 
-                # Update the fallback cache if possible.
-                if x_is_variable:
-                    x._chainerx_fallback_array = fallback_data
+                    # Update the fallback cache if possible.
+                    if x_is_variable:
+                        x._chainerx_fallback_array = fallback_data
 
             in_data.append(fallback_data)
 
@@ -451,8 +457,9 @@ Use apply() method instead.\
             [] if self._output_indexes_to_retain is None
             else self._output_indexes_to_retain)
 
-        self.inputs = tuple(
-            [variable._ChainerxVariableNodeProps(x) for x in inputs])
+        self.inputs = tuple([
+            None if x is None
+            else variable._ChainerxVariableNodeProps(x) for x in inputs])
 
         ret = tuple([
             _to_variable_with_chainerx_fallback_array(
@@ -714,11 +721,13 @@ Use apply() method instead.\
             for a in grad_outputs])
 
         self._chainerx_retained_inputs = tuple([
-            variable.Variable(
+            None if array is None
+            else variable.Variable(
                 array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
-            variable.Variable(
+            None if array is None
+            else variable.Variable(
                 array, requires_grad=(
                     False if array is None else array.is_backprop_required()))
             for array in retained_outputs])
@@ -791,13 +800,14 @@ Use apply() method instead.\
         if self._input_indexes_to_retain is None or self.inputs is None:
             return ()
 
-        # TODO(hvy): It should be safe to remove this check.
-        if self._input_indexes_to_retain is None:
-            raise ValueError(self._get_error_message(
-                'retain_inputs is not called in forward.'))
-
-        return tuple([self.inputs[index].get_variable()
-                      for index in self._input_indexes_to_retain])
+        retained_inputs = []
+        for index in self._input_indexes_to_retain:
+            input = self.inputs[index]
+            if input.data is None:
+                retained_inputs.append(None)
+            else:
+                retained_inputs.append(input.get_variable())
+        return tuple(retained_inputs)
 
     def get_retained_outputs(self):
         """Returns a tuple of retained output variables.
@@ -821,7 +831,7 @@ Use apply() method instead.\
             return self._chainerx_retained_outputs
 
         if self._output_indexes_to_retain is None or self.outputs is None:
-            return
+            return ()
 
         # TODO(hvy): It should be safe to remove this check.
         if self._retained_output_data is None:
@@ -845,7 +855,11 @@ Use apply() method instead.\
                 outputs_modified = True
             else:
                 output_var = output.get_variable()
-            ret.append(output_var)
+
+            if output_var.array is None:
+                ret.append(None)
+            else:
+                ret.append(output_var)
 
         if outputs_modified:
             self.outputs = tuple(new_outputs)
@@ -1159,15 +1173,33 @@ def _extract_apply_in_data(inputs):
     if len(inputs) == 0:
         return False, ()
 
-    # Unwrap arrays
-    arrays = [
-        (x._data[0] if x.xp is chainerx else x.array)
-        if isinstance(x, variable.Variable) else x for x in inputs]
+    if chainerx.is_available():
+        has_chainerx_array = False
 
-    if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return True, tuple(backend.to_chainerx(arrays))
-    return False, tuple(arrays)
+        # Unwrap arrays
+        arrays = []
+        for x in inputs:
+            if isinstance(x, variable.Variable):
+                if x._has_chainerx_array:
+                    arrays.append(x._data[0])
+                    has_chainerx_array = True
+                else:
+                    arrays.append(x.array)
+            else:  # x is ndarray
+                arrays.append(x)
+                if not has_chainerx_array:
+                    if isinstance(x, chainerx.ndarray):
+                        has_chainerx_array = True
+
+        if has_chainerx_array:
+            return True, tuple(backend.to_chainerx(arrays))
+        else:
+            return False, tuple(arrays)
+
+    else:
+        return False, tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
 
 
 def _get_ordered_func_heap():

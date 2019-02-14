@@ -110,10 +110,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
         return y,
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
 
         y_expected, = self.forward_cpu(inputs)
@@ -123,7 +119,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
         inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
+            with backend_config:
+                inputs = _to_noncontiguous(inputs)
 
         input_vars = [chainer.Variable(x) for x in inputs]
         with backend_config:
@@ -134,10 +131,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
             y_expected, y.data, **self.check_forward_options)
 
     def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
         grad_outputs = self.grad_outputs
 
@@ -147,8 +140,9 @@ class TestNonparameterizedLinear(unittest.TestCase):
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
+            with backend_config:
+                inputs = _to_noncontiguous(inputs)
+                grad_outputs = _to_noncontiguous(grad_outputs)
 
         with backend_config:
             gradient_check.check_backward(
@@ -156,10 +150,6 @@ class TestNonparameterizedLinear(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if (backend_config.use_chainerx
-                and numpy.float16 in (self.x_dtype, self.W_dtype)):
-            raise unittest.SkipTest('ChainerX does not support float16')
         inputs = self.inputs
         grad_outputs = self.grad_outputs
         grad_grad_inputs = self.grad_grad_inputs
@@ -173,9 +163,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
-            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+            with backend_config:
+                inputs = _to_noncontiguous(inputs)
+                grad_outputs = _to_noncontiguous(grad_outputs)
+                grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
         with backend_config:
             gradient_check.check_double_backward(

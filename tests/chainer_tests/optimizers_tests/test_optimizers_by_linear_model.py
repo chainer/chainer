@@ -74,10 +74,6 @@ class LinearModel(object):
         return F.accuracy(y_test, t_test)
 
     def accuracy(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         model = self.model
         optimizer = self.optimizer
         optimizer.setup(model)
@@ -95,20 +91,23 @@ class LinearModel(object):
                 model, optimizer, backend_config)
 
 
-@backend.inject_backend_tests(
-    ['test_linear_model'],
-    # CPU tests
-    testing.product({
-        'use_cuda': [False],
-        'use_ideep': ['never', 'always'],
-    })
-    # GPU tests
-    + [{'use_cuda': True}]
-    # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
+_inject_backend_tests = (
+    backend.inject_backend_tests(
+        ['test_linear_model'],
+        # CPU tests
+        testing.product({
+            'use_cuda': [False],
+            'use_ideep': ['never', 'always'],
+        })
+        # GPU tests
+        + [{'use_cuda': True}]
+        # ChainerX tests
+        + [
+            {'use_chainerx': True, 'chainerx_device': 'native:0'},
+            {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        ]))
+
+
 class OptimizerTestBase(object):
 
     def create(self):
@@ -126,7 +125,8 @@ class OptimizerTestBase(object):
             # TODO(niboshi): This is temporary workaround.
             # See the comment on Skipped.
             return
-        assert accuracy.data > 0.9
+        with backend_config:
+            assert accuracy.data > 0.9
 
     @attr.multi_gpu(2)
     @condition.retry(10)
@@ -166,6 +166,7 @@ class OptimizerTestBase(object):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -176,6 +177,7 @@ class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -186,6 +188,7 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -200,6 +203,7 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -210,6 +214,7 @@ class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -220,6 +225,7 @@ class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestMSVAG(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -230,6 +236,7 @@ class TestMSVAG(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class NesterovAG(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -241,6 +248,7 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
     'use_placeholder': [False, True],
     'eps_inside_sqrt': [False, True],
 }))
+@_inject_backend_tests
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -254,6 +262,7 @@ class TestRMSprop(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -264,6 +273,7 @@ class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
@@ -274,6 +284,7 @@ class TestSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+@_inject_backend_tests
 class TestSMORMS3(OptimizerTestBase, unittest.TestCase):
 
     def create(self):

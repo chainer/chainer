@@ -1,139 +1,91 @@
-import collections
 import functools
-import inspect
 import itertools
-import sys
 import types
 import unittest
 
 import six
 
-
-# A tuple that represents a test case.
-# For bare (non-generated) test cases, [1] and [2] are None.
-# [0] Test case class
-# [1] Module name in whicn the class is defined
-# [2] Class name
-_TestCaseTuple = collections.namedtuple(
-    '_TestCaseTuple', ('klass', 'module_name', 'class_name'))
+from chainer.testing import _bundle
+from chainer import utils
 
 
-class _ParameterizedTestCaseBundle(object):
-    def __init__(self, cases):
-        # cases is a list of _TestCaseTuple's
-        assert isinstance(cases, list)
-        assert all(isinstance(tup, _TestCaseTuple) for tup in cases)
-
-        self.cases = cases
-
-
-def _gen_case(base, module, i, param):
-    # Returns a _TestCaseTuple.
-
-    cls_name = '%s_param_%d' % (base.__name__, i)
-
-    # Add parameters as members
-
-    def __str__(self):
-        name = base.__str__(self)
-        return '%s  parameter: %s' % (name, param)
-
-    mb = {'__str__': __str__}
-    for k, v in six.iteritems(param):
-        if isinstance(v, types.FunctionType):
-
-            def create_new_v():
-                f = v
-
-                def new_v(self, *args, **kwargs):
-                    return f(*args, **kwargs)
-                return new_v
-
-            mb[k] = create_new_v()
-        else:
-            mb[k] = v
-
-    cls = type(cls_name, (base,), mb)
-
-    # Wrap test methods to generate useful error message
-
-    def wrap_test_method(method):
-        @functools.wraps(method)
-        def wrap(*args, **kwargs):
-            try:
-                return method(*args, **kwargs)
-            except unittest.SkipTest:
-                raise
-            except Exception as e:
-                s = six.StringIO()
-                s.write('Parameterized test failed.\n\n')
-                s.write('Base test method: {}.{}\n'.format(
-                    base.__name__, method.__name__))
-                s.write('Test parameters:\n')
-                for k, v in six.iteritems(param):
-                    s.write('  {}: {}\n'.format(k, v))
-                s.write('\n')
-                s.write('{}: {}\n'.format(type(e).__name__, e))
-                e_new = AssertionError(s.getvalue())
-                if sys.version_info < (3,):
-                    six.reraise(AssertionError, e_new, sys.exc_info()[2])
-                else:
-                    six.raise_from(e_new.with_traceback(e.__traceback__), None)
-        return wrap
-
-    # ismethod for Python 2 and isfunction for Python 3
-    members = inspect.getmembers(
-        cls, predicate=lambda _: inspect.ismethod(_) or inspect.isfunction(_))
-    for name, method in members:
-        if name.startswith('test_'):
-            setattr(cls, name, wrap_test_method(method))
-
-    # Add new test class to module
-    setattr(module, cls_name, cls)
-
-    return _TestCaseTuple(cls, module.__name__, cls_name)
+def _shorten(s, maxlen):
+    # Shortens the string down to maxlen, by replacing the middle part with
+    # a 3-dots string '...'.
+    ellipsis = '...'
+    if len(s) <= maxlen:
+        return s
+    n1 = (maxlen - len(ellipsis)) // 2
+    n2 = maxlen - len(ellipsis) - n1
+    s = s[:n1] + ellipsis + s[-n2:]
+    assert len(s) == maxlen
+    return s
 
 
-def _gen_cases(name, base, params):
-    # Returns a list of _TestCaseTuple's holding generated test cases.
-    module = sys.modules[name]
-    generated_cases = []
+def _make_class_name(base_class_name, i_param, param):
+    # Creates a class name for a single combination of parameters.
+    SINGLE_PARAM_MAXLEN = 100  # Length limit of a single parameter value
+    PARAMS_MAXLEN = 5000  # Length limit of the whole parameters part
+    param_strs = [
+        '{}={}'.format(k, _shorten(repr(v), SINGLE_PARAM_MAXLEN))
+        for k, v in param.items()]
+    param_strs = _shorten(', '.join(param_strs), PARAMS_MAXLEN)
+    cls_name = '{}_param_{}_{{{}}}'.format(
+        base_class_name, i_param, param_strs)
+    return cls_name
+
+
+def _parameterize_test_case_generator(base, params):
+    # Defines the logic to generate parameterized test case classes.
+
     for i, param in enumerate(params):
-        c = _gen_case(base, module, i, param)
-        generated_cases.append(c)
-    return generated_cases
+        cls_name = _make_class_name(base.__name__, i, param)
+
+        def __str__(self):
+            name = base.__str__(self)
+            return '%s  parameter: %s' % (name, param)
+
+        mb = {'__str__': __str__}
+        for k, v in six.iteritems(param):
+            if isinstance(v, types.FunctionType):
+
+                def create_new_v():
+                    f = v
+
+                    def new_v(self, *args, **kwargs):
+                        return f(*args, **kwargs)
+                    return new_v
+
+                mb[k] = create_new_v()
+            else:
+                mb[k] = v
+
+        def method_generator(base_method):
+            # Generates a wrapped test method
+
+            @functools.wraps(base_method)
+            def new_method(self, *args, **kwargs):
+                try:
+                    return base_method(self, *args, **kwargs)
+                except unittest.SkipTest:
+                    raise
+                except Exception as e:
+                    s = six.StringIO()
+                    s.write('Parameterized test failed.\n\n')
+                    s.write('Base test method: {}.{}\n'.format(
+                        base.__name__, base_method.__name__))
+                    s.write('Test parameters:\n')
+                    for k, v in six.iteritems(param):
+                        s.write('  {}: {}\n'.format(k, v))
+                    utils._raise_from(e.__class__, s.getvalue(), e)
+            return new_method
+
+        yield (cls_name, mb, method_generator)
 
 
 def parameterize(*params):
-    def f(cases):
-        if isinstance(cases, _ParameterizedTestCaseBundle):
-            # The input is a parameterized test case.
-            cases = cases.cases
-        else:
-            # Input is a bare test case, i.e. not one generated from another
-            # parameterize.
-            assert issubclass(cases, unittest.TestCase)
-            cases = [_TestCaseTuple(cases, None, None)]
-
-        generated_cases = []
-        for klass, mod_name, cls_name in cases:
-            assert issubclass(klass, unittest.TestCase)
-            if mod_name is not None:
-                # The input is a parameterized test case.
-                # Remove it from its module.
-                delattr(sys.modules[mod_name], cls_name)
-            else:
-                # The input is a bare test case
-                mod_name = klass.__module__
-
-            # Generate parameterized test cases out of the input test case.
-            l = _gen_cases(mod_name, klass, params)
-            generated_cases += l
-
-        # Return the bundle of generated cases to allow repeated application of
-        # parameterize decorators.
-        return _ParameterizedTestCaseBundle(generated_cases)
-    return f
+    return _bundle.make_decorator(
+        lambda base: _parameterize_test_case_generator(base, params))
 
 
 def product(parameter):

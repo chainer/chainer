@@ -3,7 +3,14 @@ graph.wo_split.dot
 mlp.model
 mlp.state
 mnist.pkl
+accuracy.png
+cg.dot
+log
+loss.png
+snapshot_iter_12000
 t10k-images-idx3-ubyte.gz
 t10k-labels-idx1-ubyte.gz
 train-images-idx3-ubyte.gz
 train-labels-idx1-ubyte.gz
+result_data_parallel/
+result_model_parallel/

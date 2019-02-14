@@ -35,7 +35,7 @@ class Model(chainer.Chain):
         h3 = self.l3(h2)
         ys = F.sum(h3, axis=0)
         err = F.mean_squared_error(ys, ts)
-        err = chainermn.functions.pseudo_connect(delegate_variable, err)
+        err, = chainermn.functions.pseudo_connect(delegate_variable, err)
         return err
 
 

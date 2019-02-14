@@ -13,8 +13,8 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
-from chainer.utils import collections_abc
 from chainer import types  # NOQA
+from chainer.utils import collections_abc
 from chainer import variable
 import chainerx
 
@@ -141,6 +141,7 @@ class Link(object):
     """
 
     _local_link_hooks = None  # type: tp.Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
+    __init_done = False
 
     def __init__(self, **params):
         # type: (**tp.Any) -> None
@@ -151,9 +152,16 @@ class Link(object):
         self._within_init_scope = False  # type: bool
         self.name = None  # type: tp.Optional[str]
 
+        # This flag has to be set before calling add_param().
+        self.__init_done = True
+
         for name, value in six.iteritems(params):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
+
+    def __check_init_done(self):
+        if not self.__init_done:
+            raise RuntimeError('Link.__init__() has not been called.')
 
     @property
     def local_link_hooks(self):
@@ -238,6 +246,9 @@ class Link(object):
                           self.b = chainer.Parameter(0, (5,))
 
         """
+        # super().__init__ must be called before init_scope().
+        self.__check_init_done()
+
         old_flag = self.within_init_scope
         self._within_init_scope = True
         try:
@@ -247,6 +258,7 @@ class Link(object):
 
     def __call__(self, *args, **kwargs):
         # type: (*tp.Any, **tp.Any) -> tp.Any # NOQA
+        self.__check_init_done()
 
         # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer._get_link_hooks()
@@ -1179,17 +1191,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (int, Link) -> None
-        pass
-
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (slice, tp.Iterable[Link]) -> None
-        pass
-
-    def __setitem__(self, index, value):  # NOQA
+    def __setitem__(self, index, value):
         # type: (tp.Union[int, slice], tp.Union[Link, tp.Iterable[Link]]) -> None # NOQA
 
         if isinstance(index, int):
@@ -1205,18 +1207,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 'ChainList indices must be integers or slices, not %s' %
                 type(index).__name__)
 
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (int) -> Link
-        pass
-
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (slice) -> collections_abc.MutableSequence[Link]
-        pass
-
-    def __getitem__(self, index):  # NOQA
-        # type: (tp.Union[int, slice]) -> tp.Union[Link, collections_abc.MutableSequence[Link]] # NOQA
+    def __getitem__(self, index):
         """Returns the child at given index.
 
         Args:

@@ -1,6 +1,7 @@
 import collections
 import contextlib
 import shutil
+import sys
 import tempfile
 
 import numpy
@@ -12,6 +13,7 @@ from chainer.utils.array import size_of_shape  # NOQA
 from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
+from chainer.utils.error import _format_array_props  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.nondeterministic import nondeterministic  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
@@ -84,3 +86,16 @@ def _check_arrays_forward_compatible(arrays, label=None):
             'Actual: {}'.format(
                 ' ({})'.format(label) if label is not None else '',
                 ', '.join(str(type(a)) for a in arrays)))
+
+
+def _raise_from(exc_type, message, orig_exc):
+    # Raises an exception that wraps another exception.
+    message = (
+        '{}\n\n'
+        '(caused by)\n'
+        '{}: {}\n'.format(message, type(orig_exc).__name__, orig_exc))
+    new_exc = exc_type(message)
+    if sys.version_info < (3,):
+        six.reraise(exc_type, new_exc, sys.exc_info()[2])
+    else:
+        six.raise_from(new_exc.with_traceback(orig_exc.__traceback__), None)

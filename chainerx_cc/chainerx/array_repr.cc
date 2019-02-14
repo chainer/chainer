@@ -17,6 +17,8 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
+#include "chainerx/numeric.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -60,6 +62,8 @@ private:
 
 class FloatFormatter {
 public:
+    void Scan(Float16 value) { Scan(static_cast<double>(value)); }
+
     void Scan(double value) {
         int b_digits = 0;
         if (value < 0) {
@@ -67,7 +71,7 @@ public:
             ++b_digits;
             value = -value;
         }
-        if (std::isinf(value) || std::isnan(value)) {
+        if (IsInf(value) || IsNan(value)) {
             b_digits += 3;
             if (digits_before_point_ < b_digits) {
                 digits_before_point_ = b_digits;
@@ -97,6 +101,8 @@ public:
         }
     }
 
+    void Print(std::ostream& os, Float16 value) { Print(os, static_cast<double>(value)); }
+
     void Print(std::ostream& os, double value) {
         if (digits_after_e_ > 0) {
             int width = 12 + (has_minus_ ? 1 : 0) + digits_after_e_;
@@ -106,7 +112,7 @@ public:
             }
             os << std::scientific << std::left << std::setw(width) << std::setprecision(8) << value;
         } else {
-            if (std::isinf(value) || std::isnan(value)) {
+            if (IsInf(value) || IsNan(value)) {
                 os << std::right << std::setw(digits_before_point_ + digits_after_point_ + 1) << value;
                 return;
             }
@@ -149,10 +155,8 @@ public:
 };
 
 template <typename T>
-using Formatter = std::conditional_t<
-        std::is_same<T, bool>::value,
-        BoolFormatter,
-        std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
+using Formatter = std::
+        conditional_t<std::is_same<T, bool>::value, BoolFormatter, std::conditional_t<IsFloatingPointV<T>, FloatFormatter, IntFormatter>>;
 
 template <int8_t Ndim>
 struct ArrayReprImpl {
@@ -163,7 +167,8 @@ struct ArrayReprImpl {
 
         // Let formatter scan all elements to print.
         VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
-            formatter.Scan(iarray[it]);
+            T value = native::StorageToDataType<const T>(iarray[it]);
+            formatter.Scan(value);
         });
 
         // Print values using the formatter.
@@ -202,7 +207,8 @@ struct ArrayReprImpl {
                             os << ", ";
                         }
                     }
-                    formatter.Print(os, iarray[it]);
+                    T value = native::StorageToDataType<const T>(iarray[it]);
+                    formatter.Print(os, value);
                     ++cur_line_size;
                 });
 

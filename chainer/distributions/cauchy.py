@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
 from chainer.functions.math import trigonometric
+from chainer.utils import cache
 
 
 def _cauchy_icdf(x):
@@ -26,18 +27,24 @@ class Cauchy(distribution.Distribution):
         p(x;x_0,\\gamma) = \\frac{1}{\\pi}\\frac{\\gamma}{(x-x_0)^2+\\gamma^2}
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\x_0`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\gamma`.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\x_0`.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\gamma`.
     """
 
     def __init__(self, loc, scale):
         super(Cauchy, self).__init__()
-        self.loc = chainer.as_variable(loc)
-        self.scale = chainer.as_variable(scale)
+        self.__loc = loc
+        self.__scale = scale
+
+    @cache.cached_property
+    def loc(self):
+        return chainer.as_variable(self.__loc)
+
+    @cache.cached_property
+    def scale(self):
+        return chainer.as_variable(self.__scale)
 
     @property
     def batch_shape(self):
@@ -47,7 +54,7 @@ class Cauchy(distribution.Distribution):
         return 1 / numpy.pi * trigonometric.arctan(
             (x - self.loc) / self.scale) + 0.5
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return exponential.log(4 * numpy.pi * self.scale)
 
@@ -66,7 +73,7 @@ class Cauchy(distribution.Distribution):
         return - numpy.log(numpy.pi) + exponential.log(self.scale) \
             - exponential.log((x - self.loc)**2 + self.scale**2)
 
-    @property
+    @cache.cached_property
     def mean(self):
         warnings.warn("Mean of the cauchy distribution is undefined.",
                       RuntimeWarning)
@@ -90,7 +97,7 @@ class Cauchy(distribution.Distribution):
     def support(self):
         return 'real'
 
-    @property
+    @cache.cached_property
     def variance(self):
         warnings.warn("Variance of the cauchy distribution is undefined.",
                       RuntimeWarning)

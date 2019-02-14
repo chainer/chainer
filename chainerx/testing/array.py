@@ -86,7 +86,8 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     numpy.testing.assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
 
-def assert_allclose_ex(x, y, *args, **kwargs):
+def assert_allclose_ex(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='',
+                       verbose=True, **kwargs):
     """assert_allclose_ex(
            x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True,
            *, dtype_check=True, strides_check=True)
@@ -108,12 +109,20 @@ def assert_allclose_ex(x, y, *args, **kwargs):
              Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also
              checked.
+         float16_rtol(float): Relative tolerance for float16 dtype.
+         float16_atol(float): Absolute tolerance for float16 dtype.
+         float32_rtol(float): Relative tolerance for float32 dtype.
+         float32_atol(float): Absolute tolerance for float32 dtype.
+         float64_rtol(float): Relative tolerance for float64 dtype.
+         float64_atol(float): Absolute tolerance for float64 dtype.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
     dtype_check = kwargs.pop('dtype_check', None)
     strides_check = kwargs.pop('strides_check', None)
+    atol = kwargs.pop(x.dtype.name + '_atol', atol)
+    rtol = kwargs.pop(x.dtype.name + '_rtol', rtol)
 
-    assert_allclose(x, y, *args, **kwargs)
+    assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose)
     _check_dtype_and_strides(x, y, dtype_check, strides_check)
 
 

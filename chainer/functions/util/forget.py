@@ -112,8 +112,8 @@ def forget(func, *xs):
 
     .. note::
 
-        In case input argument variables are of class :class:`numpy.ndarray` or
-        :class:`cupy.ndarray` objects, arguments will automatically be
+        In case input argument variables are of :ref:`ndarray` objects,
+        arguments will automatically be
         converted to :class:`~chainer.Variable`\\ s.
         This conversion takes place to ensure that this function is included
         in the computational graph to enable backward computations.
@@ -137,7 +137,8 @@ def forget(func, *xs):
             :class:`~chainer.Variable` object(s) and to return a
             :class:`~chainer.Variable` object or a tuple of
             :class:`~chainer.Variable` objects.
-        xs (~chainer.Variable): Argument variables of the function.
+        xs (:class:`tuple` of :class:`~chainer.Variable` or :ref:`ndarray`):
+            Argument variables of the function.
 
     Returns:
         ~chainer.Variable: A variable ``func`` returns. If it returns a tuple,

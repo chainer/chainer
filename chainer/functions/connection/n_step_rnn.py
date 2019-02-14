@@ -295,6 +295,10 @@ class BaseNStepRNN(function.Function):
             return hy, ys
 
     def backward(self, inputs, grads):
+        if not configuration.config.train:
+            raise RuntimeError('cuDNN does not support backward computation '
+                               'of RNN in testing mode')
+
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs
@@ -629,9 +633,16 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
+    # Check input size consistency with xs and ws.
+    x_in = xs[0].shape[1]
+    w_in = ws[0][0].shape[1]
+    if x_in != w_in:
+        raise ValueError('Inconsistent input size in input values and weight '
+                         'parameters: {} != {}'.format(x_in, w_in))
+
     xp = backend.get_array_module(hx)
 
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
+    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
         states = cuda.get_cudnn_dropout_states()
         states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]

@@ -41,6 +41,10 @@ class DummyIterator(dataset.Iterator):
     def __init__(self, return_values):
         self.iterator = iter(return_values)
         self.finalized = False
+        self.return_values = return_values
+
+    def reset(self):
+        self.iterator = iter(self.return_values)
 
     def __next__(self):
         return next(self.iterator)

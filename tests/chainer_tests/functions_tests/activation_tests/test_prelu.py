@@ -51,10 +51,6 @@ class TestPReLU(unittest.TestCase):
                 {'atol': 5e-3, 'rtol': 5e-2})
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         x_data, W_data = backend_config.get_array((self.x, self.W))
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
@@ -68,10 +64,6 @@ class TestPReLU(unittest.TestCase):
         testing.assert_allclose(y_expect, y.data)
 
     def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         x_data, W_data, y_grad = (
             backend_config.get_array((self.x, self.W, self.gy)))
 
@@ -81,10 +73,6 @@ class TestPReLU(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         x_data, W_data = backend_config.get_array((self.x, self.W))
         y_grad = backend_config.get_array(self.gy)
         x_grad_grad, W_grad_grad = (

@@ -690,22 +690,6 @@ Note:
 """)
 
     _docs.set_doc(
-        chainerx.asscalar,
-        """asscalar(a)
-Converts an array of size 1 to its scalar equivalent.
-
-Args:
-    a (~chainerx.ndarray): Input array of size 1.
-
-Returns:
-    scalar: Scalar representation of ``a``. The output type is one of the \
-Python scalar types (such as :class:`int` and :class:`float`) which \
-corresponds to the dtype of ``a``.
-
-.. seealso:: :func:`numpy.asscalar`
-""")
-
-    _docs.set_doc(
         chainerx.concatenate,
         """concatenate(arrays, axis=0)
 Joins arrays along an axis.

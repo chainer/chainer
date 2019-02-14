@@ -35,7 +35,12 @@ class TheanoFunction(link.Link):
     and backward calculation from inputs and ouptuts. And then, it sends data
     in :class:`chainer.Variable` to the function and gets results from Theano.
 
-    .. admonition:: Example
+    .. rubric:: Example
+
+    .. doctest::
+       # See chainer/chainer#5997
+       :skipif: doctest_helper.skipif_requires_satisfied( \
+               'Theano<=1.0.3', 'numpy>=1.16.0')
 
        >>> import theano
        >>> x = theano.tensor.fvector()
@@ -78,6 +83,8 @@ Please install theano to activate theano function.
 
   $ pip install theano'''
             raise RuntimeError(msg)
+
+        super(TheanoFunction, self).__init__()
 
         inputs = _to_var_tuple(inputs)
         outputs = _to_var_tuple(outputs)
