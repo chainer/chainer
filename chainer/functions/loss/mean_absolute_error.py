@@ -44,7 +44,7 @@ def mean_absolute_error(x0, x1):
     This function computes mean absolute error between two variables. The mean
     is taken over the minibatch. x0 and x1 must be of the same dimension!
     This function calculates the absolute value differences of corresponding
-    elemebts in x0 and x1, and returns the mean of those differences.
+    elements in x0 and x1, and returns the mean of those differences.
 
     See here:
     https://en.wikipedia.org/wiki/Mean_absolute_error
