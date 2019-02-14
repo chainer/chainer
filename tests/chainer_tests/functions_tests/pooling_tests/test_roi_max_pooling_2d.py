@@ -19,6 +19,7 @@ def _pair(x):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, numpy.float64],
     'outsize': [5, 7, (5, 7)],
+    'spatial_scale': [0.6, 1.0, 2.0],
 }))
 class TestROIMaxPooling2D(unittest.TestCase):
 
@@ -39,7 +40,6 @@ class TestROIMaxPooling2D(unittest.TestCase):
         self.roi_indices = numpy.array([0, 2, 1, 0], dtype=numpy.int32)
         n_rois = self.rois.shape[0]
         outsize = _pair(self.outsize)
-        self.spatial_scale = 0.6
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
                     outsize[0], outsize[1])).astype(self.dtype)
