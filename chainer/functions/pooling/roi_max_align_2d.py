@@ -90,7 +90,7 @@ class ROIMaxAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = numpy.empty((n_rois, channels, self.outh,
                                 self.outw), dtype=bottom_data.dtype)
-        self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
+        self.argmax_data = numpy.empty(top_data.shape, numpy.int32)
 
         pooled_width, pooled_height = self.outw, self.outh
         spatial_scale = self.spatial_scale
@@ -166,7 +166,7 @@ class ROIMaxAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=bottom_data.dtype)
-        self.argmax_data = cuda.cupy.zeros(top_data.shape, numpy.int32)
+        self.argmax_data = cuda.cupy.empty(top_data.shape, numpy.int32)
 
         if self.sampling_ratio[0] is None:
             sampling_ratio_h = 0
