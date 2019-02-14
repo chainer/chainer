@@ -324,7 +324,8 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
 
 
 def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
-    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, return_samples=False)
+    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, \
+return_samples=False)
 
     Negative sampling loss function.
 
@@ -396,7 +397,7 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
 
     .. seealso:: :class:`~chainer.links.NegativeSampling`.
 
-    """  # NOQA
+    """
     return_samples = False
     if kwargs:
         return_samples, = argument.parse_kwargs(
