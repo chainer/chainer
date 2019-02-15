@@ -51,7 +51,7 @@ class TestSELU(testing.FunctionTestCase):
         x, = inputs
         expected = numpy.where(x >= 0, x, self.alpha * (numpy.exp(x) - 1))
         expected *= self.scale
-        return expected.astype(x.dype),
+        return expected.astype(x.dtype),
 
 
 testing.run_module(__name__, __file__)
