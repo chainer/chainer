@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <type_traits>
 
 #ifdef CHAINERX_ENABLE_BLAS
 #include <cblas.h>
@@ -126,9 +127,7 @@ T MultiplyAdd(T x, T y, T z) {
     return x * y + z;
 }
 
-Float16 MultiplyAdd(Float16 x, Float16 y, Float16 z) {
-    return static_cast<Float16>(std::fmaf(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)));
-}
+float MultiplyAdd(Float16 x, Float16 y, float z) { return std::fmaf(static_cast<float>(x), static_cast<float>(y), z); }
 
 float MultiplyAdd(float x, float y, float z) { return std::fmaf(x, y, z); }
 
@@ -149,6 +148,18 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         Gemm(a, b, out);
         return;
     }
+
+    if (out.dtype() == Dtype::kFloat16) {
+        Array a32 = a.AsType(Dtype::kFloat32, false);
+        Array b32 = b.AsType(Dtype::kFloat32, false);
+        Array acc = out.AsType(Dtype::kFloat32);
+        Gemm(a32, b32, acc);
+
+        // TODO(gwtnb): Replace Fill(0) and += with CopyTo when CopyTo is added
+        out.Fill(0);
+        out += acc.AsType(Dtype::kFloat16);
+        return;
+    }
 #endif  // CHAINERX_ENABLE_BLAS
 
     out.Fill(0);
@@ -166,16 +177,31 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         CHAINERX_ASSERT(out.shape()[0] == m);
         CHAINERX_ASSERT(out.shape()[1] == n);
 
+        using AccT = std::conditional_t<std::is_same<T, Float16>{}, float, T>;
+        constexpr auto acc_dtype = PrimitiveType<AccT>::kDtype;
+
+        Array acc = out.AsType(acc_dtype, false);
+        IndexableArray<AccT, 2> acc_iarray{acc};
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
                 int64_t a_i_l[] = {i, l};
                 T a_value = native_internal::StorageToDataType<const T>(a_iarray[a_i_l]);
                 for (int64_t j = 0; j < n; ++j) {
-                    int64_t out_i_j[] = {i, j};
+                    int64_t acc_i_j[] = {i, j};
                     int64_t b_l_j[] = {l, j};
                     T b_value = native_internal::StorageToDataType<const T>(b_iarray[b_l_j]);
-                    T& out_value = native_internal::StorageToDataType<T>(out_iarray[out_i_j]);
-                    out_value = MultiplyAdd(a_value, b_value, out_value);
+                    AccT& acc_value = native_internal::StorageToDataType<AccT>(acc_iarray[acc_i_j]);
+                    acc_value = MultiplyAdd(a_value, b_value, acc_value);
+                }
+            }
+        }
+        if (!std::is_same<T, AccT>{}) {
+            for (int64_t i = 0; i < m; ++i) {
+                for (int64_t j = 0; j < n; ++j) {
+                    int64_t i_j[] = {i, j};
+                    AccT acc_value = native_internal::StorageToDataType<AccT>(acc_iarray[i_j]);
+                    T& out_value = native_internal::StorageToDataType<T>(out_iarray[i_j]);
+                    out_value = static_cast<T>(acc_value);
                 }
             }
         }
