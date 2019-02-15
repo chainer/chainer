@@ -5,6 +5,7 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -490,18 +491,30 @@ def test_sqrt(xp, device, input, float_dtype):
     return xp.sqrt(a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
         10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-# TODO(hamaji): Dtype promotion is not supported yet.
-def test_tanh(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.tanh(a)
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class test_tanh(op_utils.NumpyOpTest):
+
+    def setup(self, input, contiguous, float_dtype):
+        # TODO(hamaji): Dtype promotion is not supported yet.
+        self.input = input.astype(float_dtype)
+        self.contiguous = contiguous
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.tanh(x),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
