@@ -177,7 +177,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         CHAINERX_ASSERT(out.shape()[0] == m);
         CHAINERX_ASSERT(out.shape()[1] == n);
 
-        using AccT = typename std::conditional<std::is_same<T, Float16>{}, float, T>::type;
+        using AccT = std::conditional_t<std::is_same<T, Float16>{}, float, T>;
         constexpr auto acc_dtype = PrimitiveType<AccT>::kDtype;
 
         Array acc = out.AsType(acc_dtype, false);
