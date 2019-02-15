@@ -162,6 +162,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 #endif  // CHAINERX_ENABLE_BLAS
 
+    out.Fill(0);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -180,7 +181,6 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         constexpr auto acc_dtype = PrimitiveType<AccT>::kDtype;
 
         Array acc = out.AsType(acc_dtype, false);
-        acc.Fill(0);
         IndexableArray<AccT, 2> acc_iarray{acc};
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
