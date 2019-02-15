@@ -90,10 +90,11 @@ class PlotReport(extension.Extension):
             object, Axes object, and all plot data are passed to this callback
             in this order. This callback can modify the figure.
         filename (str): Name of the figure file under the output directory.
-            It can be a format string. It is recommended to use this argument
-            though, instead of this argument, you can specify figure file name
-            for backward compatibility. If both `filename` and `file_name` are
-            specified, `filename` will be used.
+            It can be a format string. Although it is recommended to
+            use this argument, you can also specify the file name of
+            a figure file with the `file_name` argument for backward
+            compatibility.  If both `filename` and `file_name` are specified,
+            `filename` will be used.
         marker (str): The marker used to plot the graph. Default is ``'x'``. If
             ``None`` is given, it draws with no markers.
         grid (bool): Set the axis grid on if True. Default is True.

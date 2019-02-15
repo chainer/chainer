@@ -9,12 +9,13 @@ from chainer import variable
 
 
 def is_return_code_zero(args):
-    """Return true iff the given command's return code is zero.
+    """Return `True` if the given command's return code of the given command
+    is zero.
 
-    All the messages to stdout or stderr are suppressed.
+    All the messages sent to stdout or stderr are suppressed.
 
     Args:
-        args (list of str): Command to execute.
+        args (list of str): A Command to execute.
 
     """
 
@@ -45,7 +46,7 @@ class DumpGraph(extension.Extension):
 
     This extension dumps a computational graph. The graph is output in DOT
     language. If graphviz is available, this also renders and saves the image
-    of computational graph.
+    of the computational graph.
 
     It only dumps a graph at the first invocation.
 
@@ -79,9 +80,9 @@ class DumpGraph(extension.Extension):
         root_name (str): Name of the root of the computational graph. The
             root variable is retrieved by this name from the observation
             dictionary of the trainer.
-        filename (str): Output file name. It is recommended to use this
-            argument though, instead of `filename` you can specify name of
-            the output file by `out_name` for backward compatibility.
+        filename (str): Output file name. Although it is recommended to
+            use this argument, you can also specify the name of the output
+            file with `out_name` argument for backward compatibility.
             If both `filename` and `out_name` are specified, `filename`
             is used.
         variable_style (dict): Dot node style for variables. Each variable is
