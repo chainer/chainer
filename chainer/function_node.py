@@ -335,7 +335,15 @@ Use apply() method instead.\
                     ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
-            hook.forward_postprocess(self, in_data)
+            sig = inspect.signature(hook.forward_postprocess)
+            if len(sig.parameters) == 2:
+                hook.forward_postprocess(in_data, outputs)
+            elif len(sig.parameters) == 1:
+                hook.forward_postprocess(in_data)
+            else:
+                msg = ('{}.forward_postprocess has unsupported '
+                       'number of arguments.'.format(type(hook).__name__))
+                raise RuntimeError(msg)
 
         # NaN check of output values
         if is_debug:
