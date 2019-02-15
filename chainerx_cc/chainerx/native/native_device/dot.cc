@@ -155,6 +155,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         Array acc = out.AsType(Dtype::kFloat32);
         Gemm(a32, b32, acc);
 
+        // TODO(gwtnb): Replace Fill(0) and += with CopyTo when CopyTo is added
         out.Fill(0);
         out += acc.AsType(Dtype::kFloat16);
         return;
