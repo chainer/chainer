@@ -45,6 +45,8 @@ class TestNonparameterizedLinear(testing.FunctionTestCase):
         self.n_batch_axes = self.x_shape['n_batch_axes']
 
     def before_test(self, test_name):
+        # TODO(crcrpar): Remove this relaxation when
+        # a known issue in the reduction of ChainerX is resolved.
         if test_name == 'test_forward':
             if (self.x_dtype == numpy.float16 and
                     self.W_dtype == numpy.float16 and
