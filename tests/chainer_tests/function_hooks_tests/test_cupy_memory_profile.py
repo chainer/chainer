@@ -191,5 +191,15 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
 
+    def test_print_report_align(self):
+        io = six.StringIO()
+        self.h.print_report(align=True, file=io)
+        expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
+ +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
+ +ReLU +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
+'''
+        actual = io.getvalue()
+        six.assertRegex(self, actual, expect)
+
 
 testing.run_module(__name__, __file__)
