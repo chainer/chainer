@@ -443,6 +443,10 @@ class Link(device_resident.DeviceResident):
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
+    def set_requires_grad(self, requires_grad):
+        for param in self.params():
+            param.set_requires_grad(requires_grad)
+
     def device_resident_accept(self, visitor):
         super(Link, self).device_resident_accept(visitor)
         d = self.__dict__
@@ -953,6 +957,12 @@ class Chain(Link):
             copied.name = name
             d[name] = copied
         return ret  # type: ignore
+
+    def set_requires_grad(self, requires_grad):
+        super(Chain, self).set_requires_grad(requires_grad)
+
+        for link in self.children():
+            link.set_requires_grad(requires_grad)
 
     def device_resident_accept(self, visitor):
         super(Chain, self).device_resident_accept(visitor)

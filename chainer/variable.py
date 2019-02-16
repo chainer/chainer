@@ -1044,6 +1044,27 @@ class Variable(object):
         """Transposition of this variable."""
         return chainer.functions.transpose(self)
 
+    def set_requires_grad(self, requires_grad):
+        if requires_grad == self._requires_grad:
+            return
+
+        if self._has_chainerx_array:
+            self._requires_grad = requires_grad
+            arr = self._data[0]
+            if arr is not None:
+                if requires_grad:
+                    arr = arr.require_grad()
+                else:
+                    arr = arr.as_grad_stopped()
+            self._set_chainerx_array(arr, None)
+            return
+
+        self._grad = None
+        self._grad_var = None
+        self._requires_grad = requires_grad
+        if self._node is not None:
+            self._node._requires_grad = requires_grad
+
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
         self.to_device(backend.CpuDevice())

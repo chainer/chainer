@@ -10,6 +10,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import functions as F
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -29,22 +30,46 @@ def _assert_arrays_equal(array, expected_array):
     assert (array == expected_array).all()
 
 
+def _create_link():
+    class MyLink(chainer.Link):
+        def __init__(self):
+            x_shape_0 = 2
+            x_shape_1 = numpy.int64(3)
+
+            super(MyLink, self).__init__(
+                x=((x_shape_0, x_shape_1), 'd'),
+                u=(None, 'd'))
+
+            with self.init_scope():
+                self.y = chainer.Parameter(shape=(2,))
+                self.v = chainer.Parameter()
+
+        def forward(self, x):
+            shape = x.shape
+            assert shape == (2, 3)
+            self.x.initialize(shape)
+            self.y.initialize(shape)
+            self.u.initialize(shape)
+            self.v.initialize(shape)
+            z = (self.x + F.cast(self.y, 'float64')
+                 + self.u + F.cast(self.v, 'float64'))
+            return z
+
+    link = MyLink()
+    p = numpy.array([1, 2, 3], dtype='f')
+    link.add_persistent('p', p)
+    link.name = 'a'
+    link.x.update_rule = chainer.UpdateRule()
+    link.x.update_rule.enabled = False
+    link.u.update_rule = chainer.UpdateRule()
+    return link
+
+
 class LinkTestBase(object):
 
     def setUp(self):
-        x_shape_0 = 2
-        x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                 u=(None, 'd'))
-        with self.link.init_scope():
-            self.link.y = chainer.Parameter(shape=(2,))
-            self.link.v = chainer.Parameter()
-        self.p = numpy.array([1, 2, 3], dtype='f')
-        self.link.add_persistent('p', self.p)
-        self.link.name = 'a'
-        self.link.x.update_rule = chainer.UpdateRule()
-        self.link.x.update_rule.enabled = False
-        self.link.u.update_rule = chainer.UpdateRule()
+        self.link = _create_link()
+        self.p = self.link.p
         if cuda.available:
             self.current_device_id = cuda.cupy.cuda.get_device_id()
 
@@ -815,37 +840,48 @@ class CountParameter(chainer.Parameter):
         super(CountParameter, self).zerograd()
 
 
+def _create_chain():
+    # Schematic:
+    # c2
+    # - c1
+    #   - l1 (x: uninitialized with shape=(2, 3))
+    #   - l2 (x: uninitialized with shape=2)
+    # - l3   (x: uninitialized without shape)
+
+    l1 = chainer.Link()
+    with l1.init_scope():
+        l1.x = chainer.Parameter(shape=(2, 3))
+
+    l2 = chainer.Link()
+    with l2.init_scope():
+        l2.x = chainer.Parameter(shape=2)
+
+    l3 = chainer.Link()
+    with l3.init_scope():
+        l3.x = chainer.Parameter()
+
+    c1 = chainer.Chain()
+    with c1.init_scope():
+        c1.l1 = l1
+    c1.add_link('l2', l2)
+
+    c2 = chainer.Chain()
+    with c2.init_scope():
+        c2.c1 = c1
+        c2.l3 = l3
+
+    return c2
+
+
 class ChainTestBase(object):
 
     def setUp(self):
-        # Schematic:
-        # c2
-        # - c1
-        #   - l1 (x: uninitialized with shape=(2, 3))
-        #   - l2 (x: uninitialized with shape=2)
-        # - l3   (x: uninitialized without shape)
-
-        self.l1 = chainer.Link()
-        with self.l1.init_scope():
-            self.l1.x = chainer.Parameter(shape=(2, 3))
-
-        self.l2 = chainer.Link()
-        with self.l2.init_scope():
-            self.l2.x = chainer.Parameter(shape=2)
-
-        self.l3 = chainer.Link()
-        with self.l3.init_scope():
-            self.l3.x = chainer.Parameter()
-
-        self.c1 = chainer.Chain()
-        with self.c1.init_scope():
-            self.c1.l1 = self.l1
-        self.c1.add_link('l2', self.l2)
-
-        self.c2 = chainer.Chain()
-        with self.c2.init_scope():
-            self.c2.c1 = self.c1
-            self.c2.l3 = self.l3
+        c2 = _create_chain()
+        self.c2 = c2
+        self.c1 = c2.c1
+        self.l1 = c2.c1.l1
+        self.l2 = c2.c1.l2
+        self.l3 = c2.l3
 
     def set_count_parameters(self):
         self.l1.x = CountParameter(self.l1.x)
@@ -2464,6 +2500,101 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         l = cls()
         l.to_intel64()
         assert l.child.to_method_called == 1
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        {'use_ideep': True},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestLinkSetRequiresGrad(unittest.TestCase):
+
+    def _forward(self, link, backend_config):
+        a = backend_config.get_array(
+            numpy.random.randn(2, 3).astype(numpy.float64))
+        z = link(a)
+        return z
+
+    def test_requires_grad(self, backend_config):
+        link = _create_link()
+        link.to_device(backend_config.device)
+
+        self._forward(link, backend_config)  # TODO
+
+        assert link.x.requires_grad is True
+        assert link.y.requires_grad is True
+        assert link.u.requires_grad is True
+        assert link.v.requires_grad is True
+
+        link.set_requires_grad(False)
+        assert link.x.requires_grad is False
+        assert link.y.requires_grad is False
+        assert link.u.requires_grad is False
+        assert link.v.requires_grad is False
+
+        link.set_requires_grad(True)
+        assert link.x.requires_grad is True
+        assert link.y.requires_grad is True
+        assert link.u.requires_grad is True
+        assert link.v.requires_grad is True
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        {'use_ideep': True},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestChainSetRequiresGrad(unittest.TestCase):
+
+    def test_requires_grad(self, backend_config):
+        c2 = _create_chain()
+        c2.to_device(backend_config.device)
+
+        assert c2.l3.x.requires_grad is True
+        assert c2.c1.l1.x.requires_grad is True
+        assert c2.c1.l2.x.requires_grad is True
+
+        # Set to False globally
+        c2.set_requires_grad(False)
+        assert c2.l3.x.requires_grad is False
+        assert c2.c1.l1.x.requires_grad is False
+        assert c2.c1.l2.x.requires_grad is False
+
+        # Set to True partially
+        c2.c1.set_requires_grad(True)
+        assert c2.l3.x.requires_grad is False
+        assert c2.c1.l1.x.requires_grad is True
+        assert c2.c1.l2.x.requires_grad is True
+
+        # Set to True globally
+        c2.set_requires_grad(True)
+        assert c2.l3.x.requires_grad is True
+        assert c2.c1.l1.x.requires_grad is True
+        assert c2.c1.l2.x.requires_grad is True
+
+        # Set to False partially
+        c2.c1.set_requires_grad(False)
+        assert c2.l3.x.requires_grad is True
+        assert c2.c1.l1.x.requires_grad is False
+        assert c2.c1.l2.x.requires_grad is False
 
 
 testing.run_module(__name__, __file__)
