@@ -1782,42 +1782,6 @@ class TestMatMulInvalidShape(unittest.TestCase):
             operator.matmul(x, y)
 
 
-class TestNotSupportOperation(unittest.TestCase):
-
-    def setUp(self):
-        self.x = chainer.Variable(numpy.zeros(10))
-        self.y = chainer.Variable(numpy.zeros(10))
-
-    def test_lt(self):
-        with pytest.raises(NotImplementedError):
-            self.x < self.y
-
-    def test_le(self):
-        with pytest.raises(NotImplementedError):
-            self.x <= self.y
-
-    def test_eq(self):
-        with pytest.raises(NotImplementedError):
-            self.x == self.y
-
-    def test_ne(self):
-        with pytest.raises(NotImplementedError):
-            self.x != self.y
-
-    def test_gt(self):
-        with pytest.raises(NotImplementedError):
-            self.x > self.y
-
-    def test_ge(self):
-        with pytest.raises(NotImplementedError):
-            self.x >= self.y
-
-    def test_nonzero(self):
-        with pytest.raises(NotImplementedError):
-            if self.x:
-                pass
-
-
 class ConvertValueToStringTest(unittest.TestCase):
 
     def _check_scalar(self, value, string):
