@@ -139,7 +139,11 @@ class TimerHook(link_hook.LinkHook):
         return factor, 'ns'
 
     def print_report(self, align=False, file=sys.stdout):
-        """Prints a summary report of time profiling in links."""
+        """Prints a summary report of time profiling in links.
+
+        Args:
+            align (bool): If `True`, units of times are aligned to the largest.
+        """
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
         if align:
             max_time = max(record['elapsed_time'] for record in self.summary().values())
