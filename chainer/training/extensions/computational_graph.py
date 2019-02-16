@@ -15,7 +15,7 @@ def is_return_code_zero(args):
     All the messages sent to stdout or stderr are suppressed.
 
     Args:
-        args (list of str): A Command to execute.
+        args (list of str): A command to execute.
 
     """
 
