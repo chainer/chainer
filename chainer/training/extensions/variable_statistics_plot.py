@@ -168,7 +168,7 @@ class VariableStatisticsPlot(extension.Extension):
         filename (str):
             Name of the output image file under the output directory.
             Although it is recommended to use `filename`, you can also
-            specify the output image file name with `file_name`argumet for
+            specify the name of the output image file with the `file_name` argument for
             backward compatibility. However, if both `filename` and `file_name`
             are specified, `filename` will be used.
         figsize (tuple of int):
