@@ -9,7 +9,7 @@ from chainer import variable
 
 
 def is_return_code_zero(args):
-    """Return `True` if the given command's return code of the given command
+    """Return `True` if the return code of the given command
     is zero.
 
     All the messages sent to stdout or stderr are suppressed.
