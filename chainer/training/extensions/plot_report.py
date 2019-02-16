@@ -92,7 +92,7 @@ class PlotReport(extension.Extension):
         filename (str): Name of the figure file under the output directory.
             It can be a format string. Although it is recommended to
             use this argument, you can also specify the file name of
-            a figure file with the `file_name` argument for backward
+            a figure with the `file_name` argument for backward
             compatibility.  If both `filename` and `file_name` are specified,
             `filename` will be used.
         marker (str): The marker used to plot the graph. Default is ``'x'``. If
