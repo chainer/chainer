@@ -129,11 +129,27 @@ class TimerHook(link_hook.LinkHook):
             second *= 1000.0
         return '%.2f%s' % (second, 'ns')
 
-    def print_report(self, file=sys.stdout):
+    def _align(self, second):
+        """Returns align info: (factor, unit)."""
+        factor = 1
+        for unit in ['sec', 'ms', 'us']:
+            if second * factor >= 1:
+                return factor, unit
+            factor *= 1000.0
+        return factor, 'ns'
+
+    def print_report(self, align=False, file=sys.stdout):
         """Prints a summary report of time profiling in links."""
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
+        if align:
+            max_time = max(record['elapsed_time'] for record in self.summary().values())
+            factor, unit = self._align(max_time)
         for link_name, record in self.summary().items():
-            elapsed_time = self._humanized_time(record['elapsed_time'])
+            second = record['elapsed_time']
+            if align:
+                elapsed_time = '%3.2f%s' % (second * factor, unit)
+            else:
+                elapsed_time = self._humanized_time(second)
             occurrence = str(record['occurrence'])
             entries.append([link_name, elapsed_time, occurrence])
         entry_widths = []
