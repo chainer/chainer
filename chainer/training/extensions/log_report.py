@@ -54,7 +54,7 @@ class LogReport(extension.Extension):
             the log files for different iterations. If the log name is None, it
             does not output the log to any file.
             Although it is recommended to use `filename`, you can specify
-            the name of the log file with the `log_name`
+            the name of the log file with the `log_name` argument
             for back compatibility. However, `filename` will be used if
             both `filename` and `log_name` are specified.
 
