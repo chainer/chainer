@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer import configuration
 from chainer import functions
@@ -204,6 +206,8 @@ class BatchNormalization(link.Link):
             axis = (axis,)
         self.axis = axis
         self._dtype = chainer.get_dtype(dtype)
+        if self._dtype == numpy.float16:
+            self._dtype = numpy.float32
 
         with self.init_scope():
             if use_gamma:
@@ -276,13 +280,13 @@ class BatchNormalization(link.Link):
         if gamma is None:
             with chainer.using_device(self.device):
                 gamma = self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._dtype)
 
         beta = self.beta
         if beta is None:
             with chainer.using_device(self.device):
                 beta = self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._dtype)
 
         if configuration.config.train:
             if finetune:

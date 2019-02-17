@@ -368,10 +368,6 @@ class TestDefaultInitializer(unittest.TestCase):
         self.size = 3
         with chainer.using_config('dtype', self.dtype):
             self.link = links.BatchNormalization(self.size, self.decay)
-        assert self.link.beta.dtype == self.dtype
-        assert self.link.gamma.dtype == self.dtype
-        assert self.link.avg_mean.dtype == self.dtype
-        assert self.link.avg_var.dtype == self.dtype
 
         self.x = numpy.arange(6, dtype=self.dtype).reshape(2, 3)
 
