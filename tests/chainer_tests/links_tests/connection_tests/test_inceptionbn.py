@@ -155,13 +155,13 @@ class TestInceptionBnDtype(TestInceptionBNBase):
     def test_dtype(self):
         link = self.l
         # Check the dtype of batch normalization layers.
-        assert link.proj3n.beta.dtype == self.dtype
-        assert link.conv3n.beta.dtype == self.dtype
-        assert link.proj33n.beta.dtype == self.dtype
-        assert link.conv33an.beta.dtype == self.dtype
-        assert link.conv33bn.beta.dtype == self.dtype
-        assert link.conv1n.beta.dtype == self.dtype
-        assert link.poolpn.beta.dtype == self.dtype
+        assert link.proj3n.beta.dtype == numpy.float32
+        assert link.conv3n.beta.dtype == numpy.float32
+        assert link.proj33n.beta.dtype == numpy.float32
+        assert link.conv33an.beta.dtype == numpy.float32
+        assert link.conv33bn.beta.dtype == numpy.float32
+        assert link.conv1n.beta.dtype == numpy.float32
+        assert link.poolpn.beta.dtype == numpy.float32
 
 
 testing.run_module(__name__, __file__)
