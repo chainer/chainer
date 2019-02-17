@@ -97,8 +97,13 @@ class MultiprocessIterator(iterator.Iterator):
     class TimeoutWarning(RuntimeWarning):
         pass
 
-    _interruption_testing = False  # for testing
+    # For testing.
+    _interruption_testing = False
+    # This attribute shall not assigned to `False` in `__init__` because
+    # it have to be overridden by `atexit` hook.
     _finalized = False
+    # These are initialized here so that `__del__` can always access them.
+    # Note that `__del__` may run before `__init__` completed.
     _prefetch_loop = None
     _comm = None
 
