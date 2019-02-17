@@ -160,25 +160,60 @@ def get_cpu_array_types():
 
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
-    arrays = [a for a in arrays if a is not None]
-
-    if len(arrays) == 0:
+    if not arrays:
         return True
 
-    # If there's at least one chainerx.ndarray, all other arrays
-    # will be converted to memory-shared chainerx.ndarrays.
-    # TODO(niboshi): intel64.mdarray is not supported yet.
-    # TODO(niboshi): Delegate array compatibility check to chainerx.
-    if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return not any([
-            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+    is_chainerx_available = chainerx.is_available()
+    has_chainerx = False
+    has_ideep = False
 
-    if isinstance(arrays[0], backends.cuda.ndarray):
-        types = backends.cuda.ndarray
-    else:
-        types = get_cpu_array_types()
-    return all([isinstance(a, types) for a in arrays])
+    # A tuple of compatible ndarray types.
+    # Initialized only if non-chainerx arrays are found.
+    types = None
+    # True if cpu and gpu arrays are mixed. However, its value is unspecified
+    # if at least one ChainerX is found.
+    has_mixed_cpu_gpu = False
+
+    for a in arrays:
+        if a is None:
+            continue
+        if is_chainerx_available:
+            # If there's at least one chainerx.ndarray, all other arrays
+            # will be converted to memory-shared chainerx.ndarrays.
+            # TODO(niboshi): intel64.mdarray is not supported yet.
+            # TODO(niboshi): Delegate array compatibility check to chainerx.
+            has_chainerx = has_chainerx or isinstance(a, chainerx.ndarray)
+            has_ideep = has_ideep or isinstance(a, backends.intel64.mdarray)
+            if has_chainerx and has_ideep:
+                # chainerx arrays and intel64.mdarray are not compatible.
+                return False
+
+        if not has_chainerx:
+            # `types` is only initialized when needed.
+            # (i.e. at the first occurrence of non-None, non-ChainerX inputs)
+            if types is None:
+                if isinstance(a, backends.cuda.ndarray):
+                    types = backends.cuda.ndarray
+                else:
+                    cpu_types = get_cpu_array_types()
+                    if isinstance(a, cpu_types):
+                        types = cpu_types
+                    else:
+                        # Not an array.
+                        # TODO(niboshi): Perhaps better to make it an error but
+                        # in order to do that we won't be able to early-return
+                        # False from within the loop.
+                        return False
+
+            elif not isinstance(a, types):
+                # cpu/gpu arrays are mixed.
+                has_mixed_cpu_gpu = True
+
+    if not has_chainerx and has_mixed_cpu_gpu:
+        # cpu/gpu arrays are mixed and no chainerx array was found.
+        return False
+
+    return True
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
