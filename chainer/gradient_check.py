@@ -933,4 +933,9 @@ def _apply_grad_setter_func(y, y_grad):
     assert all(isinstance(y_, chainer.Variable) for y_ in y)
     assert all(gy is None or isinstance(gy, chainer.Variable) for gy in y_grad)
     y, = _GradientSetter(y_grad).apply(y)
+
+    # Set a dummy gradient to the output variable. This will be discarded by
+    # _GradientSetter.
+    y.grad = y.device.xp.ones_like(y.array)
+
     return y

@@ -493,4 +493,23 @@ class TestFunctionOutputNone(unittest.TestCase):
         assert isinstance(x1.grad, backend_config.xp.ndarray)
 
 
+class TestBackwardWithoutGrad(unittest.TestCase):
+
+    def test_backward_without_grad(self):
+        class Func(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                return x * 2,
+
+            def backward(self, input_indexes, grad_outputs):
+                assert False  # never called
+
+        a = numpy.array([1, 2], numpy.float32)
+        x = chainer.Variable(a, requires_grad=True)
+        y, = Func().apply((x,))
+        y.backward()
+        assert x.grad is None
+        assert y.grad is None
+
+
 testing.run_module(__name__, __file__)

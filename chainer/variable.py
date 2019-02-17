@@ -1561,6 +1561,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         out_grad = tuple([grads.pop(y) for y in outputs])
         if not target_input_indexes:
             continue
+        if all([gy is None for gy in out_grad]):
+            continue
 
         in_data = tuple([x.data for x in inputs])
         out_grad_array = tuple(
