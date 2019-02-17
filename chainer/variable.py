@@ -1677,7 +1677,7 @@ class Parameter(Variable):
         elif numpy.isscalar(initializer):
             initializer = constant.Constant(initializer)
         if shape is None:
-            if chainer.is_arrays_compatible([initializer]):
+            if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
                 super(Parameter, self).__init__(initializer, name=name)
             else:
@@ -1687,7 +1687,7 @@ class Parameter(Variable):
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
-            if chainer.is_arrays_compatible([initializer]):
+            if isinstance(initializer, chainer.get_array_types()):
                 xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
