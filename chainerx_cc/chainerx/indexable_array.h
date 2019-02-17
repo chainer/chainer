@@ -53,7 +53,7 @@ public:
 
 #if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // CHAINERX_DEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -166,7 +166,7 @@ public:
 
 #if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // CHAINERX_DEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -225,7 +225,7 @@ public:
 
 #if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // CHAINERX_DEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
