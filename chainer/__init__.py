@@ -215,7 +215,7 @@ def is_debug():
     Returns:
         bool:  ``True`` if the debug mode is enabled.
     """
-    return bool(config.debug)
+    return bool(config.__getattr__('debug'))
 
 
 def set_debug(debug):
