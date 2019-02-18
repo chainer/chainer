@@ -202,7 +202,7 @@ def main():
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
     # TODO(sonots): Temporarily disabled for chainerx. Fix it.
-    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
+    if not (chainerx.is_available() and device.xp is chainerx):
         trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
