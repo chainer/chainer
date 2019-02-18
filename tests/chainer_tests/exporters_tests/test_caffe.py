@@ -35,9 +35,9 @@ class TestCaffeExport(unittest.TestCase):
             def __init__(self):
                 super(Model, self).__init__()
                 with self.init_scope():
-                    self.l1 = L.Convolution2D(None, 1, 1, 1, 0)
+                    self.l1 = L.Convolution2D(None, 1, 1, 1, 0, groups=1)
                     self.b2 = L.BatchNormalization(1, eps=1e-2)
-                    self.l3 = L.Deconvolution2D(None, 1, 1, 1, 0)
+                    self.l3 = L.Deconvolution2D(None, 1, 1, 1, 0, groups=1)
                     self.l4 = L.Linear(None, 1)
 
             def forward(self, x):
