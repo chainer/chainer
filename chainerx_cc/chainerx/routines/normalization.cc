@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"

@@ -1,6 +1,7 @@
 #include "chainerx/cuda/cuda_backend.h"
 
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <cuda_runtime.h>
