@@ -2968,4 +2968,84 @@ class TestLazyGradSum(unittest.TestCase):
             self.check_backward()
 
 
+@testing.parameterize(*(
+    testing.product({
+        'from_connected': [True, False],
+        'calculate_by_variable': [True, False],
+        'backward_by_variable': [True, False],
+    })))
+@attr.chainerx
+class TestVariableChainerxArrayViewBackprop(unittest.TestCase):
+
+    def test_chainerx_array_view(self):
+        from_connected = self.from_connected
+        calculate_by_variable = self.calculate_by_variable
+        backward_by_variable = self.backward_by_variable
+
+        # Create an original array, either connected or disconnected.
+        a = chainerx.array([1, 2], np.float32)
+        if from_connected:
+            a.require_grad()
+
+        # Wrap with a variable
+        x = chainer.Variable(a, requires_grad=True)
+        x_arr = x.chainerx_array  # Unwrap a view
+
+        assert x_arr.is_backprop_required()
+        assert not x_arr.is_grad_required()
+        assert a is not x_arr  # x_arr is a view of a
+
+        if calculate_by_variable:
+            # Calculate by variable
+            y = F.square(x_arr)
+            # Unwrap the output array
+            y_arr = y.chainerx_array
+            y_arr.grad = chainerx.ones_like(y.array)
+        else:
+            # Calculate by array
+            y_arr = chainerx.square(x_arr)
+            y_arr.grad = chainerx.ones_like(y_arr)
+            # Wrap y with variable
+            y = chainer.Variable(y_arr, requires_grad=True)
+
+        # Backward
+        if backward_by_variable:
+            y.backward()
+        else:
+            y_arr.backward()
+
+        # x.grad is set
+        assert x.grad is not None
+        chainerx.testing.assert_array_equal_ex(
+            chainerx.array([2, 4], np.float32), x.grad)
+
+
+class TestVariableChainerxArrayView(unittest.TestCase):
+
+    def test_unwrap_disconnected(self):
+        a = chainerx.array([1, 2], np.float32)
+
+        # Wrap with a variable
+        x = chainer.Variable(a, requires_grad=False)
+        x_arr = x.chainerx_array  # Unwrap a view
+
+        assert not x_arr.is_backprop_required()
+
+        x_arr.require_grad()
+        assert x_arr.is_backprop_required()
+
+        x_arr2 = x.chainerx_array  # Unwrap another view
+        # require_grad does not affect distinct views.
+        assert not x_arr2.is_backprop_required()
+
+        # Nor does it affect the original array.
+        assert not a.is_backprop_required()
+
+    def test_unwrap_non_chainerx(self):
+        a = np.array([1, 2], np.float32)
+        x = chainer.Variable(a, requires_grad=True)
+        with pytest.raises(ValueError):
+            x.chainerx_array
+
+
 testing.run_module(__name__, __file__)
