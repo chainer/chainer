@@ -98,6 +98,12 @@ def main():
         'resnext50': resnext50.ResNeXt50,
     }
 
+    dtypes = {
+        'float16': np.float16,
+        'float32': np.float32,
+        'float64': np.float64,
+    }
+
     parser = argparse.ArgumentParser(
         description='Learning convnet from ILSVRC2012 dataset')
     parser.add_argument('train', help='Path to training image-label list file')
@@ -106,6 +112,8 @@ def main():
                         help='Convnet architecture')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
+    parser.add_argument('--dtype', choices=dtypes, help='Specify the dtype '
+                        'used. If not supplied, the default dtype is used')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
     parser.add_argument('--device', '-d', type=str, default='-1',
@@ -138,7 +146,12 @@ def main():
 
     device = parse_device(args)
 
+    # Set the dtype if supplied.
+    if args.dtype is not None:
+        chainer.config.dtype = args.dtype
+
     print('Device: {}'.format(device))
+    print('Dtype: {}'.format(chainer.config.dtype))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
