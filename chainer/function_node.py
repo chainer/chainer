@@ -335,15 +335,7 @@ Use apply() method instead.\
                     ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
-            sig = inspect.signature(hook.forward_postprocess)
-            if len(sig.parameters) == 2:
-                hook.forward_postprocess(in_data, outputs)
-            elif len(sig.parameters) == 1:
-                hook.forward_postprocess(in_data)
-            else:
-                msg = ('{}.forward_postprocess has unsupported '
-                       'number of arguments.'.format(type(hook).__name__))
-                raise RuntimeError(msg)
+            hook.forward_postprocess(self, in_data, outputs)
 
         # NaN check of output values
         if is_debug:
@@ -895,6 +887,7 @@ Use apply() method instead.\
         """
         if not isinstance(hook, function_hook.FunctionHook):
             raise TypeError('Hook must be of type FunctionHook')
+        hook._wrap_legacy_hook()
         if name is None:
             name = hook.name
         hooks = self.local_function_hooks

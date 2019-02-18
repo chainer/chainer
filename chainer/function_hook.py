@@ -1,3 +1,5 @@
+import inspect
+
 import chainer
 
 
@@ -114,9 +116,24 @@ class FunctionHook(object):
         if self.name in function_hooks:
             raise KeyError('hook %s already exists' % self.name)
 
+        self._wrap_legacy_hook()
         function_hooks[self.name] = self
         self.added(None)
         return self
+
+    def _wrap_legacy_hook(self):
+        # If the forward_postprocess does not seem to receive out_data,
+        # replace it by a wrapper function that transfers only in_data.
+        # This makes older hooks compatible with the current hook system.
+        sig = inspect.signature(type(self).forward_postprocess)
+        if len(sig.parameters) == 3:
+            self.forward_postprocess = \
+                lambda _self, func, in_data, out_data=None: \
+                type(self).forward_postprocess(_self, func, in_data)
+        elif len(sig.parameters) != 4:
+            msg = ('{}.forward_postprocess has unsupported '
+                   'number of arguments.'.format(type(self).__name__))
+            raise RuntimeError(msg)
 
     def __exit__(self, *_):
         chainer.get_function_hooks()[self.name].deleted(None)
@@ -154,7 +171,7 @@ class FunctionHook(object):
         """
         pass
 
-    def forward_postprocess(self, function, in_data):
+    def forward_postprocess(self, function, in_data, out_data=None):
         """Callback function invoked after forward propagation.
 
         Args:
@@ -162,6 +179,9 @@ class FunctionHook(object):
                 the function hook is registered.
             in_data(tuple of :ref:`ndarray`):
                 Input data of forward propagation.
+            out_data(tuple of :ref:`ndarray`):
+                Output data of forward propagation. This can be left ``None``
+                for backward compatibility.
         """
         pass
 
