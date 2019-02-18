@@ -1577,6 +1577,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     del y
 
     is_debug = chainer.is_debug()
+    base_hooks = chainer.get_function_hooks().values()
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
@@ -1588,18 +1589,19 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         if not target_input_indexes:
             continue
 
-        in_data = tuple([x.data for x in inputs])
-        out_grad_array = tuple(
-            [None if g is None else g.array for g in out_grad])
-        hooks = chainer.get_function_hooks()
+        in_data = [x.data for x in inputs]
+        out_grad_array = [None if g is None else g.array for g in out_grad]
         if func._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(func.local_function_hooks)
-        hooks = hooks.values()  # avoid six for performance
+            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
+            local_hooks.update(func.local_function_hooks)
+            hooks = local_hooks.values()  # avoid six for performance
+        else:
+            hooks = base_hooks
 
         with cuda.get_device_from_array(*(in_data + out_grad_array)):
             for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_array)
+                hook.backward_preprocess(
+                    func, tuple(in_data), tuple(out_grad_array))
 
             # Collect the current input gradients.
             target_inputs = [inputs[i] for i in target_input_indexes]
@@ -1617,7 +1619,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 func, target_input_indexes, out_grad, in_grad, is_debug)
 
             for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_array)
+                hook.backward_postprocess(
+                    func, tuple(in_data), tuple(out_grad_array))
 
         for y, gy in six.moves.zip(outputs, out_grad):
             if y is not None and y not in root_nodes:
