@@ -98,10 +98,14 @@ class TestROIMaxAlign2D(unittest.TestCase):
 
     def check_backward(self, x_data, roi_data, roi_index_data, y_grad):
         def f(x, rois, roi_indices):
-            return functions.roi_max_align_2d(
+            y = functions.roi_max_align_2d(
                 x, rois, roi_indices, outsize=self.outsize,
                 spatial_scale=self.spatial_scale,
                 sampling_ratio=self.sampling_ratio)
+            xp = cuda.get_array_module(y)
+            y = functions.where(
+                xp.isinf(y.array), xp.zeros(y.shape, dtype=y.dtype), y)
+            return y
 
         gradient_check.check_backward(
             f, (x_data, roi_data, roi_index_data), y_grad,
