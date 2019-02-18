@@ -1,4 +1,3 @@
-import contextlib
 import os
 import shutil
 import traceback
@@ -107,13 +106,22 @@ def backprop_step(
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes
         ])
-        with _reraise_forward_stack(func):
+
+        # Call backward_accumulate()
+        try:
             gxs = func.backward_accumulate(
                 target_input_indexes, grad_outputs, grad_inputs_tuple)
+        except Exception as e:
+            _reraise_with_stack(func, e)
+
     else:  # otherwise, backward should be overridden
-        with _reraise_forward_stack(func):
+
+        # Call backward()
+        try:
             gxs = func.backward(
                 target_input_indexes, grad_outputs)
+        except Exception as e:
+            _reraise_with_stack(func, e)
 
         if is_debug:
             for gx in gxs:
@@ -194,25 +202,19 @@ def _get_columns():
     return get_terminal_size()[0]
 
 
-@contextlib.contextmanager
-def _reraise_forward_stack(func):
-    if func.stack is None:
-        yield
-    else:
-        try:
-            yield
-        except Exception as e:
-            # Reraise any type of exceptions including the following:
-            # - Chainer raises RuntimeError for NaN values; and
-            # - NumPy raises FloatingPointError for invalid values.
+def _reraise_with_stack(func, e):
+    if func.stack is not None:
+        # Reraise any type of exceptions including the following:
+        # - Chainer raises RuntimeError for NaN values; and
+        # - NumPy raises FloatingPointError for invalid values.
 
-            # TODO(kataoka): unify variable._check_grad_type and below
-            additional_message = \
-                '\n{}\nStacktrace of the function is below:\n{}'.format(
-                    '-' * _get_columns(),
-                    ''.join(traceback.format_list(func.stack[:-1])))
-            if e.args:
-                e.args = (e.args[0] + additional_message,) + e.args[1:]
-            else:
-                e.args = (additional_message,)
-            raise
+        # TODO(kataoka): unify variable._check_grad_type and below
+        additional_message = \
+            '\n{}\nStacktrace of the function is below:\n{}'.format(
+                '-' * _get_columns(),
+                ''.join(traceback.format_list(func.stack[:-1])))
+        if e.args:
+            e.args = (e.args[0] + additional_message,) + e.args[1:]
+        else:
+            e.args = (additional_message,)
+    raise
