@@ -193,12 +193,12 @@ class TestTimerPrintReport(unittest.TestCase):
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
 
-    def test_print_report_align(self):
+    def test_print_report_align_units(self):
         x = self.x
         self.f.apply((chainer.Variable(x),))
         self.f.apply((chainer.Variable(x),))
         io = six.StringIO()
-        self.h.print_report(align=True, file=io)
+        self.h.print_report(align_units=True, file=io)
         expect = r'''\AFunctionName  ElapsedTime  Occurrence
  +Exp +[0-9.\-e]+.s +[0-9]+$
 '''
