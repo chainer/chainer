@@ -142,22 +142,22 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
             denomi *= 1024.0
         return denomi, 'Z'
 
-    def print_report(self, align=False, file=sys.stdout):
+    def print_report(self, align_units=False, file=sys.stdout):
         """Prints a summary report of memory profiling in functions.
 
         Args:
-            align (bool): If `True`, units of times are aligned to the largest.
+            align_units (bool): If `True`, units of times are aligned to the largest.
         """
         entries = [[
             'FunctionName', 'UsedBytes', 'AcquiredBytes', 'Occurrence']]
-        if align:
+        if align_units:
             max_used = max(record['used_bytes'] for record in self.summary().values())
             max_acquired = max(record['acquired_bytes'] for record in self.summary().values())
             denomi_used, unit_used = self._align(max_used)
             denomi_acquired, unit_acquired = self._align(max_acquired)
         for function_name, record in self.summary().items():
             used_bytes, acquired_bytes = record['used_bytes'], record['acquired_bytes']
-            if align:
+            if align_units:
                 used_bytes = '%3.2f%sB' % (used_bytes / denomi_used, unit_used)
                 acquired_bytes = '%3.2f%sB' % (acquired_bytes / denomi_acquired, unit_acquired)
             else:
