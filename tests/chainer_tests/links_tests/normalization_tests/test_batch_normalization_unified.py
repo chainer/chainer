@@ -102,7 +102,6 @@ class BatchNormalizationTest(LinkTestCase):
         initial_beta = numpy.random.uniform(-1, 1, axis).astype(dtype)
         return initial_gamma, initial_beta
 
-    @property
     def generate_initializers(self):
         # Various initializers should be tested.
         initial_gamma = [I.Constant(2), 1, (None, 1)]
