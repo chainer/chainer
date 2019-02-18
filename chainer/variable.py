@@ -542,8 +542,8 @@ class Variable(object):
 
         # Create a Variable without invoking __init__
         var = Variable.__new__(Variable)
-        var._init_impl(data, name, grad, requires_grad, is_chainerx_array, node)
-
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array,
+                       node)
         return var
 
     def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array,
