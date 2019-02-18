@@ -1,6 +1,10 @@
 #include "chainerx/backward_builder.h"
 
+#include <cstdint>
+#include <utility>
+
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/backward.h"

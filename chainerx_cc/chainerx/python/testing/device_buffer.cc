@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "chainerx/device.h"
 #include "chainerx/error.h"
