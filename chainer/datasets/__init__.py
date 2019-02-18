@@ -10,6 +10,8 @@ from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledZippedImageDataset  # NOQA
 from chainer.datasets.image_dataset import MultiZippedImageDataset  # NOQA
 from chainer.datasets.image_dataset import ZippedImageDataset  # NOQA
+from chainer.datasets.kmnist import get_kmnist  # NOQA
+from chainer.datasets.kmnist import get_kmnist_labels  # NOQA
 from chainer.datasets.mnist import get_mnist  # NOQA
 from chainer.datasets.pickle_dataset import open_pickle_dataset  # NOQA
 from chainer.datasets.pickle_dataset import open_pickle_dataset_writer  # NOQA

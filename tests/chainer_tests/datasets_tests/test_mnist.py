@@ -9,12 +9,20 @@ from chainer.dataset import download
 from chainer.datasets import get_fashion_mnist
 from chainer.datasets import get_fashion_mnist_labels
 from chainer.datasets import get_mnist
+from chainer.datasets import get_kmnist
+from chainer.datasets import get_kmnist_labels
 from chainer.datasets import tuple_dataset
 from chainer import testing
 from chainer.testing import attr
 
 _fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
                          'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+_kmnist_labels = [('o', u'\u304A'), ('ki', u'\u304D'),
+                  ('su', u'\u3059'), ('tsu', u'\u3064'),
+                  ('na', u'\u306A'), ('ha', u'\u306F'),
+                  ('ma', u'\u307E'), ('ya', u'\u3084'),
+                  ('re', u'\u308C'), ('wo', u'\u3092')]
 
 
 @testing.parameterize(*testing.product({
@@ -28,6 +36,8 @@ class TestMnist(unittest.TestCase):
     def setUp(self):
         self.mnist_root = download.get_dataset_directory(
             os.path.join('pfnet', 'chainer', 'mnist'))
+        self.kmnist_root = download.get_dataset_directory(
+            os.path.join('pfnet', 'chainer', 'kmnist'))
         self.fashion_mnist_root = download.get_dataset_directory(
             os.path.join('pfnet', 'chainer', 'fashion-mnist'))
 
@@ -43,6 +53,14 @@ class TestMnist(unittest.TestCase):
     def test_get_mnist(self):
         self.check_retrieval_once('train.npz', 'test.npz',
                                   self.mnist_root, get_mnist)
+
+    def test_get_kmnist_labels(self):
+        self.assertEqual(get_kmnist_labels(), _kmnist_labels)
+
+    @attr.slow
+    def test_get_kmnist(self):
+        self.check_retrieval_once('train.npz', 'test.npz',
+                                  self.kmnist_root, get_kmnist)
 
     def test_get_fashion_mnist_labels(self):
         self.assertEqual(get_fashion_mnist_labels(), _fashion_mnist_labels)
@@ -86,6 +104,13 @@ class TestMnist(unittest.TestCase):
                                    self.mnist_root,
                                    get_mnist,
                                    'chainer.datasets.mnist')
+
+    @attr.slow
+    def test_get_kmnist_cached(self):
+        self.check_retrieval_twice('train.npz', 'test.npz',
+                                   self.kmnist_root,
+                                   get_kmnist,
+                                   'chainer.datasets.kmnist')
 
     @attr.slow
     def test_get_fashion_mnist_cached(self):
