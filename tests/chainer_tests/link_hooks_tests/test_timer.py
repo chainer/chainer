@@ -70,9 +70,9 @@ class TestTimerHook(unittest.TestCase):
         assert re.search(r'Linear +[.0-9a-z]+ +4', report) is not None
         assert re.search(r'MyModel +[.0-9a-z]+ +2', report) is not None
 
-        # print_report, align
+        # print_report, align_units
         s = six.StringIO()
-        hook.print_report(align=True, file=s)
+        hook.print_report(align_units=True, file=s)
         report = s.getvalue()
         assert len(report.splitlines()) == 3
         assert re.search(r'Linear +[.0-9a-z]+ +4', report) is not None
