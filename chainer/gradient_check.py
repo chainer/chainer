@@ -144,14 +144,12 @@ def numerical_grad(
     if xp is cuda.cupy:
         numerical_grad_kernel_1 = cuda.reduce(
             'T y1, T y2, U gy, T eps', 'V gxi',
-            'isnan(y1 - y2) ? (T) 0.: (y1 - y2) * gy',
-            'a + b', 'gxi += a / (eps * 2)', '0',
+            '(y1 - y2) * gy', 'a + b', 'gxi += a / (eps * 2)', '0',
             'numerical_grad_kernel_1'
         )
         numerical_grad_kernel_3 = cuda.reduce(
             'T y1, T y2, T y3, T y4, U gy, T eps', 'V gxi',
-            'isnan(-y1 + 8 * y2 - 8 * y3 + y4) ?'
-            '(T) 0. : (-y1 + 8 * y2 - 8 * y3 + y4) * gy',
+            '(-y1 + 8 * y2 - 8 * y3 + y4) * gy',
             'a + b', 'gxi += a / (eps * 6)', '0',
             'numerical_grad_kernel_3'
         )
@@ -311,7 +309,7 @@ def numerical_grad(
                     numerical_grad_kernel_1(
                         y1, y0, xp.asarray(gy), eps, gx[i])
                 else:
-                    dot = numpy.nansum((y1 - y0) * gy)
+                    dot = ((y1 - y0) * gy).sum()
                     gx[i] = gx[i] + dot / (2 * eps)
             elif len(yss) == 5:  # 3rd order
                 y0 = yss[0][i_out]
@@ -323,7 +321,7 @@ def numerical_grad(
                         y3, y2, y1, y0, gy, eps, gx[i])
                 else:
                     num = -y3 + 8 * y2 - 8 * y1 + y0
-                    dot = numpy.nansum(num * gy)
+                    dot = (num * gy).sum()
                     gx[i] = gx[i] + dot / (6 * eps)
             else:
                 assert False
