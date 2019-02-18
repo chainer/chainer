@@ -4,26 +4,14 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
-from chainer.utils import type_check
 
-# Alt. 1: Using a single class to test both forward/backward and initializers.
+# Alt. 1: Single class to test all link features.
 #
-# Two steps:
-#
-# 1. Run forward, backward tests with standard parameterizations and injected
-# backend.
-#
-# 2. Run initializer tests for each initializer.
-#    - But those will be parameterized too. Can we avoid it?
+# - Runs forward and backward tests.
+# - Runs initializer tests for each initializer.
 
-
-# TODO(hvy): Test multiple backends.
 @testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
@@ -37,92 +25,100 @@ from chainer.utils import type_check
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ]
 )))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class BatchNormalizationTest(LinkTestCase):
 
     # Belows are "keys" that are used to extract information for
-    # forward_expect. Without where, we need to pass the link object to
-    # forwad_expect but we don't want to do that?
+    # forward_expect.
     #
     # The benefit of declaring them here is that they are
     # readable, and also allows the base class to do some
-    # "test_params_registerd", etc. to check that parameters and persistent
-    # varlues are actually registered correctly in the link.
+    # "test_params_registerd".
 
     # Passed to forward_expect as numpy.ndarrays.
     params = ['gamma', 'beta']
 
-    # Passed to forward_expect as numpy.ndarrays.
-    persistent_values = ['avg_mean', 'avg_var']
-
     # Passed to forward_expect as is.
     attributes = ['eps']
 
-
     def setUp(self):
-        # Sets the follwing test attributes.
-        # self.finetune
-        # self.expander
-        # self.shape
-        # self.param_shape
-
-        self.finetune = False
-
-        if not hasattr(self, 'axis'):
-            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
-            shape = (5, 3) + (2,) * self.ndim
-            param_shape = shape[1]
-            self.expander = (None, Ellipsis) + (None,) * self.ndim
-        else:
+        if hasattr(self, 'axis') and hasattr(self, 'input_shape'):
             aggr_axes = self.axis
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
             shape = self.input_shape
             param_shape = tuple(
-                s
-                for i, s in enumerate(shape)
-                if i not in aggr_axes
-            )
-            self.expander = tuple(
+                s for i, s in enumerate(shape) if i not in aggr_axes)
+            expander = tuple(
                 None if i in aggr_axes else slice(None)
-                for i in range(len(shape))
-            )
+                for i in range(len(shape)))
+        elif hasattr(self, 'ndim'):
+            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+            shape = (5, 3) + (2,) * self.ndim
+            param_shape = shape[1]
+            expander = (None, Ellipsis) + (None,) * self.ndim
+        else:
+            assert False
+
+        if self.test:
+            mean = numpy.random.uniform(-1, 1, aggr_axes).astype(self.dtype)
+            var = numpy.random.uniform(0.5, 1, aggr_axes).astype(self.dtype)
+        else:
+            mean = None
+            var = None
+
+        self.mean = mean
+        self.var = var
         self.shape = shape
         self.param_shape = shape
+        self.expander = expander
+        self.finetune = False
 
-    def generate_initializers(self):
+    def generate_forward_backward_initializers(self):
         # Forward and backward tests should use random ndarray-initialized
         # parameters.
-        initial_gamma = numppy.random.uniform(
-            -1, 1, self.axis).astype(self.dtype),
-        initial_beta = numpy.random.uniform(
-            -1, 1, self.axis).astype(self.dtype)
-        # return {'initial_gamma': initial_gamma, 'initial_beta': initial_beta}
+        axis = self.axis
+        dtype = self.dtype
+
+        initial_gamma = numpy.random.uniform(-1, 1, axis).astype(dtype)
+        initial_beta = numpy.random.uniform(-1, 1, axis).astype(dtype)
         return initial_gamma, initial_beta
 
     @property
-    def initializers(self):
-        # Various initializers are supported by BN and these should be tested.
-        initial_gamma = [I.Constant(2), 1, None]
-        initial_beta = [I.Constant(2), 1, None]
-        # return {'initial_gamma': initial_gamma, 'initial_beta': initial_beta}
+    def generate_initializers(self):
+        # Various initializers should be tested.
+        initial_gamma = [I.Constant(2), 1, (None, 1)]
+        initial_beta = [I.Constant(2), 1, (None, 0)]
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
         initial_gamma, initial_beta = initializers
 
-        initial_avg_mean_var = {}
-        if self.test:
-            initial_avg_mean_var['initial_avg_mean'] = numpy.random.uniform(
-                -1, 1, self.param_shape).astype(self.dtype)
-            initial_avg_mean_var['initial_avg_var'] = numpy.random.uniform(
-                0.5, 1, self.param_shape).astype(self.dtype)
-
         link = links.BatchNormalization(
-            axis=axis,
+            size=self._param_shape,
+            axis=self.axis,
             initial_gamma=initial_gamma,
             initial_beta=initial_beta,
-            **initial_avg_mean_var)
-
+            initial_avg_mean=None if self.mean is None self.mean.copy(),
+            initial_avg_var=None if self.var is None else self.var.copy())
         return link
 
     def generate_inputs(self):
@@ -136,23 +132,20 @@ class BatchNormalizationTest(LinkTestCase):
         y = link(x, finetune=self.finetune)
         return y
 
-    def forward_expected(self, inputs, params, persistent_values, attributes):
-        assert isinstance(inputs[0], numpy.ndarray)
-        assert all(isinstance(p, numpy.ndarray) p for p in params)
-        assert all(isinstance(p, numpy.ndarray) p for p in persistent_values)
+    def forward_expected(self, inputs, params, attrs):
+        assert all(isinstance(p, numpy.ndarray) p for p in inputs + params)
 
         x, = inputs
         gamma, beta = params
-        mean, var = persistent_values
-        eps, = attributes
-
-        mean = avg_mean[self.expander]
-        var = avg_var[self.expander]
+        eps, = attrs
 
         if self.test:
+            mean = self.mean
+            var = self.var
             std = numpy.sqrt(var)
         else:
+            mean = x.mean(axis=self.axis)
+            var = x.var(axis=self.axis)
             std = numpy.sqrt(var + eps)
         y = gamma * (x - mean) / std + beta
         return y
-
