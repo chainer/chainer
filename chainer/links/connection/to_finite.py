@@ -11,8 +11,20 @@ class ToFinite(link.Link):
     parameters.
 
     Args:
-        axis (int): The first axis of ``x`` along which parameters is applied.
-        ndim (int): Number of axis of ``x`` along which parameters is applied.
+        axis (int): The first axis of input variable along which parameters is
+            applied.
+        ndim (int): Number of axis of input variable along which parameters is
+            applied.
+
+    .. seealso:: See :func:`~chainer.functions.to_finite` for details.
+
+    Attributes:
+        nan_x (~chainer.Parameter): parameter to replace NaN values in input
+            variable
+        posinf_x (~chainer.Parameter): parameter to replace positive infinite
+            values in input variable
+        neginf_x (~chainer.Parameter): parameter to replace negative infinite
+            values in input variable
     """
 
     def __init__(self, axis=1, ndim=1):
@@ -31,6 +43,11 @@ class ToFinite(link.Link):
         self.neginf_x.initialize(in_size)
 
     def forward(self, x):
+        """Force input to finite values.
+
+        Args:
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variables
+        """
         if self.nan_x.array is None:
             in_size = x.shape[self.axis: self.axis+self.ndim]
             self._initialize_params(in_size)
