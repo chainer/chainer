@@ -8,9 +8,9 @@ import numpy
 from chainer.dataset import download
 from chainer.datasets import get_fashion_mnist
 from chainer.datasets import get_fashion_mnist_labels
-from chainer.datasets import get_mnist
 from chainer.datasets import get_kmnist
 from chainer.datasets import get_kmnist_labels
+from chainer.datasets import get_mnist
 from chainer.datasets import tuple_dataset
 from chainer import testing
 from chainer.testing import attr

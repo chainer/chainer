@@ -24,7 +24,7 @@ def get_kmnist_labels():
         for the character.
 
     """
-    return list(_kmnist_labels)
+    return _kmnist_labels
 
 
 def get_kmnist(withlabel=True, ndim=1, scale=1., dtype=None,
