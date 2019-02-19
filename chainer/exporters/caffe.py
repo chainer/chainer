@@ -185,6 +185,7 @@ class _RetrieveAsCaffeModel(object):
                 'stride_h': func.sy,
                 'kernel_w': kw,
                 'kernel_h': kh,
+                'group': func.groups
             }
 
             params['bottom'] = params['bottom'][:1]
