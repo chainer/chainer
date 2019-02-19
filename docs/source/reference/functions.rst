@@ -116,6 +116,7 @@ Array manipulations
    chainer.functions.stack
    chainer.functions.swapaxes
    chainer.functions.tile
+   chainer.functions.to_finite
    chainer.functions.transpose
    chainer.functions.transpose_sequence
    chainer.functions.vstack

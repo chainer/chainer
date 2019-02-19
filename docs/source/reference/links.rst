@@ -61,6 +61,7 @@ Learnable connections
    chainer.links.StatefulPeepholeLSTM
    chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
+   chainer.links.ToFinite
 
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
