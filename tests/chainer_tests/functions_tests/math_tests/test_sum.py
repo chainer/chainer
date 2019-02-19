@@ -17,58 +17,47 @@ import chainerx
     'keepdims': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestSum(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestSum(testing.FunctionTestCase):
+    
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
+        return x,
 
-    def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
-        g_shape = self.x.sum(axis=self.axis, keepdims=self.keepdims).shape
-        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
+    def forward(self, inputs, device):
+        x, = inputs
+        print(x)
+        print("Forward:")
+        print(functions.sum(x, axis=self.axis, keepdims=self.keepdims))
+        return functions.sum(x, axis=self.axis, keepdims=self.keepdims),
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.sum(x, axis=self.axis, keepdims=self.keepdims)
-        self.assertEqual(y.data.dtype, self.dtype)
-        y_expect = self.x.sum(axis=self.axis, keepdims=self.keepdims)
-
-        if self.dtype == numpy.float16:
-            options = {'atol': 1e-3, 'rtol': 1e-3}
-        else:
-            options = {}
-
-        testing.assert_allclose(y_expect, y.data, **options)
-
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.chainerx
-    @condition.retry(3)
-    def test_forward_chainerx(self):
-        self.check_forward(chainerx.array(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            lambda x: functions.sum(x, self.axis, self.keepdims),
-            x_data, y_grad, atol=1e-4, dtype=numpy.float64)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_axis_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.chainerx
-    @condition.retry(3)
-    def test_backward_axis_chainerx(self):
-        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+    def forward_expected(self, inputs):
+        x, = inputs
+        print(x)
+        print("Expected:")
+        print(x.sum(axis=self.axis, keepdims=self.keepdims))
+        expected = x.sum(axis=self.axis, keepdims=self.keepdims)
+        expected = numpy.asarray(expected)
+        return expected,    
 
 
 @testing.parameterize(*testing.product({
