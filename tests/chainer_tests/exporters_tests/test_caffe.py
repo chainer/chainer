@@ -21,6 +21,7 @@ from chainer import testing
 #     {'layer': 'ReLU'},
 #     {'layer': 'LeakyReLU'},
 #     {'layer': 'Softmax'},
+#     {'layer': 'Sigmoid'},
 #     {'layer': 'Add'},
 # ])
 class TestCaffeExport(unittest.TestCase):
@@ -90,6 +91,13 @@ class TestCaffeExport(unittest.TestCase):
         class Link(chainer.Chain):
             def forward(self, x):
                 return F.softmax(x)
+
+        assert_export_import_match(Link(), self.x)
+
+    def test_Sigmoid(self):
+        class Link(chainer.Chain):
+            def forward(self, x):
+                return F.sigmoid(x)
 
         assert_export_import_match(Link(), self.x)
 

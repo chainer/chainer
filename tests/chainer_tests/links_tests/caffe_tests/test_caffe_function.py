@@ -1148,6 +1148,30 @@ class TestSliceSlicePoint(TestCaffeFunctionBaseMock):
         )
 
 
+class TestSigmoid(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.sigmoid'
+    in_shapes = [(2, 3)]
+    out_shapes = [(2, 3)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Sigmoid',
+                'bottom': ['x'],
+                'top': ['y'],
+            }
+        ]
+    }
+
+    def test_sigmoid(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0])
+
+
 class TestSoftmax(TestCaffeFunctionBaseMock):
 
     func_name = 'chainer.functions.softmax'

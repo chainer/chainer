@@ -310,6 +310,9 @@ class _RetrieveAsCaffeModel(object):
         elif func.label == 'Softmax':
             params['type'] = 'Softmax'
 
+        elif func.label == 'Sigmoid':
+            params['type'] = 'Sigmoid'
+
         elif func.label == 'Reshape':
             input_ = func.inputs[0]
             parent = input_.creator
