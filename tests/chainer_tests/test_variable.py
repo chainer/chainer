@@ -3020,6 +3020,7 @@ class TestVariableChainerxArrayViewBackprop(unittest.TestCase):
             chainerx.array([2, 4], np.float32), x.grad)
 
 
+@attr.chainerx
 class TestVariableChainerxArrayView(unittest.TestCase):
 
     def test_unwrap_disconnected(self):
