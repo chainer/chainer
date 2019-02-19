@@ -1137,7 +1137,6 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
-        old_device = self.device
         was_chainerx = self._has_chainerx_array
         is_chainerx = device.xp is chainerx
 
@@ -1171,6 +1170,7 @@ class Variable(object):
         self._device = device
         self._has_chainerx_array = is_chainerx
 
+        old_device = self.device
         if arr is None or old_device == device:
             return
 
