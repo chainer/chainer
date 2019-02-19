@@ -8,15 +8,15 @@ from chainer.datasets._mnist_helper import make_npz
 from chainer.datasets._mnist_helper import preprocess_mnist
 
 
-_kmnist_labels = [('o', u'\u304A'), ('ki', u'\u304D'),
-                  ('su', u'\u3059'), ('tsu', u'\u3064'),
-                  ('na', u'\u306A'), ('ha', u'\u306F'),
-                  ('ma', u'\u307E'), ('ya', u'\u3084'),
-                  ('re', u'\u308C'), ('wo', u'\u3092')]
+_kuzushiji_mnist_labels = [('o', u'\u304A'), ('ki', u'\u304D'),
+                           ('su', u'\u3059'), ('tsu', u'\u3064'),
+                           ('na', u'\u306A'), ('ha', u'\u306F'),
+                           ('ma', u'\u307E'), ('ya', u'\u3084'),
+                           ('re', u'\u308C'), ('wo', u'\u3092')]
 
 
-def get_kmnist_labels():
-    """Provides a list of labels for the KMNIST dataset.
+def get_kuzushiji_mnist_labels():
+    """Provides a list of labels for the Kuzushiji-MNIST dataset.
 
     Returns:
         List of labels in the form of tuples. Each tuple contains the
@@ -24,12 +24,12 @@ def get_kmnist_labels():
         for the character.
 
     """
-    return _kmnist_labels
+    return _kuzushiji_mnist_labels
 
 
-def get_kmnist(withlabel=True, ndim=1, scale=1., dtype=None,
-               label_dtype=numpy.int32, rgb_format=False):
-    """Gets the KMNIST dataset.
+def get_kuzushiji_mnist(withlabel=True, ndim=1, scale=1., dtype=None,
+                        label_dtype=numpy.int32, rgb_format=False):
+    """Gets the Kuzushiji-MNIST dataset.
 
     `Kuzushiji-MNIST (KMNIST) <http://codh.rois.ac.jp/kmnist/>`_ is a set of
     hand-written Japanese characters represented by grey-scale 28x28 images.
@@ -68,31 +68,31 @@ def get_kmnist(withlabel=True, ndim=1, scale=1., dtype=None,
 
     """
     dtype = chainer.get_dtype(dtype)
-    train_raw = _retrieve_kmnist_training()
+    train_raw = _retrieve_kuzushiji_mnist_training()
     train = preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
                              label_dtype, rgb_format)
-    test_raw = _retrieve_kmnist_test()
+    test_raw = _retrieve_kuzushiji_mnist_test()
     test = preprocess_mnist(test_raw, withlabel, ndim, scale, dtype,
                             label_dtype, rgb_format)
     return train, test
 
 
-def _retrieve_kmnist_training():
+def _retrieve_kuzushiji_mnist_training():
     base_url = 'http://codh.rois.ac.jp/'
     urls = [base_url + 'kmnist/dataset/kmnist/train-images-idx3-ubyte.gz',
             base_url + 'kmnist/dataset/kmnist/train-labels-idx1-ubyte.gz']
-    return _retrieve_kmnist('train.npz', urls)
+    return _retrieve_kuzushiji_mnist('train.npz', urls)
 
 
-def _retrieve_kmnist_test():
+def _retrieve_kuzushiji_mnist_test():
     base_url = 'http://codh.rois.ac.jp/'
     urls = [base_url + 'kmnist/dataset/kmnist/t10k-images-idx3-ubyte.gz',
             base_url + 'kmnist/dataset/kmnist/t10k-labels-idx1-ubyte.gz']
-    return _retrieve_kmnist('test.npz', urls)
+    return _retrieve_kuzushiji_mnist('test.npz', urls)
 
 
-def _retrieve_kmnist(name, urls):
-    root = download.get_dataset_directory('pfnet/chainer/kmnist')
+def _retrieve_kuzushiji_mnist(name, urls):
+    root = download.get_dataset_directory('pfnet/chainer/kuzushiji_mnist')
     path = os.path.join(root, name)
     return download.cache_or_load_file(
         path, lambda path: make_npz(path, urls), numpy.load)
