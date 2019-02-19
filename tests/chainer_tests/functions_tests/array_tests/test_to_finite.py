@@ -110,6 +110,7 @@ class TestToFinite(unittest.TestCase):
         self.check_backward(self.x_data, self.nan_x_data, self.posinf_x_data,
                             self.neginf_x_data, self.g_data)
 
+    @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x_data),
                             cuda.to_gpu(self.nan_x_data),
