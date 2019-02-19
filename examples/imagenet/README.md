@@ -27,5 +27,5 @@ python train_imagenet.py <path to training list> <path to validation list>
 With the `--dtype` argument, you can run the example in FP16 mode:
 
 ```
-CHAINER_DTYPE=float16 python train_imagenet.py <path to training list> <path to validation list>
+python train_imagenet.py --dtype float16 <path to training list> <path to validation list>
 ```
