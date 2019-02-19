@@ -92,3 +92,6 @@ class TestToFinite(unittest.TestCase):
         x = cuda.to_gpu(self.x)
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x, gy)
+
+
+testing.run_module(__name__, __file__)
