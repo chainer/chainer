@@ -129,13 +129,7 @@ class ROIMaxAlign2D(function.Function):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
                 ix = 0
-                y, y_low, y_high = 
-                
-                
-                
-                
-                
-                (y, height)
+                y, y_low, y_high = _get_bounds(y, height)
                 if y is None or y_low is None or y_high is None:
                     continue
                 while ix < roi_bin_grid_w:
