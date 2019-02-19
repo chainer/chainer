@@ -45,16 +45,10 @@ class TestSum(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        print(x)
-        print("Forward:")
-        print(functions.sum(x, axis=self.axis, keepdims=self.keepdims))
         return functions.sum(x, axis=self.axis, keepdims=self.keepdims),
 
     def forward_expected(self, inputs):
         x, = inputs
-        print(x)
-        print("Expected:")
-        print(x.sum(axis=self.axis, keepdims=self.keepdims))
         expected = x.sum(axis=self.axis, keepdims=self.keepdims)
         expected = numpy.asarray(expected)
         return expected,    
