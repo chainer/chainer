@@ -66,8 +66,9 @@ class LocalConfig(object):
         delattr(self._local, name)
 
     def __getattr__(self, name):
-        if hasattr(self._local, name):
-            return getattr(self._local, name)
+        dic = self._local.__dict__
+        if name in dic:
+            return dic[name]
         return getattr(self._global, name)
 
     def __setattr__(self, name, value):
