@@ -16,7 +16,7 @@ _kmnist_labels = [('o', u'\u304A'), ('ki', u'\u304D'),
 
 
 def get_kmnist_labels():
-    """Provide a list of labels for the KMNIST dataset.
+    """Provides a list of labels for the KMNIST dataset.
 
     Returns:
         List of labels in the form of tuples. Each tuple contains the
