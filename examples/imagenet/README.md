@@ -24,7 +24,7 @@ python compute_mean.py <path to training list>
 python train_imagenet.py <path to training list> <path to validation list>
 ```
 
-With the `CHAINER_DTYPE` environment variable, you can run the example in FP16 mode:
+With the `--dtype` argument, you can run the example in FP16 mode:
 
 ```
 CHAINER_DTYPE=float16 python train_imagenet.py <path to training list> <path to validation list>
