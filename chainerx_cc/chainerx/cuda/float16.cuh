@@ -43,41 +43,60 @@ public:
     // double conversion is not implemented in cuda_fp16
     explicit __device__ operator double() const { return float{*this}; }
 
-    // TODO(imanishi): Use cuda_half()
+#if __CUDA_ARCH__ >= 530
+    // Use half precision intrinsic functions
+    __device__ Float16 operator-() const { return Float16{__hneg(cuda_half())}; }
+    __device__ Float16 operator+(const Float16& r) const { return Float16{::__hadd(cuda_half(), r.cuda_half())}; }
+    __device__ Float16 operator-(const Float16& r) const { return Float16{::__hsub(cuda_half(), r.cuda_half())}; }
+    __device__ Float16 operator*(const Float16& r) const { return Float16{::__hmul(cuda_half(), r.cuda_half())}; }
+    __device__ Float16 operator/(const Float16& r) const { return Float16{::__hdiv(cuda_half(), r.cuda_half())}; }
+    __device__ bool operator==(const Float16& r) const { return ::__heq(cuda_half(), r.cuda_half()); }
+    __device__ bool operator<(const Float16& r) const { return ::__hlt(cuda_half(), r.cuda_half()); }
+    __device__ bool operator>(const Float16& r) const { return ::__hgt(cuda_half(), r.cuda_half()); }
+    __device__ bool operator<=(const Float16& r) const { return ::__hle(cuda_half(), r.cuda_half()); }
+    __device__ bool operator>=(const Float16& r) const { return ::__hge(cuda_half(), r.cuda_half()); }
+    __device__ bool IsNan() const { return ::__hisnan(cuda_half()); }
+    __device__ bool IsInf() const { return ::__hisinf(cuda_half()); }
+    __device__ Float16 Exp() const { return Float16{::hexp(cuda_half())}; }
+    __device__ Float16 Log() const { return Float16{::hlog(cuda_half())}; }
+    __device__ Float16 Sqrt() const { return Float16{::hsqrt(cuda_half())}; }
+    __device__ Float16 Floor() const { return Float16{::hfloor(cuda_half())}; }
+#else
+    // Use fp32 operands
     __device__ Float16 operator-() const { return Float16{-static_cast<float>(*this)}; }
-    __device__ bool operator!() const { return !static_cast<float>(*this); }
     __device__ Float16 operator+(const Float16& r) const { return Float16{static_cast<float>(*this) + static_cast<float>(r)}; }
     __device__ Float16 operator-(const Float16& r) const { return Float16{static_cast<float>(*this) - static_cast<float>(r)}; }
     __device__ Float16 operator*(const Float16& r) const { return Float16{static_cast<float>(*this) * static_cast<float>(r)}; }
     __device__ Float16 operator/(const Float16& r) const { return Float16{static_cast<float>(*this) / static_cast<float>(r)}; }
-    __device__ Float16 operator+=(const Float16& r) { return *this = Float16{*this + r}; }
-    __device__ Float16 operator-=(const Float16& r) { return *this = Float16{*this - r}; }
-    __device__ Float16 operator*=(const Float16& r) { return *this = Float16{*this * r}; }
-    __device__ Float16 operator/=(const Float16& r) { return *this = Float16{*this / r}; }
     __device__ bool operator==(const Float16& r) const { return static_cast<float>(*this) == static_cast<float>(r); }
-    __device__ bool operator!=(const Float16& r) const { return !(*this == r); }
     __device__ bool operator<(const Float16& r) const { return static_cast<float>(*this) < static_cast<float>(r); }
     __device__ bool operator>(const Float16& r) const { return static_cast<float>(*this) > static_cast<float>(r); }
     __device__ bool operator<=(const Float16& r) const { return static_cast<float>(*this) <= static_cast<float>(r); }
     __device__ bool operator>=(const Float16& r) const { return static_cast<float>(*this) >= static_cast<float>(r); }
-
-    __host__ __device__ static constexpr Float16 FromData(uint16_t data) { return cuda::Float16{data, FromDataTag{}}; }
-
-    __host__ __device__ static constexpr Float16 Inf() { return FromData(0x7c00U); }
-    __host__ __device__ static constexpr Float16 NegInf() { return FromData(0xfc00U); }
-
     __device__ bool IsNan() const { return (data_ & 0x7c00U) == 0x7c00U && (data_ & 0x03ffU) != 0; }
     __device__ bool IsInf() const { return (data_ & 0x7c00U) == 0x7c00U && (data_ & 0x03ffU) == 0; }
     __device__ Float16 Exp() const { return Float16{std::exp(static_cast<float>(*this))}; }
     __device__ Float16 Log() const { return Float16{std::log(static_cast<float>(*this))}; }
     __device__ Float16 Sqrt() const { return Float16{std::sqrt(static_cast<float>(*this))}; }
     __device__ Float16 Floor() const { return Float16{std::floor(static_cast<float>(*this))}; }
+#endif
+
+    __device__ bool operator!() const { return !static_cast<float>(*this); }
+    __device__ Float16 operator+=(const Float16& r) { return *this = *this + r; }
+    __device__ Float16 operator-=(const Float16& r) { return *this = *this - r; }
+    __device__ Float16 operator*=(const Float16& r) { return *this = *this * r; }
+    __device__ Float16 operator/=(const Float16& r) { return *this = *this / r; }
+    __device__ bool operator!=(const Float16& r) const { return !(*this == r); }
+
+    __host__ __device__ static constexpr Float16 FromData(uint16_t data) { return cuda::Float16{data, FromDataTag{}}; }
+    __host__ __device__ static constexpr Float16 Inf() { return FromData(0x7c00U); }
+    __host__ __device__ static constexpr Float16 NegInf() { return FromData(0xfc00U); }
 
 private:
-    explicit __device__ Float16(::__half x) : data_{__half_as_ushort(x)} {}
+    explicit __device__ Float16(::__half x) : data_{::__half_as_ushort(x)} {}
     explicit __host__ __device__ constexpr Float16(uint16_t data, FromDataTag) : data_{data} {}
 
-    __device__ ::__half cuda_half() const { return ::__half{__ushort_as_half(data_)}; }
+    __device__ ::__half cuda_half() const { return ::__half{::__ushort_as_half(data_)}; }
 
     uint16_t data_;
 };
