@@ -1553,6 +1553,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     y = None
     del y
 
+    is_debug = chainer.is_debug()
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
@@ -1590,7 +1591,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                     x._set_grad_var_if_available(None)
 
             _backprop_utils.backprop_step(
-                func, target_input_indexes, out_grad, in_grad)
+                func, target_input_indexes, out_grad, in_grad, is_debug)
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_array)
