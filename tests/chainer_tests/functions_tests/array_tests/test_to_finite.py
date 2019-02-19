@@ -117,3 +117,6 @@ class TestToFinite(unittest.TestCase):
                             cuda.to_gpu(self.posinf_x_data),
                             cuda.to_gpu(self.neginf_x_data),
                             cuda.to_gpu(self.g_data),)
+
+
+testing.run_module(__name__, __file__)
