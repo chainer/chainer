@@ -7,11 +7,11 @@ class CooMatrix(object):
     """A sparse matrix in COO format.
 
     Args:
-        data (numpy.ndarray or cupy.ndarray): The entries of the matrix.
+        data (:ref:`ndarray`): The entries of the matrix.
             The entries are usually non-zero-elements in the matrix.
-        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
+        row (:ref:`ndarray`): The row indices of the matrix
             entries.
-        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
+        col (:ref:`ndarray`): The column indices of the matrix
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
         order ('C', 'F', 'other' or None): If ``'C'``, the maxtix is assumed
@@ -75,7 +75,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
     """Returns a single or a batch of matrices in COO format.
 
     Args:
-        x (numpy.ndarray or cupy.ndarray): Input dense matrix. The ndim of
+        x (:ref:`ndarray`): Input dense matrix. The ndim of
             ``x`` must be two or three. If ndim is two, it is treated as
             a single matrix. If three, it is treated as batched matrices.
         ldnz (int): Size of arrays for data, row index and column index to be
@@ -148,9 +148,9 @@ def get_order(row, col):
     """Check if a coo matrix with given row and col is C or F order.
 
     Args:
-        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
+        row (:ref:`ndarray`): The row indices of the matrix
             entries.
-        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
+        col (:ref:`ndarray`): The column indices of the matrix
             entries.
 
     Returns:

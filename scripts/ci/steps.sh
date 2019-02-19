@@ -78,10 +78,6 @@ step_setup_conda_environment() {
     )
 
     pip install -U "${reqs[@]}"
-
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        pip install -U 'mypy>=0.650'
-    fi
 }
 
 
@@ -202,14 +198,6 @@ step_python_test_chainerx() {
         --cov-fail-under=50 \
         --cov-report html:"$WORK_DIR"/coverage-html/python \
         "$REPO_DIR"/tests/chainerx_tests
-}
-
-
-step_python_mypy_check() {
-    source activate testenv
-
-    mypy --version
-    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
 }
 
 

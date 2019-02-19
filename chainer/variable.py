@@ -343,10 +343,8 @@ class VariableNode(object):
         var = self._variable()
         if var is not None:
             return var
-
-        var = Variable(self.data, name=self.name,
-                       requires_grad=self._requires_grad)
-        var._node = self
+        var = Variable._init_unchecked(
+            self.data, self.name, None, self.requires_grad, None, self)
         return var
 
     def get_variable_or_none(self):
@@ -482,13 +480,13 @@ class Variable(object):
         * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     Args:
-        data (numpy.ndarray or cupy.ndarray): Initial data array.
+        data (:ref:`ndarray`): Initial data array.
         name (str): Name of the variable.
-        grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
+        grad (:ref:`ndarray`): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
-    """  # NOQA
+    """
 
     _data = None  # type: tp.List[tp.Optional[types.NdArray]]
 
@@ -536,24 +534,25 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        self._init_impl(data, name, grad, requires_grad, None)
+        self._init_impl(data, name, grad, requires_grad, None, None)
 
     @staticmethod
     def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
-                        is_chainerx_array=None):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> Variable # NOQA
+                        is_chainerx_array=None, node=None):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> Variable # NOQA
         """Creates a new :class:`Variable` without the validations for
         optimizing performance.
         """
 
         # Create a Variable without invoking __init__
         var = Variable.__new__(Variable)
-        var._init_impl(data, name, grad, requires_grad, is_chainerx_array)
-
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array,
+                       node)
         return var
 
-    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool]) -> None # NOQA
+    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array,
+                   node):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> None # NOQA
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
@@ -578,7 +577,10 @@ class Variable(object):
             self._chainerx_name = name
         else:
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
-            self._node = VariableNode(self, name)
+            if node is None:
+                self._node = VariableNode(self, name)
+            else:
+                self._node = node
             self._grad = grad
 
     def __copy__(self):
@@ -612,7 +614,7 @@ class Variable(object):
         # _grad_var._data[0] and self._data[0].grad and recreates _grad_var
         # as necessary. (chainerx.ndarray.grad can be altered independently
         # from chainer)
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._grad = None
             # Update gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
@@ -699,13 +701,13 @@ class Variable(object):
 
     @property
     def name(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             return self._chainerx_name
         return self._node.name
 
     @name.setter
     def name(self, n):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._chainerx_name = n
             return
         self._node.name = n
@@ -773,7 +775,7 @@ class Variable(object):
     @property
     def label(self):
         """Short text that represents the variable."""
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node label.')
         return self._node.label
@@ -791,14 +793,14 @@ class Variable(object):
         property returns that node object.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.creator = func
@@ -822,14 +824,14 @@ class Variable(object):
            object.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
@@ -845,7 +847,7 @@ class Variable(object):
         """
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
@@ -866,7 +868,7 @@ class Variable(object):
                 "The device of the specified array must be matched with the "
                 "current one: {}".format(old_device))
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()  # type: ignore
@@ -917,7 +919,7 @@ class Variable(object):
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._set_chainerx_grad(g)
             self._grad_var = None
             return
@@ -939,7 +941,7 @@ class Variable(object):
         and error.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             arr = self._data[0]
             if arr is None or not arr.is_backprop_required():  # type: ignore
                 self._chainerx_grad_cache = None
@@ -976,7 +978,7 @@ class Variable(object):
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             self._set_chainerx_grad(None if gv is None else gv._data[0])
             self._grad_var = gv
             return
@@ -1016,14 +1018,14 @@ class Variable(object):
 
     @property
     def rank(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
     def node(self):
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a node.')
         return self._node
@@ -1077,7 +1079,7 @@ class Variable(object):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             return
 
         if not allow_unchaining and self.creator is not None:
@@ -1112,7 +1114,7 @@ class Variable(object):
         self._from_chainerx(allow_unchaining=False)
 
     def _from_chainerx(self, allow_unchaining):
-        if self.xp is not chainerx:
+        if not self._has_chainerx_array:
             return
 
         if not allow_unchaining and self._data[0].is_backprop_required():
@@ -1136,7 +1138,7 @@ class Variable(object):
         device = chainer.get_device(device)
 
         old_device = self.device
-        was_chainerx = old_device.xp is chainerx
+        was_chainerx = self._has_chainerx_array
         is_chainerx = device.xp is chainerx
 
         arr = self._data[0]
@@ -1225,7 +1227,7 @@ class Variable(object):
         if arr is None:
             return
 
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             gv = self.grad_var
             if gv is None:
                 self.grad = chainerx.zeros_like(
@@ -1286,7 +1288,7 @@ class Variable(object):
 
         """
         # TODO(sonots): Implement for ChainerX
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise NotImplementedError()
 
         assert var.xp is not chainerx
@@ -1316,7 +1318,7 @@ class Variable(object):
                 one of its outputs.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
@@ -1329,7 +1331,7 @@ class Variable(object):
                 output.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
@@ -1386,7 +1388,7 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
@@ -1456,7 +1458,7 @@ class Variable(object):
         This method is equivalent to ``self.creator_node = None``.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
@@ -1472,7 +1474,7 @@ class Variable(object):
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide an unchain_backward '
                 'method.')
@@ -1494,7 +1496,7 @@ class Variable(object):
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
-        if self.xp is chainerx:
+        if self._has_chainerx_array:
             raise RuntimeError(
                 'A variable of ChainerX does not provide a retain_data '
                 'method.')
@@ -1573,6 +1575,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     y = None
     del y
 
+    is_debug = chainer.is_debug()
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
@@ -1610,7 +1613,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                     x._set_grad_var_if_available(None)
 
             _backprop_utils.backprop_step(
-                func, target_input_indexes, out_grad, in_grad)
+                func, target_input_indexes, out_grad, in_grad, is_debug)
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_array)
@@ -1665,7 +1668,7 @@ class Parameter(Variable):
     using its gradient array.
 
     Args:
-        initializer (~chainer.Initializer or numpy.ndarray or cupy.ndarray):
+        initializer (~chainer.Initializer or :ref:`ndarray`):
             Initializer of the data array. If ``shape`` is given, this
             initializer is immediately used to initialize the data array.
             Otherwise, if it is an array, it is immediately used as the data
@@ -1699,7 +1702,7 @@ class Parameter(Variable):
         elif numpy.isscalar(initializer):
             initializer = constant.Constant(initializer)
         if shape is None:
-            if chainer.is_arrays_compatible([initializer]):
+            if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
                 super(Parameter, self).__init__(initializer, name=name)
             else:
@@ -1709,7 +1712,7 @@ class Parameter(Variable):
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
-            if chainer.is_arrays_compatible([initializer]):
+            if isinstance(initializer, chainer.get_array_types()):
                 xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
@@ -1850,7 +1853,7 @@ def as_variable(obj):
     you should use :class:`~chainer.Variable` directly.
 
     Args:
-        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or
             a variable that you want to convert to :class:`~chainer.Variable`.
 
     Returns:
@@ -1879,11 +1882,10 @@ def as_array(obj):
     transparently from an object that could be either a variable or an array.
 
     Args:
-        obj (chainerx.ndarray numpy.ndarray or cupy.ndarray or
-            ~chainer.Variable): An array or a variable.
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or a variable.
 
     Returns:
-        chainerx.ndarray numpy.ndarray or cupy.ndarray or ~chainer.Variable:
+        :ref:`ndarray` or ~chainer.Variable:
         The underlying array object of the argument.
 
     """

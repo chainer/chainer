@@ -30,7 +30,7 @@ class Initializer(object):
         concrete derived classes.
 
         Args:
-            array (numpy.ndarray or cupy.ndarray):
+            array (:ref:`ndarray`):
                 An array to be initialized by this initializer.
 
         """

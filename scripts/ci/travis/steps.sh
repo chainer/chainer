@@ -51,7 +51,7 @@ step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
         brew update >/dev/null
-        brew outdated pyenv || brew upgrade --quiet pyenv
+        brew outdated pyenv || brew upgrade pyenv
 
         PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
         pyenv global $PYTHON_VERSION
@@ -111,16 +111,6 @@ step_python_style_check() {
     # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
     # ignore DeprecationWarning raised in `site.py`.
     python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q "${check_targets[@]}"
-}
-
-
-step_python_mypy_check_deps() {
-    pip install -U 'mypy>=0.650'
-}
-
-
-step_python_mypy_check() {
-    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
 }
 
 

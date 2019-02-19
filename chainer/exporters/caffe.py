@@ -185,6 +185,7 @@ class _RetrieveAsCaffeModel(object):
                 'stride_h': func.sy,
                 'kernel_w': kw,
                 'kernel_h': kh,
+                'group': func.groups
             }
 
             params['bottom'] = params['bottom'][:1]
@@ -308,6 +309,9 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'Softmax':
             params['type'] = 'Softmax'
+
+        elif func.label == 'Sigmoid':
+            params['type'] = 'Sigmoid'
 
         elif func.label == 'Reshape':
             input_ = func.inputs[0]
