@@ -19,8 +19,8 @@ def get_kmnist_labels():
     """Provide a list of labels for the KMNIST dataset.
 
     Returns:
-        List of labels in the form of tuples. Each tuple contains the 
-        character name in romaji as a string value and the unicode codepoint 
+        List of labels in the form of tuples. Each tuple contains the
+        character name in romaji as a string value and the unicode codepoint
         for the character.
 
     """
