@@ -490,6 +490,15 @@ class Variable(object):
 
     """  # NOQA
 
+    _data = None  # type: tp.List[tp.Optional[types.NdArray]]
+
+    _device = None
+
+    # Used in non-ChainerX variables. The gradient array is stored in
+    # this attribute on Variable.grad setter to delay creation of grad_var
+    # instance.
+    _grad = None
+
     # Cached value of `self.xp is chainerx`. It prevents from initializing
     # self._device as much as possible because it is really costly.
     _has_chainerx_array = False
@@ -504,21 +513,12 @@ class Variable(object):
     # the second element.
     _chainerx_grad_cache = None
 
-    _chainerx_name = None  # type: tp.Optional[str]
+    _chainerx_name = None
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
     # TODO(hvy): Avoid modifying this variable from outside this class.
     _chainerx_fallback_array = None
-
-    _data = None  # type: tp.List[tp.Optional[types.NdArray]]
-
-    _device = None  # type: tp.Optional[backend.Device]
-
-    # Used in non-ChainerX variables. The gradient array is stored in
-    # this attribute on Variable.grad setter to delay creation of grad_var
-    # instance.
-    _grad = None
 
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
@@ -858,9 +858,13 @@ class Variable(object):
     def array(self, d):
         # type: (tp.Optional[types.NdArray]) -> None
 
-        # Note: This line invokes get_device_from_array() twice which
-        #       generates larger overhead.
-        assert self.device == backend.get_device_from_array(d)
+        # TODO(okapies): The following lines invoke get_device_from_array()
+        #  twice which generates larger overhead.
+        old_device = self.device
+        if old_device != backend.get_device_from_array(d):
+            raise ValueError(
+                "The device of the specified array must be matched with the "
+                "current one: {}".format(old_device))
 
         if self.xp is chainerx:
             d_old = self._data[0]

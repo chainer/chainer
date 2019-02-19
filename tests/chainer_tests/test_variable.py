@@ -205,7 +205,6 @@ class TestVariable(unittest.TestCase):
 
     def setUp(self):
         self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
-        self.y = self.x * 2
         self.a = np.random.uniform(0.1, 10, self.x_shape).astype(np.float32)
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
@@ -285,35 +284,6 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
         assert a._has_chainerx_array is False
-
-    def check_array(self, xp, x, y, requires_grad=True):
-        v = chainer.Variable(x, requires_grad=requires_grad)
-        v.array = y
-        xp.testing.assert_array_equal(v.array, y)
-
-    def test_array_cpu(self):
-        self.check_array(np, self.x, self.y)
-
-    @attr.gpu
-    def test_array_gpu(self):
-        self.check_array(cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.y))
-
-    @attr.gpu
-    def test_array_gpu_device_not_matched(self):
-        with pytest.raises(AssertionError):
-            self.check_array(cuda.cupy, cuda.to_gpu(self.x), self.y)
-
-    @attr.chainerx
-    def test_array_chainerx(self):
-        chx_x = chainerx.array(self.x).as_grad_stopped()
-        chx_y = chainerx.array(self.y).as_grad_stopped()
-        self.check_array(chainerx, chx_x, chx_y, requires_grad=False)
-
-    @attr.chainerx
-    def test_array_chainerx_device_not_matched(self):
-        chx_x = chainerx.array(self.x).as_grad_stopped()
-        with pytest.raises(AssertionError):
-            self.check_array(chainerx, chx_x, self.y, requires_grad=False)
 
     def check_grad(self, xp, x, g):
         v = chainer.Variable(x)
@@ -1412,6 +1382,68 @@ class TestVariableBasic(unittest.TestCase):
         with pytest.raises(NotImplementedError):
             if not a:
                 pass
+
+
+_set_data_backend_params = [
+    # NumPy
+    {},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
+
+
+@testing.parameterize(*testing.product(
+    {
+        'x_shape': [(10,), ()],  # TODO(okapies): add tests for None
+        'requires_grads': [
+            (False, False), (True, False), (False, True), (True, True),
+        ],
+    }))
+@testing.backend.inject_backend_tests(None, _set_data_backend_params)
+@testing.backend.inject_backend_tests(None, _set_data_backend_params)
+class TestVariableSetData(unittest.TestCase):
+
+    def _gen_array(self, xp, shape, requires_grad):
+        if shape is None:
+            a = None
+        else:
+            a = xp.random.uniform(-1, 1, shape).astype(np.float32)
+
+        if a is not None and xp is chainerx and requires_grad:
+            return a.require_grad()
+        else:
+            return a
+
+    def test_set_data(self, backend_config1, backend_config2):
+        device_x = backend_config1.device
+        device_y = backend_config2.device
+        xp_x = device_x.xp
+        xp_y = device_y.xp
+        requires_grad_x = self.requires_grads[0]
+        requires_grad_y = self.requires_grads[1]
+
+        x = self._gen_array(xp_x, self.x_shape, requires_grad_x)
+        y = self._gen_array(xp_y, self.x_shape, requires_grad_y)
+
+        v = chainer.Variable(x, requires_grad=requires_grad_x)
+
+        should_fail = (
+                device_x != device_y or
+                (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
+        if should_fail:
+            # should not accept an array from a different device
+            # or `x` or `y` is a chainerx array which requires gradient
+            with pytest.raises(ValueError):
+                v.data = y
+        else:
+            # Should succeed
+            v.data = y
+            xp_x.testing.assert_array_equal(v.data, y)
 
 
 class TestVariableDataAssign(unittest.TestCase):
