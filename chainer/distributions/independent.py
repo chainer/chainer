@@ -28,6 +28,10 @@ class Independent(distribution.Distribution):
         if reinterpreted_batch_ndims is None:
             reinterpreted_batch_ndims = \
                 self._get_default_reinterpreted_batch_ndims(distribution)
+        elif reinterpreted_batch_ndims > len(distribution.batch_shape):
+            raise ValueError(
+                'reinterpreted_batch_ndims must be less than or equal to the '
+                'number of dimensions of `distribution.batch_shape`.')
         self.__reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
         batch_ndim = \
