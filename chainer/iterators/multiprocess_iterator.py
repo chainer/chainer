@@ -1,4 +1,5 @@
 from __future__ import division
+import atexit
 import datetime
 import multiprocessing
 from multiprocessing import sharedctypes  # type: ignore
@@ -96,8 +97,13 @@ class MultiprocessIterator(iterator.Iterator):
     class TimeoutWarning(RuntimeWarning):
         pass
 
-    _interruption_testing = False  # for testing
+    # For testing.
+    _interruption_testing = False
+    # This attribute shall not assigned to `False` in `__init__` because
+    # it have to be overridden by `atexit` hook.
     _finalized = False
+    # These are initialized here so that `__del__` can always access them.
+    # Note that `__del__` may run before `__init__` completed.
     _prefetch_loop = None
     _comm = None
 
@@ -615,3 +621,13 @@ def _unpack(data, mem):
     elif t is _PackedNdarray:
         data = data.unpack(mem)
     return data
+
+
+# When the CPython interpreter exits, daemon threads abruptly exits without
+# any Python-level finalization. This makes `thread.is_alive` unreliable.
+# Pooled processes are also terminated by `multiprocessing` module.
+# As there is no way to ensure correct finalization, we simply skip
+# `MultiprocessIterator`'s finalization routine.
+@atexit.register
+def _force_skip_finalization():
+    MultiprocessIterator._finalized = True
