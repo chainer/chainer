@@ -75,6 +75,11 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
         CHAINERX_NVCC_GENERATE_CODE=arch=compute_60,code=sm_60 MAKEFLAGS=-j16 run_step python_build
         run_step python_test_chainerx
         ;;
+    'chainerx-py3-cc70')
+        run_step setup_conda_environment
+        CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 MAKEFLAGS=-j16 run_step python_build
+        run_step python_test_chainerx
+        ;;
     'chainer-py3')
         run_step setup_conda_environment
         CHAINERX_NVCC_GENERATE_CODE=arch=compute_60,code=sm_60 MAKEFLAGS=-j16 run_step python_build
