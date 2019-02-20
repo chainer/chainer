@@ -870,6 +870,25 @@ class Variable(object):
             self._has_chainerx_array = False
 
     @property
+    def chainerx_array(self):
+        """A view of the raw ChainerX array.
+
+        In contrary to :data:`Variable.array` which is always disconnected,
+        the array represented by this attribute may be connected to the
+        computational graph.
+
+        It is a view, so it has a distinct gradient from the original array.
+
+        If this attribute is queried on a :class:`Variable` with a non-ChainerX
+        array, :class:`ValueError` will be raised.
+        """
+        if not self._has_chainerx_array:
+            raise ValueError(
+                'chainerx_array is not available for Variable with '
+                'non-ChainerX array.')
+        return self._data[0].view()
+
+    @property
     def data(self):
         # type: () -> tp.Optional[types.NdArray]
         """The underlying data array (equivalent to :attr:`array`).
