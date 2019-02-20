@@ -1433,8 +1433,9 @@ class TestVariableSetData(unittest.TestCase):
         v = chainer.Variable(x, requires_grad=requires_grad_x)
 
         should_fail = (
-                device_x != device_y or
-                (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
+            device_x != device_y or
+            (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
+
         if should_fail:
             # should not accept an array from a different device
             # or `x` or `y` is a chainerx array which requires gradient
