@@ -677,6 +677,41 @@ class TestNoBackpropMode(unittest.TestCase):
             y = self.x + 1
         self.assertTrue(y.creator_node is not None)
 
+    @attr.chainerx
+    def test_backprop_mode_affects_chainerx(self):
+        # chainer.{no,force}_backprop_mode should affect chainerx's
+        # counterpart.
+
+        assert chainerx.is_backprop_required()
+
+        # nobp
+        with chainer.no_backprop_mode():
+            assert not chainerx.is_backprop_required()
+
+            # nobp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # nobp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
+
+        # forcebp
+        with chainer.force_backprop_mode():
+            assert chainerx.is_backprop_required()
+
+            # forcebp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # forcebp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
+
 
 class MyThread(threading.Thread):
 
