@@ -21,7 +21,6 @@ from chainer import testing
     # GPU tests
     + testing.product({
         'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
         'cuda_device': [0, 1],
     })
     # ChainerX tests
