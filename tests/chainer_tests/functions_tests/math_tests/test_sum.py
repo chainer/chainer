@@ -17,7 +17,6 @@ from chainer import testing
     # CPU tests
     [
         {},
-        {'use_ideep': 'always'},
     ]
     # GPU tests
     + testing.product({
