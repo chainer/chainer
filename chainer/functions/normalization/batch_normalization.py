@@ -202,9 +202,11 @@ class BatchNormalization(function_node.FunctionNode):
         elif self.use_cudnn:
             if self.mean is None:
                 # Output cache to speed up backward pass.
-                self.mean = xp.empty_like(gamma)
-                # Output cache to speed up backward pass.
-                self.inv_std = xp.empty_like(gamma)
+                # Note that the cache space must be allocated in fp32
+                # even when activation dtype is fp16.
+                oc_dtype = xp.float32 if x.dtype == xp.float16 else x.dtype
+                self.mean = xp.empty(gamma.shape, dtype=oc_dtype)
+                self.inv_std = xp.empty(gamma.shape, dtype=oc_dtype)
             y = cudnn.batch_normalization_forward_training(
                 x, gamma, beta, self.running_mean, self.running_var,
                 self.mean, self.inv_std, self.eps, self.decay,
