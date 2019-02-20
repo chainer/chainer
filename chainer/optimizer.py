@@ -294,7 +294,7 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                fallback_arr = backend.from_chainerx(st)
+                fallback_arr = backend.from_chx(st)
                 self.state[state_name] = fallback_arr
                 chainerx_state_arrays[state_name] = (st, fallback_arr)
 
@@ -303,7 +303,7 @@ class UpdateRule(object):
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chainerx(
+            param._chainerx_fallback_array = backend.from_chx(
                 param.array)
 
         temp_param = variable.Variable._init_unchecked(
@@ -311,7 +311,7 @@ class UpdateRule(object):
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
-                backend.from_chainerx(grad_array))
+                backend.from_chx(grad_array))
 
         # Update
         update_core(temp_param)
@@ -323,7 +323,7 @@ class UpdateRule(object):
                 # The optimizer altered the reference of the state, instead of
                 # updating it in-place. We need to convert the new state back
                 # to ChainerX.
-                arr = backend.to_chainerx(cur_arr)
+                arr = backend.to_chx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):

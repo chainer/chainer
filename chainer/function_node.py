@@ -428,7 +428,7 @@ Use apply() method instead.\
                     if device is None:
                         device = x.device
                 else:
-                    fallback_data = backend.from_chainerx(data)
+                    fallback_data = backend.from_chx(data)
                     if device is None:
                         device = backend.ChainerxDevice(data.device)
 
@@ -446,7 +446,7 @@ Use apply() method instead.\
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chainerx(outputs)
+        chainerx_out_data = backend.to_chx(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -1194,7 +1194,7 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
-            return True, tuple(backend.to_chainerx(arrays))
+            return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
 
@@ -1254,7 +1254,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
         if isinstance(value, chainerx.ndarray):
             fallback_arr = fallback_array_cache.get(name)
             if fallback_arr is None:
-                fallback_arr = backend.from_chainerx(value)
+                fallback_arr = backend.from_chx(value)
                 fallback_array_cache[name] = fallback_arr
             return fallback_arr
         return value
@@ -1263,7 +1263,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
     def setattr(self, name, value):
         if isinstance(value, fallback_device.xp.ndarray):
             fallback_array_cache[name] = value
-            sup.__setattr__(name, backend.to_chainerx(value))
+            sup.__setattr__(name, backend.to_chx(value))
             return
         sup.__setattr__(name, value)
 

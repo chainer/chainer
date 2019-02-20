@@ -34,7 +34,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler((size, self.sample_size + 1))
-        samples = backend.from_chainerx(samples)
+        samples = backend.from_chx(samples)
         samples[:, 0] = t
         return samples
 
