@@ -38,7 +38,7 @@ class TestRReLU(testing.FunctionTestCase):
             self.l, self.u = self.u, self.l
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 2e-4, 'rtol': 2e-3}
+            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
@@ -51,9 +51,8 @@ class TestRReLU(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        r = self.r
+        r = self.r.astype(x.dtype)
         r = device.send(r)
-        r = r.astype(x.dtype)
         with chainer.using_config('train', self.train):
             y = functions.rrelu(x, l=self.l, u=self.u, r=r)
         return y,
@@ -64,7 +63,7 @@ class TestRReLU(testing.FunctionTestCase):
         if self.train:
             expected = numpy.where(x >= 0, x, x * r)
         else:
-            r_test = numpy.mean([self.l, self.u], dtype=self.dtype)
+            r_test = numpy.mean([self.l, self.u]).astype(self.dtype)
             expected = numpy.where(x >= 0, x, x * r_test)
         return expected,
 
