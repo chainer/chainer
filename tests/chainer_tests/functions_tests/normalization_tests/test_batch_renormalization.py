@@ -140,7 +140,7 @@ class TestBatchRenormalizationForward(testing.FunctionTestCase):
         assert isinstance(gy, chainer.Variable)
 
         import chainerx
-        if isinstance(x.array, chainerx.ndarray):
+        if x.xp is chainerx:
             # TODO(niboshi): ChainerX does not support grad yet
             y.grad = gy.array.copy()
             y.backward()
