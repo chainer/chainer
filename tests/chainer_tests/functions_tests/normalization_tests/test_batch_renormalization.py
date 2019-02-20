@@ -4,6 +4,7 @@ import six
 import chainer
 from chainer.functions.normalization import batch_renormalization
 from chainer import testing
+import chainerx
 
 
 # naive implementation of differentiable batch renormalization
@@ -139,7 +140,6 @@ class TestBatchRenormalizationForward(testing.FunctionTestCase):
         assert isinstance(y, chainer.Variable)
         assert isinstance(gy, chainer.Variable)
 
-        import chainerx
         if x.xp is chainerx:
             # TODO(niboshi): ChainerX does not support grad yet
             y.grad = gy.array.copy()
