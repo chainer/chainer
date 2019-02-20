@@ -2,14 +2,8 @@ import unittest
 
 import numpy
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
-import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -38,7 +32,14 @@ import chainerx
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 class TestSum(testing.FunctionTestCase):
-    
+
+    def setUp(self):
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+            self.check_double_backward_options \
+                .update({'atol': 1e-3, 'rtol': 1e-2})
+
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
         return x,
@@ -51,7 +52,7 @@ class TestSum(testing.FunctionTestCase):
         x, = inputs
         expected = x.sum(axis=self.axis, keepdims=self.keepdims)
         expected = numpy.asarray(expected)
-        return expected,    
+        return expected,
 
 
 @testing.parameterize(*testing.product({
