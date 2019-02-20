@@ -1402,7 +1402,7 @@ class Variable(object):
         if self.array.size == 1 and self.grad_var is None:
             if self.array.ndim != 0:
                 warnings.warn(
-                    'Treating a scalar as a variable with only one element'
+                    'Treating a variable with only one element as a scalar'
                     ' in Variable.backward is deprecated. A scalar variable'
                     ' must be a 0-dimensional array. Apply'
                     ' chainer.functions.squeeze to obtain a scalar variable.'
