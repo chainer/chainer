@@ -488,10 +488,6 @@ class Variable(object):
 
     """
 
-    _data = None  # type: tp.List[tp.Optional[types.NdArray]]
-
-    _device = None
-
     # Used in non-ChainerX variables. The gradient array is stored in
     # this attribute on Variable.grad setter to delay creation of grad_var
     # instance.
