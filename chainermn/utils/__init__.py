@@ -1,1 +1,1 @@
-from . import link  # NOQA
+from chainermn.utils import link  # NOQA
