@@ -1342,9 +1342,7 @@ class Variable(object):
                     'Treating a scalar as a variable with only one element'
                     ' in Variable.backward is deprecated. A scalar variable'
                     ' must be a 0-dimensional array. Apply'
-                    ' chainer.functions.squeeze to obtain a scalar variable.'
-                    ' If the size of this variable accidentally becomes one,'
-                    ' set zero to grad.',
+                    ' chainer.functions.squeeze to obtain a scalar variable.',
                     DeprecationWarning)
             with cuda.get_device_from_array(self.array) as device:
                 if device is cuda.DummyDevice:
