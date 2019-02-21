@@ -568,13 +568,14 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)  # type: ignore
+            self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
+            self._has_chainerx_array = False
             if node is None:
                 self._node = VariableNode(self, name)
             else:
@@ -849,7 +850,7 @@ class Variable(object):
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
-                    self._data[0].as_grad_stopped())  # type: ignore
+                    self._data[0].as_grad_stopped())
             return self._chainerx_nobp_array_cache
 
         return self._data[0]
@@ -870,17 +871,17 @@ class Variable(object):
         if self._has_chainerx_array:
             d_old = self._data[0]
             if (d_old is not None
-                    and (d_old.is_backprop_required()  # type: ignore
-                         or d.is_backprop_required())):  # type: ignore
+                    and (d_old.is_backprop_required()
+                         or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            self._set_chainerx_array(d, None)  # type: ignore
+            self._set_chainerx_array(d, None)
         else:
+            self._node._update_data_info(d)
             self._data[0] = d
             self._has_chainerx_array = False
-            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
 
     @property
     def chainerx_array(self):
@@ -961,11 +962,11 @@ class Variable(object):
         """
         if self._has_chainerx_array:
             arr = self._data[0]
-            if arr is None or not arr.is_backprop_required():  # type: ignore
+            if arr is None or not arr.is_backprop_required():
                 self._chainerx_grad_cache = None
                 return None
 
-            actual_grad = arr.grad  # type: ignore
+            actual_grad = arr.grad
 
             if actual_grad is None:
                 self._chainerx_grad_cache = None
@@ -1201,7 +1202,6 @@ class Variable(object):
                 new_grad = None
             else:
                 new_grad = device.send(grad_var._data[0])
-
             self._set_chainerx_array(new_arr, new_grad)
         else:
             self._data = [new_arr]
@@ -1221,7 +1221,7 @@ class Variable(object):
                 self._node = None
         else:
             if node._data is not None:
-                node.retain_data()  # type: ignore # _node has value only when xp is not chainerx # NOQA
+                node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1738,7 +1738,7 @@ class Parameter(Variable):
                 initializer = constant.Constant(initializer)
             else:
                 xp = numpy
-            data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
+            data = initializers.generate_array(initializer, shape, xp)
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
@@ -1806,6 +1806,7 @@ class Parameter(Variable):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
+            self._has_chainerx_array = False
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
