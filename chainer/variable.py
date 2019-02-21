@@ -861,10 +861,11 @@ class Variable(object):
         # TODO(okapies): The following lines invoke get_device_from_array()
         #  twice which generates larger overhead.
         old_device = self.device
-        if old_device != backend.get_device_from_array(d):
+        new_device = backend.get_device_from_array(d)
+        if old_device != new_device:
             raise ValueError(
-                "The device of the specified array must be matched with the "
-                "current one: {}".format(old_device))
+                "The specified array is invalid. Variable is configured "
+                "against {} but it is on {}.".format(old_device, new_device))
 
         if self._has_chainerx_array:
             d_old = self._data[0]
