@@ -7,17 +7,11 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
 from chainer.functions.connection import convolution_2d
+from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
 import chainerx
-
-
-def _prod(shape):
-    prod = 1
-    for d in shape:
-        prod *= d
-    return prod
 
 
 class ConvolutionND(function_node.FunctionNode):
@@ -118,8 +112,8 @@ class ConvolutionND(function_node.FunctionNode):
         o_size = x.shape[-dims:]
 
         x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
-        mul_len = iCg * _prod(k_size)
-        x = x.reshape(G, mul_len, N * _prod(o_size))
+        mul_len = iCg * utils.size_of_shape(k_size)
+        x = x.reshape(G, mul_len, N * utils.size_of_shape(o_size))
 
         W = W.reshape(G, oCg, mul_len)
 
@@ -267,7 +261,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         N, iC = x.shape[:2]
         oC = gy.shape[1]
         o_size = gy.shape[2:]
-        o_size_prod = _prod(o_size)
+        o_size_prod = utils.size_of_shape(o_size)
         k_size = self.ksize
         dims = len(o_size)
         iCg = iC // G
@@ -280,7 +274,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
                               cover_all=self.cover_all, dilate=self.dilate)
 
         x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
-        mul_len = iCg * _prod(k_size)
+        mul_len = iCg * utils.size_of_shape(k_size)
         x = x.reshape(G, mul_len, N * o_size_prod)
         x = x.transpose(0, 2, 1)  # (G, N*o_size, iCg*k_size)
 

@@ -8,6 +8,7 @@ from chainer import configuration
 from chainer import function_node
 from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import convolution_nd
+from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -101,9 +102,9 @@ class DeconvolutionND(function_node.FunctionNode):
                             'a divisor of that of input channels')
 
         x = xp.rollaxis(x, 1)  # (xC, N, x_size...)
-        x = x.reshape(G, xCg, N * convolution_nd._prod(x_size))
+        x = x.reshape(G, xCg, N * utils.size_of_shape(x_size))
 
-        W = W.reshape(G, xCg, yCg * convolution_nd._prod(k_size))
+        W = W.reshape(G, xCg, yCg * utils.size_of_shape(k_size))
         W = W.transpose(0, 2, 1)  # (G, yCg*k_size, xCg)
 
         # (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size)
