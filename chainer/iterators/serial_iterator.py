@@ -3,8 +3,7 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
-from chainer.iterators._statemachine import (IteratorState,
-                                             iterator_statemachine)
+from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -36,7 +35,7 @@ class SerialIterator(iterator.Iterator):
             the behavior is the same as the case with ``shuffle=True``.
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
@@ -69,7 +68,7 @@ class SerialIterator(iterator.Iterator):
 
     def __next__(self):
         self._previous_epoch_detail = self.epoch_detail
-        self._state, indices = iterator_statemachine(
+        self._state, indices = _statemachine.iterator_statemachine(
             self._state, self.batch_size, self.repeat, self.order_sampler,
             len(self.dataset))
         if indices is None:
@@ -114,8 +113,8 @@ class SerialIterator(iterator.Iterator):
                 serializer('order', order)
             except KeyError:
                 serializer('_order', order)
-        self._state = IteratorState(current_position, epoch, is_new_epoch,
-                                    order)
+        self._state = _statemachine.IteratorState(
+            current_position, epoch, is_new_epoch, order)
         try:
             self._previous_epoch_detail = serializer(
                 'previous_epoch_detail', self._previous_epoch_detail)
@@ -135,7 +134,7 @@ class SerialIterator(iterator.Iterator):
                 numpy.arange(len(self.dataset)), 0)
         else:
             order = None
-        self._state = IteratorState(0, 0, False, order)
+        self._state = _statemachine.IteratorState(0, 0, False, order)
         self._previous_epoch_detail = -1.
 
     @property

@@ -309,6 +309,17 @@ TEST_P(MathTest, IDivideScalar) {
     EXPECT_ARRAY_EQ(e, a);
 }
 
+TEST_P(MathTest, IDivideInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({2, 4, 6});
+    Array b = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    EXPECT_THROW(internal::IDivide(a, b), DtypeError);
+}
+
+TEST_P(MathTest, IDivideScalarInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    EXPECT_THROW(internal::IDivide(a, Scalar{1}), DtypeError);
+}
+
 TEST_THREAD_SAFE_P(MathTest, Add) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
@@ -843,6 +854,21 @@ TEST_P(MathTest, DivideScalar) {
     Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
 
     testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], Scalar{2.f})}; }, {a}, {e});
+}
+
+TEST_P(MathTest, DivideInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<int64_t>({2, 2, 12});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({0.5f, 1.f, 0.25f});
+
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], xs[1])}; }, {a, b}, {e});
+}
+
+TEST_P(MathTest, DivideScalarInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({0.5f, 1.f, 1.5f});
+
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], Scalar{2})}; }, {a}, {e});
 }
 
 TEST_P(MathTest, DivideBackward) {

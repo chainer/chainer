@@ -29,6 +29,13 @@ def _create_batch_norm_ndarray_args(
     var = array_utils.create_dummy_ndarray(
         xp, var_shape, float_dtype, padding=pad_running, start=0)
 
+    # TODO(imanishi): Remove them after supporting random test
+    x /= x.size
+    gamma /= gamma.size
+    beta /= beta.size
+    mean /= mean.size
+    var /= var.size
+
     return x, gamma, beta, mean, var
 
 
@@ -102,11 +109,15 @@ def test_batch_norm(
     assert not numpy.allclose(chainerx.to_numpy(
         initial_running_var), chainerx.to_numpy(running_var_chx))
 
-    chainerx.testing.assert_allclose_ex(y_chx, y_np, rtol=1e-6, atol=1e-5)
     chainerx.testing.assert_allclose_ex(
-        running_mean_chx, running_mean_np, rtol=1e-6, atol=1e-6)
+        y_chx, y_np, rtol=1e-6, atol=1e-5,
+        float16_rtol=1e-2, float16_atol=1e-2)
     chainerx.testing.assert_allclose_ex(
-        running_var_chx, running_var_np, rtol=1e-6, atol=1e-6)
+        running_mean_chx, running_mean_np,
+        rtol=1e-6, atol=1e-6, float16_rtol=1e-2, float16_atol=1e-2)
+    chainerx.testing.assert_allclose_ex(
+        running_var_chx, running_var_np,
+        rtol=1e-6, atol=1e-6, float16_rtol=1e-2, float16_atol=1e-2)
 
 
 @pytest.mark.parametrize(
@@ -153,7 +164,9 @@ def test_fixed_batch_norm(
         x_np, gamma_np, beta_np, mean=mean_np, var=var_np,
         **optional_args).data
 
-    chainerx.testing.assert_allclose_ex(y_chx, y_np, rtol=1e-6, atol=1e-5)
+    chainerx.testing.assert_allclose_ex(
+        y_chx, y_np, rtol=1e-6, atol=1e-5,
+        float16_rtol=1e-2, float16_atol=1e-2)
 
 
 @pytest.mark.parametrize(

@@ -67,6 +67,8 @@ Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype) {
             break;
         case 'f':
             switch (npdtype.itemsize()) {
+                case 2:
+                    return Dtype::kFloat16;
                 case 4:
                     return Dtype::kFloat32;
                 case 8:
@@ -128,6 +130,9 @@ Dtype GetDtype(py::handle handle) {
     if (handle.is(numpy_module.attr("uint8"))) {
         return Dtype::kUInt8;
     }
+    if (handle.is(numpy_module.attr("float16"))) {
+        return Dtype::kFloat16;
+    }
     if (handle.is(numpy_module.attr("float32"))) {
         return Dtype::kFloat32;
     }
@@ -152,6 +157,8 @@ py::object GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
             return m.attr("_int64");
         case Dtype::kUInt8:
             return m.attr("_uint8");
+        case Dtype::kFloat16:
+            return m.attr("_float16");
         case Dtype::kFloat32:
             return m.attr("_float32");
         case Dtype::kFloat64:
@@ -170,6 +177,7 @@ void InitChainerxDtype(py::module& m) {
     m.attr("_int32") = py::dtype{"int32"};
     m.attr("_int64") = py::dtype{"int64"};
     m.attr("_uint8") = py::dtype{"uint8"};
+    m.attr("_float16") = py::dtype{"float16"};
     m.attr("_float32") = py::dtype{"float32"};
     m.attr("_float64") = py::dtype{"float64"};
 }

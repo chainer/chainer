@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,7 +59,8 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
         throw ChainerxError{"offset must be non-negative and no greater than buffer length (", n_bytes, ")"};
     }
 
-    if (!internal::IsContiguous(Shape{info.shape}, Strides{info.strides}, info.itemsize)) {
+    if (!internal::IsContiguous(
+                Shape{info.shape.begin(), info.shape.end()}, Strides{info.strides.begin(), info.strides.end()}, info.itemsize)) {
         throw ChainerxError{"ndarray is not C-contiguous"};
     }
 
@@ -277,11 +279,22 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& a, py::handle indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
-              return MoveArrayBody(Take(Array{a}, Array{indices}, axis.value()));
+              if (py::isinstance<ArrayBodyPtr>(indices)) {
+                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+              }
+              if (py::isinstance<py::sequence>(indices)) {
+                  nonstd::optional<Dtype> dtype = Dtype::kInt64;
+                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
+              }
+              if (py::isinstance<py::array>(indices)) {
+                  return MoveArrayBody(
+                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
+              }
+              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           py::arg("a"),
           py::arg("indices"),
@@ -327,23 +340,6 @@ void InitChainerxLogic(pybind11::module& m) {
 
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
-    m.def("asscalar",
-          [](const ArrayBodyPtr& a) -> py::object {
-              Scalar s = AsScalar(Array{a});
-              switch (GetKind(s.dtype())) {
-                  case DtypeKind::kBool:
-                      return py::bool_{static_cast<bool>(s)};
-                  case DtypeKind::kInt:
-                      // fallthrough
-                  case DtypeKind::kUInt:
-                      return py::int_{static_cast<int64_t>(s)};
-                  case DtypeKind::kFloat:
-                      return py::float_{static_cast<double>(s)};
-                  default:
-                      CHAINERX_NEVER_REACH();
-              }
-          },
-          py::arg("a"));
     m.def("transpose",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Transpose(Array{a}, ToAxes(axes)));
@@ -409,13 +405,89 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("arrays"),
           py::arg("axis") = 0);
     m.def("split",
-          [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) { return MoveArrayBodies(Split(Array{ary}, sections, axis)); },
-          py::arg("ary"),
-          py::arg("indices_or_sections"),
-          py::arg("axis") = 0);
-    m.def("split",
-          [](const ArrayBodyPtr& ary, std::vector<int64_t> indices, int8_t axis) {
-              return MoveArrayBodies(Split(Array{ary}, indices, axis));
+          [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
+              // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
+              // provide more helpful error message for users.
+
+              auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) {
+                  return MoveArrayBodies(Split(Array{ary}, sections, axis));
+              };
+              auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t axis) {
+                  return MoveArrayBodies(Split(Array{ary}, indices, axis));
+              };
+
+              // Converts an python float to sections (int64_t).
+              // Raises ValueError if the value has non-zero fraction.
+              auto pyfloat_to_sections_or_value_error = [](py::handle num) {
+                  CHAINERX_ASSERT(py::isinstance<py::float_>(num));
+                  double num_fp = py::cast<double>(num);
+                  auto num_int = static_cast<int64_t>(num_fp);
+                  if (static_cast<double>(num_int) != num_fp) {
+                      throw py::value_error{"Sections must be an integer."};
+                  }
+                  return num_int;
+              };
+
+              // sections: int
+              if (py::isinstance<py::int_>(indices_or_sections)) {
+                  int64_t sections = py::cast<int64_t>(indices_or_sections);
+                  return split_sections(ary, sections, axis);
+              }
+              // sections: float
+              if (py::isinstance<py::float_>(indices_or_sections)) {
+                  int64_t sections = pyfloat_to_sections_or_value_error(indices_or_sections);
+                  return split_sections(ary, sections, axis);
+              }
+              // numpy.ndarray
+              if (py::isinstance<py::array>(indices_or_sections)) {
+                  py::array np_ios = py::cast<py::array>(indices_or_sections);
+                  if (np_ios.ndim() >= 2) {
+                      throw py::value_error{std::string{"Too many dimensions of indices: "} + std::to_string(np_ios.ndim())};
+                  }
+                  // sections: scalar
+                  if (np_ios.ndim() == 0) {
+                      int64_t sections{};
+                      py::object scalar_np = np_ios.attr("tolist")();
+                      if (py::isinstance<py::int_>(scalar_np)) {
+                          sections = py::cast<int64_t>(scalar_np);
+                      } else if (py::isinstance<py::float_>(scalar_np)) {
+                          sections = pyfloat_to_sections_or_value_error(scalar_np);
+                      } else {
+                          throw py::type_error{"Sections must be an integer."};
+                      }
+                      return split_sections(ary, sections, axis);
+                  }
+
+                  // indices: (0,)-shape
+                  if (np_ios.size() == 0) {
+                      return split_indices(ary, {}, axis);
+                  }
+
+                  if (np_ios.dtype().kind() != 'i') {
+                      throw py::type_error{std::string{"Indices must be integers."}};
+                  }
+                  // indices: non-scalar
+                  std::vector<int64_t> indices{};
+                  py::list indices_pylist = np_ios.attr("tolist")();
+                  for (py::handle item : indices_pylist) {
+                      indices.emplace_back(py::cast<int64_t>(item));
+                  }
+
+                  return split_indices(ary, indices, axis);
+              }
+              // indices: sequence
+              if (py::isinstance<py::sequence>(indices_or_sections)) {
+                  std::vector<int64_t> indices{};
+                  try {
+                      indices = py::cast<std::vector<int64_t>>(indices_or_sections);
+                  } catch (const py::cast_error& e) {
+                      throw py::type_error{std::string{"Indices not understood: "} + py::cast<std::string>(py::repr(indices_or_sections))};
+                  }
+
+                  return split_indices(ary, indices, axis);
+              }
+              throw py::type_error{std::string{"indices_or_sections not understood: "} +
+                                   py::cast<std::string>(py::repr(indices_or_sections))};
           },
           py::arg("ary"),
           py::arg("indices_or_sections"),
@@ -461,6 +533,18 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x2"));
     m.def("divide", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Divide(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
     m.def("divide", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Divide(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
+    m.def("true_divide",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(TrueDivide(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("true_divide",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(TrueDivide(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("true_divide",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(TrueDivide(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("sum",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Sum(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),

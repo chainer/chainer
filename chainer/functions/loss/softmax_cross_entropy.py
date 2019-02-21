@@ -367,8 +367,7 @@ def softmax_cross_entropy(
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a multidimensional array whose element indicates
             unnormalized log probability: the first axis of the variable
             represents the number of samples, and the second axis represents
@@ -376,8 +375,7 @@ def softmax_cross_entropy(
             cross entropy if the number of dimensions is equal to 2, it
             computes a cross entropy of the replicated softmax if the number of
             dimensions is greater than 2.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a signed integer vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
@@ -390,8 +388,7 @@ def softmax_cross_entropy(
             If ``enable_double_backprop`` option is ``True``, this option
             is forcibly turned off and the function does not cache
             the intermediate value.
-        class_weight (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        class_weight (:ref:`ndarray`):
             An array that contains constant weights that will be multiplied
             with the loss values along with the second dimension. The shape of
             this array should be ``(x.shape[1],)``. If this is not ``None``,
@@ -418,7 +415,7 @@ def softmax_cross_entropy(
     Returns:
         ~chainer.Variable: A variable holding a scalar array of the cross
         entropy loss.  If ``reduce`` is ``'mean'``, it is a scalar array.
-        If ``reduce`` is ``'no'``, the shape is same as that of ``x``.
+        If ``reduce`` is ``'no'``, the shape is same as that of ``t``.
 
     .. note::
 

@@ -233,7 +233,7 @@ def tree_lstm(*inputs):
         inputs (list of :class:`~chainer.Variable`): Variable arguments which
             include all cell vectors from child-nodes, and an input vector.
             Each of the cell vectors and the input vector is
-            :class:`~chainer.Variable`.
+            :class:`~chainer.Variable` or :ref:`ndarray`.
             The input vector must have the second dimension whose size
             is (N + 3) times of that of each cell,
             where N denotes the total number of cells.

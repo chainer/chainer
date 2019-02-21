@@ -4,6 +4,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/reduction_kernel_arg.h"
 
 namespace chainerx {
@@ -20,10 +21,10 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, Reduction
 
         int64_t i_reduce{0};
         for (it_in.Restart(it_out.raw_index()); it_in; ++it_in, ++i_reduce) {
-            impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
+            impl.Reduce(impl.MapIn(native_internal::StorageToDataType<const In>(arg.in[it_in]), i_reduce), accum);
         }
 
-        arg.out[it_out] = impl.MapOut(accum);
+        arg.out[it_out] = native_internal::DataToStorageType<Out>(impl.MapOut(accum));
     }
 }
 

@@ -22,7 +22,7 @@ def main():
                         help='First GPU ID')
     parser.add_argument('--gpu1', '-G', type=int, default=1,
                         help='Second GPU ID')
-    parser.add_argument('--out', '-o', default='result_parallel',
+    parser.add_argument('--out', '-o', default='result_data_parallel',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
@@ -60,7 +60,7 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu0))
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(

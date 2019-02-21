@@ -34,6 +34,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler((size, self.sample_size + 1))
+        samples = backend.from_chainerx(samples)
         samples[:, 0] = t
         return samples
 
@@ -146,13 +147,14 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1, 2))
         x, W, gloss = inputs
 
+        samples = self.samples
         gx = numpy.zeros_like(x)
         gW = numpy.zeros_like(W)
 
         for i in numpy.arange(len(self.ignore_mask))[self.ignore_mask]:
             ix = x[i]
 
-            k = self.samples[i]
+            k = samples[i]
             if self.reduce == 'sum':
                 igy = gloss
             else:
@@ -178,6 +180,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         if self.reduce == 'no':
             gy = gy[:, None]
 
+        samples = self.samples
         wx = self.wx.astype(x.dtype, copy=False)
         g = cuda.elementwise(
             'T wx, T gy, int32 m', 'T g',
@@ -210,7 +213,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
             gx = w;
             ''',
             'negative_sampling_calculate_gx'
-        )(g, W, self.ignore_mask[:, None], self.samples, n_in,
+        )(g, W, self.ignore_mask[:, None], samples, n_in,
           self.sample_size + 1, gx)
 
         gW = cupy.zeros_like(W)
@@ -226,14 +229,15 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
             }
             ''',
             'negative_sampling_calculate_gw'
-        )(g, x, self.samples, self.ignore_mask[:, None], n_in,
+        )(g, x, samples, self.ignore_mask[:, None], n_in,
           self.sample_size + 1, gW)
         return gx, None, gW
 
     def backward(self, indexes, grad_outputs):
         x, W, gy = self.get_retained_inputs()
 
-        xp = backend.get_array_module(x.data)
+        device = backend.get_device_from_array(x.data)
+        xp = device.xp
 
         if 0 in indexes:
             gx = chainer.Variable(xp.zeros_like(x.data))
@@ -247,7 +251,9 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         pos_neg_mask = xp.ones(self.sample_size + 1)
         pos_neg_mask[0] *= -1
 
-        for i in xp.arange(len(self.ignore_mask))[self.ignore_mask]:
+        with chainer.using_device(device):
+            arange = xp.arange(len(self.ignore_mask))
+        for i in arange[self.ignore_mask]:
             # Partial forward pass to obtain intermediate `Variable`s
             ix = x[i]
             k = self.samples[i]
@@ -274,7 +280,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                 * _sigmoid_grad(f, sigf, dgx_dg)
 
             if 0 in indexes:
-                # deriative of gx
+                # derivative of gx
                 dgx = chainer.functions.matmul(w, dgx_df[:, None], transa=True)
 
                 # derivative of gW
@@ -286,7 +292,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
                     gx, i, chainer.functions.flatten(dgx))
 
             if 1 in indexes:
-                # deriative of gx
+                # derivative of gx
                 shape = ggx[i].shape
                 for ik, ig, idgx_df in six.moves.zip(k, g, dgx_df):
                     ig = chainer.functions.broadcast_to(ig, shape)
@@ -318,7 +324,8 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
 
 
 def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
-    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, return_samples=False)
+    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, \
+return_samples=False)
 
     Negative sampling loss function.
 
@@ -353,9 +360,12 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
     and :math:`Z` is the normalization constant.
 
     Args:
-        x (~chainer.Variable): Batch of input vectors.
-        t (~chainer.Variable): Vector of ground truth labels.
-        W (~chainer.Variable): Weight matrix.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Batch of input vectors.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Vector of ground truth labels.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight matrix.
         sampler (~types.FunctionType): Sampling function. It takes a shape and
             returns an integer array of the shape. Each element of this array
             is a sample from the word distribution.
@@ -387,7 +397,7 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
 
     .. seealso:: :class:`~chainer.links.NegativeSampling`.
 
-    """  # NOQA
+    """
     return_samples = False
     if kwargs:
         return_samples, = argument.parse_kwargs(

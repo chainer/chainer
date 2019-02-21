@@ -13,7 +13,7 @@ from chainer.utils import type_check
 import chainerx
 
 if cuda.cudnn_enabled:
-    _cudnn_version = cuda.cuda.cudnn.getVersion()
+    _cudnn_version = cuda.cuda.cudnn.getVersion()  # type: ignore
 
 
 def _pair(x):
@@ -327,7 +327,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
 
 def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
-    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, dilate=1, groups=1)
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, \
+dilate=1, groups=1)
 
     Two dimensional deconvolution function.
 
@@ -372,22 +373,13 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h_I, w_I)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_I, c_O, h_K, w_K)`.
-        b (None or :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
             are equivalent.
@@ -437,7 +429,7 @@ astype(np.float32)
         True
 
 
-    """  # NOQA
+    """
     argument.check_unexpected_kwargs(
         kwargs, deterministic="deterministic argument is not "
         "supported anymore. "

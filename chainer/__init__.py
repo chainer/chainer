@@ -160,6 +160,9 @@ def get_cpu_array_types():
 
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
+    # Do not use this function to check if a single object is an array or
+    # not. Use isinstance(obj, chainer.get_array_types()) instead.
+
     arrays = [a for a in arrays if a is not None]
 
     if len(arrays) == 0:
@@ -203,6 +206,7 @@ if _chainer_dtype not in ('float16', 'float32', 'float64'):
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.dtype = numpy.dtype(_chainer_dtype)
+global_config.in_recomputing = False
 
 
 def is_debug():
@@ -211,7 +215,7 @@ def is_debug():
     Returns:
         bool:  ``True`` if the debug mode is enabled.
     """
-    return bool(config.debug)
+    return bool(config.__getattr__('debug'))
 
 
 def set_debug(debug):

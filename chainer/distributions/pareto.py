@@ -4,6 +4,7 @@ from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer import utils
+from chainer.utils import cache
 
 
 class Pareto(distribution.Distribution):
@@ -22,24 +23,32 @@ class Pareto(distribution.Distribution):
 
     def __init__(self, scale, alpha):
         super(Pareto, self).__init__()
-        self.__scale = chainer.as_variable(scale)
-        self.__alpha = chainer.as_variable(alpha)
+        self.__scale = scale
+        self.__alpha = alpha
 
-    @property
+    @cache.cached_property
     def scale(self):
-        return self.__scale
+        return chainer.as_variable(self.__scale)
 
-    @property
+    @cache.cached_property
     def alpha(self):
-        return self.__alpha
+        return chainer.as_variable(self.__alpha)
+
+    @cache.cached_property
+    def _log_scale(self):
+        return exponential.log(self.scale)
+
+    @cache.cached_property
+    def _log_alpha(self):
+        return exponential.log(self.alpha)
 
     @property
     def batch_shape(self):
         return self.scale.shape
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return - exponential.log(self.alpha) + exponential.log(self.scale) \
+        return - self._log_alpha + self._log_scale \
             + 1. / self.alpha + 1.
 
     @property
@@ -52,15 +61,15 @@ class Pareto(distribution.Distribution):
 
     def log_prob(self, x):
         x = chainer.as_variable(x)
-        logp = exponential.log(self.alpha) \
-            + self.alpha * exponential.log(self.scale) \
+        logp = self._log_alpha \
+            + self.alpha * self._log_scale \
             - (self.alpha + 1) * exponential.log(x)
         xp = logp.xp
         return where.where(
             utils.force_array(x.data >= self.scale.data),
             logp, xp.array(-xp.inf, logp.dtype))
 
-    @property
+    @cache.cached_property
     def mean(self):
         mean = (self.alpha * self.scale / (self.alpha - 1))
         xp = mean.xp
@@ -85,7 +94,7 @@ class Pareto(distribution.Distribution):
     def support(self):
         return '[scale, inf]'
 
-    @property
+    @cache.cached_property
     def variance(self):
         var = self.scale ** 2 * self.alpha / (self.alpha - 1) ** 2 \
             / (self.alpha - 2)
@@ -97,9 +106,8 @@ class Pareto(distribution.Distribution):
 
 @distribution.register_kl(Pareto, Pareto)
 def _kl_pareto_pareto(dist1, dist2):
-    kl = dist2.alpha * (exponential.log(dist1.scale)
-                        - exponential.log(dist2.scale)) \
-        + exponential.log(dist1.alpha) - exponential.log(dist2.alpha) \
+    kl = dist2.alpha * (dist1._log_scale - dist2._log_scale) \
+        + dist1._log_alpha - dist2._log_alpha \
         + (dist2.alpha - dist1.alpha) / dist1.alpha
     xp = kl.xp
     return where.where(

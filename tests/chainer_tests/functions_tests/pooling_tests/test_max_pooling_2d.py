@@ -92,10 +92,6 @@ class TestMaxPooling2D(unittest.TestCase):
         return expect,
 
     def check_forward(self, inputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         y_expect, = self.forward_cpu(inputs)
 
         # TODO(sonots): Cleanup to use testing.backend.get_array after
@@ -126,11 +122,6 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero(self, backend_config):
-        if backend_config.use_chainerx:
-            # TODO(sonots): Support it
-            if self.dtype == numpy.float16:
-                raise unittest.SkipTest('ChainerX does not support float16')
-
         with self.assertRaises(Exception):
             x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             # TODO(sonots): Cleanup to use testing.backend.get_array after
@@ -160,10 +151,6 @@ class TestMaxPooling2D(unittest.TestCase):
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         # TODO(sonots): Cleanup to use testing.backend.get_array after
         # chainerx.asfortranarray is implemented.
         if (backend_config.use_cuda
@@ -199,10 +186,6 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         # TODO(sonots): Cleanup to use testing.backend.get_array after
         # chainerx.asfortranarray is implemented.
         if (backend_config.use_cuda
@@ -297,7 +280,7 @@ class TestMaxPooling2DIndices(unittest.TestCase):
                     [xx[2:4, 0:2].ravel().argmax(),
                      xx[2:4, 2:4].ravel().argmax()],
                 ])
-        if out.xp is not numpy:
+        if out.xp is cuda.cupy:
             expect = cuda.to_gpu(expect)
         assert (expect == indices).all()
 

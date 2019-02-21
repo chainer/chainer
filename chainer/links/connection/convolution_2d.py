@@ -7,7 +7,8 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, \
+nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -19,16 +20,9 @@ class Convolution2D(link.Link):
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     Convolution links can use a feature of cuDNN called autotuning, which
-    selects the most efficient CNN algorithm for images of fixed-size, 
+    selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
-
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
 
     Args:
         in_channels (int or None): Number of channels of input arrays.
@@ -72,7 +66,8 @@ class Convolution2D(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(1, 3, 10, 10)
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(
+        ...     1, 3, 10, 10)
 
         1. Give the first three arguments explicitly:
 
@@ -109,7 +104,7 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-    """  # NOQA
+    """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None, **kwargs):

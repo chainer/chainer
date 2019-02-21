@@ -49,10 +49,6 @@ class TestSum(unittest.TestCase):
     @attr.chainerx
     @condition.retry(3)
     def test_forward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data, y_grad):
@@ -72,10 +68,6 @@ class TestSum(unittest.TestCase):
     @attr.chainerx
     @condition.retry(3)
     def test_backward_axis_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
 
 

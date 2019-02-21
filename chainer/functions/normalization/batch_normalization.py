@@ -8,7 +8,6 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
-from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -17,7 +16,7 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
+    libcudnn = cuda.libcudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
@@ -201,82 +200,16 @@ class BatchNormalization(function_node.FunctionNode):
                 y = numpy.squeeze(y, axis=(2, 3))
 
         elif self.use_cudnn:
-            # TODO(niboshi): Refactor cuDNN part into a separate method
-            x = cuda.cupy.ascontiguousarray(x)
-
-            gamma = cuda.cupy.ascontiguousarray(gamma)
-            beta = cuda.cupy.ascontiguousarray(beta)
-            dtype = x.dtype
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.mode))
-            cudnn_mode = self.mode.get_cudnn_mode()
-            derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
-            libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
-                                              x_desc.value, cudnn_mode)
-            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
-            if dtype_param is not dtype:
-                gamma = gamma.astype(dtype_param)
-                beta = beta.astype(dtype_param)
-                running_mean = self.running_mean.astype(dtype_param)
-                running_var = self.running_var.astype(dtype_param)
-            else:
-                running_mean = self.running_mean
-                running_var = self.running_var
-
-            oz_dtype = (
-                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            y = cuda.cupy.empty_like(x)
-            # Factor used in the moving average
-            factor = 1 - self.decay
-
             if self.mean is None:
                 # Output cache to speed up backward pass.
                 self.mean = xp.empty_like(gamma)
                 # Output cache to speed up backward pass.
                 self.inv_std = xp.empty_like(gamma)
-            # Note: cuDNN computes the mini-batch mean and variance
-            # internally. We can simply (optionally) pass
-            # it the running-average mean and variance arrays.
-            # Note: This API seems to set the inverse of the standard deviation
-            # (instead of variance) to resultSaveInvVariance argument. The
-            # current implementation of our BN depends on this behavior so that
-            # we can reduce the number of reduction kernels.
-            libcudnn.batchNormalizationForwardTraining(
-                handle, cudnn_mode, one.data, zero.data,
-                x_desc.value, x.data.ptr, x_desc.value,
-                y.data.ptr, derivedBnDesc.value, gamma.data.ptr,
-                beta.data.ptr, factor, running_mean.data.ptr,
-                running_var.data.ptr, self.eps,
-                self.mean.data.ptr, self.inv_std.data.ptr)
-
-            # Note: When the CUDNN_BATCHNORM_SPATIAL_PERSISTENT mode is used,
-            # there is a possibility of numerical overflow. You can use
-            # queryRuntimeError() to make sure whether the overflow actually
-            # occured or not during the batch normalization.
-            if (cudnn_mode is libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT and
-                    configuration.config.debug):
-                query_mode = libcudnn.CUDNN_ERRQUERY_BLOCKING
-                rstatus = libcudnn.queryRuntimeError(handle, query_mode)
-                if rstatus is not libcudnn.CUDNN_STATUS_SUCCESS:
-                    warnings.warn(
-                        'A numerical overflow might have happend in cuDNN'
-                        'batch normalization (status:{})'.format(rstatus))
-
-            if dtype_param is not dtype:
-                # When data type of prameters is converted, say, from fp16
-                # to fp32, the values of fp32 arrays of running_mean and
-                # running_var updated by batchNormalizationForwardTraining
-                # must be explicitly written back to their original fp16
-                # arrays.
-                running_mean = running_mean.astype(dtype)
-                running_var = running_var.astype(dtype)
-                self.running_mean.data.copy_from(running_mean.data,
-                                                 running_mean.nbytes)
-                self.running_var.data.copy_from(running_var.data,
-                                                running_var.nbytes)
+            y = cudnn.batch_normalization_forward_training(
+                x, gamma, beta, self.running_mean, self.running_var,
+                self.mean, self.inv_std, self.eps, self.decay,
+                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
+                chainer.is_debug())
         else:
             # Generic CPU and GPU implementation
 
@@ -371,52 +304,10 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 gx = numpy.squeeze(gx, axis=(2, 3))
 
         elif self.use_cudnn:
-            # TODO(niboshi): Refactor cuDNN part into a separate method
-            x = cuda.cupy.ascontiguousarray(x)
-            gamma = cuda.cupy.ascontiguousarray(gamma)
-            gy = cuda.cupy.ascontiguousarray(gy)
-            dtype = x.dtype
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.mode))
-            cudnn_mode = self.mode.get_cudnn_mode()
-            derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
-            libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
-                                              x_desc.value, cudnn_mode)
-            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
-            if dtype_param is not dtype:
-                gamma = gamma.astype(dtype_param)
-            oz_dtype = (
-                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            gx = cuda.cupy.empty_like(x)
-            ggamma = cuda.cupy.empty_like(gamma)
-            gbeta = cuda.cupy.empty_like(gamma)
-            libcudnn.batchNormalizationBackward(
-                handle, cudnn_mode, one.data, zero.data,
-                one.data, zero.data, x_desc.value, x.data.ptr,
-                x_desc.value, gy.data.ptr, x_desc.value, gx.data.ptr,
-                derivedBnDesc.value, gamma.data.ptr,
-                ggamma.data.ptr, gbeta.data.ptr,
-                self.eps, self.mean.data.ptr, self.inv_std.data.ptr)
-
-            # Note: When the CUDNN_BATCHNORM_SPATIAL_PERSISTENT mode is used,
-            # there is a possibility of numerical overflow. You can use
-            # queryRuntimeError() to make sure whether the overflow actually
-            # occured or not during the batch normalization.
-            if (cudnn_mode is libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT and
-                    configuration.config.debug):
-                query_mode = libcudnn.CUDNN_ERRQUERY_BLOCKING
-                rstatus = libcudnn.queryRuntimeError(handle, query_mode)
-                if rstatus is not libcudnn.CUDNN_STATUS_SUCCESS:
-                    warnings.warn(
-                        'A numerical overflow might have happend in cuDNN'
-                        'batch normalization (status:{})'.format(rstatus))
-
-            if dtype_param is not dtype:
-                ggamma = ggamma.astype(dtype)
-                gbeta = gbeta.astype(dtype)
+            gx, ggamma, gbeta = cudnn.batch_normalization_backward(
+                x, gamma, gy, self.mean, self.inv_std, self.eps,
+                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
+                chainer.is_debug())
         else:
             # CPU and GPU implementation
             gbeta = gy.sum(axis=self.axis)
@@ -593,36 +484,9 @@ class FixedBatchNormalization(function_node.FunctionNode):
             self.inv_std = None
 
         elif mode.can_use_cudnn(xp):
-            # TODO(niboshi): Refactor cuDNN part into a separate method
-            x = cuda.cupy.ascontiguousarray(x)
-
-            gamma = cuda.cupy.ascontiguousarray(gamma)
-            beta = cuda.cupy.ascontiguousarray(beta)
-            dtype = x.dtype
-            handle = cudnn.get_handle()
-            x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, mode))
-            cudnn_mode = mode.get_cudnn_mode()
-            derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
-            libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
-                                              x_desc.value, cudnn_mode)
-            dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
-            if dtype_param is not dtype:
-                gamma = gamma.astype(dtype_param)
-                beta = beta.astype(dtype_param)
-                mean = mean.astype(dtype_param)
-                var = var.astype(dtype_param)
-            oz_dtype = (
-                numpy.float64 if x.dtype == numpy.float64 else numpy.float32)
-            one = numpy.array(1, dtype=oz_dtype).ctypes
-            zero = numpy.array(0, dtype=oz_dtype).ctypes
-            y = cuda.cupy.empty_like(x)
-
-            libcudnn.batchNormalizationForwardInference(
-                handle, cudnn_mode, one.data, zero.data,
-                x_desc.value, x.data.ptr, x_desc.value, y.data.ptr,
-                derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
-                mean.data.ptr, var.data.ptr, self.eps)
+            y = cudnn.batch_normalization_forward_inference(
+                x, gamma, beta, mean, var, self.eps,
+                mode.is_for_conv2d, mode.get_cudnn_mode())
         else:
             # Generic CPU and GPU implementation
             gamma = gamma[expander]
@@ -749,63 +613,16 @@ class _BNMode(object):
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        return (xp is not numpy and
+        return (xp is cuda.cupy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
                 self.cudnn_dtype_ok)
-
-
-def _as4darray(arr, mode):
-    assert mode.cudnn_dim_ok
-    if mode.is_for_conv2d:
-        assert arr.ndim == 4
-        return arr
-    else:  # is_for_linear
-        return arr.reshape(utils.size_of_shape(arr.shape[0:-1]), -1, 1, 1)
 
 
 def _x_hat(x, mean, inv_std):
     x_mu = x - mean
     x_mu *= inv_std
     return x_mu
-
-
-def _apply_bn_fwd(xp, x, mean, inv_std, gamma, beta):
-    # NOTE: all arguments should be broadcasted to x.shape
-    # (mean, inv_std, gamma, and beta have to already be expanded)
-    if xp is numpy:
-        x_hat = _x_hat(x, mean, inv_std)
-        y = gamma * x_hat
-        y += beta
-    else:
-        y = cuda.elementwise(
-            'T x, T mean, T inv_std, T gamma, T beta', 'T y',
-            'y = gamma * (x - mean) * inv_std + beta', 'bn_fwd'
-        )(x, mean, inv_std, gamma, beta)
-    return y
-
-
-def _zero_if_none(xp, x, shape, dtype):
-    # TODO(Tokui): Return broadcasted 0 instead of a zeroed array.
-    if x is None:
-        return xp.zeros(shape, dtype=dtype)
-    return x
-
-
-def _get_dtype_of_tensor_descriptor(desc):
-    cudnn_dtype, _, _, _, _, _, _, _, _ = libcudnn.getTensor4dDescriptor(
-        desc.value)
-    dtype = None
-    if cudnn_dtype == libcudnn.CUDNN_DATA_DOUBLE:
-        dtype = numpy.dtype(numpy.float64)
-    elif cudnn_dtype == libcudnn.CUDNN_DATA_FLOAT:
-        dtype = numpy.dtype(numpy.float32)
-    elif cudnn_dtype == libcudnn.CUDNN_DATA_HALF:
-        dtype = numpy.dtype(numpy.float16)
-    else:
-        msg = 'Unknow cudnn data type {} '.format(cudnn_dtype)
-        raise RuntimeError(msg)
-    return dtype
 
 
 def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
@@ -830,6 +647,28 @@ def _chainerx_is_supported(device, axis_chx):
                     and axis_chx[3] == 4)):
             return False
     return True
+
+
+def _apply_bn_fwd(xp, x, mean, inv_std, gamma, beta):
+    # NOTE: all arguments should be broadcasted to x.shape
+    # (mean, inv_std, gamma, and beta have to already be expanded)
+    if xp is numpy:
+        x_hat = _x_hat(x, mean, inv_std)
+        y = gamma * x_hat
+        y += beta
+    else:
+        y = cuda.elementwise(
+            'T x, T mean, T inv_std, T gamma, T beta', 'T y',
+            'y = gamma * (x - mean) * inv_std + beta', 'bn_fwd'
+        )(x, mean, inv_std, gamma, beta)
+    return y
+
+
+def _zero_if_none(xp, x, shape, dtype):
+    # TODO(Tokui): Return broadcasted 0 instead of a zeroed array.
+    if x is None:
+        return xp.zeros(shape, dtype=dtype)
+    return x
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
@@ -858,28 +697,21 @@ def batch_normalization(x, gamma, beta, **kwargs):
     the total batch size will be considered to be the product of all
     input dimensions except the second dimension.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (numpy.ndarray or cupy.ndarray):
+        running_mean (:ref:`ndarray`):
             Running average of the mean. This is a running average of
             the mean over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
             the array in-place by the new running average.
             If ``None``, the running average is not computed. If this is
             ``None``, then ``runnng_var`` must also be ``None``.
-        running_var (numpy.ndarray or cupy.ndarray):
+        running_var (:ref:`ndarray`):
             Running average of the variance. This is a running average of
             the variance over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
@@ -923,16 +755,15 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of input.
-        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Square of scaling parameter of input.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of input.
+        var (:class:`~chainer.Variable` or :ref:`ndarray`): Square of scaling
+            parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input

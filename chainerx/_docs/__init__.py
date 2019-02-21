@@ -10,7 +10,8 @@ from chainerx._docs import routines
 
 
 def set_doc(obj, docstring):
-    if inspect.ismethoddescriptor(obj) or inspect.isroutine(obj):
+    if ((inspect.ismethoddescriptor(obj) or inspect.isroutine(obj))
+            and not inspect.isfunction(obj)):
         # pybind-generated functions and methods
         _core._set_pybind_doc(obj, docstring)
         return

@@ -3,10 +3,10 @@ import functools
 import inspect
 
 from chainer import function
-from chainer import link
+from chainer import link as _link
 
 
-class Sequential(link.ChainList):
+class Sequential(_link.ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
@@ -145,9 +145,9 @@ class Sequential(link.ChainList):
 
     def __delitem__(self, i):
         layer = self._layers.pop(i)
-        if isinstance(layer, link.Link):
-            for i, _link in enumerate(self._children):
-                if _link.name == layer.name:
+        if isinstance(layer, _link.Link):
+            for i, link in enumerate(self._children):
+                if link.name == layer.name:
                     del self._children[i]
                     break
             for j, layer in enumerate(self._children[i:]):
@@ -235,15 +235,15 @@ class Sequential(link.ChainList):
             if isinstance(layer, Sequential):
                 name = layer.__class__.__name__
                 name += '\twhich has {} layers'.format(len(layer))
-            elif isinstance(layer, link.Chain):
+            elif isinstance(layer, _link.Chain):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a Chain is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, link.ChainList):
+            elif isinstance(layer, _link.ChainList):
                 name = layer.__class__.__name__
                 name += '\tThe structure behind a ChainList is determined at '
                 name += 'runtime.'
-            elif isinstance(layer, link.Link):
+            elif isinstance(layer, _link.Link):
                 name = layer.__class__.__name__
                 param_info = '\t'
                 for param in sorted(layer.params(), key=lambda p: p.name):
@@ -279,7 +279,7 @@ class Sequential(link.ChainList):
                 'given {} is not callable.'.format(layer))
 
         self._layers.insert(i, layer)
-        if isinstance(layer, link.Link):
+        if isinstance(layer, _link.Link):
             if i == 0:
                 self._children.insert(0, layer)
             else:
@@ -288,7 +288,7 @@ class Sequential(link.ChainList):
                 last_link_pos = 0
                 for j in range(i - 1, -1, -1):
                     # The last link before the given position
-                    if isinstance(self._layers[j], link.Link):
+                    if isinstance(self._layers[j], _link.Link):
                         last_link_pos = j
                 self._children.insert(last_link_pos + 1, layer)
             for i, layer in enumerate(self._children):
@@ -319,7 +319,7 @@ class Sequential(link.ChainList):
 
         names = []
         for layer in self:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 name = layer.__class__.__name__
             else:
                 name = layer.__name__
@@ -364,7 +364,7 @@ class Sequential(link.ChainList):
 
         num = 0
         for layer in self._layers:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 if layer.__class__.__name__ == type_name:
                     num += 1
             else:
@@ -375,11 +375,19 @@ class Sequential(link.ChainList):
     def copy(self, mode='share'):
         ret = Sequential()
         for layer in self:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 ret.append(layer.copy(mode))
             else:
                 ret.append(copy.copy(layer))
         return ret
+
+    def copyparams(self, link, copy_persistent=True):
+        if not isinstance(link, Sequential):
+            raise ValueError('Objects other than Sequential object cannot be '
+                             'copied to a Sequential object.')
+        for idx, child in enumerate(self):
+            if isinstance(child, _link.Link):
+                child.copyparams(link[idx], copy_persistent)
 
     def flatten(self):
         """Flatten nested :class:`~chainer.Sequential` links.

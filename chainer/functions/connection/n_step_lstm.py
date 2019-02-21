@@ -9,15 +9,15 @@ from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
 from chainer.utils import argument
+import chainerx
 
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    # TODO(unno): Input of the current LSTM implementation is shuffled
     w = stack.stack(ws, axis=1)
     shape = w.shape
     return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
@@ -69,14 +69,6 @@ def n_step_lstm(
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
     Note that all input variables except the first layer may have different
     shape from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): The number of layers.
@@ -230,14 +222,6 @@ def n_step_bilstm(
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
     Note that all input variables except the first layer may have different
     shape from the first layer.
-
-    .. warning::
-
-       ``train`` and ``use_cudnn`` arguments are not supported anymore since
-       v2.
-       Instead, use ``chainer.using_config('train', train)`` and
-       ``chainer.using_config('use_cudnn', use_cudnn)`` respectively.
-       See :func:`chainer.using_config`.
 
     Args:
         n_layers(int): The number of layers.
@@ -420,9 +404,20 @@ def n_step_lstm_base(
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
+    # Check input size consistency with xs and ws here.
+    x_in = xs[0].shape[1]
+    w_in = ws[0][0].shape[1]
+    if x_in != w_in:
+        raise ValueError('Inconsistent input size in input values and weight '
+                         'parameters: {} != {}'.format(x_in, w_in))
+
     xp = backend.get_array_module(hx, hx.data)
 
-    if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
+    # TODO(imanishi): Support ChainerX n_step_rnn
+    use_cuda = xp is cuda.cupy or (
+        xp is chainerx and hx.device.device.backend.name == 'cuda')
+
+    if use_cuda and chainer.should_use_cudnn('>=auto', 5000):
         states = cuda.get_cudnn_dropout_states()
         states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]

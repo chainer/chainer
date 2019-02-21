@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <queue>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
@@ -26,6 +28,25 @@ namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
 
+// Keeps any memory from being freed before CUDA asynchronous operations are finished.
+// Operations in this class are thread safe.
+class MemoryKeeper {
+public:
+    ~MemoryKeeper();
+
+    // Registers a pointer to a memory chunk.
+    // The memory is only freed after all preceding CUDA operations in the stream are finished.
+    // TODO(niboshi): Currently only the default stream is supported.
+    void Add(cudaStream_t stream, std::shared_ptr<void> memory);
+
+    // Checks for recorded events and frees the associated memories.
+    void Collect();
+
+private:
+    std::mutex mutex_{};
+    std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
+};
+
 }  // namespace cuda_internal
 
 class CudaDevice : public Device {
@@ -33,6 +54,8 @@ public:
     ~CudaDevice() override;
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
+
+    const std::shared_ptr<MemoryPool>& device_memory_pool() { return device_memory_pool_; }
 
     void Synchronize() override;
 
@@ -210,6 +233,9 @@ private:
 
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
     std::shared_ptr<MemoryPool> pinned_memory_pool_;
+
+    // Memory keeper.
+    cuda_internal::MemoryKeeper memory_keeper_{};
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};

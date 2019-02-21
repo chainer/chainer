@@ -240,6 +240,12 @@ def numpy_chainerx_allclose(**kwargs):
              acceptable errors. When both NumPy test and ChainerX test raises
              the same type of errors, and the type of the errors is specified
              with this argument, the errors are ignored and not raised.
+         float16_rtol(float): Relative tolerance for float16 dtype.
+         float16_atol(float): Absolute tolerance for float16 dtype.
+         float32_rtol(float): Relative tolerance for float32 dtype.
+         float32_atol(float): Absolute tolerance for float32 dtype.
+         float64_rtol(float): Relative tolerance for float64 dtype.
+         float64_atol(float): Absolute tolerance for float64 dtype.
 
     Decorated test fixture is required to return the same arrays
     in the sense of :func:`numpy_chainerx_allclose`
@@ -257,11 +263,15 @@ def numpy_chainerx_allclose(**kwargs):
     dtype_check = kwargs.pop('dtype_check', None)
     strides_check = kwargs.pop('strides_check', None)
     accept_error = kwargs.pop('accept_error', ())
+    tol_kwargs = {k: kwargs[k] for k in
+                  ['float16_rtol', 'float32_rtol', 'float64_rtol',
+                   'float16_atol', 'float32_atol', 'float64_atol']
+                  if k in kwargs}
 
     def check_result_func(x, y):
         array.assert_allclose_ex(
             x, y, rtol, atol, equal_nan, err_msg, verbose,
-            dtype_check=dtype_check, strides_check=strides_check)
+            dtype_check=dtype_check, strides_check=strides_check, **tol_kwargs)
 
     return _make_decorator(check_result_func, name, accept_error)
 

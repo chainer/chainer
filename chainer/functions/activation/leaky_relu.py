@@ -12,7 +12,7 @@ def _get_kern():
     if _kern is None:
         _kern = cuda.elementwise(
             'T cond, T x, T slope', 'T y',
-            'y = cond >= 0 ? x : (T)(slope * x)', 'lrelu')
+            'y = cond <= 0 ? (T)(slope * x) : x', 'lrelu')
     return _kern
 
 
@@ -35,7 +35,7 @@ class LeakyReLU(function_node.FunctionNode):
 
         x, = inputs
         y = x.copy()
-        y[x < 0] *= self.slope
+        y[x <= 0] *= self.slope
         if self.slope >= 0:
             self.retain_outputs((0,))
         else:
@@ -46,7 +46,6 @@ class LeakyReLU(function_node.FunctionNode):
         x, = inputs
         y = intel64.ideep.relu.Forward(
             intel64.ideep.array(x), self.slope)
-
         if self.slope >= 0:
             self.retain_outputs((0,))
         else:
@@ -64,20 +63,17 @@ class LeakyReLU(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         if self.slope >= 0:
-            x = None
-            y = self.get_retained_outputs()[0].data
+            cond = self.get_retained_outputs()[0].array
         else:
-            x = self.get_retained_inputs()[0].data
-            y = None
-        return _LeakyReLUGrad(x, y, self.slope).apply(grad_outputs)
+            cond = self.get_retained_inputs()[0].array
+        return _LeakyReLUGrad(cond, self.slope).apply(grad_outputs)
 
 
 class _LeakyReLUGrad(function_node.FunctionNode):
 
-    def __init__(self, x, y, slope):
+    def __init__(self, cond, slope):
+        self.cond = cond
         self.slope = slope
-        self.x = x
-        self.y = y
 
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
@@ -86,35 +82,23 @@ class _LeakyReLUGrad(function_node.FunctionNode):
 
         gy, = inputs
         gy = gy.copy()
-        if self.slope >= 0:
-            gy[self.y < 0] *= self.slope
-        else:
-            gy[self.x < 0] *= self.slope
+        gy[self.cond <= 0] *= self.slope
         return gy,
 
     def forward_ideep(self, inputs):
         gy, = inputs
-
-        if self.slope >= 0:
-            gy = intel64.ideep.relu.Backward(
-                intel64.ideep.array(self.y),
-                intel64.ideep.array(gy), self.slope)
-        else:
-            gy = intel64.ideep.relu.Backward(
-                intel64.ideep.array(self.x),
-                intel64.ideep.array(gy), self.slope)
+        gy = intel64.ideep.relu.Backward(
+            intel64.ideep.array(self.cond),
+            intel64.ideep.array(gy), self.slope)
         return gy,
 
     def forward_gpu(self, inputs):
         gy, = inputs
-        if self.slope >= 0:
-            gy = _get_kern()(self.y, gy, self.slope)
-        else:
-            gy = _get_kern()(self.x, gy, self.slope)
+        gy = _get_kern()(self.cond, gy, self.slope)
         return gy,
 
     def backward(self, indexes, grad_outputs):
-        return _LeakyReLUGrad(self.x, self.y, self.slope).apply(grad_outputs)
+        return _LeakyReLUGrad(self.cond, self.slope).apply(grad_outputs)
 
 
 def leaky_relu(x, slope=0.2):
@@ -132,8 +116,7 @@ def leaky_relu(x, slope=0.2):
     where :math:`a` is a configurable slope value.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         slope (float): Slope value :math:`a`.
 

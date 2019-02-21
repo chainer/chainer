@@ -168,7 +168,7 @@ class TestFunctionNode(unittest.TestCase):
         grad_outputs = (self.gy1, self.gy2)
         grad_inputs = dict(zip(self.f.inputs, gxrefs))
         _backprop_utils.backprop_step(
-            self.f, (0, 1), grad_outputs, grad_inputs)
+            self.f, (0, 1), grad_outputs, grad_inputs, True)
         if not chainer.configuration.config.lazy_grad_sum:
             # assert eager grad sum
             for gxref in gxrefs:

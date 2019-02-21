@@ -47,8 +47,8 @@ TEST(CudaConvTest, FwdAlgoCache) {
     std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
     Shape b_shape{out_channels};
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     // New parameters should create new auto tuning caches, and same parameters should not.
@@ -93,8 +93,8 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
     std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
     Shape b_shape{out_channels};
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2.0f, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
 
     // New parameters should create new auto tuning caches, and same parameters should not.
@@ -137,7 +137,7 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
     Shape w_shape{out_channels, in_channels};
     std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2.0f, 1.0f).WithPadding(1);
 
     // New parameters should create new auto tuning caches, and same parameters should not.
     // ConvGradW is not exposed as routines function, so call CudaDevice::ConvGradWeight directly.

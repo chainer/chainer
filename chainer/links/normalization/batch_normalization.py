@@ -80,8 +80,8 @@ class BatchNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
-        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
+        avg_mean (:ref:`ndarray`): Population mean.
+        avg_var (:ref:`ndarray`): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
@@ -251,12 +251,6 @@ class BatchNormalization(link.Link):
         mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
-        .. warning::
-
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', False)``.
-           See :func:`chainer.using_config`.
-
         Args:
             x (Variable): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is
@@ -297,9 +291,20 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = None
+                avg_var = None
+
             ret = functions.batch_normalization(
-                x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay, axis=self.axis)
+                x, gamma, beta, eps=self.eps, running_mean=avg_mean,
+                running_var=avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean

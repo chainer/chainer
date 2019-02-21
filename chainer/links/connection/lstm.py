@@ -173,25 +173,21 @@ class LSTM(LSTMBase):
             omitted, parameter initialization will be deferred until the first
             forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
-        lateral_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        lateral_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the lateral connections.
             May be ``None`` to use default initialization.
-        upward_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        upward_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the upward connections.
             May be ``None`` to use default initialization.
-        bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
+        bias_init: A callable that takes :ref:`ndarray` and edits its value
             It is used for initialization of the biases of cell input,
             input gate and output gate.and gates of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the cell-input bias is initialized to zero.
-        forget_bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
-            It is used for initialization of the biases of the forget gate of
-            the upward connection.
+        forget_bias_init: A callable that takes :ref:`ndarray` and edits its
+            value. It is used for initialization of the biases of the forget
+            gate of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the forget bias is initialized to one.

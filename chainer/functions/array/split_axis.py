@@ -182,8 +182,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             A variable to be split.
         indices_or_sections (int or 1-D array): If this argument is an integer,
             N, the array will be divided into N equal arrays along axis.

@@ -4,9 +4,11 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "chainerx/device.h"
 #include "chainerx/error.h"
+#include "chainerx/macro.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
 #include "chainerx/python/shape.h"
@@ -26,7 +28,7 @@ namespace py = pybind11;  // standard convention
 // (py::buffer_info only holds a raw pointer and does not manage the lifetime of the pointed data). Memoryviews created from this buffer
 // will also share ownership. Note that accessing the .obj attribute of a memoryview may increase the reference count and should thus be
 // avoided.
-class PyDeviceBuffer {
+class CHAINERX_VISIBILITY_HIDDEN PyDeviceBuffer {
 public:
     PyDeviceBuffer(std::shared_ptr<void> data, std::shared_ptr<py::buffer_info> info) : data_{std::move(data)}, info_{std::move(info)} {}
 
@@ -59,7 +61,7 @@ void InitChainerxDeviceBuffer(pybind11::module& m) {
               Dtype dtype = python_internal::GetDtype(dtype_handle);
               int64_t item_size = GetItemSize(dtype);
               int64_t bytes = item_size * total_size;
-              std::shared_ptr<void> host_data = std::make_unique<uint8_t[]>(bytes);
+              std::shared_ptr<void> host_data{new uint8_t[bytes], std::default_delete<uint8_t[]>()};
               std::string format = VisitDtype(dtype, [&host_data, &list](auto pt) {
                   using T = typename decltype(pt)::type;
                   std::transform(list.begin(), list.end(), static_cast<T*>(host_data.get()), [](auto& item) { return py::cast<T>(item); });

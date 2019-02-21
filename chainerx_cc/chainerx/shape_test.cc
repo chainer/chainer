@@ -116,7 +116,7 @@ TEST(ShapeTest, CheckEqual) {
 
 TEST(ShapeTest, Iterator) {
     const Shape shape = {2, 3, 4};
-    CheckSpanEqual({2, 3, 4}, gsl::make_span(shape.begin(), shape.end()));
+    CheckSpanEqual({2, 3, 4}, gsl::make_span(std::vector<int64_t>{shape.begin(), shape.end()}));
     CheckSpanEqual({4, 3, 2}, gsl::make_span(std::vector<int64_t>{shape.rbegin(), shape.rend()}));
 }
 

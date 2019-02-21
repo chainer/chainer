@@ -47,10 +47,8 @@ def mean_squared_error(x0, x1):
     is taken over the minibatch. Note that the error is not scaled by 1/2.
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable:

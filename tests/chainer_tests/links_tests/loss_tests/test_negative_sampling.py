@@ -4,26 +4,28 @@ import numpy
 
 import chainer
 from chainer import backend
-from chainer.backends import cuda
+from chainer.backend import CpuDevice
 from chainer import links
 from chainer import testing
-from chainer.testing import attr
-# TODO(hvy): Remove the following import once testing.backend is imported
-# in testing/__init__.py
-import chainer.testing.backend
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     't': [[0, 2], [-1, 1, 2]],
     'reduce': ['sum', 'no'],
 }))
-@testing.backend.inject_backend_tests(
-    ['test_forward', 'test_return_samples'],
+@testing.inject_backend_tests(
+    None,
     [
-        # CPU test
+        # NumPy
         {},
-        # CUDA test
-        {'use_cuda': True},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 class TestNegativeSampling(unittest.TestCase):
 
@@ -31,16 +33,29 @@ class TestNegativeSampling(unittest.TestCase):
     sample_size = 2
 
     def setUp(self):
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         batch = len(self.t)
         x_shape = (batch, self.in_size)
-        self.x = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         self.t = numpy.array(self.t).astype(numpy.int32)
 
         if self.reduce == 'no':
             g_shape = self.t.shape
         elif self.reduce == 'sum':
             g_shape = ()
-        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.test_forward_options = {'atol': 1e-2}
+            self.test_backward_options = {'atol': 5e-3}
+        else:
+            self.test_forward_options = {}
+            self.test_backward_options = {'atol': 1e-4}
+
+    def tearDown(self):
+        self._config_user.__exit__(None, None, None)
 
     def create_link(self, rng=None):
         if rng is None:
@@ -80,20 +95,20 @@ class TestNegativeSampling(unittest.TestCase):
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)
         x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
+        t = chainer.Variable(t_data, requires_grad=False)
 
         link = self.create_link()
-        if backend_config.use_cuda:
-            link.to_gpu()
+        link.to_device(backend_config.device)
 
         y, samples = link(x, t, reduce=self.reduce, return_samples=True)
 
         self.assertEqual(y.shape, self.gy.shape)
 
-        W = cuda.to_cpu(link.W.data)
-        samples = cuda.to_cpu(samples)
+        cpu_device = CpuDevice()
+        W = cpu_device.send(link.W.data)
+        samples = cpu_device.send(samples)
 
-        loss = numpy.empty((len(self.x),), numpy.float32)
+        loss = numpy.empty((len(self.x),), self.dtype)
         for i in range(len(self.x)):
             ix = self.x[i]
             it = self.t[i]
@@ -109,22 +124,19 @@ class TestNegativeSampling(unittest.TestCase):
         if self.reduce == 'sum':
             loss = loss.sum()
 
-        testing.assert_allclose(y.data, loss)
+        testing.assert_allclose(y.data, loss, **self.test_forward_options)
 
-    @attr.gpu
-    def test_to_cpu(self):
+    def test_to_cpu(self, backend_config):
         link = self.create_link()
-        link.to_device((cuda.cupy, 0))
-        self.assertEqual(
-            link.sampler.device, chainer.get_device((cuda.cupy, 0)))
+        link.to_device(backend_config.device)
+        self.assertEqual(link.sampler.device, backend_config.device)
         link.to_device(numpy)
         self.assertEqual(link.sampler.device, backend.CpuDevice())
 
     def test_return_samples(self, backend_config):
         batch_size = self.t.shape[0]
         link = self.create_link()
-        if backend_config.use_cuda:
-            link.to_gpu()
+        link.to_device(backend_config.device)
 
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)
@@ -144,19 +156,19 @@ class TestNegativeSampling(unittest.TestCase):
             lambda: link(x, t, reduce=self.reduce))
 
         # y and y_ should equal
+        cpu_device = CpuDevice()
         numpy.testing.assert_array_equal(
-            cuda.to_cpu(y.array), cuda.to_cpu(y_.array))
+            cpu_device.send(y.array), cpu_device.send(y_.array))
 
-    @attr.gpu
-    def test_backward_cpu_gpu(self):
-        # This test compares gradients of CPU and GPU modes.
+    def test_backward_compare_with_numpy(self, backend_config):
+        # This test compares gradients with that of NumPy mode.
 
         rng = numpy.random.RandomState()
         rng_state = rng.get_state()
 
-        # Call CPU mode link and save samples
+        # Call NumPy mode link and save samples
         x = chainer.Variable(self.x)
-        t = chainer.Variable(self.t)
+        t = chainer.Variable(self.t, requires_grad=False)
         link = self.create_link(rng)
 
         y, samples = link(x, t, return_samples=True)
@@ -169,11 +181,12 @@ class TestNegativeSampling(unittest.TestCase):
         # Call GPU mode link
         rng.set_state(rng_state)
         link = self.create_link(rng)
-        link.to_gpu()
-        x = chainer.Variable(cuda.to_gpu(self.x))
-        t = chainer.Variable(cuda.to_gpu(self.t))
-        y = self.call_link_with_samples(
-            cuda.to_gpu(samples), lambda: link(x, t))
+        link.to_device(backend_config.device)
+        x = chainer.Variable(backend_config.get_array(self.x))
+        t = chainer.Variable(
+            backend_config.get_array(self.t), requires_grad=False)
+        samples = backend_config.get_array(samples)
+        y = self.call_link_with_samples(samples, lambda: link(x, t))
 
         y.backward()
         assert t.grad is None
@@ -181,8 +194,8 @@ class TestNegativeSampling(unittest.TestCase):
         gx_gpu = x.grad
 
         # Compare gradients from CPU and GPU modes
-        testing.assert_allclose(gx_cpu, gx_gpu, atol=1.e-4)
-        testing.assert_allclose(gw_cpu, gw_gpu, atol=1.e-4)
+        testing.assert_allclose(gx_cpu, gx_gpu, **self.test_backward_options)
+        testing.assert_allclose(gw_cpu, gw_gpu, **self.test_backward_options)
 
 
 testing.run_module(__name__, __file__)

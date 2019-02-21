@@ -15,6 +15,6 @@ It requires the training and validation dataset of following format:
 * The second element is its ground truth label from 0 to 999.
 
 The text format is equivalent to what Caffe uses for ImageDataLayer.
-This example currently does not include dataset preparation script.
+This example currently does not include a dataset preparation script.
 
 This example requires "mean file" which is computed by `compute_mean.py`.
