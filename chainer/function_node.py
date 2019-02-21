@@ -1089,6 +1089,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     ret_dict = {}
 
     is_debug = chainer.is_debug()
+    base_hooks = chainer.get_function_hooks().values()
     while candidate_funcs:
         func = pop_candidate()
 
@@ -1123,26 +1124,28 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         # Do backward
 
         # Call pre-backward hooks
-        hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(func.local_function_hooks)
-        hooks = hooks.values()  # avoid six for performance
+            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
+            local_hooks.update(func.local_function_hooks)
+            hooks = local_hooks.values()  # avoid six for performance
+        else:
+            hooks = base_hooks
 
-        in_data = tuple([x.data for x in func.inputs])
-        out_grad_data = tuple(
-            [None if g is None else g.data for g in gys])
+        in_data = [x.data for x in func.inputs]
+        out_grad_data = [None if g is None else g.data for g in gys]
 
         with cuda.get_device_from_array(*in_data):
             for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+                hook.backward_preprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
             _backprop_utils.backprop_step(func, input_indexes, gys, x_grads,
                                           is_debug)
 
             # Call post-backward hooks
             for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                hook.backward_postprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
         # Update grads
         for node, g in x_grads.items():
