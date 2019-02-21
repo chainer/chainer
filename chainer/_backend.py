@@ -66,6 +66,9 @@ class Device(object):
         raise NotImplementedError(
             'Device implementation must override this method.')
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def create_context(self):
         # Returns an object that implements __enter__ and __exit__.
         return _dummy_context
