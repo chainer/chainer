@@ -48,7 +48,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     testing.product({
         'test': [True, False],
         # 'dtype': [numpy.float16, numpy.float32, numpy.float64],
-        'dtype': [numpy.float32, numpy.float64],
+        'dtype': [numpy.float64],
         'size': ['skip', 'explicit'],
     }),
     testing.product({
@@ -62,6 +62,12 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 class BatchNormalizationLinkTest(testing.LinkTestCase):
 
     param_names = ['gamma', 'beta']
+
+    # TODO(hvy): Remove these declarations since none of them should be
+    # skipped anyway.
+    skip_forward_test = False
+    skip_backward_test = False
+    skip_initializers_test = False
 
     def setUp(self):
         if hasattr(self, 'axis') and hasattr(self, 'input_shape'):
@@ -147,7 +153,7 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         x, = inputs
         with chainer.using_config('train', not self.test):
             y = link(x, finetune=self.finetune)
-        return y
+        return y,
 
     def forward_expected(self, inputs, params):
         x, = inputs
@@ -162,7 +168,7 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
             var = x.var(axis=self.aggr_axes, keepdims=True)
             std = numpy.sqrt(var + self.eps)
         y = gamma[self.expander] * (x - mean) / std + beta[self.expander]
-        return y
+        return y,
 
 
 '''
