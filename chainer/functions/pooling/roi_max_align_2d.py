@@ -26,6 +26,7 @@ from chainer.functions.pooling.roi_average_align_2d \
 from chainer.functions.pooling.roi_average_align_2d \
     import _get_bilinear_interp_params
 from chainer.functions.pooling.roi_average_align_2d import _get_bounds
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -352,6 +353,7 @@ class ROIMaxAlign2D(function.Function):
         return bottom_diff, None, None
 
     def backward_gpu(self, inputs, gy):
+        utils.nondeterministic('atomicAdd')
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
