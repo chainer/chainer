@@ -29,9 +29,9 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
         return ArrayIndex{MakeSlice(py::cast<py::slice>(handle))};
     }
     // NumPy integer scalar
-    auto& numpy_integer = get_numpy_module().integer();
+    auto& numpy_integer_type = numpy_integer();
     static_assert(std::is_trivially_destructible<py::handle>::value, "");
-    if (py::isinstance(handle, numpy_integer)) {
+    if (py::isinstance(handle, numpy_integer_type)) {
         return ArrayIndex{py::cast<int64_t>(handle)};
     }
     throw py::index_error{"only integers, slices (`:`), and chainerx.newaxis (`None`) are valid indices"};

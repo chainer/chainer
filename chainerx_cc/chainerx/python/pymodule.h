@@ -10,88 +10,39 @@ namespace python_internal {
 
 namespace py = pybind11;
 
-struct CHAINERX_VISIBILITY_HIDDEN numpy_module {
-    py::handle module_ = py::none();
-
-    py::handle& module() {
-        if (module_.is_none()) {
-            auto ret = py::module::import("numpy");
-            module_ = ret;
-        }
-        return module_;
-    }
-
-    py::handle array_ = py::none();
-
-    py::handle& array() {
-        if (array_.is_none()) {
-            auto ret = py::module::import("numpy").attr("array");
-            array_ = ret;
-        }
-        return array_;
-    }
-
-    py::handle integer_ = py::none();
-
-    py::handle& integer() {
-        if (integer_.is_none()) {
-            auto ret = py::module::import("numpy").attr("integer");
-            integer_ = ret;
-        }
-        return integer_;
-    }
-};
-
-inline numpy_module& get_numpy_module() {
-    static numpy_module module;
-    return module;
+inline py::handle& numpy_module() {
+    static py::handle ret = py::module::import("numpy");
+    return ret;
 }
 
-struct CHAINERX_VISIBILITY_HIDDEN cupy_module {
-    py::handle module_ = py::none();
+inline py::handle& numpy_array() {
+    static py::handle ret = py::module::import("numpy").attr("array");
+    return ret;
+}
 
-    py::handle& module() {
-        if (module_.is_none()) {
-            auto ret = py::module::import("cupy");
-            module_ = ret;
-        }
-        return module_;
-    }
+inline py::handle& numpy_integer() {
+    static py::handle ret = py::module::import("numpy").attr("integer");
+    return ret;
+}
 
-    py::handle ndarray_ = py::none();
+inline py::handle& cupy_module() {
+    static py::handle ret = py::module::import("cupy");
+    return ret;
+}
 
-    py::handle& ndarray() {
-        if (ndarray_.is_none()) {
-            auto ret = py::module::import("cupy").attr("ndarray");
-            ndarray_ = ret;
-        }
-        return ndarray_;
-    }
+inline py::handle& cupy_ndarray() {
+    static py::handle ret = py::module::import("cupy").attr("ndarray");
+    return ret;
+}
 
-    py::handle cuda_memory_MemoryPointer_ = py::none();
+inline py::handle& cupy_cuda_memory_MemoryPointer() {
+    static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
+    return ret;
+}
 
-    py::handle& cuda_memory_MemoryPointer() {
-        if (cuda_memory_MemoryPointer_.is_none()) {
-            auto ret = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
-            cuda_memory_MemoryPointer_ = ret;
-        }
-        return cuda_memory_MemoryPointer_;
-    }
-
-    py::handle cuda_memory_UnownedMemory_ = py::none();
-
-    py::handle& cuda_memory_UnownedMemory() {
-        if (cuda_memory_UnownedMemory_.is_none()) {
-            auto ret = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
-            cuda_memory_UnownedMemory_ = ret;
-        }
-        return cuda_memory_UnownedMemory_;
-    }
-};
-
-inline cupy_module& get_cupy_module() {
-    static cupy_module module;
-    return module;
+inline py::handle& cupy_cuda_memory_UnownedMemory() {
+    static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
+    return ret;
 }
 
 }  // namespace python_internal

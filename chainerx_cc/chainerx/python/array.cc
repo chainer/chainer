@@ -100,12 +100,11 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const auto device_index = device.index();
 
     // Convert object to CuPy array using cupy.ndarray()
-    auto& cupy_module = get_cupy_module();
-    auto& memory_pointer = cupy_module.cuda_memory_MemoryPointer();
-    auto& unowned_memory = cupy_module.cuda_memory_UnownedMemory();
+    auto& memory_pointer = cupy_cuda_memory_MemoryPointer();
+    auto& unowned_memory = cupy_cuda_memory_UnownedMemory();
     py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), 0);
 
-    auto& ndarray = cupy_module.ndarray();
+    auto& ndarray = cupy_ndarray();
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
 }
 
@@ -139,7 +138,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
-    auto& array_func = get_numpy_module().array();
+    auto& array_func = numpy_array();
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};
