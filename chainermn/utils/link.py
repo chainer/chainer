@@ -4,7 +4,6 @@ import copy
 
 
 def create_mnbn_model(link, comm, communication_backend='auto'):
-
     """Create a link object with MultiNodeBatchNormalization.
 
     Returns a copy of `link`, where BatchNormalization is replaced
