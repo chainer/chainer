@@ -33,10 +33,8 @@ import train_imagenet
 def main():
     archs = {
         'alex': alex.Alex,
-        'alex_fp16': alex.AlexFp16,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
-        'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
