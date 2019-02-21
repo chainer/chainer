@@ -862,7 +862,7 @@ class Variable(object):
         #  twice which generates larger overhead.
         old_device = self.device
         new_device = backend.get_device_from_array(d)
-        if old_device != new_device:
+        if not old_device == new_device:
             raise ValueError(
                 "The specified array is invalid. Variable is configured "
                 "against {} but it is on {}.".format(old_device, new_device))
