@@ -34,6 +34,8 @@ public:
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
+    const std::shared_ptr<MemoryPool>& device_memory_pool() { return device_memory_pool_; }
+
     void Synchronize() override;
 
     // memory.cc

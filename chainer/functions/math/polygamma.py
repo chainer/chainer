@@ -54,10 +54,8 @@ def polygamma(n, x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        n (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        n (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

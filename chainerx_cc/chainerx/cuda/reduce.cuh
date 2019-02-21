@@ -181,7 +181,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             }
             break;
     }
-#endif
+#endif  // NDEBUG
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
             MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl);

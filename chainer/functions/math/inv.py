@@ -129,8 +129,8 @@ class BatchInv(function_node.FunctionNode):
 def inv(a):
     """Computes the inverse of square matrix.
 
-    Args:
-        a (Variable): Input array to compute the inverse for. Shape of
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the inverse for. Shape of
             the array should be ``(n, n)`` where ``n`` is the dimensionality of
             a square matrix.
 
@@ -144,7 +144,8 @@ def batch_inv(a):
     """Computes the inverse of a batch of square matrices.
 
     Args:
-        a (Variable): Input array to compute the inverse for. Shape of
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the inverse for. Shape of
             the array should be ``(m, n, n)`` where ``m`` is the number of
             matrices in the batch, and ``n`` is the dimensionality of a square
             matrix.

@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -6,6 +7,16 @@ import numpy
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_hook
+
+
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 class TimerHook(function_hook.FunctionHook):
@@ -47,7 +58,7 @@ class TimerHook(function_hook.FunctionHook):
 
     def _preprocess(self):
         if self.xp == numpy:
-            start = time.time()
+            start = _get_time()
             self._running_stack.append(start)
         else:
             start = cuda.Event()
@@ -67,7 +78,7 @@ class TimerHook(function_hook.FunctionHook):
     def _postprocess(self, function):
         if self.xp == numpy:
             start = self._running_stack.pop()
-            stop = time.time()
+            stop = _get_time()
             elapsed_time = stop - start
         else:
             start, stop = self._running_stack.pop()
@@ -102,7 +113,7 @@ class TimerHook(function_hook.FunctionHook):
 
         Returns:
             A summarized dictionary whose keys are function names and
-            values are dictionaries of `elapsed_time` and `occurrrence`.
+            values are dictionaries of `elapsed_time` and `occurrence`.
         """
         summary = {}
         for function_name, elapsed_time in self.call_history:
