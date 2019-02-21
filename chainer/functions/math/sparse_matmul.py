@@ -116,6 +116,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
 
 
 def _cupy_coo_matmul():
+    utils.nondeterministic('atomicAdd')
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \
