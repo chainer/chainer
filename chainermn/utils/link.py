@@ -49,8 +49,14 @@ def create_mnbn_model(link, comm, communication_backend='auto'):
         for name, new_child in new_children:
             new_link.__dict__[name] = new_child
         return new_link
-    elif isinstance(link, chainer.ChainList) or \
-            isinstance(link, chainer.Sequential):
+    elif isinstance(link, chainer.Sequential):
+        new_children = [
+            create_mnbn_model(l, comm, communication_backend) for l in link]
+        new_link = copy.deepcopy(link)
+        for i, new_child in enumerate(new_children):
+            new_link._layers[i] = new_child
+        return new_link
+    elif isinstance(link, chainer.ChainList):
         new_children = [
             create_mnbn_model(l, comm, communication_backend) for l in link]
         new_link = copy.deepcopy(link)
