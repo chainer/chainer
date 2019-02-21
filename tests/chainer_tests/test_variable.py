@@ -2340,13 +2340,15 @@ class TestItem(unittest.TestCase):
         self.x = np.full(self.shape, 1, self.dtype)
         self.target_type = type(np.array(0, dtype=self.dtype).item())
 
-    def check_item(self, x):
+    def check_item(self, x, requires_grad=True):
+        # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
+        # with integral dtype supports gradient computation.
         if x.size > 1:
-            with self.assertRaises(ValueError):
-                chainer.Variable(x).item()
+            with pytest.raises((ValueError, chainerx.DimensionError)):
+                chainer.Variable(x, requires_grad=requires_grad).item()
         else:
-            value = chainer.Variable(self.x).item()
-            self.assertIs(type(value), self.target_type)
+            value = chainer.Variable(x, requires_grad=requires_grad).item()
+            assert type(value) is self.target_type
 
     def test_cpu(self):
         self.check_item(self.x)
@@ -2357,12 +2359,11 @@ class TestItem(unittest.TestCase):
 
     @attr.chainerx
     def test_chainerx(self):
-        if self.dtype == np.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-        x = chainerx.array(self.x)
-        var = chainer.Variable(x)
-        with pytest.raises(NotImplementedError):
-            var.item()
+        if self.dtype in (np.int16, np.int32, np.int64):
+            requires_grad = False
+        else:
+            requires_grad = True
+        self.check_item(chainerx.array(self.x), requires_grad)
 
 
 @testing.parameterize(*testing.product({

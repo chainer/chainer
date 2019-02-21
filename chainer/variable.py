@@ -1434,10 +1434,6 @@ class Variable(object):
             int or float: The element of the array.
 
         """
-        xp = backend.get_array_module(self.array)
-        if xp is chainerx:
-            raise NotImplementedError(
-                "ChainerX array does not support item method.")
         return self.array.item()
 
     def reshape(self, *shape):
