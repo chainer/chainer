@@ -1427,8 +1427,7 @@ class Variable(object):
     def item(self):
         """Converts the variable with one element to a Python scalar.
 
-        This will incur host-device synchronization. Note that ChainerX is not
-        supported.
+        This will incur host-device synchronization.
 
         Returns:
             int or float: The element of the array.

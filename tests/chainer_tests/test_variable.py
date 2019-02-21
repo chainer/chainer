@@ -2340,14 +2340,12 @@ class TestItem(unittest.TestCase):
         self.x = np.full(self.shape, 1, self.dtype)
         self.target_type = type(np.array(0, dtype=self.dtype).item())
 
-    def check_item(self, x, requires_grad=True):
-        # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
-        # with integral dtype supports gradient computation.
+    def check_item(self, x):
         if x.size > 1:
-            with pytest.raises((ValueError, chainerx.DimensionError)):
-                chainer.Variable(x, requires_grad=requires_grad).item()
+            with pytest.raises(ValueError):
+                chainer.Variable(x).item()
         else:
-            value = chainer.Variable(x, requires_grad=requires_grad).item()
+            value = chainer.Variable(x).item()
             assert type(value) is self.target_type
 
     def test_cpu(self):
@@ -2357,13 +2355,23 @@ class TestItem(unittest.TestCase):
     def test_gpu(self):
         self.check_item(cuda.to_gpu(self.x))
 
+    def check_item_chainerx(self, x, requires_grad=True):
+        # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
+        # with integral dtype supports gradient computation.
+        if x.size > 1:
+            with pytest.raises(chainerx.DimensionError):
+                chainer.Variable(x, requires_grad=requires_grad).item()
+        else:
+            value = chainer.Variable(x, requires_grad=requires_grad).item()
+            assert type(value) is self.target_type
+
     @attr.chainerx
     def test_chainerx(self):
         if self.dtype in (np.int16, np.int32, np.int64):
             requires_grad = False
         else:
             requires_grad = True
-        self.check_item(chainerx.array(self.x), requires_grad)
+        self.check_item_chainerx(chainerx.array(self.x), requires_grad)
 
 
 @testing.parameterize(*testing.product({
