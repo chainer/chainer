@@ -156,7 +156,7 @@ class TimerHook(link_hook.LinkHook):
             factor, unit = self._align(max_time)
         elif unit != 'auto_foreach':
             factor = self.table[unit]
-        for function_name, record in self.summary().items():
+        for link_name, record in self.summary().items():
             second = record['elapsed_time']
             if unit != 'auto_foreach':
                 elapsed_time = '%3.2f%s' % (second * factor, unit)
