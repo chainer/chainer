@@ -46,11 +46,15 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         x.mean(axis=axis, out=tmp[:gamma.size])
         xp.square(x).mean(axis=axis, out=tmp[gamma.size:])
+        if x.dtype == numpy.float16:
+            tmp = tmp.astype(numpy.float32)
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
         mpi_comm.Allreduce(
             self.mpi4py_module.IN_PLACE,
             self.memory_utility_module.array_to_buffer_object(tmp))
+        if x.dtype == numpy.float16:
+            tmp = tmp.astype(numpy.float16)
         tmp *= 1.0 / mpi_comm.size
         mean = tmp[:gamma.size]
         sqmean = tmp[gamma.size:]
@@ -62,11 +66,15 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         gy.sum(axis=axis, out=tmp[:gamma.size])
         (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:])
+        if x.dtype == numpy.float16:
+            tmp = tmp.astype(numpy.float32)
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
         mpi_comm.Allreduce(
             self.mpi4py_module.IN_PLACE,
             self.memory_utility_module.array_to_buffer_object(tmp))
+        if x.dtype == numpy.float16:
+            tmp = tmp.astype(numpy.float16)
         tmp *= 1.0 / mpi_comm.size
         gbeta = tmp[:gamma.size]
         ggamma = tmp[gamma.size:]

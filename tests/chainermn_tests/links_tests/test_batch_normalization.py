@@ -32,15 +32,15 @@ class ModelNormalBN(chainer.Chain):
 
 
 class ModelDistributedBN(chainer.Chain):
-    def __init__(self, comm, n_in=3, n_units=3, n_out=2):
+    def __init__(self, comm, n_in=3, n_units=3, n_out=2, backend='auto'):
         super(ModelDistributedBN, self).__init__()
         with self.init_scope():
             self.l1 = chainer.links.Linear(n_in, n_units, nobias=True)
             self.bn1 = MultiNodeBatchNormalization(
-                n_units, comm)
+                n_units, comm, communication_backend=backend)
             self.l2 = chainer.links.Linear(n_in, n_units, nobias=True)
             self.bn2 = MultiNodeBatchNormalization(
-                n_units, comm)
+                n_units, comm, communication_backend=backend)
             self.l3 = chainer.links.Linear(n_in, n_out)
         self.train = True
 
@@ -50,7 +50,8 @@ class ModelDistributedBN(chainer.Chain):
         return self.l3(h)
 
 
-def check_multi_node_bn(comm, use_gpu=False):
+def check_multi_node_bn(comm, use_gpu=False, backend='auto',
+                        dtype=numpy.float32):
     """Tests correctness of MultiNodeBatchNormalization.
 
     This test verifies MultiNodeBatchNormalization by comparing
@@ -91,6 +92,9 @@ def check_multi_node_bn(comm, use_gpu=False):
     y_local = comm.mpi_comm.scatter(
         y.reshape(comm.size, local_batchsize))
 
+    x = x.astype(dtype)
+    x_local = x_local.astype(dtype)
+
     if use_gpu:
         x = chainer.cuda.to_gpu(x)
         y = chainer.cuda.to_gpu(y)
@@ -98,16 +102,17 @@ def check_multi_node_bn(comm, use_gpu=False):
         y_local = chainer.cuda.to_gpu(y_local)
 
     cls = chainer.links.Classifier
-    # Single worker
-    m1 = cls(ModelNormalBN())
-    # Multi worker, Ghost BN
-    m2 = cls(ModelNormalBN())
-    # Single worker, MNBN
-    m3 = cls(ModelDistributedBN(comm))
-    # Multi worker, MNBN
-    m4 = cls(ModelDistributedBN(comm))
-    # NOTE: m1, m3 and m4 should behave in the same way.
-    # m2 may be different.
+    with chainer.using_config('dtype', dtype):
+        # Single worker
+        m1 = cls(ModelNormalBN())
+        # Multi worker, Ghost BN
+        m2 = cls(ModelNormalBN())
+        # Single worker, MNBN
+        m3 = cls(ModelDistributedBN(comm, backend=backend))
+        # Multi worker, MNBN
+        m4 = cls(ModelDistributedBN(comm, backend=backend))
+        # NOTE: m1, m3 and m4 should behave in the same way.
+        # m2 may be different.
 
     if use_gpu:
         m1.to_gpu()
@@ -147,6 +152,11 @@ def check_multi_node_bn(comm, use_gpu=False):
             assert (p2[0] == name)
             assert (p3[0] == name)
             assert (p4[0] == name)
+
+            assert (p1[1].data.dtype == dtype)
+            assert (p2[1].data.dtype == dtype)
+            assert (p3[1].data.dtype == dtype)
+            assert (p4[1].data.dtype == dtype)
 
             chainer.testing.assert_allclose(p1[1].grad, p3[1].grad)
             chainer.testing.assert_allclose(p1[1].grad, p4[1].grad)
@@ -190,22 +200,27 @@ def test_version_check():
         MultiNodeBatchNormalization(3, comm)
 
 
-@pytest.mark.parametrize(('communicator_class'), [
-    (NaiveCommunicator)])
-def test_multi_node_bn_cpu(communicator_class):
+@pytest.mark.parametrize(('communicator_class', 'backend', 'dtype'), [
+    (NaiveCommunicator, 'mpi', numpy.float16),
+    (NaiveCommunicator, 'mpi', numpy.float32)])
+def test_multi_node_bn_cpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=False)
-    check_multi_node_bn(comm)
+    check_multi_node_bn(comm, backend=backend, dtype=dtype)
     comm.mpi_comm.barrier()
 
 
-@pytest.mark.parametrize(('communicator_class'), [
-    (NaiveCommunicator), (PureNcclCommunicator)])
+@pytest.mark.parametrize(('communicator_class', 'backend', 'dtype'), [
+    (NaiveCommunicator, 'mpi', numpy.float32),
+    (PureNcclCommunicator, 'mpi', numpy.float32),
+    (PureNcclCommunicator, 'mpi', numpy.float16),
+    (PureNcclCommunicator, 'nccl', numpy.float32),
+    (PureNcclCommunicator, 'nccl', numpy.float16)])
 @chainer.testing.attr.gpu
-def test_multi_node_bn_gpu(communicator_class):
+def test_multi_node_bn_gpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=True)
-    check_multi_node_bn(comm, use_gpu=True)
+    check_multi_node_bn(comm, use_gpu=True, backend=backend, dtype=dtype)
     comm.mpi_comm.barrier()
 
 
