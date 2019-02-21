@@ -52,6 +52,7 @@ class TimerHook(link_hook.LinkHook):
     """
 
     name = 'TimerHook'
+    table = {'sec': 1, 'ms': 10 ** 3, 'us': 10 ** 6, 'ns': 10 ** 9}
 
     def __init__(self):
         self.call_history = []
@@ -138,19 +139,26 @@ class TimerHook(link_hook.LinkHook):
             factor *= 1000.0
         return factor, 'ns'
 
-    def print_report(self, align_units=False, file=sys.stdout):
+    def print_report(self, unit='auto', file=sys.stdout):
         """Prints a summary report of time profiling in links.
 
         Args:
-            align_units (bool): If `True`, units of times are aligned to the largest.
+            unit (str): Supplementary units used for computational times.
+                `sec`, `ms`, `us`, `ns`, `auto`(default) and `auto_foreach`
+                are supported. If `auto`, units of times are aligned to the
+                largest, and if `auto_foreach`, units of times are adjusted for
+                each element.
         """
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
-        if align_units:
-            max_time = max(record['elapsed_time'] for record in self.summary().values())
+        if unit == 'auto':
+            max_time = max(
+                record['elapsed_time'] for record in self.summary().values())
             factor, unit = self._align(max_time)
-        for link_name, record in self.summary().items():
+        elif unit != 'auto_foreach':
+            factor = self.table[unit]
+        for function_name, record in self.summary().items():
             second = record['elapsed_time']
-            if align_units:
+            if unit != 'auto_foreach':
                 elapsed_time = '%3.2f%s' % (second * factor, unit)
             else:
                 elapsed_time = self._humanized_time(second)
