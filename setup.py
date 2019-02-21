@@ -169,7 +169,8 @@ setup_kwargs = dict(
               'chainermn.extensions',
               'chainermn.functions',
               'chainermn.iterators',
-              'chainermn.links'],
+              'chainermn.links',
+              'chainermn.utils'],
     package_data={
         'chainer': ['py.typed'],
     },
