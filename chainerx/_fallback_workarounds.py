@@ -40,17 +40,7 @@ def _from_numpy(array):
 def _to_cupy(array):
     assert cupy is not None
     # Convert to cupy.ndarray on the same device as source array
-    return cupy.ndarray(
-        array.shape,
-        array.dtype,
-        cupy.cuda.MemoryPointer(
-            cupy.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0),
-        strides=array.strides)
+    return chainerx.to_cupy(array)
 
 
 def _from_cupy(array):
