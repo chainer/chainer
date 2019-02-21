@@ -45,7 +45,7 @@ def _calc_projection(x, mean, eps, groups):
     'groups': [1, 2],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
 }) + testing.product({
     'n_channels': [8],
     'ndim': [1],
@@ -53,7 +53,7 @@ def _calc_projection(x, mean, eps, groups):
     'eps': [2e-5, 5e-1],
     # NOTE(crcrpar): np.linalg.eigh does not support float16
     'dtype': [numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
 })))
 @testing.backend.inject_backend_tests(
     None,
@@ -113,14 +113,14 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     'groups': [1, 2],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
 }) + testing.product({
     'n_channels': [8],
     'ndim': [1],
     'groups': [1, 2],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
 })))
 @testing.backend.inject_backend_tests(
     None,

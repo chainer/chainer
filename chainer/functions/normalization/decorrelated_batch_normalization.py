@@ -4,6 +4,15 @@ from chainer.utils import argument
 from chainer.utils import type_check
 
 
+def _calc_axis_and_m(x_shape, batch_size, groups):
+    m = batch_size * groups
+    spatial_ndim = len(x_shape) - 2
+    spatial_axis = tuple(range(2, 2 + spatial_ndim))
+    for i in spatial_axis:
+        m *= x_shape[i]
+    return spatial_axis, m
+
+
 class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
 
     def __init__(self, groups=16, eps=2e-5, mean=None, projection=None,
@@ -32,14 +41,11 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         self.retain_inputs(())
         x = inputs[0]
         xp = backend.get_array_module(x)
-        spatial_ndim = len(x.shape[2:])
-        spatial_axis = tuple(range(2, 2 + spatial_ndim))
-        b, c = x.shape[:2]
+        x_shape = x.shape
+        b, c = x_shape[:2]
         g = self.groups
         C = c // g
-        m = b * g
-        for i in spatial_axis:
-            m *= x.shape[i]
+        spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
 
         if self.running_mean is None:
             self.running_mean = xp.zeros(C, dtype=x.dtype)
@@ -96,14 +102,11 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         self.retain_inputs(())
         gy = inputs[0]
         xp = backend.get_array_module(gy)
-        spatial_ndim = len(gy.shape[2:])
-        spatial_axis = tuple(range(2, 2 + spatial_ndim))
-        b, c = gy.shape[:2]
+        gy_shape = gy.shape
+        b, c = gy_shape[:2]
         g = self.groups
         C = c // g
-        m = b * g
-        for i in spatial_axis:
-            m *= gy.shape[i]
+        spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
 
         if g > 1:
             gy = gy.reshape((b * g, C) + gy.shape[2:])
@@ -142,8 +145,8 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
-        raise NotImplementedError("Double backward is not implemented for"
-                                  " decorrelated batch normalizatin.")
+        raise NotImplementedError('Double backward is not implemented for'
+                                  ' decorrelated batch normalizatin.')
 
 
 class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
@@ -166,11 +169,11 @@ class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, mean, projection = inputs
-        spatial_ndim = len(x.shape[2:])
-        spatial_axis = tuple(range(2, 2 + spatial_ndim))
-        b, c = x.shape[:2]
+        x_shape = x.shape
+        b, c = x_shape[:2]
         g = self.groups
         C = c // g
+        spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
 
         if g > 1:
             x = x.reshape((b * g, C) + x.shape[2:])
@@ -200,15 +203,11 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         x, mean, projection, gy = inputs
-        print(type(x), type(mean), type(projection), type(gy))
-        spatial_ndim = len(gy.shape[2:])
-        spatial_axis = tuple(range(2, 2 + spatial_ndim))
-        b, c = gy.shape[:2]
+        gy_shape = gy.shape
+        b, c = gy_shape[:2]
         g = self.groups
         C = c // g
-        m = b * g
-        for i in spatial_axis:
-            m *= gy.shape[i]
+        spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
 
         if g > 1:
             gy = gy.reshape((b * g, C) + gy.shape[2:])
@@ -228,8 +227,8 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
-        raise NotImplementedError("Double backward is not implemented for"
-                                  " fixed decorrelated batch normalizatin.")
+        raise NotImplementedError('Double backward is not implemented for'
+                                  ' fixed decorrelated batch normalizatin.')
 
 
 def decorrelated_batch_normalization(x, **kwargs):
@@ -253,6 +252,10 @@ def decorrelated_batch_normalization(x, **kwargs):
             initialized to the identity matrix.
         decay (float): Decay rate of moving average. It is used during
             training.
+
+    Returns:
+        ~chainer.Variable: The output variable which has the same shape as
+        :math:`x`.
 
     See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
 
@@ -286,6 +289,9 @@ def fixed_decorrelated_batch_normalization(x, mean, projection, **kwargs):
             Projection matrix for decorrelation of input.
         groups (int): Number of groups to use for group whitening.
 
+    Returns:
+        ~chainer.Variable: The output variable which has the same shape as
+        :math:`x`.
 
     .. seealso::
        :func:`functions.decorrelated_batch_normalization`,
