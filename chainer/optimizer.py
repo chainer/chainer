@@ -2,6 +2,7 @@ import collections
 import copy
 import warnings
 
+import math
 import numpy
 import six
 
@@ -456,6 +457,8 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    _loss_scaling_mode = None
+    _loss_scale_max = 65504  # max representable value with fp16
     use_auto_new_epoch = False
 
     def setup(self, link):
@@ -652,9 +655,31 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def loss_scaling(self, mode, loss_scale=1.0, interval=1000):
+        """Sets loss scaling configurations.
+
+        Args:
+            mode (str): Loss scaling mode, 'static' or 'dynamic'.
+            loss_scale (float): Loss scaling factor when mode is 'static'.
+                Initial loss scaling factor when mode is 'dynamic'.
+            interval (integer): Number of iterations until scaling factor gets
+                doubled. This is effective only when mode is 'dynamic'.
+        """
+        if mode not in ('static', 'dynamic'):
+            raise ValueError('mode must be either \'static\' or \'dynamic\'')
+        if loss_scale <= 0:
+            raise ValueError('loss_scale must be positive number')
+        if mode is 'dynamic' and interval < 1:
+            raise ValueError('interval must be greater equal to 1')
+
+        self._loss_scaling_mode = mode
+        self._loss_scale = loss_scale
+        self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
+        self._loss_scaling_isnan_ever = False
+
     def set_loss_scale(self, loss_scale):
         """Sets loss scaling factor."""
-        self._loss_scale = loss_scale
+        self.loss_scaling('static', loss_scale)
 
 
 class GradientMethod(Optimizer):
@@ -754,12 +779,38 @@ class GradientMethod(Optimizer):
         self.call_hooks('pre')
 
         self.t += 1
-        for param in self.target.params():
-            param.update()
+
+        isnan = False
+        ls_multiplier = None
+        if self._loss_scaling_mode is 'dynamic':
+            for name, param in self.target.namedparams():
+                xp = param.device.xp
+                if xp.all(xp.isfinite(param.grad)):
+                    continue
+                isnan = True
+                warnings.warn('Non finite number found in grad of {}'
+                              ' (t:{}, loss_scale:{})'
+                              ''.format(name, self.t, self._loss_scale))
+            if isnan:
+                self._loss_scaling_isnan_ever = True
+                ls_multiplier = 0.5
+            else:
+                if self._loss_scaling_isnan_ever:
+                    ls_multiplier = self._loss_scaling_multiplier
+                else:
+                    ls_multiplier = 2.0
+
+        if not isnan:
+            for param in self.target.params():
+                param.update()
 
         self.reallocate_cleared_grads()
 
         self.call_hooks('post')
+
+        if ls_multiplier is not None:
+            self._loss_scale = max(1.0, min(self._loss_scale_max,
+                                            self._loss_scale * ls_multiplier))
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
