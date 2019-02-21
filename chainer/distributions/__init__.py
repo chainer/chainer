@@ -2,6 +2,7 @@
 
 from chainer.distributions.bernoulli import Bernoulli  # NOQA
 from chainer.distributions.beta import Beta  # NOQA
+from chainer.distributions.binomial import Binomial # NOQA
 from chainer.distributions.categorical import Categorical  # NOQA
 from chainer.distributions.cauchy import Cauchy  # NOQA
 from chainer.distributions.chisquare import Chisquare  # NOQA
