@@ -23,12 +23,11 @@ from chainer.utils import argument
 import chainerx
 
 
-def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
-    if gx is None:
-        return
-    x_grad = gx.array if is_var_gx else gx
+def _check_grad_type(func, x, is_node_x, gx):
+    # TODO(niboshi): Write comment about is_node_x
+    assert gx is not None
 
-    # FIXME: avoid `isinstance`
+    # TODO(kataoka): avoid `isinstance`
     x_data = None if isinstance(x, _ChainerxVariableNodeProps) else x.data
 
     # TODO(kataoka): Make _update_data_info store the array module.
@@ -37,20 +36,23 @@ def _check_grad_type(func, x, is_node_x, gx, is_var_gx):
     # ``not is_node_x and x_data is None`` implies that grad of uninitialized
     # variable is checked here.
 
-    if x_grad is None:
+    if x_data is None and not is_node_x:
         # TODO(kataoka): This should be an error.
         return
-    elif x_data is None and not is_node_x:
-        # TODO(kataoka): This should be an error.
-        return
-    elif not chainer.is_arrays_compatible((x_grad, x_data)):
-        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(x_grad), type(x_data)))
-        typ = TypeError
-    elif x.dtype is None or x.shape is None:
+    if x.dtype is None or x.shape is None:
         # unretained Variable(None)
         # TODO(kataoka): This should be an error.
         return
+
+    if not isinstance(gx, chainer.get_array_types()):
+        msg = ('Type of grad is invalid:\n'
+               + 'Expected: Any of {}\n'.format(chainer.get_array_types())
+               + 'Actual: {}'.format(type(gx)))
+        typ = TypeError
+    elif x_data is not None and not chainer.is_arrays_compatible((gx, x_data)):
+        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
+               (type(gx), type(x_data)))
+        typ = TypeError
     elif gx.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
                (gx.dtype, x.dtype))
@@ -989,7 +991,8 @@ class Variable(object):
     def grad(self, g):
         # type: (tp.Optional[types.NdArray]) -> None
 
-        _check_grad_type(None, self, False, g, False)
+        if g is not None:
+            _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
@@ -1012,7 +1015,8 @@ class Variable(object):
     def grad_var(self, g):
         # type: (tp.Optional["Variable"]) -> None
 
-        _check_grad_type(None, self, False, g, True)
+        if g is not None:
+            _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
 
     @property
@@ -1420,7 +1424,7 @@ class Variable(object):
         if self.array.size == 1 and self.grad_var is None:
             if self.array.ndim != 0:
                 warnings.warn(
-                    'Treating a scalar as a variable with only one element'
+                    'Treating a variable with only one element as a scalar'
                     ' in Variable.backward is deprecated. A scalar variable'
                     ' must be a 0-dimensional array. Apply'
                     ' chainer.functions.squeeze to obtain a scalar variable.'
@@ -1644,7 +1648,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 continue
 
             for gx_elem in gx:
-                _check_grad_type(func, x, True, gx_elem, True)
+                if gx_elem is not None:
+                    _check_grad_type(func, x, True, gx_elem.array)
             del gx_elem  # to reduce memory usage
 
             if x.creator_node is None:  # leaf

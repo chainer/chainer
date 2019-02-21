@@ -371,9 +371,8 @@ def main():
     trainer.extend(extensions.LogReport(
         trigger=(args.log_interval, 'iteration')))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
-         'main/perp', 'validation/main/perp', 'validation/main/bleu',
-         'elapsed_time']),
+        ['epoch', 'iteration', 'main/loss', 'main/perp',
+         'validation/main/bleu', 'elapsed_time']),
         trigger=(args.log_interval, 'iteration'))
 
     if args.validation_source and args.validation_target:
