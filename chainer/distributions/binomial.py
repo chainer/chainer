@@ -1,4 +1,3 @@
-import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -60,7 +59,7 @@ class Binomial(distribution.Distribution):
                 self.p.data,
                 size=(k,)+self.batch_shape, dtype=self.p.dtype)
         else:
-            eps = xp.random.binomial( 
+            eps = xp.random.binomial(
                 self.n.data.astype('int64'),
                 self.p.data,
                 size=(k,)+self.batch_shape).astype(self.p.dtype)
@@ -69,6 +68,7 @@ class Binomial(distribution.Distribution):
     @property
     def support(self):
         return 'positive integer'
+
 
 @distribution.register_kl(Binomial, Binomial)
 def _kl_binomial_binomial(dist1, dist2):
