@@ -575,7 +575,6 @@ class Variable(object):
             self._chainerx_name = name
         else:
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
-            self._has_chainerx_array = False
             if node is None:
                 self._node = VariableNode(self, name)
             else:
@@ -1158,6 +1157,7 @@ class Variable(object):
     def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
+        old_device = self.device
         was_chainerx = self._has_chainerx_array
         is_chainerx = device.xp is chainerx
 
@@ -1191,7 +1191,6 @@ class Variable(object):
         self._device = device
         self._has_chainerx_array = is_chainerx
 
-        old_device = self.device
         if arr is None or old_device == device:
             return
 
@@ -1806,7 +1805,6 @@ class Parameter(Variable):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
-            self._has_chainerx_array = False
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
