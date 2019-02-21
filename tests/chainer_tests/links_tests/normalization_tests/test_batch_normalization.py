@@ -47,8 +47,9 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 @testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
-         # 'dtype': [numpy.float16, numpy.float32, numpy.float64],
-         'dtype': [numpy.float32, numpy.float64],
+        # 'dtype': [numpy.float16, numpy.float32, numpy.float64],
+        'dtype': [numpy.float32, numpy.float64],
+        'size': ['skip', 'explicit'],
     }),
     testing.product({
         'ndim': [0, 1, 2, 3],
@@ -104,23 +105,31 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
     def generate_initializers(self):
+        # initial_gamma = [
+        #     initializers.Constant(2), 2,
+        #     testing.link.InitializerPair(None, 1),
+        #     numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
+        # TODO(hvy): Temporariliy testing initializers with different number
+        # of "parameters".
         initial_gamma = [
-            initializers.Constant(2), 2,
-            testing.link.ConvertedInitializer(None, 1),
+            # initializers.Constant(2), 2,
+            testing.link.InitializerPair(None, 1),
             numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
         initial_beta = [
             initializers.Constant(2), 2,
-            testing.link.ConvertedInitializer(None, 0),
+            testing.link.InitializerPair(None, 0),
             numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
         initial_gamma, initial_beta = initializers
+
+        size = self.param_shape if self.size == 'explicit' else None
         initial_avg_mean = None if self.mean is None else self.mean.copy()
         initial_avg_var = None if self.var is None else self.var.copy()
 
         link = links.BatchNormalization(
-            size=self.param_shape,
+            size=size,
             axis=self.aggr_axes,
             eps=self.eps,
             dtype=self.dtype,
