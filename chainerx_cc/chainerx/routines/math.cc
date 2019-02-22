@@ -258,8 +258,50 @@ Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 namespace {
 
+void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivide(x1, x2, out);
+    }
+
+    {
+        BackwardBuilder bb{"floor_divide", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = gout * Scalar{0, gout.dtype()};
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = gout * Scalar{0, gout.dtype()};
+            });
+        }
+        bb.Finalize();
+    }
+}
+
+void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivideAS(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"floor_divide_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = ZerosLike(*bctx.output_grad()); });
+    }
+    bb.Finalize();
+}
+
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
-    // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
     // TODO(niboshi): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
@@ -307,6 +349,10 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 namespace internal {
 
+void IFloorDivide(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2); }
+
+void IFloorDivide(const Array& x1, Scalar x2) { BinaryInPlace(&FloorDivideASImpl, x1, x2); }
+
 void ITrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Integer inplace-division is not supported."};
@@ -326,6 +372,12 @@ void IDivide(const Array& x1, const Array& x2) { ITrueDivide(x1, x2); }
 void IDivide(const Array& x1, Scalar x2) { ITrueDivide(x1, x2); }
 
 }  // namespace internal
+
+Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2); }
+
+Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2); }
+
+Array FloorDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 Array TrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat) {
