@@ -33,6 +33,8 @@ from chainer import testing
 class TestLeakyReLU(testing.FunctionTestCase):
 
     def setUp(self):
+        if self.slope == 'random':
+            self.slope = random.random()
         self.check_forward_options = {}
         self.check_backward_options = {}
         self.check_double_backward_options = {}
@@ -43,8 +45,6 @@ class TestLeakyReLU(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        if self.slope == 'random':
-            self.slope = random.random()
         return x,
 
     def forward(self, inputs, device):
