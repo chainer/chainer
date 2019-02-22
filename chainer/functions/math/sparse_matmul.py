@@ -24,9 +24,9 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
-        if sp_order is 'C':
+        if sp_order == 'C':
             A_order = 'F'
-        elif sp_order is 'F':
+        elif sp_order == 'F':
             A_order = 'C'
         else:
             A_order = sp_order
@@ -99,7 +99,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
         nb = B.shape[0]
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
-    if A_order is 'C':
+    if A_order == 'C':
         # A chunk is the number of non-zero elements handled by a single GPU
         # thread. If contiguous non-zero elemets are related to the same
         # location of the output matrix and they are processed in the same
