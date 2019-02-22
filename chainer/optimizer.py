@@ -681,6 +681,33 @@ class Optimizer(object):
         """Sets loss scaling factor."""
         self.loss_scaling('static', loss_scale)
 
+    def is_safe_to_update(self):
+        if self._loss_scaling_mode is not 'dynamic':
+            return True
+        is_safe = True
+        for name, param in self.target.namedparams():
+            xp = param.device.xp
+            if not xp.all(xp.isfinite(param.grad)):
+                is_safe = False
+                self._loss_scaling_isnan_ever = True
+                warnings.warn(
+                    'Non finite number found in pram.grad of {}'
+                    ' (t:{}, loss_scale:{})'
+                    ''.format(name, self.t, self._loss_scale))
+        if not is_safe:
+            multiplier = 0.5
+        elif self._loss_scaling_isnan_ever:
+            multiplier = self._loss_scaling_multiplier
+        else:
+            multiplier = 2.0
+        self._loss_scale_next = max(1, min(self._loss_scale_max,
+                                           self._loss_scale * multiplier))
+        return is_safe
+
+    def update_loss_scale(self):
+        if self._loss_scaling_mode is 'dynamic':
+            self._loss_scale = self._loss_scale_next
+
 
 class GradientMethod(Optimizer):
     """Base class of all single gradient-based optimizers.
@@ -779,28 +806,7 @@ class GradientMethod(Optimizer):
         self.call_hooks('pre')
 
         self.t += 1
-
-        isnan = False
-        ls_multiplier = None
-        if self._loss_scaling_mode is 'dynamic':
-            for name, param in self.target.namedparams():
-                xp = param.device.xp
-                if xp.all(xp.isfinite(param.grad)):
-                    continue
-                isnan = True
-                warnings.warn('Non finite number found in grad of {}'
-                              ' (t:{}, loss_scale:{})'
-                              ''.format(name, self.t, self._loss_scale))
-            if isnan:
-                self._loss_scaling_isnan_ever = True
-                ls_multiplier = 0.5
-            else:
-                if self._loss_scaling_isnan_ever:
-                    ls_multiplier = self._loss_scaling_multiplier
-                else:
-                    ls_multiplier = 2.0
-
-        if not isnan:
+        if self.is_safe_to_update():
             for param in self.target.params():
                 param.update()
 
@@ -808,9 +814,7 @@ class GradientMethod(Optimizer):
 
         self.call_hooks('post')
 
-        if ls_multiplier is not None:
-            self._loss_scale = max(1.0, min(self._loss_scale_max,
-                                            self._loss_scale * ls_multiplier))
+        self.update_loss_scale()
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
