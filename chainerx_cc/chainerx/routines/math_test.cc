@@ -793,6 +793,47 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, FloorDivide) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
+    Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-2, 1, 0});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{FloorDivide(xs[0], xs[1])}; }, {a, b}, {e});
+    });
+}
+
+TEST_P(MathTest, FloorDivideBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithData<T>({-6, 4, -10, 10, -4, 6}).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-7, -5, -11, 11, 5, 7}).WithPadding(2)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {FloorDivide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+}
+
+TEST_P(MathTest, FloorDivideDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithData<T>({-6, 4, -10, 10, -4, 6}).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-7, -5, -11, 11, 5, 7}).WithPadding(2)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array out = FloorDivide(xs[0], xs[1]);
+                return {out * out};
+            },
+            {a, b},
+            {go},
+            {ggi, ggi},
+            {eps, eps, eps});
+}
+
 TEST_THREAD_SAFE_P(MathTest, Divide) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
     Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
