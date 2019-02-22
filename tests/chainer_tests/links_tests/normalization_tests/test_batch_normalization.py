@@ -11,7 +11,6 @@ from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.testing import array as array_module
 from chainer.utils import type_check
 
 
@@ -64,7 +63,7 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
     param_names = ['gamma', 'beta']
 
     # TODO(hvy): Remove these declarations since none of them should be
-    # skipped anyway.
+    # skipped.
     skip_forward_test = False
     skip_backward_test = False
     skip_initializers_test = False
@@ -110,21 +109,20 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
+    def generate_forward_backward_initializers(self):
+        initial_gamma = numpy.random.uniform(
+            -1, 1, self.param_shape).astype(self.dtype)
+        initial_beta = numpy.random.uniform(
+            -1, 1, self.param_shape).astype(self.dtype)
+        return initial_gamma, initial_beta
+
     def generate_initializers(self):
-        # initial_gamma = [
-        #     initializers.Constant(2), 2,
-        #     testing.link.InitializerPair(None, 1),
-        #     numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
         # TODO(hvy): Temporariliy testing initializers with different number
-        # of "parameters".
+        # of "parameters". Test all of them.
         initial_gamma = [
-            # initializers.Constant(2), 2,
-            testing.link.InitializerPair(None, 1),
-            numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
+            initializers.Constant(2), testing.link.InitializerPair(None, 1)]
         initial_beta = [
-            initializers.Constant(2), 2,
-            testing.link.InitializerPair(None, 0),
-            numpy.random.uniform(-1, 1, self.param_shape).astype(self.dtype)]
+            initializers.Constant(2), 2, testing.link.InitializerPair(None, 0)]
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
@@ -169,134 +167,6 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
             std = numpy.sqrt(var + self.eps)
         y = gamma[self.expander] * (x - mean) / std + beta[self.expander]
         return y,
-
-
-'''
-@testing.parameterize(*(testing.product_dict(
-    testing.product({
-        'test': [True, False],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    }),
-    testing.product({
-        'ndim': [0, 1, 2, 3],
-    }) + [
-        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
-        {'input_shape': (5, 4), 'axis': 0},
-        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
-    ]
-)))
-class BatchNormalizationTest(unittest.TestCase):
-
-    def setUp(self):
-        if not hasattr(self, 'axis'):
-            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
-            shape = (5, 3) + (2,) * self.ndim
-            param_shape = shape[1]
-            self.expander = (None, Ellipsis) + (None,) * self.ndim
-        else:
-            aggr_axes = self.axis
-            if isinstance(self.axis, int):
-                aggr_axes = self.axis,
-            shape = self.input_shape
-            param_shape = tuple(
-                s
-                for i, s in enumerate(shape)
-                if i not in aggr_axes
-            )
-            self.expander = tuple(
-                None if i in aggr_axes else slice(None)
-                for i in range(len(shape))
-            )
-
-        options = {}
-        if hasattr(self, 'axis'):
-            options['axis'] = self.axis
-        self.link = links.BatchNormalization(
-            param_shape, dtype=self.dtype, **options)
-        gamma = self.link.gamma.data
-        gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
-        beta = self.link.beta.data
-        beta[...] = numpy.random.uniform(-1, 1, beta.shape)
-        self.link.cleargrads()
-
-        self.gamma = gamma.copy()[self.expander]  # fixed on CPU
-        self.beta = beta.copy()[self.expander]   # fixed on CPU
-
-        self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-
-        if self.test:
-            self.mean = numpy.random.uniform(
-                -1, 1, param_shape).astype(self.dtype)
-            self.var = numpy.random.uniform(
-                0.5, 1, param_shape).astype(self.dtype)
-            self.link.avg_mean[...] = self.mean
-            self.link.avg_var[...] = self.var
-        else:
-            self.mean = self.x.mean(axis=aggr_axes)
-            self.var = self.x.var(axis=aggr_axes)
-        self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
-            self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
-
-    def check_forward(self, x_data):
-        with chainer.using_config('train', not self.test):
-            x = chainer.Variable(x_data)
-            y = self.link(x)
-            self.assertEqual(y.data.dtype, self.dtype)
-
-        y_expect = _batch_normalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean,
-            self.var, self.link.eps, self.test)
-
-        testing.assert_allclose(
-            y_expect, y.data, **self.check_forward_optionss)
-
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.cudnn
-    def test_forward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', 'never'):
-            self.test_forward_gpu()
-
-    @attr.multi_gpu(2)
-    @condition.retry(3)
-    def test_forward_multi_gpu(self):
-        with cuda.get_device_from_id(1):
-            self.link.to_gpu()
-            x = cuda.to_gpu(self.x)
-        with cuda.get_device_from_id(0):
-            self.check_forward(x)
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.gamma, self.link.beta),
-            eps=1e-2, **self.check_backward_optionss)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.cudnn
-    def test_backward_gpu_without_cudnn(self):
-        with chainer.using_config('use_cudnn', 'never'):
-            self.test_backward_gpu()
 
 
 @testing.parameterize(
@@ -651,7 +521,6 @@ class TestFailChannalSizeInference(unittest.TestCase):
     def test_fail_inference(self):
         with self.assertRaises(RuntimeError):
             links.BatchNormalization()
-'''
 
 
 testing.run_module(__name__, __file__)

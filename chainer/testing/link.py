@@ -10,6 +10,10 @@ from chainer import gradient_check
 from chainer import initializers
 from chainer.testing import array as array_module
 
+# TODO(hvy): Introduce a ChainerTestError(AssertionError).
+# LinkTestError(ChainerTestError) and
+# FunctionTestError(ChainerTestError).
+
 
 class InitializerPair(object):
 
@@ -60,6 +64,18 @@ class LinkTestCase(unittest.TestCase):
         initializers._check_is_initializer_like(default_initializer)
         self._default_initializer = default_initializer
 
+    def before_test(self, test_name):
+        pass
+
+    def generate_forward_backward_initializers(self):
+        """Returns initializers.
+
+        Returns:
+            A tuple of initializers. One for each argument.
+        """
+        raise NotImplementedError(
+            'generate_forward_backward_initializers is not implemented.')
+
     def generate_initializers(self):
         """Returns initializers.
 
@@ -92,15 +108,6 @@ class LinkTestCase(unittest.TestCase):
         # assert all(isinstance(p, numpy.ndarray) for p in params)
         raise NotImplementedError('forward_expected() is not implemented.')
 
-    def on_sample(self):
-        # Sets attributes of self that are to be used in the forward
-        # definitions.
-        # This method is called once in the backward test, followed by multiple
-        # calls in case sampled points are invalid for the backward operation,
-        # e.g. if the attribute is an array representing a nondifferentiable
-        # point.
-        pass
-
     def generate_grad_outputs(self, outputs_template):
         """Returns upstream gradients."""
         grad_outputs = tuple([
@@ -112,26 +119,94 @@ class LinkTestCase(unittest.TestCase):
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
 
-        params_inits = self._generate_initializers()
-        for params_init in _initializer_iterator(
-                params_inits, fill_init=self.default_initializer):
-            self._test_single_forward(params_init, backend_config)
+        self.before_test('test_forward')
+
+        inits = self._generate_forward_backward_initializers()
+
+        device = backend_config.device
+        link = self._create_link(inits, device)
+
+        inputs_np = self._generate_inputs()
+        inputs_xp = tuple([device.send(i) for i in inputs_np])
+        input_vars = tuple([chainer.Variable(i) for i in inputs_xp])
+
+        actual_outputs_var = self._forward(link, input_vars, backend_config)
+
+        cpu_device = backend.CpuDevice()
+        actual_outputs_xp = [v.array for v in actual_outputs_var]
+
+        params = []
+        for param_name in self.param_names:
+            param = getattr(link, param_name, None)
+            if param is None:
+                raise RuntimeError(
+                    'Link does not have a parameter named \'{}\'.'.format(
+                        param_name))
+            params.append(param)
+
+        params_np = []
+        for param in params:
+            param_xp = param.array
+            param_np = cpu_device.send(param_xp)
+            params_np.append(param_np)
+
+        expected_outputs_np = self._forward_expected(inputs_np, params_np)
+
+        for e, a in zip(expected_outputs_np, actual_outputs_xp):
+            array_module.assert_allclose(e, a, **self.check_forward_options)
 
     def test_backward(self, backend_config):
         # Checks that the graph is correct.
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
 
-        params_inits = self._generate_initializers()
+        # TODO(hvy): Do not skip and check_backward supports new style func
+        # that takes both inputs and parameters.
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
-        for params_init in _initializer_iterator(
-                params_inits, fill_init=self.default_initializer):
-            self._test_single_backward(params_init, backend_config)
+        self.before_test('test_backward')
+
+        def do_check():
+            inits = self._generate_forward_backward_initializers()
+            link, _, outputs = self._generate_initialized_link(
+                inits, backend_config)
+            params = _get_params(link, self.param_names)
+
+            def f(*inputs):
+                return self._forward(link, inputs, backend_config)
+
+            inputs = self._generate_inputs()
+            grad_outputs = self._generate_grad_outputs(outputs)
+
+            inputs = backend_config.get_array(inputs)
+            grad_outputs = backend_config.get_array(grad_outputs)
+            # inputs = self._to_noncontiguous_as_needed(inputs)
+            # grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
+
+            gradient_check.check_backward(
+                f, inputs, grad_outputs, params=params, dtype=inputs[0].dtype,
+                detect_nondifferentiable=self.dodge_nondifferentiable,
+                **self.check_backward_options)
+
+        if self.dodge_nondifferentiable:
+            while True:
+                try:
+                    # TODO(hvy): Resample.
+                    do_check()
+                except gradient_check.NondifferentiableError:
+                    continue
+                else:
+                    break
+        else:
+            do_check()
 
     def test_initializers(self, backend_config):
         """Tests that the parameters of a links are correctly initialized."""
         if self.skip_initializers_test:
             raise unittest.SkipTest('skip_initializers_test is set')
+
+        self.before_test('test_initializers')
 
         params_inits = self._generate_initializers()
 
@@ -177,9 +252,17 @@ class LinkTestCase(unittest.TestCase):
 
         return params_np
 
+    def _generate_forward_backward_initializers(self):
+        params_init = self.generate_forward_backward_initializers()
+        for init in params_init:
+            _check_generated_initializer(init)
+        return params_init
+
     def _generate_initializers(self):
         params_inits = self.generate_initializers()
-        _check_generated_initializers(params_inits)
+        for param_inits in params_inits:
+            for init in param_inits:
+                _check_generated_initializer(init)
         return params_inits
 
     def _create_link(self, initializers, device):
@@ -214,79 +297,6 @@ class LinkTestCase(unittest.TestCase):
         _check_array_types(
             grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
         return grad_outputs
-
-    def _test_single_forward(self, inits, backend_config):
-        inits = _get_initializers(inits)
-
-        device = backend_config.device
-        link = self._create_link(inits, device)
-
-        inputs_np = self._generate_inputs()
-        inputs_xp = tuple([device.send(i) for i in inputs_np])
-        input_vars = tuple([chainer.Variable(i) for i in inputs_xp])
-
-        actual_outputs_var = self._forward(link, input_vars, backend_config)
-
-        cpu_device = backend.CpuDevice()
-        actual_outputs_xp = [v.array for v in actual_outputs_var]
-        actual_outputs_np = [cpu_device.send(arr) for arr in actual_outputs_xp]
-
-        params = []
-        for param_name in self.param_names:
-            param = getattr(link, param_name, None)
-            if param is None:
-                raise RuntimeError(
-                    'Link does not have a parameter named \'{}\'.'.format(
-                        param_name))
-            params.append(param)
-
-        params_np = []
-        for param in params:
-            param_xp = param.array
-            param_np = cpu_device.send(param_xp)
-            params_np.append(param_np)
-
-        expected_outputs_np = self._forward_expected(inputs_np, params_np)
-
-        for e, a in zip(expected_outputs_np, actual_outputs_np):
-            array_module.assert_allclose(e, a, **self.check_forward_options)
-
-    def _test_single_backward(self, inits, backend_config):
-        inits = _get_initializers(inits)
-
-        _, _, outputs = self._generate_initialized_link(inits, backend_config)
-
-        device = backend_config.device
-
-        def f(*args):
-            link = self._create_link(inits, device)
-            return self._forward(link, args, backend_config)
-
-        def do_check():
-            inputs = self._generate_inputs()
-            grad_outputs = self._generate_grad_outputs(outputs)
-
-            inputs = backend_config.get_array(inputs)
-            grad_outputs = backend_config.get_array(grad_outputs)
-            # inputs = self._to_noncontiguous_as_needed(inputs)
-            # grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
-
-            gradient_check.check_backward(
-                f, inputs, grad_outputs, dtype=inputs[0].dtype,
-                detect_nondifferentiable=self.dodge_nondifferentiable,
-                **self.check_backward_options)
-
-        if self.dodge_nondifferentiable:
-            while True:
-                try:
-                    # TODO(hvy): Resample.
-                    do_check()
-                except gradient_check.NondifferentiableError:
-                    continue
-                else:
-                    break
-        else:
-            do_check()
 
     def _test_single_initializers(self, inits, backend_config):
         inits_orig = inits
@@ -347,12 +357,6 @@ def _check_generated_initializer(init):
     initializers._check_is_initializer_like(init)
 
 
-def _check_generated_initializers(params_inits):
-    for param_inits in params_inits:
-        for init in param_inits:
-            _check_generated_initializer(init)
-
-
 def _get_initializers(inits):
     assert isinstance(inits, tuple)
 
@@ -407,3 +411,14 @@ def _check_array_types(arrays, device, func_name):
             '{}() must return a tuple of arrays supported by device {}.\n'
             'Actual: {}'.format(
                 func_name, device, tuple([type(a) for a in arrays])))
+
+
+def _get_params(link, param_names):
+    params = []
+    for name in param_names:
+        param = getattr(link, name, None)
+        if param is None:
+            raise RuntimeError(
+                'Link does not have a parameter named \'{}\'.'.format(name))
+        params.append(param)
+    return params
