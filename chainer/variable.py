@@ -1561,7 +1561,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     """Backprop to all input variables
 
     Args:
-        outputs (list of tuple): each tuple is (y_node, y_grad_var)
+        outputs (list of tuple): each tuple is (y_node, y_grad_var).
+            y_grad_var should not be None.
         retain_grad (bool): see docstring of Variable.backward
         loss_scale (float): see docstring of Variable.backward
 
