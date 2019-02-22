@@ -230,7 +230,7 @@ class BatchNormalization(function_node.FunctionNode):
 
             xp = backend.get_array_module(self.running_mean, self.running_var)
             if xp is chainerx:
-                self.running_mean, self.running_var = backend.from_chainerx(
+                self.running_mean, self.running_var = backend.from_chx(
                     (self.running_mean, self.running_var))
 
             self.running_mean *= self.decay
@@ -239,8 +239,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var += (1 - self.decay) * adjust * var
 
             if xp is chainerx:
-                self.running_mean = backend.to_chainerx(self.running_mean)
-                self.running_var = backend.to_chainerx(self.running_var)
+                self.running_mean = backend.to_chx(self.running_mean)
+                self.running_var = backend.to_chx(self.running_var)
 
         return y,
 

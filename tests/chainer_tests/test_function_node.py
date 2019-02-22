@@ -361,7 +361,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def check_mix_xp(self, xp):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
-        x2 = backend.to_chainerx(xp_x2)
+        x2 = backend.to_chx(xp_x2)
         y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
 
         assert isinstance(y.array, chainerx.ndarray)

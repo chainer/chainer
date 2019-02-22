@@ -44,7 +44,7 @@ def _chainerx_preprocess_const(x, value, label):
     # conversion without copy is possible.
     if isinstance(value, (numpy.ndarray, cuda.ndarray)):
         # TODO(niboshi): force zero-copy
-        return backend.to_chainerx(value)
+        return backend.to_chx(value)
 
     if isinstance(value, (six.integer_types, float)):
         return value
