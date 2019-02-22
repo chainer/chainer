@@ -53,7 +53,7 @@ class GradTable(object):
             if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
-                grads[node] = _pure(node.grad_var)
+                grads[node] = _pure(node._pop_grad_var_if_available())
             else:
                 grads[node] = []
         return grads[node]
@@ -65,7 +65,7 @@ class GradTable(object):
         if node in grads:
             return _reduce(grads.pop(node))
         if self._load_if_new:
-            return node.grad_var
+            return node._pop_grad_var_if_available()
         else:
             return None
 

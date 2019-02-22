@@ -313,6 +313,16 @@ class VariableNode(object):
         if var is not None:
             var._set_grad_var_without_check(g)
 
+    def _pop_grad_var_if_available(self):
+        # this method is used by Variable.backward
+        var = self._variable()
+        if var is None:
+            return None
+        else:
+            gv = var.grad_var
+            var._set_grad_var_without_check(None)
+            return gv
+
     @property
     def label(self):
         """Short text that represents the variable node."""
@@ -1400,7 +1410,12 @@ class Variable(object):
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
+            # TODO(kataoka): assert self.grad_var is None if self has a creator
             return
+
+        # TODO(sonots): Implement for ChainerX
+        if self.xp is chainerx:
+            raise NotImplementedError()
 
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self.grad_var is None:
@@ -1421,8 +1436,11 @@ class Variable(object):
             if loss_scale is not None:
                 self.grad *= loss_scale
 
+        node = self.node
+        grad_var = node._pop_grad_var_if_available()
+
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            _backprop_to_all([self], retain_grad, loss_scale)
+            _backprop_to_all([(node, grad_var)], retain_grad, loss_scale)
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -1540,6 +1558,14 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
+    """Backprop to all input variables
+
+    Args:
+        outputs (list of tuple): each tuple is (y_node, y_grad_var)
+        retain_grad (bool): see docstring of Variable.backward
+        loss_scale (float): see docstring of Variable.backward
+
+    """
     OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
 
     cand_funcs = []
@@ -1553,19 +1579,13 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
 
     grads = _backprop_utils.GradTable(load_if_new=True)
 
-    root_nodes = set()
+    # root_nodes = set()
     leaf_nodes = set()
 
-    for y_var in outputs:
-        # TODO(sonots): Implement for ChainerX
-        if y_var.xp is chainerx:
-            raise NotImplementedError()
+    for y, gy in outputs:
+        # root_nodes.add(y)
+        grads.get_as_list(y).append(gy)
 
-        y = y_var.node
-        root_nodes.add(y)
-        grads[y] = y_var.grad_var
-
-        y._check_old_style_gradient()
         func = y.creator_node
         if func is None:  # leaf
             leaf_nodes.add(y)
@@ -1622,11 +1642,12 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 hook.backward_postprocess(
                     func, tuple(in_data), tuple(out_grad_array))
 
-        for y, gy in six.moves.zip(outputs, out_grad):
-            if y is not None and y not in root_nodes:
-                y._set_grad_var_if_available(
-                    gy if retain_grad else None)
-        del gy, out_grad  # to reduce memory usage
+        if retain_grad:
+            for y, gy in six.moves.zip(outputs, out_grad):
+                if y is not None:  # TODO(kataoka): really?
+                    y._set_grad_var_if_available(gy)
+            del gy  # to reduce memory usage
+        del out_grad  # to reduce memory usage
 
         for x, gx in in_grad.items():
             if not gx:  # gradient == None
