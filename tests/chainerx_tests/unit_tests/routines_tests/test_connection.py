@@ -28,7 +28,7 @@ def _create_conv_args(
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
+@chainer.testing.parameterize_pytest('x_shape,w_shape,b_shape,stride,pad', [
     ((1, 3), (5, 3), (5,), 1, 0),
     ((1, 3), (5, 3), None, 1, 0),
     ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
@@ -42,29 +42,21 @@ def _create_conv_args(
     ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
     ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
 ])
-@pytest.mark.parametrize('cover_all', [True, False])
+@chainer.testing.parameterize_pytest('cover_all', [True, False])
 class test_conv(op_utils.ChainerOpTest):
 
-    def setup(
-            self, x_shape, w_shape, b_shape, stride, pad, cover_all,
-            float_dtype):
+    def setup(self, float_dtype):
 
         device = chainerx.get_default_device()
-        if device.backend.name == 'cuda' and len(x_shape) <= 3:
+        if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
             # TODO(hvy): Support 1 dimensional convolution with CUDA.
             pytest.skip('cudnn does not support 1-dim convolution')
-        if device.backend.name == 'cuda' and cover_all:
+        if device.backend.name == 'cuda' and self.cover_all:
             pytest.skip('cudnn does not support cover_all')
         if device.backend.name == 'native' and float_dtype == 'float16':
             # TODO(niboshi): Fix accuracy
             pytest.skip('Native float16 operation has insufficient accuracy')
 
-        self.x_shape = x_shape
-        self.w_shape = w_shape
-        self.b_shape = b_shape
-        self.stride = stride
-        self.pad = pad
-        self.cover_all = cover_all
         self.dtype = float_dtype
 
         if float_dtype == 'float16':

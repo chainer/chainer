@@ -9,6 +9,7 @@ from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
 from chainer.testing.helper import without_requires  # NOQA
 from chainer.testing.parameterized import parameterize  # NOQA
+from chainer.testing.parameterized import parameterize_pytest  # NOQA
 from chainer.testing.parameterized import product  # NOQA
 from chainer.testing.parameterized import product_dict  # NOQA
 from chainer.testing.random import fix_random  # NOQA
