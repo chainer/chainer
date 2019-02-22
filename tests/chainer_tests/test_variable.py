@@ -2341,11 +2341,12 @@ class TestItem(unittest.TestCase):
         self.target_type = type(np.array(0, dtype=self.dtype).item())
 
     def check_item(self, x):
+        var = chainer.Variable(x)
         if x.size > 1:
             with pytest.raises(ValueError):
-                chainer.Variable(x).item()
+                var.item()
         else:
-            value = chainer.Variable(x).item()
+            value = var.item()
             assert type(value) is self.target_type
 
     def test_cpu(self):
@@ -2358,11 +2359,12 @@ class TestItem(unittest.TestCase):
     def check_item_chainerx(self, x, requires_grad=True):
         # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
         # with integral dtype supports gradient computation.
+        var = chainer.Variable(x, requires_grad=requires_grad)
         if x.size > 1:
             with pytest.raises(chainerx.DimensionError):
-                chainer.Variable(x, requires_grad=requires_grad).item()
+                var.item()
         else:
-            value = chainer.Variable(x, requires_grad=requires_grad).item()
+            value = var.item()
             assert type(value) is self.target_type
 
     @attr.chainerx
