@@ -122,15 +122,7 @@ class TimerHook(link_hook.LinkHook):
             record['occurrence'] += 1
         return summary
 
-    def _humanized_time(self, second):
-        """Returns a human readable time."""
-        for unit in ['sec', 'ms', 'us']:
-            if second >= 1:
-                return '%3.2f%s' % (second, unit)
-            second *= 1000.0
-        return '%.2f%s' % (second, 'ns')
-
-    def _choode_unit(self, second):
+    def _choose_unit(self, second):
         """Choose optimal unit."""
         factor = 1
         for unit in ['sec', 'ms', 'us']:
@@ -150,18 +142,18 @@ class TimerHook(link_hook.LinkHook):
                 each element.
         """
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
+        auto_foreach = (unit == 'auto_foreach')
         if unit == 'auto':
             max_time = max(
                 record['elapsed_time'] for record in self.summary().values())
-            factor, unit = self._choode_unit(max_time)
-        elif unit != 'auto_foreach':
+            factor, unit = self._choose_unit(max_time)
+        elif not auto_foreach:
             factor = self.table[unit]
         for link_name, record in self.summary().items():
             second = record['elapsed_time']
-            if unit != 'auto_foreach':
-                elapsed_time = '%3.2f%s' % (second * factor, unit)
-            else:
-                elapsed_time = self._humanized_time(second)
+            if auto_foreach:
+                factor, unit = self._choose_unit(second)
+            elapsed_time = '%3.2f%s' % (second * factor, unit)
             occurrence = str(record['occurrence'])
             entries.append([link_name, elapsed_time, occurrence])
         entry_widths = []
