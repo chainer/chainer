@@ -133,8 +133,8 @@ class TimerHook(function_hook.FunctionHook):
             second *= 1000.0
         return '%.2f%s' % (second, 'ns')
 
-    def _align(self, second):
-        """Returns align info: (factor, unit)."""
+    def _choose_unit(self, second):
+        """Choose optimal unit."""
         factor = 1
         for unit in ['sec', 'ms', 'us']:
             if second * factor >= 1:
@@ -156,7 +156,7 @@ class TimerHook(function_hook.FunctionHook):
         if unit == 'auto':
             max_time = max(
                 record['elapsed_time'] for record in self.summary().values())
-            factor, unit = self._align(max_time)
+            factor, unit = self._choode_unit(max_time)
         elif unit != 'auto_foreach':
             factor = self.table[unit]
         for function_name, record in self.summary().items():
