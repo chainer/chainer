@@ -1503,37 +1503,46 @@ class Variable(object):
                 'method.')
         self._node.data = self._data[0]
 
+    def _error_nobp_op(self, op):
+        raise TypeError(
+            'Variables do not support {} operator. '
+            'You could use `array` attribute instead.'.format(op))
+
     def __lt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<')
 
     def __le__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<=')
 
     def __eq__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('==')
 
     def __ne__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('!=')
 
     def __gt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>')
 
     def __ge__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>=')
 
     def __nonzero__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 2.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
     def __bool__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 3.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
     __array_priority__ = 200  # type: int
     __hash__ = None  # type: tp.Callable[[object], int]
