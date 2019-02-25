@@ -158,7 +158,7 @@ def create_communicator(param, use_gpu):
 
 def check_send_and_recv(communicator, *shape):
     if communicator.size < 2:
-        pytest.skip("This test is for multiple nodes")
+        pytest.skip('This test is for multiple nodes')
 
     if communicator.rank > 0:
         rank_prev = (communicator.rank - 1) % communicator.size
@@ -175,7 +175,7 @@ def check_send_and_recv(communicator, *shape):
 
 def check_send_and_recv_tuple(communicator, data):
     if communicator.size < 2:
-        pytest.skip("This test is for multiple nodes")
+        pytest.skip('This test is for multiple nodes')
 
     if communicator.rank > 0:
         rank_prev = (communicator.rank - 1) % communicator.size

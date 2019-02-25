@@ -252,16 +252,16 @@ class GRU(StatefulGRU):
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.forward must be 1. "
-               "But %d is given. " % n_args)
+        msg = ('Invalid argument. The length of GRU.forward must be 1. '
+               'But %d is given. ' % n_args)
 
         if n_args == 0 or n_args >= 3:
             raise ValueError(msg)
         elif n_args == 2:
-            msg += ("In Chainer v2, chainer.links.GRU is changed "
-                    "from stateless to stateful. "
-                    "One possiblity is you assume GRU to be stateless. "
-                    "Use chainer.links.StatelessGRU instead.")
+            msg += ('In Chainer v2, chainer.links.GRU is changed '
+                    'from stateless to stateful. '
+                    'One possiblity is you assume GRU to be stateless. '
+                    'Use chainer.links.StatelessGRU instead.')
             raise ValueError(msg)
 
         return super(GRU, self).forward(args[0])
