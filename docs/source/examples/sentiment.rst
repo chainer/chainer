@@ -37,7 +37,7 @@ In this tutorial, we will learn the following:
 1. What is a Recursive Neural Network? 
 =======================================
 
-A Recursive Neural Network is a Recurrent Neural Networks that extends to
+A Recursive Neural Network is a Recurrent Neural Network that extends to
 a tree structure. As both networks are often written as RNN, we need to be
 careful which one we are referring to. RNN usually refers to the Recurrent
 Neural Networks, but in natural language processing it sometimes
@@ -327,7 +327,7 @@ to the ``stack``. Second ``for`` block pops the hidden state vectors of its chil
 calculates ``loss`` of nodes, and pushs the hidden state vector ``o`` again.
 
 Most important point is that ``ThinStackRecursiveNet`` shares GPU memory for :class:`~chainer.Variable`\ s by
-using thin-stack. It only allocate the whole memory, and reuse it when calculating forward and backward propagation.
+using thin-stack. It only allocate the whole memory, and reuse it when calculating forward and backward propagation [4].
 Without careful implementation, backward propagation does not work because rewriting the memory may delete
 neccesary information for backward propagation. However, with thin-stack, each write operation always refers
 different index of the memory. So, it does not delete neccesary information for other read operations.
