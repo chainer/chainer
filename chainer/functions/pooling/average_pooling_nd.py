@@ -5,6 +5,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
@@ -103,6 +104,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
             dims = x.shape[2:]
             width = self._get_pooling_width(numpy, dims, x.dtype)
             y = col.sum(axis=y_axis) / width
+            setattr(self, 'width', width)
         else:
             assert self.pad_value == 0
             y = col.mean(axis=y_axis)
@@ -132,6 +134,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         if self.pad_value is None:
             coeff = self._get_pooling_width(cuda.cupy, idims, x.dtype)
             coeff = cuda.cupy.reciprocal(coeff, out=coeff)
+            setattr(self, 'coeff', coeff)
         else:
             assert self.pad_value == 0
             coeff = 1. / functools.reduce(operator.mul, self.ksize)
@@ -177,15 +180,15 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         idims = self._in_shape[2:]
         odims = gy.shape[2:]
         colon = slice(None, None, None)
+        if self.pad_value is None:
+            width = getattr(self.apoolnd, 'width')
+            numpy.divide(gy, width, out=gy)
+        else:
+            gy /= functools.reduce(operator.mul, self.ksize)
         gy_index = (colon, colon) + (None,) * len(idims)
         gcol_reps = (1, 1) + self.ksize + (1,) * len(odims)
         gcol = numpy.tile(gy[gy_index], gcol_reps)
         gx = conv_nd.col2im_nd_cpu(gcol, self.stride, self.pad, idims)
-        if self.pad_value is None:
-            width = self._get_pooling_width(numpy, odims, gx.dtype)
-            numpy.divide(gx, width, out=gx)
-        else:
-            gx /= functools.reduce(operator.mul, self.ksize)
         return gx,
 
     def forward_gpu(self, gys):
@@ -197,12 +200,12 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         n, c = self._in_shape[:2]
         idims = self._in_shape[2:]
         odims = gy.shape[2:]
-        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
         if self.pad_value is None:
-            coeff = self._get_pooling_width(cuda.cupy, odims, gy.dtype)
-            coeff = cuda.cupy.reciprocal(coeff, out=coeff)
+            coeff = getattr(self.apoolnd, 'coeff')
         else:
             coeff = 1. / functools.reduce(operator.mul, self.ksize)
+        gy *= coeff
+        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         in_params, out_params, operation, name = \
             average_pooling_nd_kernel.AveragePoolingNDKernelBackward.generate(
@@ -210,7 +213,7 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         cuda.elementwise(in_params, out_params, operation, name)(
             gy.reduced_view(),
             *(idims + odims + self.ksize + self.stride + self.pad
-              + (coeff, gx)))
+              + (gx,)))
 
         return gx,
 
