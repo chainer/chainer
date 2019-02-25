@@ -61,12 +61,6 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
 
     param_names = ['gamma', 'beta']
 
-    # TODO(hvy): Remove these declarations since none of them should be
-    # skipped.
-    skip_forward_test = False
-    skip_backward_test = False
-    skip_initializers_test = False
-
     def setUp(self):
         if hasattr(self, 'axis') and hasattr(self, 'input_shape'):
             aggr_axes = self.axis
@@ -116,10 +110,8 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         return initial_gamma, initial_beta
 
     def generate_initializers(self):
-        # TODO(hvy): Temporarily testing initializers with different number
-        # of "parameters". Test all of them.
         initial_gamma = [
-            initializers.Constant(2), testing.link.InitializerPair(None, 1)]
+            initializers.Constant(2), 2, testing.link.InitializerPair(None, 1)]
         initial_beta = [
             initializers.Constant(2), 2, testing.link.InitializerPair(None, 0)]
         return initial_gamma, initial_beta
