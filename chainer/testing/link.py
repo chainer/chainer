@@ -1,5 +1,3 @@
-import itertools
-import sys
 import unittest
 
 import numpy
@@ -65,6 +63,14 @@ class LinkTestCase(unittest.TestCase):
         self._default_initializer = default_initializer
 
     def before_test(self, test_name):
+        """Is a method that is called before each test method.
+
+        It is called before ``'test_forward'``, ``'test_backward'`` and
+        ``'test_initializers'``.
+
+        This method can be overridden for any pre-test setup such as
+        tolerance configurations.
+        """
         pass
 
     def generate_forward_backward_initializers(self):
@@ -98,8 +104,6 @@ class LinkTestCase(unittest.TestCase):
 
     def forward(self, link, inputs):
         """Computes and returns the result of a forward pass."""
-        # assert all(isinstance(link, chainer.Link))
-        # assert all(isinstance(a, chainer.Variable) for a in inputs)
         return link(*inputs)
 
     def forward_expected(self, inputs, params):
@@ -116,83 +120,81 @@ class LinkTestCase(unittest.TestCase):
         return grad_outputs
 
     def test_forward(self, backend_config):
+        """Tests forward computation."""
+
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
+
+        self._skip_if_chainerx_float16(backend_config)
 
         self.before_test('test_forward')
 
         inits = self._generate_forward_backward_initializers()
-
-        device = backend_config.device
-        link = self._create_link(inits, device)
+        link = self._create_link(inits, backend_config)
 
         inputs_np = self._generate_inputs()
-        inputs_xp = tuple([device.send(i) for i in inputs_np])
+        inputs_xp = backend_config.get_array(inputs_np)
+        inputs_xp = self._to_noncontiguous_as_needed(inputs_xp)
         input_vars = tuple([chainer.Variable(i) for i in inputs_xp])
+        # Compute forward of the link and initialize its parameters.
+        output_vars = self._forward(link, input_vars, backend_config)
+        outputs_xp = [v.array for v in output_vars]
 
-        actual_outputs_var = self._forward(link, input_vars, backend_config)
-
+        # Expected outputs are computed on the CPU so inputs and parameters
+        # must be transferred.
         cpu_device = backend.CpuDevice()
-        actual_outputs_xp = [v.array for v in actual_outputs_var]
-
-        params = []
-        for param_name in self.param_names:
-            param = getattr(link, param_name, None)
-            if param is None:
-                raise RuntimeError(
-                    'Link does not have a parameter named \'{}\'.'.format(
-                        param_name))
-            params.append(param)
-
-        params_np = []
-        for param in params:
-            param_xp = param.array
-            param_np = cpu_device.send(param_xp)
-            params_np.append(param_np)
+        params = _get_link_params(link, self.param_names)
+        params_np = [cpu_device.send(p.array) for p in params]
 
         expected_outputs_np = self._forward_expected(inputs_np, params_np)
 
-        for e, a in zip(expected_outputs_np, actual_outputs_xp):
-            array_module.assert_allclose(e, a, **self.check_forward_options)
+        for expected_output, output in zip(expected_outputs_np, outputs_xp):
+            array_module.assert_allclose(
+                expected_output, output, **self.check_forward_options)
 
     def test_backward(self, backend_config):
-        # Checks that the graph is correct.
+        """Tests backward computation."""
+
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
 
-        # TODO(hvy): Do not skip and check_backward supports new style func
-        # that takes both inputs and parameters.
-        if backend_config.use_chainerx:
-            raise unittest.SkipTest('ChainerX does not support float16')
+        self._skip_if_chainerx_float16(backend_config)
 
         self.before_test('test_backward')
 
         def do_check():
             inits = self._generate_forward_backward_initializers()
-            link, _, outputs = self._generate_initialized_link(
-                inits, backend_config)
-            params = _get_params(link, self.param_names)
 
-            def f(*inputs):
+            def f(inputs, ps):
+                link = self._create_initialized_link(inits, backend_config)
+                with link.init_scope():
+                    for param_name, p in zip(self.param_names, ps):
+                        setattr(link, param_name, p)
                 return self._forward(link, inputs, backend_config)
 
-            inputs = self._generate_inputs()
+            link, inputs, outputs = self._create_initialized_link(
+                inits, backend_config, return_inputs_outputs=True)
+
+            params = _get_link_params(link, self.param_names)
+            params = [p.array for p in params]
+
+            cpu_device = backend.CpuDevice()
+            outputs = [cpu_device.send(output) for output in outputs]
             grad_outputs = self._generate_grad_outputs(outputs)
-
-            inputs = backend_config.get_array(inputs)
             grad_outputs = backend_config.get_array(grad_outputs)
-            # inputs = self._to_noncontiguous_as_needed(inputs)
-            # grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
 
-            gradient_check.check_backward(
-                f, inputs, grad_outputs, params=params, dtype=inputs[0].dtype,
+            inputs = self._to_noncontiguous_as_needed(inputs)
+            params = self._to_noncontiguous_as_needed(params)
+            grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
+
+            gradient_check._check_backward_with_params(
+                f, inputs, grad_outputs, params=params, dtype=numpy.float64,
                 detect_nondifferentiable=self.dodge_nondifferentiable,
                 **self.check_backward_options)
 
         if self.dodge_nondifferentiable:
             while True:
                 try:
-                    # TODO(hvy): Resample.
                     do_check()
                 except gradient_check.NondifferentiableError:
                     continue
@@ -206,51 +208,46 @@ class LinkTestCase(unittest.TestCase):
         if self.skip_initializers_test:
             raise unittest.SkipTest('skip_initializers_test is set')
 
+        self._skip_if_chainerx_float16(backend_config)
+
         self.before_test('test_initializers')
 
         params_inits = self._generate_initializers()
 
-        for params_init in _initializer_iterator(
-                params_inits, fill_init=self.default_initializer):
-            self._test_single_initializers(params_init, backend_config)
+        for i_param, param_inits in enumerate(params_inits):
+            # When testing an initializer for a particular parameter, other
+            # initializers are set to None.
+            inits = [None, ] * len(params_inits)
 
-    def _generate_initialized_link(self, inits, backend_config):
+            for init in param_inits:
+                inits[i_param] = init
+                self._test_single_initializers(tuple(inits), backend_config)
+
+    def _test_single_initializers(self, inits, backend_config):
+        inits_orig = inits
         inits = _get_initializers(inits)
-        device = backend_config.device
-        link = self._create_link(inits, device)
+        link = self._create_initialized_link(inits, backend_config)
 
-        # Generate inputs and compute a forward pass to initialize the
-        # parameters.
-        inputs_np = self._generate_inputs()
-        inputs_xp = [device.send(i) for i in inputs_np]
-        input_vars = [chainer.Variable(i) for i in inputs_xp]
-        outputs_var = self._forward(link, input_vars, backend_config)
+        # All parameters of link should have been initialized.
+        params = _get_link_params(link, self.param_names)
+
         cpu_device = backend.CpuDevice()
-        outputs_xp = [v.array for v in outputs_var]
-        outputs_np = [cpu_device.send(arr) for arr in outputs_xp]
+        params_xp = [v.array for v in params]
+        params_np = [cpu_device.send(arr) for arr in params_xp]
 
-        return link, inputs_np, outputs_np
+        expected_inits, defaulted_indices = _get_expected_initializers(
+            inits_orig, default_init=self.default_initializer,
+            return_defaulted_indices=True)
 
-    # TODO(hvy): Make this a free function.
-    def _get_param_arrays(self, link):
-        cpu_device = backend.CpuDevice()
+        for i_param in range(len(inits)):
+            if i_param in defaulted_indices:
+                continue
 
-        params = []
-        for param_name in self.param_names:
-            param = getattr(link, param_name, None)
-            if param is None:
-                raise RuntimeError(
-                    'Link does not have a parameter named \'{}\'.'.format(
-                        param_name))
-            params.append(param)
-
-        params_np = []
-        for param in params:
-            param_xp = param.array
-            param_np = cpu_device.send(param_xp)
-            params_np.append(param_np)
-
-        return params_np
+            param_np = params_np[i_param]
+            expected_init = expected_inits[i_param]
+            expected_np = numpy.empty_like(param_np)
+            expected_init(expected_np)
+            array_module.assert_allclose(expected_np, param_np)
 
     def _generate_forward_backward_initializers(self):
         params_init = self.generate_forward_backward_initializers()
@@ -265,13 +262,35 @@ class LinkTestCase(unittest.TestCase):
                 _check_generated_initializer(init)
         return params_inits
 
-    def _create_link(self, initializers, device):
+    def _create_link(self, initializers, backend_config):
         link = self.create_link(initializers)
         if not isinstance(link, chainer.Link):
             raise ValueError(
                 '`create_link` must return a chainer.Link object.')
-        link.to_device(device)
+
+        link.to_device(backend_config.device)
+
         return link
+
+    def _create_initialized_link(
+            self, inits, backend_config, return_inputs_outputs=False):
+        inits = _get_initializers(inits)
+        link = self._create_link(inits, backend_config)
+
+        # Generate inputs and compute a forward pass to initialize the
+        # parameters.
+        inputs_np = self._generate_inputs()
+        inputs_xp = backend_config.get_array(inputs_np)
+        input_vars = [chainer.Variable(i) for i in inputs_xp]
+        output_vars = self._forward(link, input_vars, backend_config)
+
+        ret = link
+
+        if return_inputs_outputs:
+            outputs_xp = [v.array for v in output_vars]
+            ret = ret, inputs_xp, outputs_xp
+
+        return ret
 
     def _generate_inputs(self):
         inputs = self.generate_inputs()
@@ -280,9 +299,13 @@ class LinkTestCase(unittest.TestCase):
 
     def _forward(self, link, inputs, backend_config):
         assert all(isinstance(x, chainer.Variable) for x in inputs)
+
         with backend_config:
             outputs = self.forward(link, inputs)
-        # TODO(hvy): Check outputs.
+
+        # TODO(hvy): Check outputs with _check_variable_types
+        # _check_variable_types(outputs, backend_config.device, 'forward')
+
         return outputs
 
     def _forward_expected(self, inputs, params):
@@ -290,65 +313,40 @@ class LinkTestCase(unittest.TestCase):
         assert all(isinstance(x, numpy.ndarray) for x in params)
 
         outputs = self.forward_expected(inputs, params)
+        _check_array_types(inputs, backend.CpuDevice(), 'test_forward')
+
         return outputs
 
     def _generate_grad_outputs(self, outputs_template):
+        assert all(isinstance(x, numpy.ndarray) for x in outputs_template)
+
         grad_outputs = self.generate_grad_outputs(outputs_template)
         _check_array_types(
             grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
+
         return grad_outputs
 
-    def _test_single_initializers(self, inits, backend_config):
-        inits_orig = inits
-        inits = _get_initializers(inits)
+    def _to_noncontiguous_as_needed(self, contig_arrays):
+        if self.contiguous is None:
+            # non-contiguous
+            return array_module._as_noncontiguous_array(contig_arrays)
+        if self.contiguous == 'C':
+            # C-contiguous
+            return contig_arrays
+        assert False, (
+            'Invalid value of `contiguous`: {}'.format(self.contiguous))
 
-        device = backend_config.device
-        link = self._create_link(inits, device)
-
-        inputs_np = self._generate_inputs()
-        inputs_xp = tuple([device.send(i) for i in inputs_np])
-        input_vars = tuple([chainer.Variable(i) for i in inputs_xp])
-
-        self._forward(link, input_vars, backend_config)
-
-        # All parameters of link should have been initialized.
-        params = []
-        for param_name in self.param_names:
-            param = getattr(link, param_name, None)
-            if param is None:
-                raise RuntimeError(
-                    'Link does not have a parameter named \'{}\'.'.format(
-                        param_name))
-            params.append(param)
-
-        cpu_device = backend.CpuDevice()
-        params_xp = [v.array for v in params]
-        params_np = [cpu_device.send(arr) for arr in params_xp]
-
-        expected_inits, defaulted_indices = _get_expected_initializers(
-            inits_orig, default_init=self.default_initializer,
-            return_defaulted_indices=True)
-
-        assert len(expected_inits) == len(inits)
-        assert len(expected_inits) == len(params_np)
-
-        for i in range(len(inits)):
-            if i in defaulted_indices:
-                continue
-
-            param_np = params_np[i]
-            expected_init = expected_inits[i]
-            expected_np = numpy.empty_like(param_np)
-            expected_init(expected_np)
-            array_module.assert_allclose(expected_np, param_np)
-
-
-def _initializer_iterator(params_inits, fill_init=None):
-    if sys.version_info[0] < 3:
-        zip_longest = itertools.izip_longest
-    else:
-        zip_longest = itertools.zip_longest
-    return zip_longest(*params_inits, fillvalue=fill_init)
+    def _skip_if_chainerx_float16(self, backend_config):
+        # This is a dirty workaround to avoid writing the skip logic in every
+        # test case.
+        # It assumes that there's attributes 'dtype', `x_dtype`, and `W_dtype`
+        # in the test case.
+        # TODO(niboshi): Support float16 in ChainerX
+        if (backend_config.use_chainerx and (
+                getattr(self, 'dtype', None) == numpy.float16 or
+                getattr(self, 'x_dtype', None) == numpy.float16 or
+                getattr(self, 'W_dtype', None) == numpy.float16)):
+            raise unittest.SkipTest('ChainerX does not support float16')
 
 
 def _check_generated_initializer(init):
@@ -413,7 +411,7 @@ def _check_array_types(arrays, device, func_name):
                 func_name, device, tuple([type(a) for a in arrays])))
 
 
-def _get_params(link, param_names):
+def _get_link_params(link, param_names):
     params = []
     for name in param_names:
         param = getattr(link, name, None)
