@@ -107,7 +107,10 @@ class LinkTestCase(unittest.TestCase):
 
     def forward(self, link, inputs):
         """Computes and returns the result of a forward pass."""
-        return link(*inputs)
+        outputs = link(*inputs)
+        if not isinstance(outputs, tuple):
+            outputs = outputs,
+        return outputs
 
     def forward_expected(self, inputs, params):
         """Returns the expected results of a forward pass."""
@@ -190,10 +193,13 @@ class LinkTestCase(unittest.TestCase):
             params = self._to_noncontiguous_as_needed(params)
             grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
 
-            gradient_check._check_backward_with_params(
-                f, inputs, grad_outputs, params=params, dtype=numpy.float64,
-                detect_nondifferentiable=self.dodge_nondifferentiable,
-                **self.check_backward_options)
+            with LinkTestError.raise_if_fail(
+                    'backward is not implemented correctly'):
+                gradient_check._check_backward_with_params(
+                    f, inputs, grad_outputs, params=params,
+                    dtype=numpy.float64,
+                    detect_nondifferentiable=self.dodge_nondifferentiable,
+                    **self.check_backward_options)
 
         if self.dodge_nondifferentiable:
             while True:
@@ -285,6 +291,8 @@ class LinkTestCase(unittest.TestCase):
 
         # Generate inputs and compute a forward pass to initialize the
         # parameters.
+        # TODO(hvy): Allow testing initializers without implementing
+        # generate_forward_backward_initializers.
         inputs_np = self._generate_inputs()
         inputs_xp = backend_config.get_array(inputs_np)
         input_vars = [chainer.Variable(i) for i in inputs_xp]
