@@ -73,7 +73,8 @@ def _make_backend_config(device_name):
     return backend_config
 
 
-def _create_test_entry_function(cls, devices, func_suffix, method_name):
+def _create_test_entry_function(
+        cls, module, devices, func_suffix, method_name):
     # Creates a test entry function from the template class, and places it in
     # the same module as the class.
     #
@@ -105,23 +106,35 @@ def _create_test_entry_function(cls, devices, func_suffix, method_name):
     entry_func.__signature__ = inspect.Signature(params)
 
     # Set the pytest mark
-    entry_func.pytestmark += cls.pytestmark
+    try:
+        pytestmark = cls.pytestmark
+        entry_func.pytestmark += pytestmark
+    except AttributeError:
+        pass
 
     # Place the entry function in the module of the class
-    module = sys.modules[cls.__module__]
     setattr(module, func_name, entry_func)
 
 
 def op_test(devices):
 
     def wrap(cls):
+        # TODO(niboshi): Avoid using private entries in chainer.testing.
+        if isinstance(
+                cls, chainer.testing._bundle._ParameterizedTestCaseBundle):
+            classes = [(c, m) for c, m, name in cls.cases]
+        else:
+            classes = [(cls, cls.__module__)]
+
         tests = [
             ('forward', 'run_test_forward'),
             ('backward', 'run_test_backward'),
             ('double_backward', 'run_test_double_backward'),
         ]
-        for func_suffix, method_name in tests:
-            _create_test_entry_function(cls, devices, func_suffix, method_name)
+        for cls, mod in classes:
+            for func_suffix, method_name in tests:
+                _create_test_entry_function(
+                    cls, sys.modules[mod], devices, func_suffix, method_name)
 
         # return None: no other decorator can be applied after this decorator.
         return None

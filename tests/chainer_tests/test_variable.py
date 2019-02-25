@@ -1353,33 +1353,33 @@ class TestVariableBasic(unittest.TestCase):
     def test_unequatable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a == b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a == a
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a != b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a != a
 
     def test_uncomparable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a < b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a <= b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a > b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a >= b
 
     def test_bool_inconvertible(self):
         a = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             if a:
                 pass
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             if not a:
                 pass
 
