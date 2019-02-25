@@ -37,6 +37,47 @@ class _OpTest(chainer.testing.function.FunctionTestBase):
 
 
 class ChainerOpTest(_OpTest):
+    # Base class for op test that compares the output with Chainer
+    # implementation.
+    #
+    # It must be used in conjunction with `op_test` decorator.
+    #
+    # Examples:
+    #
+    # @op_utils.op_test(['native:0', 'cuda:0'])
+    # class test_conv(op_utils.ChainerOpTest):
+    #
+    #     def setup(self, float_dtype):
+    #         self.dtype = float_dtype
+    #
+    #     def generate_inputs(self):
+    #         dtype = self.dtype
+    #         x = numpy.random.uniform(-1, 1, (1, 3)).astype(dtype)
+    #         w = numpy.random.uniform(-1, 1, (5, 3)).astype(dtype)
+    #         b = numpy.random.uniform(-1, 1, (5,)).astype(dtype)
+    #         return x, w, b
+    #
+    #     def forward_chainerx(self, inputs):
+    #         x, w, b = inputs
+    #         y = chainerx.conv(x, w, b, self.stride, self.pad, self.cover_all)
+    #         return y,
+    #
+    #     def forward_chainer(self, inputs):
+    #         x, w, b = inputs
+    #         y = chainer.functions.convolution_nd(
+    #             x, w, b, self.stride, self.pad, self.cover_all)
+    #         return y,
+    #
+    # In this example, `float_dtype` is a Pytest fixture for parameterizing
+    # floating-point dtypes (i.e. float16, float32, float64). As seen from
+    # this, arguments in the `setup` method are treated as Pytest fixture.
+    #
+    # Test implementations must at least override the following methods:
+    #   * `generate_inputs`: Generates inputs to the test target.
+    #   * `forward_chainerx`: Forward implementation using ChainerX.
+    #   * `forward_chainer`: Forward reference implementation using Chainer.
+    #
+    # It can have similar attributes as `chainer.testing.FunctionTestCase`.
 
     def forward_expected(self, inputs):
         output_vars = self.forward_chainer(inputs)
@@ -52,6 +93,36 @@ class ChainerOpTest(_OpTest):
 
 
 class NumpyOpTest(_OpTest):
+    # Base class for op test that compares the output with NumPy
+    # implementation.
+    #
+    # It must be used in conjunction with `op_test` decorator.
+    #
+    # Examples:
+    #
+    # @op_utils.op_test(['native:0', 'cuda:0'])
+    # class test_tanh(op_utils.NumpyOpTest):
+    #
+    #     def setup(self, float_dtype):
+    #         self.dtype = dtype
+    #
+    #     def generate_inputs(self):
+    #         x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+    #         return x,
+    #
+    #     def forward_xp(self, inputs, xp):
+    #         x, = inputs
+    #         return xp.tanh(x),
+    #
+    # In this example, `float_dtype` is a Pytest fixture for parameterizing
+    # floating-point dtypes (i.e. float16, float32, float64). As seen from
+    # this, arguments in the `setup` method are treated as Pytest fixture.
+    #
+    # Test implementations must at least override the following methods:
+    #   * `generate_inputs`: Generates inputs to the test target.
+    #   * `forward_xp`: Forward implementation using both ChainerX and NumPy.
+    #
+    # It can have similar attributes as `chainer.testing.FunctionTestCase`.
 
     def forward_chainerx(self, inputs):
         return self.forward_xp(inputs, chainerx)
@@ -117,6 +188,16 @@ def _create_test_entry_function(
 
 
 def op_test(devices):
+    # Decorator to set up an op test.
+    #
+    # This decorator can be used in conjunction with either ``NumpyOpTest`` or
+    # ``ChainerOpTest`` to define an op test.
+    #
+    # See the documentation of the respective classes for detailed explanation
+    # and examples.
+    #
+    # Args:
+    #     devices: List of devices to test.
 
     def wrap(cls):
         # TODO(niboshi): Avoid using private entries in chainer.testing.
