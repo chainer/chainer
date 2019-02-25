@@ -43,9 +43,9 @@ def mean_absolute_error(x0, x1):
 
     This function computes the mean absolute error between two variables. The
     mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
-    dimensions. This function first calculates the absolute value differences
-    of corresponding elements in x0 and x1, and then returns the mean of those
-    differences.
+    same dimensions. This function first calculates the absolute value
+    differences between the corresponding elements in x0 and x1, and then
+    returns the mean of those differences.
 
     Args:
         x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
