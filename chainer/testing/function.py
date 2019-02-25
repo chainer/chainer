@@ -1,4 +1,3 @@
-import contextlib
 import typing as tp  # NOQA
 import unittest
 
@@ -7,30 +6,13 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.testing import array as array_module
+from chainer.testing import error
 from chainer import utils
 
 
-class FunctionTestError(AssertionError):
+class FunctionTestError(error.TestError):
     """Raised when the target function is implemented incorrectly."""
-
-    @staticmethod
-    def check(expr, message):
-        if not expr:
-            raise FunctionTestError(message)
-
-    @staticmethod
-    def fail(message, exc=None):
-        if exc is not None:
-            utils._raise_from(FunctionTestError, message, exc)
-        raise FunctionTestError(message)
-
-    @staticmethod
-    @contextlib.contextmanager
-    def raise_if_fail(message, error_types=AssertionError):
-        try:
-            yield
-        except error_types as e:
-            FunctionTestError.fail(message, e)
+    pass
 
 
 class FunctionTestCase(unittest.TestCase):

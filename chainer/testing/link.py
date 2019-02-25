@@ -7,10 +7,12 @@ from chainer import backend
 from chainer import gradient_check
 from chainer import initializers
 from chainer.testing import array as array_module
+from chainer.testing import error
 
-# TODO(hvy): Introduce a ChainerTestError(AssertionError).
-# LinkTestError(ChainerTestError) and
-# FunctionTestError(ChainerTestError).
+
+class LinkTestError(error.TestError):
+    """Raised when the target link is implemented incorrectly."""
+    pass
 
 
 class InitializerPair(object):
