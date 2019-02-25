@@ -202,6 +202,8 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         odims = gy.shape[2:]
         if self.pad_value is None:
             coeff = getattr(self.apoolnd, 'coeff')
+            # For `enable_double_backprop` is ``True``
+            coeff = backend.from_chx(coeff)
         else:
             coeff = 1. / functools.reduce(operator.mul, self.ksize)
         gy *= coeff
