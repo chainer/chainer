@@ -267,23 +267,6 @@ void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
         NoBackpropModeScope scope{};
         x1.device().FloorDivide(x1, x2, out);
     }
-
-    {
-        BackwardBuilder bb{"floor_divide", {x1, x2}, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * Scalar{0, gout.dtype()};
-            });
-        }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * Scalar{0, gout.dtype()};
-            });
-        }
-        bb.Finalize();
-    }
 }
 
 void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
@@ -293,12 +276,6 @@ void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
         NoBackpropModeScope scope{};
         x1.device().FloorDivideAS(x1, x2, out);
     }
-
-    BackwardBuilder bb{"floor_divide_scalar", x1, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = ZerosLike(*bctx.output_grad()); });
-    }
-    bb.Finalize();
 }
 
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
