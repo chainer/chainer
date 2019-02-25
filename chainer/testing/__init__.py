@@ -4,7 +4,6 @@ from chainer.testing.backend import inject_backend_tests  # NOQA
 from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.function import FunctionTestCase  # NOQA
 from chainer.testing.function import FunctionTestError  # NOQA
-from chainer.testing.error import TestError  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
@@ -19,6 +18,7 @@ from chainer.testing.random import generate_seed  # NOQA
 from chainer.testing.serializer import save_and_load  # NOQA
 from chainer.testing.serializer import save_and_load_hdf5  # NOQA
 from chainer.testing.serializer import save_and_load_npz  # NOQA
+from chainer.testing.test import TestError  # NOQA
 from chainer.testing.training import get_trainer_with_mock_updater  # NOQA
 from chainer.testing.unary_math_function_test import unary_math_function_unittest  # NOQA
 

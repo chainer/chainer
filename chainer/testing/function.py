@@ -6,12 +6,11 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.testing import array as array_module
-from chainer.testing import error
 from chainer.testing import test
 from chainer import utils
 
 
-class FunctionTestError(error.TestError):
+class FunctionTestError(test.TestError):
     """Raised when the target function is implemented incorrectly."""
     pass
 

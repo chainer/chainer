@@ -1,7 +1,38 @@
+import contextlib
+
 import chainer
 from chainer.testing import array as array_module
-from chainer.testing import error
 from chainer import utils
+
+
+class TestError(AssertionError):
+
+    """Parent class to Chainer test errors.
+
+    .. seealso::
+        :class:`chainer.testing.FunctionTestError`
+        :class:`chainer.testing.LinkTestError`
+
+    """
+
+    @classmethod
+    def check(cls, expr, message):
+        if not expr:
+            raise cls(message)
+
+    @classmethod
+    def fail(cls, message, exc=None):
+        if exc is not None:
+            utils._raise_from(cls, message, exc)
+        raise cls(message)
+
+    @classmethod
+    @contextlib.contextmanager
+    def raise_if_fail(cls, message, error_types=AssertionError):
+        try:
+            yield
+        except error_types as e:
+            cls.fail(message, e)
 
 
 def _check_array_types(arrays, device, func_name):
@@ -17,7 +48,7 @@ def _check_array_types(arrays, device, func_name):
 
 
 def _check_variable_types(vars, device, func_name, test_error_cls):
-    assert issubclass(test_error_cls, error.TestError)
+    assert issubclass(test_error_cls, TestError)
 
     if not isinstance(vars, tuple):
         test_error_cls.fail(
@@ -41,7 +72,7 @@ def _check_forward_output_arrays_equal(
         expected_arrays, actual_arrays, test_error_cls, **opts):
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
-    assert issubclass(test_error_cls, error.TestError)
+    assert issubclass(test_error_cls, TestError)
 
     message = None
     while True:

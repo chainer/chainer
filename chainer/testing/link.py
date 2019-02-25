@@ -7,11 +7,10 @@ from chainer import backend
 from chainer import gradient_check
 from chainer import initializers
 from chainer.testing import array as array_module
-from chainer.testing import error
 from chainer.testing import test
 
 
-class LinkTestError(error.TestError):
+class LinkTestError(test.TestError):
     """Raised when the target link is implemented incorrectly."""
     pass
 
