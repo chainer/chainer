@@ -48,6 +48,8 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
     """
 
     name = 'CupyMemoryProfileHook'
+    _units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB']
+    _table = {u: 1024.0 ** i for i, u in enumerate(_units)}
 
     def __init__(self):
         cuda.check_cuda_available()
@@ -124,45 +126,46 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
             record['occurrence'] += 1
         return summary
 
-    def _humanized_size(self, size):
-        """Returns a human redable bytes string."""
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E']:
-            if size < 1024.0:
-                return '%3.2f%sB' % (size, unit)
-            size /= 1024.0
-        return '%.2f%sB' % (size, 'Z')
-
-
-    def _align(self, size):
-        """Returns align info: (denominator, unit)."""
+    def _choose_unit(self, size):
+        """Choose optimal unit."""
         denomi = 1
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E']:
+        for unit in self._units[:-1]:
             if size / denomi >= 1:
                 return denomi, unit
             denomi *= 1024.0
-        return denomi, 'Z'
+        return denomi, self._units[-1]
 
-    def print_report(self, align_units=False, file=sys.stdout):
+    def print_report(self, unit='auto', file=sys.stdout):
         """Prints a summary report of memory profiling in functions.
 
         Args:
-            align_units (bool): If `True`, units of times are aligned to the largest.
+            unit (str): Supplementary units used for used memories.
+                `B`, `KB`, `MB`, `GB`, `TB`, `PB, `EB`, `ZB`, `auto`(default)
+                and `auto_foreach` are supported. If `auto`, units of memories
+                are aligned to the largest, and if `auto_foreach`, units of
+                memories are adjusted for each element.
         """
         entries = [[
             'FunctionName', 'UsedBytes', 'AcquiredBytes', 'Occurrence']]
-        if align_units:
-            max_used = max(record['used_bytes'] for record in self.summary().values())
-            max_acquired = max(record['acquired_bytes'] for record in self.summary().values())
-            denomi_used, unit_used = self._align(max_used)
-            denomi_acquired, unit_acquired = self._align(max_acquired)
+        if unit == 'auto':
+            max_used = max(
+                record['used_bytes'] for record in self.summary().values())
+            max_acquired = max(
+                record['acquired_bytes'] for record in self.summary().values())
+            denomi_used, unit_used = self._choose_unit(max_used)
+            denomi_acquired, unit_acquired = self._choose_unit(max_acquired)
+        elif unit != 'auto_foreach':
+            denomi_used = denomi_acquired = self._table[unit]
+            unit_used = unit_acquired = unit
         for function_name, record in self.summary().items():
-            used_bytes, acquired_bytes = record['used_bytes'], record['acquired_bytes']
-            if align_units:
-                used_bytes = '%3.2f%sB' % (used_bytes / denomi_used, unit_used)
-                acquired_bytes = '%3.2f%sB' % (acquired_bytes / denomi_acquired, unit_acquired)
-            else:
-                used_bytes = self._humanized_size(used_bytes)
-                acquired_bytes = self._humanized_size(acquired_bytes)
+            used_bytes = record['used_bytes']
+            acquired_bytes = record['acquired_bytes']
+            if unit == 'auto_foreach':
+                denomi_used, unit_used = self._choose_unit(used_bytes)
+                denomi_acquired, unit_acquired = self._choose_unit(acquired_bytes)
+            used_bytes = '%3.2f%s' % (used_bytes / denomi_used, unit_used)
+            acquired_bytes = '%3.2f%s' % (
+                acquired_bytes / denomi_acquired, unit_acquired)
             occurrence = str(record['occurrence'])
             entries.append(
                 [function_name, used_bytes, acquired_bytes, occurrence])

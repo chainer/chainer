@@ -154,6 +154,16 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
 
 @attr.gpu
+@testing.parameterize(
+    {'unit': 'B'},
+    {'unit': 'KB'},
+    {'unit': 'MB'},
+    {'unit': 'GB'},
+    {'unit': 'TB'},
+    {'unit': 'PB'},
+    {'unit': 'EB'},
+    {'unit': 'ZB'},
+)
 class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def setUp(self):
@@ -183,17 +193,7 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def test_print_report(self):
         io = six.StringIO()
-        self.h.print_report(file=io)
-        expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
- +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
- +ReLU +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
-'''
-        actual = io.getvalue()
-        six.assertRegex(self, actual, expect)
-
-    def test_print_report_align_units(self):
-        io = six.StringIO()
-        self.h.print_report(align_units=True, file=io)
+        self.h.print_report(unit=self.unit, file=io)
         expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
  +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
  +ReLU +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$
