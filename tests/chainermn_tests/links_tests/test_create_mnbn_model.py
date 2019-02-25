@@ -30,15 +30,15 @@ class BnChainList(chainer.ChainList):
         return self[1](self[0](x))
 
 
-class TestCreateMnBn(unittest.TestCase):
+class TestCreateMnBnModel(unittest.TestCase):
 
     def setUp(self):
         self.communicator = chainermn.create_communicator('naive')
 
     def test_create_mnbn_model_chain(self):
         model = BnChain(3)
-        mnbn_model = chainermn.utils.link.create_mnbn_model(model,
-                                                            self.communicator)
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
         self.assertTrue(isinstance(mnbn_model.conv,
                                    chainer.links.Convolution2D))
         self.assertTrue(
@@ -47,8 +47,8 @@ class TestCreateMnBn(unittest.TestCase):
 
     def test_create_mnbn_model_chain_list(self):
         model = BnChainList(3)
-        mnbn_model = chainermn.utils.link.create_mnbn_model(model,
-                                                            self.communicator)
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
         self.assertTrue(isinstance(mnbn_model[0],
                                    chainer.links.Convolution2D))
         self.assertTrue(
@@ -62,8 +62,8 @@ class TestCreateMnBn(unittest.TestCase):
                 None, size, 1, 1, 1, nobias=True),
             chainer.links.BatchNormalization(size),
         )
-        mnbn_model = chainermn.utils.link.create_mnbn_model(model,
-                                                            self.communicator)
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
         self.assertTrue(isinstance(mnbn_model[0],
                                    chainer.links.Convolution2D))
         self.assertTrue(
