@@ -268,7 +268,7 @@ class LinkTestCase(unittest.TestCase):
     def _create_link(self, initializers, backend_config):
         link = self.create_link(initializers)
         if not isinstance(link, chainer.Link):
-            raise ValueError(
+            raise TypeError(
                 '`create_link` must return a chainer.Link object.')
 
         link.to_device(backend_config.device)
@@ -382,7 +382,7 @@ def _get_expected_initializers(
         if isinstance(init, InitializerPair):
             init = init.second
             if init is None:
-                raise ValueError(
+                raise TypeError(
                     'Expected initializer in a InitializerPair should not be '
                     'None.')
         if init is None:
@@ -406,7 +406,7 @@ def _get_link_params(link, param_names):
     for name in param_names:
         param = getattr(link, name, None)
         if param is None:
-            raise RuntimeError(
+            raise LinkTestError.fail(
                 'Link does not have a parameter named \'{}\'.'.format(name))
         params.append(param)
     return params
