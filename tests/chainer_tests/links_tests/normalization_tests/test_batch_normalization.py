@@ -80,20 +80,13 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         else:
             assert False
 
-        if self.test:
-            mean = numpy.random.uniform(-1, 1, param_shape).astype(self.dtype)
-            var = numpy.random.uniform(0.5, 1, param_shape).astype(self.dtype)
-        else:
-            mean = None
-            var = None
-
         self.aggr_axes = aggr_axes
         self.shape = shape
         self.param_shape = param_shape
         self.expander = expander
         self.finetune = False
-        self.mean = mean
-        self.var = var
+        self.mean = None
+        self.var = None
         self.eps = 2e-5
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -101,6 +94,15 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
+
+    def before_test(self, test_name):
+        if not self.test:
+            return
+
+        self.mean = numpy.random.uniform(
+            -1, 1, self.param_shape).astype(self.dtype)
+        self.var = numpy.random.uniform(
+            0.5, 1, self.param_shape).astype(self.dtype)
 
     def generate_forward_backward_initializers(self):
         initial_gamma = numpy.random.uniform(

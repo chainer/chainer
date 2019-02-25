@@ -43,6 +43,7 @@ class LinkTestCase(unittest.TestCase):
     backend_config = None
     check_forward_options = {}
     check_backward_options = {}
+    check_initializers_options = {}
     skip_forward_test = False
     skip_backward_test = False
     skip_initializers_test = False
@@ -90,7 +91,7 @@ class LinkTestCase(unittest.TestCase):
         Returns:
             A tuple of lists, each list containing all initializers to be
             tested for a particular parameter.
-            The lengh of the tuple should be the same as the number of
+            The length of the tuple should be the same as the number of
             parameters.
         """
         raise NotImplementedError('generate_initializers is not implemented.')
@@ -162,9 +163,9 @@ class LinkTestCase(unittest.TestCase):
 
         self._skip_if_chainerx_float16(backend_config)
 
-        self.before_test('test_backward')
-
         def do_check():
+            self.before_test('test_backward')
+
             inits = self._generate_forward_backward_initializers()
 
             def f(inputs, ps):
@@ -249,7 +250,10 @@ class LinkTestCase(unittest.TestCase):
             expected_init = expected_inits[i_param]
             expected_np = numpy.empty_like(param_np)
             expected_init(expected_np)
-            array_module.assert_allclose(expected_np, param_np)
+
+            test._check_forward_output_arrays_equal(
+                expected_np, param_np,
+                LinkTestError, **self.check_initializers_options)
 
     def _generate_forward_backward_initializers(self):
         params_init = self.generate_forward_backward_initializers()
@@ -352,6 +356,11 @@ class LinkTestCase(unittest.TestCase):
 
 def _check_generated_initializer(init):
     if isinstance(init, InitializerPair):
+        init = init.second
+        if init is None:
+            raise TypeError(
+                'Expected (second) initializer in a InitializerPair should '
+                'not be None.')
         return
     initializers._check_is_initializer_like(init)
 
@@ -380,10 +389,7 @@ def _get_expected_initializers(
     for i, init in enumerate(inits):
         if isinstance(init, InitializerPair):
             init = init.second
-            if init is None:
-                raise TypeError(
-                    'Expected initializer in a InitializerPair should not be '
-                    'None.')
+            assert init is not None
         if init is None:
             init = default_init
             indices.append(i)
