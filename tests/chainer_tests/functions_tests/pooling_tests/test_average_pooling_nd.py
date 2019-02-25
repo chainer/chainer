@@ -52,16 +52,10 @@ class TestAveragePoolingND(testing.FunctionTestCase):
         self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 5e-3})
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
-            if self.pad_value is not None:
-                self.check_backward_options.update({
-                    'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2})
-                self.check_backward_options.update({
-                    'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2})
-            else:
-                self.check_backward_options.update({
-                    'eps': 1e-2, 'atol': 5e-2, 'rtol': 1e-1})
-                self.check_backward_options.update({
-                    'eps': 1e-2, 'atol': 5e-2, 'rtol': 1e-1})
+            self.check_backward_options.update({
+                'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2})
+            self.check_backward_options.update({
+                'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2})
 
     def generate_inputs(self):
         return numpy.random.uniform(
