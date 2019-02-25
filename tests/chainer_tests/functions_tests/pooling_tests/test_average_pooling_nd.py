@@ -3,6 +3,7 @@ import unittest
 import functools
 import numpy
 import operator
+import pytest
 import six
 
 import chainer
@@ -113,11 +114,6 @@ class TestAveragePoolingND(testing.FunctionTestCase):
 )
 class TestConsistencyAveragePoolingND(unittest.TestCase):
 
-    """Checks the consistency between
-    :func:`chainer.functions.average_pooling_2d` and
-    :func:`chainer.functions.average_pooling_nd`. Note that the former
-    does not support `pad_value` of `None`."""
-
     def setUp(self):
         x_shape = (2, 3, 4, 3)
         self.ksize = (3, 3)
@@ -215,9 +211,8 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
-                self.assertEqual(func.called,
-                                 chainer.should_use_cudnn('>=auto') and
-                                 self.ndim > 1)
+                assert func.called == (
+                    chainer.should_use_cudnn('>=auto') and self.ndim > 1)
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -227,7 +222,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
         y.grad = self.gy
         with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
-            self.assertEqual(func.called, expect)
+            assert func.called == expect
 
 
 class TestAveragePoolingNDWrappers(unittest.TestCase):
@@ -244,12 +239,12 @@ class TestAveragePoolingNDWrappers(unittest.TestCase):
     def test_average_pooling_1d(self):
         (x, ksize) = self._get_data(1)
         testing.assert_allclose(
-            functions.average_pooling_nd(x, ksize).data,
-            functions.average_pooling_1d(x, ksize).data)
+            functions.average_pooling_nd(x, ksize).array,
+            functions.average_pooling_1d(x, ksize).array)
 
     def test_average_pooling_1d_invalid(self):
         (x, ksize) = self._get_data(2)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             functions.average_pooling_1d(x, ksize)
 
     def test_average_pooling_3d(self):
@@ -260,7 +255,7 @@ class TestAveragePoolingNDWrappers(unittest.TestCase):
 
     def test_average_pooling_3d_invalid(self):
         (x, ksize) = self._get_data(2)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             functions.average_pooling_3d(x, ksize)
 
 
