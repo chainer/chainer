@@ -46,8 +46,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 @testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
-        # 'dtype': [numpy.float16, numpy.float32, numpy.float64],
-        'dtype': [numpy.float64],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'size': ['skip', 'explicit'],
     }),
     testing.product({
@@ -117,7 +116,7 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         return initial_gamma, initial_beta
 
     def generate_initializers(self):
-        # TODO(hvy): Temporariliy testing initializers with different number
+        # TODO(hvy): Temporarily testing initializers with different number
         # of "parameters". Test all of them.
         initial_gamma = [
             initializers.Constant(2), testing.link.InitializerPair(None, 1)]
@@ -149,6 +148,15 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
 
     def forward(self, link, inputs):
         x, = inputs
+
+        # The inputs might be of different dtype than what the link was
+        # initialized with. In that case, persistent values must be manually
+        # cast. This is needed when forward is called in order to compute
+        # numerical gradients.
+        if link.avg_mean is not None and x.dtype != link.avg_mean.dtype:
+            link.avg_mean = link.avg_mean.astype(x.dtype)
+            link.avg_var = link.avg_var.astype(x.dtype)
+
         with chainer.using_config('train', not self.test):
             y = link(x, finetune=self.finetune)
         return y,
