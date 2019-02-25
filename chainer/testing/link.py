@@ -224,9 +224,9 @@ class LinkTestCase(unittest.TestCase):
 
             for init in param_inits:
                 inits[i_param] = init
-                self._test_single_initializers(tuple(inits), backend_config)
+                self._test_single_initializer(tuple(inits), backend_config)
 
-    def _test_single_initializers(self, inits, backend_config):
+    def _test_single_initializer(self, inits, backend_config):
         inits_orig = inits
         inits = _get_initializers(inits)
         link = self._create_initialized_link(inits, backend_config)
