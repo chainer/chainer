@@ -6,14 +6,12 @@ import operator
 import six
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import conv
 from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
-import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -98,130 +96,98 @@ class TestAveragePoolingND(testing.FunctionTestCase):
                 expect = expect.reshape(self.output_shape[2:])
                 tmp.append(expect)
             y.append(tmp)
-        return numpy.asarray(y).astype(self.dtype),
+        return numpy.asarray(y, dtype=self.dtype),
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.inject_backend_tests(
+    ['test_forward_consistency', 'test_backward_consistency'],
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+)
 class TestConsistencyAveragePoolingND(unittest.TestCase):
 
+    """Checks the consistency between
+    :func:`chainer.functions.average_pooling_2d` and
+    :func:`chainer.functions.average_pooling_nd`. Note that the former
+    does not support `pad_value` of `None`."""
+
     def setUp(self):
-        self.dims = (4, 3)
+        x_shape = (2, 3, 4, 3)
+        self.ksize = (3, 3)
+        self.stride = (2, 2)
+        self.pad = (1, 1)
         self.pad_value = 0
-        self.ndim = len(self.dims)
-        self.ksize = (3,) * self.ndim
-        self.stride = (2,) * self.ndim
-        self.pad = (1,) * self.ndim
-        x_shape = (2, 3) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
         outs = tuple(conv.get_conv_outsize(d, k, s, p, False)
                      for (d, k, s, p) in six.moves.zip(
-                         self.dims, self.ksize, self.stride, self.pad))
+                         x_shape[2:], self.ksize, self.stride, self.pad))
         gy_shape = (2, 3) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
-        self.check_forward_options = {}
-        self.check_backward_options = {'eps': 1e-2}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2}
-
-    def check_forward_consistency_regression(self, x_data, use_cudnn='always'):
-        # Regression test to average_pooling_2d.
+    def check_forward_consistency_regression(self, x_data, backend_config):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
+        pad_value = self.pad_value
 
-        with chainer.using_config('use_cudnn', use_cudnn):
+        with backend_config:
             y_nd = functions.average_pooling_nd(
-                x_data, ksize, stride=stride, pad=pad,
-                pad_value=self.pad_value)
+                x_data, ksize, stride=stride, pad=pad, pad_value=pad_value)
             y_2d = functions.average_pooling_2d(
                 x_data, ksize, stride=stride, pad=pad)
+
         testing.assert_allclose(y_nd.array, y_2d.array)
 
-    def test_forward_consistency_regression_cpu(self):
-        self.check_forward_consistency_regression(self.x)
+    def test_forward_consistency(self, backend_config):
+        x = self.x.copy()
+        x = backend_config.get_array(x)
+        self.check_forward_consistency_regression(x, backend_config)
 
-    @attr.cudnn
-    def test_forward_consistency_regression_gpu(self):
-        self.check_forward_consistency_regression(cuda.to_gpu(self.x))
-
-    @attr.gpu
-    def test_forward_consistency_regression_no_cudnn(self):
-        self.check_forward_consistency_regression(cuda.to_gpu(self.x), 'never')
-
-    @attr.chainerx
-    def test_forward_consistency_regression_chainerx(self):
-        self.check_forward_consistency_regression(chainerx.array(self.x))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_forward_consistency_regression_chainerx_cuda(self):
-        self.check_forward_consistency_regression(
-            chainerx.array(self.x).to_device('cuda:0'))
-
-    def check_backward_consistency_regression(self, x_data, gy_data,
-                                              use_cudnn='always'):
+    def check_backward_consistency_regression(
+            self, x_data, gy_data, backend_config):
         # Regression test to two-dimensional average pooling layer.
-
-        if len(self.dims) != 2:
-            return
-
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = backend.get_array_module(x_data)
+        pad_value = self.pad_value
 
         # Backward computation for N-dimensional average pooling layer.
-        x_nd = chainer.Variable(xp.array(x_data))
-        with chainer.using_config('use_cudnn', use_cudnn):
+        x_nd = chainer.Variable(x_data)
+        with backend_config:
             y_nd = functions.average_pooling_nd(
-                x_nd, ksize, stride=stride, pad=pad)
-
+                x_nd, ksize, stride=stride, pad=pad, pad_value=pad_value)
         y_nd.grad = gy_data
         y_nd.backward()
 
         # Backward computation for two-dimensional average pooling layer.
-        x_2d = chainer.Variable(xp.array(x_data))
-        with chainer.using_config('use_cudnn', use_cudnn):
+        x_2d = chainer.Variable(x_data)
+        with backend_config:
             y_2d = functions.average_pooling_2d(
                 x_2d, ksize, stride=stride, pad=pad)
-
         y_2d.grad = gy_data
         y_2d.backward()
 
         # Test that the two result gradients are close enough.
         testing.assert_allclose(x_nd.grad, x_2d.grad)
 
-    def test_backward_consistency_regression_cpu(self):
-        self.check_backward_consistency_regression(self.x, self.gy)
-
-    @attr.cudnn
-    def test_backward_consistency_regression_gpu(self):
-        self.check_backward_consistency_regression(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    def test_backward_consistency_regression_no_cudnn(self):
-        self.check_backward_consistency_regression(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
-
-    @attr.chainerx
-    def test_backward_consistency_regression_chainerx(self):
-        self.check_backward_consistency_regression(
-            chainerx.array(self.x), self.gy)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_backward_consistency_regression_chainerx_cuda(self):
-        self.check_backward_consistency_regression(
-            chainerx.array(self.x).to_device('cuda:0'),
-            chainerx.array(self.gy).to_device('cuda:0'))
+    def test_backward_consistency(self, backend_config):
+        x = backend_config.get_array(self.x)
+        gy = backend_config.get_array(self.gy)
+        self.check_backward_consistency_regression(x, gy, backend_config)
 
 
 @testing.parameterize(*testing.product({
