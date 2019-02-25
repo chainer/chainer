@@ -258,7 +258,7 @@ class FunctionTestCase(unittest.TestCase):
         test._check_forward_output_arrays_equal(
             cpu_expected,
             [var.array for var in outputs],
-            FunctionTestError, **self.check_forward_options)
+            'forward', FunctionTestError, **self.check_forward_options)
 
     def test_backward(self, backend_config):
         """Tests backward computation."""

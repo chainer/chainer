@@ -69,7 +69,7 @@ def _check_variable_types(vars, device, func_name, test_error_cls):
 
 
 def _check_forward_output_arrays_equal(
-        expected_arrays, actual_arrays, test_error_cls, **opts):
+        expected_arrays, actual_arrays, func_name, test_error_cls, **opts):
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
     assert issubclass(test_error_cls, TestError)
@@ -79,9 +79,9 @@ def _check_forward_output_arrays_equal(
         # Check number of arrays
         if len(expected_arrays) != len(actual_arrays):
             message = (
-                'Number of outputs of forward() ({}, {}) does not '
+                'Number of outputs of {}() ({}, {}) does not '
                 'match'.format(
-                    len(expected_arrays), len(actual_arrays)))
+                    func_name, len(expected_arrays), len(actual_arrays)))
             break
 
         # Check dtypes and shapes
@@ -93,7 +93,7 @@ def _check_forward_output_arrays_equal(
             for ye, y in zip(expected_arrays, actual_arrays)])
         if not (shapes_match and dtypes_match):
             message = (
-                'Shapes and/or dtypes of forward() do not match'.format())
+                'Shapes and/or dtypes of {}() do not match'.format(func_name))
             break
 
         # Check values
@@ -106,9 +106,9 @@ def _check_forward_output_arrays_equal(
                 indices.append(i)
         if len(indices) > 0:
             message = (
-                'Outputs of forward() do not match the expected values.\n'
+                'Outputs of {}() do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(
-                    ', '.join(str(i) for i in indices)))
+                    func_name, ', '.join(str(i) for i in indices)))
             break
         break
 

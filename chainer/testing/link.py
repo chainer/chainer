@@ -156,7 +156,7 @@ class LinkTestCase(unittest.TestCase):
 
         test._check_forward_output_arrays_equal(
             expected_outputs_np, outputs_xp,
-            LinkTestError, **self.check_forward_options)
+            'forward', LinkTestError, **self.check_forward_options)
 
     def test_backward(self, backend_config):
         """Tests backward computation."""
@@ -259,7 +259,8 @@ class LinkTestCase(unittest.TestCase):
 
             test._check_forward_output_arrays_equal(
                 expected_np, param_np,
-                LinkTestError, **self.check_initializers_options)
+                'forward', LinkTestError,
+                **self.check_initializers_options)
 
     def _generate_forward_backward_initializers(self):
         params_init = self.generate_forward_backward_initializers()
