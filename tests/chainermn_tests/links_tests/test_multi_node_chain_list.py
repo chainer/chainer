@@ -211,7 +211,7 @@ def create_communicator(gpu):
         communicator = chainermn.create_communicator('naive')
 
     if communicator.size < 2:
-        pytest.skip("This test is for multinode only")
+        pytest.skip('This test is for multinode only')
 
     rank_next = (communicator.rank + 1) % communicator.size
     rank_prev = (communicator.rank - 1) % communicator.size

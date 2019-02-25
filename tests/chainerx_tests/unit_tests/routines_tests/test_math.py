@@ -338,7 +338,7 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
 
 # TODO(sonots): Fix type compatibility for when shape is ()
 @chainerx.testing.numpy_chainerx_array_equal(dtype_check=False)
-@pytest.mark.parametrize("shape,value", [
+@pytest.mark.parametrize('shape,value', [
     ((), -1),
     ((), 1),
     ((1,), -1),

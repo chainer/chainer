@@ -23,8 +23,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
             raise ValueError(
-                "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'sum\' and \'no\' are valid for \'reduce\', but \'%s\' '
+                'is given' % reduce)
 
         self.sampler = sampler
         self.sample_size = sample_size
