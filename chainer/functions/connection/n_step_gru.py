@@ -206,7 +206,8 @@ def n_step_bigru(
 
 def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     use_bi_direction, **kwargs):
-    """n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction)
+    """n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs, \
+use_bi_direction)
 
     Base function for Stack GRU/BiGRU functions.
 
@@ -255,7 +256,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
 
-    """  # NOQA
+    """
     if kwargs:
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '

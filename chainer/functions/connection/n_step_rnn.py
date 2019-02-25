@@ -558,7 +558,8 @@ def n_step_birnn(
 
 def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     activation, use_bi_direction, **kwargs):
-    """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, use_bi_direction)
+    """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, \
+use_bi_direction)
 
     Base function for Stack RNN/BiRNN functions.
 
@@ -618,7 +619,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
 
-    """  # NOQA
+    """
     if kwargs:
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
@@ -632,6 +633,13 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         candidate = ','.join(activation_list)
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
+
+    # Check input size consistency with xs and ws.
+    x_in = xs[0].shape[1]
+    w_in = ws[0][0].shape[1]
+    if x_in != w_in:
+        raise ValueError('Inconsistent input size in input values and weight '
+                         'parameters: {} != {}'.format(x_in, w_in))
 
     xp = backend.get_array_module(hx)
 

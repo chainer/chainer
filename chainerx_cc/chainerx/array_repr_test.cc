@@ -1,13 +1,14 @@
 #include "chainerx/array_repr.h"
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include "chainerx/backprop_scope.h"
 #include "chainerx/context.h"

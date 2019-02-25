@@ -34,7 +34,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype(np.float32)
+        self.mean = mean.astype(chainer.get_dtype())
         self.crop_size = crop_size
         self.random = random
 
@@ -91,13 +91,17 @@ def parse_device(args):
 def main():
     archs = {
         'alex': alex.Alex,
-        'alex_fp16': alex.AlexFp16,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
-        'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
+    }
+
+    dtypes = {
+        'float16': np.float16,
+        'float32': np.float32,
+        'float64': np.float64,
     }
 
     parser = argparse.ArgumentParser(
@@ -108,6 +112,8 @@ def main():
                         help='Convnet architecture')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
+    parser.add_argument('--dtype', choices=dtypes, help='Specify the dtype '
+                        'used. If not supplied, the default dtype is used')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
     parser.add_argument('--device', '-d', type=str, default='-1',
@@ -140,7 +146,12 @@ def main():
 
     device = parse_device(args)
 
+    # Set the dtype if supplied.
+    if args.dtype is not None:
+        chainer.config.dtype = args.dtype
+
     print('Device: {}'.format(device))
+    print('Dtype: {}'.format(chainer.config.dtype))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
@@ -202,7 +213,7 @@ def main():
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
     # TODO(sonots): Temporarily disabled for chainerx. Fix it.
-    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
+    if device.xp is not chainerx:
         trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(

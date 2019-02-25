@@ -155,12 +155,8 @@ class SoftmaxCrossEntropyTestBase(object):
 
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(x)
+            return chainer.backend.to_chx(x)
 
         self.check_forward(
             conv(self.x), conv(self.t),
@@ -169,12 +165,8 @@ class SoftmaxCrossEntropyTestBase(object):
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+            return chainer.backend.to_chx(cuda.to_gpu(x))
 
         self.check_forward(
             conv(self.x), conv(self.t),
@@ -223,12 +215,8 @@ class SoftmaxCrossEntropyTestBase(object):
 
     @attr.chainerx
     def test_backward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(x)
+            return chainer.backend.to_chx(x)
 
         g_data = None
         if self.reduce == 'no':
@@ -242,12 +230,8 @@ class SoftmaxCrossEntropyTestBase(object):
     @attr.chainerx
     @attr.gpu
     def test_backward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+            return chainer.backend.to_chx(cuda.to_gpu(x))
 
         g_data = None
         if self.reduce == 'no':
@@ -344,12 +328,8 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
 
     @attr.chainerx
     def test_double_backward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(x)
+            return chainer.backend.to_chx(x)
 
         args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
         args.append(None if not self.weight_apply else conv(self.class_weight))
@@ -358,12 +338,8 @@ class TestSoftmaxCrossEntropyEnableDoubleBackprop(
     @attr.chainerx
     @attr.gpu
     def test_double_backward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         def conv(x):
-            return chainer.backend.to_chainerx(cuda.to_gpu(x))
+            return chainer.backend.to_chx(cuda.to_gpu(x))
 
         args = [conv(a) for a in [self.x, self.t, self.gy, self.ggx]]
         args.append(None if not self.weight_apply else conv(self.class_weight))

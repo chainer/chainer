@@ -103,7 +103,7 @@ def to_device(device, x):
             given ID. If it is``None``, an array is left in the original
             device. Also, any of device specifiers described at
             :class:`~chainer.backend.DeviceId` is accepted.
-        x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
+        x (:ref:`ndarray`): An array to send.
 
     Returns:
         Converted array.

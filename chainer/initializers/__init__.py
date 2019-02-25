@@ -36,8 +36,8 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     used instead. See :ref:`configuration` for the dtype config.
 
     Args:
-        initializer: A callable object that takes :class:`numpy.ndarray`
-             or :class:`cupy.ndarray` and edits its value.
+        initializer: A callable object that takes :ref:`ndarray` and edits its
+            value.
         shape (tuple): Shape of a return array.
         xp (module): :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx`.
         dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
@@ -46,7 +46,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
              :mod:`chainerx`.
 
     Returns:
-        numpy.ndarray, cupy.ndarray, or chainerx.ndarray: An initialized array.
+        :ref:`ndarray`: An initialized array.
 
     """
     dtype_attr = getattr(initializer, 'dtype', None)

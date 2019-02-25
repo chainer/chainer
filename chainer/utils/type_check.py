@@ -223,7 +223,7 @@ method to evaluate expression.
     __ge__ = _make_bool_operator('>=', '<', operator.__ge__)
 
     # Please refer the Python documentation to know priority of operators.
-    # https://docs.python.org/3.4/reference/expressions.html
+    # https://docs.python.org/3/reference/expressions.html
 
     __add__ = _make_bin_operator('+', 4, operator.__add__)
     __radd__ = _flip(__add__)

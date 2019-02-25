@@ -12,6 +12,7 @@ except ImportError:
     _dali_available = False
 
 
+import chainer
 from chainer.backends import cuda
 import ctypes
 
@@ -118,7 +119,7 @@ class DaliConverter(object):
         ch_mean = np.average(mean, axis=(1, 2))
         perturbation = (mean - ch_mean.reshape(3, 1, 1)) / 255.0
         perturbation = perturbation[:3, :crop_size, :crop_size].astype(
-            np.float32)
+            chainer.get_dtype())
         self.perturbation = perturbation.reshape(1, 3, crop_size, crop_size)
 
     def __call__(self, inputs, device=None):
@@ -145,7 +146,7 @@ class DaliConverter(object):
                 # copy data from DALI array to CuPy array
                 x.copy_to_external(ctypes.c_void_p(x_cupy.data.ptr))
                 cuda.cupy.cuda.runtime.deviceSynchronize()
-                x = x_cupy
+                x = x_cupy.astype(chainer.get_dtype())
                 if self.perturbation is not None:
                     x = x - self.perturbation
                 if device is not None and device < 0:
@@ -176,7 +177,7 @@ def dali_converter(inputs, device=None):
             # copy data from DALI array to CuPy array
             x.copy_to_external(ctypes.c_void_p(x_cupy.data.ptr))
             cuda.cupy.cuda.runtime.deviceSynchronize()
-            x = x_cupy
+            x = x_cupy.astype(chainer.get_dtype())
             if device is not None and device < 0:
                 x = cuda.to_cpu(x)
         else:

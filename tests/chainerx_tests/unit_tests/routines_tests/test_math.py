@@ -5,6 +5,7 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -209,31 +210,26 @@ def test_imul_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv(xp, device, shape, numeric_dtype, is_module):
     lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
     rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
     # TODO(beam2d): Remove astype after supporting correct dtype promotion.
     if is_module:
-        return xp.divide(lhs, rhs).astype(numeric_dtype)
+        return xp.divide(lhs, rhs)
     else:
-        return (lhs / rhs).astype(numeric_dtype)
+        return lhs / rhs
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_itruediv(xp, device, shape, numeric_dtype):
+def test_itruediv(xp, device, shape, float_dtype):
     # TODO(niboshi): Remove padding=False
     lhs = array_utils.create_dummy_ndarray(
-        xp, shape, numeric_dtype, padding=False)
-    rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
-    # TODO(beam2d): Fix after supporting correct dtype promotion.
-    if xp is numpy and 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        lhs = (lhs / rhs).astype(numeric_dtype)
-    else:
-        lhs /= rhs
+        xp, shape, float_dtype, padding=False)
+    rhs = xp.arange(1, lhs.size + 1, dtype=float_dtype).reshape(shape)
+    lhs /= rhs
     return lhs
 
 
@@ -243,36 +239,29 @@ def test_itruediv(xp, device, shape, numeric_dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv_scalar(scalar, device, shape, numeric_dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, numeric_dtype)
-    if 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        expected = (x_np / scalar).astype(numeric_dtype)
-    else:
-        expected = x_np / scalar
+    expected = x_np / scalar
 
     x = chainerx.array(x_np)
     scalar_chx = chainerx.Scalar(scalar, numeric_dtype)
-    chainerx.testing.assert_array_equal_ex(x / scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x / scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(
-        chainerx.divide(x, scalar), expected)
+        x / scalar, expected, strides_check=False)
     chainerx.testing.assert_array_equal_ex(
-        chainerx.divide(x, scalar_chx), expected)
+        x / scalar_chx, expected, strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        chainerx.divide(x, scalar), expected, strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        chainerx.divide(x, scalar_chx), expected, strides_check=False)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('scalar', [1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
+def test_itruediv_scalar(xp, scalar, device, shape, float_dtype):
     # TODO(niboshi): Remove padding=False
     lhs = array_utils.create_dummy_ndarray(
-        xp, shape, numeric_dtype, padding=False)
+        xp, shape, float_dtype, padding=False)
     rhs = scalar
-    # TODO(hvy): Fix after supporting correct dtype promotion.
-    if xp is numpy and 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        lhs = (lhs / rhs).astype(numeric_dtype)
-    else:
-        lhs /= rhs
+    lhs /= rhs
     return lhs
 
 
@@ -432,7 +421,7 @@ _invalid_logsumexp_params = [
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-@chainerx.testing.numpy_chainerx_allclose(rtol=1e-7, atol=0, dtype_check=False)
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
@@ -455,7 +444,7 @@ def test_logsumexp_invalid(device, a_shape, axis, float_dtype, keepdims):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @chainerx.testing.numpy_chainerx_allclose(
-    rtol=1e-7, atol=1e-5, dtype_check=False)
+    atol=1e-5, float16_rtol=3e-3, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
@@ -490,18 +479,30 @@ def test_sqrt(xp, device, input, float_dtype):
     return xp.sqrt(a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
         10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-# TODO(hamaji): Dtype promotion is not supported yet.
-def test_tanh(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.tanh(a)
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class test_tanh(op_utils.NumpyOpTest):
+
+    def setup(self, input, contiguous, float_dtype):
+        # TODO(hamaji): Dtype promotion is not supported yet.
+        self.input = input.astype(float_dtype)
+        self.contiguous = contiguous
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.tanh(x),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

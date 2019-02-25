@@ -47,6 +47,10 @@ Array Multiply(Scalar x1, const Array& x2);
 
 namespace internal {
 
+// TODO(imanishi) Support IFloorDivide
+void ITrueDivide(const Array& x1, const Array& x2);
+void ITrueDivide(const Array& x1, Scalar x2);
+
 void IDivide(const Array& x1, const Array& x2);
 void IDivide(const Array& x1, Scalar x2);
 
@@ -55,6 +59,11 @@ void IDivide(const Array& x1, Scalar x2);
 Array Divide(const Array& x1, const Array& x2);
 Array Divide(const Array& x1, Scalar x2);
 Array Divide(Scalar x1, const Array& x2);
+
+// TODO(imanishi) Support FloorDivide
+Array TrueDivide(const Array& x1, const Array& x2);
+Array TrueDivide(const Array& x1, Scalar x2);
+Array TrueDivide(Scalar x1, const Array& x2);
 
 Array Reciprocal(const Array& x);
 

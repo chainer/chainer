@@ -92,10 +92,6 @@ class TestMaxPooling2D(unittest.TestCase):
         return expect,
 
     def check_forward(self, inputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         y_expect, = self.forward_cpu(inputs)
 
         # TODO(sonots): Cleanup to use testing.backend.get_array after
@@ -107,7 +103,7 @@ class TestMaxPooling2D(unittest.TestCase):
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
+            inputs = chainer.backend.to_chx(inputs)
 
         with backend_config:
             x, = inputs
@@ -126,11 +122,6 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero(self, backend_config):
-        if backend_config.use_chainerx:
-            # TODO(sonots): Support it
-            if self.dtype == numpy.float16:
-                raise unittest.SkipTest('ChainerX does not support float16')
-
         with self.assertRaises(Exception):
             x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             # TODO(sonots): Cleanup to use testing.backend.get_array after
@@ -140,7 +131,7 @@ class TestMaxPooling2D(unittest.TestCase):
                     and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
-                x = chainer.backend.to_chainerx(x)
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
@@ -154,16 +145,12 @@ class TestMaxPooling2D(unittest.TestCase):
                     and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
-                x = chainer.backend.to_chainerx(x)
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         # TODO(sonots): Cleanup to use testing.backend.get_array after
         # chainerx.asfortranarray is implemented.
         if (backend_config.use_cuda
@@ -175,8 +162,8 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
-            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -199,10 +186,6 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(sonots): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         # TODO(sonots): Cleanup to use testing.backend.get_array after
         # chainerx.asfortranarray is implemented.
         if (backend_config.use_cuda
@@ -216,9 +199,9 @@ class TestMaxPooling2D(unittest.TestCase):
             grad_outputs = _to_fcontiguous(grad_outputs)
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
-            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
-            grad_grad_inputs = chainer.backend.to_chainerx(grad_grad_inputs)
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
+            grad_grad_inputs = chainer.backend.to_chx(grad_grad_inputs)
 
         def f(x):
             return functions.max_pooling_2d(

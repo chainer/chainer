@@ -294,15 +294,16 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                self.state[state_name] = backend.from_chainerx(st)
-                chainerx_state_arrays[state_name] = st
+                fallback_arr = backend.from_chx(st)
+                self.state[state_name] = fallback_arr
+                chainerx_state_arrays[state_name] = (st, fallback_arr)
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
         # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chainerx(
+            param._chainerx_fallback_array = backend.from_chx(
                 param.array)
 
         temp_param = variable.Variable._init_unchecked(
@@ -310,16 +311,19 @@ class UpdateRule(object):
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
-                backend.from_chainerx(grad_array))
+                backend.from_chx(grad_array))
 
         # Update
         update_core(temp_param)
 
         # Restore state arrays
-        for state_name, arr in chainerx_state_arrays.items():
+        for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
             cur_arr = self.state[state_name]
-            if cur_arr is not arr:
-                arr = backend.to_chainerx(cur_arr)
+            if cur_arr is not fallback_arr:
+                # The optimizer altered the reference of the state, instead of
+                # updating it in-place. We need to convert the new state back
+                # to ChainerX.
+                arr = backend.to_chx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):

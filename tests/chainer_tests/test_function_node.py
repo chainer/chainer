@@ -361,7 +361,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def check_mix_xp(self, xp):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
-        x2 = backend.to_chainerx(xp_x2)
+        x2 = backend.to_chx(xp_x2)
         y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
 
         assert isinstance(y.array, chainerx.ndarray)
@@ -676,6 +676,41 @@ class TestNoBackpropMode(unittest.TestCase):
         with chainer.force_backprop_mode():
             y = self.x + 1
         self.assertTrue(y.creator_node is not None)
+
+    @attr.chainerx
+    def test_backprop_mode_affects_chainerx(self):
+        # chainer.{no,force}_backprop_mode should affect chainerx's
+        # counterpart.
+
+        assert chainerx.is_backprop_required()
+
+        # nobp
+        with chainer.no_backprop_mode():
+            assert not chainerx.is_backprop_required()
+
+            # nobp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # nobp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
+
+        # forcebp
+        with chainer.force_backprop_mode():
+            assert chainerx.is_backprop_required()
+
+            # forcebp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # forcebp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
 
 
 class MyThread(threading.Thread):

@@ -209,7 +209,7 @@ class BatchNormalization(function_node.FunctionNode):
                 x, gamma, beta, self.running_mean, self.running_var,
                 self.mean, self.inv_std, self.eps, self.decay,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+                chainer.is_debug())
         else:
             # Generic CPU and GPU implementation
 
@@ -230,7 +230,7 @@ class BatchNormalization(function_node.FunctionNode):
 
             xp = backend.get_array_module(self.running_mean, self.running_var)
             if xp is chainerx:
-                self.running_mean, self.running_var = backend.from_chainerx(
+                self.running_mean, self.running_var = backend.from_chx(
                     (self.running_mean, self.running_var))
 
             self.running_mean *= self.decay
@@ -239,8 +239,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var += (1 - self.decay) * adjust * var
 
             if xp is chainerx:
-                self.running_mean = backend.to_chainerx(self.running_mean)
-                self.running_var = backend.to_chainerx(self.running_var)
+                self.running_mean = backend.to_chx(self.running_mean)
+                self.running_var = backend.to_chx(self.running_var)
 
         return y,
 
@@ -307,7 +307,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
                 x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+                chainer.is_debug())
         else:
             # CPU and GPU implementation
             gbeta = gy.sum(axis=self.axis)

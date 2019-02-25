@@ -97,34 +97,25 @@ class TestConvolutionND(unittest.TestCase):
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
 
-    def _skip_if_not_chainerx_supported(self):
-        # TODO(hvy): chainerx does not support fp16 yet.
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
-
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        self._skip_if_not_chainerx_supported()
-        self.check_forward_consistency(backend.to_chainerx, nobias=False)
+        self.check_forward_consistency(backend.to_chx, nobias=False)
 
     @attr.chainerx
     def test_forward_chainerx_native_nobias(self):
-        self._skip_if_not_chainerx_supported()
-        self.check_forward_consistency(backend.to_chainerx, nobias=True)
+        self.check_forward_consistency(backend.to_chx, nobias=True)
 
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False)
+            lambda xs: backend.to_chx(cuda.to_gpu(xs)), nobias=False)
 
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda_nobias(self):
-        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True)
+            lambda xs: backend.to_chx(cuda.to_gpu(xs)), nobias=True)
 
     @attr.cudnn
     def test_forward_consistency(self):
@@ -198,37 +189,33 @@ class TestConvolutionND(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx_native(self):
-        self._skip_if_not_chainerx_supported()
         self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
-            backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
+            backend.to_chx(self.x), backend.to_chx(self.W),
+            backend.to_chx(self.b), backend.to_chx(self.gy))
 
     @attr.chainerx
     def test_backward_chainerx_native_nobias(self):
-        self._skip_if_not_chainerx_supported()
         self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
-            backend.to_chainerx(self.gy))
+            backend.to_chx(self.x), backend.to_chx(self.W), None,
+            backend.to_chx(self.gy))
 
     @attr.chainerx
     @attr.gpu
     def test_backward_chainerx_cuda(self):
-        self._skip_if_not_chainerx_supported()
         self.check_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            backend.to_chainerx(cuda.to_gpu(self.b)),
-            backend.to_chainerx(cuda.to_gpu(self.gy)))
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.W)),
+            backend.to_chx(cuda.to_gpu(self.b)),
+            backend.to_chx(cuda.to_gpu(self.gy)))
 
     @attr.chainerx
     @attr.gpu
     def test_backward_chainerx_cuda_nobias(self):
-        self._skip_if_not_chainerx_supported()
         self.check_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.W)),
             None,
-            backend.to_chainerx(cuda.to_gpu(self.gy)))
+            backend.to_chx(cuda.to_gpu(self.gy)))
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -295,45 +282,41 @@ class TestConvolutionND(unittest.TestCase):
 
     @attr.chainerx
     def test_double_backward_chainerx_native(self):
-        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
-            backend.to_chainerx(self.b), backend.to_chainerx(self.gy),
-            backend.to_chainerx(self.ggx), backend.to_chainerx(self.ggW),
-            backend.to_chainerx(self.ggb))
+            backend.to_chx(self.x), backend.to_chx(self.W),
+            backend.to_chx(self.b), backend.to_chx(self.gy),
+            backend.to_chx(self.ggx), backend.to_chx(self.ggW),
+            backend.to_chx(self.ggb))
 
     @attr.chainerx
     def test_double_backward_chainerx_native_nobias(self):
-        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
-            backend.to_chainerx(self.gy), backend.to_chainerx(self.ggx),
-            backend.to_chainerx(self.ggW), None)
+            backend.to_chx(self.x), backend.to_chx(self.W), None,
+            backend.to_chx(self.gy), backend.to_chx(self.ggx),
+            backend.to_chx(self.ggW), None)
 
     @attr.chainerx
     @attr.gpu
     def test_double_backward_chainerx_cuda(self):
-        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            backend.to_chainerx(cuda.to_gpu(self.b)),
-            backend.to_chainerx(cuda.to_gpu(self.gy)),
-            backend.to_chainerx(cuda.to_gpu(self.ggx)),
-            backend.to_chainerx(cuda.to_gpu(self.ggW)),
-            backend.to_chainerx(cuda.to_gpu(self.ggb)))
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.W)),
+            backend.to_chx(cuda.to_gpu(self.b)),
+            backend.to_chx(cuda.to_gpu(self.gy)),
+            backend.to_chx(cuda.to_gpu(self.ggx)),
+            backend.to_chx(cuda.to_gpu(self.ggW)),
+            backend.to_chx(cuda.to_gpu(self.ggb)))
 
     @attr.chainerx
     @attr.gpu
     def test_double_backward_chainerx_cuda_nobias(self):
-        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.W)),
             None,
-            backend.to_chainerx(cuda.to_gpu(self.gy)),
-            backend.to_chainerx(cuda.to_gpu(self.ggx)),
-            backend.to_chainerx(cuda.to_gpu(self.ggW)),
+            backend.to_chx(cuda.to_gpu(self.gy)),
+            backend.to_chx(cuda.to_gpu(self.ggx)),
+            backend.to_chx(cuda.to_gpu(self.ggW)),
             None)
 
     @condition.retry(3)
