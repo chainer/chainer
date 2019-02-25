@@ -131,8 +131,6 @@ class LinkTestCase(unittest.TestCase):
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
 
-        self._skip_if_chainerx_float16(backend_config)
-
         self.before_test('test_forward')
 
         inits = self._generate_forward_backward_initializers()
@@ -163,8 +161,6 @@ class LinkTestCase(unittest.TestCase):
 
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
-
-        self._skip_if_chainerx_float16(backend_config)
 
         def do_check():
             self.before_test('test_backward')
@@ -216,8 +212,6 @@ class LinkTestCase(unittest.TestCase):
         """Tests that the parameters of a links are correctly initialized."""
         if self.skip_initializers_test:
             raise unittest.SkipTest('skip_initializers_test is set')
-
-        self._skip_if_chainerx_float16(backend_config)
 
         self.before_test('test_initializers')
 
@@ -349,18 +343,6 @@ class LinkTestCase(unittest.TestCase):
             return contig_arrays
         assert False, (
             'Invalid value of `contiguous`: {}'.format(self.contiguous))
-
-    def _skip_if_chainerx_float16(self, backend_config):
-        # This is a dirty workaround to avoid writing the skip logic in every
-        # test case.
-        # It assumes that there's attributes 'dtype', `x_dtype`, and `W_dtype`
-        # in the test case.
-        # TODO(niboshi): Support float16 in ChainerX
-        if (backend_config.use_chainerx and (
-                getattr(self, 'dtype', None) == numpy.float16 or
-                getattr(self, 'x_dtype', None) == numpy.float16 or
-                getattr(self, 'W_dtype', None) == numpy.float16)):
-            raise unittest.SkipTest('ChainerX does not support float16')
 
 
 def _check_generated_initializer(init):
