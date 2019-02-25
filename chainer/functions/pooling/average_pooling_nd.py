@@ -180,15 +180,16 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         idims = self._in_shape[2:]
         odims = gy.shape[2:]
         colon = slice(None, None, None)
-        if self.pad_value is None:
+        is_pad_value_none = self.pad_value is None
+        if is_pad_value_none:
             width = getattr(self.apoolnd, 'width')
             numpy.divide(gy, width, out=gy)
-        else:
-            gy /= functools.reduce(operator.mul, self.ksize)
         gy_index = (colon, colon) + (None,) * len(idims)
         gcol_reps = (1, 1) + self.ksize + (1,) * len(odims)
         gcol = numpy.tile(gy[gy_index], gcol_reps)
         gx = conv_nd.col2im_nd_cpu(gcol, self.stride, self.pad, idims)
+        if not is_pad_value_none:
+            gx /= functools.reduce(operator.mul, self.ksize)
         return gx,
 
     def forward_gpu(self, gys):
@@ -196,17 +197,18 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
             x, = self.apoolnd.get_retained_inputs()
             return self.apoolnd.backward_gpu((x.data,), gys)
 
+        is_pad_value_none = self.pad_value is None
+
         gy, = gys
         n, c = self._in_shape[:2]
         idims = self._in_shape[2:]
         odims = gy.shape[2:]
-        if self.pad_value is None:
+        if is_pad_value_none:
             coeff = getattr(self.apoolnd, 'coeff')
-            # For `enable_double_backprop` is ``True``
+            # This conversion from chainerx to cupy exists here for
+            # double backward of chainerx on cuda.
             coeff = backend.from_chx(coeff)
-        else:
-            coeff = 1. / functools.reduce(operator.mul, self.ksize)
-        gy *= coeff
+            gy *= coeff
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
 
         in_params, out_params, operation, name = \
@@ -217,6 +219,8 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
             *(idims + odims + self.ksize + self.stride + self.pad
               + (gx,)))
 
+        if not is_pad_value_none:
+            gx /= functools.reduce(operator.mul, self.ksize)
         return gx,
 
     def backward(self, indexes, grad_outputs):

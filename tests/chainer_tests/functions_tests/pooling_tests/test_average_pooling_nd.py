@@ -128,6 +128,10 @@ class TestConsistencyAveragePoolingND(unittest.TestCase):
         gy_shape = (2, 3) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
 
+        self.tolerance = {}
+        if self.dtype == numpy.float16:
+            self.tolerance.update({'atol': 1e-3, 'rtol': 1e-4})
+
     def check_forward_consistency_regression(self, x_data, backend_config):
         ksize = self.ksize
         stride = self.stride
@@ -140,7 +144,7 @@ class TestConsistencyAveragePoolingND(unittest.TestCase):
             y_2d = functions.average_pooling_2d(
                 x_data, ksize, stride=stride, pad=pad)
 
-        testing.assert_allclose(y_nd.array, y_2d.array)
+        testing.assert_allclose(y_nd.array, y_2d.array, **self.tolerance)
 
     def test_forward_consistency(self, backend_config):
         x = self.x.copy()
@@ -172,7 +176,7 @@ class TestConsistencyAveragePoolingND(unittest.TestCase):
         y_2d.backward()
 
         # Test that the two result gradients are close enough.
-        testing.assert_allclose(x_nd.grad, x_2d.grad)
+        testing.assert_allclose(x_nd.grad, x_2d.grad, **self.tolerance)
 
     def test_backward_consistency(self, backend_config):
         x = backend_config.get_array(self.x)
