@@ -222,7 +222,7 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         return AveragePoolingND(
             self.ndim, self.ksize, self.stride, self.pad,
-            cover_all=False).apply(grad_outputs)
+            cover_all=False, pad_value=self.pad_value).apply(grad_outputs)
 
 
 def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
