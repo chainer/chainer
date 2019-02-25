@@ -8,6 +8,7 @@ from chainer import gradient_check
 from chainer import initializers
 from chainer.testing import array as array_module
 from chainer.testing import error
+from chainer.testing import test
 
 
 class LinkTestError(error.TestError):
@@ -150,9 +151,9 @@ class LinkTestCase(unittest.TestCase):
 
         expected_outputs_np = self._forward_expected(inputs_np, params_np)
 
-        for expected_output, output in zip(expected_outputs_np, outputs_xp):
-            array_module.assert_allclose(
-                expected_output, output, **self.check_forward_options)
+        test._check_forward_output_arrays_equal(
+            expected_outputs_np, outputs_xp,
+            LinkTestError, **self.check_forward_options)
 
     def test_backward(self, backend_config):
         """Tests backward computation."""
@@ -296,7 +297,7 @@ class LinkTestCase(unittest.TestCase):
 
     def _generate_inputs(self):
         inputs = self.generate_inputs()
-        _check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
+        test._check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
         return inputs
 
     def _forward(self, link, inputs, backend_config):
@@ -304,9 +305,8 @@ class LinkTestCase(unittest.TestCase):
 
         with backend_config:
             outputs = self.forward(link, inputs)
-
-        # TODO(hvy): Check outputs with _check_variable_types
-        # _check_variable_types(outputs, backend_config.device, 'forward')
+        test._check_variable_types(
+            outputs, backend_config.device, 'forward', LinkTestError)
 
         return outputs
 
@@ -315,7 +315,7 @@ class LinkTestCase(unittest.TestCase):
         assert all(isinstance(x, numpy.ndarray) for x in params)
 
         outputs = self.forward_expected(inputs, params)
-        _check_array_types(inputs, backend.CpuDevice(), 'test_forward')
+        test._check_array_types(inputs, backend.CpuDevice(), 'test_forward')
 
         return outputs
 
@@ -323,7 +323,7 @@ class LinkTestCase(unittest.TestCase):
         assert all(isinstance(x, numpy.ndarray) for x in outputs_template)
 
         grad_outputs = self.generate_grad_outputs(outputs_template)
-        _check_array_types(
+        test._check_array_types(
             grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
 
         return grad_outputs
@@ -399,18 +399,6 @@ def _get_expected_initializers(
     if return_defaulted_indices:
         ret = ret, tuple(indices)
     return ret
-
-
-def _check_array_types(arrays, device, func_name):
-    if not isinstance(arrays, tuple):
-        raise TypeError(
-            '`{}()` must return a tuple, '
-            'not {}.'.format(func_name, type(arrays)))
-    if not all(isinstance(a, device.supported_array_types) for a in arrays):
-        raise TypeError(
-            '{}() must return a tuple of arrays supported by device {}.\n'
-            'Actual: {}'.format(
-                func_name, device, tuple([type(a) for a in arrays])))
 
 
 def _get_link_params(link, param_names):

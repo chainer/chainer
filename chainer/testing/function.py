@@ -7,6 +7,7 @@ import chainer
 from chainer import backend
 from chainer.testing import array as array_module
 from chainer.testing import error
+from chainer.testing import test
 from chainer import utils
 
 
@@ -173,31 +174,33 @@ class FunctionTestCase(unittest.TestCase):
 
     def _generate_inputs(self):
         inputs = self.generate_inputs()
-        _check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
+        test._check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
         return inputs
 
     def _generate_grad_outputs(self, outputs_template):
         grad_outputs = self.generate_grad_outputs(outputs_template)
-        _check_array_types(
+        test._check_array_types(
             grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
         return grad_outputs
 
     def _generate_grad_grad_inputs(self, inputs_template):
         grad_grad_inputs = self.generate_grad_grad_inputs(inputs_template)
-        _check_array_types(
+        test._check_array_types(
             grad_grad_inputs, backend.CpuDevice(), 'generate_grad_grad_inputs')
         return grad_grad_inputs
 
     def _forward_expected(self, inputs):
         outputs = self.forward_expected(inputs)
-        _check_array_types(outputs, backend.CpuDevice(), 'forward_expected')
+        test._check_array_types(
+            outputs, backend.CpuDevice(), 'forward_expected')
         return outputs
 
     def _forward(self, inputs, backend_config):
         assert all(isinstance(a, chainer.Variable) for a in inputs)
         with backend_config:
             outputs = self.forward(inputs, backend_config.device)
-        _check_variable_types(outputs, backend_config.device, 'forward')
+        test._check_variable_types(
+            outputs, backend_config.device, 'forward', FunctionTestError)
         return outputs
 
     def _skip_if_chainerx_float16(self, backend_config):
@@ -253,10 +256,10 @@ class FunctionTestCase(unittest.TestCase):
                     ', '.join(str(i) for i in indices),
                     utils._format_array_props(inputs)))
 
-        _check_forward_output_arrays_equal(
+        test._check_forward_output_arrays_equal(
             cpu_expected,
             [var.array for var in outputs],
-            'forward', **self.check_forward_options)
+            FunctionTestError, **self.check_forward_options)
 
     def test_backward(self, backend_config):
         """Tests backward computation."""
@@ -353,86 +356,3 @@ class FunctionTestCase(unittest.TestCase):
                     break
         else:
             do_check()
-
-
-def _check_array_types(arrays, device, func_name):
-    if not isinstance(arrays, tuple):
-        raise TypeError(
-            '`{}()` must return a tuple, '
-            'not {}.'.format(func_name, type(arrays)))
-    if not all(isinstance(a, device.supported_array_types) for a in arrays):
-        raise TypeError(
-            '{}() must return a tuple of arrays supported by device {}.\n'
-            'Actual: {}'.format(
-                func_name, device, tuple([type(a) for a in arrays])))
-
-
-def _check_variable_types(vars, device, func_name):
-    if not isinstance(vars, tuple):
-        FunctionTestError.fail(
-            '`{}()` must return a tuple, '
-            'not {}.'.format(func_name, type(vars)))
-    if not all(isinstance(a, chainer.Variable) for a in vars):
-        FunctionTestError.fail(
-            '{}() must return a tuple of Variables.\n'
-            'Actual: {}'.format(
-                func_name, ', '.join(str(type(a)) for a in vars)))
-    if not all(isinstance(a.array, device.supported_array_types)
-               for a in vars):
-        FunctionTestError.fail(
-            '{}() must return a tuple of Variables of arrays supported by '
-            'device {}.\n'
-            'Actual: {}'.format(
-                func_name, device, ', '.join(type(a.array) for a in vars)))
-
-
-def _check_forward_output_arrays_equal(
-        expected_arrays, actual_arrays, func_name, **opts):
-    # `opts` is passed through to `testing.assert_all_close`.
-    # Check all outputs are equal to expected values
-    message = None
-    while True:
-        # Check number of arrays
-        if len(expected_arrays) != len(actual_arrays):
-            message = (
-                'Number of outputs of forward() ({}, {}) does not '
-                'match'.format(
-                    len(expected_arrays), len(actual_arrays)))
-            break
-
-        # Check dtypes and shapes
-        dtypes_match = all([
-            ye.dtype == y.dtype
-            for ye, y in zip(expected_arrays, actual_arrays)])
-        shapes_match = all([
-            ye.shape == y.shape
-            for ye, y in zip(expected_arrays, actual_arrays)])
-        if not (shapes_match and dtypes_match):
-            message = (
-                'Shapes and/or dtypes of forward() do not match'.format())
-            break
-
-        # Check values
-        indices = []
-        for i, (expected, actual) in (
-                enumerate(zip(expected_arrays, actual_arrays))):
-            try:
-                array_module.assert_allclose(expected, actual, **opts)
-            except AssertionError:
-                indices.append(i)
-        if len(indices) > 0:
-            message = (
-                'Outputs of forward() do not match the expected values.\n'
-                'Indices of outputs that do not match: {}'.format(
-                    ', '.join(str(i) for i in indices)))
-            break
-        break
-
-    if message is not None:
-        FunctionTestError.fail(
-            '{}\n'
-            'Expected shapes and dtypes: {}\n'
-            'Actual shapes and dtypes:   {}\n'.format(
-                message,
-                utils._format_array_props(expected_arrays),
-                utils._format_array_props(actual_arrays)))
