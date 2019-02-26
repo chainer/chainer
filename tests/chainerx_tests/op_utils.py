@@ -122,7 +122,7 @@ class NumpyOpTest(_OpTest):
     #   * `generate_inputs`: Generates inputs to the test target.
     #   * `forward_xp`: Forward implementation using both ChainerX and NumPy.
     #
-    # It can have similar attributes as `chainer.testing.FunctionTestCase`.
+    # It can have the same attributes as `chainer.testing.FunctionTestCase`.
 
     def forward_chainerx(self, inputs):
         return self.forward_xp(inputs, chainerx)
