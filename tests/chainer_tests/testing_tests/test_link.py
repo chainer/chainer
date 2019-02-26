@@ -25,7 +25,7 @@ _inject_backend_tests = testing.inject_backend_tests(
 
 class DotLink(chainer.Link):
 
-    """Correctly implemented dot."""
+    # Correctly implemented dot.
 
     def __init__(self, in_size, out_size, initial_p=None):
         super(DotLink, self).__init__()
@@ -78,7 +78,7 @@ class IncorrectDot(chainer.FunctionNode):
 
 class DotLinkIncorrectForward(DotLink):
 
-    """Incorrectly implemented dot (forward)."""
+    # Incorrectly implemented dot (forward).
 
     def __init__(self, *args, **kwargs):
         super(DotLinkIncorrectForward, self).__init__(*args, **kwargs)
@@ -92,7 +92,7 @@ class DotLinkIncorrectForward(DotLink):
 
 class DotLinkIncorrectBackward(DotLink):
 
-    """Incorrect implementation of dot (backward)."""
+    # Incorrect implementation of dot (backward).
 
     def __init__(self, incorrect_gx, incorrect_gp, *args, **kwargs):
         super(DotLinkIncorrectBackward, self).__init__(*args, **kwargs)
@@ -110,7 +110,7 @@ class DotLinkIncorrectBackward(DotLink):
 
 class DotLinkIncorrectInitialization(DotLink):
 
-    """Incorrect implementation of dot (parameter initialization)."""
+    # Incorrect implementation of dot (parameter initialization).
 
     def __init__(self, in_size, out_size, initial_p=None):
         # Ignores given initializer here.
@@ -307,9 +307,6 @@ class TestLinkOnlyForwardBackward(testing.LinkTestCase):
     skip_initializers_test = True
 
     param_names = ['p']
-
-    def setUp(self):
-        self.dtype = numpy.float32
 
     def generate_forward_backward_initializers(self):
         return numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32),
