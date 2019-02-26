@@ -153,7 +153,6 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.assertEqual(self.h.total_acquired_bytes(), 1024)
 
 
-@attr.gpu
 @testing.parameterize(
     {'unit': 'B'},
     {'unit': 'KB'},
@@ -164,6 +163,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
     {'unit': 'EB'},
     {'unit': 'ZB'},
 )
+@attr.gpu
 class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def setUp(self):
