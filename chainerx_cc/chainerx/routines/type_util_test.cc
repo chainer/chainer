@@ -41,7 +41,7 @@ namespace {
 
 // Checks ResultType: static-length 1-arg call
 // args are Ai8, Sf32, etc.
-#define CHECK_RESULT_TYPE1(arg1) CHECK_RESULT_TYPE_IMPL({ EXPECT_EQ(arg1.dtype(), chainerx::ResultType(arg1)); })
+#define CHECK_RESULT_TYPE1(arg1) CHECK_RESULT_TYPE_IMPL({ EXPECT_EQ((arg1).dtype(), chainerx::ResultType(arg1)); })
 
 // Checks ResultType: static-length 2-arg call
 // args are Ai8, Sf32, etc.
