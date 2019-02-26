@@ -61,23 +61,10 @@ class LinkTestCase(unittest.TestCase):
     # I.e. ['gamma', 'beta'] for BatchNormalization.
     param_names = []
 
-    _default_initializer = None
-
-    @property
-    def default_initializer(self):
-        """Return the default initializer.
-
-        The default initializer is used to pad the list of initializers during
-        the initializer tests when enumerating all of them to test only a
-        single initializer at a time.
-        """
-        return self._default_initializer
-
-    @default_initializer.setter
-    def default_initializer(self, default_initializer):
-        """Sets the default initializer."""
-        initializers._check_is_initializer_like(default_initializer)
-        self._default_initializer = default_initializer
+    # The default initializer is used to pad the list of initializers during
+    # the initializer tests when enumerating all of them to test only a
+    # single initializer at a time.
+    default_initializer = None
 
     def before_test(self, test_name):
         """Is a method that is called before each test method.
@@ -233,10 +220,14 @@ class LinkTestCase(unittest.TestCase):
 
         params_inits = self._generate_initializers()
 
+        default_init = self.default_initializer
+        initializers._check_is_initializer_like(default_init)
+
         for i_param, param_inits in enumerate(params_inits):
             # When testing an initializer for a particular parameter, other
             # initializers are set to the default initializer.
-            inits = [self.default_initializer, ] * len(params_inits)
+
+            inits = [default_init, ] * len(params_inits)
 
             for init in param_inits:
                 inits[i_param] = init
@@ -292,8 +283,6 @@ class LinkTestCase(unittest.TestCase):
 
         # Generate inputs and compute a forward pass to initialize the
         # parameters.
-        # TODO(hvy): Allow testing initializers without implementing
-        # generate_forward_backward_initializers.
         inputs_np = self._generate_inputs()
         inputs_xp = backend_config.get_array(inputs_np)
         input_vars = [chainer.Variable(i) for i in inputs_xp]

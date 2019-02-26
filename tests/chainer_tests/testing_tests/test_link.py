@@ -160,6 +160,16 @@ class TestLinkCorrect(DotLinkTestBase, testing.LinkTestCase):
 
 
 @_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkInvalidDefaultInitializer(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    default_initializer = chainer
+
+
+@_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
 
@@ -263,6 +273,58 @@ class TestLinkIncorrectForwardBackwardInitializers(
 
     def generate_forward_backward_initializers(self):
         return self.invalid_forward_backward_initializer,
+
+
+@_inject_backend_tests
+class TestLinkOnlyInitializers(testing.LinkTestCase):
+
+    # `generate_forward_backward_initializers` is not required if forward and
+    # backward tests are skipped.
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    param_names = ['p']
+
+    def generate_initializers(self):
+        return [
+            initializers.Constant(0), 2,
+            testing.link.InitializerPair(None, initializers.Constant(1))],
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        return DotLink(2, 3, initial_p)
+
+    def generate_inputs(self):
+        return numpy.random.rand(1, 2).astype(numpy.float32),
+
+
+@_inject_backend_tests
+class TestLinkOnlyForwardBackward(testing.LinkTestCase):
+
+    # `generate_initializers` is not required if initializers test is skipped.
+
+    skip_initializers_test = True
+
+    param_names = ['p']
+
+    def setUp(self):
+        self.dtype = numpy.float32
+
+    def generate_forward_backward_initializers(self):
+        return numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32),
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        return DotLink(2, 3, initial_p)
+
+    def generate_inputs(self):
+        return numpy.random.rand(1, 2).astype(numpy.float32),
+
+    def forward_expected(self, inputs, params):
+        x, = inputs
+        p, = params
+        return numpy.dot(x, p),
 
 
 testing.run_module(__name__, __file__)
