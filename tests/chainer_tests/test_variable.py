@@ -371,28 +371,38 @@ class TestVariable(unittest.TestCase):
         self.check_label(self.label, cuda.to_gpu(self.c))
 
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
+        # This test assumes that `outputs` do not depend each other
+        intermediate_grads = [h.grad_var for h in intermediates]
+        output_grads = [y.grad_var for y in intermediates]
+        # assert all([gy is not None for gy in output_grads])
+
         for o in outputs:
             o.backward(retain_grad)
 
         assert all([x.grad_var is not None for x in inputs])
         if retain_grad:
-            assert all([x.grad_var is not None for x in intermediates])
+            # intermediate grads should be computed
+            assert all([h.grad_var is not None for h in intermediates])
+            # output grads are also retained
+            assert all([
+                y.grad_var is not None
+                for y, gy_orig in zip(outputs, output_grads)])
         else:
-            assert all([x.grad_var is None for x in intermediates])
-        assert any([x.grad_var is not None for x in outputs])
+            # intermediate grads should not be touched
+            assert all([
+                h.grad_var is gh_orig
+                for h, gh_orig in zip(intermediates, intermediate_grads)])
+            # output grads are used (from Chainer v6)
+            assert any([y.grad_var is None for y in outputs])
 
     # length is number of edges. So, # of Variables created is length+1
     def create_linear_chain(self, length, xp):
-        x = get_variable(xp, self.x)
-        ret = [x]
+        v = get_variable(xp, self.x)
+        ret = [v]
         for i in six.moves.range(length):
-            ret.append(constant((ret[i], ), (self.a, )))
-        if xp is cuda.cupy:
-            ret[-1].grad = cuda.cupy.zeros_like(ret[-1].data)
-        elif xp is np:
-            ret[-1].grad = np.zeros_like(ret[-1].data)
-        else:
-            assert False
+            v = constant((ret[i], ), (self.a, ))
+            ret.append(v)
+        v.grad = xp.zeros_like(v.data)
         return ret
 
     def test_backward_cpu(self):
@@ -401,12 +411,13 @@ class TestVariable(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        ret = self.create_linear_chain(2, np)
+        ret = self.create_linear_chain(2, cuda.cupy)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_backward_chainerx(self):
-        ret = self.create_linear_chain(2, np)
+        ret = self.create_linear_chain(2, chainerx)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
     def check_backward_accumulate(self, xp):
@@ -2619,7 +2630,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
     def test_default_backward(self):
         x = chainer.Variable(np.empty((), np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
-        y.backward()
+        y.backward(retain_grad=True)
         assert x.grad_var is not y.grad_var
         assert x.grad_var.creator is None
         x.grad_var.backward()
@@ -2664,7 +2675,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         x = chainer.Variable(np.empty(1, np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
         with testing.assert_warns(DeprecationWarning):
-            y.backward()
+            y.backward(retain_grad=True)
         assert x.grad_var.creator is None
         with warnings.catch_warnings():
             # ok to be warned that x.grad_var is old-styled scalar
