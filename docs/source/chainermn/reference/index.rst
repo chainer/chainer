@@ -35,6 +35,7 @@ Links
 .. autoclass:: MultiNodeChainList
     :members: add_link
 .. autoclass:: chainermn.links.MultiNodeBatchNormalization
+.. autofunction:: chainermn.links.create_mnbn_model
 
 
 Functions
