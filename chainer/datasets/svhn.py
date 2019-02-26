@@ -17,7 +17,8 @@ def get_svhn(withlabel=True, scale=1., dtype=None, label_dtype=numpy.int32,
              add_extra=False):
     """Gets the SVHN dataset.
 
-    `The Street View House Numbers (SVHN) dataset <http://ufldl.stanford.edu/housenumbers/>`_
+    `The Street View House Numbers (SVHN) dataset
+    <http://ufldl.stanford.edu/housenumbers/>`_
     is a dataset similar to MNIST but composed of cropped images of house
     numbers.
     The functionality of this function is identical to the counterpart for the
@@ -39,12 +40,13 @@ def get_svhn(withlabel=True, scale=1., dtype=None, label_dtype=numpy.int32,
         add_extra: Use extra training set.
 
     Returns:
-        If ``add_extra`` is ``False``, a tuple of two datasets (train and test). Otherwise,
-        a tuple of three datasets (train, test, and extra).
-        If ``withlabel`` is ``True``, all datasets are :class:`~chainer.datasets.
-        TupleDataset` instances. Otherwise, both datasets are arrays of images.
+        If ``add_extra`` is ``False``, a tuple of two datasets (train and
+        test). Otherwise, a tuple of three datasets (train, test, and extra).
+        If ``withlabel`` is ``True``, all datasets are
+        :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
+        datasets are arrays of images.
 
-    """  # NOQA
+    """
     if not _scipy_available:
         raise RuntimeError('SciPy is not available: %s' % _error)
 
