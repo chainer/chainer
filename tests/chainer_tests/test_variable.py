@@ -374,10 +374,9 @@ class TestVariable(unittest.TestCase):
         # This test assumes that `outputs` do not depend each other
         intermediate_grads = [h.grad_var for h in intermediates]
         output_grads = [y.grad_var for y in intermediates]
-        # assert all([gy is not None for gy in output_grads])
 
-        for o in outputs:
-            o.backward(retain_grad)
+        for y in outputs:
+            y.backward(retain_grad)
 
         assert all([x.grad_var is not None for x in inputs])
         if retain_grad:

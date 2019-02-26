@@ -1580,11 +1580,9 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
 
     grads = _backprop_utils.GradTable(load_if_new=True)
 
-    # root_nodes = set()
     leaf_nodes = set()
 
     for y, gy in outputs:
-        # root_nodes.add(y)
         grads.get_as_list(y).append(gy)
 
         func = y.creator_node
