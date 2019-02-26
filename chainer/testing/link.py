@@ -4,7 +4,6 @@ import numpy
 
 import chainer
 from chainer import backend
-from chainer import gradient_check
 from chainer import initializers
 from chainer.testing import array as array_module
 from chainer.testing import test
@@ -161,6 +160,9 @@ class LinkTestCase(unittest.TestCase):
 
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
+
+        # avoid cyclic import
+        from chainer import gradient_check
 
         def do_check():
             self.before_test('test_backward')
