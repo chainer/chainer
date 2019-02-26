@@ -8,7 +8,6 @@ from chainermn import global_except_hook  # NOQA
 from chainermn import iterators  # NOQA
 from chainermn import links  # NOQA
 from chainermn import optimizers  # NOQA
-from chainermn import utils  # NOQA
 
 from chainermn.communicators import CommunicatorBase  # NOQA
 from chainermn.communicators import create_communicator  # NOQA
