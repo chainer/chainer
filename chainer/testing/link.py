@@ -38,6 +38,14 @@ class InitializerPair(object):
 
 
 class LinkTestCase(unittest.TestCase):
+    """A base class for link test cases.
+
+    Link test cases can inherit from this class to define a set of link
+    tests.
+
+    .. seealso:: :class:`~chainer.testing.FunctionTestCase`
+
+    """
 
     backend_config = None
     check_forward_options = {}
@@ -112,7 +120,7 @@ class LinkTestCase(unittest.TestCase):
         """
         raise NotImplementedError('generate_inputs is not implemented.')
 
-    def forward(self, link, inputs):
+    def forward(self, link, inputs, device):
         """Computes and returns the result of a forward pass."""
         outputs = link(*inputs)
         if not isinstance(outputs, tuple):
@@ -312,7 +320,7 @@ class LinkTestCase(unittest.TestCase):
         assert all(isinstance(x, chainer.Variable) for x in inputs)
 
         with backend_config:
-            outputs = self.forward(link, inputs)
+            outputs = self.forward(link, inputs, backend_config.device)
         test._check_variable_types(
             outputs, backend_config.device, 'forward', LinkTestError)
 

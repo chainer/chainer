@@ -338,6 +338,9 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
                   expected = x.copy()
                   expected[expected < 0] = 0
                   return expected,
+
+    .. seealso:: :class:`~chainer.testing.LinkTestCase`
+
     """
 
     def test_forward(self, backend_config):

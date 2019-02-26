@@ -140,7 +140,7 @@ class BatchNormalizationLinkTest(testing.LinkTestCase):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x,
 
-    def forward(self, link, inputs):
+    def forward(self, link, inputs, device):
         x, = inputs
 
         # The inputs might be of different dtype than what the link was
