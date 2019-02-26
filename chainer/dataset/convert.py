@@ -229,8 +229,8 @@ def concat_examples(batch, device=None, padding=None):
             padding = [padding] * len(first_elem)
 
         for i in six.moves.range(len(first_elem)):
-            result.append(to_device(device, _concat_arrays(
-                [example[i] for example in batch], padding[i])))
+            result.append(_concat_and_transfer_arrays(device,
+                [example[i] for example in batch], padding[i]))
 
         return tuple(result)
 
@@ -240,13 +240,34 @@ def concat_examples(batch, device=None, padding=None):
             padding = {key: padding for key in first_elem}
 
         for key in first_elem:
-            result[key] = to_device(device, _concat_arrays(
-                [example[key] for example in batch], padding[key]))
+            result[key] = _concat_and_transfer_arrays(device,
+                [example[key] for example in batch], padding[key])
 
         return result
 
     else:
-        return to_device(device, _concat_arrays(batch, padding))
+        return _concat_and_transfer_arrays(device, batch, padding)
+
+
+def _concat_and_transfer_arrays(device, arrays, padding):
+    # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
+    # types such as int, float or list.
+    if not isinstance(arrays[0], chainer.get_array_types()):
+        arrays = numpy.asarray(arrays)
+
+    if padding is not None:
+        arr_concat = _concat_arrays_with_padding(arrays, padding)
+    elif isinstance(arrays, chainer.get_array_types()):
+        arr_concat = arrays
+    elif device.xp is cuda.cupy and isinstance(arrays, collections.Sequence):
+        arr_concat = arrays
+    else:
+        arr_dev = backend.get_device_from_array(arrays[0])
+        with chainer.using_device(arr_dev):
+            arr_concat = device.xp.concatenate(
+                [array[None] for array in arrays])
+
+    return to_device(device, arr_concat)
 
 
 def _concat_arrays(arrays, padding):
