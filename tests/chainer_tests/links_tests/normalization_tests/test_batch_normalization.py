@@ -57,7 +57,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ]
 )))
-class BatchNormalizationLinkTest(testing.LinkTestCase):
+class BatchNormalizationTest(testing.LinkTestCase):
 
     param_names = ['gamma', 'beta']
 
