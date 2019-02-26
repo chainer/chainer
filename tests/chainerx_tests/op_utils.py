@@ -70,7 +70,7 @@ class ChainerOpTest(_OpTest):
     #
     # In this example, `float_dtype` is a Pytest fixture for parameterizing
     # floating-point dtypes (i.e. float16, float32, float64). As seen from
-    # this, arguments in the `setup` method are treated as Pytest fixture.
+    # this, arguments in the `setup` method are treated as Pytest fixtures.
     #
     # Test implementations must at least override the following methods:
     #   * `generate_inputs`: Generates inputs to the test target.
