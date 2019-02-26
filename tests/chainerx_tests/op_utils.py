@@ -77,7 +77,7 @@ class ChainerOpTest(_OpTest):
     #   * `forward_chainerx`: Forward implementation using ChainerX.
     #   * `forward_chainer`: Forward reference implementation using Chainer.
     #
-    # It can have similar attributes as `chainer.testing.FunctionTestCase`.
+    # It can have the same attributes as `chainer.testing.FunctionTestCase`.
 
     def forward_expected(self, inputs):
         output_vars = self.forward_chainer(inputs)
