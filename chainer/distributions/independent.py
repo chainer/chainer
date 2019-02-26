@@ -12,17 +12,19 @@ from chainer.utils import cache
 
 
 class Independent(distribution.Distribution):
-    def __init__(self, distribution, reinterpreted_batch_ndims=None):
-        '''Construct a `Independent` distribution.
-        Args:
-            distribution (:class:`~chainer.Distribution`): The base
-                distribution instance to transform.
-            reinterpreted_batch_ndims (:class:`int`): Integer number of
-                rightmost batch dims which will be regarded as event dims.
-                When ``None`` all but the first batch axis (batch axis 0) will
-                be transferred to event dimensions.
-        '''
 
+    """Independent distribution.
+
+    Args:
+        distribution (:class:`~chainer.Distribution`): The base distribution
+            instance to transform.
+        reinterpreted_batch_ndims (:class:`int`): Integer number of rightmost
+            batch dims which will be regarded as event dims. When ``None`` all
+            but the first batch axis (batch axis 0) will be transferred to
+            event dimensions.
+    """
+
+    def __init__(self, distribution, reinterpreted_batch_ndims=None):
         super(Independent, self).__init__()
         self.__distribution = distribution
         if reinterpreted_batch_ndims is None:
@@ -106,6 +108,17 @@ class Independent(distribution.Distribution):
         return self._reduce(prod.prod, self.distribution.cdf(x))
 
     def icdf(self, x):
+        '''Cumulative distribution function for multivariate variable is not
+        invertible. This function always raises :class:`RuntimeError`.
+
+        Args:
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the codomain of the distribution
+
+        Raises:
+            :class:`RuntimeError`
+        '''
+
         raise RuntimeError(
             'Cumulative distribution function for multivariate variable '
             'is not invertible.')
