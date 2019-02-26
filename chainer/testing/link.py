@@ -319,9 +319,9 @@ class LinkTestCase(unittest.TestCase):
             self.before_test('test_backward')
 
             inits = self._generate_forward_backward_initializers()
+            link = self._create_initialized_link(inits, backend_config)
 
             def f(inputs, ps):
-                link = self._create_initialized_link(inits, backend_config)
                 with link.init_scope():
                     for param_name, p in zip(self.param_names, ps):
                         setattr(link, param_name, p)
