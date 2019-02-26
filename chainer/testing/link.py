@@ -83,16 +83,17 @@ class LinkTestCase(unittest.TestCase):
         pass
 
     def generate_forward_backward_initializers(self):
-        """Returns initializers.
+        """Returns initializers for ``'test_forward'`` and ``'test_backward'``.
 
         Returns:
-            A tuple of initializers. One for each argument.
+            A tuple of initializers. One for each initializer argument to the
+            link constructor.
         """
         raise NotImplementedError(
             'generate_forward_backward_initializers is not implemented.')
 
     def generate_initializers(self):
-        """Returns initializers.
+        """Returns initializers for ``'test_initializers'``.
 
         Returns:
             A tuple of lists, each list containing all initializers to be
@@ -231,8 +232,7 @@ class LinkTestCase(unittest.TestCase):
 
             for init in param_inits:
                 inits[i_param] = init
-                self._test_single_initializer(
-                    i_param, tuple(inits), backend_config)
+                self._test_single_initializer(i_param, inits, backend_config)
 
     def _test_single_initializer(self, i_param, inits, backend_config):
         inits_orig = inits
@@ -251,8 +251,7 @@ class LinkTestCase(unittest.TestCase):
         expected_init(expected_np)
 
         test._check_forward_output_arrays_equal(
-            expected_np, param_np,
-            'forward', LinkTestError,
+            expected_np, param_np, 'forward', LinkTestError,
             **self.check_initializers_options)
 
     def _generate_forward_backward_initializers(self):
@@ -292,6 +291,8 @@ class LinkTestCase(unittest.TestCase):
         input_vars = [chainer.Variable(i) for i in inputs_xp]
         output_vars = self._forward(link, input_vars, backend_config)
 
+        link.cleargrads()
+
         ret = link
 
         if return_inputs_outputs:
@@ -302,7 +303,9 @@ class LinkTestCase(unittest.TestCase):
 
     def _generate_inputs(self):
         inputs = self.generate_inputs()
+
         test._check_array_types(inputs, backend.CpuDevice(), 'generate_inputs')
+
         return inputs
 
     def _forward(self, link, inputs, backend_config):
