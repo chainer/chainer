@@ -148,7 +148,8 @@ class UpdateRule(object):
         if not callable(hook):
             raise TypeError('hook function must be callable')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', 'pre')
 
@@ -581,12 +582,14 @@ class Optimizer(object):
         if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', None)
             if timing not in ('pre', 'post'):
-                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
-                              "defaulting timing to 'pre'.")
+                warnings.warn(
+                    'Hook timing attribute not in (\'pre\', \'post\'), '
+                    'defaulting timing to \'pre\'.')
                 timing = 'pre'
 
         if name is None:
@@ -614,7 +617,7 @@ class Optimizer(object):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -715,7 +718,7 @@ class GradientMethod(Optimizer):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -800,7 +803,7 @@ class GradientMethod(Optimizer):
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32."""
         self._use_fp32_update = flag
-        link = getattr(self, "target", None)
+        link = getattr(self, 'target', None)
         if link is not None:
             for param in link.params():
                 param.update_rule.use_fp32_update()

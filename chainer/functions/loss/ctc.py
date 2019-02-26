@@ -115,8 +115,8 @@ class ConnectionistTemporalClassification(function.Function):
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'only \'mean\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):

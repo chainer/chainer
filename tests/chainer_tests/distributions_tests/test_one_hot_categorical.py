@@ -38,7 +38,7 @@ class TestOneHotCategorical(testing.distribution_unittest):
         self.scipy_dist = stats.multinomial
 
         self.test_targets = set([
-            "batch_shape", "event_shape", "mean", "sample"])
+            'batch_shape', 'event_shape', 'mean', 'sample'])
 
         n = numpy.ones(self.shape).astype(numpy.int32)
         p = numpy.random.normal(
@@ -46,8 +46,8 @@ class TestOneHotCategorical(testing.distribution_unittest):
         p = numpy.exp(p)
         p /= p.sum(axis=-1, keepdims=True)
         self.n, self.p = n, p
-        self.params = {"p": p}
-        self.scipy_params = {"n": n, "p": p}
+        self.params = {'p': p}
+        self.scipy_params = {'n': n, 'p': p}
 
         self.continuous = False
         self.event_shape = (self.k,)
