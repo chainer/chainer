@@ -18,11 +18,11 @@ class InitializerPair(object):
 
     """Class to hold a pair of initializer-like objects.
 
-    The initializer-like objects can be accessed via the ``first`` and
+    The initializer-like objects can be accessed via the ``first`` and the
     ``second`` attributes.
 
     When implementing ``LinkTestCase``, instances of this class can be included
-    in lists enumerating all initializer-like objects that should be tested.
+    in lists listing all initializer-like objects that should be tested.
     In that case, the first element should correspond to the initializer-like
     argument passed to the constructor of the ``Link``, and the second element
     correspond to the expected initializer-like object upon parameter
@@ -57,10 +57,17 @@ class LinkTestCase(unittest.TestCase):
 
     @property
     def default_initializer(self):
+        """Return the default initializer.
+
+        The default initializer is used to pad the list of initializers during
+        the initializer tests when enumerating all of them to test only a
+        single initializer at a time.
+        """
         return self._default_initializer
 
     @default_initializer.setter
     def default_initializer(self, default_initializer):
+        """Sets the default initializer."""
         initializers._check_is_initializer_like(default_initializer)
         self._default_initializer = default_initializer
 
@@ -113,8 +120,6 @@ class LinkTestCase(unittest.TestCase):
 
     def forward_expected(self, inputs, params):
         """Returns the expected results of a forward pass."""
-        # assert all(isinstance(a, numpy.ndarray) for a in inputs)
-        # assert all(isinstance(p, numpy.ndarray) for p in params)
         raise NotImplementedError('forward_expected() is not implemented.')
 
     def generate_grad_outputs(self, outputs_template):
@@ -221,42 +226,34 @@ class LinkTestCase(unittest.TestCase):
 
         for i_param, param_inits in enumerate(params_inits):
             # When testing an initializer for a particular parameter, other
-            # initializers are set to None.
-            inits = [None, ] * len(params_inits)
+            # initializers are set to the default initializer.
+            inits = [self.default_initializer, ] * len(params_inits)
 
             for init in param_inits:
                 inits[i_param] = init
-                self._test_single_initializer(tuple(inits), backend_config)
+                self._test_single_initializer(
+                    i_param, tuple(inits), backend_config)
 
-    def _test_single_initializer(self, inits, backend_config):
+    def _test_single_initializer(self, i_param, inits, backend_config):
         inits_orig = inits
-        inits = _get_initializers(inits)
+        inits = [_get_initializer(i) for i in inits]
         link = self._create_initialized_link(inits, backend_config)
 
-        # All parameters of link should have been initialized.
         params = _get_link_params(link, self.param_names)
 
         cpu_device = backend.CpuDevice()
-        params_xp = [v.array for v in params]
-        params_np = [cpu_device.send(arr) for arr in params_xp]
+        param = params[i_param]
+        param_xp = param.array
+        param_np = cpu_device.send(param_xp)
 
-        expected_inits, defaulted_indices = _get_expected_initializers(
-            inits_orig, default_init=self.default_initializer,
-            return_defaulted_indices=True)
+        expected_init = _get_expected_initializer(inits_orig[i_param])
+        expected_np = numpy.empty_like(param_np)
+        expected_init(expected_np)
 
-        for i_param in range(len(inits)):
-            if i_param in defaulted_indices:
-                continue
-
-            param_np = params_np[i_param]
-            expected_init = expected_inits[i_param]
-            expected_np = numpy.empty_like(param_np)
-            expected_init(expected_np)
-
-            test._check_forward_output_arrays_equal(
-                expected_np, param_np,
-                'forward', LinkTestError,
-                **self.check_initializers_options)
+        test._check_forward_output_arrays_equal(
+            expected_np, param_np,
+            'forward', LinkTestError,
+            **self.check_initializers_options)
 
     def _generate_forward_backward_initializers(self):
         params_init = self.generate_forward_backward_initializers()
@@ -283,7 +280,7 @@ class LinkTestCase(unittest.TestCase):
 
     def _create_initialized_link(
             self, inits, backend_config, return_inputs_outputs=False):
-        inits = _get_initializers(inits)
+        inits = [_get_initializer(i) for i in inits]
         link = self._create_link(inits, backend_config)
 
         # Generate inputs and compute a forward pass to initialize the
@@ -358,45 +355,25 @@ def _check_generated_initializer(init):
     initializers._check_is_initializer_like(init)
 
 
-def _get_initializers(inits):
-    assert isinstance(inits, tuple)
+def _get_initializer(init):
+    # Returns the initializer that should be passed to the link constructor.
 
-    ret = []
-    for init in inits:
-        if isinstance(init, InitializerPair):
-            init = init.first
-        ret.append(init)
-    return tuple(ret)
+    if isinstance(init, InitializerPair):
+        return init.first
+    return init
 
 
-def _get_expected_initializers(
-        inits, default_init=None, return_defaulted_indices=False):
-    assert isinstance(inits, tuple)
-    assert default_init is None or isinstance(
-        default_init, chainer.Initializer)
+def _get_expected_initializer(init):
+    # Returns the expected initializer for the given initializer.
 
-    ret = []
-    if return_defaulted_indices:
-        indices = []
+    if isinstance(init, InitializerPair):
+        init = init.second
 
-    for i, init in enumerate(inits):
-        if isinstance(init, InitializerPair):
-            init = init.second
-            assert init is not None
-        if init is None:
-            init = default_init
-            indices.append(i)
-        elif not isinstance(init, chainer.Initializer):
-            init = chainer.initializers._get_initializer(init)
+    assert init is not None
 
-        assert init is None or isinstance(init, chainer.Initializer)
-
-        ret.append(init)
-
-    ret = tuple(ret)
-    if return_defaulted_indices:
-        ret = ret, tuple(indices)
-    return ret
+    if not isinstance(init, chainer.Initializer):
+        init = chainer.initializers._get_initializer(init)
+    return init
 
 
 def _get_link_params(link, param_names):
