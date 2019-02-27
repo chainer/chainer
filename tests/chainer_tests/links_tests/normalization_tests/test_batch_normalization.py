@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import initializers
@@ -24,26 +25,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     return y_expect
 
 
-@testing.inject_backend_tests(
-    None,
-    # CPU tests
-    [
-        {},
-        {'use_ideep': 'always'},
-    ]
-    # GPU tests
-    + testing.product({
-        'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
-        'cuda_device': [0, 1],
-    })
-    # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
-@testing.parameterize(*(testing.product_dict(
+_parameterize = testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -57,7 +39,9 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ]
 )))
-class BatchNormalizationTest(testing.LinkTestCase):
+
+
+class BatchNormalizationTestBase(object):
 
     param_names = ['gamma', 'beta']
 
@@ -92,7 +76,7 @@ class BatchNormalizationTest(testing.LinkTestCase):
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-1}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
     def before_test(self, test_name):
@@ -168,6 +152,61 @@ class BatchNormalizationTest(testing.LinkTestCase):
             var = x.var(axis=self.aggr_axes, keepdims=True)
             std = numpy.sqrt(var + self.eps)
         y = gamma[self.expander] * (x - mean) / std + beta[self.expander]
+        return y,
+
+
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@_parameterize
+class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
+
+    contiguous = 'C'
+
+
+@attr.multi_gpu(2)
+@testing.inject_backend_tests(
+    None,
+    testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0],
+    }))
+@_parameterize
+class BatchNormalizationMultiGpuTest(
+        BatchNormalizationTestBase, testing.LinkTestCase):
+
+    skip_backward_test = True
+    skip_initializers_test = True
+    contiguous = 'C'
+
+    def forward(self, link, inputs, device):
+        x, = inputs
+
+        device_1 = backend.GpuDevice.from_device_id(1)
+        link.to_device(device_1)
+        x.to_device(device_1)
+
+        device_0 = backend.GpuDevice.from_device_id(0)
+        with chainer.using_device(device_0):
+            with chainer.using_config('train', not self.test):
+                y = link(x, finetune=self.finetune)
         return y,
 
 
