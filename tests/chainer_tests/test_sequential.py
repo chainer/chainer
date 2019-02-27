@@ -1,3 +1,4 @@
+import six
 import os
 import platform
 import tempfile
@@ -323,31 +324,6 @@ class TestSequential(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.W.grad, numpy.zeros((3, 2)))
         numpy.testing.assert_array_equal(self.l3.b.grad, numpy.zeros((3,)))
 
-    def test_serialize(self):
-        l1 = links.Linear(None, 1)
-        l2 = links.Linear(None, 3)
-        with l2.init_scope():
-            l2.x = variable.Parameter(0, 2)
-        s1 = chainer.Sequential(l1, l2)
-        mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
-        serializer = mock.MagicMock()
-        serializer.__getitem__.side_effect = lambda k: mocks[k]
-        serializer.return_value = None
-        mocks['0'].return_value = None
-        mocks['1'].return_value = None
-        s1.serialize(serializer)
-
-        self.assertEqual(serializer.call_count, 0)
-        self.assertEqual(serializer.__getitem__.call_count, 2)
-        serializer.__getitem__.assert_any_call('0')
-        serializer.__getitem__.assert_any_call('1')
-
-        mocks['0'].assert_any_call('W', None)
-        mocks['0'].assert_any_call('b', l1.b.data)
-        mocks['1'].assert_any_call('W', None)
-        mocks['1'].assert_any_call('b', l2.b.data)
-        mocks['1'].assert_any_call('x', l2.x.data)
-
     def test_getitem(self):
         self.assertIs(self.s1[0], self.l1)
 
@@ -588,6 +564,151 @@ class TestEmptySequential(unittest.TestCase):
         x = numpy.ones((2, 3), numpy.float32)
         with pytest.raises(RuntimeError):
             seq(x)
+
+
+class TestSequentialSerialization(unittest.TestCase):
+
+    # MyLink is a link that depends on a parameter whose value is filled
+    # with an integer specified by `n`.
+
+    # `create_fn` is a test-specific function to create a target link.
+    # `create_fn` has one argument `nth`, which is either 0 or 1, each of
+    # which represents before or after serialization.
+    # `n` argument of `MyLink` is dependent on this `nth`, thus the link is
+    # initialized with different values depending on before/after
+    # serialization.
+
+    # If serialization dis not work correctly, the link would have a different
+    # value after serialization, causing tests to fail.
+
+    class MyLink(chainer.Link):
+
+        def __init__(self, n):
+            chainer.Link.__init__(self)
+            with self.init_scope():
+                self.n = chainer.Parameter(
+                    numpy.full((1, 2), n, dtype=numpy.float32))
+
+        def forward(self, x):
+            return chainer.functions.vstack((x, self.n))
+
+    class MyFunc(chainer.FunctionNode):
+        def __init__(self, n):
+            chainer.FunctionNode.__init__(self)
+            self.n = n
+
+        def forward(self, inputs):
+            x, = inputs
+            y = numpy.vstack((
+                x, numpy.full((1, 2,), self.n, dtype=x.dtype)))
+            return y,
+
+        backward = None  # not used in this test
+
+    def my_func(self, n):
+        # defined as function-local function
+        def func_impl(x):
+            y, = self.MyFunc(n).apply((x,))
+            return y
+        return func_impl
+
+    def serialize(self, seq):
+        f = six.io.BytesIO()
+        chainer.serializers.save_npz(f, seq)
+        return f.getvalue()
+
+    def deserialize(self, seq, bytes):
+        f = six.io.BytesIO(bytes)
+        chainer.serializers.load_npz(f, seq)
+
+    def check_serialization(self, fn_create):
+        x = numpy.array([[100, 100]], numpy.float32)
+        seq1 = fn_create(0)
+
+        y1 = seq1(x)
+        if len(seq1) == 0:
+            y1, = y1
+
+        bytes = self.serialize(seq1)
+        seq2 = fn_create(1)
+        self.deserialize(seq2, bytes)
+
+        assert len(seq1) == len(seq2)
+
+        y2 = seq2(x)
+        if len(seq2) == 0:
+            y2, = y2
+
+        assert y1.dtype == y2.dtype
+        numpy.testing.assert_array_equal(y1.array, y2.array)
+
+    def test_single_link(self):
+        def fn_create(nth):
+            seq = chainer.Sequential(
+                self.MyLink(nth + 0))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_single_func(self):
+        def fn_create(nth):
+            seq = chainer.Sequential(
+                self.my_func(0))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_multiple_links(self):
+        def fn_create(nth):
+            seq = chainer.Sequential(
+                self.MyLink(nth + 0),
+                self.MyLink(nth + 1),
+                self.MyLink(nth + 2))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_multiple_mixed(self):
+        def fn_create(nth):
+            seq = chainer.Sequential(
+                self.MyLink(nth + 0),
+                self.my_func(1),
+                self.MyLink(nth + 2),
+                self.my_func(3),
+                self.MyLink(nth + 4))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_append_links(self):
+        def fn_create(nth):
+            seq = chainer.Sequential()
+            seq.append(self.MyLink(nth + 0))
+            seq.append(self.MyLink(nth + 1))
+            seq.append(self.MyLink(nth + 2))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_append_mixed(self):
+        def fn_create(nth):
+            seq = chainer.Sequential()
+            seq.append(self.my_func(0))
+            seq.append(self.MyLink(nth + 1))
+            seq.append(self.my_func(2))
+            seq.append(self.MyLink(nth + 3))
+            seq.append(self.my_func(4))
+            seq.append(self.MyLink(nth + 5))
+            return seq
+        self.check_serialization(fn_create)
+
+    def test_insert_mixed(self):
+        def fn_create(nth):
+            seq = chainer.Sequential()
+            seq.insert(0, self.my_func(0))
+            seq.insert(1, self.MyLink(nth + 1))
+            seq.insert(2, self.my_func(2))
+            seq.insert(1, self.MyLink(nth + 3))
+            seq.insert(0, self.my_func(4))
+            seq.insert(4, self.MyLink(nth + 5))
+            return seq
+        self.check_serialization(fn_create)
+>>>>>>> Add Sequential serialization test
 
 
 testing.run_module(__name__, __file__)
