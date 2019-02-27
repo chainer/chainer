@@ -25,7 +25,7 @@ class TestPointToPointCommunication(unittest.TestCase):
             device = -1
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode")
+            pytest.skip('This test is for multinode')
 
         self.rank_send = (self.communicator.rank + 1) % self.communicator.size
         self.rank_recv = (self.communicator.rank - 1) % self.communicator.size
@@ -192,7 +192,7 @@ class TestNonVariableInput(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode")
+            pytest.skip('This test is for multinode')
 
         self.rank_send = (self.communicator.rank + 1) % self.communicator.size
         self.rank_recv = (self.communicator.rank - 1) % self.communicator.size

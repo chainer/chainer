@@ -26,8 +26,8 @@ class Erfcx(function_node.FunctionNode):
                 from scipy import special
                 _erfcx_cpu = special.erfcx
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of erfcx can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of erfcx can not be done.')
 
         self.retain_inputs((0,))
         self.retain_outputs((0,))

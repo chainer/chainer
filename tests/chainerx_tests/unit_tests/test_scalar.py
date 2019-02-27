@@ -221,4 +221,4 @@ def test_repr(value):
 
 def test_init_invalid():
     with pytest.raises(TypeError):
-        chainerx.Scalar("1")  # string, which is not a numeric
+        chainerx.Scalar('1')  # string, which is not a numeric

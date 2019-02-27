@@ -26,12 +26,12 @@ import models.resnet50 as resnet50
 # which was introduced in Python 3.4
 major, minor, _, _, _ = sys.version_info
 if major <= 2 or (major == 3 and minor < 4):
-    sys.stderr.write("Error: ImageNet example uses "
-                     "chainer.iterators.MultiprocessIterator, "
-                     "which works only with Python >= 3.4. \n"
-                     "For more details, see "
-                     "http://chainermn.readthedocs.io/en/master/"
-                     "tutorial/tips_faqs.html#using-multiprocessiterator\n")
+    sys.stderr.write('Error: ImageNet example uses '
+                     'chainer.iterators.MultiprocessIterator, '
+                     'which works only with Python >= 3.4. \n'
+                     'For more details, see '
+                     'http://chainermn.readthedocs.io/en/master/'
+                     'tutorial/tips_faqs.html#using-multiprocessiterator\n')
     exit(-1)
 
 
@@ -92,7 +92,7 @@ def main():
     # Check if GPU is available
     # (ImageNet example does not support CPU execution)
     if not chainer.cuda.available:
-        raise RuntimeError("ImageNet requires GPU support.")
+        raise RuntimeError('ImageNet requires GPU support.')
 
     archs = {
         'alex': alex.Alex,

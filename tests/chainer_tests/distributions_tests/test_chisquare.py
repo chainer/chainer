@@ -20,14 +20,14 @@ class TestChisquare(testing.distribution_unittest):
         self.scipy_dist = stats.chi2
 
         self.test_targets = set([
-            "batch_shape", "entropy", "event_shape", "log_prob", "mean",
-            "sample", "support", "variance"])
+            'batch_shape', 'entropy', 'event_shape', 'log_prob', 'mean',
+            'sample', 'support', 'variance'])
 
         k = numpy.random.randint(1, 10, self.shape).astype(numpy.float32)
-        self.params = {"k": k}
-        self.scipy_params = {"df": k}
+        self.params = {'k': k}
+        self.scipy_params = {'df': k}
 
-        self.support = "positive"
+        self.support = 'positive'
 
     def sample_for_test(self):
         smp = numpy.random.chisquare(

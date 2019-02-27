@@ -460,30 +460,13 @@ def _array_to_gpu(array, device, stream):
             'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
-    if stream is not None and stream.ptr != 0:
-        ret = cupy.empty_like(array)
-        if is_numpy:
-            # cpu to gpu
-            mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-            src = numpy.frombuffer(
-                mem, array.dtype, array.size).reshape(array.shape)
-            src[...] = array
-            ret.set(src, stream)
-            cupy.cuda.pinned_memory._add_to_watch_list(
-                stream.record(), mem)
-        else:
-            # gpu to gpu
-            with array.device:
-                src = array.copy()
-                event = Stream.null.record()
-            stream.wait_event(event)
-            ret.data.copy_from_device_async(
-                src.data, src.nbytes, stream)
-
-            # to hold a reference until the end of the asynchronous
-            # memcpy
-            stream.add_callback(lambda *x: None, (src, ret))
-        return ret
+    if stream is not None:
+        with device:
+            with stream:
+                if is_numpy:
+                    return cupy.asarray(array)
+                # Need to make a copy when an array is copied to another device
+                return cupy.array(array, copy=True)
 
     with device:
         if is_numpy:
