@@ -5,12 +5,13 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
+import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import links
-from chainer import sequential
 from chainer import testing
 from chainer.testing import attr
 from chainer import variable
@@ -23,10 +24,10 @@ class TestSequential(unittest.TestCase):
         self.l2 = links.Linear(3, 2)
         self.l3 = links.Linear(2, 3)
         # s1: l1 -> l2
-        self.s1 = sequential.Sequential(self.l1)
+        self.s1 = chainer.Sequential(self.l1)
         self.s1.append(self.l2)
         # s2: s1 (l1 -> l2) -> l3
-        self.s2 = sequential.Sequential(self.s1)
+        self.s2 = chainer.Sequential(self.s1)
         self.s2.append(self.l3)
 
     def test_init(self):
@@ -35,7 +36,7 @@ class TestSequential(unittest.TestCase):
         self.assertIs(self.s2[0], self.s1)
         self.assertEqual(self.s1.name, '0')
         with self.assertRaises(ValueError):
-            sequential.Sequential(0)
+            chainer.Sequential(0)
 
     def test_append(self):
         self.assertIs(self.s2[1], self.l3)
@@ -256,8 +257,8 @@ class TestSequential(unittest.TestCase):
         l1 = links.Linear(None, 3)
         l2 = links.Linear(3, 2)
         l3 = links.Linear(2, 3)
-        s1 = sequential.Sequential(l1, l2)
-        s2 = sequential.Sequential(s1, l3)
+        s1 = chainer.Sequential(l1, l2)
+        s2 = chainer.Sequential(s1, l3)
         l1.b.data.fill(0)
         l2.W.data.fill(1)
         l2.b.data.fill(2)
@@ -298,8 +299,8 @@ class TestSequential(unittest.TestCase):
         l1 = links.Linear(2, 3)
         l2 = links.Linear(3, 2)
         l3 = links.Linear(2, 3)
-        s1 = sequential.Sequential(l1, l2)
-        s2 = sequential.Sequential(s1, l3)
+        s1 = chainer.Sequential(l1, l2)
+        s2 = chainer.Sequential(s1, l3)
         l1.b.grad.fill(1)
         l2.W.grad.fill(2)
         l2.b.grad.fill(3)
@@ -327,7 +328,7 @@ class TestSequential(unittest.TestCase):
         l2 = links.Linear(None, 3)
         with l2.init_scope():
             l2.x = variable.Parameter(0, 2)
-        s1 = sequential.Sequential(l1, l2)
+        s1 = chainer.Sequential(l1, l2)
         mocks = {'0': mock.MagicMock(), '1': mock.MagicMock()}
         serializer = mock.MagicMock()
         serializer.__getitem__.side_effect = lambda k: mocks[k]
@@ -371,7 +372,7 @@ class TestSequential(unittest.TestCase):
     def test_add(self):
         l1 = links.Linear(3, 2)
         l2 = functions.relu
-        other = sequential.Sequential(l1, l2)
+        other = chainer.Sequential(l1, l2)
         added = self.s2 + other
         self.assertEqual(len(added), 4)
         self.assertIs(added[0], self.s1)
@@ -383,7 +384,7 @@ class TestSequential(unittest.TestCase):
 
     def test_iadd(self):
         l4 = links.Linear(3, 1)
-        self.s2 += sequential.Sequential(l4)
+        self.s2 += chainer.Sequential(l4)
         self.assertIs(self.s2[0], self.s1)
         self.assertIs(self.s2[1], self.l3)
         self.assertIs(self.s2[2], l4)
@@ -394,7 +395,7 @@ class TestSequential(unittest.TestCase):
         l1 = mock.MagicMock()
         l2 = mock.MagicMock()
         l3 = mock.MagicMock()
-        model = sequential.Sequential(l1, l2, l3)
+        model = chainer.Sequential(l1, l2, l3)
         x = numpy.arange(2).reshape(1, 2).astype('f')
         y = model(x)
         l1.assert_called_once()
@@ -404,7 +405,7 @@ class TestSequential(unittest.TestCase):
         self.assertIs(y.creator.inputs[1].data, self.l2.W.data)
 
     def test_call_with_multiple_inputs(self):
-        model = sequential.Sequential(
+        model = chainer.Sequential(
             lambda x, y: (x * 2, y * 3, x + y),
             lambda x, y, z: x + y + z
         )
@@ -414,17 +415,11 @@ class TestSequential(unittest.TestCase):
     def test_extend(self):
         l1 = links.Linear(3, 2)
         l2 = links.Linear(2, 3)
-        s3 = sequential.Sequential(l1, l2)
+        s3 = chainer.Sequential(l1, l2)
         self.s2.extend(s3)
         self.assertEqual(len(self.s2), 4)
         self.assertIs(self.s2[2], s3[0])
         self.assertIs(self.s2[3], s3[1])
-
-    def test_insert(self):
-        l1 = links.Linear(3, 3)
-        self.s1.insert(1, l1)
-        self.assertEqual(len(self.s1), 3)
-        self.assertIs(self.s1[1], l1)
 
     def test_remove(self):
         self.s2.remove(self.s1)
@@ -579,6 +574,71 @@ class TestSequential(unittest.TestCase):
         self.assertIs(flattened_s2[0], self.l1)
         self.assertIs(flattened_s2[1], self.l2)
         self.assertIs(flattened_s2[2], self.l3)
+
+
+class SequentialInsert(unittest.TestCase):
+    def test_empty(self):
+        seq = chainer.Sequential()
+        seq.insert(0, functions.sin)
+        assert len(seq) == 1
+        assert seq[0] is functions.sin
+
+    def test_single_1(self):
+        seq = chainer.Sequential(functions.cos)
+        seq.insert(0, functions.sin)
+        assert len(seq) == 2
+        assert seq[0] is functions.sin
+        assert seq[1] is functions.cos
+
+    def test_single_2(self):
+        seq = chainer.Sequential(functions.cos)
+        seq.insert(1, functions.sin)
+        assert len(seq) == 2
+        assert seq[0] is functions.cos
+        assert seq[1] is functions.sin
+
+    def test_single_3(self):
+        seq = chainer.Sequential(functions.cos)
+        seq.insert(-1, functions.sin)
+        assert len(seq) == 2
+        assert seq[0] is functions.sin
+        assert seq[1] is functions.cos
+
+    def test_multiple_1(self):
+        seq = chainer.Sequential(functions.cos, functions.tan)
+        seq.insert(-1, functions.sin)
+        assert len(seq) == 3
+        assert seq[0] is functions.cos
+        assert seq[1] is functions.sin
+        assert seq[2] is functions.tan
+
+    def test_multiple_2(self):
+        seq = chainer.Sequential(functions.cos, functions.tan)
+        seq.insert(1, functions.sin)
+        assert len(seq) == 3
+        assert seq[0] is functions.cos
+        assert seq[1] is functions.sin
+        assert seq[2] is functions.tan
+
+    def test_index_out_of_bounds_empty_positive(self):
+        seq = chainer.Sequential()
+        with pytest.raises(IndexError):
+            seq.insert(1, functions.sin)
+
+    def test_index_out_of_bounds_empty_negative(self):
+        seq = chainer.Sequential()
+        with pytest.raises(IndexError):
+            seq.insert(-1, functions.sin)
+
+    def test_index_out_of_bounds_single_positive(self):
+        seq = chainer.Sequential(functions.sin)
+        with pytest.raises(IndexError):
+            seq.insert(2, functions.sin)
+
+    def test_index_out_of_bounds_single_negative(self):
+        seq = chainer.Sequential(functions.sin)
+        with pytest.raises(IndexError):
+            seq.insert(-2, functions.sin)
 
 
 testing.run_module(__name__, __file__)
