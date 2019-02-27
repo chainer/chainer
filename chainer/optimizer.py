@@ -655,27 +655,27 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
-    def loss_scaling(self, mode, loss_scale=1.0, interval=1000):
+    def loss_scaling(self, interval=1000, scale=None):
         """Sets loss scaling configurations.
 
         Args:
-            mode (str): Loss scaling mode, 'static' or 'dynamic'.
-            loss_scale (float): Loss scaling factor when mode is 'static'.
-                Initial loss scaling factor when mode is 'dynamic'.
             interval (integer): Number of iterations until scaling factor gets
-                doubled. This is effective only when mode is 'dynamic'.
+                doubled. This is effective when "dynamic" loss scaling is used.
+            scale (float): Loss scaling factor. If None, "dynamic" loss scaling
+                is used, otherwise "static" loss scaling is used.
         """
-        if mode not in ('static', 'dynamic'):
-            raise ValueError('mode must be either \'static\' or \'dynamic\'')
-        if loss_scale <= 0:
-            raise ValueError('loss_scale must be positive number')
-        if mode is 'dynamic' and interval < 1:
-            raise ValueError('interval must be greater equal to 1')
-
-        self._loss_scaling_mode = mode
-        self._loss_scale = loss_scale
-        self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
-        self._loss_scaling_isnan_ever = False
+        if scale is None:
+            self._loss_scaling_mode = 'dynamic'
+            if interval < 1:
+                raise ValueError("interval must be greater equal to 1")
+            self._loss_scale = 1.0
+            self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
+            self._loss_scaling_isnan_ever = False
+        else:
+            self._loss_scaling_mode = 'static'
+            if scale <= 0:
+                raise ValueError("loss_scale must be positive number")
+            self._loss_scale = scale
 
     def set_loss_scale(self, loss_scale):
         """Sets loss scaling factor."""
@@ -691,7 +691,7 @@ class Optimizer(object):
                 is_safe = False
                 self._loss_scaling_isnan_ever = True
                 warnings.warn(
-                    'Non finite number found in pram.grad of {}'
+                    'Non finite number found in param.grad of {}'
                     ' (t:{}, loss_scale:{})'
                     ''.format(name, self.t, self._loss_scale))
         if not is_safe:
