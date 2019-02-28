@@ -1,5 +1,6 @@
-import numpy
+import unittest
 
+import numpy
 import pytest
 
 import chainer
@@ -23,38 +24,27 @@ _inject_backend_tests = testing.inject_backend_tests(
     ])
 
 
-class DotLink(chainer.Link):
-
-    # Correctly implemented dot.
-
-    def __init__(self, in_size, out_size, initial_p=None):
-        super(DotLink, self).__init__()
-
-        with self.init_scope():
-            if initial_p is None:
-                initial_p = initializers.Constant(1)
-            self.p = chainer.Parameter(initial_p, shape=(in_size, out_size))
-
-    def forward(self, inputs):
-        x = inputs
-        p = self.p
-        y = chainer.functions.matmul(x, p)
-        return y
-
-
-class IncorrectDot(chainer.FunctionNode):
+class Dot(chainer.FunctionNode):
 
     def __init__(
             self, incorrect_forward=False, incorrect_backward_gx=False,
-            incorrect_backward_gp=False):
+            incorrect_backward_gp=False, contiguous=None,
+            check_on=None):
         self.incorrect_forward = incorrect_forward
         self.incorrect_backward_gx = incorrect_backward_gx
         self.incorrect_backward_gp = incorrect_backward_gp
+        self.contiguous = contiguous
+        self.check_on = check_on
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         xp = chainer.backend.get_array_module(*inputs)
         x, p = inputs
+
+        if self.check_on == 'forward_input':
+            self._check_contiguousness(x)
+            self._check_contiguousness(p)
+
         y = xp.dot(x, p)
 
         if self.incorrect_forward:
@@ -65,6 +55,13 @@ class IncorrectDot(chainer.FunctionNode):
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         x, p = self.get_retained_inputs()
+
+        if self.check_on == 'backward_retained_input':
+            self._check_contiguousness(x.array)
+            self._check_contiguousness(p.array)
+        elif self.check_on == 'backward_grad_output':
+            self._check_contiguousness(gy.array)
+
         gx = chainer.functions.matmul(gy, p.T)
         gp = chainer.functions.matmul(x.T, gy)
 
@@ -74,6 +71,36 @@ class IncorrectDot(chainer.FunctionNode):
             gp += 1000
 
         return gx, gp
+
+    def _check_contiguousness(self, arr):
+        assert isinstance(arr, chainer.get_array_types())
+        testing.test._check_contiguousness(arr, self.contiguous)
+
+
+class DotLink(chainer.Link):
+
+    # correctly implemented dot.
+
+    def __init__(
+            self, in_size, out_size, initial_p=None, contiguous=None,
+            check_on=None):
+        super(DotLink, self).__init__()
+
+        with self.init_scope():
+            if initial_p is None:
+                initial_p = initializers.Constant(1)
+            self.p = chainer.Parameter(initial_p, shape=(in_size, out_size))
+
+        self.contiguous = contiguous
+        self.check_on = check_on
+
+    def forward(self, inputs):
+        x = inputs
+        p = self.p
+        contiguous = self.contiguous
+        check_on = self.check_on
+        y, = Dot(contiguous=contiguous, check_on=check_on).apply((x, p))
+        return y
 
 
 class DotLinkIncorrectForward(DotLink):
@@ -86,7 +113,7 @@ class DotLinkIncorrectForward(DotLink):
     def forward(self, inputs):
         x = inputs
         p = self.p
-        y, = IncorrectDot(incorrect_forward=True).apply((x, p))
+        y, = Dot(incorrect_forward=True).apply((x, p))
         return y
 
 
@@ -102,7 +129,7 @@ class DotLinkIncorrectBackward(DotLink):
     def forward(self, inputs):
         x = inputs
         p = self.p
-        y, = IncorrectDot(
+        y, = Dot(
             incorrect_backward_gx=self.incorrect_gx,
             incorrect_backward_gp=self.incorrect_gp).apply((x, p))
         return y
@@ -322,6 +349,44 @@ class TestLinkOnlyForwardBackward(testing.LinkTestCase):
         x, = inputs
         p, = params
         return numpy.dot(x, p),
+
+
+@testing.parameterize(*testing.product({
+    'contiguous': [None, 'C'],
+    'check_on': [  # Check points in which cotiguousness is probed.
+        'forward_input',
+        # TODO(hvy): As gradient_check.check_backward currently copies the
+        # grads without preserving strides, they cannot be non-contiguous.
+        # Enable this check after check_backward will be fixed.
+        # 'backward_grad_output',
+        'backward_retained_input',
+        # TODO(hvy): Enable this check after check_backward will be fixed.
+        # 'double_backward_grad_grad_input',
+    ]}))
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.test._ContiguousnessMatched)
+class TestLinkContiguousness(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_initializers_test = True
+
+    def before_test(self, test_name):
+        # Some combinations of test methods and check points are irrelevant.
+        # Skip such combinations.
+        # For example, `test_forward` method does not generate grad_outputs.
+        if test_name == 'test_forward':
+            if self.check_on != 'forward_input':
+                raise unittest.SkipTest()
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        contiguous = self.contiguous
+        check_on = self.check_on
+        link = DotLink(
+            in_size, out_size, initial_p, contiguous=contiguous,
+            check_on=check_on)
+        return link
 
 
 testing.run_module(__name__, __file__)

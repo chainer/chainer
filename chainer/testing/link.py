@@ -446,6 +446,7 @@ class LinkTestCase(unittest.TestCase):
         # parameters.
         inputs_np = self._generate_inputs()
         inputs_xp = backend_config.get_array(inputs_np)
+        inputs_xp = self._to_noncontiguous_as_needed(inputs_xp)
         input_vars = [chainer.Variable(i) for i in inputs_xp]
         output_vars = self._forward(link, input_vars, backend_config)
 
