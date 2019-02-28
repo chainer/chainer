@@ -27,7 +27,7 @@ if types.TYPE_CHECKING:
         weight_decay_rate = None  # type: float
         amsgrad = None  # type: bool
         adabound = None  # type: bool
-        final_lr_rate = None  # type: float
+        final_lr = None  # type: float
         gamma = None  # type: float
 
 
@@ -40,7 +40,7 @@ _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
 _default_hyperparam.amsgrad = False
 _default_hyperparam.adabound = False
-_default_hyperparam.final_lr_rate = 100.0
+_default_hyperparam.final_lr = 0.1
 _default_hyperparam.gamma = 1e-3
 
 
@@ -110,7 +110,7 @@ class AdamRule(optimizer.UpdateRule):
         weight_decay_rate (float): Weight decay rate.
         amsgrad (bool): Whether to use the AMSGrad variant of Adam.
         adabound (bool): Whether to use the AdaBound variant of Adam.
-        final_lr_rate (float): final (SGD) learning rate per base-alpha in adabound.
+        final_lr (float): final (SGD) learning rate in adabound.
         gamma (float): convergence speed of the bound functions in adabound.
 
     """
@@ -128,7 +128,7 @@ class AdamRule(optimizer.UpdateRule):
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
                  eta=None, weight_decay_rate=None, amsgrad=None,
-                 adabound=None, final_lr_rate=None, gamma=None):
+                 adabound=None, final_lr=None, gamma=None):
         super(AdamRule, self).__init__(
             parent_hyperparam or _default_hyperparam)
         if alpha is not None:
@@ -147,12 +147,13 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.amsgrad = amsgrad
         if adabound is not None:
             self.hyperparam.adabound = adabound
-        if final_lr_rate is not None:
-            self.hyperparam.final_lr_rate = final_lr_rate
+        if final_lr is not None:
+            self.hyperparam.final_lr = final_lr
         if gamma is not None:
             self.hyperparam.gamma = gamma
 
     def init_state(self, param):
+        self.state['initial_alpha'] = self.hyperparam.alpha
         xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
@@ -319,7 +320,7 @@ class AdamRule(optimizer.UpdateRule):
                 'Can\'t determine the bounds of AdaBound optimizer '
                 'because the update steps have not been started.')
         hp = self.hyperparam
-        final_lr = hp.final_lr_rate * hp.alpha
+        final_lr = hp.final_lr * hp.alpha / self.state['initial_alpha']
         lower = final_lr * (1.0 - 1.0 / (hp.gamma * self.t + 1))
         upper = final_lr * (1.0 + 1.0 / (hp.gamma * self.t))
         return lower, upper
@@ -362,7 +363,7 @@ class Adam(optimizer.GradientMethod):
         weight_decay_rate (float): Weight decay rate.
         amsgrad (bool): Whether to use AMSGrad variant of Adam.
         adabound (bool): Whether to use the AdaBound variant of Adam.
-        final_lr_rate (float): final (SGD) learning rate per base-alpha in adabound.
+        final_lr (float): final (SGD) learning rate in adabound.
         gamma (float): convergence speed of the bound functions in adabound.
 
     """
@@ -376,7 +377,7 @@ class Adam(optimizer.GradientMethod):
                  weight_decay_rate=_default_hyperparam.weight_decay_rate,
                  amsgrad=_default_hyperparam.amsgrad,
                  adabound=_default_hyperparam.adabound,
-                 final_lr_rate=_default_hyperparam.final_lr_rate,
+                 final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma):
         super(Adam, self).__init__()
         self.hyperparam.alpha = alpha
@@ -387,7 +388,7 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.weight_decay_rate = weight_decay_rate
         self.hyperparam.amsgrad = amsgrad
         self.hyperparam.adabound = adabound
-        self.hyperparam.final_lr_rate = final_lr_rate
+        self.hyperparam.final_lr = final_lr
         self.hyperparam.gamma = gamma
 
     alpha = optimizer.HyperparameterProxy('alpha')
@@ -398,7 +399,7 @@ class Adam(optimizer.GradientMethod):
     weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
     amsgrad = optimizer.HyperparameterProxy('amsgrad')
     adabound = optimizer.HyperparameterProxy('adabound')
-    final_lr_rate = optimizer.HyperparameterProxy('final_lr_rate')
+    final_lr = optimizer.HyperparameterProxy('final_lr')
     gamma = optimizer.HyperparameterProxy('gamma')
 
     def create_update_rule(self):
