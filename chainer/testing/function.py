@@ -126,7 +126,9 @@ class FunctionTestBase(object):
 
         # Compute actual outputs
         outputs = self._forward(
-            tuple([chainer.Variable(a) for a in inputs]),
+            tuple([
+                chainer.Variable(a, requires_grad=a.dtype.kind == 'f')
+                for a in inputs]),
             backend_config)
 
         # Check inputs has not changed
