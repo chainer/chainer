@@ -131,7 +131,7 @@ class AdamRule(optimizer.UpdateRule):
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
-            if self.hyperparam.amsgrad or self.hyperparam.adabound:
+            if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
             if self.hyperparam.adabound:
                 self.state['initial_alpha'] = self.hyperparam.alpha
@@ -243,8 +243,11 @@ class AdamRule(optimizer.UpdateRule):
             m, v = self.state['m'], self.state['v']
             m += (1 - hp.beta1) * (grad - m)
             v += (1 - hp.beta2) * (grad * grad - v)
-            vhat = self.state['vhat']
-            cuda.cupy.maximum(vhat, v, out=vhat)
+            if hp.amsgrad:
+                vhat = self.state['vhat']
+                cuda.cupy.maximum(vhat, v, out=vhat)
+            else:
+                vhat = v
             upper_bound, lower_bound = _upper_lower_bound(
                 self.final_lr, hp.gamma, self.t)
             alpha_t = self.state['alpha_t']
