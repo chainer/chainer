@@ -497,6 +497,13 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     return out;
 }
 
+Dtype GetMathResultDtype(Dtype dtype) {
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        return dtype;
+    }
+    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
+}
+
 }  // namespace
 
 Array Maximum(const Array& x1, Scalar x2) {
@@ -506,7 +513,8 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Exp(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -526,7 +534,8 @@ Array Exp(const Array& x) {
 }
 
 Array Log(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -546,16 +555,27 @@ Array Log(const Array& x) {
 }
 
 Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
-    Array xmax = AMax(x, sorted_axis, true);
-    Array logs = Log(Sum(Exp(x - xmax), sorted_axis, keepdims));
+    Array xmax = AMax(x_cast, sorted_axis, true);
+    Array logs = Log(Sum(Exp(x_cast - xmax), sorted_axis, keepdims));
+
+    // TODO(imanishi): Avoid unnecessary cast here when `chainerx::Add` supports mixed dtypes.
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
-Array LogSoftmax(const Array& x, const OptionalAxes& axis) { return x - LogSumExp(x, axis.has_value() ? axis : OptionalAxes{1}, true); }
+Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+
+    // TODO(imanishi): Avoid unnecessary cast here when `chainerx::Subtract` supports mixed dtypes.
+    return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
+}
 
 Array Sqrt(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -576,7 +596,8 @@ Array Sqrt(const Array& x) {
 }
 
 Array Tanh(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};

@@ -53,9 +53,10 @@ struct TanhImpl {
 void CudaDevice::Tanh(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(TanhImpl<T>{}, x, out);
+        Elementwise<const T, T>(TanhImpl<T>{}, x_cast, out);
     });
 }
 
