@@ -4,6 +4,8 @@ import mpi4py.MPI
 import numpy as np
 
 import chainer.backends
+import chainerx as chx
+
 try:
     import cupy as cp
     _cupy_avail = True
@@ -127,8 +129,15 @@ def get_device_memory_pointer(array):
 
     if xp is np:
         return array
-    else:
+    elif _cupy_avail and xp is cp:
         return ctypes.cast(
             array.data.ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
         ).contents
+    elif xp is chx:
+        return ctypes.cast(
+            array.data_ptr,
+            ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
+        ).contents
+    else:
+        raise ValueError('{} is unsupported array type'.format(type(array)))
