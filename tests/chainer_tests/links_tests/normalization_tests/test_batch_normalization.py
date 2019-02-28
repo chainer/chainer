@@ -194,6 +194,9 @@ class BatchNormalizationMultiGpuTest(
 
     skip_backward_test = True
     skip_initializers_test = True
+
+    # TODO(hvy): Remove this relaxation. It is currently needed as the
+    # inter-device copy in CuPy with non-contiguous arrays are broken.
     contiguous = 'C'
 
     def forward(self, link, inputs, device):
