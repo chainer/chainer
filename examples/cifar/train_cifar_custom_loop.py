@@ -7,6 +7,7 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 import argparse
+import os
 
 import chainer
 from chainer import configuration
@@ -122,10 +123,13 @@ def main():
             sum_loss = 0
 
     # Save the model and the optimizer
+    out = args.out
+    if not os.path.exists(out):
+        os.makedirs(out)
     print('save the model')
-    serializers.save_npz('mlp.model', model)
+    serializers.save_npz(os.path.join(out, 'vgg.model'), model)
     print('save the optimizer')
-    serializers.save_npz('mlp.state', optimizer)
+    serializers.save_npz(os.path.join(out, 'vgg.state'), optimizer)
 
 
 if __name__ == '__main__':
