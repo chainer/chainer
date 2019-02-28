@@ -122,10 +122,6 @@ class AdamRule(optimizer.UpdateRule):
             if gamma is not None:
                 self.hyperparam.gamma = gamma
 
-        if self.hyperparam.amsgrad and self.hyperparam.adabound:
-            raise ValueError(
-                '`AMSGrad` and `AdaBound` cannot be used together.')
-
     def init_state(self, param):
         xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
