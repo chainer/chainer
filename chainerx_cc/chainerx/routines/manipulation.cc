@@ -26,6 +26,7 @@
 #include "chainerx/strides.h"
 
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/type_util.h"
 
 namespace chainerx {
 
@@ -390,7 +391,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     }
 
     Shape shape = arrays.front().shape();
-    Dtype dtype = arrays.front().dtype();
+    Dtype dtype = ResultType(arrays);
     Device& device = arrays.front().device();
     int8_t ndim = arrays.front().ndim();
     axis = internal::NormalizeAxis(axis, ndim);
@@ -403,8 +404,6 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         if (ndim != array.ndim()) {
             throw DimensionError{"All the input arrays must have same number of dimensions"};
         }
-        // TODO(imanishi): dtype conversion
-        CheckEqual(dtype, array.dtype());
         for (int8_t i = 0; i < ndim; ++i) {
             if (axis == i) {
                 shape[i] += s[i];
