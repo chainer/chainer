@@ -370,7 +370,7 @@ class _CheckBackward(object):
 
     def __init__(
             self, func, x_data, y_grad, params, eps, atol, rtol, no_grads,
-            dtype, detect_nondifferentiable, params_to_func=False):
+            dtype, detect_nondifferentiable, params_to_func):
         if dtype is not None and numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
 
@@ -408,11 +408,11 @@ class _CheckBackward(object):
         self.no_grads = no_grads
         self.atol = atol
         self.rtol = rtol
+        self.params_to_func = params_to_func
         # options for numeric gradients
         self.eps = eps
         self.dtype = dtype
         self.detect_nondifferentiable = detect_nondifferentiable
-        self.params_to_func = params_to_func
 
     def run(self):
         with chainer.using_device(self.device):
@@ -640,7 +640,7 @@ class _CheckBackward(object):
                     j += 1
 
             # Parameters
-            for i, param in enumerate(params):
+            for i in range(len(params)):
                 data = perturb(casted_data[j + i], directions[j + i])
 
                 if self.params_to_func:
@@ -650,7 +650,7 @@ class _CheckBackward(object):
                 else:
                     # Update the given Parameter in-place since the object is
                     # held by the caller.
-                    param.array = data
+                    params[i].array = data
 
             # Clear gradients to support func that calls backward inside of
             # itself.
@@ -834,18 +834,25 @@ def check_backward(
     """
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable,
+        detect_nondifferentiable, params_to_func=False
     ).run()
 
 
 def _check_backward_with_params(
+    # This function was introduced along with the `params_to_func` argument to
+    # `_CheckBackward`. It allows passing `params` as ndarrays instead of
+    # `Parameter`s and thus depends less on the state of the parameter held by
+    # the caller. It is required by the `LinkTestCase` to check ChainerX
+    # parameter gradients, since those parameters cannot perturbed in-place for
+    # the numerical gradients if passed as `Parameter`s as those requiring
+    # gradients cannot be updated in-place.
         func, x_data, y_grad, params=(),
         eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
         detect_nondifferentiable=False):
     assert all(isinstance(p, chainer.get_array_types()) for p in params)
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable, params_to_func=True,
+        detect_nondifferentiable, params_to_func=True
     ).run()
 
 
