@@ -135,6 +135,7 @@ class AdamRule(optimizer.UpdateRule):
                 self.state['vhat'] = xp.zeros_like(param.data)
             if self.hyperparam.adabound:
                 self.state['initial_alpha'] = self.hyperparam.alpha
+                self.state['alpha_t'] = xp.zeros_like(param.data)
 
         # For iDeep
         if isinstance(param.data, intel64.mdarray):
@@ -164,13 +165,14 @@ class AdamRule(optimizer.UpdateRule):
             else:
                 vhat = v
             # Update parameters
-            alpha_t = self.alpha_t
             if hp.adabound:
                 vhat = self.state['vhat']
                 numpy.maximum(vhat, v, out=vhat)
                 upper_bound, lower_bound = _upper_lower_bound(
                     self.final_lr, hp.gamma, self.t)
                 denom = numpy.sqrt(vhat) + hp.eps
+                alpha_t = self.state['alpha_t']
+                alpha_t.fill(self.alpha_t)
                 step_size = numpy.ones_like(denom) * alpha_t
                 step_size = numpy.divide(alpha_t, denom, out=step_size)
                 step_size = numpy.clip(
@@ -196,7 +198,8 @@ class AdamRule(optimizer.UpdateRule):
                 upper_bound, lower_bound = _upper_lower_bound(
                     self.final_lr, hp.gamma, self.t)
                 denom = numpy.sqrt(vhat + hp.eps)
-                step_size = numpy.full(denom.shape, self.alpha_t)
+                step_size = self.state['alpha_t']
+                step_size.fill(self.alpha_t)
                 step_size = numpy.divide(self.alpha_t, denom, out=step_size)
                 step_size = numpy.clip(
                     step_size, lower_bound, upper_bound, out=step_size)
@@ -237,27 +240,19 @@ class AdamRule(optimizer.UpdateRule):
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
         elif hp.adabound:
-            if AdamRule._kernel is None:
-                AdamRule._kernel = cuda.elementwise(
-                    'T grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
-                    'T eps, T upper_bound, T lower_bound',
-                    'T param, T m, T v, T vhat',
-                    '''m += one_minus_beta1 * (grad - m);
-                       v += one_minus_beta2 * (grad * grad - v);
-                       vhat = max(vhat, v);
-                       denom = rsqrt(vhat + eps);
-                       step_size = alpha_t * denom;
-                       step_size = clamp(alpha_t, lower_bound, upper_bound);
-                       step_size *= m;
-                       param -= step_size;''',
-                    'adam')
+            m, v = self.state['m'], self.state['v']
+            m += (1 - hp.beta1) * (grad - m)
+            v += (1 - hp.beta2) * (grad * grad - v)
+            vhat = self.state['vhat']
+            cuda.cupy.maximum(vhat, v, out=vhat)
             upper_bound, lower_bound = _upper_lower_bound(
                 self.final_lr, hp.gamma, self.t)
-            alpha_t = cuda.cupy.full(param.shape, self.alpha_t)
-            AdamRule._amsgrad_kernel(
-                grad, alpha_t, 1 - hp.beta1, 1 - hp.beta2, hp.eps,
-                upper_bound, lower_bound, param.data,
-                self.state['m'], self.state['v'], self.state['vhat'])
+            alpha_t = self.state['alpha_t']
+            alpha_t.fill(self.alpha_t)
+            alpha_t = cuda.cupy.clip(
+                alpha_t * cuda.cupyx.rsqrt(vhat + hp.eps),
+                lower_bound, upper_bound, out=alpha_t)
+            param.data -= alpha_t * m
         else:
             if AdamRule._kernel is None:
                 AdamRule._kernel = cuda.elementwise(
