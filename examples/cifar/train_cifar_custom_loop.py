@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
     parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
+                        help='Directory that has `vgg.model` and `vgg.state`')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -76,6 +76,17 @@ def main():
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
+
+    if args.resume != '':
+        resume = args.resume
+        if os.path.exists(resume):
+            serializers.load_npz(os.path.join(resume, 'vgg.model'), model)
+            serializers.load_npz(os.path.join(resume, 'vgg.state'), optimizer)
+        else:
+            raise ValueError(
+                '`args.resume` ("{}") is specified,'
+                ' but it does not exist.'.format(resume)
+            )
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
