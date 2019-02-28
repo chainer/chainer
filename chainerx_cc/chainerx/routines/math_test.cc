@@ -793,6 +793,16 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, FloorDivide) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
+    Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-2, 1, 0});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{FloorDivide(xs[0], xs[1])}; }, {a, b}, {e});
+    });
+}
+
 TEST_THREAD_SAFE_P(MathTest, Divide) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
     Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
