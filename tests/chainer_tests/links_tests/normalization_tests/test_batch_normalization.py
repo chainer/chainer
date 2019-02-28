@@ -177,7 +177,7 @@ class BatchNormalizationTestBase(object):
 @_parameterize
 class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
 
-    contiguous = 'C'
+    pass
 
 
 @attr.multi_gpu(2)
