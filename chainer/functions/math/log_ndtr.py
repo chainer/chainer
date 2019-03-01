@@ -28,8 +28,8 @@ class LogNdtr(function_node.FunctionNode):
                 from scipy import special
                 _log_ndtr_cpu = special.log_ndtr
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of log_ndtr can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of log_ndtr can not be done.')
 
         self.retain_inputs((0,))
         return utils.force_array(_log_ndtr_cpu(x[0]), dtype=x[0].dtype),

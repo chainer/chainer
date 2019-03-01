@@ -55,7 +55,7 @@ class CMakeBuild(build_ext.build_ext):
 
         build_args = ['--config', cfg]
 
-        if platform.system() == "Windows":
+        if platform.system() == 'Windows':
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     cfg.upper(), extdir)]
@@ -102,7 +102,7 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx.testing',
     ]
     setup_kwargs['package_data'] = {
-        'chainerx': ['py.typed', "*.pyi"],
+        'chainerx': ['py.typed', '*.pyi'],
     }
 
     setup_kwargs.update(dict(

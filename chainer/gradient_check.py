@@ -527,7 +527,7 @@ class _CheckBackward(object):
         x_data = self.x_data
         params = self.params
 
-        xs = [variable.Variable(x) for x in x_data]
+        xs = [variable.Variable(x, requires_grad=True) for x in x_data]
 
         if self.params_to_func:
             params = tuple([chainer.Parameter(p) for p in params])
@@ -594,7 +594,7 @@ class _CheckBackward(object):
 
         xp = device.xp
 
-        x_vars = [variable.Variable(x) for x in x_data]
+        x_vars = [variable.Variable(x, requires_grad=False) for x in x_data]
 
         x_data_filtered = [
             x.array for x, skip in six.moves.zip(x_vars, no_grads) if not skip]

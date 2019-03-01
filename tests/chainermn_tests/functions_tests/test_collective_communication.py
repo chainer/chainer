@@ -22,7 +22,7 @@ class TestCollectiveCommunication(unittest.TestCase):
             self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode")
+            pytest.skip('This test is for multinode')
 
     def check_all_gather(self, xs):
         x = xs[self.communicator.rank]

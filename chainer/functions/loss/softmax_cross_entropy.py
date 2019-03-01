@@ -32,7 +32,7 @@ def _check_class_weight_option(class_weight):
 def _check_reduce_option(reduce):
     if reduce not in ('mean', 'no'):
         raise ValueError(
-            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'only \'mean\' and \'no\' are valid for \'reduce\', but \'%s\' is '
             'given' % reduce)
 
 

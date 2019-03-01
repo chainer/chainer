@@ -42,7 +42,7 @@ To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#in
 $ pip install cupy
 ```
 
-[See the installation guide for more details.](https://docs.chainer.org/en/stable/install.html).
+[See the installation guide for more details](https://docs.chainer.org/en/stable/install.html).
 
 
 ## Docker image
