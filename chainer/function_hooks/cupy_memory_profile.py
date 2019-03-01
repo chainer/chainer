@@ -162,7 +162,8 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
             acquired_bytes = record['acquired_bytes']
             if unit == 'auto_foreach':
                 denomi_used, unit_used = self._choose_unit(used_bytes)
-                denomi_acquired, unit_acquired = self._choose_unit(acquired_bytes)
+                denomi_acquired, unit_acquired = self._choose_unit(
+                    acquired_bytes)
             used_bytes = '%3.2f%s' % (used_bytes / denomi_used, unit_used)
             acquired_bytes = '%3.2f%s' % (
                 acquired_bytes / denomi_acquired, unit_acquired)
