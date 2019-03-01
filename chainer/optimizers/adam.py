@@ -235,9 +235,9 @@ class AdamRule(optimizer.UpdateRule):
                        m += one_minus_beta1 * (grad_ - m);
                        v += one_minus_beta2 * (grad_ * grad - v);
                        vhat = max(vhat, v);
-                       param -= eta * (m * max(lower, min(upper, alpha_t /
-                                       (sqrt(vhat) + eps))) +
-                                       weight_decay_rate * param);''',
+                       param -= eta *
+                           (max(min(alpha_t / (sqrt(vhat) + eps), upper),
+                                lower) * m + weight_decay_rate * param);''',
                     'amsbound')
             AdamRule._amsbound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -255,9 +255,9 @@ class AdamRule(optimizer.UpdateRule):
                     '''T grad_ = static_cast<T>(grad);
                        m += one_minus_beta1 * (grad_ - m);
                        v += one_minus_beta2 * (grad_ * grad_ - v);
-                       param -= eta * (m * max(lower, min(upper, alpha_t /
-                                       (sqrt(v) + eps))) +
-                                       weight_decay_rate * param);''',
+                       param -= eta *
+                           (max(min(alpha_t / (sqrt(v) + eps), upper),
+                                lower) * m + weight_decay_rate * param);''',
                     'adabound')
             AdamRule._adabound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
