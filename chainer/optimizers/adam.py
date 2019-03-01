@@ -363,7 +363,7 @@ class Adam(optimizer.GradientMethod):
         weight_decay_rate (float): Weight decay rate.
         amsgrad (bool): Whether to use AMSGrad variant of Adam.
         adabound (bool): Whether to use the AdaBound variant of Adam.
-        final_lr (float): final (SGD) learning rate in adabound.
+        final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): convergence speed of the bound functions in adabound.
 
     """
