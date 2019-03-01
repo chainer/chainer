@@ -111,7 +111,7 @@ class AdamRule(optimizer.UpdateRule):
         amsgrad (bool): Whether to use the AMSGrad variant of Adam.
         adabound (bool): Whether to use the AdaBound variant of Adam.
         final_lr (float): Final (SGD) learning rate in AdaBound.
-        gamma (float): convergence speed of the bound functions in adabound.
+        gamma (float): Convergence speed of the bound functions in AdaBound.
 
     """
     _kernel = None
