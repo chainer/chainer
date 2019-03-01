@@ -37,7 +37,7 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', default=None, type=str,
                         help='Directory that has `vgg.model` and `vgg.state`')
     args = parser.parse_args()
 
@@ -77,7 +77,7 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
 
-    if args.resume != '':
+    if args.resume is not None:
         resume = args.resume
         if os.path.exists(resume):
             serializers.load_npz(os.path.join(resume, 'vgg.model'), model)
