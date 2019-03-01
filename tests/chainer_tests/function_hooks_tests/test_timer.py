@@ -166,6 +166,14 @@ class TestTimerHookToFunction(unittest.TestCase):
         assert self.h.total_time() >= t2 - t1
 
 
+@testing.parameterize(
+    {'unit': 'sec'},
+    {'unit': 'ms'},
+    {'unit': 'us'},
+    {'unit': 'ns'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
+)
 class TestTimerPrintReport(unittest.TestCase):
 
     def setUp(self):
@@ -186,9 +194,9 @@ class TestTimerPrintReport(unittest.TestCase):
         self.f.apply((chainer.Variable(x),))
         self.f.apply((chainer.Variable(x),))
         io = six.StringIO()
-        self.h.print_report(file=io)
+        self.h.print_report(unit=self.unit, file=io)
         expect = r'''\AFunctionName  ElapsedTime  Occurrence
- +Exp +[0-9.\-e]+.s +[0-9]+$
+ +Exp +[0-9.\-e]+(.s|sec) +[0-9]+$
 '''
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)

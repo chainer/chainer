@@ -97,12 +97,12 @@ class TestAveragePoolingND(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        self.check_forward(backend.to_chainerx(self.x), 'never')
+        self.check_forward(backend.to_chx(self.x), 'never')
 
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        self.check_forward(backend.to_chainerx(cuda.to_gpu(self.x)), 'never')
+        self.check_forward(backend.to_chx(cuda.to_gpu(self.x)), 'never')
 
     def check_forward_consistency_regression(self, x_data, use_cudnn='always'):
         # Regression test to average_pooling_2d.
@@ -167,13 +167,13 @@ class TestAveragePoolingND(unittest.TestCase):
     @attr.chainerx
     def test_backward_chainerx_native(self):
         self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.gy), 'never')
+            backend.to_chx(self.x), backend.to_chx(self.gy), 'never')
 
     @attr.chainerx
     @attr.gpu
     def test_backward_chainerx_cuda(self):
         def conv(a):
-            return backend.to_chainerx(cuda.to_gpu(a))
+            return backend.to_chx(cuda.to_gpu(a))
 
         self.check_backward(conv(self.x), conv(self.gy), 'never')
 
@@ -261,15 +261,15 @@ class TestAveragePoolingND(unittest.TestCase):
     @condition.retry(10)
     def test_double_backward_chainerx_native(self):
         self.check_double_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.gy),
-            backend.to_chainerx(self.ggx), 'never')
+            backend.to_chx(self.x), backend.to_chx(self.gy),
+            backend.to_chx(self.ggx), 'never')
 
     @attr.chainerx
     @attr.gpu
     @condition.retry(10)
     def test_double_backward_chainerx_cuda(self):
         def conv(a):
-            return backend.to_chainerx(cuda.to_gpu(a))
+            return backend.to_chx(cuda.to_gpu(a))
 
         self.check_double_backward(
             conv(self.x), conv(self.gy), conv(self.ggx), 'never')

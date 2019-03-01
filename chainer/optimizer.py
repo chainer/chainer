@@ -148,7 +148,8 @@ class UpdateRule(object):
         if not callable(hook):
             raise TypeError('hook function must be callable')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', 'pre')
 
@@ -294,15 +295,16 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                self.state[state_name] = backend.from_chainerx(st)
-                chainerx_state_arrays[state_name] = st
+                fallback_arr = backend.from_chx(st)
+                self.state[state_name] = fallback_arr
+                chainerx_state_arrays[state_name] = (st, fallback_arr)
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
         # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chainerx(
+            param._chainerx_fallback_array = backend.from_chx(
                 param.array)
 
         temp_param = variable.Variable._init_unchecked(
@@ -310,16 +312,19 @@ class UpdateRule(object):
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
-                backend.from_chainerx(grad_array))
+                backend.from_chx(grad_array))
 
         # Update
         update_core(temp_param)
 
         # Restore state arrays
-        for state_name, arr in chainerx_state_arrays.items():
+        for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
             cur_arr = self.state[state_name]
-            if cur_arr is not arr:
-                arr = backend.to_chainerx(cur_arr)
+            if cur_arr is not fallback_arr:
+                # The optimizer altered the reference of the state, instead of
+                # updating it in-place. We need to convert the new state back
+                # to ChainerX.
+                arr = backend.to_chx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):
@@ -577,12 +582,14 @@ class Optimizer(object):
         if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', None)
             if timing not in ('pre', 'post'):
-                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
-                              "defaulting timing to 'pre'.")
+                warnings.warn(
+                    'Hook timing attribute not in (\'pre\', \'post\'), '
+                    'defaulting timing to \'pre\'.')
                 timing = 'pre'
 
         if name is None:
@@ -610,7 +617,7 @@ class Optimizer(object):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -711,7 +718,7 @@ class GradientMethod(Optimizer):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -796,7 +803,7 @@ class GradientMethod(Optimizer):
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32."""
         self._use_fp32_update = flag
-        link = getattr(self, "target", None)
+        link = getattr(self, 'target', None)
         if link is not None:
             for param in link.params():
                 param.update_rule.use_fp32_update()

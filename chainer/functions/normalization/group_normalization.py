@@ -65,7 +65,7 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         dummy_beta = xp.zeros(batch_size * groups).astype(xp.float32)
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.simplefilter('ignore')
         x = batch_normalization.batch_normalization(
             x, dummy_gamma, dummy_beta, eps=eps)
 

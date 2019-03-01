@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <memory>
 #include <mutex>
 #include <utility>
 

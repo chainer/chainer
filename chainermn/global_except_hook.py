@@ -17,13 +17,13 @@ def _global_except_hook(exctype, value, traceback):
     finally:
         import mpi4py.MPI
         rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-        sys.stderr.write("\n")
-        sys.stderr.write("******************************************\n")
-        sys.stderr.write("ChainerMN: \n")
-        sys.stderr.write("   Uncaught exception on rank {}. \n".format(rank))
-        sys.stderr.write("   Calling MPI_Abort() to shut down MPI...\n")
-        sys.stderr.write("******************************************\n")
-        sys.stderr.write("\n\n")
+        sys.stderr.write('\n')
+        sys.stderr.write('******************************************\n')
+        sys.stderr.write('ChainerMN: \n')
+        sys.stderr.write('   Uncaught exception on rank {}. \n'.format(rank))
+        sys.stderr.write('   Calling MPI_Abort() to shut down MPI...\n')
+        sys.stderr.write('******************************************\n')
+        sys.stderr.write('\n\n')
         sys.stderr.flush()
 
         try:
@@ -33,7 +33,7 @@ def _global_except_hook(exctype, value, traceback):
             # Something is completely broken...
             # There's nothing we can do any more
             sys.stderr.write(
-                "Sorry, failed to stop MPI and the process may hang.\n")
+                'Sorry, failed to stop MPI and the process may hang.\n')
             sys.stderr.flush()
             raise e
 
@@ -66,8 +66,8 @@ def add_hook():
     global _orig_except_hook
 
     if _orig_except_hook is not None:
-        warnings.warn("chainermn.global_except_hook.add_hook()"
-                      "seems to be called multiple times. Ignoring.",
+        warnings.warn('chainermn.global_except_hook.add_hook()'
+                      'seems to be called multiple times. Ignoring.',
                       stacklevel=2)
         return
 

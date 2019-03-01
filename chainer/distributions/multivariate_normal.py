@@ -48,8 +48,8 @@ class TriangularInv(chainer.function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_outputs((0,))
         if not available_cpu:
-            raise ImportError("SciPy is not available. Forward computation"
-                              " of triangular_inv in CPU can not be done." +
+            raise ImportError('SciPy is not available. Forward computation'
+                              ' of triangular_inv in CPU can not be done.' +
                               str(_import_error))
         x, = inputs
         if len(x) == 0:
@@ -127,7 +127,7 @@ class MultivariateNormal(distribution.Distribution):
             scale_tril, = argument.parse_kwargs(
                 kwargs, ('scale_tril', scale_tril))
         if scale_tril is None:
-            raise ValueError("`scale_tril` must have a value.")
+            raise ValueError('`scale_tril` must have a value.')
         self.__loc = loc
         self.__scale_tril = scale_tril
 

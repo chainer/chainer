@@ -8,6 +8,7 @@ from chainer.backends import cuda
 from chainer import function
 from chainer.initializers import uniform
 from chainer import link
+from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
 
@@ -213,6 +214,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         return ls.sum(),
 
     def backward_gpu(self, inputs, grad_outputs):
+        utils.nondeterministic('atomicAdd')
         x, t, W = inputs
         gloss, = grad_outputs
 

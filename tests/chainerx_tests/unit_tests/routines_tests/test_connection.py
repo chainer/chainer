@@ -5,6 +5,7 @@ import pytest
 import chainerx
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 # A special parameter object used to represent an unspecified argument.
@@ -26,7 +27,8 @@ def _create_conv_args(
     return x, w, b, stride, pad, cover_all
 
 
-@pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('x_shape,w_shape,b_shape,stride,pad', [
     ((1, 3), (5, 3), (5,), 1, 0),
     ((1, 3), (5, 3), None, 1, 0),
     ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
@@ -40,25 +42,58 @@ def _create_conv_args(
     ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
     ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
 ])
-@pytest.mark.parametrize('cover_all', [True, False])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_conv(
-        device, x_shape, w_shape, b_shape, stride, pad, cover_all,
-        float_dtype):
-    if device.backend.name == 'cuda' and len(x_shape) <= 3:
-        # cuDNN does not support 1 dimensional convolution and throws
-        # DimensionError.
-        # TODO(hvy): Support 1 dimensional convolution with CUDA.
-        return chainerx.testing.ignore()
+@chainer.testing.parameterize_pytest('cover_all', [True, False])
+class test_conv(op_utils.ChainerOpTest):
 
-    def create_args(xp):
-        return _create_conv_args(
-            xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
-            float_dtype)
-    chainerx.testing.assert_allclose_ex(
-        chainerx.conv(*create_args(chainerx)),
-        chainer.functions.convolution_nd(*create_args(numpy)).data,
-        float16_rtol=3e-3, float16_atol=3e-3, strides_check=False)
+    def setup(self, float_dtype):
+
+        device = chainerx.get_default_device()
+        if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
+            # TODO(hvy): Support 1 dimensional convolution with CUDA.
+            pytest.skip('cudnn does not support 1-dim convolution')
+        if device.backend.name == 'cuda' and self.cover_all:
+            pytest.skip('cudnn does not support cover_all')
+        if device.backend.name == 'native' and float_dtype == 'float16':
+            # TODO(niboshi): Fix accuracy
+            pytest.skip('Native float16 operation has insufficient accuracy')
+
+        self.dtype = float_dtype
+
+        if float_dtype == 'float16':
+            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 3e-3, 'atol': 3e-3})
+
+    def generate_inputs(self):
+        x_shape = self.x_shape
+        w_shape = self.w_shape
+        b_shape = self.b_shape
+        dtype = self.dtype
+        # TODO(niboshi): Avoid arbitrary scaling
+        x = array_utils.create_dummy_ndarray(numpy, x_shape, dtype) / 100.
+        w = array_utils.create_dummy_ndarray(numpy, w_shape, dtype) / 100.
+        if b_shape is None:
+            return x, w
+        else:
+            b = array_utils.create_dummy_ndarray(numpy, b_shape, dtype)
+            return x, w, b
+
+    def forward_chainerx(self, inputs):
+        if len(inputs) == 2:
+            (x, w), b = inputs, None
+        else:
+            x, w, b = inputs
+        y = chainerx.conv(x, w, b, self.stride, self.pad, self.cover_all)
+        return y,
+
+    def forward_chainer(self, inputs):
+        if len(inputs) == 2:
+            (x, w), b = inputs, None
+        else:
+            x, w, b = inputs
+        y = chainer.functions.convolution_nd(
+            x, w, b, self.stride, self.pad, self.cover_all)
+        return y,
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [

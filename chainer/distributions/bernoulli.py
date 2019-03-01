@@ -85,7 +85,7 @@ class Bernoulli(distribution.Distribution):
         super(Bernoulli, self).__init__()
         if not (p is None) ^ (logit is None):
             raise ValueError(
-                "Either `p` or `logit` (not both) must have a value.")
+                'Either `p` or `logit` (not both) must have a value.')
 
         self.__p = p
         self.__logit = logit

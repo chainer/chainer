@@ -63,6 +63,9 @@ def _parameterize_test_case_generator(base, params):
         def method_generator(base_method):
             # Generates a wrapped test method
 
+            # Bind to a new variable.
+            param2 = param
+
             @functools.wraps(base_method)
             def new_method(self, *args, **kwargs):
                 try:
@@ -75,7 +78,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Base test method: {}.{}\n'.format(
                         base.__name__, base_method.__name__))
                     s.write('Test parameters:\n')
-                    for k, v in six.iteritems(param):
+                    for k, v in six.iteritems(param2):
                         s.write('  {}: {}\n'.format(k, v))
                     utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method
@@ -84,11 +87,30 @@ def _parameterize_test_case_generator(base, params):
 
 
 def parameterize(*params):
+    # TODO(niboshi): Add documentation
     return _bundle.make_decorator(
         lambda base: _parameterize_test_case_generator(base, params))
 
 
+def parameterize_pytest(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    assert isinstance(names, str)
+    assert isinstance(values, (tuple, list))
+
+    def safe_zip(ns, vs):
+        if not isinstance(vs, (tuple, list)):
+            vs = (vs,)
+        assert len(ns) == len(vs)
+        return zip(ns, vs)
+
+    names = names.split(',')
+    params = [dict(safe_zip(names, value_list)) for value_list in values]
+    return parameterize(*params)
+
+
 def product(parameter):
+    # TODO(niboshi): Add documentation
     if isinstance(parameter, dict):
         keys = sorted(parameter)
         values = [parameter[key] for key in keys]
@@ -117,6 +139,7 @@ def product(parameter):
 
 
 def product_dict(*parameters):
+    # TODO(niboshi): Add documentation
     return [
         {k: v for dic in dicts for k, v in six.iteritems(dic)}
         for dicts in itertools.product(*parameters)]

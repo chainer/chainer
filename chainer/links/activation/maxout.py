@@ -64,7 +64,7 @@ class Maxout(link.Chain):
            numpy.isscalar(initialW) or \
            isinstance(initialW, initializer.Initializer):
             pass
-        elif chainer.is_arrays_compatible([initialW]):
+        elif isinstance(initialW, chainer.get_array_types()):
             if initialW.ndim != 3:
                 raise ValueError('initialW.ndim should be 3')
             initialW = initialW.reshape(linear_out_size, in_size)
@@ -80,7 +80,7 @@ class Maxout(link.Chain):
            numpy.isscalar(initial_bias) or \
            isinstance(initial_bias, initializer.Initializer):
             pass
-        elif chainer.is_arrays_compatible([initial_bias]):
+        elif isinstance(initial_bias, chainer.get_array_types()):
             if initial_bias.ndim != 2:
                 raise ValueError('initial_bias.ndim should be 2')
             initial_bias = initial_bias.reshape(linear_out_size)

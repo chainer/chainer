@@ -604,9 +604,9 @@ class TestLink(LinkTestBase, unittest.TestCase):
 @attr.chainerx
 class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
 
-    def test_from_chainerx(self, backend_config):
+    def test_from_chx(self, backend_config):
         self.link.to_device(backend_config.device)
-        self.link.from_chainerx()
+        self.link.from_chx()
 
         source_device = backend_config.device
 
@@ -626,9 +626,9 @@ class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
 
         self.assertEqual(self.link._device, expected_device)
 
-    def test_to_chainerx(self, backend_config):
+    def test_to_chx(self, backend_config):
         self.link.to_device(backend_config.device)
-        self.link.to_chainerx()
+        self.link.to_chx()
 
         source_device = backend_config.device
 
@@ -1275,10 +1275,10 @@ class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
         self.check_array_device(self.l3.x.data, expected_device)
         self.check_array_device(self.l3.x.grad, expected_device)
 
-    def test_to_chainerx(self, backend_config):
+    def test_to_chx(self, backend_config):
         self.set_count_parameters()
         self.c2.to_device(backend_config.device)
-        self.c2.to_chainerx()
+        self.c2.to_chx()
 
         src_device = backend_config.device
         if src_device.xp is chainerx:
@@ -1288,10 +1288,10 @@ class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
                 backend.ChainerxDevice.from_fallback_device(src_device))
         self.check_expected_device(expected_device)
 
-    def test_from_chainerx(self, backend_config):
+    def test_from_chx(self, backend_config):
         self.set_count_parameters()
         self.c2.to_device(backend_config.device)
-        self.c2.from_chainerx()
+        self.c2.from_chx()
 
         src_device = backend_config.device
         if src_device.xp is chainerx:
@@ -1667,9 +1667,9 @@ class TestChainList(unittest.TestCase):
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
 
     @attr.chainerx
-    def test_to_chainerx(self):
+    def test_to_chx(self):
         self.c2.to_device(backend.CpuDevice())
-        self.c2.to_chainerx()
+        self.c2.to_chx()
         self.assertIs(self.c2.xp, chainerx)
         self.assertIs(self.c1.xp, chainerx)
         self.assertIs(self.l1.xp, chainerx)
@@ -2138,14 +2138,14 @@ class TestToChainerX(unittest.TestCase):
         self.pa_array = pa_array
         self.ps_scalar = ps_scalar
 
-    def test_chainerx_to_chainerx(self):
+    def test_chainerx_to_chx(self):
         link = self.link
-        link.to_chainerx()
+        link.to_chx()
         prev_y = link.y
         prev_v = link.v
         prev_pa = link.pa
         prev_ps = link.ps
-        link.to_chainerx()
+        link.to_chx()
         assert link.device.device == chainerx.get_device('native:0')
 
         # Everything should be left untouched
@@ -2159,9 +2159,9 @@ class TestToChainerX(unittest.TestCase):
         # Persistent scalar
         assert link.ps is prev_ps
 
-    def test_cpu_to_chainerx(self):
+    def test_cpu_to_chx(self):
         link = self.link
-        link.to_chainerx()
+        link.to_chx()
 
         # Initialized parameter
         assert isinstance(link.y.data, chainerx.ndarray)
@@ -2177,11 +2177,11 @@ class TestToChainerX(unittest.TestCase):
         assert link.ps == self.ps_scalar
 
     @attr.gpu
-    def test_gpu_to_chainerx(self):
+    def test_gpu_to_chx(self):
         link = self.link
         link.to_gpu()
         assert link.device.device == cuda.Device(0)
-        link.to_chainerx()
+        link.to_chx()
         assert link.device.device == chainerx.get_device('cuda:0')
 
         # Arrays should be converted to chainerx.ndarray

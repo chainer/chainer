@@ -25,6 +25,7 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
+    type_util.h
     DESTINATION include/chainerx/routines
     )
 
@@ -41,6 +42,7 @@ if(${CHAINERX_BUILD_TEST})
       pooling_test.cc
       sorting_test.cc
       statistics_test.cc
+      type_util_test.cc
   )
   target_link_libraries(chainerx_routines_test
       chainerx

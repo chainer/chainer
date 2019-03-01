@@ -209,18 +209,18 @@ class TestDeconvolutionND(unittest.TestCase):
     @condition.retry(3)
     def test_backward_chainerx_cpu(self):
         self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
-            backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
+            backend.to_chx(self.x), backend.to_chx(self.W),
+            backend.to_chx(self.b), backend.to_chx(self.gy))
 
     @attr.chainerx
     @attr.gpu
     @condition.retry(3)
     def test_backward_chainerx_gpu(self):
         self.check_backward(
-            backend.to_chainerx(self.x).to_device('cuda'),
-            backend.to_chainerx(self.W).to_device('cuda'),
-            backend.to_chainerx(self.b).to_device('cuda'),
-            backend.to_chainerx(self.gy).to_device('cuda'))
+            backend.to_chx(self.x).to_device('cuda'),
+            backend.to_chx(self.W).to_device('cuda'),
+            backend.to_chx(self.b).to_device('cuda'),
+            backend.to_chx(self.gy).to_device('cuda'))
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, use_cudnn='always'):
@@ -281,9 +281,9 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.chainerx
     @condition.retry(3)
     def test_double_backward_chainerx_cpu(self):
-        inputs = [backend.to_chainerx(_) for _ in [self.x, self.W, self.b]]
-        grad_outputs = [backend.to_chainerx(_) for _ in [self.gy]]
-        grad_grad_inputs = [backend.to_chainerx(_) for _
+        inputs = [backend.to_chx(_) for _ in [self.x, self.W, self.b]]
+        grad_outputs = [backend.to_chx(_) for _ in [self.gy]]
+        grad_grad_inputs = [backend.to_chx(_) for _
                             in [self.ggx, self.ggW, self.ggb]]
 
         self.check_double_backward(
@@ -293,11 +293,11 @@ class TestDeconvolutionND(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_double_backward_chainerx_gpu(self):
-        inputs = [backend.to_chainerx(_).to_device('cuda')
+        inputs = [backend.to_chx(_).to_device('cuda')
                   for _ in [self.x, self.W, self.b]]
-        grad_outputs = [backend.to_chainerx(_).to_device('cuda')
+        grad_outputs = [backend.to_chx(_).to_device('cuda')
                         for _ in [self.gy]]
-        grad_grad_inputs = [backend.to_chainerx(_).to_device('cuda')
+        grad_grad_inputs = [backend.to_chx(_).to_device('cuda')
                             for _ in [self.ggx, self.ggW, self.ggb]]
 
         self.check_double_backward(

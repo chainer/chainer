@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <pybind11/operators.h>
@@ -28,6 +29,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -324,6 +326,16 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} *= Array{rhs})); },
           py::is_operator());
     c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} *= rhs)); }, py::is_operator());
+    c.def("__ifloordiv__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) {
+              internal::IFloorDivide(Array{self}, Array{rhs});
+              return self;
+          },
+          py::is_operator());
+    c.def("__ifloordiv__", [](const ArrayBodyPtr& self, Scalar rhs) {
+        internal::IFloorDivide(Array{self}, rhs);
+        return self;
+    });
     c.def("__itruediv__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); },
           py::is_operator());
@@ -343,6 +355,12 @@ void InitChainerxArray(pybind11::module& m) {
           py::is_operator());
     c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} * rhs); }, py::is_operator());
     c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs * Array{self}); }, py::is_operator());
+    c.def("__floordiv__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(FloorDivide(Array{self}, Array{rhs})); },
+          py::is_operator());
+    c.def("__floordiv__",
+          [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(FloorDivide(Array{self}, rhs)); },
+          py::is_operator());
     c.def("__truediv__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} / Array{rhs}); },
           py::is_operator());

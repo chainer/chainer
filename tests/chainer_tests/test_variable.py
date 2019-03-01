@@ -1118,11 +1118,11 @@ class TestVariableToChainerX(unittest.TestCase):
             return arrays[0].device
         assert False
 
-    def check_to_chainerx(self, x, gx, requires_grad=True):
+    def check_to_chx(self, x, gx, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
         x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
-        x_var.to_chainerx()
+        x_var.to_chx()
 
         expected_device = self.infer_expected_device(x, gx)
 
@@ -1155,34 +1155,34 @@ class TestVariableToChainerX(unittest.TestCase):
         assert x_var.xp is chainerx
         assert x_var._has_chainerx_array is True
 
-    def test_to_chainerx_from_numpy(self):
-        self.check_to_chainerx(self.x, self.gx)
+    def test_to_chx_from_numpy(self):
+        self.check_to_chx(self.x, self.gx)
 
     @attr.gpu
-    def test_to_chainerx_from_cupy(self):
-        self.check_to_chainerx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
+    def test_to_chx_from_cupy(self):
+        self.check_to_chx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
 
     # TODO(hvy): Write test when implemented.
     @attr.ideep
-    def test_ideep_to_chainerx(self):
+    def test_ideep_to_chx(self):
         raise unittest.SkipTest('Not yet supported')
 
-    def test_to_chainerx_from_chainerx(self):
-        self.check_to_chainerx(
+    def test_to_chx_from_chx(self):
+        self.check_to_chx(
             chainerx.array(self.x), chainerx.array(self.gx))
 
-    def test_to_chainerx_from_another_device(self):
-        self.check_to_chainerx(
+    def test_to_chx_from_another_device(self):
+        self.check_to_chx(
             chainerx.array(self.x), chainerx.array(self.gx))
 
-    def test_to_chainerx_not_requiring_grad(self):
-        self.check_to_chainerx(self.x, self.gx, requires_grad=False)
+    def test_to_chx_not_requiring_grad(self):
+        self.check_to_chx(self.x, self.gx, requires_grad=False)
 
-    def test_to_chainerx_with_creator(self):
+    def test_to_chx_with_creator(self):
         x = chainer.Variable(self.x)
         y = x * x
         with self.assertRaises(RuntimeError):
-            y.to_chainerx()
+            y.to_chx()
 
 
 @testing.parameterize(
@@ -1190,7 +1190,7 @@ class TestVariableToChainerX(unittest.TestCase):
     {'x_shape': ()},
 )
 @chainer.testing.backend.inject_backend_tests(
-    ['test_from_chainerx'],
+    ['test_from_chx'],
     [
         # NumPy
         {},
@@ -1222,10 +1222,10 @@ class TestVariableFromChainerX(unittest.TestCase):
                 return cuda.cupy, cuda.cupy.cuda.Device(x.device.index)
         assert False
 
-    def test_from_chainerx(self, backend_config):
+    def test_from_chx(self, backend_config):
         x = backend_config.get_array(self.x)
         x_var = chainer.Variable(x, requires_grad=False)
-        x_var.from_chainerx()
+        x_var.from_chx()
 
         expected_xp, expected_device = self.infer_expected_xp_and_device(x)
 
@@ -1241,10 +1241,10 @@ class TestVariableFromChainerX(unittest.TestCase):
         np.testing.assert_array_equal(
             backend.CpuDevice().send(x_var.array), backend.CpuDevice().send(x))
 
-    def test_invalid_from_chainerx_requires_grad(self):
+    def test_invalid_from_chx_requires_grad(self):
         x = chainer.Variable(self.x, requires_grad=True)
         with self.assertRaises(RuntimeError):
-            x.from_chainerx()
+            x.from_chx()
 
 
 @testing.parameterize(
@@ -1353,33 +1353,33 @@ class TestVariableBasic(unittest.TestCase):
     def test_unequatable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a == b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a == a
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a != b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a != a
 
     def test_uncomparable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a < b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a <= b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a > b
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             a >= b
 
     def test_bool_inconvertible(self):
         a = chainer.Variable(np.ones((2,)))
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             if a:
                 pass
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             if not a:
                 pass
 
@@ -1540,27 +1540,27 @@ class TestParameterToDevice(unittest.TestCase):
 @attr.chainerx
 class TestParameterToChainerX(unittest.TestCase):
 
-    def check_to_chainerx(self, x):
+    def check_to_chx(self, x):
         assert isinstance(x, chainer.Parameter)
-        x.to_chainerx()
+        x.to_chx()
         assert x.xp is chainerx
         assert x._has_chainerx_array is True
 
     def check_initializer(self, shape):
         x = chainer.Parameter(shape=shape)
-        self.check_to_chainerx(x)
+        self.check_to_chx(x)
 
     def check_initialize_by_scalar(self, shape):
         x = chainer.Parameter(2., shape)
-        self.check_to_chainerx(x)
+        self.check_to_chx(x)
 
     def check_initialize_by_initializer(self, shape):
         x = chainer.Parameter(initializers.One(), shape)
-        self.check_to_chainerx(x)
+        self.check_to_chx(x)
 
     def check_initialize_by_none(self, shape):
         x = chainer.Parameter(None, shape)
-        self.check_to_chainerx(x)
+        self.check_to_chx(x)
 
     def check_initialize_by_array(self, shape, xp, device=None):
         if device is not None:
@@ -1569,34 +1569,34 @@ class TestParameterToChainerX(unittest.TestCase):
             data = xp.random.uniform(-1, 1, shape).astype('f')
 
         x = chainer.Parameter(data)
-        self.check_to_chainerx(x)
+        self.check_to_chx(x)
 
-    def test_initializer_to_chainerx(self):
+    def test_initializer_to_chx(self):
         self.check_initializer(self.x_shape)
 
-    def test_initialize_by_scalar_to_chainerx(self):
+    def test_initialize_by_scalar_to_chx(self):
         self.check_initialize_by_scalar(self.x_shape)
 
-    def test_initialize_by_initializer_to_chainerx(self):
+    def test_initialize_by_initializer_to_chx(self):
         self.check_initialize_by_initializer(self.x_shape)
 
-    def test_initialize_by_none_to_chainerx(self):
+    def test_initialize_by_none_to_chx(self):
         self.check_initialize_by_none(self.x_shape)
 
-    def test_initialize_by_array_to_chainerx_numpy(self):
+    def test_initialize_by_array_to_chx_numpy(self):
         self.check_initialize_by_array(self.x_shape, np)
 
     @attr.gpu
-    def test_initialize_by_array_to_chainerx_cupy(self):
+    def test_initialize_by_array_to_chx_cupy(self):
         self.check_initialize_by_array(self.x_shape, cuda.cupy)
 
     @attr.chainerx
-    def test_initialize_by_array_to_chainerx_chainerx_native(self):
+    def test_initialize_by_array_to_chx_chainerx_native(self):
         self.check_initialize_by_array(self.x_shape, chainerx, 'native:0')
 
     @attr.gpu
     @attr.chainerx
-    def test_initialize_by_array_to_chainerx_chainerx_cuda(self):
+    def test_initialize_by_array_to_chx_chainerx_cuda(self):
         self.check_initialize_by_array(self.x_shape, chainerx, 'cuda:0')
 
 
@@ -1607,27 +1607,27 @@ class TestParameterToChainerX(unittest.TestCase):
 @attr.chainerx
 class TestParameterFromChainerX(unittest.TestCase):
 
-    def check_from_chainerx(self, x, expected_xp):
+    def check_from_chx(self, x, expected_xp):
         assert isinstance(x, chainer.Parameter)
-        x.from_chainerx()
+        x.from_chx()
         assert x.xp is expected_xp
         assert x._has_chainerx_array is (expected_xp is chainerx)
 
     def check_initializer(self, shape, expected_xp):
         x = chainer.Parameter(shape=shape)
-        self.check_from_chainerx(x, expected_xp)
+        self.check_from_chx(x, expected_xp)
 
     def check_initialize_by_scalar(self, shape, expected_xp):
         x = chainer.Parameter(2., shape)
-        self.check_from_chainerx(x, expected_xp)
+        self.check_from_chx(x, expected_xp)
 
     def check_initialize_by_initializer(self, shape, expected_xp):
         x = chainer.Parameter(initializers.One(), shape)
-        self.check_from_chainerx(x, expected_xp)
+        self.check_from_chx(x, expected_xp)
 
     def check_initialize_by_none(self, shape, expected_xp):
         x = chainer.Parameter(None, shape)
-        self.check_from_chainerx(x, expected_xp)
+        self.check_from_chx(x, expected_xp)
 
     def check_initialize_by_array(self, shape, xp, expected_xp, device=None):
         if device is not None:
@@ -1636,34 +1636,34 @@ class TestParameterFromChainerX(unittest.TestCase):
             data = xp.random.uniform(-1, 1, shape).astype('f')
 
         x = chainer.Parameter(data)
-        self.check_from_chainerx(x, expected_xp)
+        self.check_from_chx(x, expected_xp)
 
-    def test_initializer_from_chainerx(self):
+    def test_initializer_from_chx(self):
         self.check_initializer(self.x_shape, np)
 
-    def test_initialize_by_scalar_from_chainerx(self):
+    def test_initialize_by_scalar_from_chx(self):
         self.check_initialize_by_scalar(self.x_shape, np)
 
-    def test_initialize_by_initializer_from_chainerx(self):
+    def test_initialize_by_initializer_from_chx(self):
         self.check_initialize_by_initializer(self.x_shape, np)
 
-    def test_initialize_by_none_from_chainerx(self):
+    def test_initialize_by_none_from_chx(self):
         self.check_initialize_by_none(self.x_shape, np)
 
-    def test_initialize_by_array_from_chainerx_numpy(self):
+    def test_initialize_by_array_from_chx_numpy(self):
         self.check_initialize_by_array(self.x_shape, np, np)
 
     @attr.gpu
-    def test_initialize_by_array_from_chainerx_cupy(self):
+    def test_initialize_by_array_from_chx_cupy(self):
         self.check_initialize_by_array(self.x_shape, cuda.cupy, cuda.cupy)
 
     @attr.chainerx
-    def test_initialize_by_array_from_chainerx_chainerx_native(self):
+    def test_initialize_by_array_from_chx_chainerx_native(self):
         self.check_initialize_by_array(self.x_shape, chainerx, np, 'native:0')
 
     @attr.gpu
     @attr.chainerx
-    def test_initialize_by_array_from_chainerx_chainerx_cuda(self):
+    def test_initialize_by_array_from_chx_chainerx_cuda(self):
         self.check_initialize_by_array(
             self.x_shape, chainerx, cuda.cupy, 'cuda:0')
 
@@ -1786,28 +1786,28 @@ class TestUninitializedParameter(unittest.TestCase):
         np.testing.assert_array_equal(x.grad, np.float32('nan'))
 
     @attr.chainerx
-    def test_initialize_to_chainerx_native(self):
+    def test_initialize_to_chx_native(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_device(np)
-        x.to_chainerx()
+        x.to_chx()
         self.check_constant_initialization(
             x, self.a, chainerx, chainer.get_device('native:0'))
 
     @attr.chainerx
     @attr.gpu
-    def test_initialize_to_chainerx_cuda(self):
+    def test_initialize_to_chx_cuda(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_device((cuda.cupy, 0))
-        x.to_chainerx()
+        x.to_chx()
         self.check_constant_initialization(
             x, self.a, chainerx, chainer.get_device('cuda:0'))
 
     @attr.chainerx
     @attr.multi_gpu(2)
-    def test_initialize_to_chainerx_cuda_noncurrent_gpu(self):
+    def test_initialize_to_chx_cuda_noncurrent_gpu(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_device((cuda.cupy, 1))
-        x.to_chainerx()
+        x.to_chx()
         self.check_constant_initialization(
             x, self.a, chainerx, chainer.get_device('cuda:1'))
 
@@ -1856,20 +1856,20 @@ class TestUninitializedParameter(unittest.TestCase):
         self.check_zerograd(x, cuda.cupy)
 
     @attr.chainerx
-    def test_zerograd_to_chainerx(self):
+    def test_zerograd_to_chx(self):
         x = chainer.Parameter()
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.to_device(np)
-        x.to_chainerx()
+        x.to_chx()
         x.initialize((3, 2))
         self.check_zerograd(x, chainerx)
 
     @attr.chainerx
-    def test_to_chainerx_zerograd(self):
+    def test_to_chx_zerograd(self):
         x = chainer.Parameter()
         x.to_device(np)
-        x.to_chainerx()
+        x.to_chx()
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
@@ -2002,7 +2002,7 @@ class TestUninitializedParameter(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, self.b)
 
     @attr.chainerx
-    def test_addgrad_to_uninitialized_parameter_cpu_to_chainerx(self):
+    def test_addgrad_to_uninitialized_parameter_cpu_to_chx(self):
         # TODO(sonots): Support addgrad with ChainerX
         raise unittest.SkipTest('ChainerX does not support addgrad')
 
@@ -2415,13 +2415,13 @@ class UnnamedVariableToStringTestBase(object):
     @attr.chainerx
     def test_repr_chainerx_cpu(self):
         self._skip_chainerx_unsupported_dtype()
-        self.x.to_chainerx()
+        self.x.to_chx()
         assert repr(self.x) == self.repr
 
     @attr.chainerx
     def test_str_chainerx_cpu(self):
         self._skip_chainerx_unsupported_dtype()
-        self.x.to_chainerx()
+        self.x.to_chx()
         assert str(self.x) == self.str
 
     @attr.chainerx
@@ -2429,7 +2429,7 @@ class UnnamedVariableToStringTestBase(object):
     def test_repr_chainerx_gpu(self):
         self._skip_chainerx_unsupported_dtype()
         self.x.to_gpu()
-        self.x.to_chainerx()
+        self.x.to_chx()
         assert repr(self.x) == self.repr
 
     @attr.chainerx
@@ -2437,7 +2437,7 @@ class UnnamedVariableToStringTestBase(object):
     def test_str_chainerx_gpu(self):
         self._skip_chainerx_unsupported_dtype()
         self.x.to_gpu()
-        self.x.to_chainerx()
+        self.x.to_chx()
         assert str(self.x) == self.str
 
 
@@ -2966,6 +2966,87 @@ class TestLazyGradSum(unittest.TestCase):
     def test_backward_cpu_lazy_grad_sum(self):
         with chainer.using_config('lazy_grad_sum', True):
             self.check_backward()
+
+
+@testing.parameterize(*(
+    testing.product({
+        'from_connected': [True, False],
+        'calculate_by_variable': [True, False],
+        'backward_by_variable': [True, False],
+    })))
+@attr.chainerx
+class TestVariableChainerxArrayViewBackprop(unittest.TestCase):
+
+    def test_chx_array_view(self):
+        from_connected = self.from_connected
+        calculate_by_variable = self.calculate_by_variable
+        backward_by_variable = self.backward_by_variable
+
+        # Create an original array, either connected or disconnected.
+        a = chainerx.array([1, 2], np.float32)
+        if from_connected:
+            a.require_grad()
+
+        # Wrap with a variable
+        x = chainer.Variable(a, requires_grad=True)
+        x_arr = x.chx_array  # Unwrap a view
+
+        assert x_arr.is_backprop_required()
+        assert not x_arr.is_grad_required()
+        assert a is not x_arr  # x_arr is a view of a
+
+        if calculate_by_variable:
+            # Calculate by variable
+            y = F.square(x_arr)
+            # Unwrap the output array
+            y_arr = y.chx_array
+            y_arr.grad = chainerx.ones_like(y.array)
+        else:
+            # Calculate by array
+            y_arr = chainerx.square(x_arr)
+            y_arr.grad = chainerx.ones_like(y_arr)
+            # Wrap y with variable
+            y = chainer.Variable(y_arr, requires_grad=True)
+
+        # Backward
+        if backward_by_variable:
+            y.backward()
+        else:
+            y_arr.backward()
+
+        # x.grad is set
+        assert x.grad is not None
+        chainerx.testing.assert_array_equal_ex(
+            chainerx.array([2, 4], np.float32), x.grad)
+
+
+@attr.chainerx
+class TestVariableChainerxArrayView(unittest.TestCase):
+
+    def test_unwrap_disconnected(self):
+        a = chainerx.array([1, 2], np.float32)
+
+        # Wrap with a variable
+        x = chainer.Variable(a, requires_grad=False)
+        x_arr = x.chx_array  # Unwrap a view
+
+        assert not x_arr.is_backprop_required()
+
+        x_arr.require_grad()
+        assert x_arr.is_backprop_required()
+
+        x_arr2 = x.chx_array  # Unwrap another view
+        # require_grad does not affect distinct views.
+        assert not x_arr2.is_backprop_required()
+
+        # Nor does it affect the original array.
+        assert not a.is_backprop_required()
+
+    def test_unwrap_non_chainerx(self):
+        a = np.array([1, 2], np.float32)
+        x = chainer.Variable(a, requires_grad=True)
+        with pytest.raises(ValueError):
+            x.chx_array
 
 
 testing.run_module(__name__, __file__)

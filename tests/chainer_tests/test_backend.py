@@ -274,6 +274,7 @@ class TestDevice(unittest.TestCase):
     def test_eq_numpy(self):
         assert backend.get_device(numpy) == backend.get_device(numpy)
         assert backend.CpuDevice() == backend.get_device(numpy)
+        assert not backend.CpuDevice() != backend.get_device(numpy)  # __ne__()
 
     @attr.gpu
     def test_eq_cupy(self):

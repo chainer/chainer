@@ -32,7 +32,7 @@ def _check_class_weight_option(class_weight):
 def _check_reduce_option(reduce):
     if reduce not in ('mean', 'no'):
         raise ValueError(
-            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'only \'mean\' and \'no\' are valid for \'reduce\', but \'%s\' is '
             'given' % reduce)
 
 
@@ -112,7 +112,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         return y,
 
     def forward_cpu(self, inputs):
-        class_weight = backend.from_chainerx(self.class_weight)
+        class_weight = backend.from_chx(self.class_weight)
 
         self.retain_inputs((0, 1))
         x, t = inputs
@@ -147,7 +147,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
-        class_weight = backend.from_chainerx(self.class_weight)
+        class_weight = backend.from_chx(self.class_weight)
 
         self.retain_inputs((0, 1))
         cupy = cuda.cupy
