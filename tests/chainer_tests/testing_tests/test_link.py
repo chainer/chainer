@@ -79,7 +79,7 @@ class Dot(chainer.FunctionNode):
 
 class DotLink(chainer.Link):
 
-    # correctly implemented dot.
+    """correctly implemented dot."""
 
     def __init__(
             self, in_size, out_size, initial_p=None, contiguous=None,
@@ -105,7 +105,7 @@ class DotLink(chainer.Link):
 
 class DotLinkIncorrectForward(DotLink):
 
-    # Incorrectly implemented dot (forward).
+    """Incorrectly implemented dot (forward)."""
 
     def __init__(self, *args, **kwargs):
         super(DotLinkIncorrectForward, self).__init__(*args, **kwargs)
@@ -119,7 +119,7 @@ class DotLinkIncorrectForward(DotLink):
 
 class DotLinkIncorrectBackward(DotLink):
 
-    # Incorrect implementation of dot (backward).
+    """Incorrect implementation of dot (backward)."""
 
     def __init__(self, incorrect_gx, incorrect_gp, *args, **kwargs):
         super(DotLinkIncorrectBackward, self).__init__(*args, **kwargs)
@@ -137,7 +137,7 @@ class DotLinkIncorrectBackward(DotLink):
 
 class DotLinkIncorrectInitialization(DotLink):
 
-    # Incorrect implementation of dot (parameter initialization).
+    """Incorrect implementation of dot (parameter initialization)."""
 
     def __init__(self, in_size, out_size, initial_p=None):
         # Ignores given initializer here.
@@ -305,8 +305,9 @@ class TestLinkIncorrectForwardBackwardInitializers(
 @_inject_backend_tests
 class TestLinkOnlyInitializers(testing.LinkTestCase):
 
-    # `generate_forward_backward_initializers` is not required if forward and
-    # backward tests are skipped.
+    """`generate_forward_backward_initializers` is not required if forward and
+    backward tests are skipped.
+    """
 
     skip_forward_test = True
     skip_backward_test = True
@@ -329,7 +330,8 @@ class TestLinkOnlyInitializers(testing.LinkTestCase):
 @_inject_backend_tests
 class TestLinkOnlyForwardBackward(testing.LinkTestCase):
 
-    # `generate_initializers` is not required if initializers test is skipped.
+    """`generate_initializers` is not required if initializers test is skipped.
+    """
 
     skip_initializers_test = True
 
