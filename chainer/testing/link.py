@@ -18,8 +18,8 @@ class InitializerPair(object):
 
     """Class to hold a pair of initializer-like objects.
 
-    The initializer-like objects can be accessed via the ``first`` and the
-    ``second`` attributes.
+    The initializer-like objects can be accessed via the ``argument_value`` and
+    the ``expected_initializer`` attributes.
 
     When implementing ``LinkTestCase``, instances of this class can be included
     in lists listing all initializer-like objects that should be tested in the
@@ -31,12 +31,12 @@ class InitializerPair(object):
     constructor.
     """
 
-    def __init__(self, first, second):
-        initializers._check_is_initializer_like(first)
-        initializers._check_is_initializer_like(second)
+    def __init__(self, argument_value, expected_initializer):
+        initializers._check_is_initializer_like(argument_value)
+        initializers._check_is_initializer_like(expected_initializer)
 
-        self.first = first
-        self.second = second
+        self.argument_value = argument_value
+        self.expected_initializer = expected_initializer
 
 
 class LinkTestCase(unittest.TestCase):
@@ -508,10 +508,10 @@ class LinkTestCase(unittest.TestCase):
 
 def _check_generated_initializer(init):
     if isinstance(init, InitializerPair):
-        init = init.second
+        init = init.expected_initializer
         if init is None:
             raise TypeError(
-                'Expected (second) initializer in a InitializerPair should '
+                'Expected initializer in a InitializerPair should '
                 'not be None.')
         return
     initializers._check_is_initializer_like(init)
@@ -521,7 +521,7 @@ def _get_initializer(init):
     # Returns the initializer that should be passed to the link constructor.
 
     if isinstance(init, InitializerPair):
-        return init.first
+        return init.argument_value
     return init
 
 
@@ -529,7 +529,7 @@ def _get_expected_initializer(init):
     # Returns the expected initializer for the given initializer.
 
     if isinstance(init, InitializerPair):
-        init = init.second
+        init = init.expected_initializer
 
     assert init is not None
 
