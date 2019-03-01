@@ -384,21 +384,34 @@ class LinkTestCase(unittest.TestCase):
                 self._test_single_initializer(i_param, inits, backend_config)
 
     def _test_single_initializer(self, i_param, inits, backend_config):
+        # Given a set of initializer constructor arguments for the link, create
+        # and initialize a link with those arguments. `i_param` holds the index
+        # of the argument that should be tested among these.
         inits_orig = inits
         inits = [_get_initializer(i) for i in inits]
         link = self._create_initialized_link(inits, backend_config)
 
+        # Extract the parameters from the initialized link.
         params = _get_link_params(link, self.param_names)
 
+        # Convert the parameter of interest into a NumPy ndarray.
         cpu_device = backend.CpuDevice()
         param = params[i_param]
         param_xp = param.array
         param_np = cpu_device.send(param_xp)
 
+        # The expected values of the parameter is decided by the given
+        # initializer. If the initializer is `None`, it should have been
+        # wrapped in a InitializerPair along with the expected initializer that
+        # the link should default to in case of `None`.
+        #
+        # Note that for this to work, the expected parameter must be inferred
+        # deterministically.
         expected_init = _get_expected_initializer(inits_orig[i_param])
         expected_np = numpy.empty_like(param_np)
         expected_init(expected_np)
 
+        # Compare the values of the expected and actual parameter.
         test._check_forward_output_arrays_equal(
             expected_np, param_np, 'forward', LinkTestError,
             **self.check_initializers_options)
