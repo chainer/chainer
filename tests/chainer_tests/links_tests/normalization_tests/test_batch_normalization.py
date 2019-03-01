@@ -509,8 +509,6 @@ class TestFailChannalSizeInference(unittest.TestCase):
 class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
 
     def test_lazy_initialization_with_non_zero_current_cuda_device(self):
-        x = numpy.random.randn(5, 4, 3, 2).astype('f')
-
         # Create a lazily initialized BatchNormalization link.
         bn = links.BatchNormalization(axis=(0, 2, 3))
         assert bn.xp is numpy
@@ -524,6 +522,7 @@ class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
         assert bn.avg_mean is None
         assert bn.avg_var is None
 
+        x = numpy.random.randn(5, 4, 3, 2).astype(numpy.float32)
         x = device.send(x)
 
         # All parameters and persistent values should correctly be initialized
