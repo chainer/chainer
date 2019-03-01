@@ -61,7 +61,7 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
@@ -141,7 +141,7 @@ def main():
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 
