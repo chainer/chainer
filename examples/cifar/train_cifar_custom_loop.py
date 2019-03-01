@@ -37,7 +37,7 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
-    parser.add_argument('--resume', '-r', default=None, type=str,
+    parser.add_argument('--resume', '-r', type=str,
                         help='Directory that has `vgg.model` and `vgg.state`')
     args = parser.parse_args()
 
