@@ -153,7 +153,8 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.gamma = gamma
 
     def init_state(self, param):
-        self.state['initial_alpha'] = self.hyperparam.alpha
+        if self.hyperparam.adabound:
+            self.state['initial_alpha'] = self.hyperparam.alpha
         xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
