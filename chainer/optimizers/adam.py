@@ -321,6 +321,8 @@ class AdamRule(optimizer.UpdateRule):
                 'Can\'t determine the bounds of AdaBound optimizer '
                 'because the update steps have not been started.')
         hp = self.hyperparam
+        # Workaround to reflect changing `alpha` in `final_lr`.
+        # (by some of `chainer.training.extensions`)
         final_lr = hp.final_lr * hp.alpha / self.state['initial_alpha']
         lower = final_lr * (1.0 - 1.0 / (hp.gamma * self.t + 1))
         upper = final_lr * (1.0 + 1.0 / (hp.gamma * self.t))
