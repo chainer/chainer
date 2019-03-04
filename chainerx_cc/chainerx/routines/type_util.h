@@ -26,7 +26,14 @@ public:
         // If there were arrays, return the promoted array dtype.
         // Otherwise, return the promoted scalar dtype.
         if (array_max_dtype_.has_value()) {
-            return *array_max_dtype_;
+            Dtype array_max_dtype = *array_max_dtype_;
+            if (scalar_max_dtype_.has_value()) {
+                Dtype scalar_max_dtype = *scalar_max_dtype_;
+                if (GetDtypeCategory(scalar_max_dtype) > GetDtypeCategory(array_max_dtype)) {
+                    return scalar_max_dtype;
+                }
+            }
+            return array_max_dtype;
         }
         CHAINERX_ASSERT(scalar_max_dtype_.has_value());
         return *scalar_max_dtype_;
@@ -62,15 +69,10 @@ void ResultTypeResolver::AddArg(const Array& arg) {
     } else {
         array_max_dtype_ = arg.dtype();
     }
-    scalar_max_dtype_ = nonstd::nullopt;
 }
 
 void ResultTypeResolver::AddArg(Scalar arg) {
-    // If there already were arrays, discard the scalar dtype.
-    // Otherwise, compare with the promoted scalar dtype.
-    if (array_max_dtype_.has_value()) {
-        // discard the arg
-    } else if (scalar_max_dtype_.has_value()) {
+    if (scalar_max_dtype_.has_value()) {
         scalar_max_dtype_ = PromoteType(*scalar_max_dtype_, arg.dtype());
     } else {
         scalar_max_dtype_ = arg.dtype();
