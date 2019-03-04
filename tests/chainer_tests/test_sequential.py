@@ -578,7 +578,7 @@ class TestSequentialSerialization(unittest.TestCase):
     # initialized with different values depending on before/after
     # serialization.
 
-    # If serialization dis not work correctly, the link would have a different
+    # If serialization did not work correctly, the link would have a different
     # value after serialization, causing tests to fail.
 
     class MyLink(chainer.Link):
