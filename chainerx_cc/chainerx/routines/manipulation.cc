@@ -431,7 +431,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         for (const Array& array : arrays) {
             const Shape& shape = array.shape();
             Array sliced_out = internal::MakeArray(shape, strides, dtype, device, out.data(), out_offset);
-            device.Copy(array, sliced_out);
+            device.AsType(array, sliced_out);
             out_offset += strides[axis] * shape[axis];
         }
     }

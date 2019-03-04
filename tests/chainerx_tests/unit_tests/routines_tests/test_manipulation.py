@@ -322,7 +322,7 @@ def _test_concatenate_multiple_arrays_mixed_dtypes(xp, shapes, axis, dtypes):
     return y
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize('shapes,axis', [
     ([(0,), (0,)], 0),
     ([(0,), (1,)], 0),
@@ -346,7 +346,7 @@ def test_concatenate_two_arrays_mixed_dtypes(xp, shapes, axis, dtype1, dtype2):
         xp, shapes, axis, (dtype1, dtype2))
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal(stride_check=False)
 @pytest.mark.parametrize('shapes,axis', [
     ([(0,), (0,), (0,)], 0),
     ([(0,), (1,), (1,)], 0),
