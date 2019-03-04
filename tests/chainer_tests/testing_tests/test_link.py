@@ -155,7 +155,7 @@ class DotLinkTestBase(object):
         self.out_size = 3
         self.dtype = numpy.float32
 
-    def generate_forward_backward_initializers(self):
+    def generate_params(self):
         in_size = self.in_size
         out_size = self.out_size
         return numpy.random.uniform(
@@ -298,14 +298,14 @@ class TestLinkIncorrectForwardBackwardInitializers(
 
     skip_initializers_test = True
 
-    def generate_forward_backward_initializers(self):
+    def generate_params(self):
         return self.invalid_forward_backward_initializer,
 
 
 @_inject_backend_tests
 class TestLinkOnlyInitializers(testing.LinkTestCase):
 
-    """`generate_forward_backward_initializers` is not required if forward and
+    """`generate_params` is not required if forward and
     backward tests are skipped.
     """
 
@@ -337,7 +337,7 @@ class TestLinkOnlyForwardBackward(testing.LinkTestCase):
 
     param_names = ['p']
 
-    def generate_forward_backward_initializers(self):
+    def generate_params(self):
         return numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32),
 
     def create_link(self, initializers):

@@ -88,7 +88,7 @@ class BatchNormalizationTestBase(object):
         self.var = numpy.random.uniform(
             0.5, 1, self.param_shape).astype(self.dtype)
 
-    def generate_forward_backward_initializers(self):
+    def generate_params(self):
         initial_gamma = numpy.random.uniform(
             -1, 1, self.param_shape).astype(self.dtype)
         initial_beta = numpy.random.uniform(

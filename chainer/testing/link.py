@@ -56,8 +56,8 @@ class LinkTestCase(unittest.TestCase):
         Returns a link. The link is typically initialized with the given
         initializer-likes ``initializers``. ``initializers`` is a tuple of
         same length as the number of parameters and contains initializer-likes
-        returned by either ``generate_forward_backward_initializers`` or
-        ``generate_initializers`` depending on the test being run.
+        returned by either ``generate_params`` or ``generate_initializers``
+        depending on the test being run.
 
     .. rubric:: Optional methods
 
@@ -65,11 +65,11 @@ class LinkTestCase(unittest.TestCase):
     must be overridden depending on the skip flags  ``skip_forward_test``,
     ``skip_backward_test`` and ``skip_initializers_test``.
 
-    ``generate_forward_backward_initializers(self)``
+    ``generate_params(self)``
         Returns a tuple of initializers-likes. The tuple should contain an
-        initializer-like for each initializer-like argument to the link
-        constructor. These will be passed to ``create_link`` for the
-        forward and backward tests.
+        initializer-like for each initializer-like argument, i.e. the
+        parameters to the link constructor. These will be passed to
+        ``create_link`` for the forward and backward tests.
         This method must be implemented if either ``skip_forward_test`` or
         ``skip_backward_test`` is ``False`` (forward or backward tests are
         executed).
@@ -156,11 +156,11 @@ class LinkTestCase(unittest.TestCase):
     ``dodge_nondifferentiable`` (bool):
         Enable non-differentiable point detection in numerical gradient
         calculation. If the data returned by
-        ``generate_forward_backward_initializers``, ``create_link`` and
-        ``generate_inputs`` turns out to be a non-differentiable point, the
-        test will repeatedly resample those until a differentiable point will
-        be finally sampled. If additional data needs to be resampled, they can
-        be updated in ``before_test``. ``False`` by default.
+        ``generate_params``, ``create_link`` and ``generate_inputs`` turns out
+        to be a non-differentiable point, the test will repeatedly resample
+        those until a differentiable point will be finally sampled. If
+        additional data needs to be resampled, they can be updated in
+        ``before_test``. ``False`` by default.
 
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs,
@@ -187,7 +187,7 @@ class LinkTestCase(unittest.TestCase):
 
                 param_names = ['W', 'b']
 
-                def generate_forward_backward_initializers(self):
+                def generate_params(self):
                     initialW = numpy.random.uniform(
                         -1, 1, (3, 2)).astype(numpy.float32)
                     initial_bias = numpy.random.uniform(
@@ -247,9 +247,8 @@ class LinkTestCase(unittest.TestCase):
     def before_test(self, test_name):
         pass
 
-    def generate_forward_backward_initializers(self):
-        raise NotImplementedError(
-            'generate_forward_backward_initializers is not implemented.')
+    def generate_params(self):
+        raise NotImplementedError('generate_params is not implemented.')
 
     def generate_initializers(self):
         raise NotImplementedError('generate_initializers is not implemented.')
@@ -283,7 +282,7 @@ class LinkTestCase(unittest.TestCase):
 
         self.before_test('test_forward')
 
-        inits = self._generate_forward_backward_initializers()
+        inits = self._generate_params()
         link = self._create_link(inits, backend_config)
 
         inputs_np = self._generate_inputs()
@@ -318,7 +317,7 @@ class LinkTestCase(unittest.TestCase):
         def do_check():
             self.before_test('test_backward')
 
-            inits = self._generate_forward_backward_initializers()
+            inits = self._generate_params()
             link = self._create_initialized_link(inits, backend_config)
 
             def f(inputs, ps):
@@ -416,12 +415,11 @@ class LinkTestCase(unittest.TestCase):
             expected_np, param_np, 'forward', LinkTestError,
             **self.check_initializers_options)
 
-    def _generate_forward_backward_initializers(self):
-        params_init = self.generate_forward_backward_initializers()
+    def _generate_params(self):
+        params_init = self.generate_params()
         if not isinstance(params_init, (tuple, list)):
             raise TypeError(
-                '`generate_forward_backward_initializers` must return a tuple '
-                'or a list.')
+                '`generate_params` must return a tuple or a list.')
         for init in params_init:
             _check_generated_initializer(init)
         return params_init
