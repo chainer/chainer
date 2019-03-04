@@ -571,7 +571,7 @@ class TestSequentialSerialization(unittest.TestCase):
     # MyLink is a link that depends on a parameter whose value is filled
     # with an integer specified by `n`.
 
-    # `create_fn` is a test-specific function to create a target link.
+    # `fn_create` is a test-specific function to create a target link.
     # `create_fn` has one argument `nth`, which is either 0 or 1, each of
     # which represents before or after serialization.
     # `n` argument of `MyLink` is dependent on this `nth`, thus the link is
