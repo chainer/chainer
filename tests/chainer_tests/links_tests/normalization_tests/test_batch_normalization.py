@@ -178,6 +178,9 @@ class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
     pass
 
 
+# TODO(hvy): Safely remove this test class when BackendConfig no longer
+# modifies the current device since those cases should be covered by the tests
+# above.
 @attr.multi_gpu(2)
 @testing.inject_backend_tests(
     None,
