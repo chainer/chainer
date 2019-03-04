@@ -32,8 +32,10 @@ class InitializerPair(object):
     """
 
     def __init__(self, argument_value, expected_initializer):
-        initializers._check_is_initializer_like(argument_value)
-        initializers._check_is_initializer_like(expected_initializer)
+        if argument_value is not None:
+            initializers._check_is_initializer_like(argument_value)
+        if expected_initializer is not None:
+            initializers._check_is_initializer_like(expected_initializer)
 
         self.argument_value = argument_value
         self.expected_initializer = expected_initializer
@@ -369,7 +371,8 @@ class LinkTestCase(unittest.TestCase):
         params_inits = self._get_initializers()
 
         default_init = self.default_initializer
-        initializers._check_is_initializer_like(default_init)
+        if default_init is not None:
+            initializers._check_is_initializer_like(default_init)
 
         for i_param, param_inits in enumerate(params_inits):
             # When testing an initializer for a particular parameter, other
@@ -519,11 +522,6 @@ class LinkTestCase(unittest.TestCase):
 def _check_generated_initializer(init):
     if isinstance(init, InitializerPair):
         init = init.expected_initializer
-        if init is None:
-            raise TypeError(
-                'Expected initializer in a InitializerPair should '
-                'not be None.')
-        return
     initializers._check_is_initializer_like(init)
 
 

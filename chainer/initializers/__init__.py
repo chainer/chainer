@@ -113,10 +113,9 @@ def _get_initializer(initializer):
 
 
 def _check_is_initializer_like(initializer):
-    if not (initializer is None
-            or isinstance(initializer, chainer.Initializer)
+    if not (isinstance(initializer, chainer.Initializer)
             or isinstance(initializer, chainer.get_array_types())
             or numpy.isscalar(initializer)):
         raise TypeError(
             'Initializer is of wrong type: {}. Allowed types are Initializer, '
-            'ndarray, scalar and NoneType.'.format(type(initializer)))
+            'ndarray and scalar.'.format(type(initializer)))
