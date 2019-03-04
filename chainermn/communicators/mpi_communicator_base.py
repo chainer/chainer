@@ -611,8 +611,14 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def bcast_data(self, model):
         for _, param in sorted(model.namedparams()):
             if param.data is not None:
-                buf = _memory_utility.array_to_buffer_object(param.data)
+                data = param.data
+                is_float16 = param.data.dtype == numpy.float16
+                if is_float16:
+                    data = data.astype(numpy.float32)
+                buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
+                if is_float16:
+                    param.data = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
