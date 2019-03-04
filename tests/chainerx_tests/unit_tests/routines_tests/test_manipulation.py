@@ -245,6 +245,31 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
+def _concatenate(xp, shapes, axis, dtype):
+    if not isinstance(dtype, (list, tuple)):
+        dtypes = (dtype,) * len(shapes)
+    else:
+        dtypes = dtype
+    assert len(shapes) == len(dtypes)
+
+    arrays = []
+    for i, (shape, dtype) in enumerate(zip(shapes, dtypes)):
+        size = numpy.product(shape)
+        a = numpy.arange(i * 100, i * 100 + size)
+        a = a.reshape(shape)
+        a = a.astype(dtype)
+        if xp is not numpy:
+            a = xp.array(a)
+        arrays.append(a)
+
+    if axis is _unspecified:
+        args = (arrays,)
+    else:
+        args = (arrays, axis)
+
+    return xp.concatenate(*args)
+
+
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('shapes,axis', [
@@ -271,21 +296,73 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     ([(2, 3), (2, 3)], -1),
     ([(2, 3), (2, 3)], None),
     ([(2, 3), (4, 5)], None),
+    ([(2, 3), (4, 5, 1)], None),
+    ([(2, 3), (4, 5, 1), (4,)], None),
     ([(2, 3), (2, 3)], _unspecified),
     ([(2, 3), (4, 5)], _unspecified),
 ])
-def test_concat(xp, shapes, axis):
-    arrays = []
-    for i, shape in enumerate(shapes):
-        size = numpy.product(shape)
-        a = numpy.arange(i * 100, i * 100 + size)
-        a = a.reshape(shape).astype('float32')
-        arrays.append(xp.array(a))
-    if axis is _unspecified:
-        args = (arrays,)
-    else:
-        args = (arrays, axis)
-    return xp.concatenate(*args)
+def test_concatenate(xp, shapes, axis):
+    return _concatenate(xp, shapes, axis, 'float32')
+
+
+def _test_concatenate_multiple_arrays_mixed_dtypes(xp, shapes, axis, dtypes):
+    assert len(shapes) == len(dtypes)
+
+    y = _concatenate(xp, shapes, axis, dtypes)
+
+    chx_expected_dtype = chainerx.testing._result_dtypes[dtypes]
+
+    # ChainerX dtype check.
+    if xp is chainerx:
+        assert y.dtype == chx_expected_dtype
+
+    # Dtype conversion to allow comparing the correctnesses of the values.
+    if xp is numpy and y.dtype != chx_expected_dtype:
+        y = y.astype(chx_expected_dtype)
+    return y
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('shapes,axis', [
+    ([(0,), (0,)], 0),
+    ([(0,), (1,)], 0),
+    ([(1,), (1,)], 0),
+    ([(0, 0,), (0, 0,)], 0),
+    ([(0, 0,), (0, 0,)], 1),
+    ([(1, 0,), (1, 0,)], 0),
+    ([(1, 0,), (1, 0,)], 1),
+    ([(2, 3, 1), (2, 3, 1)], 1),
+    ([(4, 10), (5, 10)], 0),
+    ([(2, 3), (2, 3)], None),
+    ([(2, 3), (4, 5)], None),
+    ([(2, 3), (4, 5, 1)], None),
+    ([(2, 3), (2, 3)], _unspecified),
+])
+@pytest.mark.parametrize('dtype1', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dtype2', chainerx.testing.all_dtypes)
+def test_concatenate_two_arrays_mixed_dtypes(xp, shapes, axis, dtype1, dtype2):
+    assert len(shapes) == 2
+    return _test_concatenate_multiple_arrays_mixed_dtypes(
+        xp, shapes, axis, (dtype1, dtype2))
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('shapes,axis', [
+    ([(0,), (0,), (0,)], 0),
+    ([(0,), (1,), (1,)], 0),
+    ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
+    ([(2, 3), (4, 5), (4, 2)], None),
+    ([(2, 3), (4, 5, 1), (4,)], None),
+    ([(2, 3), (2, 3), (1, 3)], _unspecified),
+])
+@pytest.mark.parametrize('dtype1', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dtype2', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dtype3', chainerx.testing.all_dtypes)
+def test_concatenate_three_arrays_mixed_dtypes(
+        xp, shapes, axis, dtype1, dtype2, dtype3):
+    assert len(shapes) == 3
+    return _test_concatenate_multiple_arrays_mixed_dtypes(
+        xp, shapes, axis, (dtype1, dtype2, dtype3))
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
