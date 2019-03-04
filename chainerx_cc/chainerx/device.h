@@ -167,6 +167,9 @@ public:
     virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
 
+    virtual void FloorDivide(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
+
     virtual void Divide(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void DivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
 

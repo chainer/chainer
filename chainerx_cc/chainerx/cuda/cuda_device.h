@@ -101,6 +101,9 @@ public:
     void Multiply(const Array& x1, const Array& x2, const Array& out) override;
     void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
 
+    void FloorDivide(const Array& x1, const Array& x2, const Array& out) override;
+    void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) override;
+
     void Divide(const Array& x1, const Array& x2, const Array& out) override;
     void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
 

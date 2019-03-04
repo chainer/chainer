@@ -71,6 +71,7 @@ public:
     __device__ Float16 Exp() const { return Float16{std::exp(static_cast<float>(*this))}; }
     __device__ Float16 Log() const { return Float16{std::log(static_cast<float>(*this))}; }
     __device__ Float16 Sqrt() const { return Float16{std::sqrt(static_cast<float>(*this))}; }
+    __device__ Float16 Floor() const { return Float16{std::floor(static_cast<float>(*this))}; }
 
 private:
     explicit __device__ Float16(::__half x) : data_{__half_as_ushort(x)} {}
