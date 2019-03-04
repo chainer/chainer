@@ -420,7 +420,7 @@ def n_step_rnn(
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
-         ``bs[i]`` represnents biases for i-th layer.
+            ``bs[i]`` represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
