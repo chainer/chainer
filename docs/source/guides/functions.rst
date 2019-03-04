@@ -529,7 +529,7 @@ In order to make a convenient module, let's wrap it into a link:
    :hide:
 
    x = Variable(np.random.uniform(-1, 1, (2, 2)).astype(np.float32))
-   Linear(2, 2)(x, W, b)
+   Linear(2, 2)(x)
 
 
 This link hides the parameters of the linear layer.
