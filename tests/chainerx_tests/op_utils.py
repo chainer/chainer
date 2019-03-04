@@ -9,7 +9,51 @@ import chainer.testing
 import chainerx
 
 
-class _OpTest(chainer.testing.function.FunctionTestBase):
+class OpTest(chainer.testing.function.FunctionTestBase):
+
+    """Base class for op test.
+
+    It must be used in conjunction with `op_test` decorator.
+
+    Examples:
+
+    @op_utils.op_test(['native:0', 'cuda:0'])
+    class test_relu(op_utils.OpTest):
+
+        # ReLU function has a non-differentiable point around zero, so
+        # dodge_nondifferentiable should be set to True.
+        dodge_nondifferentiable = True
+
+        def setup(self, float_dtype):
+            self.dtype = float_dtype
+
+        def generate_inputs(self):
+            dtype = self.dtype
+            x = numpy.random.uniform(-1, 1, (1, 3)).astype(dtype)
+            return x, w, b
+
+        def forward_chainerx(self, inputs):
+            x, w, b = inputs
+            y = chainerx.relu(x)
+            return y,
+
+        def forward_expected(self, inputs):
+            x, w, b = inputs
+            expected = x.copy()
+            expected[expected < 0] = 0
+            return expected,
+
+    In this example, `float_dtype` is a Pytest fixture for parameterizing
+    floating-point dtypes (i.e. float16, float32, float64). As seen from
+    this, arguments in the `setup` method are treated as Pytest fixtures.
+
+    Test implementations must at least override the following methods:
+      * `generate_inputs`: Generates inputs to the test target.
+      * `forward_chainerx`: Forward implementation using ChainerX.
+      * `forward_expected`: Forward reference implementation.
+
+    It can have the same attributes as `chainer.testing.FunctionTestCase`.
+    """
 
     def setup(self):
         # This method can be overridden by a concrete class with arbitrary
@@ -36,7 +80,7 @@ class _OpTest(chainer.testing.function.FunctionTestBase):
             'Op test implementation must override `forward_chainerx`.')
 
 
-class ChainerOpTest(_OpTest):
+class ChainerOpTest(OpTest):
 
     """Base class for op test that compares the output with Chainer
     implementation.
@@ -94,7 +138,7 @@ class ChainerOpTest(_OpTest):
             'Op test implementation must override `forward_chainer`.')
 
 
-class NumpyOpTest(_OpTest):
+class NumpyOpTest(OpTest):
 
     """Base class for op test that compares the output with NumPy
     implementation.
