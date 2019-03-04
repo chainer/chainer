@@ -162,6 +162,8 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
     {'unit': 'PB'},
     {'unit': 'EB'},
     {'unit': 'ZB'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
 )
 @attr.gpu
 class TestCupyMemoryProfileReport(unittest.TestCase):
