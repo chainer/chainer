@@ -158,9 +158,8 @@ class LinkTestCase(unittest.TestCase):
         calculation. If the data returned by
         ``generate_params``, ``create_link`` and ``generate_inputs`` turns out
         to be a non-differentiable point, the test will repeatedly resample
-        those until a differentiable point will be finally sampled. If
-        additional data needs to be resampled, they can be updated in
-        ``before_test``. ``False`` by default.
+        those until a differentiable point will be finally sampled. ``False``
+        by default.
 
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs,
@@ -311,12 +310,12 @@ class LinkTestCase(unittest.TestCase):
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
 
+        self.before_test('test_backward')
+
         # avoid cyclic import
         from chainer import gradient_check
 
         def do_check():
-            self.before_test('test_backward')
-
             inits = self._generate_params()
             link = self._create_initialized_link(inits, backend_config)
 

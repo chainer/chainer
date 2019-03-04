@@ -69,24 +69,22 @@ class BatchNormalizationTestBase(object):
         self.param_shape = param_shape
         self.expander = expander
         self.finetune = False
-        self.mean = None
-        self.var = None
         self.eps = 2e-5
+
+        if self.test:
+            self.mean = numpy.random.uniform(
+                -1, 1, self.param_shape).astype(self.dtype)
+            self.var = numpy.random.uniform(
+                0.5, 1, self.param_shape).astype(self.dtype)
+        else:
+            self.mean = None
+            self.var = None
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-1}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
-
-    def before_test(self, test_name):
-        if not self.test:
-            return
-
-        self.mean = numpy.random.uniform(
-            -1, 1, self.param_shape).astype(self.dtype)
-        self.var = numpy.random.uniform(
-            0.5, 1, self.param_shape).astype(self.dtype)
 
     def generate_params(self):
         initial_gamma = numpy.random.uniform(
