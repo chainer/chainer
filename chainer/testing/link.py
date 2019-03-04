@@ -56,7 +56,7 @@ class LinkTestCase(unittest.TestCase):
         Returns a link. The link is typically initialized with the given
         initializer-likes ``initializers``. ``initializers`` is a tuple of
         same length as the number of parameters and contains initializer-likes
-        returned by either ``generate_params`` or ``generate_initializers``
+        returned by either ``generate_params`` or ``get_initializers``
         depending on the test being run.
 
     .. rubric:: Optional methods
@@ -74,7 +74,7 @@ class LinkTestCase(unittest.TestCase):
         ``skip_backward_test`` is ``False`` (forward or backward tests are
         executed).
 
-    ``generate_initializers(self)``
+    ``get_initializers(self)``
         Returns a tuple with the same length as the number of initializers that
         the constructor of the link accepts. Each element in the tuple is a
         container itself, listing all initializers-likes that should be tested.
@@ -194,7 +194,7 @@ class LinkTestCase(unittest.TestCase):
                         -1, 1, (3,)).astype(numpy.float32)
                     return initialW, initial_bias
 
-                def generate_initializers(self):
+                def get_initializers(self):
                     initialW = [initializers.Constant(1), 2]
                     initial_bias = [initializers.Constant(2), 3,
                         chainer.testing.link.InitializerPair(None, 0)]
@@ -250,8 +250,8 @@ class LinkTestCase(unittest.TestCase):
     def generate_params(self):
         raise NotImplementedError('generate_params is not implemented.')
 
-    def generate_initializers(self):
-        raise NotImplementedError('generate_initializers is not implemented.')
+    def get_initializers(self):
+        raise NotImplementedError('get_initializers is not implemented.')
 
     def create_link(self, initializers):
         raise NotImplementedError('create_link is not implemented.')
@@ -367,7 +367,7 @@ class LinkTestCase(unittest.TestCase):
 
         self.before_test('test_initializers')
 
-        params_inits = self._generate_initializers()
+        params_inits = self._get_initializers()
 
         default_init = self.default_initializer
         initializers._check_is_initializer_like(default_init)
@@ -424,15 +424,15 @@ class LinkTestCase(unittest.TestCase):
             _check_generated_initializer(init)
         return params_init
 
-    def _generate_initializers(self):
-        params_inits = self.generate_initializers()
+    def _get_initializers(self):
+        params_inits = self.get_initializers()
         if not isinstance(params_inits, (tuple, list)):
             raise TypeError(
-                '`generate_initializers` must return a tuple or a list.')
+                '`get_initializers` must return a tuple or a list.')
         for param_inits in params_inits:
             if not isinstance(param_inits, (tuple, list)):
                 raise TypeError(
-                    '`generate_initializers` must return a tuple or a list of '
+                    '`get_initializers` must return a tuple or a list of '
                     'tuples or lists.')
             for init in param_inits:
                 _check_generated_initializer(init)

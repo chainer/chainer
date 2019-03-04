@@ -161,7 +161,7 @@ class DotLinkTestBase(object):
         return numpy.random.uniform(
             -1, 1, (in_size, out_size)).astype(self.dtype),
 
-    def generate_initializers(self):
+    def get_initializers(self):
         return [
             initializers.Constant(0), 2,
             testing.link.InitializerPair(None, initializers.Constant(1))],
@@ -281,7 +281,7 @@ class TestLinkIncorrectInitializers(DotLinkTestBase, testing.LinkTestCase):
     skip_forward_test = True
     skip_backward_test = True
 
-    def generate_initializers(self):
+    def get_initializers(self):
         return [self.invalid_initializer],
 
 
@@ -314,7 +314,7 @@ class TestLinkOnlyInitializers(testing.LinkTestCase):
 
     param_names = ['p']
 
-    def generate_initializers(self):
+    def get_initializers(self):
         return [
             initializers.Constant(0), 2,
             testing.link.InitializerPair(None, initializers.Constant(1))],
@@ -330,8 +330,7 @@ class TestLinkOnlyInitializers(testing.LinkTestCase):
 @_inject_backend_tests
 class TestLinkOnlyForwardBackward(testing.LinkTestCase):
 
-    """`generate_initializers` is not required if initializers test is skipped.
-    """
+    """`get_initializers` is not required if initializers test is skipped."""
 
     skip_initializers_test = True
 

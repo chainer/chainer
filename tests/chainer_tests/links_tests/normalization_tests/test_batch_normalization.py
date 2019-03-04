@@ -95,7 +95,7 @@ class BatchNormalizationTestBase(object):
             -1, 1, self.param_shape).astype(self.dtype)
         return initial_gamma, initial_beta
 
-    def generate_initializers(self):
+    def get_initializers(self):
         initial_gamma = [
             initializers.Constant(2), 2, testing.link.InitializerPair(None, 1)]
         initial_beta = [
