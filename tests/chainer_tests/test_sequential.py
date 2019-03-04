@@ -7,7 +7,6 @@ import unittest
 import mock
 import numpy
 import pytest
-import six
 
 import chainer
 from chainer import cuda
@@ -15,7 +14,6 @@ from chainer import functions
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer import variable
 
 
 class TestSequential(unittest.TestCase):
@@ -572,7 +570,7 @@ class TestSequentialSerialization(unittest.TestCase):
     # with an integer specified by `n`.
 
     # `fn_create` is a test-specific function to create a target link.
-    # `create_fn` has one argument `nth`, which is either 0 or 1, each of
+    # `fn_create` has one argument `nth`, which is either 0 or 1, each of
     # which represents before or after serialization.
     # `n` argument of `MyLink` is dependent on this `nth`, thus the link is
     # initialized with different values depending on before/after
@@ -708,7 +706,6 @@ class TestSequentialSerialization(unittest.TestCase):
             seq.insert(4, self.MyLink(nth + 5))
             return seq
         self.check_serialization(fn_create)
->>>>>>> Add Sequential serialization test
 
 
 testing.run_module(__name__, __file__)
