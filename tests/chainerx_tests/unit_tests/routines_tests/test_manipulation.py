@@ -5,6 +5,7 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
 
 
 # Value for parameterization to represent an unspecified (default) argument.
@@ -338,7 +339,7 @@ def _test_concatenate_multiple_arrays_mixed_dtypes(
     ([(2, 3), (2, 3)], _unspecified),
 ])
 @pytest.mark.parametrize(
-    'dtypes,chx_expected_dtype', chainerx.testing._result_dtypes_two_arrays)
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_two_arrays)
 def test_concatenate_two_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 2
@@ -356,7 +357,7 @@ def test_concatenate_two_arrays_mixed_dtypes(
     ([(2, 3), (2, 3), (1, 3)], _unspecified),
 ])
 @pytest.mark.parametrize(
-    'dtypes,chx_expected_dtype', chainerx.testing._result_dtypes_three_arrays)
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_three_arrays)
 def test_concatenate_three_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 3

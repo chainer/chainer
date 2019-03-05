@@ -13,8 +13,6 @@ from chainerx.testing.array import assert_allclose  # NOQA
 from chainerx.testing.array import assert_allclose_ex  # NOQA
 from chainerx.testing.array import assert_array_equal  # NOQA
 from chainerx.testing.array import assert_array_equal_ex  # NOQA
-from chainerx.testing.dtypes import _result_dtypes_three_arrays  # NOQA
-from chainerx.testing.dtypes import _result_dtypes_two_arrays  # NOQA
 from chainerx.testing.dtypes import all_dtypes  # NOQA
 from chainerx.testing.dtypes import float_dtypes  # NOQA
 from chainerx.testing.dtypes import nonfloat_dtypes  # NOQA
