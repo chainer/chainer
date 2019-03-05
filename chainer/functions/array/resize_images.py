@@ -203,10 +203,9 @@ class ResizeImages(function_node.FunctionNode):
 
         # Meshgrid-like operation. Meshgrid can cause
         # performance loss due to memory consumption.
-        v = xp.broadcast_to(v[:, None], (out_H, out_W))
-        u = xp.broadcast_to(u[None, :], (out_H, out_W))
-        vw = xp.broadcast_to(vw[:, None], (out_H, out_W))
-        uw = xp.broadcast_to(uw[None, :], (out_H, out_W))
+        # Note that numpy 1.9 doesn't support broadcast_to method.
+        v, u, vw, uw = xp.broadcast_arrays(
+            v[:, None], u[None, :], vw[:, None], uw[None, :])
 
         if xp is numpy:
             y = interpolate_bilinear_cpu(x, v, u, vw, uw)
@@ -254,10 +253,9 @@ class ResizeImagesGrad(function_node.FunctionNode):
 
         # Meshgrid-like operation. Meshgrid can cause
         # performance loss due to memory consumption.
-        v = xp.broadcast_to(v[:, None], (out_H, out_W))
-        u = xp.broadcast_to(u[None, :], (out_H, out_W))
-        vw = xp.broadcast_to(vw[:, None], (out_H, out_W))
-        uw = xp.broadcast_to(uw[None, :], (out_H, out_W))
+        # Note that numpy 1.9 doesn't support broadcast_to method.
+        v, u, vw, uw = xp.broadcast_arrays(
+            v[:, None], u[None, :], vw[:, None], uw[None, :])
 
         if xp is numpy:
             gx = interpolate_grad_bilinear_cpu(gy, v, u, vw, uw, H, W)
