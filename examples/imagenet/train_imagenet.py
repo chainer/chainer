@@ -177,10 +177,10 @@ def main():
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
-            num_threads, args.gpu, True, mean=ch_mean, std=ch_std)
+            num_threads, device, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
-            num_threads, args.gpu, False, mean=ch_mean, std=ch_std)
+            num_threads, device, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
