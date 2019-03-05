@@ -667,14 +667,14 @@ class Optimizer(object):
         if scale is None:
             self._loss_scaling_is_dynamic = True
             if interval < 1:
-                raise ValueError('interval must be greater equal to 1. '
-                                 'Actual: {}'.format(interval))
+                raise ValueError('interval must be greater than or equal to 1.'
+                                 ' Actual: {}'.format(interval))
             self._loss_scale = 1.0
             self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
             self._loss_scaling_isnan_ever = False
         else:
             if scale <= 0:
-                raise ValueError('loss_scale must be positive number. '
+                raise ValueError('loss_scale must be a positive number. '
                                  'Actual: {}'.format(scale))
             self._loss_scale = scale
 
@@ -694,7 +694,7 @@ class Optimizer(object):
                 self._loss_scaling_isnan_ever = True
                 warnings.warn(
                     'Non finite number found in param.grad of {}'
-                    ' (iteration:{}, loss_scale:{})'
+                    ' (iteration: {}, loss_scale: {})'
                     ''.format(name, self.t, self._loss_scale))
 
     def is_safe_to_update(self):
