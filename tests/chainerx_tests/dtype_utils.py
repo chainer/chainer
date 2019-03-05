@@ -1,3 +1,8 @@
+import chainerx
+
+import numpy
+
+
 result_dtypes_two_arrays = [
     # Bools.
     (('bool_', 'bool_'), 'bool'),
@@ -69,3 +74,20 @@ result_dtypes_three_arrays = [
     (('bool_', 'float16', 'float32'), 'float32'),
     (('bool_', 'bool_', 'float64'), 'float64'),
 ]
+
+
+def cast_if_numpy_array(xp, array, chx_expected_dtype):
+    """Casts NumPy result array to match the dtype of ChainerX's corresponding
+    result.
+
+    This function receives result arrays for both NumPy and ChainerX and only
+    converts dtype of the NumPy array.
+    """
+    assert xp in (chainerx, numpy)
+    assert isinstance(array, xp.ndarray)
+
+    # Dtype conversion to allow comparing the correctnesses of the values.
+    if xp is numpy:
+        return array.astype(chx_expected_dtype, copy=False)
+
+    return array

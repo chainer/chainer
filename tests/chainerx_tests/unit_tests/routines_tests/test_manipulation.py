@@ -306,22 +306,6 @@ def test_concatenate(xp, shapes, axis):
     return _concatenate(xp, shapes, axis, 'float32')
 
 
-def _test_concatenate_multiple_arrays_mixed_dtypes(
-        xp, shapes, axis, dtypes, chx_expected_dtype):
-    assert len(shapes) == len(dtypes)
-
-    y = _concatenate(xp, shapes, axis, dtypes)
-
-    # ChainerX dtype check.
-    if xp is chainerx:
-        assert y.dtype == chx_expected_dtype
-
-    # Dtype conversion to allow comparing the correctnesses of the values.
-    if xp is numpy and y.dtype != chx_expected_dtype:
-        y = y.astype(chx_expected_dtype)
-    return y
-
-
 @chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize('shapes,axis', [
     ([(0,), (0,)], 0),
@@ -343,8 +327,8 @@ def _test_concatenate_multiple_arrays_mixed_dtypes(
 def test_concatenate_two_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 2
-    return _test_concatenate_multiple_arrays_mixed_dtypes(
-        xp, shapes, axis, dtypes, chx_expected_dtype)
+    y = _concatenate(xp, shapes, axis, dtypes)
+    return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(stride_check=False)
@@ -361,8 +345,8 @@ def test_concatenate_two_arrays_mixed_dtypes(
 def test_concatenate_three_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 3
-    return _test_concatenate_multiple_arrays_mixed_dtypes(
-        xp, shapes, axis, dtypes, chx_expected_dtype)
+    y = _concatenate(xp, shapes, axis, dtypes)
+    return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
