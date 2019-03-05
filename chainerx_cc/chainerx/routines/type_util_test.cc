@@ -233,6 +233,8 @@ TEST(ResultTypeTest, ArraysAndScalars) {
     CHECK_RESULT_TYPE3(Int8, Ai8, Sb, Si8);
     CHECK_RESULT_TYPE3(Float32, Af32, Sb, Si8);
     CHECK_RESULT_TYPE3(Float32, Af32, Ab, Si8);
+    CHECK_RESULT_TYPE3(Float16, Ab, Ab, Sf16);
+    CHECK_RESULT_TYPE3(Float16, Ab, Af16, Sf16);
 }
 
 }  // namespace
