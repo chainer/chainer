@@ -59,6 +59,15 @@ private:
         AddArg(std::forward<Arg>(arg));
         AddArgsImpl(std::forward<Args>(args)...);
     }
+
+    static uint8_t GetDtypeCategory(Dtype dtype) {
+        switch (GetKind(dtype)) {
+            case DtypeKind::kFloat:
+                return 2;
+            default:
+                return 1;
+        }
+    }
 };
 
 void ResultTypeResolver::AddArg(const Array& arg) {

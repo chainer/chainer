@@ -227,17 +227,6 @@ Dtype GetDtype(const std::string& name);
 // Returns a vector of all possible dtype values.
 std::vector<Dtype> GetAllDtypes();
 
-inline uint8_t GetDtypeCategory(DtypeKind kind) {
-    switch (kind) {
-        case DtypeKind::kFloat:
-            return 2;
-        default:
-            return 1;
-    }
-}
-
-inline uint8_t GetDtypeCategory(Dtype dtype) { return GetDtypeCategory(GetKind(dtype)); }
-
 // Throws an exception if two dtypes mismatch.
 void CheckEqual(Dtype lhs, Dtype rhs);
 
