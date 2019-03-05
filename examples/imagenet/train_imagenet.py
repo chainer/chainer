@@ -169,6 +169,9 @@ def main():
     if args.dali:
         if not dali_util._dali_available:
             raise RuntimeError('DALI seems not available on your system.')
+        if not isinstance(device, chainer.backend.cuda.GpuDevice):
+            raise RuntimeError('Using DALI requires GPU device. Please '
+                               'specify it with --device option.')
         num_threads = args.loaderjob
         if num_threads is None or num_threads <= 0:
             num_threads = 1
@@ -177,10 +180,10 @@ def main():
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
-            num_threads, device, True, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
-            num_threads, device, False, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
