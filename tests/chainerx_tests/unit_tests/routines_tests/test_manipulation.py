@@ -305,12 +305,11 @@ def test_concatenate(xp, shapes, axis):
     return _concatenate(xp, shapes, axis, 'float32')
 
 
-def _test_concatenate_multiple_arrays_mixed_dtypes(xp, shapes, axis, dtypes):
+def _test_concatenate_multiple_arrays_mixed_dtypes(
+        xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == len(dtypes)
 
     y = _concatenate(xp, shapes, axis, dtypes)
-
-    chx_expected_dtype = chainerx.testing._result_dtypes[dtypes]
 
     # ChainerX dtype check.
     if xp is chainerx:
@@ -338,12 +337,13 @@ def _test_concatenate_multiple_arrays_mixed_dtypes(xp, shapes, axis, dtypes):
     ([(2, 3), (4, 5, 1)], None),
     ([(2, 3), (2, 3)], _unspecified),
 ])
-@pytest.mark.parametrize('dtype1', chainerx.testing.all_dtypes)
-@pytest.mark.parametrize('dtype2', chainerx.testing.all_dtypes)
-def test_concatenate_two_arrays_mixed_dtypes(xp, shapes, axis, dtype1, dtype2):
+@pytest.mark.parametrize(
+    'dtypes,chx_expected_dtype', chainerx.testing._result_dtypes_two_arrays)
+def test_concatenate_two_arrays_mixed_dtypes(
+        xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 2
     return _test_concatenate_multiple_arrays_mixed_dtypes(
-        xp, shapes, axis, (dtype1, dtype2))
+        xp, shapes, axis, dtypes, chx_expected_dtype)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(stride_check=False)
@@ -355,14 +355,13 @@ def test_concatenate_two_arrays_mixed_dtypes(xp, shapes, axis, dtype1, dtype2):
     ([(2, 3), (4, 5, 1), (4,)], None),
     ([(2, 3), (2, 3), (1, 3)], _unspecified),
 ])
-@pytest.mark.parametrize('dtype1', chainerx.testing.all_dtypes)
-@pytest.mark.parametrize('dtype2', chainerx.testing.all_dtypes)
-@pytest.mark.parametrize('dtype3', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize(
+    'dtypes,chx_expected_dtype', chainerx.testing._result_dtypes_three_arrays)
 def test_concatenate_three_arrays_mixed_dtypes(
-        xp, shapes, axis, dtype1, dtype2, dtype3):
+        xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 3
     return _test_concatenate_multiple_arrays_mixed_dtypes(
-        xp, shapes, axis, (dtype1, dtype2, dtype3))
+        xp, shapes, axis, dtypes, chx_expected_dtype)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
