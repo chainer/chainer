@@ -430,7 +430,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 
     // If input dtypes are mixed, elements in the input arrays are casted to the resulting dtype.
     // Their original dtypes must therefore be remembered in order to cast the computed gradients back in the backward pass.
-    std::vector<nonstd::optional<Dtype>> in_dtypes;
+    std::vector<Dtype> in_dtypes;
     in_dtypes.reserve(in_size);
 
     std::vector<ConstArrayRef> array_refs;
@@ -443,12 +443,11 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             const Shape& shape = array.shape();
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
+            in_dtypes.emplace_back(in_dtype);
             if (in_dtype == out_dtype) {
                 device.Copy(array, sliced_out);
-                in_dtypes.emplace_back(nonstd::nullopt);
             } else {
                 device.AsType(array, sliced_out);
-                in_dtypes.emplace_back(in_dtype);
             }
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
@@ -459,10 +458,13 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         BackwardBuilder bb{"concatenate", array_refs, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
             bt.Define([indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes)](BackwardContext& bctx) {
-                std::vector<Array> gxs = Split(*bctx.output_grad(), indices, axis);
+                const Array& gy = *bctx.output_grad();
+                Dtype out_dtype = gy.dtype();
+                std::vector<Array> gxs = Split(gy, indices, axis);
                 for (size_t i = 0; i < gxs.size(); ++i) {
-                    if (const nonstd::optional<Dtype>& in_dtype = in_dtypes[i]) {
-                        bctx.input_grad(i) = gxs[i].AsType(*in_dtype);
+                    Dtype in_dtype = in_dtypes[i];
+                    if (out_dtype != in_dtype) {
+                        bctx.input_grad(i) = gxs[i].AsType(in_dtype);
                     } else {
                         bctx.input_grad(i) = std::move(gxs[i]);
                     }
