@@ -202,7 +202,7 @@ TEST(ResultTypeTest, Three) {
 }
 
 TEST(ResultTypeTest, ArraysAndScalars) {
-    // Arrays always take precedence
+    // Arrays take precedence unless Scalar is a wider floating kind.
 
     // same dtype
     CHECK_RESULT_TYPE2(Int16, Ai16, Si16);
@@ -211,19 +211,19 @@ TEST(ResultTypeTest, ArraysAndScalars) {
     CHECK_RESULT_TYPE2(Int8, Ai8, Si16);
     // float vs int
     CHECK_RESULT_TYPE2(Float32, Af32, Si32);
-    CHECK_RESULT_TYPE2(Int32, Ai32, Sf32);
+    CHECK_RESULT_TYPE2(Float32, Ai32, Sf32);
 
     // 3 arguments
     CHECK_RESULT_TYPE3(Int8, Ai8, Si16, Si32);
     CHECK_RESULT_TYPE3(Int16, Ai16, Si8, Si32);
     CHECK_RESULT_TYPE3(Int16, Ai8, Ai16, Si32);
-    CHECK_RESULT_TYPE3(Int8, Ai8, Si32, Sf64);
-    CHECK_RESULT_TYPE3(Int8, Ai8, Sf32, Sf64);
+    CHECK_RESULT_TYPE3(Float64, Ai8, Si32, Sf64);
+    CHECK_RESULT_TYPE3(Float64, Ai8, Sf32, Sf64);
     // unsigned
     CHECK_RESULT_TYPE3(UInt8, Au8, Si8, Si8);
     CHECK_RESULT_TYPE3(UInt8, Au8, Si8, Si16);
     CHECK_RESULT_TYPE3(Int16, Au8, Ai8, Si8);
-    CHECK_RESULT_TYPE3(Int16, Au8, Ai8, Sf16);
+    CHECK_RESULT_TYPE3(Float16, Au8, Ai8, Sf16);
     CHECK_RESULT_TYPE3(Float16, Au8, Af16, Si8);
     CHECK_RESULT_TYPE3(Int8, Ai8, Su8, Si8);
     // bool
@@ -233,6 +233,8 @@ TEST(ResultTypeTest, ArraysAndScalars) {
     CHECK_RESULT_TYPE3(Int8, Ai8, Sb, Si8);
     CHECK_RESULT_TYPE3(Float32, Af32, Sb, Si8);
     CHECK_RESULT_TYPE3(Float32, Af32, Ab, Si8);
+    CHECK_RESULT_TYPE3(Float16, Ab, Ab, Sf16);
+    CHECK_RESULT_TYPE3(Float16, Ab, Af16, Sf16);
 }
 
 }  // namespace
