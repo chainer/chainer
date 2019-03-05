@@ -246,11 +246,10 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
-def _concatenate(xp, shapes, axis, dtype):
-    if not isinstance(dtype, (list, tuple)):
-        dtypes = (dtype,) * len(shapes)
-    else:
-        dtypes = dtype
+def _concatenate(xp, shapes, dtypes, axis):
+    # Generates input ndarrays and returns the result of xp.concatenate.
+    assert isinstance(shapes, (list, tuple))
+    assert isinstance(dtypes, (list, tuple))
     assert len(shapes) == len(dtypes)
 
     arrays = []
@@ -264,11 +263,9 @@ def _concatenate(xp, shapes, axis, dtype):
         arrays.append(a)
 
     if axis is _unspecified:
-        args = (arrays,)
+        return xp.concatenate(arrays)
     else:
-        args = (arrays, axis)
-
-    return xp.concatenate(*args)
+        return xp.concatenate(arrays, axis)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -303,7 +300,7 @@ def _concatenate(xp, shapes, axis, dtype):
     ([(2, 3), (4, 5)], _unspecified),
 ])
 def test_concatenate(xp, shapes, axis):
-    return _concatenate(xp, shapes, axis, 'float32')
+    return _concatenate(xp, shapes, ['float32'] * len(shapes), axis)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
@@ -327,7 +324,7 @@ def test_concatenate(xp, shapes, axis):
 def test_concatenate_two_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 2
-    y = _concatenate(xp, shapes, axis, dtypes)
+    y = _concatenate(xp, shapes, dtypes, axis)
     return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
@@ -345,7 +342,7 @@ def test_concatenate_two_arrays_mixed_dtypes(
 def test_concatenate_three_arrays_mixed_dtypes(
         xp, shapes, axis, dtypes, chx_expected_dtype):
     assert len(shapes) == 3
-    y = _concatenate(xp, shapes, axis, dtypes)
+    y = _concatenate(xp, shapes, dtypes, axis)
     return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
