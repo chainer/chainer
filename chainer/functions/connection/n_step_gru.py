@@ -63,7 +63,7 @@ def n_step_gru(
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (:class:`~chainer.Variable`):
+        hx (~chainer.Variable):
             Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
