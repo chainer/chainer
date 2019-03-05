@@ -60,7 +60,7 @@ private:
         AddArgsImpl(std::forward<Args>(args)...);
     }
 
-    static uint8_t GetDtypeCategory(Dtype dtype) {
+    static int GetDtypeCategory(Dtype dtype) {
         switch (GetKind(dtype)) {
             case DtypeKind::kFloat:
                 return 2;
