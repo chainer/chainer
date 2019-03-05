@@ -31,9 +31,9 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
 
                    FunctionName  UsedBytes  AcquiredBytes  Occurrence
                  LinearFunction     5.16GB       179.98MB        3900
-                           ReLU   991.82MB       458.97MB        2600
-            SoftmaxCrossEntropy     7.71MB         5.08MB        1300
-                       Accuracy   617.97KB       351.00KB         700
+                           ReLU     0.99GB       458.97MB        2600
+            SoftmaxCrossEntropy     0.01GB         5.08MB        1300
+                       Accuracy     0.00GB         0.35MB         700
 
         where *FunctionName* is the name of function that calls the hook, and
         *UsedBytes* is the memory bytes the function used from cupy memory
@@ -140,10 +140,11 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
 
         Args:
             unit (str): Supplementary units used for used memories.
-                `B`, `KB`, `MB`, `GB`, `TB`, `PB, `EB`, `ZB`, `auto`(default)
+                `B`, `KB`, `MB`, `GB`, `TB`, `PB`, `EB`, `ZB`, `auto`(default)
                 and `auto_foreach` are supported. If `auto`, units of memories
-                are aligned to the largest, and if `auto_foreach`, units of
-                memories are adjusted for each element.
+                are aligned to the each largest of 'used_bytes' and
+                'acquired_bytes'. If `auto_foreach`, units of memories are
+                adjusted for each element.
         """
         entries = [[
             'FunctionName', 'UsedBytes', 'AcquiredBytes', 'Occurrence']]
