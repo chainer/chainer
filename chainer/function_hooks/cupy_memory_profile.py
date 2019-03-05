@@ -142,7 +142,7 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
             unit (str): Supplementary units used for used memories.
                 `B`, `KB`, `MB`, `GB`, `TB`, `PB`, `EB`, `ZB`, `auto`(default)
                 and `auto_foreach` are supported. If `auto`, units of memories
-                are aligned to the each largest of 'used_bytes' and
+                are aligned to the largest values of 'used_bytes' and
                 'acquired_bytes'. If `auto_foreach`, units of memories are
                 adjusted for each element.
         """
