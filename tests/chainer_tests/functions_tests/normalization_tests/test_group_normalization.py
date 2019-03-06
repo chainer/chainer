@@ -16,24 +16,26 @@ def _simple_group_normalization(x, groups, gamma, beta, xp, eps=1e-5):
     batch_size, channels = x.shape[:2]
     x_reshape = x.reshape(batch_size, groups, channels // groups, -1)
 
-    mu = xp.mean(x_reshape, axis=(2, 3), keepdims=True)
-    sigma = xp.std(x_reshape, axis=(2, 3), keepdims=True)
+    mean = xp.mean(x_reshape, axis=(2, 3), keepdims=True)
+    var = xp.var(x_reshape, axis=(2, 3), keepdims=True)
+    std = numpy.sqrt(var + eps)
 
-    x_reshape = (x_reshape - mu) / (sigma + eps)
-    x = x_reshape.reshape(x.shape)
+    x_hat = (x_reshape - mean) / std
+    x_hat = x_hat.reshape(x.shape)
 
     for i in six.moves.xrange(x.ndim):
         if i != 1:  # except for channel dim
             gamma = xp.expand_dims(gamma, i)
             beta = xp.expand_dims(beta, i)
 
-    return x * gamma + beta
+    return x_hat * gamma + beta
 
 
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
 })))
 class TestGroupNormalization(unittest.TestCase):
 
@@ -55,14 +57,14 @@ class TestGroupNormalization(unittest.TestCase):
 
         def func(*args_):
             return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
+                args_[0], self.groups, args_[1], args_[2], eps=self.eps)
 
         y = func(*args)
         self.assertEqual(y.data.dtype, self.dtype)
 
         # Verify that implementation using batch normalization is correct
         y_simple_gn = _simple_group_normalization(
-            args[0], self.groups, args[1], args[2], xp)
+            args[0], self.groups, args[1], args[2], xp, eps=self.eps)
         testing.assert_allclose(
             y.data, y_simple_gn, **self.check_forward_options)
 
@@ -84,7 +86,7 @@ class TestGroupNormalization(unittest.TestCase):
     def check_backward(self, args, y_grad):
         def func(*args_):
             return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
+                args_[0], self.groups, args_[1], args_[2], eps=self.eps)
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -101,7 +103,7 @@ class TestGroupNormalization(unittest.TestCase):
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
             return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
+                args_[0], self.groups, args_[1], args_[2], eps=self.eps)
 
         gradient_check.check_double_backward(
             func, args, y_grad, x_grad_grad,
@@ -115,6 +117,24 @@ class TestGroupNormalization(unittest.TestCase):
         self.check_double_backward(
             [cuda.to_gpu(arg) for arg in self.args],
             cuda.to_gpu(self.gy), [cuda.to_gpu(ggx_) for ggx_ in self.ggx])
+
+
+@testing.parameterize(*(testing.product({
+    'shape': [(20, 15)],
+    'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
+})))
+class TestInvStd(unittest.TestCase):
+
+    def setUp(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        mean = xp.mean(x, axis=1)
+        var = xp.var(x, axis=1)
+        std = 
+
+
+    def check_forward(self, args):
+        eps = 
 
 
 testing.run_module(__name__, __file__)
