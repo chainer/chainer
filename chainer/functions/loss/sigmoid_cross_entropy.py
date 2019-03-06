@@ -138,7 +138,8 @@ def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
             which has ``-1`` as its target value, is set to ``0``.
 
     Returns:
-        Variable: A variable object holding an array of the cross entropy.
+        ~chainer.Variable: A variable object holding an array of the cross
+        entropy.
         If ``reduce`` is ``'mean'``, it is a scalar array.
         If ``reduce`` is ``'no'``, the shape is same as those of ``x`` and
         ``t``.

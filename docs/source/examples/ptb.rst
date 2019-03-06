@@ -279,14 +279,14 @@ because it calculates softmax cross entropy as the loss.
 
 Note that :class:`~chainer.links.Classifier` computes not only the loss but also accuracy based on a given
 input/label pair. To learn the RNN language model, we only need the loss (cross entropy) in the
-:class:`Classifier` because we calculate the perplexity instead of classification accuracy to check
+:class:`~chainer.links.Classifier` because we calculate the perplexity instead of classification accuracy to check
 the performance of the model. So, we turn off computing the accuracy by giving False to
 ``model.compute_accuracy`` attribute.
 
 2.2.10 Setup Optimizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Prepare an optimizer. Here, we use :class:`~chainer.optimizer.GradientClipping`
+Prepare an optimizer. Here, we use :class:`~chainer.optimizer_hooks.GradientClipping`
 to prevent gradient explosion. It automatically clips
 the gradient to be used to update the parameters in the model with given constant
 ``gradclip``.

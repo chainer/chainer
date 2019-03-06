@@ -15,7 +15,7 @@ Basic usage is as follows::
     with open('path/to/output/file', 'w') as o:
         o.write(g.dump())
 
-where ``vs`` is list of :class:`Variable` instances and ``g`` is an instance of :class:`ComputationalGraph`.
+where ``vs`` is list of :class:`~chainer.Variable` instances and ``g`` is an instance of :class:`~chainer.computational_graph.ComputationalGraph`.
 This code generates the computational graph that are backward-reachable (i.e. reachable by repetition of steps backward) from at least one of ``vs``.
 
 Here is an example of (a part of) the generated graph (inception(3a) in `GoogLeNet <https://arxiv.org/abs/1409.4842>`_). This example is from ``example/imagenet``.

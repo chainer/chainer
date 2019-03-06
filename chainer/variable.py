@@ -163,7 +163,7 @@ class VariableNode(object):
     :class:`~chainer.Variable`.
 
     Args:
-        variable (Variable): The corresponding variable object.
+        variable (~chainer.Variable): The corresponding variable object.
         name (str): Name of the variable node.
 
     Attributes:
@@ -339,7 +339,7 @@ class VariableNode(object):
         this node object and returns it.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         var = self._variable()
@@ -357,7 +357,7 @@ class VariableNode(object):
         returns ``None``.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         return self._variable()
@@ -1260,7 +1260,7 @@ class Variable(object):
         does nothing.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         src = var.array
@@ -1285,7 +1285,7 @@ class Variable(object):
         then accumulates the gradient.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         # TODO(sonots): Implement for ChainerX

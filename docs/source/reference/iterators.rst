@@ -6,8 +6,8 @@ Iterator
 ========
 
 Chainer provides some iterators that implement typical strategies to create mini-batches by iterating over datasets.
-:class:`SerialIterator` is the simplest one, which extracts mini-batches in the main thread.
-:class:`MultiprocessIterator` and :class:`MultithreadIterator` are parallelized versions of :class:`SerialIterator`. They maintain worker subprocesses and subthreads, respectively, to load the next mini-batch in parallel.
+:class:`~chainer.iterators.SerialIterator` is the simplest one, which extracts mini-batches in the main thread.
+:class:`~chainer.iterators.MultiprocessIterator` and :class:`~chainer.iterators.MultithreadIterator` are parallelized versions of :class:`~chainer.iterators.SerialIterator`. They maintain worker subprocesses and subthreads, respectively, to load the next mini-batch in parallel.
 
 
 .. autosummary::

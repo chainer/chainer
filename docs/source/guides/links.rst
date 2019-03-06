@@ -2,15 +2,15 @@ Links
 ~~~~~
 
 In order to write neural networks, we have to combine functions with *parameters* and optimize the parameters.
-You can use the class :class:`Link` to do this.
-A :class:`Link` is an object that holds parameters (i.e. optimization targets).
+You can use the class :class:`~chainer.Link` to do this.
+A :class:`~chainer.Link` is an object that holds parameters (i.e. optimization targets).
 
 The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
 We will introduce higher level links, but here think of links as simply functions with parameters.
 
-One of the most frequently used links is the :class:`~functions.connection.linear.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
+One of the most frequently used links is the :class:`~chainer.links.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
 It represents a mathematical function :math:`f(x) = Wx + b`, where the matrix :math:`W` and the vector :math:`b` are parameters.
-This link corresponds to its pure counterpart :func:`~functions.linear`, which accepts :math:`x, W, b` as arguments.
+This link corresponds to its pure counterpart :func:`~chainer.functions.linear`, which accepts :math:`x, W, b` as arguments.
 A linear link from three-dimensional space to two-dimensional space is defined by the following line:
 
 .. doctest::
@@ -62,10 +62,10 @@ An instance of the Linear link acts like a usual function:
   Note that its parameters are initialized in a lazy manner at the first mini-batch.
   Therefore, ``l`` does not have ``W`` attribute if no data is put to the link.
 
-Gradients of parameters are computed by the :meth:`~Variable.backward` method.
+Gradients of parameters are computed by the :meth:`~chainer.Variable.backward` method.
 Note that gradients are **accumulated** by the method rather than overwritten.
 So first you must clear the gradients to renew the computation.
-It can be done by calling the :meth:`~Link.cleargrads` method.
+It can be done by calling the :meth:`~chainer.Link.cleargrads` method.
 
 .. doctest::
 

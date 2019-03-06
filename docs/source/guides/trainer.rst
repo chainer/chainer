@@ -20,8 +20,8 @@ The training loop abstraction mainly consists of two components:
   There are also many implementations of datasets and iterators in :mod:`~chainer.datasets` and :mod:`~chainer.iterators` modules, respectively.
 - **Trainer**.
   It implements 3, 4, 5, and 6 in the above list.
-  The whole procedure is implemented by :class:`~training.Trainer`.
-  The way to update parameters (3 and 4) is defined by :class:`~training.Updater`, which can be freely customized.
-  5 and 6 are implemented by instances of :class:`~training.Extension`, which appends an extra procedure to the training loop.
+  The whole procedure is implemented by :class:`~chainer.training.Trainer`.
+  The way to update parameters (3 and 4) is defined by :class:`~chainer.training.Updater`, which can be freely customized.
+  5 and 6 are implemented by instances of :class:`~chainer.training.Extension`, which appends an extra procedure to the training loop.
   Users can freely customize the training procedure by adding extensions. Users can also implement their own extensions.
 

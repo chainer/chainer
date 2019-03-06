@@ -1,6 +1,8 @@
 Optimizers
 ==========
 
+.. module:: chainer.optimizers
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:

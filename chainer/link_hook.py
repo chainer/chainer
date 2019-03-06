@@ -62,7 +62,7 @@ class LinkHook(object):
     :meth:`~chainer.LinkHook.forward_preprocess`
     (resp. :meth:`~chainer.LinkHook.forward_postprocess`)
     of all link hooks registered to this link are called before (resp. after)
-    :meth:`Link.forward() <chainer.Link.forward>` method of the link.
+    ``forward()`` method of the link.
 
     There are two ways to register :class:`~chainer.LinkHook`
     objects to :class:`~chainer.Link` objects.
