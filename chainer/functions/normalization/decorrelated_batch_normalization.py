@@ -146,7 +146,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
         raise NotImplementedError('Double backward is not implemented for'
-                                  ' decorrelated batch normalizatin.')
+                                  ' decorrelated batch normalization.')
 
 
 class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
