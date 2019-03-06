@@ -1,5 +1,7 @@
 import collections
 import pickle
+import numpy as np
+from chainermn import nccl
 
 import mpi4py.MPI
 
@@ -169,3 +171,14 @@ def chunked_bcast_obj(obj, mpi_comm, max_buf_len=256 * 1024 * 1024,
         obj = pickle.loads(pickled_bytes)
 
     return obj
+
+def _get_nccl_type_id(dtype):
+    if dtype == np.float16:
+        return nccl.NCCL_FLOAT16
+    elif dtype == np.float32:
+        return nccl.NCCL_FLOAT32
+    elif dtype == np.float64:
+        return nccl.NCCL_FLOAT64
+    else:
+        raise ValueError(
+            'dtype must be float16, float32, or float64.')

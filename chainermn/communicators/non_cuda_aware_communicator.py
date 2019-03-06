@@ -1,6 +1,7 @@
 import chainer.cuda
 import math
 import mpi4py.MPI
+import numpy as np
 
 from chainermn.communicators import _communication_utility
 from chainermn.communicators import _memory_utility
@@ -46,8 +47,17 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         for _, param in sorted(model.namedparams()):
             if param.data is not None:
                 data = param.data
+                
                 tmp_cpu = chainer.cuda.to_cpu(data)
+
+                is_float16 = tmp_cpu.dtype == np.float16
+                if is_float16:
+                    tmp_cpu = tmp_cpu.astype(np.float32)
+
                 self.mpi_comm.Bcast(tmp_cpu)
+                if is_float16:
+                    tmp_cpu = tmp_cpu.astype(np.float16)
+
                 tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
                 data[:] = tmp_gpu
 
@@ -65,8 +75,15 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
+
+        is_float16 = params[0].grad.dtype == np.float16
+        if is_float16:
+            transfer_dtype = np.float32
+        else:
+            transfer_dtype = None
+
         _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, itemsize, 'grad', self.gpu_buffer_a, transfer_dtype=transfer_dtype)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -105,4 +122,5 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.ptr)
 
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+            params, itemsize, 'grad', self.gpu_buffer_b,
+            transfer_dtype=transfer_dtype)

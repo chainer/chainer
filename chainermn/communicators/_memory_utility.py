@@ -94,22 +94,31 @@ def extract_params_set_grad(model):
             if param.grad is not None]
 
 
-def pack_params(params, itemsize, attr_name, buffer, stream=None):
+def pack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype=None):
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
+        if None is not transfer_dtype:
+            v = v.astype(transfer_dtype)
+
         size = v.size * itemsize
         buffer.from_device(v, size, offset, stream)
         offset += size
 
-
-def unpack_params(params, itemsize, attr_name, buffer, stream=None):
+def unpack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype=None):
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
         size = v.size * itemsize
+        comp_dtype = v.dtype
+        if None is not transfer_dtype:
+            v = cp.array(v, copy=False, dtype = transfer_dtype)
+
         buffer.to_device(v, size, offset, stream)
         offset += size
+
+        if None is not transfer_dtype and comp_dtype != transfer_dtype:
+            setattr(param, attr_name, v.astype(comp_dtype))
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
