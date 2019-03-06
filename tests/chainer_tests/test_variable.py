@@ -344,7 +344,7 @@ class TestVariable(unittest.TestCase):
 
     def check_get_item(self, a):
         x = chainer.Variable(a)
-        if len(self.x_shape) > 0:
+        if self.x_shape:
             slices = slice(2, 5)
             np.testing.assert_equal(backend.CpuDevice().send(x[slices].data),
                                     backend.CpuDevice().send(self.x[slices]))

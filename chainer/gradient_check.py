@@ -390,7 +390,7 @@ class _CheckBackward(object):
         device = backend.get_device_from_array(*x_data)
 
         if device.xp is chainerx:
-            if len(params) > 0:
+            if params:
                 raise NotImplementedError(
                     'gradient_check does not support params argument for '
                     'ChainerX arrays')

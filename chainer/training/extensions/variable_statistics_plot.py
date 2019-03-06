@@ -263,7 +263,7 @@ class VariableStatisticsPlot(extension.Extension):
                 x = getattr(var, k, None)
                 if x is not None:
                     xs.append(x.ravel())
-            if len(xs) > 0:
+            if xs:
                 stat_dict = self._statistician(
                     xp.concatenate(xs, axis=0), axis=0, xp=xp)
                 stat_list = []

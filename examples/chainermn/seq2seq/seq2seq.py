@@ -280,7 +280,7 @@ def create_optimizer(opt_arg):
 
     args = args.strip()
 
-    if len(args) > 0:
+    if args:
         for a in re.split(r',\s*', args):
             if a.find('=') >= 0:
                 key, val = a.split('=')
