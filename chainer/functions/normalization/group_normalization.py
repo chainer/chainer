@@ -122,7 +122,7 @@ class GroupNormalization(function_node.FunctionNode):
         x_hat, = _XHat(
             self.eps, self.mean, self.inv_std,
             self.dummy_gamma).apply((x,))
-        gx_hat, ggamma, gbeta = _GradHelper().apply((x_hat, gamma, gy))
+        gx_hat, ggamma, gbeta = _ScaleShiftGrad().apply((x_hat, gamma, gy))
         gx, = _XHatGrad(
             self.eps, self.mean, self.inv_std,
             self.dummy_gamma, x_hat.array).apply((x, gx_hat))
@@ -131,7 +131,7 @@ class GroupNormalization(function_node.FunctionNode):
         return gx, ggamma, gbeta
 
 
-class _GradHelper(function_node.FunctionNode):
+class _ScaleShiftGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
