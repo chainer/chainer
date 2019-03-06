@@ -12,6 +12,7 @@ Utilities across backends
    :nosignatures:
 
    chainer.backend.copyto
+   chainer.backend.get_array_module
 
 CUDA
 ----
@@ -30,6 +31,7 @@ Devices
    chainer.backends.cuda.get_device
    chainer.backends.cuda.get_device_from_id
    chainer.backends.cuda.get_device_from_array
+   chainer.backends.cuda.DummyDeviceType
 
 CuPy array allocation and copy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -119,7 +119,7 @@ iteration and it should not be (as) necessary to debug this code in later iterat
 However, this feature does provide some functionality to help with debugging. 
 For example, it is possible to obtain and inspect the current static schedules. 
 It is also possible to directly step through the code of the static schedule if 
-you wish (by debugging the ``forward()`` method of :class:`StaticScheduleFunction` 
+you wish (by debugging the ``forward()`` method of :class:`~chainer.static_graph.StaticScheduleFunction` 
 in :mod:`~chainer.static_graph`).
 
 

@@ -61,9 +61,9 @@ Extensions
 ----------
 
 An extension is a callable object that can perform arbitrary actions during the training loop.
-Extensions can be registered to :class:`Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
+Extensions can be registered to :class:`~chainer.training.Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
 
-In addition to the built-in extensions listed below, you can define your own extension by implementing :class:`Extension` or using the :meth:`make_extension` decorator.
+In addition to the built-in extensions listed below, you can define your own extension by implementing :class:`~chainer.training.Extension` or using the :meth:`make_extension` decorator.
 See :doc:`../guides/extensions` for details.
 
 Common

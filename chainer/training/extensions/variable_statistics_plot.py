@@ -124,7 +124,7 @@ class Statistician(object):
 
 class VariableStatisticsPlot(extension.Extension):
 
-    """Trainer extension to plot statistics for :class:`Variable`\\s.
+    """Trainer extension to plot statistics for :class:`~chainer.Variable`\\s.
 
     This extension collects statistics for a single :class:`Variable`, a list
     of :class:`Variable`\\s or similarly a single or a list of

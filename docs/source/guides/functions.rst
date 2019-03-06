@@ -30,7 +30,7 @@ defining it as a single function may reduce memory consumption, so it is not *on
 Here we call this function *MulAdd*.
 
 Let's start with defining MulAdd working on the CPU.
-Any function must inherit the :class:`Function` class.
+Any function must inherit the :class:`~chainer.Function` class.
 The skeleton of a function looks like:
 
 .. testcode::
@@ -80,7 +80,7 @@ MulAdd is simple and implemented as follows
    w.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
    w.backward()
 
-As per the warning above, the ``forward_cpu`` method returns a tuple of single element.
+As per the warning above, the :meth:`~Function.forward_cpu` method returns a tuple of single element.
 Note that all arrays appearing in CPU functions are :class:`numpy.ndarray`.
 The forward function is straightforward:
 It unpacks the input tuple, computes the output, and packs it into a tuple.
@@ -255,7 +255,7 @@ It can be written straight-forward as follows
    Of course, the module in such environment is almost useless, but if the interpreter does not run through the code accessing CUDA-dedicated functions, the code is still valid.
 
 The CPU and GPU implementations are almost same, except that :mod:`numpy` is replaced by :mod:`cupy` in GPU methods.
-We can unify these functions using the :func:`chainer.backend.get_array_module` function.
+We can unify these functions using the :func:`chainer.backends.cuda.get_array_module` function.
 This function accepts arbitrary number of arrays, and returns an appropriate module for them.
 See the following code
 
@@ -307,8 +307,8 @@ It might hurt performance, since the intermediate temporary arrays are read and 
 We can reduce the number of invocations by defining our own kernel.
 It also reduce the memory consumption.
 
+CuPy provides a useful tool to define elementwise kernels, the :class:`cupy.ElementwiseKernel` class, and Chainer wraps it with the :func:`cuda.elementwise() <chainer.backends.cuda.elementwise>` function.
 Most functions only require elementwise operations like MulAdd.
-CuPy provides a useful tool to define elementwise kernels, the :class:`cupy.elementwise.ElementwiseKernel` class, and Chainer wraps it by :func:`cuda.elementwise` function.
 Our MulAdd implementation can be improved as follows:
 
 .. testcode::
@@ -346,7 +346,7 @@ Our MulAdd implementation can be improved as follows:
           gz = gw
           return gx, gy, gz
 
-:func:`chainer.backends.cuda.elementwise` function accepts the essential implementation of the kernel function, and returns a kernel invocation function (actually, it returns :class:`~cupy.elementwise.ElementwiseKernel` object, which is callable).
+:func:`chainer.backends.cuda.elementwise` function accepts the essential implementation of the kernel function, and returns a kernel invocation function (actually, it returns :class:`~cupy.ElementwiseKernel` object, which is callable).
 In typical usage, we pass four arguments to this function as follows:
 
 1. Input argument list. This is a comma-separated string each entry of which consists of a type specification and an argument name.
@@ -354,7 +354,7 @@ In typical usage, we pass four arguments to this function as follows:
 3. Body of *parallel loop*. We can use the input/output argument names as an element of these arrays.
 4. Name of the kernel function, which is shown in debuggers and profilers.
 
-Above code is not compiled on every forward/backward computation thanks to two caching mechanisms provided by :func:`cuda.elementwise`.
+Above code is not compiled on every forward/backward computation thanks to two caching mechanisms provided by :func:`cuda.elementwise() <chainer.backends.cuda.elementwise>`.
 
 The first one is *binary caching*:
 :func:`chainer.backends.cuda.elementwise` function caches the compiled binary in the ``$(HOME)/.cupy/kernel_cache`` directory with a hash value of the CUDA code, and reuses it if the given code matches the hash value.
@@ -365,7 +365,7 @@ Given a compiled binary code, we have to upload it to the current GPU in order t
 :func:`chainer.backends.cuda.elementwise` function memoizes the arguments and the current device, and if it is called with the same arguments for the same device, it reuses the previously uploaded kernel code.
 
 The above MulAdd code only works for float32 arrays.
-The :class:`~cupy.elementwise.ElementwiseKernel` also supports the type-variadic kernel definition.
+The :class:`~cupy.ElementwiseKernel` also supports the type-variadic kernel definition.
 In order to define variadic kernel functions, you can use *type placeholder* by placing a single character as type specifier:
 
 .. testcode::
@@ -452,7 +452,7 @@ Links that wrap functions
 
 Some functions are meant to be combined with parameters.
 In such case, it is useful to write a small **link** that wraps the function.
-We have already seen how to define a chain that wraps other links (by inheriting :class:`Chain` class).
+We have already seen how to define a chain that wraps other links (by inheriting :class:`~chainer.Chain` class).
 Here we study how to define a link that does not hold any other links.
 
 As the first example, suppose that we want to implement elementwise product function between the input array and the parameter array.
