@@ -13,6 +13,7 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -49,7 +50,8 @@ Array Dot(const Array& a, const Array& b) {
     Array b_matrix = b.Reshape({k, n});
 
     // Matrix-matrix product
-    Array out_matrix = Empty({m, n}, a.dtype(), a.device());
+    Dtype out_dtype = ResultType(a, b);
+    Array out_matrix = Empty({m, n}, out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
         a.device().Dot(a_matrix, b_matrix, out_matrix);
@@ -58,17 +60,27 @@ Array Dot(const Array& a, const Array& b) {
     {
         BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([b_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            bt.Define([b_matrix_tok = bb.RetainInput(1), a_dtype = a.dtype()](BackwardContext& bctx) {
                 const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Dot(gout, b_matrix.Transpose());
+                Array ga = Dot(gout, b_matrix.Transpose());
+                if (ga.dtype() == a_dtype) {
+                    bctx.input_grad() = std::move(ga);
+                } else {
+                    bctx.input_grad() = ga.AsType(a_dtype);
+                }
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([a_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            bt.Define([a_matrix_tok = bb.RetainInput(0), b_dtype = b.dtype()](BackwardContext& bctx) {
                 const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
+                Array gb = Dot(a_matrix.Transpose(), gout);
+                if (gb.dtype() == b_dtype) {
+                    bctx.input_grad() = std::move(gb);
+                } else {
+                    bctx.input_grad() = gb.AsType(b_dtype);
+                }
             });
         }
         bb.Finalize();
