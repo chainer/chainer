@@ -58,9 +58,8 @@ Dtype ResultTypeResolver::PromoteType(Dtype dt1, Dtype dt2) {
     if (kind1 == kind2) {
         if (GetItemSize(dt1) >= GetItemSize(dt2)) {
             return dt1;
-        } else {
-            return dt2;
         }
+        return dt2;
     }
     // Float takes priority over the other
     if (kind1 == DtypeKind::kFloat) {
@@ -79,17 +78,15 @@ Dtype ResultTypeResolver::PromoteType(Dtype dt1, Dtype dt2) {
         // Unsigned one has narrower width.
         // Return the signed dtype.
         return dt1;
-    } else {
-        // Otherwise return the signed dtype with one-level wider than the unsigned one.
-        switch (dt2) {
-            case Dtype::kUInt8:
-                return Dtype::kInt16;
-                // If there will be more unsigned int types, add here.
-            default:
-                CHAINERX_NEVER_REACH();
-        }
     }
-    CHAINERX_NEVER_REACH();
+    // Otherwise return the signed dtype with one-level wider than the unsigned one.
+    switch (dt2) {
+        case Dtype::kUInt8:
+            return Dtype::kInt16;
+            // If there will be more unsigned int types, add here.
+        default:
+            CHAINERX_NEVER_REACH();
+    }
 }
 
 }  // namespace type_util_detail
