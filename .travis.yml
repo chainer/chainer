@@ -72,7 +72,7 @@ script:
       READTHEDOCS=True python setup.py develop;
     fi
   - pushd docs
-  - make html
+  - SPHINXOPTS=-W make html
   - popd
 
 sudo: false
