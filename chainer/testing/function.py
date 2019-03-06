@@ -69,6 +69,17 @@ class FunctionTestBase(object):
             for a in inputs_template])
         return grad_grad_inputs
 
+    def check_forward_outputs(self, expected_outputs, outputs):
+        assert isinstance(expected_outputs, tuple)
+        assert isinstance(outputs, tuple)
+        assert all(
+            isinstance(a, chainer.get_array_types()) for a in expected_outputs)
+        assert all(isinstance(a, chainer.get_array_types()) for a in outputs)
+        _check_forward_output_arrays_equal(
+            expected_outputs,
+            outputs,
+            'forward', **self.check_forward_options)
+
     def _to_noncontiguous_as_needed(self, contig_arrays):
         if self.contiguous is None:
             # non-contiguous
@@ -149,10 +160,9 @@ class FunctionTestBase(object):
                     ', '.join(str(i) for i in indices),
                     utils._format_array_props(inputs)))
 
-        _check_forward_output_arrays_equal(
+        self.check_forward_outputs(
             cpu_expected,
-            [var.array for var in outputs],
-            'forward', **self.check_forward_options)
+            tuple([var.array for var in outputs]))
 
     def run_test_backward(self, backend_config):
         # Runs the backward test.
@@ -295,6 +305,12 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         :class:`numpy.ndarray`.
         ``input_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
+
+    ``check_forward_outputs(self, expected_outputs, outputs)``
+        Implements check logic of forward outputs. Typically additional check
+        can be done after calling ``super().check_forward_outputs``.
+        ``expected_outputs`` and ``outputs`` are tuples of arrays.
+        In case the check fails, ``FunctionTestCase`` should be raised.
 
     .. rubric:: Attributes
 
