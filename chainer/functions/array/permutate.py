@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 
 def _check_indices(indices):
-    if len(indices) == 0:
+    if not indices:
         return
     # TODO(unno): Check indices without cpu
     indices = cuda.to_cpu(indices)

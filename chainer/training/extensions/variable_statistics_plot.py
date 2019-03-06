@@ -200,7 +200,7 @@ class VariableStatisticsPlot(extension.Extension):
             raise ValueError('Missing output file name of statstics plot')
 
         self._vars = _unpack_variables(targets)
-        if len(self._vars) == 0:
+        if not self._vars:
             raise ValueError(
                 'Need at least one variables for which to collect statistics.'
                 '\nActual: 0 <= 0')
