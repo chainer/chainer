@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -46,7 +44,7 @@ class GroupNormalization(function_node.FunctionNode):
                              .format(inputs[0].shape[1], self.groups))
 
         xp = backend.get_array_module(*inputs)
-        if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
+        if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
             return self.forward_cudnn(inputs)
 
         self.retain_inputs((0, 1))
@@ -147,13 +145,13 @@ class _GradHelper(function_node.FunctionNode):
 
         gx_hat = gy * gamma[:, None]
         gbeta = gy.sum(axis=(0, 2))
-        if backend.get_array_module(x_hat) is numpy:
-            ggamma = (gy * x_hat).sum(axis=(0, 2))
-        else:
+        if backend.get_array_module(x_hat) is cuda.cupy:
             ggamma = cuda.reduce(
                 'T gy, T x_hat', 'T ggamma',
                 'gy * x_hat', 'a + b', 'ggamma = a', '0',
                 'groupnorm_ggamma')(gy, x_hat, axis=(0, 2))
+        else:
+            ggamma = (gy * x_hat).sum(axis=(0, 2))
 
         gx_hat = gx_hat.reshape(reduced_shape)
         return gx_hat, ggamma, gbeta
@@ -226,7 +224,7 @@ class _XHatGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         xp = backend.get_array_module(*inputs)
-        if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000) and \
+        if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000) and \
                 self.dummy_gamma is not None:
             return self.forward_cudnn(inputs)
 
