@@ -14,5 +14,5 @@ performance-*,\
 readability-*,\
 "
 WarningsAsErrors: '*'
-HeaderFilterRegex: '^chainerx/chainerx/.*'
+HeaderFilterRegex: 'chainerx/.*'
 AnalyzeTemporaryDtors: false
