@@ -27,7 +27,8 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 @testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64,
+                  chainer.mixed16],
     }),
     testing.product({
         'ndim': [0, 1, 2, 3],
@@ -40,6 +41,11 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 class BatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
+        if self.dtype == chainer.mixed16:
+            self.highprec_dtype = numpy.float32
+        else:
+            self.highprec_dtype = self.dtype
+
         if not hasattr(self, 'axis'):
             aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
             shape = (5, 3) + (2,) * self.ndim
@@ -79,9 +85,9 @@ class BatchNormalizationTest(unittest.TestCase):
 
         if self.test:
             self.mean = numpy.random.uniform(
-                -1, 1, param_shape).astype(self.dtype)
+                -1, 1, param_shape).astype(self.highprec_dtype)
             self.var = numpy.random.uniform(
-                0.5, 1, param_shape).astype(self.dtype)
+                0.5, 1, param_shape).astype(self.highprec_dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_var[...] = self.var
         else:
@@ -89,7 +95,7 @@ class BatchNormalizationTest(unittest.TestCase):
             self.var = self.x.var(axis=aggr_axes)
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
+        if self.dtype in (numpy.float16, chainer.mixed16):
             self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
@@ -97,7 +103,7 @@ class BatchNormalizationTest(unittest.TestCase):
         with chainer.using_config('train', not self.test):
             x = chainer.Variable(x_data)
             y = self.link(x)
-            self.assertEqual(y.data.dtype, self.dtype)
+            self.assertEqual(y.data.dtype, chainer.get_dtype(self.dtype))
 
         y_expect = _batch_normalization(
             self.expander, self.gamma, self.beta, self.x, self.mean,
@@ -359,7 +365,7 @@ class TestInitialize(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float16],
+    'dtype': [numpy.float32, numpy.float16, chainer.mixed16],
 }))
 class TestDefaultInitializer(unittest.TestCase):
 
@@ -368,6 +374,11 @@ class TestDefaultInitializer(unittest.TestCase):
         self.size = 3
         with chainer.using_config('dtype', self.dtype):
             self.link = links.BatchNormalization(self.size, self.decay)
+        dtype = numpy.float32 if self.dtype == chainer.mixed16 else self.dtype
+        assert self.link.beta.dtype == dtype
+        assert self.link.gamma.dtype == dtype
+        assert self.link.avg_mean.dtype == dtype
+        assert self.link.avg_var.dtype == dtype
 
         self.x = numpy.arange(6, dtype=self.dtype).reshape(2, 3)
 
@@ -377,7 +388,7 @@ class TestDefaultInitializer(unittest.TestCase):
         testing.assert_allclose(0, self.link.avg_mean)
         testing.assert_allclose(1, self.link.avg_var)
         y = self.link(self.x)
-        assert y.dtype == self.dtype
+        assert y.dtype == self.x.dtype
 
     def test_initialize_cpu(self):
         self.check_initialize()
