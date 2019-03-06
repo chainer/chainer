@@ -586,11 +586,13 @@ TEST_P(ManipulationTest, ConcatenateDifferentNdims) {
 
 TEST_P(ManipulationTest, ConcatenateDifferentDtypes) {
     Shape input_shape{2, 3, 1};
+    Shape output_shape{12};
 
     Array a = testing::BuildArray(input_shape).WithData<int32_t>({1, 2, 3, 4, 5, 6});
     Array b = testing::BuildArray(input_shape).WithData<int64_t>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<int64_t>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
 
-    EXPECT_THROW(Concatenate({a, b}), DtypeError);
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, nonstd::nullopt));
 }
 
 TEST_P(ManipulationTest, ConcatenateDifferentDimensionOnlyForConcatenationAxis) {
