@@ -240,7 +240,7 @@ class BatchNormalization(link.Link):
             initializer = default_value
         initializer = initializers._get_initializer(initializer)
         return initializers.generate_array(
-            initializer, size, self.xp, dtype=self._dtype)
+            initializer, size, self.xp, dtype=self._dtype, device=self.device)
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
