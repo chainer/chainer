@@ -86,17 +86,18 @@ def maximum(x1, x2):
         ~chainer.Variable: Output variable.
 
     .. admonition:: Example
-    >>> x1 = np.arange(6).astype(np.float32)
-    >>> x1
-    array([0., 1., 2., 3., 4., 5.], dtype=float32)
-    >>> x2 = np.array([5, 4, 3, 2, 1, 0]).astype(np.float32)
-    >>> x2
-    array([5., 4., 3., 2., 1., 0.], dtype=float32)
-    >>> y = F.maximum(x1, x2)
-    >>> y.shape
-    (6,)
-    >>> y.array
-    array([5., 4., 3., 3., 4., 5.], dtype=float32)
+
+        >>> x1 = np.arange(6).astype(np.float32)
+        >>> x1
+        array([0., 1., 2., 3., 4., 5.], dtype=float32)
+        >>> x2 = np.array([5, 4, 3, 2, 1, 0]).astype(np.float32)
+        >>> x2
+        array([5., 4., 3., 2., 1., 0.], dtype=float32)
+        >>> y = F.maximum(x1, x2)
+        >>> y.shape
+        (6,)
+        >>> y.array
+        array([5., 4., 3., 3., 4., 5.], dtype=float32)
 
     """
     return Maximum().apply((x1, x2))[0]
