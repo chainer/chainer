@@ -1,6 +1,6 @@
+import abc
 import sys
 import typing as tp  # NOQA
-import warnings
 
 import numpy
 
@@ -10,10 +10,11 @@ from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import types  # NOQA
+from chainer import utils
 import chainerx
 
 
-class DeviceResident(object):
+class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     """A base class of objects with multi-device hierarchy."""
 
@@ -23,24 +24,10 @@ class DeviceResident(object):
     _MIXED_DEVICE = object()
 
     def __init__(self):
-        # Check and store overridden to_device family method names.
-        overridden_to_methods = tuple([
-            m for m in ('to_device', 'to_cpu', 'to_gpu', 'to_intel64')
+        # Store overridden to_device family method names.
+        self._overridden_to_methods = tuple([
+            m for m in ('to_cpu', 'to_gpu', 'to_intel64')
             if _is_to_device_method_overridden(self, m)])
-        if overridden_to_methods:
-            # to_device() cannot be overridden.
-            if 'to_device' in overridden_to_methods:
-                raise TypeError(
-                    'to_device cannot be overridden (class {}).'.format(
-                        self.__class__))
-            # Overriding to_cpu/to_gpu/to_intel64 causes a warning.
-            warnings.warn(
-                'Overriding method(s) [{}] of class {} is deprecated. '
-                'Override `visit_device_residents` instead.'.format(
-                    ', '.join(overridden_to_methods),
-                    self.__class__),
-                DeprecationWarning)
-        self._overridden_to_methods = overridden_to_methods
 
     def visit_device_residents(self, visitor):
         """Applies the visitor to all the device objects in this instance."""
@@ -78,6 +65,7 @@ class DeviceResident(object):
             return None
         return device.xp
 
+    @utils.final(action=DeprecationWarning)
     def to_cpu(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
@@ -96,6 +84,7 @@ class DeviceResident(object):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
@@ -124,6 +113,7 @@ class DeviceResident(object):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_intel64(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU."""
@@ -168,6 +158,7 @@ to NumPy/CuPy devices without any copy."""
         self._device = None
         self.visit_device_residents(to_device_visitor)
 
+    @utils.final
     def to_device(
             self,
             device  # type: types.DeviceSpec

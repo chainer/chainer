@@ -2307,90 +2307,86 @@ class TestLinkOverrideToDeviceMethodsDeprecated(unittest.TestCase):
     # to_device() can never be overridden
 
     def test_to_device_override(self):
-        cls = self.create_link('to_device')
         with pytest.raises(TypeError):
-            cls()
+            self.create_link('to_device')
 
-    # Deprecation warning on instantiation
+    # Deprecation warning on class definition
 
     def test_to_cpu_override(self):
-        cls = self.create_link('to_cpu')
         with testing.assert_warns(DeprecationWarning):
-            cls()
+            self.create_link('to_cpu')
 
     def test_to_gpu_override(self):
-        cls = self.create_link('to_gpu')
         with testing.assert_warns(DeprecationWarning):
-            cls()
+            self.create_link('to_gpu')
 
     def test_to_intel64_override(self):
-        cls = self.create_link('to_intel64')
         with testing.assert_warns(DeprecationWarning):
-            cls()
+            self.create_link('to_intel64')
 
     # Overridden methods are called on to_device()
 
     def test_to_device_cpu(self):
-        cls = self.create_link('to_cpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_cpu')
+        l = cls()
         l.to_device(numpy)
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_device_gpu(self):
-        cls = self.create_link('to_gpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_gpu')
+        l = cls()
         l.to_device((cuda.cupy, 0))
         assert l.child.to_method_called == 1
 
     @attr.multi_gpu(2)
     def test_to_device_multi_gpu(self):
-        cls = self.create_link('to_gpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_gpu')
+        l = cls()
         l.to_device((cuda.cupy, 1))
         assert l.child.to_method_called == 1
 
     @attr.ideep
     def test_to_device_intel64(self):
-        cls = self.create_link('to_intel64')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_intel64')
+        l = cls()
         l.to_device(intel64)
         assert l.child.to_method_called == 1
 
     # Overridden methods are called on to_cpu()/to_gpu()/to_intel()
 
     def test_to_cpu(self):
-        cls = self.create_link('to_cpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_cpu')
+        l = cls()
         l.to_cpu()
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_gpu_without_arg(self):
-        cls = self.create_link('to_gpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_gpu')
+        l = cls()
         l.to_gpu()
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_gpu_with_arg(self):
-        cls = self.create_link('to_gpu')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_gpu')
+        l = cls()
         l.to_gpu(0)
         assert l.child.to_method_called == 1
 
     @attr.ideep
     def test_to_intel64(self):
-        cls = self.create_link('to_intel64')
         with testing.assert_warns(DeprecationWarning):
-            l = cls()
+            cls = self.create_link('to_intel64')
+        l = cls()
         l.to_intel64()
         assert l.child.to_method_called == 1
 
