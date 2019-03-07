@@ -4,7 +4,7 @@ from chainer.testing.backend import inject_backend_tests  # NOQA
 from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.function_link import FunctionTestCase  # NOQA
 from chainer.testing.function_link import FunctionTestError  # NOQA
-from chainer.testing.function_link import InitializerArgument  # NOQA
+from chainer.testing.function_link import InitializerNdarrayArgument  # NOQA
 from chainer.testing.function_link import LinkTestCase  # NOQA
 from chainer.testing.function_link import LinkTestError  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA

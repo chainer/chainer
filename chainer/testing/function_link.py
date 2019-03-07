@@ -45,26 +45,14 @@ class LinkTestError(_TestError):
     pass
 
 
-class InitializerArgument(object):
+class InitializerNdarrayArgument(object):
 
-    """Class to hold a pair of initializer argument value and actual
-    initializer-like.
+    def __init__(self):
+        self.generated = None
 
-    This class is meant to be included in the return value from
-    :meth:`chainer.testing.LinkTestCase.get_initializers` in
-    :class:`chainer.testing.LinkTestCase` if the argument and the actual
-    initializer in the link do not directly correspond.
-    In that case, the first element should correspond to the argument passed to
-    the constructor of the link, and the second element correspond to the
-    actual initializer-like object used by the link.
-    """
-
-    def __init__(self, argument_value, expected_initializer):
-        if expected_initializer is not None:
-            initializers._check_is_initializer_like(expected_initializer)
-
-        self.argument_value = argument_value
-        self.expected_initializer = expected_initializer
+    def generate(self, shape, dtype):
+        self.generated = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        return self.generated
 
 
 class FunctionTestBase(object):
@@ -427,8 +415,8 @@ class LinkTestCase(unittest.TestCase):
         Returns a link. The link should be initialized with the given
         initializer-likes ``initializers``. ``initializers`` is a tuple of
         same length as the number of parameters and contains initializer-likes
-        returned by either ``generate_params`` or ``get_initializers``
-        depending on the test being run.
+        returned by either ``generate_initializer_arguments`` or
+        ``get_initializers`` depending on the test being run.
 
     .. rubric:: Optional methods
 
@@ -436,7 +424,7 @@ class LinkTestCase(unittest.TestCase):
     must be overridden depending on the skip flags  ``skip_forward_test``,
     ``skip_backward_test`` and ``skip_initializers_test``.
 
-    ``generate_params(self)``
+    ``generate_initializer_arguments(self)``
         Returns a tuple of initializers-likes. The tuple should contain an
         initializer-like for each initializer-like argument, i.e. the
         parameters to the link constructor. These will be passed to
@@ -452,7 +440,8 @@ class LinkTestCase(unittest.TestCase):
         Each initializer-like in the tuple is tested one at a time by being
         passed to ``create_link``. When the length of the tuple is greater than
         one (i.e. if the link accepts multiple initializers), the ones not
-        being tested are replaced by the ones returned by `generate_params`.
+        being tested are replaced by the ones returned by
+        `generate_initializer_arguments`.
         Initializer-likes returned here should be deterministic since test will
         invoke them multiple times to test the correctness.
 
@@ -508,9 +497,6 @@ class LinkTestCase(unittest.TestCase):
     ``skip_backward_test`` (bool):
         Whether to skip backward computation test. ``False`` by default.
 
-    ``skip_initializers_test`` (bool):
-        Whether to skip link initialization test. ``False`` by default.
-
     ``param_names`` (list of str):
         A list of strings with all the names of the parameters that should be
         tested. E.g. ``['gamma', 'beta']`` for the batch normalization link.
@@ -519,10 +505,10 @@ class LinkTestCase(unittest.TestCase):
     ``dodge_nondifferentiable`` (bool):
         Enable non-differentiable point detection in numerical gradient
         calculation. If the data returned by
-        ``generate_params``, ``create_link`` and ``generate_inputs`` turns out
-        to be a non-differentiable point, the test will repeatedly resample
-        those until a differentiable point will be finally sampled. ``False``
-        by default.
+        ``generate_initializer_arguments``, ``create_link`` and
+        ``generate_inputs`` turns out to be a non-differentiable point, the
+        test will repeatedly resample those until a differentiable point will
+        be finally sampled. ``False`` by default.
 
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs,
@@ -549,7 +535,7 @@ class LinkTestCase(unittest.TestCase):
 
                 param_names = ['W', 'b']
 
-                def generate_params(self):
+                def generate_initializer_arguments(self):
                     initialW = numpy.random.uniform(
                         -1, 1, (3, 2)).astype(numpy.float32)
                     initial_bias = numpy.random.uniform(
@@ -593,7 +579,7 @@ class LinkTestCase(unittest.TestCase):
     check_initializers_options = {}
     skip_forward_test = False
     skip_backward_test = False
-    skip_initializers_test = False
+    check_param_initialization = True
     dodge_nondifferentiable = False
     contiguous = None
 
@@ -604,8 +590,9 @@ class LinkTestCase(unittest.TestCase):
     def before_test(self, test_name):
         pass
 
-    def generate_params(self):
-        raise NotImplementedError('generate_params is not implemented.')
+    def generate_initializer_arguments(self):
+        raise NotImplementedError(
+            'generate_initializer_arguments is not implemented.')
 
     def get_initializers(self):
         raise NotImplementedError('get_initializers is not implemented.')
@@ -639,7 +626,7 @@ class LinkTestCase(unittest.TestCase):
 
         self.before_test('test_forward')
 
-        inits = self._generate_params()
+        inits = self._generate_initializer_arguments()
         link = self._create_link(inits, backend_config)
 
         inputs_np = self._generate_inputs()
@@ -655,6 +642,21 @@ class LinkTestCase(unittest.TestCase):
         cpu_device = backend.CpuDevice()
         params = _get_link_params(link, self.param_names)
         params_np = [cpu_device.send(p.array) for p in params]
+
+        if self.check_param_initialization:
+            for init, param_np in zip(inits, params_np):
+                expected_init = _get_expected_initializer(init)
+                if expected_init is not None:
+                    if isinstance(expected_init, numpy.ndarray):
+                        expected_np = expected_init
+                    else:
+                        expected_np = numpy.empty_like(param_np)
+                        expected_init(expected_np)
+
+                    # Compare the values of the expected and actual parameter.
+                    _check_forward_output_arrays_equal(
+                        expected_np, param_np, 'forward', LinkTestError,
+                        **self.check_initializers_options)
 
         expected_outputs_np = self._forward_expected(inputs_np, params_np)
 
@@ -674,7 +676,7 @@ class LinkTestCase(unittest.TestCase):
         from chainer import gradient_check
 
         def do_check():
-            inits = self._generate_params()
+            inits = self._generate_initializer_arguments()
             link = self._create_initialized_link(inits, backend_config)
 
             def f(inputs, ps):
@@ -717,80 +719,17 @@ class LinkTestCase(unittest.TestCase):
         else:
             do_check()
 
-    def test_initializers(self, backend_config):
-        """Tests that the parameters of a links are correctly initialized."""
-        if self.skip_initializers_test:
-            raise unittest.SkipTest('skip_initializers_test is set')
-
-        self.before_test('test_initializers')
-
-        params_inits = self._get_initializers()
-
-        for i_param, param_inits in enumerate(params_inits):
-            # When testing an initializer for a particular parameter, other
-            # initializers are picked from generate_params.
-            inits = self._generate_params()
-            inits = list(inits)
-
-            for init in param_inits:
-                inits[i_param] = init
-                self._test_single_initializer(i_param, inits, backend_config)
-
-    def _test_single_initializer(self, i_param, inits, backend_config):
-        # Given a set of initializer constructor arguments for the link, create
-        # and initialize a link with those arguments. `i_param` holds the index
-        # of the argument that should be tested among these.
-        inits_orig = inits
-        inits = [_get_initializer_argument_value(i) for i in inits]
-        link = self._create_initialized_link(inits, backend_config)
-
-        # Extract the parameters from the initialized link.
-        params = _get_link_params(link, self.param_names)
-
-        # Convert the parameter of interest into a NumPy ndarray.
-        cpu_device = backend.CpuDevice()
-        param = params[i_param]
-        param_xp = param.array
-        param_np = cpu_device.send(param_xp)
-
-        # The expected values of the parameter is decided by the given
-        # initializer. If the initializer is `None`, it should have been
-        # wrapped in a InitializerArgument along with the expected initializer
-        # that the link should default to in case of `None`.
-        #
-        # Note that for this to work, the expected parameter must be inferred
-        # deterministically.
-        expected_init = _get_expected_initializer(inits_orig[i_param])
-        expected_np = numpy.empty_like(param_np)
-        expected_init(expected_np)
-
-        # Compare the values of the expected and actual parameter.
-        _check_forward_output_arrays_equal(
-            expected_np, param_np, 'forward', LinkTestError,
-            **self.check_initializers_options)
-
-    def _generate_params(self):
-        params_init = self.generate_params()
+    def _generate_initializer_arguments(self):
+        params_init = self.generate_initializer_arguments()
         if not isinstance(params_init, (tuple, list)):
             raise TypeError(
-                '`generate_params` must return a tuple or a list.')
+                '`generate_initializer_arguments` must return a tuple or a '
+                'list.')
         for init in params_init:
-            _check_generated_initializer(init)
+            # TODO(hvy): Check.
+            # _check_generated_initializer(init)
+            pass
         return params_init
-
-    def _get_initializers(self):
-        params_inits = self.get_initializers()
-        if not isinstance(params_inits, (tuple, list)):
-            raise TypeError(
-                '`get_initializers` must return a tuple or a list.')
-        for param_inits in params_inits:
-            if not isinstance(param_inits, (tuple, list)):
-                raise TypeError(
-                    '`get_initializers` must return a tuple or a list of '
-                    'tuples or lists.')
-            for init in param_inits:
-                _check_generated_initializer(init)
-        return params_inits
 
     def _create_link(self, initializers, backend_config):
         link = self.create_link(initializers)
@@ -804,7 +743,6 @@ class LinkTestCase(unittest.TestCase):
 
     def _create_initialized_link(
             self, inits, backend_config, return_inputs_outputs=False):
-        inits = [_get_initializer_argument_value(i) for i in inits]
         link = self._create_link(inits, backend_config)
 
         # Generate inputs and compute a forward pass to initialize the
@@ -872,26 +810,19 @@ class LinkTestCase(unittest.TestCase):
 
 
 def _check_generated_initializer(init):
-    if isinstance(init, InitializerArgument):
-        init = init.expected_initializer
+    if init is None:
+        return
+
     initializers._check_is_initializer_like(init)
-
-
-def _get_initializer_argument_value(init):
-    # Returns the initializer that should be passed to the link constructor.
-
-    if isinstance(init, InitializerArgument):
-        return init.argument_value
-    return init
 
 
 def _get_expected_initializer(init):
     # Returns the expected initializer for the given initializer.
+    if init is None:
+        return None
 
-    if isinstance(init, InitializerArgument):
-        init = init.expected_initializer
-
-    assert init is not None
+    if isinstance(init, InitializerNdarrayArgument):
+        return init.generated
 
     if not isinstance(init, chainer.Initializer):
         init = chainer.initializers._get_initializer(init)

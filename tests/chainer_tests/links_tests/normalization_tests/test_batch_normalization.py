@@ -37,13 +37,30 @@ _parameterize = testing.parameterize(*(testing.product_dict(
         {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
         {'input_shape': (5, 4), 'axis': 0},
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
+    ],
+    testing.product({
+        'initial_gamma': [testing.InitializerNdarrayArgument()],
+        'initial_beta': [testing.InitializerNdarrayArgument()],
+    }) +
+    testing.product({
+        'initial_gamma': [2, initializers.Constant(2)],
+    }) +
+    testing.product({
+        'initial_beta': [2, initializers.Constant(2)],
+    }) +
+    [
+        {'use_gamma': False},
+        {'use_beta': False},
     ]
 )))
 
 
 class BatchNormalizationTestBase(object):
 
-    param_names = ['gamma', 'beta']
+    use_gamma = True
+    use_beta = True
+    initial_gamma = None
+    initial_beta = None
 
     def setUp(self):
         if hasattr(self, 'axis') and hasattr(self, 'input_shape'):
@@ -86,22 +103,33 @@ class BatchNormalizationTestBase(object):
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-1}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
-    def generate_params(self):
-        initial_gamma = numpy.random.uniform(
-            -1, 1, self.param_shape).astype(self.dtype)
-        initial_beta = numpy.random.uniform(
-            -1, 1, self.param_shape).astype(self.dtype)
-        return initial_gamma, initial_beta
+        param_names = []
+        if self.use_gamma:
+            param_names.append('gamma')
+        if self.use_beta:
+            param_names.append('beta')
+        self.param_names = param_names
 
-    def get_initializers(self):
-        initial_gamma = [
-            initializers.Constant(2), 2, testing.InitializerArgument(None, 1)]
-        initial_beta = [
-            initializers.Constant(2), 2, testing.InitializerArgument(None, 0)]
-        return initial_gamma, initial_beta
+        if not all(
+                isinstance(init, testing.InitializerNdarrayArgument)
+                for init in (self.initial_gamma, self.initial_beta)):
+            self.skip_backward_test = True
 
-    def create_link(self, initializers):
-        initial_gamma, initial_beta = initializers
+    def generate_initializer_arguments(self):
+        return self.initial_gamma, self.initial_beta
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
+
+    def create_link(self, initializer_arguments):
+        initial_gamma, initial_beta = initializer_arguments
+
+        if isinstance(initial_gamma, testing.InitializerNdarrayArgument):
+            initial_gamma = initial_gamma.generate(
+                self.param_shape, self.dtype)
+        if isinstance(initial_beta, testing.InitializerNdarrayArgument):
+            initial_beta = initial_beta.generate(self.param_shape, self.dtype)
 
         size = self.param_shape if self.size == 'explicit' else None
         initial_avg_mean = None if self.mean is None else self.mean.copy()
@@ -115,12 +143,10 @@ class BatchNormalizationTestBase(object):
             initial_gamma=initial_gamma,
             initial_beta=initial_beta,
             initial_avg_mean=initial_avg_mean,
-            initial_avg_var=initial_avg_var)
+            initial_avg_var=initial_avg_var,
+            use_gamma=self.use_gamma,
+            use_beta=self.use_beta)
         return link
-
-    def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        return x,
 
     def forward(self, link, inputs, device):
         x, = inputs
@@ -139,7 +165,18 @@ class BatchNormalizationTestBase(object):
 
     def forward_expected(self, inputs, params):
         x, = inputs
-        gamma, beta = params
+
+        if self.use_gamma and self.use_beta:
+            gamma, beta = params
+        elif self.use_gamma:
+            gamma, = params
+        elif self.use_beta:
+            beta, = params
+
+        if not self.use_gamma or self.initial_gamma is None:
+            gamma = numpy.ones((self.param_shape), dtype=self.dtype)
+        if not self.use_beta or self.initial_beta is None:
+            beta = numpy.zeros((self.param_shape), dtype=self.dtype)
 
         if self.test:
             mean = self.mean[self.expander]
@@ -194,7 +231,6 @@ class BatchNormalizationMultiGpuTest(
         BatchNormalizationTestBase, testing.LinkTestCase):
 
     skip_backward_test = True
-    skip_initializers_test = True
 
     # TODO(hvy): Remove this relaxation. It is currently needed as the
     # inter-device copy in CuPy with non-contiguous arrays are broken.
