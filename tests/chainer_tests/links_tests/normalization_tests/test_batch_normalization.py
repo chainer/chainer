@@ -95,9 +95,9 @@ class BatchNormalizationTestBase(object):
 
     def get_initializers(self):
         initial_gamma = [
-            initializers.Constant(2), 2, testing.link.InitializerPair(None, 1)]
+            initializers.Constant(2), 2, testing.InitializerPair(None, 1)]
         initial_beta = [
-            initializers.Constant(2), 2, testing.link.InitializerPair(None, 0)]
+            initializers.Constant(2), 2, testing.InitializerPair(None, 0)]
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
