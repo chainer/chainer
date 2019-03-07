@@ -7,7 +7,6 @@ from chainer.testing.function_link import FunctionTestError  # NOQA
 from chainer.testing.function_link import InitializerPair  # NOQA
 from chainer.testing.function_link import LinkTestCase  # NOQA
 from chainer.testing.function_link import LinkTestError  # NOQA
-from chainer.testing.function_link import TestError  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
