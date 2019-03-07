@@ -389,7 +389,7 @@ class LinkTestCase(unittest.TestCase):
         # and initialize a link with those arguments. `i_param` holds the index
         # of the argument that should be tested among these.
         inits_orig = inits
-        inits = [_get_initializer(i) for i in inits]
+        inits = [_get_initializer_argument_value(i) for i in inits]
         link = self._create_initialized_link(inits, backend_config)
 
         # Extract the parameters from the initialized link.
@@ -452,7 +452,7 @@ class LinkTestCase(unittest.TestCase):
 
     def _create_initialized_link(
             self, inits, backend_config, return_inputs_outputs=False):
-        inits = [_get_initializer(i) for i in inits]
+        inits = [_get_initializer_argument_value(i) for i in inits]
         link = self._create_link(inits, backend_config)
 
         # Generate inputs and compute a forward pass to initialize the
@@ -525,7 +525,7 @@ def _check_generated_initializer(init):
     initializers._check_is_initializer_like(init)
 
 
-def _get_initializer(init):
+def _get_initializer_argument_value(init):
     # Returns the initializer that should be passed to the link constructor.
 
     if isinstance(init, InitializerPair):
