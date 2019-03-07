@@ -155,3 +155,22 @@ def clipped_relu(x, z=20.0):
     """
     y, = ClippedReLU(z).apply((x,))
     return y
+
+def relu6(x):
+    """Rectifier Unit function clipped at 6.
+
+    It computes
+
+    .. math:: \\text{ReLU6}(x) = \\min(\\max(0, x), 6).
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
+
+    Returns:
+        ~chainer.Variable: Output variable. A
+        :math:`(s_1, s_2, ..., s_n)`-shaped float array.
+
+    """
+    y, = ClippedReLU(6.0).apply((x,))
+    return y
