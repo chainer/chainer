@@ -156,6 +156,7 @@ def clipped_relu(x, z=20.0):
     y, = ClippedReLU(z).apply((x,))
     return y
 
+
 def relu6(x):
     """Rectifier Unit function clipped at 6.
 
