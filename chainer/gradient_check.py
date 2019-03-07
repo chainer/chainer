@@ -373,6 +373,13 @@ class _CheckBackward(object):
             dtype, detect_nondifferentiable, params_to_func):
         if dtype is not None and numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
+        if params_to_func:
+            if not all(
+                    isinstance(p, chainer.get_array_types()) for p in params):
+                raise ValueError(
+                    'All parameters in `params` must be ndarrays if '
+                    '`params_to_func` is `True`. Actual: {}.'.format(
+                        ', '.join(str(type(p)) for p in params)))
 
         x_data = _as_tuple(x_data)
         if y_grad is not None:
