@@ -1347,7 +1347,7 @@ class Variable(object):
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=None, enable_double_backprop=False,
+    def backward(self, retain_grad='default', enable_double_backprop=False,
                  loss_scale=None):
         """backward(retain_grad=False, enable_double_backprop=False, \
 loss_scale=None)
@@ -1402,7 +1402,7 @@ loss_scale=None)
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        if retain_grad is None:
+        if retain_grad == 'default':
             # ChainerX does not support the default retain_grad=False
             retain_grad = self._has_chainerx_array
 
