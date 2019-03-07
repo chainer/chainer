@@ -9,7 +9,6 @@ from chainer import backend
 from chainer import initializers
 from chainer.testing import array as array_module
 from chainer import utils
-import chainerx
 
 
 class TestError(AssertionError):
@@ -54,24 +53,19 @@ class LinkTestError(TestError):
 
 class InitializerPair(object):
 
-    """Class to hold a pair of initializer-like objects.
+    """Class to hold a pair of initializer argument value and actual
+    initializer-like.
 
-    The initializer-like objects can be accessed via the ``argument_value`` and
-    the ``expected_initializer`` attributes.
-
-    When implementing ``LinkTestCase``, instances of this class can be included
-    in lists listing all initializer-like objects that should be tested in the
-    initializers test.
-    In that case, the first element should correspond to the initializer-like
-    argument passed to the constructor of the link, and the second element
-    correspond to the actual initializer-like object used by the link.
-    In many cases, they are the same, except when passing ``None`` to the
-    constructor.
+    This class is meant to be included in the return value from
+    :meth:`chainer.testing.LinkTestCase.get_initializers` in
+    :class:`chainer.testing.LinkTestCase` if the argument and the actual
+    initializer in the link do not directly correspond.
+    In that case, the first element should correspond to the argument passed to
+    the constructor of the link, and the second element correspond to the
+    actual initializer-like object used by the link.
     """
 
     def __init__(self, argument_value, expected_initializer):
-        if argument_value is not None:
-            initializers._check_is_initializer_like(argument_value)
         if expected_initializer is not None:
             initializers._check_is_initializer_like(expected_initializer)
 
