@@ -47,7 +47,6 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         for _, param in sorted(model.namedparams()):
             if param.data is not None:
                 data = param.data
-                
                 tmp_cpu = chainer.cuda.to_cpu(data)
 
                 is_float16 = tmp_cpu.dtype == np.float16
