@@ -169,7 +169,7 @@ class BatchNormalizationTestBase(object):
     # ChainerX tests
     + [
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 @_parameterize
