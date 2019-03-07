@@ -370,15 +370,23 @@ class _CheckBackward(object):
 
     def __init__(
             self, func, x_data, y_grad, params, eps, atol, rtol, no_grads,
-            dtype, detect_nondifferentiable, params_to_func):
+            dtype, detect_nondifferentiable, is_immutable_params):
+        # If `is_immutable_params` is `False`, `params` are expected to be of
+        # type `chainer.Parameter` and are updated in-place.
+        # To run `_CheckBackward` with ChainerX ndarrays however which cannot
+        # be updated in-place when wrapped in `chainer.Parameter`s, this flag
+        # should be `True` and parameters should be given as ndarrays.
+        # `func` in the former case must take inputs as arguments only. In the
+        # latter, it must take the parameters in addition.
+
         if dtype is not None and numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
-        if params_to_func:
+        if is_immutable_params:
             if not all(
                     isinstance(p, chainer.get_array_types()) for p in params):
                 raise ValueError(
                     'All parameters in `params` must be ndarrays if '
-                    '`params_to_func` is `True`. Actual: {}.'.format(
+                    '`is_immutable_params` is `True`. Actual: {}.'.format(
                         ', '.join(str(type(p)) for p in params)))
 
         x_data = _as_tuple(x_data)
@@ -397,10 +405,11 @@ class _CheckBackward(object):
         device = backend.get_device_from_array(*x_data)
 
         if device.xp is chainerx:
-            if len(params) > 0 and not params_to_func:
+            if len(params) > 0 and not is_immutable_params:
                 raise NotImplementedError(
-                    'gradient_check must be called with params_to_func=True '
-                    'to test parameters with ChainerX.')
+                    'gradient_check must be called with '
+                    'is_immutable_params=True to test parameters with '
+                    'ChainerX.')
             if any(no_grads):
                 raise NotImplementedError(
                     'gradient_check does not support no_grads argument for '
@@ -415,7 +424,7 @@ class _CheckBackward(object):
         self.no_grads = no_grads
         self.atol = atol
         self.rtol = rtol
-        self.params_to_func = params_to_func
+        self.is_immutable_params = is_immutable_params
         # options for numeric gradients
         self.eps = eps
         self.dtype = dtype
@@ -536,7 +545,7 @@ class _CheckBackward(object):
 
         xs = [variable.Variable(x, requires_grad=True) for x in x_data]
 
-        if self.params_to_func:
+        if self.is_immutable_params:
             params = tuple([chainer.Parameter(p) for p in params])
             y = func(xs, params)
         else:
@@ -597,7 +606,8 @@ class _CheckBackward(object):
         no_grads = self.no_grads
         dtype = self.dtype
         detect_nondifferentiable = self.detect_nondifferentiable
-        params_data = [p if self.params_to_func else p.array for p in params]
+        params_data = [
+            p if self.is_immutable_params else p.array for p in params]
 
         xp = device.xp
 
@@ -650,7 +660,7 @@ class _CheckBackward(object):
             for i in range(len(params)):
                 data = perturb(casted_data[j + i], directions[j + i])
 
-                if self.params_to_func:
+                if self.is_immutable_params:
                     # Update the parameter array since it is converted into
                     # a Parameter just before calling the func.
                     params_data[i] = data
@@ -662,10 +672,10 @@ class _CheckBackward(object):
             # Clear gradients to support func that calls backward inside of
             # itself.
             self._clear_grads(g_x_vars)
-            if not self.params_to_func:
+            if not self.is_immutable_params:
                 self._clear_grads(params)
 
-            if self.params_to_func:
+            if self.is_immutable_params:
                 ps = tuple([chainer.Parameter(p) for p in params_data])
                 ys = func(g_x_vars, ps)
             else:
@@ -675,7 +685,7 @@ class _CheckBackward(object):
             if xp is chainerx:
                 ys_data = tuple([y.as_grad_stopped() for y in ys_data])
 
-            if not self.params_to_func:
+            if not self.is_immutable_params:
                 for i, param in enumerate(params):
                     param.array = casted_data[j + i]
 
@@ -841,17 +851,18 @@ def check_backward(
     """
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable, params_to_func=False
+        detect_nondifferentiable, is_immutable_params=False
     ).run()
 
 
 def _check_backward_with_params(
-    # This function was introduced along with the `params_to_func` argument to
-    # `_CheckBackward`. It allows passing `params` as ndarrays instead of
-    # `Parameter`s and thus depends less on the state of the parameter held by
-    # the caller. It is required by the `LinkTestCase` to check ChainerX
-    # parameter gradients, since those parameters cannot perturbed in-place for
-    # the numerical gradients if passed as `Parameter`s as those requiring
+    # This function was introduced along with the `is_immutable_params`
+    # argument to `_CheckBackward`.
+    # It allows passing `params` as ndarrays instead of `Parameter`s and thus
+    # depends less on the state of the parameter held by the caller.
+    # It is required by the `LinkTestCase` to check ChainerX parameter
+    # gradients, since those parameters cannot perturbed in-place for the
+    # numerical gradients if passed as `Parameter`s as those requiring
     # gradients cannot be updated in-place.
         func, x_data, y_grad, params=(),
         eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
@@ -859,7 +870,7 @@ def _check_backward_with_params(
     assert all(isinstance(p, chainer.get_array_types()) for p in params)
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable, params_to_func=True
+        detect_nondifferentiable, is_immutable_params=True
     ).run()
 
 
