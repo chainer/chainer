@@ -294,6 +294,7 @@ class TestPopulationStatistics(unittest.TestCase):
             self.test_statistics2_gpu()
 
 
+# TODO(hvy): Rewrite this test using testing.LinkTestCase.
 @testing.parameterize(*testing.product({
     'test': [True, False],
     'ndim': [0, 1, 2, 3],
