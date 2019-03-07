@@ -61,7 +61,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             params, data_dtype.itemsize, 'data',
             self.gpu_tmp_buffer, stream, transfer_dtype=data_dtype)
         self.nccl_comm.bcast(self.gpu_tmp_buffer.ptr(), n_elems,
-                             _get_nccl_type_id(data_dtype), 0, stream.ptr)
+                             _communication_utility._get_nccl_type_id(data_dtype),
+                             0, stream.ptr)
         _memory_utility.unpack_params(
             params, data_dtype.itemsize, 'data',
             self.gpu_tmp_buffer, stream, transfer_dtype=data_dtype)
@@ -89,7 +90,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                     n_elems, stream)
         self.nccl_comm.allReduce(self.gpu_buffer_a.ptr(),
                                  self.gpu_buffer_b.ptr(), n_elems,
-                                 _get_nccl_type_id(allreduce_grad_dtype),
+                                 _communication_utility._get_nccl_type_id(allreduce_grad_dtype),
                                  nccl.NCCL_SUM,
                                  stream.ptr)
         if self.div_by_size is None:
@@ -202,18 +203,6 @@ def _get_param_grad_dtype(param):
     return param.grad.dtype
 
 
-def _get_nccl_type_id(dtype):
-    if dtype == np.float16:
-        return nccl.NCCL_FLOAT16
-    elif dtype == np.float32:
-        return nccl.NCCL_FLOAT32
-    elif dtype == np.float64:
-        return nccl.NCCL_FLOAT64
-    else:
-        raise ValueError(
-            'dtype must be float16, float32, or float64.')
-
-
 class _ParamsData(object):
     def __init__(self, params, attr_name):
         n_params = len(params)
@@ -226,7 +215,7 @@ class _ParamsData(object):
             params_dptr[i] = v.data.ptr
             if v.dtype not in [np.float16, np.float32]:
                 raise ValueError('dtype must be float16 or float32.')
-            params_dtype[i] = _get_nccl_type_id(v.dtype)
+            params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
             params_size_csum[i+1] = params_size_csum[i] + v.size
         self.n_params = n_params
         self.n_elems = params_size_csum[n_params]
@@ -241,7 +230,7 @@ def _batched_pack_params(params_data, buffer, dtype):
     params_dptr = params_data.dptr
     params_dtype = params_data.dtype
     params_size_csum = params_data.size_csum
-    buf_dtype = _get_nccl_type_id(dtype)
+    buf_dtype = _communication_utility._get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
     _cupy_batched_pack_params()(
@@ -256,7 +245,7 @@ def _batched_unpack_params(params_data, buffer, dtype):
     params_dptr = params_data.dptr
     params_dtype = params_data.dtype
     params_size_csum = params_data.size_csum
-    buf_dtype = _get_nccl_type_id(dtype)
+    buf_dtype = _communication_utility._get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
     _cupy_batched_unpack_params()(
