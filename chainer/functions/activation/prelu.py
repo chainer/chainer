@@ -185,7 +185,7 @@ def prelu(x, W):
         where :math:`B` is the batch size and the number of trailing
         :math:`S`'s :math:`N` is an arbitrary non-negative integer.
 
-    .. seealso:: :class:`L.PReLU <chainer.links.PReLU>`
+    .. seealso:: :class:`chainer.links.PReLU`
 
     """
     return PReLUFunction().apply((x, W))[0]
