@@ -104,7 +104,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
             dims = x.shape[2:]
             width = self._get_pooling_width(numpy, dims, x.dtype)
             y = col.sum(axis=y_axis) / width
-            setattr(self, 'width', width)
+            self.width = width
         else:
             assert self.pad_value == 0
             y = col.mean(axis=y_axis)
