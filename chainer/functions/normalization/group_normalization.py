@@ -281,12 +281,13 @@ class _XHatGrad(function_node.FunctionNode):
         ret = []
 
         if 0 in indexes:
+            # -- sketch of gx2, which is grad of x through gx
             # gx = inv_std * gx_std
             # dgx = dinv_std * gx_std + inv_std * dgx_std
             #
             # -gx2l = (ggx * dinv_std * gx_std) / dx
-            #       = mean(ggx * gx_std) * (dinv_std / dx)
-            #       = -mean(ggx * gx_std) * inv_std^2 * x_hat
+            #       = sum(ggx * gx_std) * (dinv_std / dx)
+            #       = -sum(ggx * gx_std) * inv_std^2 * x_hat / N
             #       = -inv_std * x_hat * mean(ggx * gx)
             #
             # By `gx_std = gx_hat - gx_hat_avg - x_hat * gx_hat_x_hat_avg`,
