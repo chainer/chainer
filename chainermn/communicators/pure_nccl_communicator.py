@@ -59,12 +59,12 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         _memory_utility.pack_params(
             params, data_dtype.itemsize, 'data',
-            self.gpu_tmp_buffer, stream)
+            self.gpu_tmp_buffer, stream, transfer_dtype=data_dtype)
         self.nccl_comm.bcast(self.gpu_tmp_buffer.ptr(), n_elems,
                              _get_nccl_type_id(data_dtype), 0, stream.ptr)
         _memory_utility.unpack_params(
             params, data_dtype.itemsize, 'data',
-            self.gpu_tmp_buffer, stream)
+            self.gpu_tmp_buffer, stream, transfer_dtype=data_dtype)
 
     def allreduce_grad(self, model):
         stream = chainer.cuda.Stream.null
@@ -136,7 +136,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if grad_dtype == allreduce_grad_dtype:
             _memory_utility.pack_params(
                 params, grad_dtype.itemsize, 'grad',
-                self.gpu_buffer_a, stream=stream)
+                self.gpu_buffer_a, stream=stream, transfer_dtype=grad_dtype)
         else:
             if self.grad_dtype_to_allreduce_dtype_kernel is None:
                 self.grad_dtype_to_allreduce_dtype_kernel = \
@@ -146,7 +146,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
             _memory_utility.pack_params(
                 params, grad_dtype.itemsize, 'grad',
-                self.gpu_tmp_buffer, stream=stream)
+                self.gpu_tmp_buffer, stream=stream, transfer_dtype=grad_dtype)
 
             self.grad_dtype_to_allreduce_dtype_kernel(
                 self.gpu_tmp_buffer.array(n_elems, dtype=grad_dtype),
@@ -168,7 +168,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if grad_dtype == allreduce_grad_dtype:
             _memory_utility.unpack_params(
                 params, allreduce_grad_dtype.itemsize, 'grad',
-                self.gpu_buffer_a, stream)
+                self.gpu_buffer_a, stream, transfer_dtype=grad_dtype)
 
         else:
             if self.allreduce_dtype_to_grad_dtype_kernel is None:
@@ -184,7 +184,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
             _memory_utility.unpack_params(
                 params, grad_dtype.itemsize, 'grad', self.gpu_tmp_buffer,
-                stream=stream)
+                stream=stream, transfer_dtype=grad_dtype)
 
 
 def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):

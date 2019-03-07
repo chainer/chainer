@@ -50,7 +50,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_total)
 
         _memory_utility.pack_params(
-            params, itemsize, 'data', self.gpu_buffer_a)
+            params, itemsize, 'data', self.gpu_buffer_a, transfer_dtype=dtype)
 
         self.intra_nccl_comm.bcast(
             self.gpu_buffer_a.ptr(), n_elems_total,
@@ -58,7 +58,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             0, stream.ptr)
 
         _memory_utility.unpack_params(
-            params, itemsize, 'data', self.gpu_buffer_a)
+            params, itemsize, 'data', self.gpu_buffer_a, transfer_dtype=dtype)
 
     def allreduce_grad(self, model):
         self._init_comms()
@@ -73,7 +73,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_b.assign(n_bytes_total)
 
         _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, itemsize, 'grad', self.gpu_buffer_a, transfer_dtype=dtype)
 
         self.intra_nccl_comm.allReduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
@@ -84,4 +84,4 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         arr *= (1.0 / self.size)
 
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+            params, itemsize, 'grad', self.gpu_buffer_b, transfer_dtype=dtype)
