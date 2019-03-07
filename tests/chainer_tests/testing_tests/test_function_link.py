@@ -607,16 +607,6 @@ class TestLinkCorrect(DotLinkTestBase, testing.LinkTestCase):
 
 
 @_inject_backend_tests
-@pytest.mark.xfail(strict=True, raises=TypeError)
-class TestLinkInvalidDefaultInitializer(DotLinkTestBase, testing.LinkTestCase):
-
-    skip_forward_test = True
-    skip_backward_test = True
-
-    default_initializer = chainer
-
-
-@_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
 
@@ -720,31 +710,6 @@ class TestLinkIncorrectForwardBackwardInitializers(
 
     def generate_params(self):
         return self.invalid_forward_backward_initializer,
-
-
-@_inject_backend_tests
-class TestLinkOnlyInitializers(testing.LinkTestCase):
-
-    """`generate_params` is not required if forward and
-    backward tests are skipped.
-    """
-
-    skip_forward_test = True
-    skip_backward_test = True
-
-    param_names = ['p']
-
-    def get_initializers(self):
-        return [
-            initializers.Constant(0), 2,
-            testing.InitializerArgument(None, initializers.Constant(1))],
-
-    def create_link(self, initializers):
-        initial_p, = initializers
-        return DotLink(2, 3, initial_p)
-
-    def generate_inputs(self):
-        return numpy.random.rand(1, 2).astype(numpy.float32),
 
 
 @_inject_backend_tests

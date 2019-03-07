@@ -452,7 +452,7 @@ class LinkTestCase(unittest.TestCase):
         Each initializer-like in the tuple is tested one at a time by being
         passed to ``create_link``. When the length of the tuple is greater than
         one (i.e. if the link accepts multiple initializers), the ones not
-        being tested are replaced by ``default_initializer``.
+        being tested are replaced by the ones returned by `generate_params`.
         Initializer-likes returned here should be deterministic since test will
         invoke them multiple times to test the correctness.
         For testing ``None`` as initializer-like arguments, one should wrap it
@@ -519,12 +519,6 @@ class LinkTestCase(unittest.TestCase):
         A list of strings with all the names of the parameters that should be
         tested. E.g. ``['gamma', 'beta']`` for the batch normalization link.
         ``[]`` by default.
-
-    ``default_initializer`` (initializer-like):
-        Initializer-like that is used to pad initializer-like tuples when
-        the link accepts multiple initializer-likes.
-        This attribute is only used for the initializers tests.
-        ``None`` by default.
 
     ``dodge_nondifferentiable`` (bool):
         Enable non-differentiable point detection in numerical gradient
@@ -610,11 +604,6 @@ class LinkTestCase(unittest.TestCase):
     # List of parameter names represented as strings.
     # I.e. ['gamma', 'beta'] for BatchNormalization.
     param_names = []
-
-    # The default initializer is used to pad the list of initializers during
-    # the initializer tests when enumerating all of them to test only a
-    # single initializer at a time.
-    default_initializer = None
 
     def before_test(self, test_name):
         pass
@@ -741,15 +730,11 @@ class LinkTestCase(unittest.TestCase):
 
         params_inits = self._get_initializers()
 
-        default_init = self.default_initializer
-        if default_init is not None:
-            initializers._check_is_initializer_like(default_init)
-
         for i_param, param_inits in enumerate(params_inits):
             # When testing an initializer for a particular parameter, other
-            # initializers are set to the default initializer.
-
-            inits = [default_init, ] * len(params_inits)
+            # initializers are picked from generate_params.
+            inits = self._generate_params()
+            inits = list(inits)
 
             for init in param_inits:
                 inits[i_param] = init
