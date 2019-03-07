@@ -129,10 +129,6 @@ class TestNStepRNN(unittest.TestCase):
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
             rnn = rnn.to_gpu()
-            rnn.ws = [[getattr(layer, 'w%d' % i)
-                       for i in range(rnn.n_weights)] for layer in rnn]
-            rnn.bs = [[getattr(layer, 'b%d' % i)
-                       for i in range(rnn.n_weights)] for layer in rnn]
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train):
             try:
@@ -332,10 +328,6 @@ class TestNStepBiRNN(unittest.TestCase):
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
             rnn = rnn.to_gpu()
-            rnn.ws = [[getattr(layer, 'w%d' % i)
-                       for i in range(rnn.n_weights)] for layer in rnn]
-            rnn.bs = [[getattr(layer, 'b%d' % i)
-                       for i in range(rnn.n_weights)] for layer in rnn]
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', True):
             try:
