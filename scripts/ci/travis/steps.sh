@@ -157,7 +157,7 @@ step_chainermn_tests() {
 
 
 step_docs() {
-    make -C "$REPO_DIR"/docs html;
+    SPHINXOPTS=-W make -C "$REPO_DIR"/docs html;
 }
 
 
