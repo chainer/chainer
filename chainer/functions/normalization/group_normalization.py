@@ -92,13 +92,11 @@ class GroupNormalization(function_node.FunctionNode):
         with cuda.get_device_from_array(x):
             dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
             self.dummy_gamma = xp.ones_like(dummy_beta)
-            self.mean = xp.empty_like(dummy_beta)
-            self.inv_std = xp.empty_like(dummy_beta)
-        x_hat = cudnn.batch_normalization_forward_training(
-            x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta,
-            self.mean, self.inv_std, self.eps, 1.0,
-            True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
-            configuration.config.debug)
+        x_hat, self.mean, self.inv_std = \
+            cudnn.batch_normalization_forward_training(
+                x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta,
+                self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
+                configuration.config.debug)
 
         y = x_hat.reshape((batch_size, channels, -1))
         cuda.elementwise(
