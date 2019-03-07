@@ -310,7 +310,7 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         Implements check logic of forward outputs. Typically additional check
         can be done after calling ``super().check_forward_outputs``.
         ``outputs`` and ``expected_outputs`` are tuples of arrays.
-        In case the check fails, ``FunctionTestCase`` should be raised.
+        In case the check fails, ``FunctionTestError`` should be raised.
 
     .. rubric:: Attributes
 
