@@ -28,10 +28,17 @@ def get_error():
 if _error is None:
     _gpu_limit = int(os.getenv('CHAINER_TEST_GPU_LIMIT', '-1'))
 
-    chainerx = pytest.mark.chainerx
-    cudnn = pytest.mark.cudnn
-    ideep = pytest.mark.ideep
-    slow = pytest.mark.slow
+    def chainerx(*args, **kwargs):
+        return pytest.mark.chainerx(*args, **kwargs)
+
+    def cudnn(*args, **kwargs):
+        return pytest.mark.cudnn(*args, **kwargs)
+
+    def ideep(*args, **kwargs):
+        return pytest.mark.ideep(*args, **kwargs)
+
+    def slow(*args, **kwargs):
+        return pytest.mark.slow(*args, **kwargs)
 
 else:
     def _dummy_callable(*args, **kwargs):
