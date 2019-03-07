@@ -228,11 +228,17 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
     'loss_scaling': [False, 'static', 'dynamic'],
+    'amsgrad': [False, True],
+    'adabound': [False, True],
 }))
 @_inject_backend_tests
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
+        kwargs = {
+            'amsgrad': self.amsgrad,
+            'adabound': self.adabound
+        }
         return optimizers.Adam(0.05)
 
 
