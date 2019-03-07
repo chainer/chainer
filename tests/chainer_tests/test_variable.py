@@ -2330,7 +2330,7 @@ class TestReshape(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(), (1,), (1, 1), (1, 1, 1), (2,), (2, 3)],
+    'shape': [(0,), (0, 0), (), (1,), (1, 1), (1, 1, 1), (2,), (2, 3)],
     'dtype': [np.int16, np.int32, np.int64,
               np.float16, np.float32, np.float64],
 }))
@@ -2342,7 +2342,7 @@ class TestItem(unittest.TestCase):
 
     def check_item(self, x):
         var = chainer.Variable(x)
-        if x.size > 1:
+        if x.size != 1:
             with pytest.raises(ValueError):
                 var.item()
         else:
@@ -2360,7 +2360,7 @@ class TestItem(unittest.TestCase):
         # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
         # with integral dtype supports gradient computation.
         var = chainer.Variable(x, requires_grad=requires_grad)
-        if x.size > 1:
+        if x.size != 1:
             with pytest.raises(chainerx.DimensionError):
                 var.item()
         else:
