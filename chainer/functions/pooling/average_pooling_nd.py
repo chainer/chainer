@@ -134,7 +134,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         if self.pad_value is None:
             coeff = self._get_pooling_width(cuda.cupy, idims, x.dtype)
             coeff = cuda.cupy.reciprocal(coeff, out=coeff)
-            setattr(self, 'coeff', coeff)
+            self.coeff = coeff
         else:
             assert self.pad_value == 0
             coeff = 1. / functools.reduce(operator.mul, self.ksize)
