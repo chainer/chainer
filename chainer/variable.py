@@ -1645,7 +1645,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
 
         if retain_grad:
             for y, gy in six.moves.zip(outputs, out_grad):
-                if y is not None:  # TODO(kataoka): really?
+                if y is not None:
                     y._set_grad_var_if_available(gy)
             del gy  # to reduce memory usage
         del out_grad  # to reduce memory usage
