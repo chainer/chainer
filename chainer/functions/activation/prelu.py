@@ -161,6 +161,7 @@ def prelu(x, W):
         ~chainer.Variable: Output variable
 
     .. admonition:: Example
+
         >>> x = np.arange(-3, 3, dtype=np.float32).reshape((2, 3))
         >>> x
         array([[-3., -2., -1.],
