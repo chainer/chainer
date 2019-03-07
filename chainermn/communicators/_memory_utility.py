@@ -98,8 +98,7 @@ def pack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
-        comp_dtype = v.dtype
-        if comp_dtype != transfer_dtype:
+        if v.dtype != transfer_dtype:
             v = v.astype(transfer_dtype)
 
         size = v.size * itemsize
