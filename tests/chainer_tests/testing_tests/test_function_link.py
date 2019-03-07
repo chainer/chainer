@@ -4,9 +4,66 @@ import numpy
 import pytest
 
 import chainer
+from chainer import initializers
 from chainer import testing
 from chainer import utils
 import chainerx
+
+
+# Utilities for contiguousness tests.
+#
+# These tests checks incoming array contiguousness.
+# As it's not possible to assume contiguousness of incoming arrays consistently
+# (because gradient_check passes contiguous arrays in numerical_grad),
+# we instead simulate the test failure. The function implementation raises an
+# error if an incoming array matches the expected contiguousness and we expect
+# the failure.
+
+class _ContiguousnessMatched(Exception):
+    pass
+
+
+def _is_f_contiguous(shape, strides, itemsize):
+    if numpy.prod(shape) <= 1:
+        return True
+    for sh, st in zip(shape, reversed(strides)):
+        if sh == 1:
+            continue
+        if st != itemsize:
+            return False
+        itemsize *= sh
+    return True
+
+
+def _get_contiguousness(arr):
+    if isinstance(arr, chainerx.ndarray):
+        c_contig = arr.is_contiguous
+        f_contig = _is_f_contiguous(
+            arr.shape, arr.strides, arr.itemsize)
+        return (c_contig, f_contig)
+    return (arr.flags.c_contiguous, arr.flags.f_contiguous)
+
+
+def _check_contiguousness(arr, expected_contiguous):
+    if isinstance(arr, chainer.Variable):
+        _check_contiguousness(arr.array, expected_contiguous)
+        return
+
+    c_contig, f_contig = _get_contiguousness(arr)
+    if numpy.prod(arr.shape) <= 1:
+        return  # not applicable for this shape
+
+    if expected_contiguous is None:
+        # expected to be non-contiguous
+        if not c_contig and not f_contig:
+            raise _ContiguousnessMatched()
+    elif expected_contiguous == 'C':
+        # expected to be C-contiguous
+        if c_contig:
+            raise _ContiguousnessMatched()
+    else:
+        assert False
+
 
 
 _inject_backend_tests = testing.inject_backend_tests(
@@ -294,7 +351,7 @@ class FuncWithContiguousnessCheck(chainer.FunctionNode):
 
     def _check_contiguousness(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        testing.test._check_contiguousness(arr, self.contiguous)
+        _check_contiguousness(arr, self.contiguous)
 
     def forward(self, inputs):
         x1, x2 = inputs
@@ -327,7 +384,7 @@ class FuncGradWithContiguousnessCheck(chainer.FunctionNode):
         self.check_on = check_on
 
     def _check_contiguousness(self, arr):
-        testing.test._check_contiguousness(arr, self.contiguous)
+        testing.function_link._check_contiguousness(arr, self.contiguous)
 
     def forward(self, inputs_and_grad_outputs):
         x1, x2, gy1, gy2 = inputs_and_grad_outputs
@@ -362,7 +419,7 @@ class FuncGradWithContiguousnessCheck(chainer.FunctionNode):
         # 'double_backward_grad_grad_input',
     ]}))
 @_inject_backend_tests
-@pytest.mark.xfail(strict=True, raises=testing.test._ContiguousnessMatched)
+@pytest.mark.xfail(strict=True, raises=_ContiguousnessMatched)
 class FunctionTestCaseArrayContiguousnessTest(testing.FunctionTestCase):
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
@@ -386,6 +443,372 @@ class FunctionTestCaseArrayContiguousnessTest(testing.FunctionTestCase):
         if test_name == 'test_backward':
             if self.check_on == 'double_backward_grad_grad_input':
                 raise unittest.SkipTest()
+
+
+class Dot(chainer.FunctionNode):
+
+    def __init__(
+            self, incorrect_forward=False, incorrect_backward_gx=False,
+            incorrect_backward_gp=False, contiguous=None,
+            check_on=None):
+        self.incorrect_forward = incorrect_forward
+        self.incorrect_backward_gx = incorrect_backward_gx
+        self.incorrect_backward_gp = incorrect_backward_gp
+        self.contiguous = contiguous
+        self.check_on = check_on
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        xp = chainer.backend.get_array_module(*inputs)
+        x, p = inputs
+
+        if self.check_on == 'forward_input':
+            self._check_contiguousness(x)
+            self._check_contiguousness(p)
+
+        y = xp.dot(x, p)
+
+        if self.incorrect_forward:
+            y *= 9999
+
+        return y,
+
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        x, p = self.get_retained_inputs()
+
+        if self.check_on == 'backward_retained_input':
+            self._check_contiguousness(x.array)
+            self._check_contiguousness(p.array)
+        elif self.check_on == 'backward_grad_output':
+            self._check_contiguousness(gy.array)
+
+        gx = chainer.functions.matmul(gy, p.T)
+        gp = chainer.functions.matmul(x.T, gy)
+
+        if self.incorrect_backward_gx:
+            gx /= 2
+        if self.incorrect_backward_gp:
+            gp += 1000
+
+        return gx, gp
+
+    def _check_contiguousness(self, arr):
+        assert isinstance(arr, chainer.get_array_types())
+        _check_contiguousness(arr, self.contiguous)
+
+
+class DotLink(chainer.Link):
+
+    """correctly implemented dot."""
+
+    def __init__(
+            self, in_size, out_size, initial_p=None, contiguous=None,
+            check_on=None):
+        super(DotLink, self).__init__()
+
+        with self.init_scope():
+            if initial_p is None:
+                initial_p = initializers.Constant(1)
+            self.p = chainer.Parameter(initial_p, shape=(in_size, out_size))
+
+        self.contiguous = contiguous
+        self.check_on = check_on
+
+    def forward(self, inputs):
+        x = inputs
+        p = self.p
+        contiguous = self.contiguous
+        check_on = self.check_on
+        y, = Dot(contiguous=contiguous, check_on=check_on).apply((x, p))
+        return y
+
+
+class DotLinkIncorrectForward(DotLink):
+
+    """Incorrectly implemented dot (forward)."""
+
+    def __init__(self, *args, **kwargs):
+        super(DotLinkIncorrectForward, self).__init__(*args, **kwargs)
+
+    def forward(self, inputs):
+        x = inputs
+        p = self.p
+        y, = Dot(incorrect_forward=True).apply((x, p))
+        return y
+
+
+class DotLinkIncorrectBackward(DotLink):
+
+    """Incorrect implementation of dot (backward)."""
+
+    def __init__(self, incorrect_gx, incorrect_gp, *args, **kwargs):
+        super(DotLinkIncorrectBackward, self).__init__(*args, **kwargs)
+        self.incorrect_gx = incorrect_gx
+        self.incorrect_gp = incorrect_gp
+
+    def forward(self, inputs):
+        x = inputs
+        p = self.p
+        y, = Dot(
+            incorrect_backward_gx=self.incorrect_gx,
+            incorrect_backward_gp=self.incorrect_gp).apply((x, p))
+        return y
+
+
+class DotLinkIncorrectInitialization(DotLink):
+
+    """Incorrect implementation of dot (parameter initialization)."""
+
+    def __init__(self, in_size, out_size, initial_p=None):
+        # Ignores given initializer here.
+        super(DotLinkIncorrectInitialization, self).__init__(
+            in_size, out_size, initializers.Constant(0))
+
+
+class DotLinkTestBase(object):
+
+    param_names = ['p']
+
+    def setUp(self):
+        self.n = 1
+        self.in_size = 2
+        self.out_size = 3
+        self.dtype = numpy.float32
+
+    def generate_params(self):
+        in_size = self.in_size
+        out_size = self.out_size
+        return numpy.random.uniform(
+            -1, 1, (in_size, out_size)).astype(self.dtype),
+
+    def get_initializers(self):
+        return [
+            initializers.Constant(0), 2,
+            testing.InitializerPair(None, initializers.Constant(1))],
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        return DotLink(in_size, out_size, initial_p)
+
+    def generate_inputs(self):
+        return numpy.random.rand(self.n, self.in_size).astype(self.dtype),
+
+    def forward_expected(self, inputs, params):
+        x, = inputs
+        p, = params
+        return numpy.dot(x, p),
+
+
+@_inject_backend_tests
+class TestLinkCorrect(DotLinkTestBase, testing.LinkTestCase):
+    pass
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkInvalidDefaultInitializer(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    default_initializer = chainer
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
+class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_backward_test = True
+    skip_initializers_test = True
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        link = DotLinkIncorrectForward(in_size, out_size, initial_p)
+        return link
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
+class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_initializers_test = True
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        link = DotLinkIncorrectBackward(
+            True, False, in_size, out_size, initial_p)
+        return link
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
+class TestLinkIncorrectBackwardParam(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_initializers_test = True
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        link = DotLinkIncorrectBackward(
+            False, True, in_size, out_size, initial_p)
+        return link
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
+class TestLinkIncorrectBackwardInitializers(
+        DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        link = DotLinkIncorrectInitialization(in_size, out_size, initial_p)
+        return link
+
+
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkIncorrectCreateLink(DotLinkTestBase, testing.LinkTestCase):
+
+    def create_link(self, initializers):
+        # Invalid return type (that is not an instance of chainer.Link).
+        return numpy.array([1])
+
+
+@testing.parameterize(*testing.product({
+    'invalid_initializer': [
+        chainer.Variable(numpy.array([1])),
+        chainer.Parameter(numpy.array([1])),
+        testing.InitializerPair(None, None),
+    ]}))
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkIncorrectInitializers(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    def get_initializers(self):
+        return [self.invalid_initializer],
+
+
+@testing.parameterize(*testing.product({
+    'invalid_forward_backward_initializer': [
+        chainer.Variable(numpy.array([1])),
+        chainer.Parameter(numpy.array([1])),
+        testing.InitializerPair(None, None),
+    ]}))
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkIncorrectForwardBackwardInitializers(
+        DotLinkTestBase, testing.LinkTestCase):
+
+    skip_initializers_test = True
+
+    def generate_params(self):
+        return self.invalid_forward_backward_initializer,
+
+
+@_inject_backend_tests
+class TestLinkOnlyInitializers(testing.LinkTestCase):
+
+    """`generate_params` is not required if forward and
+    backward tests are skipped.
+    """
+
+    skip_forward_test = True
+    skip_backward_test = True
+
+    param_names = ['p']
+
+    def get_initializers(self):
+        return [
+            initializers.Constant(0), 2,
+            testing.InitializerPair(None, initializers.Constant(1))],
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        return DotLink(2, 3, initial_p)
+
+    def generate_inputs(self):
+        return numpy.random.rand(1, 2).astype(numpy.float32),
+
+
+@_inject_backend_tests
+class TestLinkOnlyForwardBackward(testing.LinkTestCase):
+
+    """`get_initializers` is not required if initializers test is skipped."""
+
+    skip_initializers_test = True
+
+    param_names = ['p']
+
+    def generate_params(self):
+        return numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32),
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        return DotLink(2, 3, initial_p)
+
+    def generate_inputs(self):
+        return numpy.random.rand(1, 2).astype(numpy.float32),
+
+    def forward_expected(self, inputs, params):
+        x, = inputs
+        p, = params
+        return numpy.dot(x, p),
+
+
+@testing.parameterize(*testing.product({
+    'contiguous': [None, 'C'],
+    'check_on': [  # Check points in which cotiguousness is probed.
+        'forward_input',
+        # TODO(hvy): As gradient_check.check_backward currently copies the
+        # grads without preserving strides, they cannot be non-contiguous.
+        # Enable this check after check_backward will be fixed.
+        # 'backward_grad_output',
+        'backward_retained_input',
+        # TODO(hvy): Enable this check after check_backward will be fixed.
+        # 'double_backward_grad_grad_input',
+    ]}))
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=_ContiguousnessMatched)
+class TestLinkContiguousness(DotLinkTestBase, testing.LinkTestCase):
+
+    skip_initializers_test = True
+
+    def before_test(self, test_name):
+        # Some combinations of test methods and check points are irrelevant.
+        # Skip such combinations.
+        # For example, `test_forward` method does not generate grad_outputs.
+        if test_name == 'test_forward':
+            if self.check_on != 'forward_input':
+                raise unittest.SkipTest()
+
+    def create_link(self, initializers):
+        initial_p, = initializers
+        in_size = self.in_size
+        out_size = self.out_size
+        contiguous = self.contiguous
+        check_on = self.check_on
+        link = DotLink(
+            in_size, out_size, initial_p, contiguous=contiguous,
+            check_on=check_on)
+        return link
 
 
 testing.run_module(__name__, __file__)
