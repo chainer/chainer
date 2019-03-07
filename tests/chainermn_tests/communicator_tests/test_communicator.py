@@ -5,7 +5,8 @@ import unittest
 
 import chainer
 import chainer.cuda
-import chainer.initializers import chainer.links
+import chainer.initializers
+import chainer.links
 import chainer.testing
 import chainer.testing.attr
 import chainermn

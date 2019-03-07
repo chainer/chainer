@@ -1,5 +1,4 @@
 import chainer.cuda
-import numpy as np
 
 from chainermn.communicators import _communication_utility
 from chainermn.communicators import _memory_utility
