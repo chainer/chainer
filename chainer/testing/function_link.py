@@ -11,15 +11,9 @@ from chainer.testing import array as array_module
 from chainer import utils
 
 
-class TestError(AssertionError):
+class _TestError(AssertionError):
 
-    """Parent class to Chainer test errors.
-
-    .. seealso::
-        :class:`chainer.testing.FunctionTestError`
-        :class:`chainer.testing.LinkTestError`
-
-    """
+    """Parent class to Chainer test errors."""
 
     @classmethod
     def check(cls, expr, message):
@@ -41,12 +35,12 @@ class TestError(AssertionError):
             cls.fail(message, e)
 
 
-class FunctionTestError(TestError):
+class FunctionTestError(_TestError):
     """Raised when the target function is implemented incorrectly."""
     pass
 
 
-class LinkTestError(TestError):
+class LinkTestError(_TestError):
     """Raised when the target link is implemented incorrectly."""
     pass
 
@@ -945,7 +939,7 @@ def _check_array_types(arrays, device, func_name):
 
 
 def _check_variable_types(vars, device, func_name, test_error_cls):
-    assert issubclass(test_error_cls, TestError)
+    assert issubclass(test_error_cls, _TestError)
 
     if not isinstance(vars, tuple):
         test_error_cls.fail(
@@ -969,7 +963,7 @@ def _check_forward_output_arrays_equal(
         expected_arrays, actual_arrays, func_name, test_error_cls, **opts):
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
-    assert issubclass(test_error_cls, TestError)
+    assert issubclass(test_error_cls, _TestError)
 
     message = None
     while True:
