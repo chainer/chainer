@@ -1347,9 +1347,12 @@ class Variable(object):
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False, enable_double_backprop=False,
+    def backward(self, retain_grad=None, enable_double_backprop=False,
                  loss_scale=None):
-        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
+        """backward(retain_grad=False, enable_double_backprop=False, \
+loss_scale=None)
+
+        Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
         :meth:`FunctionNode.backward() <chainer.FunctionNode.backward>`
@@ -1399,8 +1402,12 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
+        if retain_grad is None:
+            # ChainerX does not support the default retain_grad=False
+            retain_grad = self._has_chainerx_array
+
         if self._has_chainerx_array:
-            if retain_grad:
+            if not retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
