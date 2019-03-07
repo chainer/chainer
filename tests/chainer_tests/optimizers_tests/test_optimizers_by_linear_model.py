@@ -237,7 +237,7 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
     def create(self):
         kwargs = {
             'amsgrad': self.amsgrad,
-            'adabound': self.adabound
+            'adabound': self.adabound,
         }
         return optimizers.Adam(0.05)
 
