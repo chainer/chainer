@@ -146,30 +146,33 @@ def prelu(x, W):
     """Parametric ReLU function.
 
     It accepts two arguments: an input ``x`` and a weight array ``W``
-    and computes the output as :math:`PReLU(x) = \\max(x, W*x)`,
-    where :math:`*` is an elementwise multiplication for each sample in the
-    batch.
+    and computes the output as
 
-    When the PReLU function is combined with two-dimensional convolution, the
-    elements of parameter :math:`W` are typically shared across the same filter
-    of different pixels. In order to support such usage, this function supports
-    the shape of parameter array that indicates leading dimensions of input
-    arrays except the batch dimension.
-
-    For example, if :math:`W` has the shape of :math:`(2, 3, 4)`,
-    :math:`x` must have the shape of :math:`(B, 2, 3, 4, S_1, ..., S_N)`
-    where :math:`B` is the batch size and the number of trailing :math:`S`'s
-    :math:`N` is an arbitrary non-negative integer.
+    .. math::
+        PReLU(x_i) = \\begin{cases}
+        x_i & (x_i>0) \\\\ W_i * x_i & (otherwise)\\end{cases}
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
-            Its first argument is assumed to be the minibatch dimension.
+            Its first axis is assumed to be the minibatch dimension.
         W (:class:`~chainer.Variable` or :ref:`ndarray`): Weight variable.
 
     Returns:
         ~chainer.Variable: Output variable
 
-    .. seealso:: :class:`~chainer.links.PReLU`
+    .. note::
+        When the PReLU function is combined with two-dimensional convolution,
+        the elements of parameter :math:`W` are typically shared across the
+        same filter of different pixels. In order to support such usage,
+        this function supports the shape of parameter array that indicates
+        leading dimensions of input arrays except the batch dimension.
+
+        For example, if :math:`W` has the shape of :math:`(2, 3, 4)`,
+        :math:`x` must have the shape of :math:`(B, 2, 3, 4, S_1, ..., S_N)`
+        where :math:`B` is the batch size and the number of trailing
+        :math:`S`'s :math:`N` is an arbitrary non-negative integer.
+
+    .. seealso:: :class:`L.PReLU <chainer.links.PReLU>`
 
     """
     return PReLUFunction().apply((x, W))[0]
