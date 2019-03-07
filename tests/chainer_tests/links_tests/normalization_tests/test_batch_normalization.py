@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -502,6 +503,40 @@ class TestFailChannalSizeInference(unittest.TestCase):
     def test_fail_inference(self):
         with self.assertRaises(RuntimeError):
             links.BatchNormalization()
+
+
+@attr.multi_gpu(2)
+class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
+
+    def test_lazy_initialization_with_non_zero_current_cuda_device(self):
+        # Create a lazily initialized BatchNormalization link.
+        bn = links.BatchNormalization(axis=(0, 2, 3))
+        assert bn.xp is numpy
+
+        device = backend.GpuDevice.from_device_id(1)
+        bn.to_device(device)
+        assert bn.xp is cuda.cupy
+        assert bn.device == device
+        assert bn.beta.device == device
+        assert bn.gamma.device == device
+        assert bn.avg_mean is None
+        assert bn.avg_var is None
+
+        x = numpy.random.randn(5, 4, 3, 2).astype(numpy.float32)
+        x = device.send(x)
+
+        # All parameters and persistent values should correctly be initialized
+        # on device 1, and not device 0, meaning forward pass should not raise
+        # any errors.
+        bn(x)
+        assert bn.xp is cuda.cupy
+        assert bn.device == device
+        assert bn.beta.device == device
+        assert bn.gamma.device == device
+        assert bn.avg_mean is not None
+        assert bn.avg_var is not None
+        assert backend.GpuDevice.from_array(bn.avg_mean) == device
+        assert backend.GpuDevice.from_array(bn.avg_var) == device
 
 
 testing.run_module(__name__, __file__)

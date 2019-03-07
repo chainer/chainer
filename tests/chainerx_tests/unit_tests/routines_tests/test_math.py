@@ -210,6 +210,82 @@ def test_imul_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
+# TODO(imanishi): Support and test zero division and mixed dtypes.
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test bool dtype.
+@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
+@pytest.mark.parametrize('lhs,rhs', [
+    ([], []),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
+    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_floordiv(xp, lhs, rhs, device, numeric_dtype, is_module):
+    if (numpy.array(lhs).dtype.kind == 'f' and
+            numpy.dtype(numeric_dtype).kind in ('i', 'u')):
+        return chainerx.testing.ignore()
+    if (((numpy.array(lhs) < 0).any() or (numpy.array(rhs) < 0).any()) and
+            numpy.dtype(numeric_dtype).kind == 'u'):
+        return chainerx.testing.ignore()
+    lhs = xp.array(lhs).astype(numeric_dtype)
+    if isinstance(rhs, (list, tuple)):
+        rhs = xp.array(rhs).astype(numeric_dtype)
+
+    if is_module:
+        return xp.floor_divide(lhs, rhs)
+    else:
+        return lhs // rhs
+
+
+# TODO(imanishi): Support and test zero division and mixed dtypes.
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test bool dtype.
+@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
+@pytest.mark.parametrize('lhs,rhs', [
+    ([], []),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
+    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_ifloordiv(xp, lhs, rhs, device, numeric_dtype):
+    if numpy.array(lhs).dtype.kind != numpy.dtype(numeric_dtype).kind:
+        return chainerx.testing.ignore()
+    lhs = xp.array(lhs).astype(numeric_dtype)
+    if isinstance(rhs, (list, tuple)):
+        rhs = xp.array(rhs).astype(numeric_dtype)
+
+    lhs //= rhs
+    return lhs
+
+
 @chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv(xp, device, shape, numeric_dtype, is_module):

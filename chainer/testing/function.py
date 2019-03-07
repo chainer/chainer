@@ -3,6 +3,7 @@ import typing as tp  # NOQA
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -126,7 +127,9 @@ class FunctionTestBase(object):
 
         # Compute actual outputs
         outputs = self._forward(
-            tuple([chainer.Variable(a) for a in inputs]),
+            tuple([
+                chainer.Variable(a, requires_grad=a.dtype.kind == 'f')
+                for a in inputs]),
             backend_config)
 
         # Check inputs has not changed
@@ -397,7 +400,8 @@ def _check_variable_types(vars, device, func_name):
             '{}() must return a tuple of Variables of arrays supported by '
             'device {}.\n'
             'Actual: {}'.format(
-                func_name, device, ', '.join(type(a.array) for a in vars)))
+                func_name, device,
+                ', '.join(str(type(a.array)) for a in vars)))
 
 
 def _check_forward_output_arrays_equal(
@@ -405,6 +409,7 @@ def _check_forward_output_arrays_equal(
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
     message = None
+    detail_message = None
     while True:
         # Check number of arrays
         if len(expected_arrays) != len(actual_arrays):
@@ -427,26 +432,35 @@ def _check_forward_output_arrays_equal(
             break
 
         # Check values
-        indices = []
+        errors = []
         for i, (expected, actual) in (
                 enumerate(zip(expected_arrays, actual_arrays))):
             try:
                 array_module.assert_allclose(expected, actual, **opts)
-            except AssertionError:
-                indices.append(i)
-        if len(indices) > 0:
+            except AssertionError as e:
+                errors.append((i, e))
+        if len(errors) > 0:
             message = (
                 'Outputs of forward() do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(
-                    ', '.join(str(i) for i in indices)))
+                    ', '.join(str(i) for i, e in errors)))
+            f = six.StringIO()
+            for i, e in errors:
+                f.write('Error details of output [{}]:\n'.format(i))
+                f.write(str(e))
+                f.write('\n')
+            detail_message = f.getvalue()
             break
         break
 
     if message is not None:
-        FunctionTestError.fail(
+        msg = (
             '{}\n'
             'Expected shapes and dtypes: {}\n'
             'Actual shapes and dtypes:   {}\n'.format(
                 message,
                 utils._format_array_props(expected_arrays),
                 utils._format_array_props(actual_arrays)))
+        if detail_message is not None:
+            msg += '\n\n' + detail_message
+        FunctionTestError.fail(msg)

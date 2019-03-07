@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import warnings
 
 import mock
 import numpy
@@ -8,9 +9,15 @@ import six
 
 import chainer
 from chainer import links
-from chainer.links import caffe
-from chainer.links.caffe.caffe_function import caffe_pb
 from chainer import testing
+
+
+# The caffe submodule relies on protobuf which under protobuf==3.7.0 and
+# Python 3.7 raises a DeprecationWarning from the collections module.
+with warnings.catch_warnings():
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning)
+    from chainer.links import caffe
+    from chainer.links.caffe.caffe_function import caffe_pb
 
 
 def _iter_init(param, data):

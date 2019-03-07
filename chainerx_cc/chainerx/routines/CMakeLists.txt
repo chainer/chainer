@@ -10,6 +10,7 @@ add_library(chainerx_routines STATIC
     pooling.cc
     sorting.cc
     statistics.cc
+    type_util.cc
 )
 
 install(FILES

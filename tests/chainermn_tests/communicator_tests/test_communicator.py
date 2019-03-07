@@ -65,6 +65,10 @@ gpu_params = [Param(p) for p in [
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
+        'communicator_class': NaiveCommunicator,
+        'model_dtype': np.float16,
+        'multi_node': True,
+    }, {
         'communicator_class': FlatCommunicator,
         'multi_node': True,
     }, {
