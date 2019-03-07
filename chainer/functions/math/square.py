@@ -33,11 +33,11 @@ def square(x):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
-        A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 
     Returns:
         ~chainer.Variable: Output variable.
-        A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 
     .. admonition:: Example
 

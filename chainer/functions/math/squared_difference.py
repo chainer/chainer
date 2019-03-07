@@ -45,7 +45,7 @@ def squared_difference(x1, x2):
 
     Returns:
         ~chainer.Variable: ``(x1 - x2) ** 2`` element-wise.
-        A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 
     .. admonition:: Example
 
