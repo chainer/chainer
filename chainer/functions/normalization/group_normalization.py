@@ -352,7 +352,7 @@ class _MulInvStd(function_node.FunctionNode):
             self.eps, self.mean, self.inv_std,
             self.dummy_gamma).apply((x, gz))
 
-        return gx, gy
+        return -gx, gy
 
 
 def group_normalization(x, groups, gamma, beta, eps=1e-5):

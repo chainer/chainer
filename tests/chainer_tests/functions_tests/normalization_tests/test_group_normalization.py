@@ -3,6 +3,7 @@ import six
 import numpy
 
 from chainer import functions
+import chainer.functions.normalization.group_normalization as gn_module
 from chainer import testing
 
 
@@ -73,6 +74,57 @@ class TestGroupNormalization(testing.FunctionTestCase):
         y = _simple_group_normalization(x, self.groups, gamma, beta,
                                         eps=self.eps)
         return y,
+
+
+@testing.parameterize(*(testing.product({
+    'shape': [(15, 10)],
+    'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
+})))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestMulInvStd(testing.FunctionTestCase):
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        y = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x, y
+
+    def forward(self, inputs, device):
+        x, y = inputs
+
+        mean = functions.mean(x, axis=1)
+        d = x - mean[:, None]
+        var = functions.mean(d * d, axis=1)
+        inv_std = functions.rsqrt(var + self.eps)
+
+        dummy_gamma = self.backend_config.xp.ones(
+            self.shape[0], dtype=self.dtype)
+
+        return gn_module._MulInvStd(
+            self.eps, mean.array, inv_std.array, dummy_gamma).apply((x, y))
+
+    def forward_expected(self, inputs):
+        x, y = inputs
+        inv_std = (numpy.var(x, axis=1) + self.eps) ** -0.5
+        z = inv_std[:, None] * y
+        return z,
 
 
 testing.run_module(__name__, __file__)
