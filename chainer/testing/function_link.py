@@ -45,7 +45,7 @@ class LinkTestError(_TestError):
     pass
 
 
-class InitializerPair(object):
+class InitializerArgument(object):
 
     """Class to hold a pair of initializer argument value and actual
     initializer-like.
@@ -456,11 +456,13 @@ class LinkTestCase(unittest.TestCase):
         Initializer-likes returned here should be deterministic since test will
         invoke them multiple times to test the correctness.
         For testing ``None`` as initializer-like arguments, one should wrap it
-        in a ``InitializerPair`` as ``InitializerPair(None, expected)``, where
-        the second argument is the expected initializer-like that the link is
-        expected to use when passed ``None``. ``InitializerPair`` can be used
-        to setup a test for any two initializer-likes where the first argument
-        is passed to the link constructor and the second is the expected.
+        in a ``InitializerArgument`` as
+        ``InitializerArgument(None, expected)``, where the second argument is
+        the expected initializer-like that the link is expected to use when
+        passed ``None``.
+        ``InitializerArgument`` can be used to setup a test for any two
+        initializer-likes where the first argument is passed to the link
+        constructor and the second is the expected.
         Note that the expected cannot be ``None``.
         This method must be implemented if ``skip_initializers_test`` is
         ``False`` (the initializers test is executed).
@@ -567,7 +569,7 @@ class LinkTestCase(unittest.TestCase):
                 def get_initializers(self):
                     initialW = [initializers.Constant(1), 2]
                     initial_bias = [initializers.Constant(2), 3,
-                        chainer.testing.link.InitializerPair(None, 0)]
+                        chainer.testing.link.InitializerArgument(None, 0)]
                     return initialW, initial_bias
 
                 def generate_inputs(self):
@@ -772,8 +774,8 @@ class LinkTestCase(unittest.TestCase):
 
         # The expected values of the parameter is decided by the given
         # initializer. If the initializer is `None`, it should have been
-        # wrapped in a InitializerPair along with the expected initializer that
-        # the link should default to in case of `None`.
+        # wrapped in a InitializerArgument along with the expected initializer
+        # that the link should default to in case of `None`.
         #
         # Note that for this to work, the expected parameter must be inferred
         # deterministically.
@@ -889,7 +891,7 @@ class LinkTestCase(unittest.TestCase):
 
 
 def _check_generated_initializer(init):
-    if isinstance(init, InitializerPair):
+    if isinstance(init, InitializerArgument):
         init = init.expected_initializer
     initializers._check_is_initializer_like(init)
 
@@ -897,7 +899,7 @@ def _check_generated_initializer(init):
 def _get_initializer_argument_value(init):
     # Returns the initializer that should be passed to the link constructor.
 
-    if isinstance(init, InitializerPair):
+    if isinstance(init, InitializerArgument):
         return init.argument_value
     return init
 
@@ -905,7 +907,7 @@ def _get_initializer_argument_value(init):
 def _get_expected_initializer(init):
     # Returns the expected initializer for the given initializer.
 
-    if isinstance(init, InitializerPair):
+    if isinstance(init, InitializerArgument):
         init = init.expected_initializer
 
     assert init is not None

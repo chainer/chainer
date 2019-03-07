@@ -65,7 +65,6 @@ def _check_contiguousness(arr, expected_contiguous):
         assert False
 
 
-
 _inject_backend_tests = testing.inject_backend_tests(
     None,
     [
@@ -585,7 +584,7 @@ class DotLinkTestBase(object):
     def get_initializers(self):
         return [
             initializers.Constant(0), 2,
-            testing.InitializerPair(None, initializers.Constant(1))],
+            testing.InitializerArgument(None, initializers.Constant(1))],
 
     def create_link(self, initializers):
         initial_p, = initializers
@@ -693,7 +692,7 @@ class TestLinkIncorrectCreateLink(DotLinkTestBase, testing.LinkTestCase):
     'invalid_initializer': [
         chainer.Variable(numpy.array([1])),
         chainer.Parameter(numpy.array([1])),
-        testing.InitializerPair(None, None),
+        testing.InitializerArgument(None, None),
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)
@@ -710,7 +709,7 @@ class TestLinkIncorrectInitializers(DotLinkTestBase, testing.LinkTestCase):
     'invalid_forward_backward_initializer': [
         chainer.Variable(numpy.array([1])),
         chainer.Parameter(numpy.array([1])),
-        testing.InitializerPair(None, None),
+        testing.InitializerArgument(None, None),
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)
@@ -738,7 +737,7 @@ class TestLinkOnlyInitializers(testing.LinkTestCase):
     def get_initializers(self):
         return [
             initializers.Constant(0), 2,
-            testing.InitializerPair(None, initializers.Constant(1))],
+            testing.InitializerArgument(None, initializers.Constant(1))],
 
     def create_link(self, initializers):
         initial_p, = initializers
