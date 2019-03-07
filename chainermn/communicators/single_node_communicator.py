@@ -1,4 +1,5 @@
 import chainer.cuda
+import numpy as np
 
 from chainermn.communicators import _communication_utility
 from chainermn.communicators import _memory_utility
@@ -42,7 +43,9 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         stream = chainer.cuda.Stream.null
 
         params = _memory_utility.extract_params_set_data(model)
-        itemsize = 4
+
+        dtype = params[0].data.dtype
+        itemsize = dtype.itemsize
         n_elems_total = sum(param.data.size for param in params)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
@@ -51,7 +54,8 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             params, itemsize, 'data', self.gpu_buffer_a)
 
         self.intra_nccl_comm.bcast(
-            self.gpu_buffer_a.ptr(), n_elems_total, nccl.NCCL_FLOAT,
+            self.gpu_buffer_a.ptr(), n_elems_total,
+            _communication_utility._get_nccl_type_id(dtype),
             0, stream.ptr)
 
         _memory_utility.unpack_params(
@@ -60,9 +64,10 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def allreduce_grad(self, model):
         self._init_comms()
         stream = chainer.cuda.Stream.null
-
         params = _memory_utility.extract_params_set_grad(model)
-        itemsize = 4
+
+        dtype = params[0].grad.dtype
+        itemsize = dtype.itemsize
         n_elems_total = sum(param.grad.size for param in params)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
@@ -73,9 +78,10 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         self.intra_nccl_comm.allReduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
-            nccl.NCCL_FLOAT, nccl.NCCL_SUM, stream.ptr)
+            _communication_utility._get_nccl_type_id(dtype),
+            nccl.NCCL_SUM, stream.ptr)
 
-        arr = self.gpu_buffer_b.array(n_elems_total)
+        arr = self.gpu_buffer_b.array(n_elems_total, dtype=dtype)
         arr *= (1.0 / self.size)
 
         _memory_utility.unpack_params(

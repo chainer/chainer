@@ -5,8 +5,7 @@ import unittest
 
 import chainer
 import chainer.cuda
-import chainer.initializers
-import chainer.links
+import chainer.initializers import chainer.links
 import chainer.testing
 import chainer.testing.attr
 import chainermn
@@ -92,6 +91,10 @@ gpu_params = [Param(p) for p in [
         'multi_node': True,
     }, {
         'communicator_class': SingleNodeCommunicator,
+        'multi_node': False,
+    }, {
+        'communicator_class': SingleNodeCommunicator,
+        'model_dtype': np.float16,
         'multi_node': False,
     }, {
         'communicator_class': NonCudaAwareCommunicator,
