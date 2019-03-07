@@ -50,7 +50,7 @@ class TestNStepRNN(unittest.TestCase):
 
         for layer in self.rnn:
             for p in layer.params():
-                p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
+                p.array[...] = numpy.random.uniform(-1, 1, p.shape)
         self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
@@ -61,11 +61,11 @@ class TestNStepRNN(unittest.TestCase):
         xs = [chainer.Variable(x) for x in xs_data]
         hy, ys = self.rnn(h, xs)
 
-        self.assertEqual(hy.data.shape, h_data.shape)
-        self.assertEqual(len(xs), len(ys))
+        assert hy.shape == h_data.shape
+        assert len(xs) == len(ys)
         for x, y in zip(xs, ys):
-            self.assertEqual(len(x.data), len(y.data))
-            self.assertEqual(y.data.shape[1], self.out_size)
+            assert len(x) == len(y)
+            assert y.shape[1] == self.out_size
 
         self.rnn.to_cpu()
 
@@ -80,16 +80,16 @@ class TestNStepRNN(unittest.TestCase):
                     elif self.activation == 'relu':
                         activation_func = relu
 
-                    h_prev = activation_func(x.dot(p.w0.data.T) +
-                                             h_prev.dot(p.w1.data.T) +
-                                             p.b0.data + p.b1.data)
+                    h_prev = activation_func(x.dot(p.w0.array.T) +
+                                             h_prev.dot(p.w1.array.T) +
+                                             p.b0.array + p.b1.array)
 
                     hs.append(h_prev)
 
                 seq = hs
                 testing.assert_allclose(hy.data[layer, batch], h_prev)
 
-            for y, ey in zip(ys[batch].data, seq):
+            for y, ey in zip(ys[batch].array, seq):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu_train(self):
@@ -189,7 +189,7 @@ class TestNStepRNN(unittest.TestCase):
                 [cuda.to_gpu(gy) for gy in self.gys])
 
     def test_n_cells(self):
-        self.assertEqual(self.rnn.n_cells, 1)
+        assert self.rnn.n_cells == 1
 
 
 @testing.parameterize(*testing.product({
@@ -227,7 +227,7 @@ class TestNStepBiRNN(unittest.TestCase):
 
         for layer in self.rnn:
             for p in layer.params():
-                p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
+                p.array[...] = numpy.random.uniform(-1, 1, p.array.shape)
         self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
@@ -238,11 +238,11 @@ class TestNStepBiRNN(unittest.TestCase):
         xs = [chainer.Variable(x) for x in xs_data]
         hy, ys = self.rnn(h, xs)
 
-        self.assertEqual(hy.data.shape, h_data.shape)
-        self.assertEqual(len(xs), len(ys))
+        assert hy.shape == h_data.shape
+        assert len(xs) == len(ys)
         for x, y in zip(xs, ys):
-            self.assertEqual(len(x.data), len(y.data))
-            self.assertEqual(y.data.shape[1], self.out_size * 2)
+            assert len(x) == len(y)
+            assert y.shape[1] == self.out_size * 2
 
         self.rnn.to_cpu()
 
@@ -260,12 +260,12 @@ class TestNStepBiRNN(unittest.TestCase):
                     elif self.activation == 'relu':
                         activation_func = relu
 
-                    h_prev = activation_func(x.dot(p.w0.data.T) +
-                                             h_prev.dot(p.w1.data.T) +
-                                             p.b0.data + p.b1.data)
+                    h_prev = activation_func(x.dot(p.w0.array.T) +
+                                             h_prev.dot(p.w1.array.T) +
+                                             p.b0.array + p.b1.array)
                     hs_f.append(h_prev)
 
-                testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
+                testing.assert_allclose(hy.array[layer_idx, batch], h_prev)
 
                 # backward
                 di = 1
@@ -278,9 +278,9 @@ class TestNStepBiRNN(unittest.TestCase):
                         activation_func = numpy.tanh
                     elif self.activation == 'relu':
                         activation_func = relu
-                    h_prev = activation_func(x.dot(p.w0.data.T) +
-                                             h_prev.dot(p.w1.data.T) +
-                                             p.b0.data + p.b1.data)
+                    h_prev = activation_func(x.dot(p.w0.array.T) +
+                                             h_prev.dot(p.w1.array.T) +
+                                             p.b0.array + p.b1.array)
                     hs_b.append(h_prev)
                 testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
 
@@ -288,7 +288,7 @@ class TestNStepBiRNN(unittest.TestCase):
                 seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi)
                        in zip(hs_f, hs_b)]
 
-            for y, ey in zip(ys[batch].data, seq):
+            for y, ey in zip(ys[batch].array, seq):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu_train(self):
@@ -334,7 +334,7 @@ class TestNStepBiRNN(unittest.TestCase):
                 rnn(h, xs)
             except Exception as e:
                 msg = e
-        assert msg is None, msg
+        assert msg is None
 
     @attr.multi_gpu(2)
     def test_multi_gpu_forward_training(self):
@@ -388,7 +388,7 @@ class TestNStepBiRNN(unittest.TestCase):
                 [cuda.to_gpu(gy) for gy in self.gys])
 
     def test_n_cells(self):
-        self.assertEqual(self.rnn.n_cells, 1)
+        assert self.rnn.n_cells == 1
 
 
 testing.run_module(__name__, __file__)
