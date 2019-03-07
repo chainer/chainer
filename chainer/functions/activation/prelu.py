@@ -160,6 +160,18 @@ def prelu(x, W):
     Returns:
         ~chainer.Variable: Output variable
 
+    .. admonition:: Example
+        >>> x = np.arange(-3, 3, dtype=np.float32).reshape((2, 3))
+        >>> x
+        array([[-3., -2., -1.],
+               [ 0.,  1.,  2.]], dtype=float32)
+        >>> W = np.array([0.01, 0.1, 1], dtype=np.float32)
+        >>> W
+        array([0.01, 0.1 , 1.  ], dtype=float32)
+        >>> F.prelu(x, W)
+        variable([[-0.03, -0.2 , -1.  ],
+                  [ 0.  ,  1.  ,  2.  ]])
+
     .. note::
         When the PReLU function is combined with two-dimensional convolution,
         the elements of parameter :math:`W` are typically shared across the
