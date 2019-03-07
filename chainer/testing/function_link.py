@@ -424,7 +424,7 @@ class LinkTestCase(unittest.TestCase):
         Returns a tuple of input arrays of type :class:`numpy.ndarray`.
 
     ``create_link(self, initializers)``
-        Returns a link. The link is typically initialized with the given
+        Returns a link. The link should be initialized with the given
         initializer-likes ``initializers``. ``initializers`` is a tuple of
         same length as the number of parameters and contains initializer-likes
         returned by either ``generate_params`` or ``get_initializers``
@@ -442,8 +442,8 @@ class LinkTestCase(unittest.TestCase):
         parameters to the link constructor. These will be passed to
         ``create_link`` for the forward and backward tests.
         This method must be implemented if either ``skip_forward_test`` or
-        ``skip_backward_test`` is ``False`` (forward or backward tests are
-        executed).
+        ``skip_backward_test`` is ``False`` in which case forward or backward
+        tests are executed.
 
     ``get_initializers(self)``
         Returns a tuple with the same length as the number of initializers that
@@ -455,17 +455,13 @@ class LinkTestCase(unittest.TestCase):
         being tested are replaced by the ones returned by `generate_params`.
         Initializer-likes returned here should be deterministic since test will
         invoke them multiple times to test the correctness.
-        For testing ``None`` as initializer-like arguments, one should wrap it
-        in a ``InitializerArgument`` as
-        ``InitializerArgument(None, expected)``, where the second argument is
-        the expected initializer-like that the link is expected to use when
-        passed ``None``.
-        ``InitializerArgument`` can be used to setup a test for any two
-        initializer-likes where the first argument is passed to the link
-        constructor and the second is the expected.
-        Note that the expected cannot be ``None``.
+
+        For testing initializer arguments that can be non-initializer values
+        such as ``None``, one can use the ``InitializerArgument``, defining a
+        pair of the link constructor argument and actual initializer-like used
+        by the link.
         This method must be implemented if ``skip_initializers_test`` is
-        ``False`` (the initializers test is executed).
+        ``False`` in which case the initializers test is executed.
 
     ``forward(self, link, inputs, device)``
         Implements the target forward function.
@@ -485,8 +481,8 @@ class LinkTestCase(unittest.TestCase):
         This method is expected to return the output
         :class:`numpy.ndarray`\\ s.
         This method must be implemented if either ``skip_forward_test`` or
-        ``skip_backward_test`` is ``False`` (forward or backward tests are
-        executed).
+        ``skip_backward_test`` is ``False`` in which case forward or backward
+        tests are executed.
 
     ``before_test(self, test_name)``
         A callback method called before each test.
