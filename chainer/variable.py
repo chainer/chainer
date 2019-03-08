@@ -1410,12 +1410,7 @@ class Variable(object):
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
-            # TODO(kataoka): assert self.grad_var is None if self has a creator
             return
-
-        # TODO(sonots): Implement for ChainerX
-        if self.xp is chainerx:
-            raise NotImplementedError()
 
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self.grad_var is None:

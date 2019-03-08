@@ -413,6 +413,8 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(2, cuda.cupy)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
+    # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
+    # behaves like retain_grad=True
     @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_backward_chainerx(self):
