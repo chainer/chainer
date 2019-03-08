@@ -204,7 +204,7 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         idims = self._in_shape[2:]
         odims = gy.shape[2:]
         if is_pad_value_none:
-            coeff = getattr(self.apoolnd, 'coeff')
+            coeff = self.apoolnd.coeff
             # This conversion from chainerx to cupy exists here for
             # double backward of chainerx on cuda.
             coeff = backend.from_chx(coeff)
