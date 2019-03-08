@@ -13,7 +13,6 @@ class GroupNormalization(link.Link):
     Parameter initialization will be deferred until
     the first forward data pass at which time the size will be determined.
 
-
     Args:
         groups (int):
             The number of channel groups.
