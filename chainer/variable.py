@@ -1347,12 +1347,9 @@ class Variable(object):
                 'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad='default', enable_double_backprop=False,
+    def backward(self, retain_grad=False, enable_double_backprop=False,
                  loss_scale=None):
-        """backward(retain_grad=False, enable_double_backprop=False, \
-loss_scale=None)
-
-        Runs error backpropagation (a.k.a.\\  backprop) from this variable.
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
         :meth:`FunctionNode.backward() <chainer.FunctionNode.backward>`
@@ -1402,12 +1399,8 @@ loss_scale=None)
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        if retain_grad == 'default':
-            # ChainerX does not support the default retain_grad=False
-            retain_grad = self._has_chainerx_array
-
         if self._has_chainerx_array:
-            if not retain_grad:
+            if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
@@ -1417,7 +1410,12 @@ loss_scale=None)
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
+            # TODO(kataoka): assert self.grad_var is None if self has a creator
             return
+
+        # TODO(sonots): Implement for ChainerX
+        if self.xp is chainerx:
+            raise NotImplementedError()
 
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self.grad_var is None:

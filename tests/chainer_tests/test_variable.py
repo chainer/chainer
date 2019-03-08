@@ -413,6 +413,12 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(2, cuda.cupy)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
+    @pytest.mark.xfail(strict=True)
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        ret = self.create_linear_chain(2, chainerx)
+        self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
+
     def check_backward_accumulate(self, xp):
         x = get_variable(xp, self.x)
         y = x * x
@@ -438,11 +444,6 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu_retain_grad(self):
         ret = self.create_linear_chain(2, cuda.cupy)
-        self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
-
-    @attr.chainerx
-    def test_backward_chainerx_retain_grad(self):
-        ret = self.create_linear_chain(2, chainerx)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
     def check_double_backprop(self, xp):
