@@ -182,7 +182,7 @@ class AveragePoolingNDGrad(function_node.FunctionNode):
         colon = slice(None, None, None)
         is_pad_value_none = self.pad_value is None
         if is_pad_value_none:
-            width = getattr(self.apoolnd, 'width')
+            width = self.apoolnd.width
             numpy.divide(gy, width, out=gy)
         gy_index = (colon, colon) + (None,) * len(idims)
         gcol_reps = (1, 1) + self.ksize + (1,) * len(odims)
