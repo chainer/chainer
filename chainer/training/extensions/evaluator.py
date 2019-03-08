@@ -14,6 +14,7 @@ from chainer import iterators
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
+from chainer.training.extensions import util
 
 
 class Evaluator(extension.Extension):
@@ -80,7 +81,8 @@ class Evaluator(extension.Extension):
     name = None
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
-                 device=None, eval_hook=None, eval_func=None):
+                 device=None, eval_hook=None, eval_func=None,
+                 progress_bar=False):
         if device is not None:
             device = backend._get_device_compat(device)
 
@@ -96,6 +98,8 @@ class Evaluator(extension.Extension):
         self.device = device
         self.eval_hook = eval_hook
         self.eval_func = eval_func
+
+        self._progress_bar = progress_bar
 
         for key, iter in six.iteritems(iterator):
             if (isinstance(iter, (iterators.SerialIterator,
@@ -211,6 +215,9 @@ class Evaluator(extension.Extension):
 
         summary = reporter_module.DictSummary()
 
+        if self._progress_bar:
+            pbar = util.IteratorProgressBar(iterator=it, title='validation ')
+
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
@@ -224,6 +231,12 @@ class Evaluator(extension.Extension):
                         eval_func(in_arrays)
 
             summary.add(observation)
+
+            if self._progress_bar:
+                pbar.update()
+
+        if self._progress_bar:
+            pbar.close()
 
         return summary.compute_mean()
 

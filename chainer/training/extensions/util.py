@@ -1,4 +1,7 @@
+import datetime
 import os
+import sys
+import time
 if os.name == 'nt':
     import ctypes
 
@@ -53,3 +56,75 @@ if os.name == 'nt':
                 whnd, ord(' '), num, _COORD(0, cur_pos.Y), ctypes.byref(wr))
         elif mode == 2:
             os.system('cls')
+
+
+class IteratorProgressBar(object):
+
+    def __init__(self, iterator, title=None, bar_length=50, out=sys.stdout):
+        self._iterator = iterator
+        self._title = '' if title is None else title
+        self._bar_length = bar_length
+        self._out = out
+        self._recent_timing = []
+
+    def update(self):
+        it = self._iterator
+        title = self._title
+        bar_length = self._bar_length
+        out = self._out
+        recent_timing = self._recent_timing
+
+        if os.name == 'nt':
+            erase_console(0, 0)
+        else:
+            out.write('\033[J')
+
+        now = time.time()
+        recent_timing.append(
+            (it.current_position, it.epoch_detail, now))
+
+        old_t, old_e, old_sec = recent_timing[0]
+        span = now - old_sec
+        if span != 0:
+            speed_t = (it.current_position - old_t) / span
+            speed_e = (it.epoch_detail - old_e) / span
+        else:
+            speed_t = float('inf')
+            speed_e = float('inf')
+
+        estimated_time = (1.0 - it.epoch_detail) / speed_e
+
+        rate = it.epoch_detail
+        marks = '#' * int(rate * bar_length)
+        out.write('{}[{}{}] {:6.2%}\n'.format(
+            title, marks, '.' * (bar_length - len(marks)), rate))
+
+        if hasattr(it, '_epoch_size'):
+            out.write('{:10} / {} iterations\n'
+                      .format(it.current_position, it._epoch_size))
+        else:
+            out.write('{:10} iterations\n'.format(it.current_position))
+        out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
+                  .format(speed_t,
+                          datetime.timedelta(seconds=estimated_time)))
+
+        # move the cursor to the head of the progress bar
+        if os.name == 'nt':
+            set_console_cursor_position(0, 3)
+        else:
+            out.write('\033[3A')
+        if hasattr(out, 'flush'):
+            out.flush()
+
+        if len(recent_timing) > 100:
+            del recent_timing[0]
+
+    def close(self):
+        out = self._out
+
+        if os.name == 'nt':
+            erase_console(0, 0)
+        else:
+            out.write('\033[J')
+        if hasattr(out, 'flush'):
+            out.flush()
