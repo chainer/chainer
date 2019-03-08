@@ -15,16 +15,6 @@ from chainer.testing import condition
 from chainer.utils import type_check
 
 
-def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
-    mean = mean[expander]
-    if test:
-        std = numpy.sqrt(var[expander])
-    else:
-        std = numpy.sqrt(var[expander] + eps)
-    y_expect = gamma * (x - mean) / std + beta
-    return y_expect
-
-
 _parameterize = testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
@@ -41,7 +31,38 @@ _parameterize = testing.parameterize(*(testing.product_dict(
 )))
 
 
-class BatchNormalizationTestBase(object):
+_inject_backend_tests = testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+
+
+def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
+    mean = mean[expander]
+    if test:
+        std = numpy.sqrt(var[expander])
+    else:
+        std = numpy.sqrt(var[expander] + eps)
+    y_expect = gamma * (x - mean) / std + beta
+    return y_expect
+
+
+class BatchNormalizationTestBase(testing.LinkTestImpl):
 
     param_names = ['gamma', 'beta']
 
@@ -91,13 +112,6 @@ class BatchNormalizationTestBase(object):
             -1, 1, self.param_shape).astype(self.dtype)
         initial_beta = numpy.random.uniform(
             -1, 1, self.param_shape).astype(self.dtype)
-        return initial_gamma, initial_beta
-
-    def get_initializers(self):
-        initial_gamma = [
-            initializers.Constant(2), 2, testing.InitializerArgument(None, 1)]
-        initial_beta = [
-            initializers.Constant(2), 2, testing.InitializerArgument(None, 0)]
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
@@ -153,25 +167,7 @@ class BatchNormalizationTestBase(object):
         return y,
 
 
-@testing.inject_backend_tests(
-    None,
-    # CPU tests
-    [
-        {},
-        {'use_ideep': 'always'},
-    ]
-    # GPU tests
-    + testing.product({
-        'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
-        'cuda_device': [0, 1],
-    })
-    # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
+@_inject_backend_tests
 @_parameterize
 class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
 
@@ -194,7 +190,6 @@ class BatchNormalizationMultiGpuTest(
         BatchNormalizationTestBase, testing.LinkTestCase):
 
     skip_backward_test = True
-    skip_initializers_test = True
 
     # TODO(hvy): Remove this relaxation. It is currently needed as the
     # inter-device copy in CuPy with non-contiguous arrays are broken.
@@ -212,6 +207,28 @@ class BatchNormalizationMultiGpuTest(
             with chainer.using_config('train', not self.test):
                 y = link(x, finetune=self.finetune)
         return y,
+
+
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }))))
+@_inject_backend_tests
+class BatchNormalizationInitializersTest(
+        BatchNormalizationTestBase, testing.LinkInitializersTestCase):
+
+    test = False
+    size = 'skip'
+    ndim = 1
+    input_shape = (5, 4)
+    axis = 0
+
+    def get_initializers(self):
+        initial_gamma = [
+            initializers.Constant(2), 2, testing.InitializerArgument(None, 1)]
+        initial_beta = [
+            initializers.Constant(2), 2, testing.InitializerArgument(None, 0)]
+        return initial_gamma, initial_beta
 
 
 @testing.parameterize(

@@ -5,8 +5,10 @@ from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.function_link import FunctionTestCase  # NOQA
 from chainer.testing.function_link import FunctionTestError  # NOQA
 from chainer.testing.function_link import InitializerArgument  # NOQA
+from chainer.testing.function_link import LinkInitializersTestCase  # NOQA
 from chainer.testing.function_link import LinkTestCase  # NOQA
 from chainer.testing.function_link import LinkTestError  # NOQA
+from chainer.testing.function_link import LinkTestImpl  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
