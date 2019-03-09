@@ -172,6 +172,19 @@ def relu6(x):
         ~chainer.Variable: Output variable. A
         :math:`(s_1, s_2, ..., s_n)`-shaped float array.
 
+    .. admonition:: Example
+
+        >>> x = np.random.uniform(-100, 100, (10, 20)).astype(np.float32)
+        >>> np.any(x < 0)
+        True
+        >>> np.any(x > 6)
+        True
+        >>> y = F.relu6(x)
+        >>> np.any(y.array < 0)
+        False
+        >>> np.any(y.array > 6)
+        False
+
     """
     y, = ClippedReLU(6.0).apply((x,))
     return y
