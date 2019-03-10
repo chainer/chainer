@@ -412,6 +412,111 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
 class LinkTestImpl(object):
 
+    """One of the link test base classes that defines basic link creation.
+
+    Link test cases can inherit from this class togerthe with
+    :class:`~chainer.testing.LinkTestCase` or
+    :class:`~chainer.testing.LinkInitializersTestCase` to define a set of link
+    test cases.
+
+    This class alone does only provide basic methods for creating a link and
+    does not exectue any tests.
+
+    .. rubric:: Required methods
+
+    Each concrete class must at least override the following methods.
+
+    ``generate_params(self)``
+        Returns a tuple of initializers-likes. The tuple should contain an
+        initializer-like for each initializer-like argument, i.e. the
+        parameters to the link constructor. These will be passed to
+        ``create_link``.
+
+    ``create_link(self, initializers)``
+        Returns a link. The link should be initialized with the given
+        initializer-likes ``initializers``. ``initializers`` is a tuple of
+        same length as the number of parameters.
+
+    ``generate_inputs(self)``
+        Returns a tuple of input arrays of type :class:`numpy.ndarray`.
+
+    ``forward(self, link, inputs, device)``
+        Implements the target forward function.
+        ``link`` is a link created by ``create_link`` and
+        ``inputs`` is a tuple of :class:`~chainer.Variable`\\ s.
+        This method is expected to return the output
+        :class:`~chainer.Variable`\\ s with the same array types as the inputs.
+        ``device`` is the device corresponding to the input arrays.
+        A default implementation is provided for links that only takes the
+        inputs defined in ``generate_inputs`` (wrapped in
+        :class:`~chainer.Variable`\\ s) and returns nothing but output
+        :class:`~chainer.Variable`\\ s in its forward computation.
+
+    .. rubric:: Optional methods
+
+    Additionally, the concrete class can override the following methods. Some
+    must be overridden depending on the skip flags  ``skip_forward_test``,
+    ``skip_backward_test`` and ``skip_initializers_test``.
+
+    ``before_test(self, test_name)``
+        A callback method called before each test.
+        Typically a skip logic is implemented by conditionally raising
+        :class:`unittest.SkipTest`.
+        ``test_name`` is one of ``'test_forward'``, ``'test_backward'``, and
+        ``'test_initializers'``.
+
+    .. rubric:: Attributes
+
+    The concrete class can override the following attributes to control the
+    behavior of the tests.
+
+    ``param_names`` (list of str):
+        A list of strings with all the names of the parameters that should be
+        tested. E.g. ``['gamma', 'beta']`` for the batch normalization link.
+        ``[]`` by default.
+
+    ``contiguous`` (None or 'C'):
+        Specifies the contiguousness of incoming arrays (i.e. inputs,
+        parameters and gradients. If ``None``, the
+        arrays will be non-contiguous as long as possible. If ``'C'``, the
+        arrays will be C-contiguous. ``None`` by default.
+
+    .. admonition:: Example
+
+        .. testcode::
+
+            class LinearTestImpl(chainer.testing.LinkTestImpl):
+
+                param_names = ['W', 'b']
+
+                def generate_params(self):
+                    initialW = numpy.random.uniform(
+                        -1, 1, (3, 2)).astype(numpy.float32)
+                    initial_bias = numpy.random.uniform(
+                        -1, 1, (3,)).astype(numpy.float32)
+                    return initialW, initial_bias
+
+                def generate_inputs(self):
+                    x = numpy.random.uniform(
+                        -1, 1, (1, 2)).astype(numpy.float32)
+                    return x,
+
+                def create_link(self, initializers):
+                    initialW, initial_bias = initializers
+                    link = chainer.links.Linear(
+                        2, 3, initialW=initialW, initial_bias=initial_bias)
+                    return link
+
+                def forward(self, link, inputs, device):
+                    x, = inputs
+                    return link(x),
+
+    .. seealso::
+        :class:`~chainer.testing.LinkTestCase`
+        :class:`~chainer.testing.LinkInitializersTestCase`
+        :class:`~chainer.testing.FunctionTestCase`
+    """
+
     contiguous = None
     backend_config = None
 
@@ -507,142 +612,24 @@ class LinkTestImpl(object):
             'Invalid value of `contiguous`: {}'.format(self.contiguous))
 
 
-class LinkInitializersTestCase(unittest.TestCase):
-
-    check_initializers_options = {}
-
-    def get_initializers(self):
-        raise NotImplementedError('get_initializers is not implemented.')
-
-    def test_initializers(self, backend_config):
-        """Tests that the parameters of a links are correctly initialized."""
-
-        self.before_test('test_initializers')
-
-        params_inits = self._get_initializers()
-
-        for i_param, param_inits in enumerate(params_inits):
-            # When testing an initializer for a particular parameter, other
-            # initializers are picked from generate_params.
-            inits = self._generate_params()
-            inits = list(inits)
-
-            for init in param_inits:
-                inits[i_param] = init
-                self._test_single_initializer(i_param, inits, backend_config)
-
-    def _get_initializers(self):
-        params_inits = self.get_initializers()
-        if not isinstance(params_inits, (tuple, list)):
-            raise TypeError(
-                '`get_initializers` must return a tuple or a list.')
-        for param_inits in params_inits:
-            if not isinstance(param_inits, (tuple, list)):
-                raise TypeError(
-                    '`get_initializers` must return a tuple or a list of '
-                    'tuples or lists.')
-            for init in param_inits:
-                _check_generated_initializer(init)
-        return params_inits
-
-    def _test_single_initializer(self, i_param, inits, backend_config):
-        # Given a set of initializer constructor arguments for the link, create
-        # and initialize a link with those arguments. `i_param` holds the index
-        # of the argument that should be tested among these.
-        inits_orig = inits
-        inits = [_get_initializer_argument_value(i) for i in inits]
-        link = self._create_initialized_link(inits, backend_config)
-
-        # Extract the parameters from the initialized link.
-        params = _get_link_params(link, self.param_names)
-
-        # Convert the parameter of interest into a NumPy ndarray.
-        cpu_device = backend.CpuDevice()
-        param = params[i_param]
-        param_xp = param.array
-        param_np = cpu_device.send(param_xp)
-
-        # The expected values of the parameter is decided by the given
-        # initializer. If the initializer is `None`, it should have been
-        # wrapped in a InitializerArgument along with the expected initializer
-        # that the link should default to in case of `None`.
-        #
-        # Note that for this to work, the expected parameter must be inferred
-        # deterministically.
-        expected_init = _get_expected_initializer(inits_orig[i_param])
-        expected_np = numpy.empty_like(param_np)
-        expected_init(expected_np)
-
-        # Compare the values of the expected and actual parameter.
-        _check_forward_output_arrays_equal(
-            expected_np, param_np, 'forward', LinkTestError,
-            **self.check_initializers_options)
-
-
 class LinkTestCase(unittest.TestCase):
 
-    """A base class for link test cases.
+    """A base class for link forward and backward test cases.
 
-    Link test cases can inherit from this class to define a set of link tests.
-
-    .. rubric:: Required methods
-
-    Each concrete class must at least override the following methods.
-
-    ``generate_inputs(self)``
-        Returns a tuple of input arrays of type :class:`numpy.ndarray`.
-
-    ``create_link(self, initializers)``
-        Returns a link. The link should be initialized with the given
-        initializer-likes ``initializers``. ``initializers`` is a tuple of
-        same length as the number of parameters and contains initializer-likes
-        returned by either ``generate_params`` or ``get_initializers``
-        depending on the test being run.
+    Link test cases can inherit from this class and
+    :class:`~chainer.testing.LinkTestImpl` to define a set of link tests for
+    forward and backward computations.
 
     .. rubric:: Optional methods
 
-    Additionally, the concrete class can override the following methods. Some
-    must be overridden depending on the skip flags  ``skip_forward_test``,
-    ``skip_backward_test`` and ``skip_initializers_test``.
+    Each concrete class may override the following methods depending on the
+    skip flags  ``skip_forward_test`` and  ``skip_backward_test``.
 
-    ``generate_params(self)``
-        Returns a tuple of initializers-likes. The tuple should contain an
-        initializer-like for each initializer-like argument, i.e. the
-        parameters to the link constructor. These will be passed to
-        ``create_link`` for the forward and backward tests.
-        This method must be implemented if either ``skip_forward_test`` or
-        ``skip_backward_test`` is ``False`` in which case forward or backward
-        tests are executed.
-
-    ``get_initializers(self)``
-        Returns a tuple with the same length as the number of initializers that
-        the constructor of the link accepts. Each element in the tuple is a
-        container itself, listing all initializers-likes that should be tested.
-        Each initializer-like in the tuple is tested one at a time by being
-        passed to ``create_link``. When the length of the tuple is greater than
-        one (i.e. if the link accepts multiple initializers), the ones not
-        being tested are replaced by the ones returned by `generate_params`.
-        Initializer-likes returned here should be deterministic since test will
-        invoke them multiple times to test the correctness.
-
-        For testing initializer arguments that can be non-initializer values
-        such as ``None``, one can use the ``InitializerArgument``, defining a
-        pair of the link constructor argument and actual initializer-like used
-        by the link.
-        This method must be implemented if ``skip_initializers_test`` is
-        ``False`` in which case the initializers test is executed.
-
-    ``forward(self, link, inputs, device)``
-        Implements the target forward function.
-        ``link`` is a link created by ``create_link`` and
-        ``inputs`` is a tuple of :class:`~chainer.Variable`\\ s.
-        This method is expected to return the output
-        :class:`~chainer.Variable`\\ s with the same array types as the inputs.
-        ``device`` is the device corresponding to the input arrays.
-        A default implementation is provided for links that only takes the
-        inputs defined in ``generate_inputs`` (wrapped in
-        :class:`~chainer.Variable`\\ s) and returns nothing but output
-        :class:`~chainer.Variable`\\ s in its forward computation.
+    ``before_test(self, test_name)``
+        A callback method called before each test.
+        Typically a skip logic is implemented by conditionally raising
+        :class:`unittest.SkipTest`.
+        ``test_name`` is one of ``'test_forward'`` and ``'test_backward'``.
 
     ``forward_expected(self, inputs, params)``
         Implements the expectation of the target forward function.
@@ -652,13 +639,6 @@ class LinkTestCase(unittest.TestCase):
         This method must be implemented if either ``skip_forward_test`` or
         ``skip_backward_test`` is ``False`` in which case forward or backward
         tests are executed.
-
-    ``before_test(self, test_name)``
-        A callback method called before each test.
-        Typically a skip logic is implemented by conditionally raising
-        :class:`unittest.SkipTest`.
-        ``test_name`` is one of ``'test_forward'``, ``'test_backward'``, and
-        ``'test_initializers'``.
 
     ``generate_grad_outputs(self, outputs_template)``
         Returns a tuple of output gradient arrays of type
@@ -677,14 +657,6 @@ class LinkTestCase(unittest.TestCase):
     ``skip_backward_test`` (bool):
         Whether to skip backward computation test. ``False`` by default.
 
-    ``skip_initializers_test`` (bool):
-        Whether to skip link initialization test. ``False`` by default.
-
-    ``param_names`` (list of str):
-        A list of strings with all the names of the parameters that should be
-        tested. E.g. ``['gamma', 'beta']`` for the batch normalization link.
-        ``[]`` by default.
-
     ``dodge_nondifferentiable`` (bool):
         Enable non-differentiable point detection in numerical gradient
         calculation. If the data returned by
@@ -692,12 +664,6 @@ class LinkTestCase(unittest.TestCase):
         to be a non-differentiable point, the test will repeatedly resample
         those until a differentiable point will be finally sampled. ``False``
         by default.
-
-    ``contiguous`` (None or 'C'):
-        Specifies the contiguousness of incoming arrays (i.e. inputs,
-        parameters and gradients. If ``None``, the
-        arrays will be non-contiguous as long as possible. If ``'C'``, the
-        arrays will be C-contiguous. ``None`` by default.
 
     .. note::
 
@@ -714,37 +680,7 @@ class LinkTestCase(unittest.TestCase):
                   {},  # CPU
                   {'use_cuda': True},  # GPU
               ])
-            class TestLinear(chainer.testing.LinkTestCase):
-
-                param_names = ['W', 'b']
-
-                def generate_params(self):
-                    initialW = numpy.random.uniform(
-                        -1, 1, (3, 2)).astype(numpy.float32)
-                    initial_bias = numpy.random.uniform(
-                        -1, 1, (3,)).astype(numpy.float32)
-                    return initialW, initial_bias
-
-                def get_initializers(self):
-                    initialW = [initializers.Constant(1), 2]
-                    initial_bias = [initializers.Constant(2), 3,
-                        chainer.testing.link.InitializerArgument(None, 0)]
-                    return initialW, initial_bias
-
-                def generate_inputs(self):
-                    x = numpy.random.uniform(
-                        -1, 1, (1, 2)).astype(numpy.float32)
-                    return x,
-
-                def create_link(self, initializers):
-                    initialW, initial_bias = initializers
-                    link = chainer.links.Linear(
-                        2, 3, initialW=initialW, initial_bias=initial_bias)
-                    return link
-
-                def forward(self, link, inputs, device):
-                    x, = inputs
-                    return link(x),
+            class TestLinear(LinearTestImpl, chainer.testing.LinkTestCase):
 
                 def forward_expected(self, inputs, params):
                     x, = inputs
@@ -752,7 +688,10 @@ class LinkTestCase(unittest.TestCase):
                     expected = x.dot(W.T) + b
                     return expected,
 
-    .. seealso:: :class:`~chainer.testing.FunctionTestCase`
+    .. seealso::
+        :class:`~chainer.testing.LinkTestImpl`
+        :class:`~chainer.testing.LinkInitializersTestCase`
+        :class:`~chainer.testing.FunctionTestCase`
 
     """
 
@@ -874,6 +813,148 @@ class LinkTestCase(unittest.TestCase):
             grad_outputs, backend.CpuDevice(), 'generate_grad_outputs')
 
         return grad_outputs
+
+
+class LinkInitializersTestCase(unittest.TestCase):
+
+    """A base class for link parameter initializer test cases.
+
+    Link test cases can inherit from this class and
+    :class:`~chainer.testing.LinkTestImpl` to define a set of link tests for
+    parameter initialization.
+
+    .. rubric:: Required methods
+
+    Each concrete class must at least override the following methods.
+
+    ``get_initializers(self)``
+        Returns a tuple with the same length as the number of initializers that
+        the constructor of the link accepts. Each element in the tuple is a
+        container itself, listing all initializers-likes that should be tested.
+        Each initializer-like in the tuple is tested one at a time by being
+        passed to ``create_link``. When the length of the tuple is greater than
+        one (i.e. if the link accepts multiple initializers), the ones not
+        being tested are replaced by the ones returned by `generate_params`.
+        Initializer-likes returned here should be deterministic since test will
+        invoke them multiple times to test the correctness.
+
+        For testing initializer arguments that can be non-initializer values
+        such as ``None``, one can use the ``InitializerArgument``, defining a
+        pair of the link constructor argument and actual initializer-like used
+        by the link.
+        This method must be implemented if ``skip_initializers_test`` is
+        ``False`` in which case the initializers test is executed.
+
+    .. rubric:: Optional methods
+
+    Each concrete class may override the following methods.
+
+    ``before_test(self, test_name)``
+        A callback method called before each test.
+        Typically a skip logic is implemented by conditionally raising
+        :class:`unittest.SkipTest`.
+        ``test_name`` is always of ``'test_initializers'``.
+
+    .. note::
+
+        This class assumes :func:`chainer.testing.inject_backend_tests`
+        is used together. See the example below.
+
+    .. admonition:: Example
+
+        .. testcode::
+
+            @chainer.testing.inject_backend_tests(
+              None,
+              [
+                  {},  # CPU
+                  {'use_cuda': True},  # GPU
+              ])
+            class TestLinear(
+                    LinearTestImpl,
+                    chainer.testing.LinkInitializersTestCase):
+
+                def get_initializers(self):
+                    initialW = [initializers.Constant(1), 2]
+                    initial_bias = [initializers.Constant(2), 3,
+                        chainer.testing.link.InitializerArgument(None, 0)]
+                    return initialW, initial_bias
+
+    .. seealso::
+        :class:`~chainer.testing.LinkTestImpl`
+        :class:`~chainer.testing.LinkTestCase`
+        :class:`~chainer.testing.FunctionTestCase`
+
+    """
+
+    check_initializers_options = {}
+
+    def get_initializers(self):
+        raise NotImplementedError('get_initializers is not implemented.')
+
+    def test_initializers(self, backend_config):
+        """Tests that the parameters of a links are correctly initialized."""
+
+        self.before_test('test_initializers')
+
+        params_inits = self._get_initializers()
+
+        for i_param, param_inits in enumerate(params_inits):
+            # When testing an initializer for a particular parameter, other
+            # initializers are picked from generate_params.
+            inits = self._generate_params()
+            inits = list(inits)
+
+            for init in param_inits:
+                inits[i_param] = init
+                self._test_single_initializer(i_param, inits, backend_config)
+
+    def _get_initializers(self):
+        params_inits = self.get_initializers()
+        if not isinstance(params_inits, (tuple, list)):
+            raise TypeError(
+                '`get_initializers` must return a tuple or a list.')
+        for param_inits in params_inits:
+            if not isinstance(param_inits, (tuple, list)):
+                raise TypeError(
+                    '`get_initializers` must return a tuple or a list of '
+                    'tuples or lists.')
+            for init in param_inits:
+                _check_generated_initializer(init)
+        return params_inits
+
+    def _test_single_initializer(self, i_param, inits, backend_config):
+        # Given a set of initializer constructor arguments for the link, create
+        # and initialize a link with those arguments. `i_param` holds the index
+        # of the argument that should be tested among these.
+        inits_orig = inits
+        inits = [_get_initializer_argument_value(i) for i in inits]
+        link = self._create_initialized_link(inits, backend_config)
+
+        # Extract the parameters from the initialized link.
+        params = _get_link_params(link, self.param_names)
+
+        # Convert the parameter of interest into a NumPy ndarray.
+        cpu_device = backend.CpuDevice()
+        param = params[i_param]
+        param_xp = param.array
+        param_np = cpu_device.send(param_xp)
+
+        # The expected values of the parameter is decided by the given
+        # initializer. If the initializer is `None`, it should have been
+        # wrapped in a InitializerArgument along with the expected initializer
+        # that the link should default to in case of `None`.
+        #
+        # Note that for this to work, the expected parameter must be inferred
+        # deterministically.
+        expected_init = _get_expected_initializer(inits_orig[i_param])
+        expected_np = numpy.empty_like(param_np)
+        expected_init(expected_np)
+
+        # Compare the values of the expected and actual parameter.
+        _check_forward_output_arrays_equal(
+            expected_np, param_np, 'forward', LinkTestError,
+            **self.check_initializers_options)
 
 
 def _check_generated_initializer(init):
