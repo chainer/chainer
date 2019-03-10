@@ -82,10 +82,10 @@ TEST_P(LinalgTest, DotHighDim) {
     Array b = testing::BuildArray({1, 4, 2, 2}).WithLinearData(0.f);
     Array c = Dot(a, b);
     Array e = testing::BuildArray({2, 1, 3, 1, 4, 2}).WithData<float>({2.f,  3.f,  6.f,  7.f,  10.f,  11.f,  14.f,  15.f, 6.f,  11.f,
-                                                                    26.f,  31.f,  46.f,  51.f,  66.f,  71.f,  10.f,  19.f,  46.f,  55.f,
-                                                                    82.f,  91.f,  118.f, 127.f, 14.f,  27.f,  66.f,  79.f,  118.f, 131.f,
-                                                                    170.f, 183.f, 18.f,  35.f,  86.f,  103.f, 154.f, 171.f, 222.f, 239.f,
-                                                                    22.f,  43.f,  106.f, 127.f, 190.f, 211.f, 274.f, 295.f});
+                                                                       26.f,  31.f,  46.f,  51.f,  66.f,  71.f,  10.f,  19.f,  46.f,  55.f,
+                                                                       82.f,  91.f,  118.f, 127.f, 14.f,  27.f,  66.f,  79.f,  118.f, 131.f,
+                                                                       170.f, 183.f, 18.f,  35.f,  86.f,  103.f, 154.f, 171.f, 222.f, 239.f,
+                                                                       22.f,  43.f,  106.f, 127.f, 190.f, 211.f, 274.f, 295.f});
 
     EXPECT_ARRAY_EQ(e, c);
 }
