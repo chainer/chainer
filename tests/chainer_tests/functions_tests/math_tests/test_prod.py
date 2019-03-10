@@ -39,6 +39,13 @@ from chainer import testing
     ])
 class TestProd(testing.FunctionTestCase):
 
+    def setUp(self):
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options \
+                .update({'atol': 1e-3, 'rtol': 1e-3})
+
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x,
