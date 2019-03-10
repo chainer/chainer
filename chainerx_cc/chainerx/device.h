@@ -178,6 +178,9 @@ public:
     // Formally, it calculates: out = x1 < x2 ? pos : neg
     virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
+    // Compares x1 and x2 and assign either pos or neg according to the result.
+    //
+    // Formally, it calculates: out = x1 > x2 ? neg : pos
     virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
     virtual void Tanh(const Array& x, const Array& out) = 0;

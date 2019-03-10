@@ -31,7 +31,7 @@ void NativeDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, con
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 > x2 ? pos : neg; }
+            void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 > x2 ? neg : pos; }
             T x2;
             T pos;
         };

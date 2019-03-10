@@ -501,7 +501,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 namespace {
 
-// Calculates: x1 < x2 ? pos : neg
+// Calculates: x1 > x2 ? neg : pos
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = EmptyLike(x1, x1.device());
@@ -511,7 +511,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
         x1.device().IfGreaterElseASSA(x1, x2, pos, neg, out);
     }
 
-    BackwardBuilder bb{"if_less_else", neg, out};
+    BackwardBuilder bb{"if_greater_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
