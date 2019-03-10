@@ -565,7 +565,7 @@ class DotLinkIncorrectInitialization(DotLink):
             in_size, out_size, initializers.Constant(0))
 
 
-class DotLinkTestBase(object):
+class DotLinkTestImpl(testing.LinkTestImpl):
 
     param_names = ['p']
 
@@ -581,11 +581,6 @@ class DotLinkTestBase(object):
         return numpy.random.uniform(
             -1, 1, (in_size, out_size)).astype(self.dtype),
 
-    def get_initializers(self):
-        return [
-            initializers.Constant(0), 2,
-            testing.InitializerArgument(None, initializers.Constant(1))],
-
     def create_link(self, initializers):
         initial_p, = initializers
         in_size = self.in_size
@@ -595,23 +590,37 @@ class DotLinkTestBase(object):
     def generate_inputs(self):
         return numpy.random.rand(self.n, self.in_size).astype(self.dtype),
 
+    # Required for forward backward tests.
     def forward_expected(self, inputs, params):
         x, = inputs
         p, = params
         return numpy.dot(x, p),
 
+    # Requires for initializers test.
+    def get_initializers(self):
+        return [
+            initializers.Constant(0), 2,
+            testing.InitializerArgument(None, initializers.Constant(1))],
+
 
 @_inject_backend_tests
-class TestLinkCorrect(DotLinkTestBase, testing.LinkTestCase):
+class TestLinkCorrect(DotLinkTestImpl, testing.LinkTestCase):
+
+    pass
+
+
+@_inject_backend_tests
+class TestLinkInitializersCorrect(
+        DotLinkTestImpl, testing.LinkInitializersTestCase):
+
     pass
 
 
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
-class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
+class TestLinkIncorrectForward(DotLinkTestImpl, testing.LinkTestCase):
 
     skip_backward_test = True
-    skip_initializers_test = True
 
     def create_link(self, initializers):
         initial_p, = initializers
@@ -623,10 +632,9 @@ class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
 
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
-class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
+class TestLinkIncorrectBackwardInput(DotLinkTestImpl, testing.LinkTestCase):
 
     skip_forward_test = True
-    skip_initializers_test = True
 
     def create_link(self, initializers):
         initial_p, = initializers
@@ -639,10 +647,9 @@ class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
 
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
-class TestLinkIncorrectBackwardParam(DotLinkTestBase, testing.LinkTestCase):
+class TestLinkIncorrectBackwardParam(DotLinkTestImpl, testing.LinkTestCase):
 
     skip_forward_test = True
-    skip_initializers_test = True
 
     def create_link(self, initializers):
         initial_p, = initializers
@@ -654,45 +661,12 @@ class TestLinkIncorrectBackwardParam(DotLinkTestBase, testing.LinkTestCase):
 
 
 @_inject_backend_tests
-@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
-class TestLinkIncorrectBackwardInitializers(
-        DotLinkTestBase, testing.LinkTestCase):
-
-    skip_forward_test = True
-    skip_backward_test = True
-
-    def create_link(self, initializers):
-        initial_p, = initializers
-        in_size = self.in_size
-        out_size = self.out_size
-        link = DotLinkIncorrectInitialization(in_size, out_size, initial_p)
-        return link
-
-
-@_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)
-class TestLinkIncorrectCreateLink(DotLinkTestBase, testing.LinkTestCase):
+class TestLinkIncorrectCreateLink(DotLinkTestImpl, testing.LinkTestCase):
 
     def create_link(self, initializers):
         # Invalid return type (that is not an instance of chainer.Link).
         return numpy.array([1])
-
-
-@testing.parameterize(*testing.product({
-    'invalid_initializer': [
-        chainer.Variable(numpy.array([1])),
-        chainer.Parameter(numpy.array([1])),
-        testing.InitializerArgument(None, None),
-    ]}))
-@_inject_backend_tests
-@pytest.mark.xfail(strict=True, raises=TypeError)
-class TestLinkIncorrectInitializers(DotLinkTestBase, testing.LinkTestCase):
-
-    skip_forward_test = True
-    skip_backward_test = True
-
-    def get_initializers(self):
-        return [self.invalid_initializer],
 
 
 @testing.parameterize(*testing.product({
@@ -704,37 +678,38 @@ class TestLinkIncorrectInitializers(DotLinkTestBase, testing.LinkTestCase):
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)
 class TestLinkIncorrectForwardBackwardInitializers(
-        DotLinkTestBase, testing.LinkTestCase):
-
-    skip_initializers_test = True
+        DotLinkTestImpl, testing.LinkTestCase):
 
     def generate_params(self):
         return self.invalid_forward_backward_initializer,
 
 
 @_inject_backend_tests
-class TestLinkOnlyForwardBackward(testing.LinkTestCase):
-
-    """`get_initializers` is not required if initializers test is skipped."""
-
-    skip_initializers_test = True
-
-    param_names = ['p']
-
-    def generate_params(self):
-        return numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32),
+@pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
+class TestLinkIncorrectBackwardInitializers(
+        DotLinkTestImpl, testing.LinkInitializersTestCase):
 
     def create_link(self, initializers):
         initial_p, = initializers
-        return DotLink(2, 3, initial_p)
+        in_size = self.in_size
+        out_size = self.out_size
+        link = DotLinkIncorrectInitialization(in_size, out_size, initial_p)
+        return link
 
-    def generate_inputs(self):
-        return numpy.random.rand(1, 2).astype(numpy.float32),
 
-    def forward_expected(self, inputs, params):
-        x, = inputs
-        p, = params
-        return numpy.dot(x, p),
+@testing.parameterize(*testing.product({
+    'invalid_initializer': [
+        chainer.Variable(numpy.array([1])),
+        chainer.Parameter(numpy.array([1])),
+        testing.InitializerArgument(None, None),
+    ]}))
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=TypeError)
+class TestLinkIncorrectInitializers(
+        DotLinkTestImpl, testing.LinkInitializersTestCase):
+
+    def get_initializers(self):
+        return [self.invalid_initializer],
 
 
 @testing.parameterize(*testing.product({
@@ -751,9 +726,7 @@ class TestLinkOnlyForwardBackward(testing.LinkTestCase):
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=_ContiguousnessMatched)
-class TestLinkContiguousness(DotLinkTestBase, testing.LinkTestCase):
-
-    skip_initializers_test = True
+class TestLinkContiguousness(DotLinkTestImpl, testing.LinkTestCase):
 
     def before_test(self, test_name):
         # Some combinations of test methods and check points are irrelevant.
