@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/axes.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
@@ -14,7 +15,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
-#include "chainerx/axes.h"
+
 
 namespace chainerx {
 
@@ -31,20 +32,20 @@ Array Dot(const Array& a, const Array& b) {
     Shape out_shape{};
 
     if (b.ndim() > 2) {
-    std::vector<int> b_transpose_axes{};
-    std::vector<int> axes_index(b.ndim());
-    std::iota(axes_index.begin(), axes_index.end(), 0);
-    std::copy(axes_index.begin(), axes_index.end()-2, std::back_inserter(b_transpose_axes));
-    std::reverse_copy(axes_index.end()-2, axes_index.end(), std::back_inserter(b_transpose_axes));
+        std::vector<int> b_transpose_axes{};
+        std::vector<int> axes_index(b.ndim());
+        std::iota(axes_index.begin(), axes_index.end(), 0);
+        std::copy(axes_index.begin(), axes_index.end()-2, std::back_inserter(b_transpose_axes));
+        std::reverse_copy(axes_index.end()-2, axes_index.end(), std::back_inserter(b_transpose_axes));
 
-    Axes axes(b_transpose_axes.begin(), b_transpose_axes.end());
-    modified_b = b.Transpose(axes);
+        Axes axes(b_transpose_axes.begin(), b_transpose_axes.end());
+        modified_b = b.Transpose(axes);
 
-    std::copy(a.shape().begin(), a.shape().end()-1, std::back_inserter(out_shape));
-    std::copy(modified_b.shape().begin(), modified_b.shape().end()-1, std::back_inserter(out_shape));
+        std::copy(a.shape().begin(), a.shape().end()-1, std::back_inserter(out_shape));
+        std::copy(modified_b.shape().begin(), modified_b.shape().end()-1, std::back_inserter(out_shape));
 
-    modified_b = modified_b.Reshape({-1, modified_b.shape()[modified_b.ndim()-1]});
-    modified_b = modified_b.Transpose();
+        modified_b = modified_b.Reshape({-1, modified_b.shape()[modified_b.ndim()-1]});
+        modified_b = modified_b.Transpose();
     }else {
         std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
         std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
