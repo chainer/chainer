@@ -14,6 +14,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
+#include "chainerx/axes.h"
 
 namespace chainerx {
 
@@ -25,17 +26,33 @@ Array Dot(const Array& a, const Array& b) {
     // TODO(beam2d): dtype conversion
     CheckEqual(a.dtype(), b.dtype());
 
-    // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
-    if (b.ndim() > 2) {
-        throw NotImplementedError{"dot does not support rhs operand with ndim > 2"};
-    }
+    Array modified_b;
 
     Shape out_shape{};
-    std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
-    std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
+
+    if (b.ndim() > 2) {
+    std::vector<int> b_transpose_axes{};
+    std::vector<int> axes_index(b.ndim());
+    std::iota(axes_index.begin(), axes_index.end(), 0);
+    std::copy(axes_index.begin(), axes_index.end()-2, std::back_inserter(b_transpose_axes));
+    std::reverse_copy(axes_index.end()-2, axes_index.end(), std::back_inserter(b_transpose_axes));
+
+    Axes axes(b_transpose_axes.begin(), b_transpose_axes.end());
+    modified_b = b.Transpose(axes);
+
+    std::copy(a.shape().begin(), a.shape().end()-1, std::back_inserter(out_shape));
+    std::copy(modified_b.shape().begin(), modified_b.shape().end()-1, std::back_inserter(out_shape));
+
+    modified_b = modified_b.Reshape({-1, modified_b.shape()[modified_b.ndim()-1]});
+    modified_b = modified_b.Transpose();
+    }else {
+        std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
+        std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
+        modified_b = b;
+    }
 
     int64_t k = a.shape()[a.ndim() - 1];
-    if (b.shape()[0] != k) {
+    if (modified_b.shape()[0] != k) {
         throw DimensionError{"Axis dimension mismatch"};
     }
     if (k == 0) {
@@ -46,7 +63,7 @@ Array Dot(const Array& a, const Array& b) {
     int64_t m = a.GetTotalSize() / k;
     int64_t n = b.GetTotalSize() / k;
     Array a_matrix = a.Reshape({m, k});
-    Array b_matrix = b.Reshape({k, n});
+    Array b_matrix = modified_b.Reshape({k, n});
 
     // Matrix-matrix product
     Array out_matrix = Empty({m, n}, a.dtype(), a.device());
