@@ -501,7 +501,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 namespace {
 
-// Calculates: x1 > x2 ? neg : pos
+// Calculates: x1 > x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = EmptyLike(x1, x1.device());

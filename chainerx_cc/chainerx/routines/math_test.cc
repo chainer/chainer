@@ -1308,7 +1308,7 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
 
 TEST_THREAD_SAFE_P(MathTest, MinimumArrayScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
-    Array e = testing::BuildArray({3, 1}).WithData<float>({0.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
@@ -1317,7 +1317,7 @@ TEST_THREAD_SAFE_P(MathTest, MinimumArrayScalar) {
 
 TEST_THREAD_SAFE_P(MathTest, MinimumScalarArray) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
-    Array e = testing::BuildArray({3, 1}).WithData<float>({0.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(Scalar{0.f}, xs[0])}; }, {a}, {e});
