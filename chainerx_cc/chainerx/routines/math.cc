@@ -505,6 +505,12 @@ Array Maximum(const Array& x1, Scalar x2) {
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
+Array Minimum(const Array& x1, Scalar x2) {
+    return IfLessElse(x2, x1, x2, x1);  // x2 < x1 ? x2 : x1
+}
+
+Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
+
 Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());
 

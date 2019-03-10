@@ -1306,6 +1306,78 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, MinimumArrayScalar) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({0.f, 2.f, 0.f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarArray) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({0.f, 2.f, 0.f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(Scalar{0.f}, xs[0])}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarEmpty) {
+    Array a = testing::BuildArray({0}).WithData<float>({});
+    Array e = testing::BuildArray({0}).WithData<float>({});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_P(MathTest, MinimumScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // Minimum(array, scalar)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(xs[0], s)}; }, {a}, {go}, {eps});
+    // Minimum(scalar, array)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(s, xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, MinimumScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // Minimum(array, scalar)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(xs[0], s);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // Minimum(scalar, array)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(s, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 TEST_THREAD_SAFE_P(MathTest, Exp) {
     Array a = testing::BuildArray({5}).WithData<float>(
             {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
