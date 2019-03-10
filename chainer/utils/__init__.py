@@ -21,7 +21,10 @@ from chainer.utils.nondeterministic import nondeterministic  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
-from chainer.utils.walker_alias import WalkerAlias  # NOQA
+
+# The following alias has been moved to chainer/__init__.py in order to break
+# circular imports in Python 2.
+# from chainer.utils.walker_alias import WalkerAlias
 
 
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.

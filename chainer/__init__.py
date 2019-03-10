@@ -81,6 +81,13 @@ from chainer import _environment_check
 import chainerx
 
 
+# Introduce an alias that cannot be declared at the original place due to
+# circular imports.
+import chainer.utils.walker_alias
+chainer.utils.WalkerAlias = chainer.utils.walker_alias.WalkerAlias
+del chainer
+
+
 # Check environment conditions
 _environment_check.check()
 
