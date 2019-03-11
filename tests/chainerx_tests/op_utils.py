@@ -126,7 +126,13 @@ class NumpyOpTest(_OpTest):
       * `forward_xp`: Forward implementation using both ChainerX and NumPy.
 
     It can have the same attributes as `chainer.testing.FunctionTestCase`.
+
+    This test also compares strides of forward output arrays with NumPy
+    outputs. Set ``check_numpy_strides_compliance`` attribute to ``False``
+    to skip this check.
     """
+
+    check_numpy_strides_compliance = True
 
     def forward_chainerx(self, inputs):
         return self.forward_xp(inputs, chainerx)
@@ -138,6 +144,25 @@ class NumpyOpTest(_OpTest):
     def forward_xp(self, inputs, xp):
         raise NotImplementedError(
             'Op test implementation must override `forward_xp`.')
+
+    def check_forward_outputs(self, outputs, expected_outputs):
+        super(NumpyOpTest, self).check_forward_outputs(
+            outputs, expected_outputs)
+        if self.check_numpy_strides_compliance:
+            if not all(
+                    a.strides == e.strides
+                    for a, e in zip(outputs, expected_outputs)):
+                msg = (
+                    'Strides do not match with NumPy outputs.\n'
+                    'Expected shapes and dtypes: {}\n'
+                    'Actual shapes and dtypes:   {}\n'
+                    'Expected strides: {}\n'
+                    'Actual strides:   {}\n'.format(
+                        chainer.utils._format_array_props(expected_outputs),
+                        chainer.utils._format_array_props(outputs),
+                        ', '.join(str(e.strides) for e in expected_outputs),
+                        ', '.join(str(a.strides) for a in outputs)))
+                chainer.testing.FunctionTestError.fail(msg)
 
 
 def _make_backend_config(device_name):
