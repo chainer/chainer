@@ -88,6 +88,10 @@ class TestModeEvaluator(extensions.Evaluator):
         return ret
 
 
+def _mp_dummy_func(*x):
+    return x
+
+
 def main():
     # Check if GPU is available
     # (ImageNet example does not support CPU execution)
@@ -143,7 +147,7 @@ def main():
     # https://chainermn.readthedocs.io/en/stable/tutorial/tips_faqs.html#using-multiprocessiterator
     # This must be done *before* ``chainermn.create_communicator``!!!
     multiprocessing.set_start_method('forkserver')
-    p = multiprocessing.Process(target=lambda *x: x, args=())
+    p = multiprocessing.Process(target=_mp_dummy_func, args=())
     p.start()
     p.join()
 
