@@ -953,7 +953,7 @@ class LinkInitializersTestCase(unittest.TestCase):
 
         # Compare the values of the expected and actual parameter.
         _check_forward_output_arrays_equal(
-            expected_np, param_np, 'forward', LinkTestError,
+            (expected_np,), (param_np,), 'forward', LinkTestError,
             **self.check_initializers_options)
 
 
