@@ -23,9 +23,6 @@ Array Dot(const Array& a, const Array& b) {
         return a * b;
     }
 
-    // TODO(beam2d): dtype conversion
-    CheckEqual(a.dtype(), b.dtype());
-
     // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
     if (b.ndim() > 2) {
         throw NotImplementedError{"dot does not support rhs operand with ndim > 2"};
