@@ -9,7 +9,7 @@ import chainer.testing
 import chainerx
 
 
-class _OpTest(chainer.testing.function.FunctionTestBase):
+class _OpTest(chainer.testing.function_link.FunctionTestBase):
 
     def setup(self):
         # This method can be overridden by a concrete class with arbitrary
