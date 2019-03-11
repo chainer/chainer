@@ -18,7 +18,6 @@
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
-
 namespace chainerx {
 
 Array Dot(const Array& a, const Array& b) {
@@ -37,7 +36,6 @@ Array Dot(const Array& a, const Array& b) {
     Array modified_b{};
 
     Shape out_shape{};
-    
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
 
     if (b.ndim() > 2) {
@@ -54,7 +52,7 @@ Array Dot(const Array& a, const Array& b) {
 
         modified_b = modified_b.Reshape({-1, modified_b.shape().back()});
         modified_b = modified_b.Transpose();
-    }else {
+    } else {
         std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
         modified_b = b;
     }
