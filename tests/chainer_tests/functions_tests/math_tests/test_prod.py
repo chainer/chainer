@@ -58,6 +58,7 @@ class TestProd(testing.FunctionTestCase):
     def forward_expected(self, inputs):
         x, = inputs
         expected = x.prod(axis=self.axis, keepdims=self.keepdims)
+        expected = numpy.asarray(expected)
         return expected,
 
 
