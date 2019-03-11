@@ -169,13 +169,14 @@ class BatchNormalization(function_node.FunctionNode):
 
             y, self.mean, self.var, self.inv_std = (
                 intel64.ideep.batchNormalization.Forward(
-                    intel64.ideep.array(x),
+                    intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
                     intel64.ideep.array(gamma),
                     intel64.ideep.array(beta),
                     None,
                     None,
                     self.eps
                 ))
+            y = y.astype(x.dtype, copy=False)
 
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)
@@ -290,13 +291,14 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 gy = gy[:, :, None, None]
 
             gx, gW = intel64.ideep.batchNormalization.Backward(
-                intel64.ideep.array(x),
-                intel64.ideep.array(gy),
+                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
+                intel64.ideep.array(gy.astype(gamma.dtype, copy=False)),
                 self.mean,
                 self.var,
                 intel64.ideep.array(gamma),
                 self.eps)
 
+            gx = gx.astype(x.dtype, copy=False)
             ggamma, gbeta = gW[:2]
 
             if expand_dim:
@@ -309,6 +311,11 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 chainer.is_debug())
         else:
             # CPU and GPU implementation
+            if isinstance(gy, intel64.mdarray):
+                # intel64.mdarray does not support dtype option in sum, so we
+                # convert it to numpy here.
+                gy = numpy.asarray(gy)
+
             gbeta = gy.sum(axis=self.axis, dtype=gamma.dtype)
             x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
             ggamma = (gy * x_hat).sum(axis=self.axis, dtype=gamma.dtype)
@@ -479,13 +486,14 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 x = x[:, :, None, None]
 
             y, = intel64.ideep.batchNormalization.Forward(
-                intel64.ideep.array(x),
+                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
                 intel64.ideep.array(gamma),
                 intel64.ideep.array(beta),
                 intel64.ideep.array(mean),
                 intel64.ideep.array(var),
                 self.eps
             )
+            y = y.astype(x.dtype, copy=False)
 
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
