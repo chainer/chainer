@@ -76,8 +76,6 @@ class TestPadDefault(testing.FunctionTestCase):
         {'dtype': numpy.float64}
     ]
 ))
-# Old numpy does not work with multi-dimensional constant_values
-@testing.with_requires('numpy>=1.11.1')
 @testing.inject_backend_tests(
     None,
     # CPU tests
@@ -96,6 +94,8 @@ class TestPadDefault(testing.FunctionTestCase):
         'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
     })
 )
+# Old numpy does not work with multi-dimensional constant_values
+@testing.with_requires('numpy>=1.11.1')
 class TestPad(testing.FunctionTestCase):
 
     def setUp(self):
