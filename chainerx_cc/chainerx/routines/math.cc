@@ -605,6 +605,26 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
+Array Square(const Array& x) {
+    Array out = EmptyLike(x, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Square(x, out);
+    }
+
+    BackwardBuilder bb{"square", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() * (2 * x);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Sqrt(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
