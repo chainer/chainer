@@ -5,6 +5,7 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
@@ -437,16 +438,37 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
     return xp.array(x)
 
 
+# An association list that associates a dtype to the type which ChainerX's
+# real-valued functions should return.
+_expected_dtypes_math_functions = [
+    # Float.
+    ('float16', 'float16'),
+    ('float32', 'float32'),
+    ('float64', 'float64'),
+    # Signed int.
+    ('int8', 'float32'),
+    ('int16', 'float32'),
+    ('int32', 'float32'),
+    ('int64', 'float32'),
+    # Unsigned int.
+    ('uint8', 'float32'),
+    # Bool.
+    ('bool_', 'float32'),
+]
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
-    numpy.asarray(-float('inf')), numpy.asarray(float('inf')
-                                                ), numpy.asarray(float('nan')),
+    numpy.asarray(-float('inf')), numpy.asarray(float('inf')),
+    numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-def test_exp(xp, device, input, dtype):
-    a = xp.array(input.astype(dtype))
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+def test_exp(xp, device, input, in_dtype, out_dtype):
+    a = xp.array(input.astype(in_dtype))
+    a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
     return xp.exp(a)
 
 
@@ -457,8 +479,10 @@ def test_exp(xp, device, input, dtype):
         10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-def test_log(xp, device, input, dtype):
-    a = xp.array(input.astype(dtype))
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+def test_log(xp, device, input, in_dtype, out_dtype):
+    a = xp.array(input.astype(in_dtype))
+    a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
     return xp.log(a)
 
 
@@ -493,19 +517,21 @@ _invalid_logsumexp_params = [
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3, dtype_check=False)
-def test_logsumexp(xp, device, a_shape, axis, dtype, keepdims):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, dtype)
+@chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3)
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+def test_logsumexp(xp, device, a_shape, axis, keepdims, in_dtype, out_dtype):
+    a = array_utils.create_dummy_ndarray(xp, a_shape, in_dtype)
     if xp is numpy:
-        return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
-    return xp.logsumexp(a, axis=axis, keepdims=keepdims)
+        a = a.astype(out_dtype)
+        return numpy.log(numpy.exp(a).sum(axis=axis, keepdims=keepdims))
+    return chainerx.logsumexp(a, axis=axis, keepdims=keepdims)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
 # TODO(hvy): Should not overflow for large numbers, add tests
-def test_logsumexp_invalid(device, a_shape, axis, dtype, keepdims):
+def test_logsumexp_invalid(device, a_shape, axis, keepdims, dtype):
     a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         chainerx.logsumexp(a, axis=axis, keepdims=keepdims)
@@ -515,9 +541,11 @@ def test_logsumexp_invalid(device, a_shape, axis, dtype, keepdims):
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @chainerx.testing.numpy_chainerx_allclose(
     atol=1e-5, float16_rtol=3e-3, dtype_check=False)
-def test_log_softmax(xp, device, a_shape, axis, dtype):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, dtype)
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+def test_log_softmax(xp, device, a_shape, axis, in_dtype, out_dtype):
+    a = array_utils.create_dummy_ndarray(xp, a_shape, in_dtype)
     if xp is numpy:
+        a = a.astype(out_dtype)
         # Default is the second axis
         axis = axis if axis is not None else 1
         return a - xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=True))
@@ -540,8 +568,14 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
                                                 ), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-def test_sqrt(xp, device, input, dtype):
-    a = xp.array(input.astype(dtype))
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+def test_sqrt(xp, device, input, in_dtype, out_dtype):
+    if (input.size > 0 and not numpy.isfinite(input).all() and
+            numpy.dtype(in_dtype).kind != 'f'):
+        return chainerx.testing.ignore()
+
+    a = xp.array(input.astype(in_dtype))
+    a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
     return xp.sqrt(a)
 
 
@@ -552,16 +586,18 @@ def test_sqrt(xp, device, input, dtype):
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
 class test_tanh(op_utils.NumpyOpTest):
 
-    def setup(self, input, contiguous, dtype):
-        self.input = input.astype(dtype)
+    def setup(self, input, contiguous, in_dtype, out_dtype):
+        self.input = input.astype(in_dtype)
+        self.chx_dtype = out_dtype
         self.contiguous = contiguous
 
-        if dtype == 'float16':
+        if in_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
-        if numpy.dtype(dtype).kind != 'f':
+        if numpy.dtype(in_dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
 
@@ -570,6 +606,7 @@ class test_tanh(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         x, = inputs
+        x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
         return xp.tanh(x),
 
 
