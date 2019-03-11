@@ -94,7 +94,8 @@ def extract_params_set_grad(model):
             if param.grad is not None]
 
 
-def pack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype=np.float32):
+def pack_params(params, itemsize, attr_name, buffer,
+                stream=None, transfer_dtype=np.float32):
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
@@ -106,7 +107,8 @@ def pack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype
         offset += size
 
 
-def unpack_params(params, itemsize, attr_name, buffer, stream=None, transfer_dtype=np.float32):
+def unpack_params(params, itemsize, attr_name, buffer,
+                  stream=None, transfer_dtype=np.float32):
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
