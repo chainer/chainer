@@ -136,6 +136,8 @@ public:
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
+    void IfEqualElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+
     void Tanh(const Array& x, const Array& out) override;
 
     // dot.cc

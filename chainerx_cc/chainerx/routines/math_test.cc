@@ -1673,19 +1673,19 @@ TEST_THREAD_SAFE_P(MathTest, ElementwisePowerBroadcast4) {
 TEST_P(MathTest, ElementwisePowerBackward) {
     using T = double;
     Shape shape{2, 3};
-    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
-    Array b = (*testing::BuildArray(shape).WithData<T>({6, 4, 2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(0).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({2, 1, 2, 2, 1, 2}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {ElementwisePower(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {ElementwisePower(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});   
 }
 
 TEST_P(MathTest, ElementwisePowerDoubleBackward) {
     using T = double;
     Shape shape{2, 3};
-    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
-    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({1, 2, 2, 2, 1, 3}).WithPadding(2)).RequireGrad();
     Array go =(*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
     Array eps = Full(shape, 1e-3);
