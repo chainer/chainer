@@ -127,6 +127,8 @@ T MultiplyAdd(T x, T y, T z) {
     return x * y + z;
 }
 
+bool MultiplyAdd(bool x, bool y, bool z) { return (x && y) || z; }
+
 float MultiplyAdd(Float16 x, Float16 y, float z) { return std::fmaf(static_cast<float>(x), static_cast<float>(y), z); }
 
 float MultiplyAdd(float x, float y, float z) { return std::fmaf(x, y, z); }
@@ -145,7 +147,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
 #ifdef CHAINERX_ENABLE_BLAS
     if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
-        Gemm(a, b, out);
+        Gemm(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
         return;
     }
 
@@ -162,8 +164,14 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 #endif  // CHAINERX_ENABLE_BLAS
 
+    const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+    const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
+
     out.Fill(0);
-    VisitDtype(out.dtype(), [&](auto pt) {
+    VisitDtype(out.dtype(), [& a = a_cast, &b = b_cast, &out](auto pt) {
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+        CHAINERX_ASSERT(b.dtype() == out.dtype());
+
         using T = typename decltype(pt)::type;
 
         IndexableArray<const T, 2> a_iarray{a};

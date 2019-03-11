@@ -94,7 +94,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
     if (m == 1 && n == 1) {
         // TODO(beam2d): Write a custom reduction kernel.
-        Sum(a.Reshape({k}) * b.Reshape({k}), {0}, out.Reshape({}));
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
+        Sum(a_cast.Reshape({k}) * b_cast.Reshape({k}), {0}, out.Reshape({}));
         return;
     }
 
@@ -109,7 +111,13 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     bool is_out_contiguous = out.IsContiguous();
     Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, *this);
 
-    auto gemm_impl = [&](auto pt) {
+    const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+    const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
+
+    auto gemm_impl = [& a = a_cast, &b = b_cast, &out_contiguous, n, m, k, this](auto pt) {
+        CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
+        CHAINERX_ASSERT(b.dtype() == out_contiguous.dtype());
+
         using T = typename decltype(pt)::type;
         using StorageType = cuda_internal::StorageType<T>;
         using CudaType = cuda_internal::DataType<T>;
@@ -135,9 +143,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
                 cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
 
-    if (a.dtype() == Dtype::kFloat32) {
+    if (out.dtype() == Dtype::kFloat32) {
         gemm_impl(PrimitiveType<float>{});
-    } else if (a.dtype() == Dtype::kFloat64) {
+    } else if (out.dtype() == Dtype::kFloat64) {
         gemm_impl(PrimitiveType<double>{});
     } else {
         throw NotImplementedError("dot is not implemented for non-float types in CUDA");

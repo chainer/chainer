@@ -32,12 +32,14 @@ Array Dot(const Array& a, const Array& b) {
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
     std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
 
+    Dtype out_dtype = ResultType(a, b);
+
     int64_t k = a.shape()[a.ndim() - 1];
     if (b.shape()[0] != k) {
         throw DimensionError{"Axis dimension mismatch"};
     }
     if (k == 0) {
-        return Zeros(out_shape, a.dtype(), a.device());
+        return Zeros(out_shape, out_dtype, a.device());
     }
 
     // Make each operand a matrix
@@ -47,7 +49,6 @@ Array Dot(const Array& a, const Array& b) {
     Array b_matrix = b.Reshape({k, n});
 
     // Matrix-matrix product
-    Dtype out_dtype = ResultType(a, b);
     Array out_matrix = Empty({m, n}, out_dtype, a.device());
     {
         NoBackpropModeScope scope{};

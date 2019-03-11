@@ -8,7 +8,7 @@ from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((), ()),
     ((), (2, 3)),
@@ -25,16 +25,29 @@ def test_dot(
     # TODO(beam2d): Remove the skip after supporting non-float dot on CUDA
     if (device.name == 'cuda:0'
             and any(numpy.dtype(dtype).kind != 'f' for dtype in dtypes)):
-        return chainerx.testing.ignore()
+        pytest.skip('CUDA dot only supports floating kind dtypes.')
 
     a_dtype, b_dtype = dtypes
 
+    # TODO(hvy): Remove the skip when multiplication supports mixed dtypes.
+    if a_dtype != b_dtype and (not a_shape or not b_shape):
+        pytest.skip(
+            'Dot with ndim == 0 depends on multiplication which does not yet '
+            'support mixed dtype.')
+
     a = array_utils.create_dummy_ndarray(xp, a_shape, a_dtype)
     b = array_utils.create_dummy_ndarray(xp, b_shape, b_dtype)
+
     if is_module:
         y = xp.dot(a, b)
     else:
         y = a.dot(b)
+
+    # NumPy returns a NumPy scalar for 0-dimensional array dots while ChainerX
+    # does not.
+    if xp is numpy and numpy.isscalar(y):
+        y = numpy.asarray(y)
+
     return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
