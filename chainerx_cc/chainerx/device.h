@@ -194,6 +194,8 @@ public:
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
+    virtual void Square(const Array& x, const Array& out) = 0;
+
     virtual void Sqrt(const Array& x, const Array& out) = 0;
 
     virtual void IsNan(const Array& x, const Array& out) = 0;
