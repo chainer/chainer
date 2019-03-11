@@ -49,10 +49,6 @@ Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
 PreprocessBatchNormResult PreprocessBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, const OptionalAxes& axis) {
     Dtype dtype = x.dtype();
-    CheckEqual(dtype, gamma.dtype());
-    CheckEqual(dtype, beta.dtype());
-    CheckEqual(dtype, mean.dtype());
-    CheckEqual(dtype, var.dtype());
 
     Axes sorted_axis = axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0};
 
