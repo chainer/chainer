@@ -329,7 +329,7 @@ class TestNStepBiRNN(unittest.TestCase):
             xs = [cuda.to_gpu(x) for x in self.xs]
             rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
-                chainer.using_config('train', True):
+                chainer.using_config('train', train):
             try:
                 rnn(h, xs)
             except Exception as e:
