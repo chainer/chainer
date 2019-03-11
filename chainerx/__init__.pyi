@@ -745,6 +745,7 @@ def split(
 
 def sqrt(x: ndarray) -> ndarray: ...
 
+def pow(x1: ndarray, x2: ndarray) -> ndarray: ...
 
 def squeeze(
         a: ndarray,

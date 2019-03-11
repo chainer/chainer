@@ -62,4 +62,13 @@ inline chainerx::Float16 Sqrt<chainerx::Float16>(chainerx::Float16 x) {
     return Float16{std::sqrt(static_cast<float>(x))};
 }
 
+template <typename T>
+inline T Pow(T x1, T x2) {
+    return std::pow(x1, x2);
+}
+template <>
+inline chainerx::Float16 Pow<chainerx::Float16>(chainerx::Float16 x1, chainerx::Float16 x2 ) {
+    return Float16{std::pow(static_cast<float>(x1), static_cast<float>(x2))};
+}
+
 }  // namespace chainerx

@@ -37,6 +37,25 @@ void CudaDevice::Sqrt(const Array& x, const Array& out) {
 namespace {
 
 template <typename T>
+struct PowImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = cuda::Pow(x1, x2); }
+};
+
+}  // namespace
+
+void CudaDevice::Pow(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, T>(PowImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
 struct IsNanImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }

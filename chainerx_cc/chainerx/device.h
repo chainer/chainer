@@ -190,6 +190,7 @@ public:
     virtual void Log(const Array& x, const Array& out) = 0;
 
     virtual void Sqrt(const Array& x, const Array& out) = 0;
+    virtual void Pow(const Array& x1, const Array& x2, const Array& out) = 0;
 
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;

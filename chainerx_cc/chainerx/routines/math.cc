@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <numeric>
 #include <vector>
+#include <cmath>
 
 #include <nonstd/optional.hpp>
 
@@ -21,6 +22,10 @@
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/testing/array.h"
+
 
 namespace chainerx {
 
@@ -573,6 +578,60 @@ Array Sqrt(const Array& x) {
     bb.Finalize();
 
     return out;
+}
+
+Array ElementwisePower(const Array& x1, const Array& x2) {
+    Array broadcasted_x2 = x2;
+    if(x1.shape() != x2.shape())
+    {
+        broadcasted_x2 = x2.BroadcastTo(x1.shape());
+    }
+    CheckEqual(x1.dtype(), broadcasted_x2.dtype());
+    CheckEqual(x1.shape(), broadcasted_x2.shape());
+    Array out = EmptyLike(x1, x1.device());
+    {
+        NoBackpropModeScope scope{};
+        x1.device().Pow(x1, broadcasted_x2, out);
+    }
+
+    {
+        BackwardBuilder bb{"ElementwisePower", {x1, broadcasted_x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                bctx.input_grad() = *bctx.output_grad() * x2 * (out / x1) ;
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                Array logx1 = EmptyLike(out, out.device());
+                x1.device().Log(x1, logx1);
+                VisitDtype(out.dtype(), [&](auto pt) {
+                    using T = typename decltype(pt)::type;
+                    IndexableArray<T> out_iarray{out};
+                    IndexableArray<T> logx1_iarray{logx1};
+                    Indexer<> indexer{logx1.shape()};
+                    for (auto it = indexer.It(0); it; ++it) {
+                        if(std::isinf(logx1_iarray[it]))
+                        {
+                            out_iarray[it] = out_iarray[it];
+                        }else {
+                            out_iarray[it] = logx1_iarray[it]*out_iarray[it];
+                        }      
+                    }
+                });
+
+                bctx.input_grad() = *bctx.output_grad() * out;
+            });
+        }
+        bb.Finalize();
+        return out;
+    }
+
 }
 
 Array Tanh(const Array& x) {
