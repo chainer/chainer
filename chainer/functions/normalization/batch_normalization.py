@@ -206,7 +206,7 @@ class BatchNormalization(function_node.FunctionNode):
             y, self.mean, self.inv_std = (
                 cudnn.batch_normalization_forward_training(
                     x, gamma, beta, self.running_mean, self.running_var,
-                    self.eps, self.decay,
+                    None, None, self.eps, self.decay,
                     self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
                     chainer.is_debug()))
         else:
