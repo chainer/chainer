@@ -172,6 +172,8 @@ def relu6(x):
         ~chainer.Variable: Output variable. A
         :math:`(s_1, s_2, ..., s_n)`-shaped float array.
 
+    .. seealso:: :func:`chainer.functions.clipped_relu`
+
     .. admonition:: Example
 
         >>> x = np.random.uniform(-100, 100, (10, 20)).astype(np.float32)
