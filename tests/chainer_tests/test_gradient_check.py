@@ -1,4 +1,5 @@
 import math
+import sys
 import unittest
 import warnings
 
@@ -269,6 +270,23 @@ class NumericalGradientEpsTest(unittest.TestCase):
 default_eps = 1e-3
 
 
+def _skip_nondifferential_test():
+    # Skip if NumPy is installed with the Accelerate backend with Python 3.4
+    # because of a failure in NumPy's polyfit function.
+    # Please refer to the actual usage of this function.
+    warnings.filterwarnings('error')
+    is_using_accelerate = False
+    try:
+        chainer._environment_check._check_osx_numpy_backend()
+    except Warning:
+        is_using_accelerate = True
+
+    return (
+        is_using_accelerate
+        and sys.version_info[0] == 3
+        and sys.version_info[1] == 4)
+
+
 # `result`: True if `func` is non-differentiable on `x`
 @testing.parameterize(*[
     {'func': 'zero', 'x': [-100.], 'result': False},
@@ -346,6 +364,13 @@ default_eps = 1e-3
     {'func': 'nan_segment', 'x': [-1.], 'result': True},
     {'func': 'nan_segment', 'x': [1.], 'result': True},
 ])
+# TODO(hvy): Stop skipping when NumPy addressed the below issue described in
+# the skip message.
+@unittest.skipIf(
+    _skip_nondifferential_test(),
+    'MacOS (darwin) with Python 3.4 will fail in gradient check because '
+    'it may call numpy.polynomial.polynomial.polyfit, which may fail to '
+    'allocate memory when using NumPy with the Accelerate backend.')
 class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
 
     def setUp(self):
