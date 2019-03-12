@@ -56,6 +56,27 @@ void CudaDevice::Pow(const Array& x1, const Array& x2, const Array& out) {
 namespace {
 
 template <typename T>
+struct PowASImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = cuda::Pow(x1, x2); }
+    CudaType x2;
+};
+
+}  // namespace
+
+void CudaDevice::PowAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, T>(PowASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+    });
+}
+
+namespace {
+
+template <typename T>
 struct IsNanImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }

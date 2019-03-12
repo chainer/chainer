@@ -580,6 +580,23 @@ class test_tanh(op_utils.NumpyOpTest):
         x, = inputs
         return xp.tanh(x),
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class test_pow(op_utils.NumpyOpTest):
+
+    def setup(self, contiguous, float_dtype):
+        
+        self.contiguous = contiguous
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return numpy.array([4.0, 2.0]), numpy.array([2.0, 4.0])
+
+    def forward_xp(self, inputs, xp):
+        return xp.power(inputs[0], inputs[1])
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

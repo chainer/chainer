@@ -34,6 +34,18 @@ void NativeDevice::Pow(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
+void NativeDevice::PowAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Pow(x1, x2); }
+            T x2;
+        };
+        Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
+    });
+}
+
 void NativeDevice::IsNan(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitDtype(x.dtype(), [&](auto pt) {

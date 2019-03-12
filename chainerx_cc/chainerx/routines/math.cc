@@ -23,7 +23,6 @@
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
-
 namespace chainerx {
 
 Array Negative(const Array& x) {
@@ -577,7 +576,7 @@ Array Sqrt(const Array& x) {
     return out;
 }
 
-Array ElementwisePower(const Array& x1, const Array& x2) {
+Array Pow(const Array& x1, const Array& x2) {
     Array broadcasted_x2 = x2;
     if (x1.shape() != x2.shape())
     {
@@ -594,28 +593,47 @@ Array ElementwisePower(const Array& x1, const Array& x2) {
     {
         BackwardBuilder bb{"power", {x1, broadcasted_x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                Array pow_x1 = EmptyLike(x1, x1.device());
-                x1.device().Pow(x1, x2 - 1, pow_x1);
-
-                bctx.input_grad() = *bctx.output_grad() * x2 * pow_x1;
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                
+                bctx.input_grad() = gout * x2 * Pow(x1, x2 - 1);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([x1_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
-                Array logx1 = EmptyLike(x1, x1.device());
-                x1.device().Log(x1, logx1);
 
-                bctx.input_grad() = *bctx.output_grad() * out * logx1;
+                bctx.input_grad() = gout * out * Log(x1); 
             });
         }
-        bb.Finalize();
-        return out;
+    
+    bb.Finalize();
     }
+    return out;
+}
+
+Array Pow(const Array& x1, const Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    {
+        NoBackpropModeScope scope{};
+        x1.device().PowAS(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"pow_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
+        const Array& x1 = bctx.GetRetainedInput(x1_tok);
+        Array pow_x1 = Pow(x1, x2 + (-1));
+        bctx.input_grad() = *bctx.output_grad() * x2 * pow_x1;
+        });
+    }
+    bb.Finalize();
+    return out;
 }
 
 Array Tanh(const Array& x) {

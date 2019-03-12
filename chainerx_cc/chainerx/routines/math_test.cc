@@ -1602,50 +1602,50 @@ TEST_P(MathTest, SqrtDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
-TEST_THREAD_SAFE_P(MathTest, ElementwisePower) {
+TEST_THREAD_SAFE_P(MathTest, Power) {
     Array a1 = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, -3.f});
     Array a2 = testing::BuildArray({3, 1}).WithData<float>({3.f, 2.f, 6.f});
     Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 3.f), std::pow(4.f, 2.f), std::pow(-3.f, 6.f)});
 
     Run([&]() { testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{ElementwisePower(xs[0], xs[1])}; }, {a1, a2}, {e}); });
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e}); });
 }
 
-TEST_THREAD_SAFE_P(MathTest, ElementwisePowerBroadcast1) {
+TEST_THREAD_SAFE_P(MathTest, PowerBroadcast1) {
     Array a1 = testing::BuildArray({2, 2}).WithData<int>({5, 2, 3, 4});
     Array a2 = testing::BuildArray({2}).WithData<int>({2, 3});
     Array e = testing::BuildArray({2, 2}).WithData<int>({25, 8, 9, 64});
 
     Run([&]() { testing::CheckForward(
-        [](const std::vector<Array>& xs) { return std::vector<Array>{ElementwisePower(xs[0], xs[1])}; }, {a1, a2}, {e}); });
+        [](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e}); });
 }
 
-TEST_THREAD_SAFE_P(MathTest, ElementwisePowerBroadcast2) {
+TEST_THREAD_SAFE_P(MathTest, PowerBroadcast2) {
     Array a1 = testing::BuildArray({2, 2}).WithData<float>({5.f, 2.f, 3.f, 4.f});
     Array a2 = testing::BuildArray({2, 1}).WithData<float>({2.f, 3.f});
     Array e = testing::BuildArray({2, 2}).WithData<float>({25.f, 4.f, 27.f, 64.f});
 
     Run([&]() { testing::CheckForward(
-        [](const std::vector<Array>& xs) { return std::vector<Array>{ElementwisePower(xs[0], xs[1])}; }, {a1, a2}, {e}); });
+        [](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e}); });
 }
 
-TEST_THREAD_SAFE_P(MathTest, ElementwisePowerBroadcast3) {
+TEST_THREAD_SAFE_P(MathTest, PowerBroadcast3) {
     Array a1 = testing::BuildArray({2, 2}).WithData<int>({5, 2, 3, 4});
     Array a2 = testing::BuildArray({1, 2}).WithData<int>({2, 3});
     Array e = testing::BuildArray({2, 2}).WithData<int>({25, 8, 9, 64});
 
     Run([&]() { testing::CheckForward(
-        [](const std::vector<Array>& xs) { return std::vector<Array>{ElementwisePower(xs[0], xs[1])}; }, {a1, a2}, {e}); });
+        [](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e}); });
 }
 
-TEST_THREAD_SAFE_P(MathTest, ElementwisePowerBroadcast4) {
+TEST_THREAD_SAFE_P(MathTest, PowerBroadcast4) {
     Array a1 = testing::BuildArray({2, 2}).WithData<float>({5.f, 2.f, 3.f, 4.f});
     Array a2 = testing::BuildArray({3}).WithData<float>({2.f, 3.f, 4.f});
 
-    EXPECT_THROW(ElementwisePower(a1, a2), ChainerxError);
+    EXPECT_THROW(Pow(a1, a2), ChainerxError);
 }
 
-TEST_P(MathTest, ElementwisePowerBackward) {
+TEST_P(MathTest, PowerBackward) {
     using T = double;
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.}).WithPadding(1)).RequireGrad();
@@ -1654,24 +1654,24 @@ TEST_P(MathTest, ElementwisePowerBackward) {
     Array eps = Full(shape, 1e-3);
 
     CheckBackward(
-        [](const std::vector<Array>& xs) -> std::vector<Array> { return {ElementwisePower(xs[0], xs[1])}; },
+        [](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(xs[0], xs[1])}; },
         {a, b},
         {go},
         {eps, eps});
 }
 
-TEST_P(MathTest, ElementwisePowerDoubleBackward) {
+TEST_P(MathTest, PowerDoubleBackward) {
     using T = double;
-    Shape shape{2, 3};
-    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
-    Array b = (*testing::BuildArray(shape).WithData<T>({6, 5, 4, 3, 2, 1}).WithPadding(2)).RequireGrad();
+    Shape shape{2, 2};
+    Array a = (*testing::BuildArray(shape).WithData<T>({2.0, 6.0, 4.0, 6.0}).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({3, 5, 4, 2}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
     Array eps = Full(shape, 1e-1);
 
     CheckDoubleBackwardComputation(
             [&](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = ElementwisePower(xs[0], xs[1]);
+                auto y = Pow(xs[0], xs[1]);
                 return {y * y};  // to make it nonlinear
             },
             {a, b},

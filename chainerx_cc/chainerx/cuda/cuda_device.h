@@ -151,7 +151,7 @@ public:
 
     void Sqrt(const Array& x, const Array& out) override;
     void Pow(const Array& x1, const Array& x2, const Array& out) override;
-
+    void PowAS(const Array& x1, Scalar x2, const Array& out) override;
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
 
