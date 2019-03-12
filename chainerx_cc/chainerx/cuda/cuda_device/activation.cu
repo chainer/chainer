@@ -43,6 +43,28 @@ void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Ar
 namespace {
 
 template <typename T>
+struct IfGreaterElseASSAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType neg, CudaType& out) { out = x1 > x2 ? pos : neg; }
+    CudaType x2;
+    CudaType pos;
+};
+
+}  // namespace
+
+void CudaDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(x1, neg, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, const T, T>(IfGreaterElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1, neg, out);
+    });
+}
+
+namespace {
+
+template <typename T>
 struct TanhImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Tanh(x); }

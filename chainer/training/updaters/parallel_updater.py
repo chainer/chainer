@@ -77,7 +77,7 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             try:
                 names.remove('main')
             except ValueError:
-                raise KeyError("'devices' must contain a 'main' key.")
+                raise KeyError('\'devices\' must contain a \'main\' key.')
 
             models = {'main': optimizer.target}
             for name in names:

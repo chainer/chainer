@@ -9,7 +9,7 @@ from chainerx_tests import array_utils
 
 # TODO(niboshi): Remove strides_check=False
 @chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize("shape,indices", [
+@pytest.mark.parametrize('shape,indices', [
     # empty indexing
     ((), ()),
     ((3,), ()),
@@ -133,7 +133,7 @@ _take_invalid_params = [
 @chainerx.testing.numpy_chainerx_array_equal(
     dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize(
-    "shape,indices,axis", _take_valid_params + _take_invalid_params)
+    'shape,indices,axis', _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take_list_indices(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
@@ -149,7 +149,7 @@ def test_take_list_indices(is_module, xp, shape, indices, axis, device):
 @chainerx.testing.numpy_chainerx_array_equal(
     dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize(
-    "shape,indices,axis", _take_valid_params + _take_invalid_params)
+    'shape,indices,axis', _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take_numpy_indices(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
@@ -167,7 +167,7 @@ def test_take_numpy_indices(is_module, xp, shape, indices, axis, device):
 @chainerx.testing.numpy_chainerx_array_equal(
     dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize(
-    "shape,indices,axis", _take_valid_params + _take_invalid_params)
+    'shape,indices,axis', _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take_chainerx_indices(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')

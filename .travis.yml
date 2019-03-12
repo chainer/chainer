@@ -19,28 +19,28 @@ matrix:
       env:
       - CHAINER_TRAVIS_TEST="c-static-check"
 
-    - name: "Ubuntu14.04 Py27"
+    - name: "Ubuntu14.04 Py27 | chainer, chainermn"
       dist: trusty
       python: "2.7"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - SKIP_CHAINERX=1
 
-    - name: "Ubuntu16.04 Py35 + ChainerX"
+    - name: "Ubuntu16.04 Py35 | chainer, chainermn, chainerx, docs"
       dist: xenial
       python: "3.5"
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
-    - name: "Ubuntu16.04 Py35 + ChainerX (C++ test)"
+    - name: "Ubuntu16.04 Py35 | chainerx_cc"
       dist: xenial
       python: "3.5"
       env:
       - CHAINER_TRAVIS_TEST="chainerx-cpp"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
-    - name: "macOS Py35"
+    - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
       os: osx
       language: generic
       env:
@@ -49,7 +49,7 @@ matrix:
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
 
-    - name: "Windows"
+    - name: "Windows | chainer"
       os: windows
       language: shell
       python: "3.7"
@@ -58,7 +58,7 @@ matrix:
       - SKIP_CHAINERX=1
       - SKIP_CHAINERMN=1
 
-    - name: "macOS Py27"
+    - name: "macOS Py27 | chainer, chainermn"
       os: osx
       language: generic
       env:

@@ -13,6 +13,21 @@ from chainer import variable
 import chainerx
 
 
+class _BackpropModeContext(object):
+    # Combines multiple contexts.
+    # A single context object cannot be nested.
+    def __init__(self, contexts):
+        self.contexts = contexts
+
+    def __enter__(self):
+        for c in self.contexts:
+            c.__enter__()
+
+    def __exit__(self, typ, value, traceback):
+        for c in reversed(self.contexts):
+            c.__exit__(typ, value, traceback)
+
+
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
 
@@ -33,13 +48,23 @@ def no_backprop_mode():
     >>> x.grad is None
     True
 
+    .. note::
+
+       ``chainer.no_backprop_mode()`` implicitly applies ChainerX's
+       counterpart :func:`chainerx.no_backprop_mode()`, but not vice versa.
+       Also, setting ``enable_backprop`` :ref:`configuration <configuration>`
+       does not affect ChainerX.
+
     .. seealso::
 
-       See :func:`force_backprop_mode` for details on how to override this
-       context.
+       See :func:`chainer.force_backprop_mode` for details on how to override
+       this context.
 
     """
-    return configuration.using_config('enable_backprop', False)
+    c = configuration.using_config('enable_backprop', False)
+    if chainerx.is_available():
+        return _BackpropModeContext((c, chainerx.no_backprop_mode()))
+    return _BackpropModeContext((c,))
 
 
 def force_backprop_mode():
@@ -63,13 +88,23 @@ def force_backprop_mode():
     >>> x.grad
     array([1.], dtype=float32)
 
+    .. note::
+
+       ``chainer.force_backprop_mode()`` implicitly applies ChainerX's
+       counterpart :func:`chainerx.force_backprop_mode()`, but not vice versa.
+       Also, setting ``enable_backprop`` :ref:`configuration <configuration>`
+       does not affect ChainerX.
+
     .. seealso::
 
-       See :func:`no_backprop_mode` for details on disabled back-propagation
-       mode.
+       See :func:`chainer.no_backprop_mode` for details on disabled
+       back-propagation mode.
 
     """
-    return configuration.using_config('enable_backprop', True)
+    c = configuration.using_config('enable_backprop', True)
+    if chainerx.is_available():
+        return _BackpropModeContext((c, chainerx.force_backprop_mode()))
+    return _BackpropModeContext((c,))
 
 
 class FunctionAdapter(function_node.FunctionNode):
@@ -159,8 +194,8 @@ class FunctionAdapter(function_node.FunctionNode):
         is_chainerx_fallback_mode = self._is_chainerx_fallback_mode
         if is_chainerx_fallback_mode:
             # Convert input and output gradients to numpy/cupy
-            in_data = backend.from_chainerx(in_data)
-            grad_out_data = backend.from_chainerx(grad_out_data)
+            in_data = backend.from_chx(in_data)
+            grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
@@ -172,12 +207,14 @@ class FunctionAdapter(function_node.FunctionNode):
             else:
                 gxs = self._function.backward(in_data, grad_out_data)
 
+        # Check gradients
         for x, gx in six.moves.zip(self.inputs, gxs):
-            variable._check_grad_type(self, x, True, gx, False)
+            if gx is not None:
+                variable._check_grad_type(self, x, True, gx)
 
         # Convert input gradients back to ChainerX
         if is_chainerx_fallback_mode:
-            gxs = backend.to_chainerx(gxs)
+            gxs = backend.to_chx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -328,7 +365,7 @@ class Function(object):
 
         """
         if self.node._is_chainerx_fallback_mode:
-            return backend.from_chainerx(self.node.output_data)
+            return backend.from_chx(self.node.output_data)
         return self.node.output_data
 
     @property

@@ -122,18 +122,18 @@ def test_cast_scalar_invalid(device, shape):
 
 
 def test_to_device():
-    a = chainerx.ones((2,), chainerx.float32, device="native:0")
-    dst_device = chainerx.get_device("native:1")
+    a = chainerx.ones((2,), chainerx.float32, device='native:0')
+    dst_device = chainerx.get_device('native:1')
 
     b0 = a.to_device(dst_device)  # by device instance
     assert b0.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b0)
 
-    b1 = a.to_device("native:1")  # by device name
+    b1 = a.to_device('native:1')  # by device name
     assert b1.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b1)
 
-    b2 = a.to_device("native", 1)  # by backend name and index
+    b2 = a.to_device('native', 1)  # by backend name and index
     assert b2.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b2)
 
@@ -356,36 +356,37 @@ def test_as_grad_stopped_view(shape, float_dtype):
 
 def test_array_repr():
     array = chainerx.array([], chainerx.bool_)
-    assert "array([], shape=(0,), dtype=bool, device='native:0')" == str(array)
+    assert ('array([], shape=(0,), dtype=bool, '
+            'device=\'native:0\')' == str(array))
 
     array = chainerx.array([False], chainerx.bool_)
-    assert ("array([False], shape=(1,), dtype=bool, "
-            "device='native:0')" == str(array))
+    assert ('array([False], shape=(1,), dtype=bool, '
+            'device=\'native:0\')' == str(array))
 
     array = chainerx.array([[0, 1, 2], [3, 4, 5]], chainerx.int8)
-    assert ("array([[0, 1, 2],\n"
-            "       [3, 4, 5]], shape=(2, 3), dtype=int8, "
-            "device='native:0')") == str(array)
+    assert ('array([[0, 1, 2],\n'
+            '       [3, 4, 5]], shape=(2, 3), dtype=int8, '
+            'device=\'native:0\')') == str(array)
 
     array = chainerx.array([[0, 1, 2], [3.25, 4, 5]], chainerx.float32)
-    assert ("array([[0.  , 1.  , 2.  ],\n"
-            "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, "
-            "device='native:0')") == str(array)
+    assert ('array([[0.  , 1.  , 2.  ],\n'
+            '       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, '
+            'device=\'native:0\')') == str(array)
 
 
 def test_array_repr_default_backprop_id():
     array = chainerx.array([3.0], chainerx.float32)
     array.require_grad()
-    assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
-            "backprop_ids=['<default>'])" == str(array))
+    assert ('array([3.], shape=(1,), dtype=float32, device=\'native:0\', '
+            'backprop_ids=[\'<default>\'])' == str(array))
 
 
 def test_array_repr_expired_backprop_id():
     with chainerx.backprop_scope('bp1') as bp1:
         array = chainerx.array([3.0], chainerx.float32)
         array.require_grad(bp1)
-    assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
-            "backprop_ids=['<expired>'])" == str(array))
+    assert ('array([3.], shape=(1,), dtype=float32, device=\'native:0\', '
+            'backprop_ids=[\'<expired>\'])' == str(array))
 
 
 @pytest.mark.parametrize('backprop_args', [(None,), ()])

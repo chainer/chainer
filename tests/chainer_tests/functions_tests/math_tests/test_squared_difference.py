@@ -1,87 +1,57 @@
-import unittest
 
 import numpy
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
     'in_shape': [(5, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestSquaredDifference(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestSquaredDifference(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x1 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
-        self.g = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(
-            -1, 1, self.in_shape).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(
-            -1, 1, self.in_shape).astype(self.dtype)
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+            self.check_double_backward_options \
+                .update({'atol': 1e-3, 'rtol': 1e-2})
 
-    def check_forward(self, x1_data, x2_data):
-        x1 = chainer.Variable(x1_data)
-        x2 = chainer.Variable(x2_data)
-        y = functions.squared_difference(x1, x2)
-        y_expect = (self.x1 - self.x2) ** 2
-        testing.assert_allclose(y.data, y_expect, atol=1e-3)
-        self.assertEqual(y.data.shape, self.in_shape)
-        self.assertEqual(y.data.dtype, self.dtype)
+    def generate_inputs(self):
+        x1 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        x2 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        return x1, x2
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x1, self.x2)
+    def forward(self, inputs, device):
+        x1, x2 = inputs
+        return functions.squared_difference(x1, x2),
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2))
-
-    def check_backward(self, x1, x2, g_data):
-        x_data = (x1, x2)
-        gradient_check.check_backward(
-            functions.squared_difference,
-            x_data, g_data, dtype=numpy.float64, atol=1e-2, rtol=2e-2)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x1, self.x2, self.g)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        x1 = cuda.to_gpu(self.x1)
-        x2 = cuda.to_gpu(self.x2)
-        g = cuda.to_gpu(self.g)
-        self.check_backward(x1, x2, g)
-
-    def check_double_backward(self, x1, x2, g_data, ggx1, ggx2):
-        x_data = (x1, x2)
-        ggx_data = (ggx1, ggx2)
-        gradient_check.check_double_backward(
-            functions.squared_difference,
-            x_data, g_data, ggx_data, dtype=numpy.float64,
-            atol=1e-2, rtol=2e-2)
-
-    @condition.retry(3)
-    def test_double_backward_cpu(self):
-        self.check_double_backward(
-            self.x1, self.x2, self.g, self.ggx1, self.ggx2)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu(self):
-        x1 = cuda.to_gpu(self.x1)
-        x2 = cuda.to_gpu(self.x2)
-        g = cuda.to_gpu(self.g)
-        ggx1 = cuda.to_gpu(self.ggx1)
-        ggx2 = cuda.to_gpu(self.ggx2)
-        self.check_double_backward(x1, x2, g, ggx1, ggx2)
+    def forward_expected(self, inputs):
+        x1, x2 = inputs
+        expected = (x1-x2)**2
+        expected = numpy.asarray(expected)
+        return expected.astype(self.dtype),
 
 
 testing.run_module(__name__, __file__)

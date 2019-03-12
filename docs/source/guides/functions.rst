@@ -31,7 +31,9 @@ Here we call this function *MulAdd*.
 
 Let's start with defining MulAdd working on the CPU.
 Any function must inherit the :class:`Function` class.
-The skeleton of a function looks like::
+The skeleton of a function looks like:
+
+.. testcode::
 
    class MulAdd(Function):
        def forward_cpu(self, inputs):
@@ -106,7 +108,9 @@ history of computation, etc.).
 
 
 Now let's define the corresponding GPU methods.
-You can easily predict that the methods we have to write are named :meth:`~Function.forward_gpu` and :meth:`~Function.backward_gpu`::
+You can easily predict that the methods we have to write are named :meth:`~Function.forward_gpu` and :meth:`~Function.backward_gpu`:
+
+.. testcode::
 
   class MulAdd(Function):
       def forward_cpu(self, inputs):
@@ -305,7 +309,9 @@ It also reduce the memory consumption.
 
 Most functions only require elementwise operations like MulAdd.
 CuPy provides a useful tool to define elementwise kernels, the :class:`cupy.elementwise.ElementwiseKernel` class, and Chainer wraps it by :func:`cuda.elementwise` function.
-Our MulAdd implementation can be improved as follows::
+Our MulAdd implementation can be improved as follows:
+
+.. testcode::
 
   class MulAdd(Function):
       def forward_cpu(self, inputs):
@@ -360,7 +366,9 @@ Given a compiled binary code, we have to upload it to the current GPU in order t
 
 The above MulAdd code only works for float32 arrays.
 The :class:`~cupy.elementwise.ElementwiseKernel` also supports the type-variadic kernel definition.
-In order to define variadic kernel functions, you can use *type placeholder* by placing a single character as type specifier::
+In order to define variadic kernel functions, you can use *type placeholder* by placing a single character as type specifier:
+
+.. testcode::
 
   class MulAdd(Function):
       def forward_cpu(self, inputs):
@@ -412,7 +420,9 @@ You can refer to :ref:`configuration` to see how to configure this flag as well 
 Here, we just show how to use this flag to make a function support training/test mode.
 You will need to check the value of the boolean flag ``chainer.config.train`` and branch appropriately.
 
-For example, consider the following simple dropout function::
+For example, consider the following simple dropout function:
+
+.. testcode::
 
   def dropout(x):
       xp = backend.get_array_module(x.array)
@@ -421,7 +431,9 @@ For example, consider the following simple dropout function::
 
 This function applies dropout to each element and doubles survived elements to preserve the scale.
 The above implementation applies dropout even in test mode, but it is not a desired behavior.
-We can fix it as follows::
+We can fix it as follows:
+
+.. testcode::
 
   def dropout(x):
       if not chainer.config.train:
@@ -457,6 +469,12 @@ It can be defined as follows:
        def forward(self, x):
            return self.W * x
 
+.. testcode::
+   :hide:
+
+   x = Variable(np.random.uniform(-1, 1, (2, 4)).astype(np.float32))
+   EltwiseParamProduct((2, 4))(x)
+
 For another example, assume we want to define a simple linear layer.
 It is already defined as :class:`~chainer.links.Linear`, so this is an educational example.
 The linear layer is divided into two parts: a function and its wrapper link.
@@ -481,6 +499,14 @@ First, we have to define a function on variables:
    def linear(x, W, b):
        return LinearFunction()(x, W, b)
 
+.. testcode::
+   :hide:
+
+   x = Variable(np.random.uniform(-1, 1, (2, 2)).astype(np.float32))
+   W = Variable(np.random.uniform(-1, 1, (2, 2)).astype(np.float32))
+   b = Variable(np.random.uniform(-1, 1, (2, 2)).astype(np.float32))
+   linear(x, W, b)
+
 This function takes three arguments: input, weight, and bias.
 It can be used as a part of model definition, though is inconvenient since the user have to manage the weight and bias parameters directly.
 In order to make a convenient module, let's wrap it into a link:
@@ -498,6 +524,13 @@ In order to make a convenient module, let's wrap it into a link:
 
        def forward(self, x):
            return linear(x, self.W, self.b)
+
+.. testcode::
+   :hide:
+
+   x = Variable(np.random.uniform(-1, 1, (2, 2)).astype(np.float32))
+   Linear(2, 2)(x)
+
 
 This link hides the parameters of the linear layer.
 

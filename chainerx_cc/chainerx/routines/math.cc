@@ -258,8 +258,27 @@ Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 namespace {
 
+void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivide(x1, x2, out);
+    }
+}
+
+void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivideAS(x1, x2, out);
+    }
+}
+
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
-    // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
     // TODO(niboshi): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
@@ -307,6 +326,10 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 namespace internal {
 
+void IFloorDivide(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2); }
+
+void IFloorDivide(const Array& x1, Scalar x2) { BinaryInPlace(&FloorDivideASImpl, x1, x2); }
+
 void ITrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Integer inplace-division is not supported."};
@@ -326,6 +349,12 @@ void IDivide(const Array& x1, const Array& x2) { ITrueDivide(x1, x2); }
 void IDivide(const Array& x1, Scalar x2) { ITrueDivide(x1, x2); }
 
 }  // namespace internal
+
+Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2); }
+
+Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2); }
+
+Array FloorDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 Array TrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat) {
@@ -470,11 +499,43 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 }  // namespace
 
+namespace {
+
+// Calculates: x1 > x2 ? pos : neg
+// Can only differentiate with respect to neg.
+Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
+    Array out = EmptyLike(x1, x1.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().IfGreaterElseASSA(x1, x2, pos, neg, out);
+    }
+
+    BackwardBuilder bb{"if_greater_else", neg, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, gout.dtype()}, gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+}  // namespace
+
 Array Maximum(const Array& x1, Scalar x2) {
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
+
+Array Minimum(const Array& x1, Scalar x2) {
+    return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
+}
+
+Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());

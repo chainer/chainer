@@ -49,7 +49,7 @@ class TestNStepRNN(unittest.TestCase):
             self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.rank_next = self.communicator.rank + 1
         self.rank_prev = self.communicator.rank - 1

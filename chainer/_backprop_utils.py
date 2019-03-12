@@ -75,7 +75,7 @@ class GradTable(object):
 
 
 def backprop_step(
-        func, target_input_indexes, grad_outputs, grad_inputs):
+        func, target_input_indexes, grad_outputs, grad_inputs, is_debug):
     """Accumulates gradients of a FunctionNode
 
     This routine is used by :meth:`chainer.Variable.backward` and
@@ -92,9 +92,9 @@ def backprop_step(
             given, the corresponding element is ``None``.
         grad_inputs (dict): References of the gradients w.r.t. the input
             variables.
+        is_debug (bool): ``True`` if the debug mode is enabled.
 
     """
-    is_debug = chainer.is_debug()
     if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
@@ -147,32 +147,34 @@ def backprop_step(
             raise ValueError(func._get_error_message(msg))
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
-        if gx is not None:
-            grad_inputs[func.inputs[i]].append(gx)
+        if gx is None or gx.array is None:
+            continue
 
-            if is_debug:
-                node_x = func.inputs[i]
-                g_input_list = grad_inputs[node_x]
-                if gx.shape != node_x.shape:
+        grad_inputs[func.inputs[i]].append(gx)
+
+        if is_debug:
+            node_x = func.inputs[i]
+            g_input_list = grad_inputs[node_x]
+            if gx.shape != node_x.shape:
+                raise ValueError(func._get_error_message(
+                    'shape of gradients returned from backward is '
+                    'incorrect: '
+                    'input-index={}, actual {} != expected {}'.format(
+                        i, gx.shape, node_x.shape)))
+            if gx is not None and g_input_list:
+                g_input = g_input_list[0]
+                if gx.shape != g_input.shape:
                     raise ValueError(func._get_error_message(
                         'shape of gradients returned from backward is '
                         'incorrect: '
                         'input-index={}, actual {} != expected {}'.format(
-                            i, gx.shape, node_x.shape)))
-                if gx is not None and g_input_list:
-                    g_input = g_input_list[0]
-                    if gx.shape != g_input.shape:
-                        raise ValueError(func._get_error_message(
-                            'shape of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.shape, g_input.shape)))
-                    if gx.dtype != g_input.dtype:
-                        raise ValueError(func._get_error_message(
-                            'dtype of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.dtype, g_input.dtype)))
+                            i, gx.shape, g_input.shape)))
+                if gx.dtype != g_input.dtype:
+                    raise ValueError(func._get_error_message(
+                        'dtype of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.dtype, g_input.dtype)))
     del gxs
 
     if is_debug:

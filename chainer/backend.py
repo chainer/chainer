@@ -10,8 +10,8 @@ import chainerx
 # Aliases
 from chainer._backend import Device
 from chainer.backends._chainerx import ChainerxDevice
-from chainer.backends._chainerx import from_chainerx  # NOQA
-from chainer.backends._chainerx import to_chainerx  # NOQA
+from chainer.backends._chainerx import from_chx  # NOQA
+from chainer.backends._chainerx import to_chx  # NOQA
 from chainer.backends._cpu import CpuDevice
 from chainer.backends.cuda import GpuDevice
 from chainer.backends.intel64 import Intel64Device

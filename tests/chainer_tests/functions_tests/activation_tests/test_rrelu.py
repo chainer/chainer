@@ -20,6 +20,11 @@ from chainer.testing import attr
         'use_cuda': [True],
         'cuda_device': [0, 1],
     })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
 )
 @testing.parameterize(*testing.product({
     'train': [True, False],
@@ -51,9 +56,8 @@ class TestRReLU(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        r = self.r
+        r = self.r.astype(x.dtype)
         r = device.send(r)
-        r = r.astype(x.dtype)
         with chainer.using_config('train', self.train):
             y = functions.rrelu(x, l=self.l, u=self.u, r=r)
         return y,
@@ -64,7 +68,7 @@ class TestRReLU(testing.FunctionTestCase):
         if self.train:
             expected = numpy.where(x >= 0, x, x * r)
         else:
-            r_test = numpy.mean([self.l, self.u], dtype=self.dtype)
+            r_test = numpy.mean([self.l, self.u]).astype(self.dtype)
             expected = numpy.where(x >= 0, x, x * r_test)
         return expected,
 

@@ -40,7 +40,7 @@ class GetItem(function_node.FunctionNode):
 
     def forward(self, xs):
         slices = tuple([
-            backend.from_chainerx(s) if isinstance(s, chainerx.ndarray) else s
+            backend.from_chx(s) if isinstance(s, chainerx.ndarray) else s
             for s in self.slices])
         return utils.force_array(xs[0][slices]),
 

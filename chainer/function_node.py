@@ -428,7 +428,7 @@ Use apply() method instead.\
                     if device is None:
                         device = x.device
                 else:
-                    fallback_data = backend.from_chainerx(data)
+                    fallback_data = backend.from_chx(data)
                     if device is None:
                         device = backend.ChainerxDevice(data.device)
 
@@ -446,7 +446,7 @@ Use apply() method instead.\
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chainerx(outputs)
+        chainerx_out_data = backend.to_chx(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -1088,6 +1088,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     input_nodes = set(x.node for x in inputs)
     ret_dict = {}
 
+    is_debug = chainer.is_debug()
+    base_hooks = chainer.get_function_hooks().values()
     while candidate_funcs:
         func = pop_candidate()
 
@@ -1122,25 +1124,28 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         # Do backward
 
         # Call pre-backward hooks
-        hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(func.local_function_hooks)
-        hooks = hooks.values()  # avoid six for performance
+            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
+            local_hooks.update(func.local_function_hooks)
+            hooks = local_hooks.values()  # avoid six for performance
+        else:
+            hooks = base_hooks
 
-        in_data = tuple([x.data for x in func.inputs])
-        out_grad_data = tuple(
-            [None if g is None else g.data for g in gys])
+        in_data = [x.data for x in func.inputs]
+        out_grad_data = [None if g is None else g.data for g in gys]
 
         with cuda.get_device_from_array(*in_data):
             for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+                hook.backward_preprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
-            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
+            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads,
+                                          is_debug)
 
             # Call post-backward hooks
             for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                hook.backward_postprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
         # Update grads
         for node, g in x_grads.items():
@@ -1192,7 +1197,7 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
-            return True, tuple(backend.to_chainerx(arrays))
+            return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
 
@@ -1252,7 +1257,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
         if isinstance(value, chainerx.ndarray):
             fallback_arr = fallback_array_cache.get(name)
             if fallback_arr is None:
-                fallback_arr = backend.from_chainerx(value)
+                fallback_arr = backend.from_chx(value)
                 fallback_array_cache[name] = fallback_arr
             return fallback_arr
         return value
@@ -1261,7 +1266,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
     def setattr(self, name, value):
         if isinstance(value, fallback_device.xp.ndarray):
             fallback_array_cache[name] = value
-            sup.__setattr__(name, backend.to_chainerx(value))
+            sup.__setattr__(name, backend.to_chx(value))
             return
         sup.__setattr__(name, value)
 

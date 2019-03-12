@@ -35,8 +35,8 @@ class Ndtr(function_node.FunctionNode):
                 _ndtr_cpu = special.ndtr
             except ImportError:
                 warnings.warn(
-                    "SciPy is not available. Forward computation of ndtr in"
-                    " CPU can be slow without SciPy.")
+                    'SciPy is not available. Forward computation of ndtr in'
+                    ' CPU can be slow without SciPy.')
                 _ndtr_cpu = numpy.vectorize(_slow_ndtr_cpu)
         self.retain_inputs((0,))
         return utils.force_array(_ndtr_cpu(x[0]), dtype=x[0].dtype),
