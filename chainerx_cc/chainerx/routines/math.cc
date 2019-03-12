@@ -22,8 +22,6 @@
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/indexable_array.h"
-#include "chainerx/indexer.h"
 
 
 namespace chainerx {
