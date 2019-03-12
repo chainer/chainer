@@ -186,7 +186,8 @@ class DeviceResidentsVisitor(object):
     """
 
     def visit_device_resident(self, device_resident):
-        pass
+        """Processes a :class:`DeviceResident` instance."""
+        raise NotImplementedError()
 
     def visit_array(self, arr):
         """Processes an array and returns a new one.
