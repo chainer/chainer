@@ -94,8 +94,8 @@ class GroupNormalization(function_node.FunctionNode):
             self.dummy_gamma = xp.ones_like(dummy_beta)
         x_hat, self.mean, self.inv_std = \
             cudnn.batch_normalization_forward_training(
-                x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta,
-                self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
+                x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta, None,
+                None, self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
                 configuration.config.debug)
 
         y = x_hat.reshape((batch_size, channels, -1))
