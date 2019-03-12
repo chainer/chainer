@@ -13,7 +13,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
 
     mean = numpy.mean(x_reshape, axis=(2, 3), keepdims=True)
     var = numpy.var(x_reshape, axis=(2, 3), keepdims=True)
-    std = numpy.sqrt(var + eps)
+    std = numpy.sqrt(var + eps, dtype=x.dtype)
 
     x_hat = (x_reshape - mean) / std
     x_hat = x_hat.reshape(x.shape)

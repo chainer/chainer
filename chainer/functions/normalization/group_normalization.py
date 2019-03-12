@@ -62,7 +62,7 @@ class GroupNormalization(function_node.FunctionNode):
         var += self.eps
         self.inv_std = var
         del var
-        xp.sqrt(self.inv_std, out=self.inv_std)
+        xp.sqrt(self.inv_std, out=self.inv_std, dtype=x.dtype)
         xp.reciprocal(self.inv_std, out=self.inv_std)
         x_hat *= self.inv_std[:, None]
 
