@@ -715,6 +715,9 @@ def split(
 def square(x: ndarray) -> ndarray: ...
 
 
+def squared_difference(x1: tp.Any, x2: tp.Any) -> ndarray: ...
+
+
 def sqrt(x: ndarray) -> ndarray: ...
 
 
