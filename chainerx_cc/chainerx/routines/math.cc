@@ -581,7 +581,7 @@ Array Sqrt(const Array& x) {
 
 Array ElementwisePower(const Array& x1, const Array& x2) {
     Array broadcasted_x2 = x2;
-    if(x1.shape() != x2.shape())
+    if (x1.shape() != x2.shape())
     {
         broadcasted_x2 = x2.BroadcastTo(x1.shape());
     }
@@ -594,18 +594,15 @@ Array ElementwisePower(const Array& x1, const Array& x2) {
     }
 
     {
-        BackwardBuilder bb{"ElementwisePower", {x1, broadcasted_x2}, out};
+        BackwardBuilder bb{"power", {x1, broadcasted_x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& out = bctx.GetRetainedOutput(out_tok);
-                Array stable_x1 = EmptyLike(x1, x1.device());
-                x1.device().IfEqualElseASSA(x1, 0, 1, x1, stable_x1);
-                Array domain_consistent_x1 = EmptyLike(x1, x1.device());
-                x1.device().IfLessElseASSA(stable_x1, 0, 0, stable_x1, domain_consistent_x1);
-                
-                bctx.input_grad() = *bctx.output_grad() * x2 * (out / domain_consistent_x1);
+                Array pow_x1 = EmptyLike(x1, x1.device());
+                x1.device().Pow(x1, x2 - 1, pow_x1);
+
+                bctx.input_grad() = *bctx.output_grad() * x2 * pow_x1;
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
@@ -613,17 +610,14 @@ Array ElementwisePower(const Array& x1, const Array& x2) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
                 Array logx1 = EmptyLike(x1, x1.device());
-                Array transform_x1 = EmptyLike(x1, x1.device());
-                x1.device().IfEqualElseASSA(x1, 0, 1, x1, transform_x1);
-                x1.device().Log(transform_x1, logx1);
-               
+                x1.device().Log(x1, logx1);
+
                 bctx.input_grad() = *bctx.output_grad() * out * logx1;
             });
         }
         bb.Finalize();
         return out;
     }
-
 }
 
 Array Tanh(const Array& x) {

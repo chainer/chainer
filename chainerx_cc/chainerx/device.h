@@ -178,8 +178,6 @@ public:
     // Formally, it calculates: out = x1 < x2 ? pos : neg
     virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
-    virtual void IfEqualElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;    
-
     virtual void Tanh(const Array& x, const Array& out) = 0;
 
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
