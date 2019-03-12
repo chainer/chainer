@@ -682,6 +682,8 @@ Array Square(const Array& x) {
     return out;
 }
 
+Array SquaredDifference(const Array& x1, const Array& x2) { return Square(Subtract(x1, x2)); }
+
 Array Sqrt(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
