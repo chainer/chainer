@@ -62,7 +62,7 @@ class GroupNormalization(function_node.FunctionNode):
         var += self.eps
         self.inv_std = var
         del var
-        xp.sqrt(self.inv_std, out=self.inv_std)
+        xp.sqrt(self.inv_std, out=self.inv_std, dtype=x.dtype)
         xp.reciprocal(self.inv_std, out=self.inv_std)
         x_hat *= self.inv_std[:, None]
 
@@ -362,7 +362,6 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
     the mean and variance, then normalize by these statistics,
     scales and shifts them.
 
-
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Batch tensors.
             First dimension of this value must be the size of minibatch and
@@ -377,7 +376,6 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         beta (:class:`~chainer.Variable` or :ref:`ndarray`):
             Shifting parameter.
         eps (float): Epsilon value for numerical stability of normalization.
-
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape
