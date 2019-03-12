@@ -565,7 +565,7 @@ class DotLinkIncorrectInitialization(DotLink):
             in_size, out_size, initializers.Constant(0))
 
 
-class DotLinkTestImpl(testing.LinkTestImpl):
+class DotLinkTestImpl(object):
 
     param_names = ['p']
 
