@@ -2,10 +2,10 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer import _link
+from chainer import device_resident
 
 
-class WalkerAlias(_link.DeviceResident):
+class WalkerAlias(device_resident.DeviceResident):
     """Implementation of Walker's alias method.
 
     This method generates a random sample from given probabilities

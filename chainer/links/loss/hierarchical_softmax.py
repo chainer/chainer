@@ -4,8 +4,8 @@ import numpy
 import six
 
 import chainer
-from chainer import _link
 from chainer.backends import cuda
+from chainer import device_resident
 from chainer import function
 from chainer.initializers import uniform
 from chainer import link
@@ -66,7 +66,7 @@ class TreeParser(object):
 
 
 class BinaryHierarchicalSoftmaxFunction(
-        _link.DeviceResident, function.Function):
+        device_resident.DeviceResident, function.Function):
 
     """Hierarchical softmax function based on a binary tree.
 
@@ -83,7 +83,7 @@ class BinaryHierarchicalSoftmaxFunction(
     """
 
     def __init__(self, tree, dtype):
-        _link.DeviceResident.__init__(self)
+        device_resident.DeviceResident.__init__(self)
 
         parser = TreeParser(dtype)
         parser.parse(tree)

@@ -8,9 +8,9 @@ import numpy
 import six
 
 import chainer
-from chainer import _link
 from chainer import backend
 from chainer.backends import cuda
+from chainer import device_resident
 from chainer import initializers
 from chainer import link_hook
 from chainer import types  # NOQA
@@ -46,7 +46,7 @@ def _ensure_shape_dtype(value):
         return value  # type: ignore
 
 
-class Link(_link.DeviceResident):
+class Link(device_resident.DeviceResident):
 
     """Building block of model definitions.
 

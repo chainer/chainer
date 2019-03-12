@@ -24,7 +24,6 @@ from chainer import variable  # NOQA
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
-from chainer._link import DeviceResident  # NOQA
 from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backend import get_device  # NOQA
 from chainer.backend import using_device  # NOQA
@@ -33,6 +32,7 @@ from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.device_resident import DeviceResident  # NOQA
 from chainer.distribution import cross_entropy  # NOQA
 from chainer.distribution import Distribution  # NOQA
 from chainer.distribution import kl_divergence  # NOQA
