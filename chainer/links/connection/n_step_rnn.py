@@ -183,7 +183,6 @@ class NStepRNNBase(link.ChainList):
 
         assert isinstance(xs, (list, tuple))
 
-        # with chainer.using_device(self.device):
         indices = argsort_list_descent(xs)
 
         xs = permutate_list(xs, indices, inv=False)
