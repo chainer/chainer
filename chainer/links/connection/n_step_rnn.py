@@ -183,29 +183,29 @@ class NStepRNNBase(link.ChainList):
 
         assert isinstance(xs, (list, tuple))
 
-        with chainer.using_device(self.device):
-            indices = argsort_list_descent(xs)
+        # with chainer.using_device(self.device):
+        indices = argsort_list_descent(xs)
 
-            xs = permutate_list(xs, indices, inv=False)
-            hxs = []
-            for hx in hs:
-                if hx is None:
-                    hx = self.init_hx(xs)
-                else:
-                    hx = permutate.permutate(hx, indices, axis=1, inv=False)
-                hxs.append(hx)
+        xs = permutate_list(xs, indices, inv=False)
+        hxs = []
+        for hx in hs:
+            if hx is None:
+                hx = self.init_hx(xs)
+            else:
+                hx = permutate.permutate(hx, indices, axis=1, inv=False)
+            hxs.append(hx)
 
-            trans_x = transpose_sequence.transpose_sequence(xs)
+        trans_x = transpose_sequence.transpose_sequence(xs)
 
-            args = [self.n_layers, self.dropout] + hxs + \
-                   [self.ws, self.bs, trans_x]
-            result = self.rnn(*args)
+        args = [self.n_layers, self.dropout] + hxs + \
+               [self.ws, self.bs, trans_x]
+        result = self.rnn(*args)
 
-            hys = [permutate.permutate(h, indices, axis=1, inv=True)
-                   for h in result[:-1]]
-            trans_y = result[-1]
-            ys = transpose_sequence.transpose_sequence(trans_y)
-            ys = permutate_list(ys, indices, inv=True)
+        hys = [permutate.permutate(h, indices, axis=1, inv=True)
+               for h in result[:-1]]
+        trans_y = result[-1]
+        ys = transpose_sequence.transpose_sequence(trans_y)
+        ys = permutate_list(ys, indices, inv=True)
 
         return hys, ys
 

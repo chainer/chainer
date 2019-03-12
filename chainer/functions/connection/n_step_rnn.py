@@ -644,30 +644,29 @@ use_bi_direction)
     xp = backend.get_array_module(hx)
 
     if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
-        with cuda.get_device_from_array(xs):
-            states = cuda.get_cudnn_dropout_states()
-            states.set_dropout_ratio(dropout_ratio)
-            lengths = [len(x) for x in xs]
-            xs = chainer.functions.concat(xs, axis=0)
+        states = cuda.get_cudnn_dropout_states()
+        states.set_dropout_ratio(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
 
-            rnn_mode = 'rnn_%s' % activation
-            w = cudnn_rnn_weight_concat(
-                n_layers, states, use_bi_direction, rnn_mode, ws, bs)
+        rnn_mode = 'rnn_%s' % activation
+        w = cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, rnn_mode, ws, bs)
 
-            if use_bi_direction:
-                # Bi-directional RNN
-                if activation == 'tanh':
-                    rnn = NStepBiRNNTanh
-                elif activation == 'relu':
-                    rnn = NStepBiRNNReLU
-            else:
-                # Uni-directional RNN
-                if activation == 'tanh':
-                    rnn = NStepRNNTanh
-                elif activation == 'relu':
-                    rnn = NStepRNNReLU
+        if use_bi_direction:
+            # Bi-directional RNN
+            if activation == 'tanh':
+                rnn = NStepBiRNNTanh
+            elif activation == 'relu':
+                rnn = NStepBiRNNReLU
+        else:
+            # Uni-directional RNN
+            if activation == 'tanh':
+                rnn = NStepRNNTanh
+            elif activation == 'relu':
+                rnn = NStepRNNReLU
 
-            hy, ys = rnn(n_layers, states, lengths)(hx, w, xs)
+        hy, ys = rnn(n_layers, states, lengths)(hx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
