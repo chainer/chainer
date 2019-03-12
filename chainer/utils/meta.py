@@ -13,13 +13,13 @@ def final(*args, **kwargs):
     base class returned by :meth:`~chainer.utils.enable_final`.
 
     Args:
-        action: Specifies what happens when the decorated method is being
-            overridden. If `'error'`, :class:`TypeError` is raised. If
-            :class:`DeprecationWarning`, a deprecation warning is raised.
+        action(type): Specifies what happens when the decorated method is
+            being overridden. It can be either an :class:`Exception` class or a
+            :class:`Warning` class. :class:`TypeError` by default.
     """
-    def wrap(f, action='error'):
+    def wrap(f, action=TypeError):
         assert callable(f)
-        f.__is_final = (action,)
+        f.__override_action = (action,)
         return f
 
     # apply directly
@@ -41,16 +41,16 @@ class _EnableFinal(type):
         for k in d:
             for base in bases:
                 f = getattr(base, k, None)  # base method
-                if hasattr(f, '__is_final'):
-                    action, = getattr(f, '__is_final')
-                    if action == 'error':
-                        # Raise TypeError.
-                        raise TypeError('method {!r} is final.'.format(k))
-                    elif action is DeprecationWarning:
-                        # Raise a deprecation warning.
+                if hasattr(f, '__override_action'):
+                    action, = getattr(f, '__override_action')
+                    if issubclass(action, Warning):
+                        # Raise a warning.
                         warnings.warn(
-                            'Overriding method {!r} is deprecated.'.format(k),
+                            'Overriding method {!r}.'.format(k),
                             action)
+                    elif issubclass(action, Exception):
+                        # Raise error.
+                        raise action('method {!r} is final.'.format(k))
                     else:
                         assert False, 'Invalid action: {}'.format(action)
         return super(_EnableFinal, cls).__new__(cls, name, bases, d)
