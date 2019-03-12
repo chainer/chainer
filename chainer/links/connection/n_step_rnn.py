@@ -182,7 +182,6 @@ class NStepRNNBase(link.ChainList):
             argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-
         indices = argsort_list_descent(xs)
 
         xs = permutate_list(xs, indices, inv=False)
