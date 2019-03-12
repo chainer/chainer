@@ -233,11 +233,7 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        if self.dtype == numpy.float16:
-            kwargs = {'eps': 1e-6}
-        else:
-            kwargs = {}
-        return optimizers.Adam(0.05, **kwargs)
+        return optimizers.Adam(0.05)
 
 
 @testing.parameterize(*testing.product({
