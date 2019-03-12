@@ -35,18 +35,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     @property
     def device(self):
-        """Returns the sole device"""
-        if self._device is None:
-            visitor = _GetSoleDeviceVisitor()
-            self.device_resident_accept(visitor)
-            sole_device = visitor.sole_device
-            if sole_device is None:
-                self._device = self._MIXED_DEVICE
-            else:
-                self._device = sole_device
-
-        if self._device is self._MIXED_DEVICE:
-            return None
+        """Returns the device"""
         return self._device
 
     @property
@@ -212,50 +201,6 @@ class DeviceResidentsVisitor(object):
         raise NotImplementedError()
 
 
-class _GetSoleDeviceVisitor(DeviceResidentsVisitor):
-    # A visitor for retrieving the hierarchie's single device.
-    # If the hierarchy has multiple devices, this visitor only indicates that
-    # by _MIXED_DEVICE special object. In this case actual devices cannot be
-    # retrieved.
-
-    _MIXED_DEVICE = object()
-    _device = None
-
-    @property
-    def sole_device(self):
-        # Returns the hierarchie's single device.
-        # Returns None if multiple devices were found.
-
-        if self._device is None:
-            # Not a single object is visited
-            return None
-        if self._device is self._MIXED_DEVICE:
-            # Multiple devices are found
-            return None
-        # Sole device is found
-        return self._device
-
-    def _visit_device(self, device):
-        assert isinstance(device, backend.Device)
-        if self._device is None:
-            self._device = device
-        elif self._device == device:
-            pass
-        else:
-            # Different devices are found
-            self._device = self._MIXED_DEVICE
-
-    def visit_array(self, arr):
-        assert isinstance(arr, chainer.get_array_types())
-        dev = backend.get_device_from_array(arr)
-        self._visit_device(dev)
-        return arr
-
-    def visit_param(self, param):
-        assert isinstance(param, chainer.Variable)
-        self._visit_device(param.device)
-
-
 class _ToDeviceVisitor(DeviceResidentsVisitor):
     # A visitor that implements recursive to_device().
     # For backward compatibility, if any of to_cpu/to_gpu/to_intel64 are
@@ -337,7 +282,8 @@ class _ToChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls to_chx().
 
     def visit_visitable(self, visitable):
-        visitable._device = None
+        visitable._device = backend.ChainerxDevice.from_fallback_device(
+            visitable._device)
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -352,7 +298,8 @@ class _FromChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls from_chx().
 
     def visit_visitable(self, visitable):
-        visitable._device = None
+        if isinstance(visitable._device, backend.ChainerxDevice):
+            visitable._device = visitable._device.fallback_device
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
