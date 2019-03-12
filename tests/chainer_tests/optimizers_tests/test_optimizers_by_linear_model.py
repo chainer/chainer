@@ -96,9 +96,9 @@ def _optimizer_loss_scaling(optimizer, loss_scaling):
     if loss_scaling not in [False, 'dynamic', 'static']:
         msg = 'loss_scaling must be False, \'dynamic\' or \'static\'.'
         raise ValueError(msg)
-    if loss_scaling is 'dynamic':
+    if loss_scaling == 'dynamic':
         optimizer.loss_scaling()
-    elif loss_scaling is 'static':
+    elif loss_scaling == 'static':
         optimizer.loss_scaling(scale=10.0)
 
 
