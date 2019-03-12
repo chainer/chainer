@@ -57,9 +57,9 @@ def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     # B.shape: ((nb,) _k, _n)
     # A_data/row/col.shape: ((nb,) ldnz)
     if not _scipy_available:
-        msg = "SciPy seems to be unavailable on your system. A CPU" \
-              " implementation of sparse_matmul uses SciPy, so you" \
-              " cannot use sparse_matmul on the CPU."
+        msg = 'SciPy seems to be unavailable on your system. A CPU' \
+              ' implementation of sparse_matmul uses SciPy, so you' \
+              ' cannot use sparse_matmul on the CPU.'
         raise RuntimeError(msg)
 
     _m, _k = A_shape

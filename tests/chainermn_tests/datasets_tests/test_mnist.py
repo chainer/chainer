@@ -77,7 +77,7 @@ def check_mnist(gpu, display_log=True):
 
     # Add checkpointer. This is just to check checkpointing runs
     # without errors
-    path = tempfile.mkdtemp(dir='/tmp', prefix=__name__ + "-tmp-")
+    path = tempfile.mkdtemp(dir='/tmp', prefix=__name__ + '-tmp-')
     checkpointer = create_multi_node_checkpointer(name=__name__, comm=comm,
                                                   path=path)
     trainer.extend(checkpointer, trigger=(1, 'epoch'))
@@ -115,5 +115,5 @@ def test_mnist_gpu():
     check_mnist(True)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     test_mnist()

@@ -40,12 +40,12 @@ The meaning of the address is device-dependent.
 
     _docs.set_doc(
         ndarray.data_size,
-        "int: Total size of the underlying memory allocation.")
+        'int: Total size of the underlying memory allocation.')
 
     _docs.set_doc(
-        ndarray.device, "~chainerx.Device: Device on which the data exists.")
+        ndarray.device, '~chainerx.Device: Device on which the data exists.')
 
-    _docs.set_doc(ndarray.dtype, "Data type of the array.")
+    _docs.set_doc(ndarray.dtype, 'Data type of the array.')
 
     # TODO(beam2d): Write about backprop id.
     _docs.set_doc(
@@ -58,9 +58,9 @@ Setter of this property overwrites the gradient.
 
     _docs.set_doc(
         ndarray.is_contiguous,
-        "bool: ``True`` iff the array is stored in the C-contiguous order.")
+        'bool: ``True`` iff the array is stored in the C-contiguous order.')
 
-    _docs.set_doc(ndarray.itemsize, "int: Size of each element in bytes.")
+    _docs.set_doc(ndarray.itemsize, 'int: Size of each element in bytes.')
 
     _docs.set_doc(
         ndarray.nbytes,
@@ -68,11 +68,11 @@ Setter of this property overwrites the gradient.
 
 It does not count skips between elements.""")
 
-    _docs.set_doc(ndarray.ndim, "int: Number of dimensions.")
+    _docs.set_doc(ndarray.ndim, 'int: Number of dimensions.')
 
     _docs.set_doc(
         ndarray.offset,
-        "int: Offset of the first element from the memory allocation in bytes."
+        'int: Offset of the first element from the memory allocation in bytes.'
     )
 
     _docs.set_doc(
@@ -82,9 +82,9 @@ It does not count skips between elements.""")
 .. note::
     Currently, this property does not support setter.""")
 
-    _docs.set_doc(ndarray.size, "int: Number of elements in the array.")
+    _docs.set_doc(ndarray.size, 'int: Number of elements in the array.')
 
-    _docs.set_doc(ndarray.strides, "tuple of int: Strides of axes in bytes.")
+    _docs.set_doc(ndarray.strides, 'tuple of int: Strides of axes in bytes.')
 
     _docs.set_doc(
         ndarray.T,
@@ -104,38 +104,38 @@ Returns self[key].
 """)
 
     def unary_op(name, s):
-        _docs.set_doc(getattr(ndarray, name), "{}()\n{}".format(name, s))
+        _docs.set_doc(getattr(ndarray, name), '{}()\n{}'.format(name, s))
 
-    unary_op("__bool__", "Casts a size-one array into a :class:`bool` value.")
-    unary_op("__float__",
-             "Casts a size-one array into a :class:`float` value.")
-    unary_op("__int__", "Casts a size-one array into :class:`int` value.")
-    unary_op("__len__", "Returns the length of the first axis.")
-    unary_op("__neg__", "Computes ``-x`` elementwise.")
+    unary_op('__bool__', 'Casts a size-one array into a :class:`bool` value.')
+    unary_op('__float__',
+             'Casts a size-one array into a :class:`float` value.')
+    unary_op('__int__', 'Casts a size-one array into :class:`int` value.')
+    unary_op('__len__', 'Returns the length of the first axis.')
+    unary_op('__neg__', 'Computes ``-x`` elementwise.')
 
     def binary_op(name, s):
-        _docs.set_doc(getattr(ndarray, name), "{}(other)\n{}".format(name, s))
+        _docs.set_doc(getattr(ndarray, name), '{}(other)\n{}'.format(name, s))
 
-    binary_op("__eq__", "Computes ``x == y`` elementwise.")
-    binary_op("__ne__", "Computes ``x != y`` elementwise.")
-    binary_op("__lt__", "Computes ``x < y`` elementwise.")
-    binary_op("__le__", "Computes ``x <= y`` elementwise.")
-    binary_op("__ge__", "Computes ``x >= y`` elementwise.")
-    binary_op("__gt__", "Computes ``x > y`` elementwise.")
+    binary_op('__eq__', 'Computes ``x == y`` elementwise.')
+    binary_op('__ne__', 'Computes ``x != y`` elementwise.')
+    binary_op('__lt__', 'Computes ``x < y`` elementwise.')
+    binary_op('__le__', 'Computes ``x <= y`` elementwise.')
+    binary_op('__ge__', 'Computes ``x >= y`` elementwise.')
+    binary_op('__gt__', 'Computes ``x > y`` elementwise.')
 
-    binary_op("__iadd__", "Computes ``x += y`` elementwise.")
-    binary_op("__isub__", "Computes ``x -= y`` elementwise.")
-    binary_op("__imul__", "Computes ``x *= y`` elementwise.")
-    binary_op("__itruediv__", "Computes ``x /= y`` elementwise.")
+    binary_op('__iadd__', 'Computes ``x += y`` elementwise.')
+    binary_op('__isub__', 'Computes ``x -= y`` elementwise.')
+    binary_op('__imul__', 'Computes ``x *= y`` elementwise.')
+    binary_op('__itruediv__', 'Computes ``x /= y`` elementwise.')
 
-    binary_op("__add__", "Computes ``x + y`` elementwise.")
-    binary_op("__sub__", "Computes ``x - y`` elementwise.")
-    binary_op("__mul__", "Computes ``x * y`` elementwise.")
-    binary_op("__truediv__", "Computes ``x / y`` elementwise.")
+    binary_op('__add__', 'Computes ``x + y`` elementwise.')
+    binary_op('__sub__', 'Computes ``x - y`` elementwise.')
+    binary_op('__mul__', 'Computes ``x * y`` elementwise.')
+    binary_op('__truediv__', 'Computes ``x / y`` elementwise.')
 
-    binary_op("__radd__", "Computes ``y + x`` elementwise.")
-    binary_op("__rsub__", "Computes ``y - x`` elementwise.")
-    binary_op("__rmul__", "Computes ``y * x`` elementwise.")
+    binary_op('__radd__', 'Computes ``y + x`` elementwise.')
+    binary_op('__rsub__', 'Computes ``y - x`` elementwise.')
+    binary_op('__rmul__', 'Computes ``y * x`` elementwise.')
 
     # TODO(beam2d): Write about as_grad_stopped(backprop_ids, copy) overload.
     _docs.set_doc(

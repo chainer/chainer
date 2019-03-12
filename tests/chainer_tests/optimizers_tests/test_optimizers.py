@@ -138,4 +138,36 @@ class TestOptimizerHooks(unittest.TestCase):
         self.assertNotEqual(h_pre.value, h_post.value)
 
 
+@testing.parameterize(*testing.product({
+    'impl': [
+        optimizers.AdaDelta,
+        optimizers.AdaGrad,
+        optimizers.Adam,
+        optimizers.CorrectedMomentumSGD,
+        optimizers.MomentumSGD,
+        optimizers.MSVAG,
+        optimizers.NesterovAG,
+        optimizers.RMSprop,
+        optimizers.RMSpropGraves,
+        optimizers.SGD,
+        optimizers.SMORMS3,
+    ]
+}))
+class TestOptimizerLossScaling(unittest.TestCase):
+
+    def setUp(self):
+        self.target = SimpleChain()
+
+    def create(self, *args, **kwargs):
+        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer.setup(self.target)
+
+    def test_invalid_configs(self):
+        self.create()
+        with self.assertRaises(ValueError):
+            self.optimizer.loss_scaling(interval=0)
+        with self.assertRaises(ValueError):
+            self.optimizer.loss_scaling(scale=-1)
+
+
 testing.run_module(__name__, __file__)

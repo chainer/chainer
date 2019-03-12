@@ -472,7 +472,7 @@ class Link(object):
         intel64.check_ideep_available()
         return self.to_device(intel64)
 
-    def to_chainerx(self):
+    def to_chx(self):
         """Converts parameter variables and persistent values to ChainerX \
 without any copy.
 
@@ -491,25 +491,25 @@ without any copy.
 
         d = self.__dict__
         for name in self._params:
-            d[name].to_chainerx()
+            d[name].to_chx()
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.to_chainerx(d[name])
+                d[name] = backend.to_chx(d[name])
 
         self._device = (
             backend.ChainerxDevice.from_fallback_device(self._device))
 
         return self
 
-    def from_chainerx(self):
+    def from_chx(self):
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy."""
         d = self.__dict__
         for name in self._params:
-            d[name].from_chainerx()
+            d[name].from_chx()
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.from_chainerx(d[name])
+                d[name] = backend.from_chx(d[name])
 
         if isinstance(self._device, backend.ChainerxDevice):
             self._device = self._device.fallback_device
@@ -1041,22 +1041,22 @@ class Chain(Link):
             d[name] = copied
         return ret  # type: ignore
 
-    def to_chainerx(self):
+    def to_chx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).to_chainerx()
+        super(Chain, self).to_chx()
         d = self.__dict__
         for name in self._children:
-            d[name].to_chainerx()
+            d[name].to_chx()
         return self
 
-    def from_chainerx(self):
+    def from_chx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).from_chainerx()
+        super(Chain, self).from_chx()
         d = self.__dict__
         for name in self._children:
-            d[name].from_chainerx()
+            d[name].from_chx()
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):
@@ -1276,12 +1276,12 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret  # type: ignore
 
-    def to_chainerx(self):
+    def to_chx(self):
         # type: () -> 'ChainList'
 
-        super(ChainList, self).to_chainerx()
+        super(ChainList, self).to_chx()
         for link in self._children:
-            link.to_chainerx()
+            link.to_chx()
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):

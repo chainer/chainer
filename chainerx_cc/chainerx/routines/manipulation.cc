@@ -26,6 +26,7 @@
 #include "chainerx/strides.h"
 
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/type_util.h"
 
 namespace chainerx {
 
@@ -390,7 +391,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     }
 
     Shape shape = arrays.front().shape();
-    Dtype dtype = arrays.front().dtype();
+    Dtype out_dtype = ResultType(arrays);
     Device& device = arrays.front().device();
     int8_t ndim = arrays.front().ndim();
     axis = internal::NormalizeAxis(axis, ndim);
@@ -403,8 +404,6 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         if (ndim != array.ndim()) {
             throw DimensionError{"All the input arrays must have same number of dimensions"};
         }
-        // TODO(imanishi): dtype conversion
-        CheckEqual(dtype, array.dtype());
         for (int8_t i = 0; i < ndim; ++i) {
             if (axis == i) {
                 shape[i] += s[i];
@@ -417,7 +416,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         }
     }
 
-    Strides strides{shape, dtype};
+    Strides strides{shape, out_dtype};
 
     // Aligning with NumPy strides behavior
     auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
@@ -425,29 +424,50 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
     }
 
-    Array out = internal::Empty(shape, dtype, strides, device);
+    Array out = internal::Empty(shape, out_dtype, strides, device);
+
+    size_t in_size = arrays.size();
+
+    // If input dtypes are mixed, elements in the input arrays are casted to the resulting dtype.
+    // Their original dtypes must therefore be remembered in order to cast the computed gradients back in the backward pass.
+    std::vector<Dtype> in_dtypes;
+    in_dtypes.reserve(in_size);
+
+    std::vector<ConstArrayRef> array_refs;
+    array_refs.reserve(in_size);
+
     {
         NoBackpropModeScope scope{};
         int64_t out_offset = 0;
         for (const Array& array : arrays) {
             const Shape& shape = array.shape();
-            Array sliced_out = internal::MakeArray(shape, strides, dtype, device, out.data(), out_offset);
-            device.Copy(array, sliced_out);
+            Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
+            Dtype in_dtype = array.dtype();
+            in_dtypes.emplace_back(in_dtype);
+            if (in_dtype == out_dtype) {
+                device.Copy(array, sliced_out);
+            } else {
+                device.AsType(array, sliced_out);
+            }
+            array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }
     }
 
-    std::vector<ConstArrayRef> array_refs;
-    array_refs.reserve(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_refs), [](const Array& array) { return ConstArrayRef{array}; });
-
     {
         BackwardBuilder bb{"concatenate", array_refs, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([indices = std::move(indices), axis](BackwardContext& bctx) {
-                std::vector<Array> gxs = Split(*bctx.output_grad(), indices, axis);
+            bt.Define([indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes)](BackwardContext& bctx) {
+                const Array& gy = *bctx.output_grad();
+                Dtype out_dtype = gy.dtype();
+                std::vector<Array> gxs = Split(gy, indices, axis);
                 for (size_t i = 0; i < gxs.size(); ++i) {
-                    bctx.input_grad(i) = std::move(gxs[i]);
+                    Dtype in_dtype = in_dtypes[i];
+                    if (out_dtype != in_dtype) {
+                        bctx.input_grad(i) = gxs[i].AsType(in_dtype);
+                    } else {
+                        bctx.input_grad(i) = std::move(gxs[i]);
+                    }
                 }
             });
         }

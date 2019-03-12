@@ -15,8 +15,8 @@ class HostPinnedMemory(object):
 
     def __init__(self):
         if not _cupy_avail:
-            raise RuntimeError("HostPinnedMemory cannot be used: " +
-                               "Cupy is not available.")
+            raise RuntimeError('HostPinnedMemory cannot be used: ' +
+                               'Cupy is not available.')
         self.size = 0
         self.memory = None
 
@@ -45,8 +45,8 @@ class DeviceMemory(object):
 
     def __init__(self):
         if not _cupy_avail:
-            raise RuntimeError("DeviceMemory cannot be used: " +
-                               "Cupy is not available.")
+            raise RuntimeError('DeviceMemory cannot be used: ' +
+                               'Cupy is not available.')
         self.size = 0
         self.memory = None
 

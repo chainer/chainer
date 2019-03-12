@@ -872,7 +872,7 @@ class Variable(object):
             self._has_chainerx_array = False
 
     @property
-    def chainerx_array(self):
+    def chx_array(self):
         """A view of the raw ChainerX array.
 
         In contrary to :data:`Variable.array` which is always disconnected,
@@ -886,7 +886,7 @@ class Variable(object):
         """
         if not self._has_chainerx_array:
             raise ValueError(
-                'chainerx_array is not available for Variable with '
+                'chx_array is not available for Variable with '
                 'non-ChainerX array.')
         return self._data[0].view()
 
@@ -1067,7 +1067,7 @@ class Variable(object):
         intel64.check_ideep_available()
         self.to_device(intel64)
 
-    def to_chainerx(self):
+    def to_chx(self):
         """Converts the array and gradient to ChainerX arrays without copy.
 
         This method converts the underlying array and gradient to
@@ -1076,9 +1076,9 @@ class Variable(object):
         The new array is a view of the original one.
 
         """
-        self._to_chainerx(allow_unchaining=False)
+        self._to_chx(allow_unchaining=False)
 
-    def _to_chainerx(self, allow_unchaining):
+    def _to_chx(self, allow_unchaining):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
@@ -1102,7 +1102,7 @@ class Variable(object):
             backend.ChainerxDevice.from_fallback_device(self.device),
             allow_unchaining)
 
-    def from_chainerx(self):
+    def from_chx(self):
         """Converts the array and gradient to non-ChainerX arrays without copy.
 
         This method converts the underlying ChainerX array and gradient
@@ -1114,9 +1114,9 @@ class Variable(object):
         Raises an error if such a conversion is not supported for the device.
 
         """
-        self._from_chainerx(allow_unchaining=False)
+        self._from_chx(allow_unchaining=False)
 
-    def _from_chainerx(self, allow_unchaining):
+    def _from_chx(self, allow_unchaining):
         if not self._has_chainerx_array:
             return
 
@@ -1503,37 +1503,46 @@ class Variable(object):
                 'method.')
         self._node.data = self._data[0]
 
+    def _error_nobp_op(self, op):
+        raise TypeError(
+            'Variables do not support {} operator. '
+            'You could use `array` attribute instead.'.format(op))
+
     def __lt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<')
 
     def __le__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<=')
 
     def __eq__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('==')
 
     def __ne__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('!=')
 
     def __gt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>')
 
     def __ge__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>=')
 
     def __nonzero__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 2.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
     def __bool__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 3.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
     __array_priority__ = 200  # type: int
     __hash__ = None  # type: tp.Callable[[object], int]
@@ -1750,7 +1759,7 @@ class Parameter(Variable):
     def to_intel64(self):
         self.to_device(intel64)
 
-    def to_chainerx(self):
+    def to_chx(self):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
@@ -1768,9 +1777,9 @@ class Parameter(Variable):
             self._initial_device = backend.ChainerxDevice(
                 chainerx.get_device('cuda:{}'.format(device.device.id)))
 
-        super(Parameter, self)._to_chainerx(allow_unchaining=True)
+        super(Parameter, self)._to_chx(allow_unchaining=True)
 
-    def from_chainerx(self):
+    def from_chx(self):
         if self.array is not None:
             device = backend.get_device_from_array(self.array)
         else:
@@ -1784,7 +1793,7 @@ class Parameter(Variable):
                 self._initial_device = chainer.get_device(
                     (cuda.cupy, device.device.index))
 
-        super(Parameter, self)._from_chainerx(allow_unchaining=True)
+        super(Parameter, self)._from_chx(allow_unchaining=True)
 
     def to_device(self, device):
         device = chainer.get_device(device)
