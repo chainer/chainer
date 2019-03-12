@@ -644,10 +644,11 @@ use_bi_direction)
     xp = backend.get_array_module(hx)
 
     if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
-        states = cuda.get_cudnn_dropout_states()
-        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
+        with chainer.using_device(xs.device):
+            states = cuda.get_cudnn_dropout_states()
+            states.set_dropout_ratio(dropout_ratio)
 
         rnn_mode = 'rnn_%s' % activation
         w = cudnn_rnn_weight_concat(
