@@ -504,4 +504,38 @@ class TestFailChannalSizeInference(unittest.TestCase):
             links.BatchNormalization()
 
 
+@attr.multi_gpu(2)
+class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
+
+    def test_lazy_initialization_with_non_zero_current_cuda_device(self):
+        # Create a lazily initialized BatchNormalization link.
+        bn = links.BatchNormalization(axis=(0, 2, 3))
+        assert bn.xp is numpy
+
+        device = 1
+        bn.to_gpu(device)
+        assert bn.xp is cuda.cupy
+        assert bn._device_id == device
+        assert bn.beta._initial_device == device
+        assert bn.gamma._initial_device == device
+        assert bn.avg_mean is None
+        assert bn.avg_var is None
+
+        x = numpy.random.randn(5, 4, 3, 2).astype(numpy.float32)
+        x = cuda.to_gpu(x, device)
+
+        # All parameters and persistent values should correctly be initialized
+        # on device 1, and not device 0, meaning forward pass should not raise
+        # any errors.
+        bn(x)
+        assert bn.xp is cuda.cupy
+        assert bn._device_id == device
+        assert bn.beta.array.device.id == device
+        assert bn.gamma.array.device.id == device
+        assert bn.avg_mean is not None
+        assert bn.avg_var is not None
+        assert bn.avg_mean.device.id == device
+        assert bn.avg_var.device.id == device
+
+
 testing.run_module(__name__, __file__)

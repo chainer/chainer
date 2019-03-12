@@ -240,8 +240,9 @@ class BatchNormalization(link.Link):
         if initializer is None:
             initializer = default_value
         initializer = initializers._get_initializer(initializer)
-        return initializers.generate_array(
-            initializer, size, self.xp, dtype=self._dtype)
+        with cuda.get_device_from_id(self._device_id):
+            return initializers.generate_array(
+                initializer, size, self.xp, dtype=self._dtype)
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
