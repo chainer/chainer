@@ -114,6 +114,34 @@ class TestNStepGRU(unittest.TestCase):
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def check_multi_gpu_forward(self, train=True):
+        msg = None
+        rnn = self.rnn.copy('copy')
+        rnn.dropout = .5
+        with cuda.get_device_from_id(1):
+            if self.hidden_none:
+                h = None
+            else:
+                h = cuda.to_gpu(self.h)
+            xs = [cuda.to_gpu(x) for x in self.xs]
+            rnn = rnn.to_gpu()
+        with cuda.get_device_from_id(0),\
+                chainer.using_config('train', train),\
+                chainer.using_config('use_cudnn', 'always'):
+            try:
+                rnn(h, xs)
+            except Exception as e:
+                msg = e
+        assert msg is None
+
+    def test_multi_gpu_forward_training(self):
+        self.check_multi_gpu_forward(True)
+
+    def test_multi_gpu_forward_test(self):
+        self.check_multi_gpu_forward(False)
+
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
 
@@ -283,6 +311,34 @@ class TestNStepBiGRU(unittest.TestCase):
             self.check_forward(
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
+
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def check_multi_gpu_forward(self, train=True):
+        msg = None
+        rnn = self.rnn.copy('copy')
+        rnn.dropout = .5
+        with cuda.get_device_from_id(1):
+            if self.hidden_none:
+                h = None
+            else:
+                h = cuda.to_gpu(self.h)
+            xs = [cuda.to_gpu(x) for x in self.xs]
+            rnn = rnn.to_gpu()
+        with cuda.get_device_from_id(0),\
+                chainer.using_config('train', train),\
+                chainer.using_config('use_cudnn', 'always'):
+            try:
+                rnn(h, xs)
+            except Exception as e:
+                msg = e
+        assert msg is None
+
+    def test_multi_gpu_forward_training(self):
+        self.check_multi_gpu_forward(True)
+
+    def test_multi_gpu_forward_test(self):
+        self.check_multi_gpu_forward(False)
 
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
