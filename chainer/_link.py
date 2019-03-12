@@ -29,18 +29,16 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             m for m in ('to_cpu', 'to_gpu', 'to_intel64')
             if _is_to_device_method_overridden(self, m)])
 
-    def visit_device_residents(self, visitor):
+    def device_resident_accept(self, visitor):
         """Applies the visitor to all the device objects in this instance."""
-        raise NotImplementedError(
-            'Concrete implementation must override this method to describe '
-            'the logic to traverse device objects.')
+        visitor.visit_visitable(self)
 
     @property
     def device(self):
         """Returns the sole device"""
         if self._device is None:
             visitor = _GetSoleDeviceVisitor()
-            self.visit_device_residents(visitor)
+            self.device_resident_accept(visitor)
             sole_device = visitor.sole_device
             if sole_device is None:
                 self._device = self._MIXED_DEVICE
@@ -140,8 +138,7 @@ without any copy.
         if self.xp is chainerx:
             return self
 
-        self._device = None
-        self.visit_device_residents(_ToChxVisitor())
+        self.device_resident_accept(_ToChxVisitor())
         return self
 
     def from_chx(self):
@@ -150,13 +147,11 @@ to NumPy/CuPy devices without any copy."""
         if isinstance(self._device, backend.ChainerxDevice):
             self._device = self._device.fallback_device
 
-        self._device = None
-        self.visit_device_residents(_FromChxVisitor())
+        self.device_resident_accept(_FromChxVisitor())
         return self
 
     def __to_device(self, to_device_visitor):
-        self._device = None
-        self.visit_device_residents(to_device_visitor)
+        self.device_resident_accept(to_device_visitor)
 
     @utils.final
     def to_device(
@@ -199,9 +194,8 @@ class DeviceResidentsVisitor(object):
     """Base class of visitors that visits device resident objects recursively.
     """
 
-    def visit_visitable(self, visitable, visitor):
-        assert isinstance(visitable, DeviceResident)
-        visitable.visit_device_residents(visitor)
+    def visit_visitable(self, visitable):
+        pass
 
     def visit_array(self, arr):
         """Processes an array and returns a new one.
@@ -251,7 +245,8 @@ class _GetSoleDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        self._visit_device(backend.get_device_from_array(arr))
+        dev = backend.get_device_from_array(arr)
+        self._visit_device(dev)
         return arr
 
     def visit_param(self, param):
@@ -276,7 +271,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         # It indicates which method originally causes this visitor.
         # If it is any of the to_??? method names, descendant resident's
         # respective method will be called if it's overridden
-        # (instead of `visit_device_residents`).
+        # (instead of `device_resident_accept`).
         if entry_method_info is not None:
             assert len(entry_method_info) == 2
             assert entry_method_info[0] in ('to_cpu', 'to_gpu', 'to_intel64')
@@ -285,8 +280,8 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         self._entry_method_info = entry_method_info
         self._skip_between_cupy_devices = skip_between_cupy_devices
 
-    def visit_visitable(self, visitable, visitor):
-        visitable._device = None
+    def visit_visitable(self, visitable):
+        visitable._device = self._device
 
         # Backward compatibility workaround for overridden methods
         if visitable._overridden_to_methods:
@@ -301,8 +296,6 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
                 to_method = getattr(visitable, method_name)
                 to_method(**kwargs)
                 return
-
-        super(_ToDeviceVisitor, self).visit_visitable(visitable, visitor)
 
     def _device_to_method_name_and_kwargs(self, device):
         # Converts a device instance to the corresponding combination of
@@ -341,9 +334,8 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 class _ToChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls to_chx().
 
-    def visit_visitable(self, visitable, visitor):
+    def visit_visitable(self, visitable):
         visitable._device = None
-        super(_ToChxVisitor, self).visit_visitable(visitable, visitor)
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -357,9 +349,8 @@ class _ToChxVisitor(DeviceResidentsVisitor):
 class _FromChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls from_chx().
 
-    def visit_visitable(self, visitable, visitor):
+    def visit_visitable(self, visitable):
         visitable._device = None
-        super(_FromChxVisitor, self).visit_visitable(visitable, visitor)
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())

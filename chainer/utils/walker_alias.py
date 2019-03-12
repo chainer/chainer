@@ -62,7 +62,8 @@ class WalkerAlias(_link.DeviceResident):
             'cupy devices. Use WalkerAlias.device attribute for general '
             'devices.')
 
-    def visit_device_residents(self, visitor):
+    def device_resident_accept(self, visitor):
+        super(WalkerAlias, self).device_resident_accept(visitor)
         self.threshold = visitor.visit_array(self.threshold)
         self.values = visitor.visit_array(self.values)
 

@@ -418,7 +418,8 @@ class Link(_link.DeviceResident):
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
-    def visit_device_residents(self, visitor):
+    def device_resident_accept(self, visitor):
+        super(Link, self).device_resident_accept(visitor)
         d = self.__dict__
         for name in self._params:
             x = d[name]
@@ -911,11 +912,11 @@ class Chain(Link):
             d[name] = copied
         return ret  # type: ignore
 
-    def visit_device_residents(self, visitor):
-        super(Chain, self).visit_device_residents(visitor)
+    def device_resident_accept(self, visitor):
+        super(Chain, self).device_resident_accept(visitor)
         d = self.__dict__
         for name in self._children:
-            visitor.visit_visitable(d[name], visitor)
+            d[name].device_resident_accept(visitor)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
@@ -1118,10 +1119,10 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret  # type: ignore
 
-    def visit_device_residents(self, visitor):
-        super(ChainList, self).visit_device_residents(visitor)
+    def device_resident_accept(self, visitor):
+        super(ChainList, self).device_resident_accept(visitor)
         for link in self._children:
-            visitor.visit_visitable(link, visitor)
+            link.device_resident_accept(visitor)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]

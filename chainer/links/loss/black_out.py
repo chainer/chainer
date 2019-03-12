@@ -34,9 +34,9 @@ class BlackOut(link.Link):
         with self.init_scope():
             self.W = variable.Parameter(shape=(vocab_size, in_size))
 
-    def visit_device_residents(self, visitor):
-        super(BlackOut, self).visit_device_residents(visitor)
-        visitor.visit_visitable(self.sampler, visitor)
+    def device_resident_accept(self, visitor):
+        super(BlackOut, self).device_resident_accept(visitor)
+        self.sampler.device_resident_accept(visitor)
 
     def forward(self, x, t):
         """Computes the loss value for given input and ground truth labels.

@@ -120,7 +120,9 @@ class BinaryHierarchicalSoftmaxFunction(
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def visit_device_residents(self, visitor):
+    def device_resident_accept(self, visitor):
+        super(BinaryHierarchicalSoftmaxFunction, self).device_resident_accept(
+            visitor)
         self.paths = visitor.visit_array(self.paths)
         self.codes = visitor.visit_array(self.codes)
         self.begins = visitor.visit_array(self.begins)
@@ -308,9 +310,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def visit_device_residents(self, visitor):
-        super(BinaryHierarchicalSoftmax, self).visit_device_residents(visitor)
-        visitor.visit_visitable(self._func, visitor)
+    def device_resident_accept(self, visitor):
+        super(BinaryHierarchicalSoftmax, self).device_resident_accept(visitor)
+        self._func.device_resident_accept(visitor)
 
     @staticmethod
     def create_huffman_tree(word_counts):

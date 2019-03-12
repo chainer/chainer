@@ -43,9 +43,9 @@ class NegativeSampling(link.Link):
         with self.init_scope():
             self.W = variable.Parameter(0, (vocab_size, in_size))
 
-    def visit_device_residents(self, visitor):
-        super(NegativeSampling, self).visit_device_residents(visitor)
-        visitor.visit_visitable(self.sampler, visitor)
+    def device_resident_accept(self, visitor):
+        super(NegativeSampling, self).device_resident_accept(visitor)
+        self.sampler.device_resident_accept(visitor)
 
     def forward(self, x, t, reduce='sum', **kwargs):
         """forward(x, t, reduce='sum', *, return_samples=False)
