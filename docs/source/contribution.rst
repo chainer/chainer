@@ -431,7 +431,18 @@ To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.o
 
   $ pip install sphinx sphinx_rtd_theme
 
-Then you can build the documentation in HTML format locally::
+Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
+If Chainer has not been installed yet, then ``make html`` will yield an error that the reference sources cannot
+be read, such as ``chainer.AbstractSerializer``.
+
+Alternatively, if you have modified docstrings, make sure to install the module before building the
+documentation. Then you can build the documentation in HTML format locally.
+
+In either case, from the top of the source directory::
+
+  $ pip install -e .
+
+Next, change to the docs directory, and make the html::
 
   $ cd docs
   $ make html
@@ -439,7 +450,3 @@ Then you can build the documentation in HTML format locally::
 HTML files are generated under ``build/html`` directory.
 Open ``index.html`` with the browser and see if it is rendered as expected.
 
-.. note::
-
-   Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
-   If you modified docstrings, make sure to install the module (e.g., using `pip install -e .`) before building the documentation.
