@@ -410,7 +410,7 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         self.run_test_double_backward(backend_config)
 
 
-class LinkTestImpl(object):
+class _LinkTestImpl(object):
 
     """One of the link test base classes that defines basic link creation.
 
@@ -485,7 +485,7 @@ class LinkTestImpl(object):
 
         .. testcode::
 
-            class LinearTestImpl(chainer.testing.LinkTestImpl):
+            class LinearTestImpl(chainer.testing._LinkTestImpl):
 
                 param_names = ['W', 'b']
 
@@ -612,12 +612,12 @@ class LinkTestImpl(object):
             'Invalid value of `contiguous`: {}'.format(self.contiguous))
 
 
-class LinkTestCase(unittest.TestCase):
+class LinkTestCase(_LinkTestImpl, unittest.TestCase):
 
     """A base class for link forward and backward test cases.
 
     Link test cases can inherit from this class and
-    :class:`~chainer.testing.LinkTestImpl` to define a set of link tests for
+    :class:`~chainer.testing._LinkTestImpl` to define a set of link tests for
     forward and backward computations.
 
     .. rubric:: Optional methods
@@ -689,7 +689,6 @@ class LinkTestCase(unittest.TestCase):
                     return expected,
 
     .. seealso::
-        :class:`~chainer.testing.LinkTestImpl`
         :class:`~chainer.testing.LinkInitializersTestCase`
         :class:`~chainer.testing.FunctionTestCase`
 
@@ -815,12 +814,12 @@ class LinkTestCase(unittest.TestCase):
         return grad_outputs
 
 
-class LinkInitializersTestCase(unittest.TestCase):
+class LinkInitializersTestCase(_LinkTestImpl, unittest.TestCase):
 
     """A base class for link parameter initializer test cases.
 
     Link test cases can inherit from this class and
-    :class:`~chainer.testing.LinkTestImpl` to define a set of link tests for
+    :class:`~chainer.testing._LinkTestImpl` to define a set of link tests for
     parameter initialization.
 
     .. rubric:: Required methods
@@ -881,7 +880,6 @@ class LinkInitializersTestCase(unittest.TestCase):
                     return initialW, initial_bias
 
     .. seealso::
-        :class:`~chainer.testing.LinkTestImpl`
         :class:`~chainer.testing.LinkTestCase`
         :class:`~chainer.testing.FunctionTestCase`
 

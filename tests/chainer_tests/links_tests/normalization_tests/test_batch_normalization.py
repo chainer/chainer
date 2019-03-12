@@ -62,7 +62,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     return y_expect
 
 
-class BatchNormalizationTestBase(testing.LinkTestImpl):
+class BatchNormalizationTestBase(object):
 
     param_names = ['gamma', 'beta']
 
