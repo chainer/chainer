@@ -103,6 +103,12 @@ class AdamRule(optimizer.UpdateRule):
     _kernel = None
     _amsgrad_kernel = None
 
+    # Only used in `update_core_gpu`.
+    # A dummy ndarray to help ElementwiseKernel deduce generic type T as
+    # `dtype`.
+    # It cannot be deduced only by scalar arguments.
+    _dummy = None
+
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
                  eta=None, weight_decay_rate=None, amsgrad=None):
@@ -189,10 +195,8 @@ class AdamRule(optimizer.UpdateRule):
         dtype = _get_intermediate_dtype(param.dtype.type)
         self._check_eps(dtype)
 
-        # A dummy ndarray to help ElementwiseKernel deduce generic type T as
-        # `dtype`.
-        # It cannot be deduced only by scalar arguments.
-        dummy = cuda.cupy.empty((0,), dtype=dtype)
+        if self._dummy is None:
+            self._dummy = cuda.cupy.empty((0,), dtype=dtype)
 
         if hp.amsgrad:
             if AdamRule._amsgrad_kernel is None:
@@ -210,7 +214,7 @@ class AdamRule(optimizer.UpdateRule):
             AdamRule._amsgrad_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
                 1 - hp.beta2, hp.eps,
-                hp.eta, hp.weight_decay_rate, dummy,
+                hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
         else:
@@ -228,7 +232,7 @@ class AdamRule(optimizer.UpdateRule):
             AdamRule._kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
                 1 - hp.beta2, hp.eps,
-                hp.eta, hp.weight_decay_rate, dummy,
+                hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'])
 
     @property
