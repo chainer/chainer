@@ -121,6 +121,9 @@ class TestNStepRNN(unittest.TestCase):
     @attr.cudnn
     @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
+        # See chainer/chainer#6262
+        # NStepRNNTanh and NStepRNNReLU w/ cudnn & dropout should work on
+        # not current device
         msg = None
         rnn = self.rnn.copy('copy')
         rnn.dropout = .5
@@ -321,6 +324,9 @@ class TestNStepBiRNN(unittest.TestCase):
     @attr.cudnn
     @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
+        # See chainer/chainer#6262
+        # NStepBiRNNTanh and NStepBiRNNReLU w/ cudnn & dropout should work on
+        # not current device
         msg = None
         rnn = self.rnn.copy('copy')
         rnn.dropout = .5
