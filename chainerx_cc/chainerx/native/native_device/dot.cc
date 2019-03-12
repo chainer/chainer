@@ -168,20 +168,20 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
 
     out.Fill(0);
-    VisitDtype(out.dtype(), [& a = a_cast, &b = b_cast, &out](auto pt) {
-        CHAINERX_ASSERT(a.dtype() == out.dtype());
-        CHAINERX_ASSERT(b.dtype() == out.dtype());
+    VisitDtype(out.dtype(), [&](auto pt) {
+        CHAINERX_ASSERT(a_cast.dtype() == out.dtype());
+        CHAINERX_ASSERT(b_cast.dtype() == out.dtype());
 
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T, 2> a_iarray{a};
-        IndexableArray<const T, 2> b_iarray{b};
+        IndexableArray<const T, 2> a_cast_iarray{a_cast};
+        IndexableArray<const T, 2> b_cast_iarray{b_cast};
         IndexableArray<T, 2> out_iarray{out};
 
-        int64_t m = a.shape()[0];
-        int64_t k = a.shape()[1];
-        int64_t n = b.shape()[1];
-        CHAINERX_ASSERT(b.shape()[0] == k);
+        int64_t m = a_cast.shape()[0];
+        int64_t k = a_cast.shape()[1];
+        int64_t n = b_cast.shape()[1];
+        CHAINERX_ASSERT(b_cast.shape()[0] == k);
         CHAINERX_ASSERT(out.shape()[0] == m);
         CHAINERX_ASSERT(out.shape()[1] == n);
 
@@ -193,11 +193,11 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
                 int64_t a_i_l[] = {i, l};
-                T a_value = native_internal::StorageToDataType<const T>(a_iarray[a_i_l]);
+                T a_value = native_internal::StorageToDataType<const T>(a_cast_iarray[a_i_l]);
                 for (int64_t j = 0; j < n; ++j) {
                     int64_t acc_i_j[] = {i, j};
                     int64_t b_l_j[] = {l, j};
-                    T b_value = native_internal::StorageToDataType<const T>(b_iarray[b_l_j]);
+                    T b_value = native_internal::StorageToDataType<const T>(b_cast_iarray[b_l_j]);
                     AccT& acc_value = native_internal::StorageToDataType<AccT>(acc_iarray[acc_i_j]);
                     acc_value = MultiplyAdd(a_value, b_value, acc_value);
                 }
