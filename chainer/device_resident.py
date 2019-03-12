@@ -31,7 +31,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     def device_resident_accept(self, visitor):
         """Applies the visitor to all the device objects in this instance."""
-        visitor.visit_visitable(self)
+        visitor.visit_device_resident(self)
 
     @property
     def device(self):
@@ -185,7 +185,7 @@ class DeviceResidentsVisitor(object):
     """Base class of visitors that visits device resident objects recursively.
     """
 
-    def visit_visitable(self, visitable):
+    def visit_device_resident(self, device_resident):
         pass
 
     def visit_array(self, arr):
@@ -204,8 +204,9 @@ class DeviceResidentsVisitor(object):
 class _ToDeviceVisitor(DeviceResidentsVisitor):
     # A visitor that implements recursive to_device().
     # For backward compatibility, if any of to_cpu/to_gpu/to_intel64 are
-    # overridden on a visitable, this visitor calls it instead of
-    # `visit_visitable`. That's true even if `to_device` was originally called.
+    # overridden on a device resident, this visitor calls it instead of
+    # `visit_device_resident`. That's true even if `to_device` was originally
+    # called.
 
     def __init__(
             self, device, entry_method_info=None,
@@ -227,11 +228,11 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         self._entry_method_info = entry_method_info
         self._skip_between_cupy_devices = skip_between_cupy_devices
 
-    def visit_visitable(self, visitable):
-        visitable._device = self._device
+    def visit_device_resident(self, device_resident):
+        device_resident._device = self._device
 
         # Backward compatibility workaround for overridden methods
-        if visitable._overridden_to_methods:
+        if device_resident._overridden_to_methods:
             if self._entry_method_info is not None:
                 # Deprecated method is being called: e.g. to_cpu and to_gpu.
                 method_name, kwargs = self._entry_method_info
@@ -239,8 +240,8 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
                 # to_device is being called
                 method_name, kwargs = (
                     self._device_to_method_name_and_kwargs(self._device))
-            if method_name in visitable._overridden_to_methods:
-                to_method = getattr(visitable, method_name)
+            if method_name in device_resident._overridden_to_methods:
+                to_method = getattr(device_resident, method_name)
                 to_method(**kwargs)
                 return
 
@@ -281,9 +282,9 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 class _ToChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls to_chx().
 
-    def visit_visitable(self, visitable):
-        visitable._device = backend.ChainerxDevice.from_fallback_device(
-            visitable._device)
+    def visit_device_resident(self, device_resident):
+        device_resident._device = backend.ChainerxDevice.from_fallback_device(
+            device_resident._device)
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -297,9 +298,9 @@ class _ToChxVisitor(DeviceResidentsVisitor):
 class _FromChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls from_chx().
 
-    def visit_visitable(self, visitable):
-        if isinstance(visitable._device, backend.ChainerxDevice):
-            visitable._device = visitable._device.fallback_device
+    def visit_device_resident(self, device_resident):
+        if isinstance(device_resident._device, backend.ChainerxDevice):
+            device_resident._device = device_resident._device.fallback_device
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
