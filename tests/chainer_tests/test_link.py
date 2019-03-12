@@ -2281,6 +2281,14 @@ class TestLinkOverrideToDeviceMethodsDeprecated(unittest.TestCase):
                 def to_device(self, device):
                     assert False  # never called
 
+            elif method_name == 'to_chx':
+                def to_chx(self, device):
+                    assert False  # never called
+
+            elif method_name == 'from_chx':
+                def from_chx(self, device):
+                    assert False  # never called
+
             elif method_name == 'to_cpu':
                 def to_cpu(self):
                     self.to_method_called += 1
@@ -2309,6 +2317,14 @@ class TestLinkOverrideToDeviceMethodsDeprecated(unittest.TestCase):
     def test_to_device_override(self):
         with pytest.raises(TypeError):
             self.create_link('to_device')
+
+    def test_to_chx_override(self):
+        with pytest.raises(TypeError):
+            self.create_link('to_chx')
+
+    def test_from_chx_override(self):
+        with pytest.raises(TypeError):
+            self.create_link('from_chx')
 
     # Deprecation warning on class definition
 

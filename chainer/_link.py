@@ -122,6 +122,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
+    @utils.final
     def to_chx(self):
         """Converts parameter variables and persistent values to ChainerX \
 without any copy.
@@ -141,6 +142,7 @@ without any copy.
         self.device_resident_accept(_ToChxVisitor())
         return self
 
+    @utils.final
     def from_chx(self):
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy."""
