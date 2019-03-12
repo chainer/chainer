@@ -1047,6 +1047,25 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
         return chainerx.log_softmax(a, axis=axis)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+class test_square(op_utils.NumpyOpTest):
+
+    def setup(self, float_dtype):
+        self.dtype = float_dtype
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.square(x),
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
