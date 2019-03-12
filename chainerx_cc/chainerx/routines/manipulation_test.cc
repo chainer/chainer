@@ -47,7 +47,7 @@ TEST_THREAD_SAFE_P(ManipulationTest, AsScalar) {
 
     Run([&a, &value]() {
         Scalar s = AsScalar(a);
-        EXPECT_EQ(s.dtype(), TypeToDtype<T>);
+        EXPECT_EQ(s.kind(), GetKind(TypeToDtype<T>));
         EXPECT_EQ(static_cast<T>(s), value);
     });
 }
@@ -488,7 +488,7 @@ TEST_P(ManipulationTest, BroadcastToBackward) {
             },
             {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({1, 3, 1, 3}, 1e-1)});
+            {Full({1, 3, 1, 3}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
@@ -502,7 +502,7 @@ TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
             {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>()},
-            {Full({1, 3, 1, 3}, 1e-1), Full({2, 3, 4, 3}, 1e-1)});
+            {Full({1, 3, 1, 3}, 1e-1, Dtype::kFloat64), Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, Concatenate) {
@@ -640,7 +640,7 @@ TEST_P(ManipulationTest, ConcatenateBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
             {x1, x2},
             {gy},
-            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
+            {Full(shape_x1, 1e-6, Dtype::kFloat64), Full(shape_x2, 1e-6, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, ConcatenateDoubleBackward) {
@@ -663,7 +663,7 @@ TEST_P(ManipulationTest, ConcatenateDoubleBackward) {
             {x1, x2},
             {gy},
             {ggx1, ggx2},
-            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6), Full(shape_y, 1e-6)});
+            {Full(shape_x1, 1e-6, Dtype::kFloat64), Full(shape_x2, 1e-6, Dtype::kFloat64), Full(shape_y, 1e-6, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, Stack) {
@@ -762,7 +762,7 @@ TEST_P(ManipulationTest, StackBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Stack(xs)}; },
             {x1, x2},
             {gy},
-            {Full(shape_x, 1e-6), Full(shape_x, 1e-6)});
+            {Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_x, 1e-6, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, StackDoubleBackward) {
@@ -785,7 +785,7 @@ TEST_P(ManipulationTest, StackDoubleBackward) {
             {x1, x2},
             {gy},
             {ggx1, ggx2},
-            {Full(shape_x, 1e-6), Full(shape_x, 1e-6), Full(shape_y, 1e-6)});
+            {Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_y, 1e-6, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, StackDoubleBackwardNegativeAxis) {
@@ -808,7 +808,7 @@ TEST_P(ManipulationTest, StackDoubleBackwardNegativeAxis) {
             {x1, x2},
             {gy},
             {ggx1, ggx2},
-            {Full(shape_x, 1e-6), Full(shape_x, 1e-6), Full(shape_y, 1e-6)});
+            {Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_y, 1e-6, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
@@ -871,7 +871,7 @@ TEST_P(ManipulationTest, SplitSectionsBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Split(xs[0], 2, 0)}; },
             {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1), testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 4}, 1e-1)});
+            {Full({2, 4}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, SplitIndicesBackward) {
@@ -885,7 +885,7 @@ TEST_P(ManipulationTest, SplitIndicesBackward) {
             {testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1),
              testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1),
              testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 4}, 1e-1)});
+            {Full({2, 4}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, SplitBackwardSomeOutputGradsAreAbsent) {
@@ -915,7 +915,7 @@ TEST_P(ManipulationTest, SplitSectionsDoubleBackward) {
             {(*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
              (*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>()},
-            {Full({2, 4}, 1e-1), Full({1, 4}, 1e-1), Full({1, 4}, 1e-1)});
+            {Full({2, 4}, 1e-1, Dtype::kFloat64), Full({1, 4}, 1e-1, Dtype::kFloat64), Full({1, 4}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(ManipulationTest, SplitIndicesDoubleBackward) {
@@ -933,7 +933,10 @@ TEST_P(ManipulationTest, SplitIndicesDoubleBackward) {
              (*testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
              (*testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>()},
-            {Full({2, 4}, 1e-1), Full({2, 1}, 1e-1), Full({2, 2}, 1e-1), Full({2, 1}, 1e-1)});
+            {Full({2, 4}, 1e-1, Dtype::kFloat64),
+             Full({2, 1}, 1e-1, Dtype::kFloat64),
+             Full({2, 2}, 1e-1, Dtype::kFloat64),
+             Full({2, 1}, 1e-1, Dtype::kFloat64)});
 }
 
 INSTANTIATE_TEST_CASE_P(

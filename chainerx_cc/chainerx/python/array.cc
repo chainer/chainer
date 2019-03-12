@@ -174,12 +174,10 @@ void InitChainerxArray(pybind11::module& m) {
     // TODO(niboshi): Support arguments
     c.def("item", [](const ArrayBodyPtr& a) -> py::object {
         Scalar s = AsScalar(Array{a});
-        switch (GetKind(s.dtype())) {
+        switch (s.kind()) {
             case DtypeKind::kBool:
                 return py::bool_{static_cast<bool>(s)};
             case DtypeKind::kInt:
-                // fallthrough
-            case DtypeKind::kUInt:
                 return py::int_{static_cast<int64_t>(s)};
             case DtypeKind::kFloat:
                 return py::float_{static_cast<double>(s)};

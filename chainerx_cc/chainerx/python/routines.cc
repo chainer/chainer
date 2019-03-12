@@ -110,14 +110,14 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
@@ -152,28 +152,28 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Ones(Shape{dim}, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Ones(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
@@ -184,10 +184,10 @@ void InitChainerxCreation(pybind11::module& m) {
              const nonstd::optional<Scalar>& maybe_step,
              py::handle dtype,
              py::handle device) {
-              Dtype start_or_stop_dtype = start_or_stop.dtype();
-              Scalar start{0, start_or_stop_dtype};
+              DtypeKind start_or_stop_dtype_kind = start_or_stop.kind();
+              Scalar start{0, start_or_stop_dtype_kind};
               Scalar stop{start_or_stop};
-              Scalar step = maybe_step.has_value() ? maybe_step.value() : Scalar{1, start_or_stop_dtype};
+              Scalar step = maybe_step.has_value() ? maybe_step.value() : Scalar{1, start_or_stop_dtype_kind};
 
               if (maybe_stop.has_value()) {
                   start = start_or_stop;
@@ -231,7 +231,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Identity(n, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Identity(n, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("n"),
           py::arg("dtype") = nullptr,

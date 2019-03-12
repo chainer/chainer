@@ -30,7 +30,7 @@ void SynchronizeArrays(const Arrays& arrays) {
 
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
-    return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());
+    return Scalar{std::sqrt(static_cast<double>(s))};
 }
 
 void Set(const Array& out, int64_t flat_index, Scalar value) {
@@ -100,7 +100,7 @@ Arrays CalculateNumericalGradient(
         // Only the target array is deeply copied
         xi = xi.Copy();
         // Give displacement and evaluate
-        Set(xi, in_flat_index, Get(xi, in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, eps_scalar.dtype()));
+        Set(xi, in_flat_index, Get(xi, in_flat_index) + Scalar{static_cast<float>(eps_scalar) * multiplier});
         return func(xs_copy);
     };
 
@@ -117,7 +117,7 @@ Arrays CalculateNumericalGradient(
 
             for (int j = 0; j < nout; ++j) {
                 Array dy = ys1.at(j) - ys0.at(j);
-                Array denom = FullLike(dy, eps_scalar) * FullLike(dy, Scalar(2, dtype));
+                Array denom = FullLike(dy, eps_scalar) * FullLike(dy, Scalar{2, GetKind(dtype)});
 
                 Array slope = (ys1.at(j) - ys0.at(j)) / denom;
                 Scalar g = AsScalar((slope * grad_outputs.at(j)).Sum().AsType(dtype));
