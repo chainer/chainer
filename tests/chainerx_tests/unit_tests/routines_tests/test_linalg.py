@@ -29,12 +29,6 @@ def test_dot(
 
     a_dtype, b_dtype = dtypes
 
-    # TODO(hvy): Remove the skip when multiplication supports mixed dtypes.
-    if a_dtype != b_dtype and (not a_shape or not b_shape):
-        pytest.skip(
-            'Dot with ndim == 0 depends on multiplication which does not yet '
-            'support mixed dtype.')
-
     a = array_utils.create_dummy_ndarray(xp, a_shape, a_dtype)
     b = array_utils.create_dummy_ndarray(xp, b_shape, b_dtype)
 

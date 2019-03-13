@@ -20,8 +20,13 @@
 namespace chainerx {
 
 Array Dot(const Array& a, const Array& b) {
+    Dtype out_dtype = ResultType(a, b);
+
     if (a.ndim() == 0 || b.ndim() == 0) {
-        return a * b;
+        // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
+        const Array& a_cast = a.dtype() == out_dtype ? a : a.AsType(out_dtype);
+        const Array& b_cast = b.dtype() == out_dtype ? b : b.AsType(out_dtype);
+        return a_cast * b_cast;
     }
 
     // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
@@ -32,8 +37,6 @@ Array Dot(const Array& a, const Array& b) {
     Shape out_shape{};
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
     std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
-
-    Dtype out_dtype = ResultType(a, b);
 
     int64_t k = a.shape()[a.ndim() - 1];
     if (b.shape()[0] != k) {
