@@ -731,7 +731,11 @@ def batch_normalization(x, gamma, beta, **kwargs):
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
-    .. seealso:: :class:`~chainer.links.BatchNormalization`
+    .. seealso::
+
+        :class:`~chainer.links.BatchNormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """  # NOQA
 
