@@ -110,9 +110,14 @@ __global__ void AddAtKernel(
 }  // namespace
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
     CheckDevicesCompatible(a, indices, out);
+
     CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
+
+    const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
+
+    VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         // a and out are transposed as follows.
@@ -129,13 +134,13 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         Indexer<> a_indexer{a_shape};
 
         IndexableArray<T> out_iarray{out};
-        Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
+        Axes out_perm = MakeRollingPermutation(axis, axis + indices_cast.ndim(), out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
-        IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer<> indices_indexer{indices.shape()};
+        IndexableArray<const int64_t> indices_iarray{indices_cast};
+        Indexer<> indices_indexer{indices_cast.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
@@ -157,9 +162,14 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
 
     CHAINERX_ASSERT(a.shape() == out.shape());
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
     CheckDevicesCompatible(a, indices, out);
+
     CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
+
+    const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
+
+    VisitDtype(out.dtype(), [&a, &indices_cast, axis, &b, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         // b and out are transposed as follows.
@@ -177,7 +187,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         Indexer<> a_indexer{a_shape};
 
         IndexableArray<const T> b_iarray{b};
-        Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
+        Axes b_perm = MakeRollingPermutation(axis, axis + indices_cast.ndim(), b.ndim());
         b_iarray.Permute(b_perm);
         Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
         Indexer<> b_indexer{b_shape};
@@ -188,8 +198,8 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
-        IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer<> indices_indexer{indices.shape()};
+        IndexableArray<const int64_t> indices_iarray{indices_cast};
+        Indexer<> indices_indexer{indices_cast.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];

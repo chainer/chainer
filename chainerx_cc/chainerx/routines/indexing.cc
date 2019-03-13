@@ -160,7 +160,6 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
         throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
     }
-    const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
 
@@ -168,21 +167,21 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     Shape out_shape{};
     std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape));
-    std::copy(indices_cast.shape().begin(), indices_cast.shape().end(), std::back_inserter(out_shape));
+    std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape));
     std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape));
     Array out = Empty(out_shape, a.dtype(), a.device());
 
     {
         NoBackpropModeScope scope{};
-        a.device().Take(a, indices_cast, axis_norm, out);
+        a.device().Take(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        CHAINERX_ASSERT(internal::GetArrayBody(indices_cast)->nodes().empty());
-        bt.Define([indices_cast, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
+        CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
+        bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices_cast, axis_norm, gout);
+            bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }
     bb.Finalize();
