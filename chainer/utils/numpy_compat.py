@@ -1,6 +1,9 @@
 import numpy
 
 
+# patched functions does not support array-likes other than numpy.ndarray
+
+
 def split_1_11(ary, indices_or_sections, axis=0):
     x = ary
     ys = numpy.split(x)
@@ -20,10 +23,10 @@ def split_1_11(ary, indices_or_sections, axis=0):
 
 
 def sqrt_1_11_2(x, out=None, **kwargs):
+    # Before NumPy 1.11.2, `numpy.sqrt` casts float16 to float32
     # Note: This func is not a ufunc while numpy.sqrt is.
-    x = numpy.asanyarray(x)
-    if out is None:
-        out = numpy.empty_like(x)
+    if x.dtype == numpy.float16:
+        kwargs.setdefault('dtype', numpy.float16)
     return numpy.sqrt(x, out, **kwargs)
 
 
