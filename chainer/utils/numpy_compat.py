@@ -19,12 +19,22 @@ def split_1_11(ary, indices_or_sections, axis=0):
     return ys
 
 
+def sqrt_1_11_2(x, out=None, **kwargs):
+    # Note: This func is not a ufunc while numpy.sqrt is.
+    x = numpy.asanyarray(x)
+    if out is None:
+        out = numpy.empty_like(x)
+    return numpy.sqrt(x, out, **kwargs)
+
+
 class _PatchedNumpy(object):
 
     def __init__(self):
         np_version = numpy.lib.NumpyVersion(numpy.__version__)
         if np_version < '1.11.0':
             self.split = split_1_11
+        if np_version < '1.11.2':
+            self.sqrt = sqrt_1_11_2
 
     def __getattr__(self, name):
         return getattr(numpy, name)

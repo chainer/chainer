@@ -8,6 +8,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -218,8 +219,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.mean = x.mean(axis=self.axis)
             var = x.var(axis=self.axis)
             if xp is numpy:
-                self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=x.dtype))
+                self.inv_std = numpy.reciprocal(
+                    utils._patch_array_module(numpy).sqrt(var + self.eps))
             else:
                 self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
@@ -493,7 +494,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             var = var + self.eps
             self.inv_var = xp.reciprocal(var)
-            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+            self.inv_std = utils._patch_array_module(xp).sqrt(self.inv_var)
             y = _apply_bn_fwd(xp, x, mean[expander], self.inv_std[expander],
                               gamma, beta)
 
@@ -524,7 +525,7 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
         if self.inv_std is None or self.inv_var is None:
             self.inv_var = xp.reciprocal(var + self.eps)
-            self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
+            self.inv_std = utils._patch_array_module(xp).sqrt(self.inv_var)
 
         self.gamma_over_std = gamma * self.inv_std
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])

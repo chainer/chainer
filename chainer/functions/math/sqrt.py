@@ -24,7 +24,7 @@ class Sqrt(function_node.FunctionNode):
     def forward(self, x):
         self.retain_outputs((0,))
         xp = backend.get_array_module(*x)
-        return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
+        return utils.force_array(utils._patch_array_module(xp).sqrt(x[0])),
 
     def backward(self, indexes, grad_outputs):
         gx = self.get_retained_outputs()[0]
@@ -45,7 +45,7 @@ class RsqrtGPU(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         self.retain_outputs((0,))
         x, = inputs
-        out = cuda.cupyx.rsqrt(x, dtype=x.dtype)
+        out = cuda.cupyx.rsqrt(x)
         return utils.force_array(out),
 
     def backward(self, indexes, grad_outputs):
