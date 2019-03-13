@@ -48,6 +48,9 @@ class TestProd(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        if self.contain_zero:
+            index = numpy.random.choice(x.size)
+            x.ravel()[index] = 0
         return x,
 
     def forward(self, inputs, device):
