@@ -1,5 +1,4 @@
 import numpy
-import random
 import pytest
 
 import chainerx
