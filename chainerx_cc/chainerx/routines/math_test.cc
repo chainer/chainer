@@ -1660,24 +1660,49 @@ TEST_P(MathTest, PowerBackward) {
         {eps, eps});
 }
 
-TEST_P(MathTest, PowerDoubleBackward) {
+TEST_THREAD_SAFE_P(MathTest, PowerScalar) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, 3.f});
+    Scalar b{2.0f};
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 2.f), std::pow(4.f, 2.f), std::pow(3.f, 2.f)});
+
+    Run([&]() { testing::CheckForward(
+            [b](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], b)}; }, {a}, {e}); });
+}
+
+TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
     using T = double;
-    Shape shape{2, 2};
-    Array a = (*testing::BuildArray(shape).WithData<T>({2.0, 6.0, 4.0, 6.0}).WithPadding(1)).RequireGrad();
-    Array b = (*testing::BuildArray(shape).WithData<T>({3, 5, 4, 2}).WithPadding(2)).RequireGrad();
-    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
-    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.})).RequireGrad();
+    Scalar b{2.0f};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward(
+        [b](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(xs[0], b)}; },
+        {a},
+        {go},
+        {eps});
+}
+
+TEST_P(MathTest, PowerScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-1);
 
+    // array + scalar
     CheckDoubleBackwardComputation(
-            [&](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Pow(xs[0], xs[1]);
-                return {y * y};  // to make it nonlinear
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Pow(xs[0], b);
+                return {y};  // to make it nonlinear
             },
-            {a, b},
+            {a},
             {go},
-            {ggi, ggi},
-            {eps, eps, eps});
+            {ggi},
+            {eps, eps});
 }
 
 TEST_THREAD_SAFE_P(MathTest, Tanh) {

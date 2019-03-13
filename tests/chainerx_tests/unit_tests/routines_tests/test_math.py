@@ -1,4 +1,5 @@
 import numpy
+import random
 import pytest
 
 import chainerx
@@ -580,23 +581,59 @@ class test_tanh(op_utils.NumpyOpTest):
         x, = inputs
         return xp.tanh(x),
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class test_pow(op_utils.NumpyOpTest):
 
-    def setup(self, contiguous, float_dtype):
-        
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('lhs, rhs', [
+    (numpy.asarray([[1., 2.],[4., 5.]]), numpy.asarray([1., 3.])), (numpy.asarray(
+        [1., 2., 3.]), numpy.asarray([3., 4., 5.])), (numpy.random.uniform(0, 1, (4, 5, 5)),
+    numpy.random.uniform(0, 1, (4, 5, 5)))
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class testPow(op_utils.NumpyOpTest):
+
+    def setup(self, lhs, rhs, contiguous, float_dtype):
+        self.lhs = lhs
+        self.rhs = rhs
         self.contiguous = contiguous
 
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
 
     def generate_inputs(self):
-        return numpy.array([4.0, 2.0]), numpy.array([2.0, 4.0])
+        return self.lhs, self.rhs
 
     def forward_xp(self, inputs, xp):
-        return xp.power(inputs[0], inputs[1])
+        if xp is numpy:
+            return xp.power(inputs[0], inputs[1]),
+        return xp.pow(inputs[0], inputs[1]),
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input, scalar', [
+    (numpy.asarray([[1., 2.],[4., 5.]]), 3), (numpy.asarray(
+        [1., 2., 3.]), 4), (numpy.random.uniform(0, 1, (4, 5, 5)), 2)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class testPowScalar(op_utils.NumpyOpTest):
+
+    def setup(self, input, scalar, contiguous, float_dtype):
+        self.input = input
+        self.scalar = scalar
+        self.contiguous = contiguous
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        if xp is numpy:
+            return xp.power(inputs[0], self.scalar),
+        return xp.pow(inputs[0], self.scalar),
+
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

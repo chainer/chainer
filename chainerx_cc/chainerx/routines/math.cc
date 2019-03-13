@@ -577,11 +577,8 @@ Array Sqrt(const Array& x) {
 }
 
 Array Pow(const Array& x1, const Array& x2) {
-    Array broadcasted_x2 = x2;
-    if (x1.shape() != x2.shape())
-    {
-        broadcasted_x2 = x2.BroadcastTo(x1.shape());
-    }
+    Array broadcasted_x2 = x2.BroadcastTo(x1.shape());
+    
     CheckEqual(x1.dtype(), broadcasted_x2.dtype());
     CheckEqual(x1.shape(), broadcasted_x2.shape());
     Array out = EmptyLike(x1, x1.device());
@@ -617,7 +614,7 @@ Array Pow(const Array& x1, const Array& x2) {
     return out;
 }
 
-Array Pow(const Array& x1, const Scalar x2) {
+Array Pow(const Array& x1, Scalar x2) {
     Array out = EmptyLike(x1, x1.device());
     {
         NoBackpropModeScope scope{};
@@ -628,8 +625,8 @@ Array Pow(const Array& x1, const Scalar x2) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
         const Array& x1 = bctx.GetRetainedInput(x1_tok);
-        Array pow_x1 = Pow(x1, x2 + (-1));
-        bctx.input_grad() = *bctx.output_grad() * x2 * pow_x1;
+
+        bctx.input_grad() = *bctx.output_grad() * x2 * Pow(x1, x2 + (-1));
         });
     }
     bb.Finalize();
