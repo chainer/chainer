@@ -1,3 +1,5 @@
+import warnings
+
 import chainer.cuda
 
 from chainermn.communicators import _communication_utility
@@ -19,6 +21,10 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 'NCCL is not available. '
                 'Please confirm that NCCL is enabled in CuPy.'
             )
+        if nccl.get_version() < 2302:
+            warnings.warn('NCCL 2.2 and older versions are deprecated.',
+                          DeprecationWarning)
+
         # We have to delay the initialization of communicators. This is because
         # NCCL's communicators use the current CUDA devices at the time of
         # initialization. Therefore, we have to initialize NCCL communicators
