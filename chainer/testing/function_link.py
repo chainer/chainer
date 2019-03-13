@@ -712,15 +712,20 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         from chainer import gradient_check
 
         def do_check():
+            # Generate an initialized temporary link that is already forward
+            # propagated. This link is only used to generate necessary data,
+            # i.e. inputs, outputs and parameters for the later gradient check
+            # and the link itself will be discarded.
             inits = self._generate_params()
-            link, _, _ = self._create_initialized_link(inits, backend_config)
-
             link, inputs, outputs = self._create_initialized_link(
                 inits, backend_config)
 
+            # Extract the parameter ndarrays from the initialized link.
             params = _get_link_params(link, self.param_names)
             params = [p.array for p in params]
 
+            # Prepare inputs, outputs and upstream gradients for the gradient
+            # check.
             cpu_device = backend.CpuDevice()
             outputs = [cpu_device.send(output) for output in outputs]
             grad_outputs = self._generate_grad_outputs(outputs)
@@ -730,16 +735,24 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
             params = self._to_noncontiguous_as_needed(params)
             grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
 
-            def f(inputs, ps):
-                with link.init_scope():
+            # Create the link used for the actual forward propagation in the
+            # gradient check.
+            forward_link, _, _ = self._create_initialized_link(
+                inits, backend_config)
+
+            def forward(inputs, ps):
+
+                # Use generated parameters.
+                with forward_link.init_scope():
                     for param_name, p in zip(self.param_names, ps):
-                        setattr(link, param_name, p)
-                return self._forward(link, inputs, backend_config)
+                        setattr(forward_link, param_name, p)
+
+                return self._forward(forward_link, inputs, backend_config)
 
             with LinkTestError.raise_if_fail(
                     'backward is not implemented correctly'):
                 gradient_check._check_backward_with_params(
-                    f, inputs, grad_outputs, params=params,
+                    forward, inputs, grad_outputs, params=params,
                     dtype=numpy.float64,
                     detect_nondifferentiable=self.dodge_nondifferentiable,
                     **self.check_backward_options)
