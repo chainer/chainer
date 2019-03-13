@@ -64,7 +64,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 
 class BatchNormalizationTestBase(object):
 
-    param_names = ['gamma', 'beta']
+    param_names = ('gamma', 'beta')
 
     def setUp(self):
         if hasattr(self, 'axis') and hasattr(self, 'input_shape'):

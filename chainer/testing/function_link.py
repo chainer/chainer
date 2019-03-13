@@ -416,8 +416,8 @@ class _LinkTestBase(object):
     backend_config = None
 
     # List of parameter names represented as strings.
-    # I.e. ['gamma', 'beta'] for BatchNormalization.
-    param_names = []
+    # I.e. ('gamma', 'beta') for BatchNormalization.
+    param_names = ()
 
     def before_test(self, test_name):
         pass
@@ -575,10 +575,10 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
     The concrete class can override the following attributes to control the
     behavior of the tests.
 
-    ``param_names`` (list of str):
-        A list of strings with all the names of the parameters that should be
-        tested. E.g. ``['gamma', 'beta']`` for the batch normalization link.
-        ``[]`` by default.
+    ``param_names`` (tuple of str):
+        A tuple of strings with all the names of the parameters that should be
+        tested. E.g. ``('gamma', 'beta')`` for the batch normalization link.
+        ``()`` by default.
 
     ``skip_forward_test`` (bool):
         Whether to skip forward computation test. ``False`` by default.
@@ -624,7 +624,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
               ])
             class TestLinear(chainer.testing.LinkTestCase):
 
-                param_names = ['W', 'b']
+                param_names = ('W', 'b')
 
                 def generate_params(self):
                     initialW = numpy.random.uniform(

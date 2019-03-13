@@ -567,7 +567,7 @@ class DotLinkIncorrectInitialization(DotLink):
 
 class DotLinkTestImpl(object):
 
-    param_names = ['p']
+    param_names = ('p',)
 
     def setUp(self):
         self.n = 1
