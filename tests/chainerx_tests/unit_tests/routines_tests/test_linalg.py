@@ -43,11 +43,6 @@ def test_dot(
     else:
         y = a.dot(b)
 
-    # NumPy returns a NumPy scalar for 0-dimensional array dots while ChainerX
-    # does not.
-    if xp is numpy and numpy.isscalar(y):
-        y = numpy.asarray(y)
-
     return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
 
 
