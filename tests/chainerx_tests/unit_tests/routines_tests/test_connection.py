@@ -43,7 +43,7 @@ def _create_conv_args(
     ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
 ])
 @chainer.testing.parameterize_pytest('cover_all', [True, False])
-class test_conv(op_utils.ChainerOpTest):
+class TestConv(op_utils.ChainerOpTest):
 
     def setup(self, float_dtype):
 
@@ -139,7 +139,7 @@ def test_conv_invalid(
 ])
 # If None, outsize argument will be None.
 @chainer.testing.parameterize_pytest('cover_all', [None, True, False])
-class test_conv_transpose(op_utils.ChainerOpTest):
+class TestConvTranspose(op_utils.ChainerOpTest):
 
     def setup(self, float_dtype):
         self.dtype = float_dtype
@@ -262,7 +262,7 @@ def test_conv_transpose_invalid(
     ((5, 2, 3), (4, 3), (4,), 2),
     # TODO(imanishi): Add test cases for more than 2 ndim
 ])
-class test_linear(op_utils.OpTest):
+class TestLinear(op_utils.OpTest):
 
     def setup(self, dtype):
         device = chainerx.get_default_device()
