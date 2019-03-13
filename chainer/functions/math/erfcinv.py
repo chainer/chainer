@@ -28,8 +28,8 @@ class ErfcInv(function_node.FunctionNode):
 
     def forward_cpu(self, x):
         if not available_cpu:
-            raise ImportError("SciPy is not available. Forward computation"
-                              " of erfcinv in CPU can not be done." +
+            raise ImportError('SciPy is not available. Forward computation'
+                              ' of erfcinv in CPU can not be done.' +
                               str(_import_error))
         self.retain_outputs((0,))
         return utils.force_array(special.erfcinv(x[0]), dtype=x[0].dtype),
@@ -55,8 +55,7 @@ def erfcinv(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

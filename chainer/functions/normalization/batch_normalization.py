@@ -201,16 +201,15 @@ class BatchNormalization(function_node.FunctionNode):
                 y = numpy.squeeze(y, axis=(2, 3))
 
         elif self.use_cudnn:
-            if self.mean is None:
-                # Output cache to speed up backward pass.
-                self.mean = xp.empty_like(gamma)
-                # Output cache to speed up backward pass.
-                self.inv_std = xp.empty_like(gamma)
-            y = cudnn.batch_normalization_forward_training(
-                x, gamma, beta, self.running_mean, self.running_var,
-                self.mean, self.inv_std, self.eps, self.decay,
-                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+            # self.mean and self.inv_std are used as buffers to save
+            # intermediate results computed during forward pass. These buffers
+            # are used to speed-up backward pass.
+            y, self.mean, self.inv_std = (
+                cudnn.batch_normalization_forward_training(
+                    x, gamma, beta, self.running_mean, self.running_var,
+                    None, None, self.eps, self.decay,
+                    self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
+                    chainer.is_debug()))
         else:
             # Generic CPU and GPU implementation
 
@@ -231,7 +230,7 @@ class BatchNormalization(function_node.FunctionNode):
 
             xp = backend.get_array_module(self.running_mean, self.running_var)
             if xp is chainerx:
-                self.running_mean, self.running_var = backend.from_chainerx(
+                self.running_mean, self.running_var = backend.from_chx(
                     (self.running_mean, self.running_var))
 
             self.running_mean *= self.decay
@@ -240,8 +239,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var += (1 - self.decay) * adjust * var
 
             if xp is chainerx:
-                self.running_mean = backend.to_chainerx(self.running_mean)
-                self.running_var = backend.to_chainerx(self.running_var)
+                self.running_mean = backend.to_chx(self.running_mean)
+                self.running_var = backend.to_chx(self.running_var)
 
         return y,
 
@@ -308,7 +307,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
                 x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+                chainer.is_debug())
         else:
             # CPU and GPU implementation
             gbeta = gy.sum(axis=self.axis)
@@ -614,7 +613,7 @@ class _BNMode(object):
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        return (xp is not numpy and
+        return (xp is cuda.cupy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
                 self.cudnn_dtype_ok)

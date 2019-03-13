@@ -167,6 +167,9 @@ public:
     virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
 
+    virtual void FloorDivide(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
+
     virtual void Divide(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void DivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
 
@@ -174,6 +177,11 @@ public:
     //
     // Formally, it calculates: out = x1 < x2 ? pos : neg
     virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
+
+    // Compares x1 and x2 and assign either pos or neg according to the result.
+    //
+    // Formally, it calculates: out = x1 > x2 ? pos : neg
+    virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
 

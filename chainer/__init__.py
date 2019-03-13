@@ -160,6 +160,9 @@ def get_cpu_array_types():
 
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
+    # Do not use this function to check if a single object is an array or
+    # not. Use isinstance(obj, chainer.get_array_types()) instead.
+
     arrays = [a for a in arrays if a is not None]
 
     if len(arrays) == 0:
@@ -183,6 +186,7 @@ def is_arrays_compatible(arrays):
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
+global_config.warn_nondeterministic = False
 global_config.enable_backprop = True
 global_config.keep_graph_on_report = bool(int(
     os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))
@@ -212,7 +216,7 @@ def is_debug():
     Returns:
         bool:  ``True`` if the debug mode is enabled.
     """
-    return bool(config.debug)
+    return bool(config.__getattr__('debug'))
 
 
 def set_debug(debug):

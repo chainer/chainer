@@ -1,4 +1,5 @@
 import collections
+import functools
 
 import numpy
 import six
@@ -6,6 +7,81 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+
+
+def converter():
+    """Decorator to make a converter function.
+
+    The target converter must be a callable that accepts two positional
+    arguments: a batch and a device, and returns a converted batch.
+
+    The type of the device argument is :class:`chainer.backend.Device`.
+
+    The types and values of the batches (the first argument and the return
+    value) are not specified: they depend on how the converter is used (e.g.
+    by updaters).
+
+    .. admonition:: Example
+
+        >>> @chainer.dataset.converter()
+        ... def custom_converter(batch, device):
+        ...     assert isinstance(device, chainer.backend.Device)
+        ...     # do something with batch...
+        ...     return device.send(batch)
+
+    This decorator puts a mark on the target converter function so that
+    Chainer can recognize that it accepts :class:`chainer.backend.Device` as
+    the device argument. For backward compatibility, the decorator also wraps
+    the function so that if the converter is called with the device argument
+    with ``int`` type, it is converted to a :class:`chainer.backend.Device`
+    instance before calling the original function. The ``int`` value indicates
+    the CUDA device of the cupy backend.
+
+    Without the decorator, the converter cannot support ChainerX devices.
+    If the batch were requested to be converted to ChainerX with such
+    converters, :class:`RuntimeError` will be raised.
+
+    """
+
+    def wrap(func):
+        func.__is_decorated_converter = True
+
+        @functools.wraps(func)
+        def wrap_call(*args, **kwargs):
+            # Normalize the 'device' argument
+            if len(args) >= 2:
+                # specified as a positional argument
+                args = list(args)
+                args[1] = _get_device(args[1])
+            elif 'device' in kwargs:
+                kwargs['device'] = _get_device(kwargs['device'])
+            return func(*args, **kwargs)
+
+        return wrap_call
+
+    return wrap
+
+
+def _call_converter(converter, batch, device):
+    # Calls the converter.
+    # Converter can be either new-style (accepts chainer.backend.Device) or
+    # old-style (accepts int as device).
+    assert device is None or isinstance(device, backend.Device)
+
+    if getattr(converter, '__is_decorated_converter', False):
+        # New-style converter
+        return converter(batch, device)
+
+    # Old-style converter
+    if device is None:
+        return converter(batch, None)
+    if device.xp is numpy:
+        return converter(batch, -1)
+    if device.xp is cuda.cupy:
+        return converter(batch, device.device.id)
+    raise RuntimeError(
+        'Converter does not support ChainerX. '
+        'Use chainer.dataset.converter decorator.')
 
 
 def to_device(device, x):
@@ -27,28 +103,39 @@ def to_device(device, x):
             given ID. If it is``None``, an array is left in the original
             device. Also, any of device specifiers described at
             :class:`~chainer.backend.DeviceId` is accepted.
-        x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
+        x (:ref:`ndarray`): An array to send.
 
     Returns:
         Converted array.
 
     """
+    device = _get_device(device)
+
     if device is None:
         return x
-
-    # For backward compatibilities
-    if isinstance(device, six.integer_types):
-        if device < 0:
-            device = backend.CpuDevice()
-        else:
-            device = backend.get_device(cuda.Device(device))
-    else:
-        device = backend.get_device(device)
-
     return device.send(x)
 
 
+def _get_device(device_spec):
+    # Converts device specificer to a chainer.Device instance.
+    # Additionally to chainer.get_device,
+    # this function supports the following conversions:
+    # - None: returns None
+    # - negative integer: returns CpuDevice
+    # - non-negative integer: returns GpuDevice
+    if device_spec is None:
+        return None
+
+    # For backward compatibilities
+    if isinstance(device_spec, six.integer_types):
+        if device_spec < 0:
+            return backend.CpuDevice()
+        return backend.get_device(cuda.Device(device_spec))
+    return backend.get_device(device_spec)
+
+
 # TODO(hvy): Write unit tests where batch elements contain Python lists.
+@converter()
 def concat_examples(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
@@ -130,6 +217,7 @@ def concat_examples(batch, device=None, padding=None):
         on the type of each example in the batch.
 
     """
+    assert device is None or isinstance(device, backend.Device)
     if len(batch) == 0:
         raise ValueError('batch is empty')
 

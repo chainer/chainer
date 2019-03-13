@@ -552,7 +552,7 @@ class BuildingBlock(link.Chain):
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride,
                 initialW, downsample_fb)
-            self._forward = ["a"]
+            self._forward = ['a']
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)

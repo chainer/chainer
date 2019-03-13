@@ -1,5 +1,6 @@
 #include "chainerx/routines/pooling.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -11,6 +12,7 @@
 #include "chainerx/backward_context.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/routines/math.h"
@@ -37,6 +39,12 @@ void CheckPoolInputs(
     }
     if (ndim == 0) {
         throw DimensionError{"Pooling operation requires at least one spatial dimension."};
+    }
+    if (std::any_of(kernel_size.begin(), kernel_size.end(), [](int64_t ks) { return ks <= 0; })) {
+        throw DimensionError{"Kernel size elements must be greater than 0: ", DimsFormatter{kernel_size}, "."};
+    }
+    if (std::any_of(stride.begin(), stride.end(), [](int64_t s) { return s <= 0; })) {
+        throw DimensionError{"Stride elements must be greater than 0: ", DimsFormatter{stride}, "."};
     }
 }
 

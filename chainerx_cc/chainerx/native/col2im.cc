@@ -12,6 +12,7 @@
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -62,7 +63,8 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
                 it_col.CopyIndex(it_in_image_dims, 2 + kKernelNdim);
                 it_out.CopyIndex(out_image_index, 2);
 
-                out_iarray[it_out] += col_iarray[it_col];
+                native_internal::StorageToDataType<T>(out_iarray[it_out]) +=
+                        native_internal::StorageToDataType<const T>(col_iarray[it_col]);
             }
         }
     }

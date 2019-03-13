@@ -1,6 +1,8 @@
 #include "chainerx/backend.h"
 
 #include <string>
+#include <utility>
+
 #include "chainerx/device.h"
 
 namespace chainerx {

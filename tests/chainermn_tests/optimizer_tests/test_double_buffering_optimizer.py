@@ -22,7 +22,7 @@ class ExampleModel(chainer.Chain):
 class TestDoubleBufferingOptimizer(unittest.TestCase):
 
     def setup_gpu(self, device=None):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl')
         device = self.comm.intra_rank
@@ -103,7 +103,7 @@ class DynamicExampleModel(chainer.Chain):
 class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
 
     def setup_gpu(self, device=None):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl')
         device = self.comm.intra_rank

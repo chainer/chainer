@@ -244,6 +244,137 @@ class TestFunctionBackprop(unittest.TestCase):
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
+class TestFunctionInputNone(unittest.TestCase):
+
+    def call_func_function(self, backend_config, x2):
+        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
+
+        class Func(chainer.Function):
+            def forward(self, inputs):
+
+                # Inputs
+                assert isinstance(inputs, tuple)
+                x1, x2, x3 = inputs
+                assert x1 is None
+                assert isinstance(x2, forward_xp.ndarray)
+                assert x3 is None
+
+                y1 = x2 * 3
+                self.retain_inputs((1, 2))
+                self.retain_outputs(())
+                return y1,
+
+            def backward(self, inputs, grad_outputs):
+
+                # Retained inputs
+                assert isinstance(inputs, tuple)
+                x1, x2, x3 = inputs
+                assert x1 is None
+                assert isinstance(x2, backward_xp.ndarray)
+                assert x3 is None
+
+                # Output gradients
+                assert isinstance(grad_outputs, tuple)
+                gy1, = grad_outputs
+                assert isinstance(gy1, backward_xp.ndarray)
+
+                # Retained outputs
+                output_data = self.output_data
+                assert isinstance(output_data, tuple)
+                y1, = output_data
+                assert y1 is None
+
+                gx2 = 3 * gy1
+                return None, gx2, None
+
+        return Func()(None, x2, None),
+
+    def call_func_function_node(self, backend_config, x2):
+        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
+
+        class Func(chainer.FunctionNode):
+            def forward(self, inputs):
+
+                # Inputs
+                x1, x2, x3 = inputs
+                assert x1 is None
+                assert isinstance(x2, forward_xp.ndarray)
+                assert x3 is None
+
+                y1 = x2 * 3
+                self.retain_inputs((1, 2))
+                self.retain_outputs(())
+                return y1,
+
+            def backward(self, input_indexes, grad_outputs):
+
+                # Input indexes
+                assert isinstance(input_indexes, tuple)
+                assert input_indexes == (1,)
+
+                # Retained inputs
+                retained_inputs = self.get_retained_inputs()
+                assert isinstance(retained_inputs, tuple)
+                x2, x3 = retained_inputs
+                assert isinstance(x2.array, backward_xp.ndarray)
+                assert x3 is None
+
+                # Output grads
+                assert isinstance(grad_outputs, tuple)
+                gy1, = grad_outputs
+                assert isinstance(gy1.array, backward_xp.ndarray)
+
+                # Retained outputs
+                retained_outputs = self.get_retained_outputs()
+                assert retained_outputs is ()
+
+                gx2 = 3 * gy1
+                return None, gx2, None
+
+        return Func().apply((None, x2, None))
+
+    def call_func(self, backend_config, x1):
+        if self.function_node:
+            return self.call_func_function_node(backend_config, x1)
+        else:
+            return self.call_func_function(backend_config, x1)
+
+    def test_backprop(self, backend_config):
+
+        x2_arr = numpy.array([2, 3], numpy.float32)
+        gy1_arr = numpy.array([2, 4], numpy.float32)
+        x2_arr, gy1_arr = backend_config.get_array((x2_arr, gy1_arr))
+
+        x2 = chainer.Variable(x2_arr, requires_grad=True)
+
+        # Forward
+        y1, = self.call_func(backend_config, x2)
+
+        assert isinstance(y1.array, backend_config.xp.ndarray)
+
+        # Backward
+        y1.grad = gy1_arr
+        y1.backward()
+
+        assert isinstance(x2.grad, backend_config.xp.ndarray)
+
+
+@testing.parameterize(*testing.product({
+    'function_node': [True, False],
+}))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestFunctionOutputNone(unittest.TestCase):
 
     def call_func_function(self, backend_config, x1):
@@ -326,7 +457,7 @@ class TestFunctionOutputNone(unittest.TestCase):
                 retained_outputs = self.get_retained_outputs()
                 assert isinstance(retained_outputs, tuple)
                 y2, y3 = retained_outputs
-                assert y3.array is None
+                assert y3 is None
                 assert isinstance(y2.array, backward_xp.ndarray)
 
                 gx1 = 3 * gy2

@@ -47,9 +47,10 @@ def batch_det(a):
     """Computes the determinant of a batch of square matrices.
 
     Args:
-        a (Variable): Input array to compute the determinant for.
-        The first dimension should iterate over each matrix and be
-        of the batchsize.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the determinant for.
+            The first dimension should iterate over each matrix and be
+            of the batchsize.
 
     Returns:
         ~chainer.Variable: vector of determinants for every matrix
@@ -63,7 +64,8 @@ def det(a):
     """Computes the determinant of a single square matrix.
 
     Args:
-        a (Variable): Input array to compute the determinant for.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the determinant for.
 
     Returns:
         ~chainer.Variable: Scalar determinant of the matrix a.

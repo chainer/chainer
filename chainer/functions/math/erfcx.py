@@ -26,8 +26,8 @@ class Erfcx(function_node.FunctionNode):
                 from scipy import special
                 _erfcx_cpu = special.erfcx
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of erfcx can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of erfcx can not be done.')
 
         self.retain_inputs((0,))
         self.retain_outputs((0,))
@@ -56,8 +56,7 @@ def erfcx(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

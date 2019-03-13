@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -278,11 +279,22 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& a, py::handle indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
-              return MoveArrayBody(Take(Array{a}, Array{indices}, axis.value()));
+              if (py::isinstance<ArrayBodyPtr>(indices)) {
+                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+              }
+              if (py::isinstance<py::sequence>(indices)) {
+                  nonstd::optional<Dtype> dtype = Dtype::kInt64;
+                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
+              }
+              if (py::isinstance<py::array>(indices)) {
+                  return MoveArrayBody(
+                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
+              }
+              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           py::arg("a"),
           py::arg("indices"),
@@ -328,23 +340,6 @@ void InitChainerxLogic(pybind11::module& m) {
 
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
-    m.def("asscalar",
-          [](const ArrayBodyPtr& a) -> py::object {
-              Scalar s = AsScalar(Array{a});
-              switch (GetKind(s.dtype())) {
-                  case DtypeKind::kBool:
-                      return py::bool_{static_cast<bool>(s)};
-                  case DtypeKind::kInt:
-                      // fallthrough
-                  case DtypeKind::kUInt:
-                      return py::int_{static_cast<int64_t>(s)};
-                  case DtypeKind::kFloat:
-                      return py::float_{static_cast<double>(s)};
-                  default:
-                      CHAINERX_NEVER_REACH();
-              }
-          },
-          py::arg("a"));
     m.def("transpose",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Transpose(Array{a}, ToAxes(axes)));
@@ -538,6 +533,30 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x2"));
     m.def("divide", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Divide(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
     m.def("divide", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Divide(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
+    m.def("floor_divide",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(FloorDivide(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("floor_divide",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(FloorDivide(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("floor_divide",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(FloorDivide(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("true_divide",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(TrueDivide(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("true_divide",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(TrueDivide(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("true_divide",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(TrueDivide(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("sum",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Sum(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),
@@ -552,6 +571,8 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("keepdims") = false);
     m.def("maximum", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Maximum(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
     m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Maximum(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
+    m.def("minimum", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Minimum(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
+    m.def("minimum", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("logsumexp",

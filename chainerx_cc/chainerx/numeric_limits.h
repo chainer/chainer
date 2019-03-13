@@ -3,6 +3,11 @@
 #include <cmath>
 #include <cstdint>
 
+#ifdef _WIN32
+#include <limits>
+#endif  // _WIN32
+
+#include "chainerx/float16.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
@@ -48,6 +53,25 @@ struct NumericLimits<int64_t> {
 };
 
 template <>
+struct NumericLimits<chainerx::Float16> {
+    CHAINERX_HOST_DEVICE static constexpr chainerx::Float16 LowestOrInf() noexcept { return chainerx::Float16::FromData(0xfc00); }
+    CHAINERX_HOST_DEVICE static constexpr chainerx::Float16 MaxOrInf() noexcept { return chainerx::Float16::FromData(0x7c00); }
+};
+
+#ifdef _WIN32
+template <>
+struct NumericLimits<float> {
+    CHAINERX_HOST_DEVICE static constexpr float LowestOrInf() noexcept { return -std::numeric_limits<float>::infinity(); }
+    CHAINERX_HOST_DEVICE static constexpr float MaxOrInf() noexcept { return std::numeric_limits<float>::infinity(); }
+};
+
+template <>
+struct NumericLimits<double> {
+    CHAINERX_HOST_DEVICE static constexpr double LowestOrInf() noexcept { return -std::numeric_limits<double>::infinity(); }
+    CHAINERX_HOST_DEVICE static constexpr double MaxOrInf() noexcept { return std::numeric_limits<double>::infinity(); }
+};
+#else  // _WIN32
+template <>
 struct NumericLimits<float> {
     CHAINERX_HOST_DEVICE static constexpr float LowestOrInf() noexcept { return -HUGE_VALF; }
     CHAINERX_HOST_DEVICE static constexpr float MaxOrInf() noexcept { return HUGE_VALF; }
@@ -58,5 +82,6 @@ struct NumericLimits<double> {
     CHAINERX_HOST_DEVICE static constexpr double LowestOrInf() noexcept { return -HUGE_VAL; }
     CHAINERX_HOST_DEVICE static constexpr double MaxOrInf() noexcept { return HUGE_VAL; }
 };
+#endif  // _WIN32
 
 }  // namespace chainerx

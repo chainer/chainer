@@ -1,3 +1,7 @@
+import os
+import shutil
+import traceback
+
 import six
 
 import chainer
@@ -71,7 +75,7 @@ class GradTable(object):
 
 
 def backprop_step(
-        func, target_input_indexes, grad_outputs, grad_inputs):
+        func, target_input_indexes, grad_outputs, grad_inputs, is_debug):
     """Accumulates gradients of a FunctionNode
 
     This routine is used by :meth:`chainer.Variable.backward` and
@@ -88,9 +92,9 @@ def backprop_step(
             given, the corresponding element is ``None``.
         grad_inputs (dict): References of the gradients w.r.t. the input
             variables.
+        is_debug (bool): ``True`` if the debug mode is enabled.
 
     """
-    is_debug = chainer.is_debug()
     if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
@@ -102,11 +106,22 @@ def backprop_step(
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes
         ])
-        gxs = func.backward_accumulate(
-            target_input_indexes, grad_outputs, grad_inputs_tuple)
+
+        # Call backward_accumulate()
+        try:
+            gxs = func.backward_accumulate(
+                target_input_indexes, grad_outputs, grad_inputs_tuple)
+        except Exception as e:
+            _reraise_with_stack(func, e)
+
     else:  # otherwise, backward should be overridden
-        gxs = func.backward(
-            target_input_indexes, grad_outputs)
+
+        # Call backward()
+        try:
+            gxs = func.backward(
+                target_input_indexes, grad_outputs)
+        except Exception as e:
+            _reraise_with_stack(func, e)
 
         if is_debug:
             for gx in gxs:
@@ -132,32 +147,34 @@ def backprop_step(
             raise ValueError(func._get_error_message(msg))
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
-        if gx is not None:
-            grad_inputs[func.inputs[i]].append(gx)
+        if gx is None or gx.array is None:
+            continue
 
-            if is_debug:
-                node_x = func.inputs[i]
-                g_input_list = grad_inputs[node_x]
-                if gx.shape != node_x.shape:
+        grad_inputs[func.inputs[i]].append(gx)
+
+        if is_debug:
+            node_x = func.inputs[i]
+            g_input_list = grad_inputs[node_x]
+            if gx.shape != node_x.shape:
+                raise ValueError(func._get_error_message(
+                    'shape of gradients returned from backward is '
+                    'incorrect: '
+                    'input-index={}, actual {} != expected {}'.format(
+                        i, gx.shape, node_x.shape)))
+            if gx is not None and g_input_list:
+                g_input = g_input_list[0]
+                if gx.shape != g_input.shape:
                     raise ValueError(func._get_error_message(
                         'shape of gradients returned from backward is '
                         'incorrect: '
                         'input-index={}, actual {} != expected {}'.format(
-                            i, gx.shape, node_x.shape)))
-                if gx is not None and g_input_list:
-                    g_input = g_input_list[0]
-                    if gx.shape != g_input.shape:
-                        raise ValueError(func._get_error_message(
-                            'shape of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.shape, g_input.shape)))
-                    if gx.dtype != g_input.dtype:
-                        raise ValueError(func._get_error_message(
-                            'dtype of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.dtype, g_input.dtype)))
+                            i, gx.shape, g_input.shape)))
+                if gx.dtype != g_input.dtype:
+                    raise ValueError(func._get_error_message(
+                        'dtype of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.dtype, g_input.dtype)))
     del gxs
 
     if is_debug:
@@ -177,3 +194,29 @@ def backprop_step(
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
             _reduce(gx)
+
+
+def _get_columns():
+    try:
+        get_terminal_size = shutil.get_terminal_size
+    except AttributeError:
+        return os.getenv('COLUMNS', 80)
+    return get_terminal_size()[0]
+
+
+def _reraise_with_stack(func, e):
+    if func.stack is not None:
+        # Reraise any type of exceptions including the following:
+        # - Chainer raises RuntimeError for NaN values; and
+        # - NumPy raises FloatingPointError for invalid values.
+
+        # TODO(kataoka): unify variable._check_grad_type and below
+        additional_message = \
+            '\n{}\nStacktrace of the function is below:\n{}'.format(
+                '-' * _get_columns(),
+                ''.join(traceback.format_list(func.stack[:-1])))
+        if e.args:
+            e.args = (e.args[0] + additional_message,) + e.args[1:]
+        else:
+            e.args = (additional_message,)
+    raise

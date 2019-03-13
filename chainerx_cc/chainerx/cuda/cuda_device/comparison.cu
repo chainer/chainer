@@ -7,6 +7,7 @@
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -17,7 +18,8 @@ namespace {
 
 template <typename T>
 struct EqualImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 == x2; }
 };
 
 }  // namespace
@@ -35,7 +37,8 @@ namespace {
 
 template <typename T>
 struct NotEqualImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 != x2; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 != x2; }
 };
 
 }  // namespace
@@ -53,7 +56,8 @@ namespace {
 
 template <typename T>
 struct GreaterImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 > x2; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 > x2; }
 };
 
 }  // namespace
@@ -71,7 +75,8 @@ namespace {
 
 template <typename T>
 struct GreaterEqualImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 >= x2; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 >= x2; }
 };
 
 }  // namespace
@@ -89,7 +94,8 @@ namespace {
 
 template <typename T>
 struct LogicalNotImpl {
-    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = !x; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !x; }
 };
 
 }  // namespace

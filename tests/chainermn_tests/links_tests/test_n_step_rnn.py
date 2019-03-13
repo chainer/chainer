@@ -35,7 +35,7 @@ class Model(chainer.Chain):
         h3 = self.l3(h2)
         ys = F.sum(h3, axis=0)
         err = F.mean_squared_error(ys, ts)
-        err = chainermn.functions.pseudo_connect(delegate_variable, err)
+        err, = chainermn.functions.pseudo_connect(delegate_variable, err)
         return err
 
 
@@ -49,7 +49,7 @@ class TestNStepRNN(unittest.TestCase):
             self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.rank_next = self.communicator.rank + 1
         self.rank_prev = self.communicator.rank - 1

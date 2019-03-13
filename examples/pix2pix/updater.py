@@ -54,8 +54,8 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         w_in = 256
         w_out = 256
 
-        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype("f")
-        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype("f")
+        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype('f')
+        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype('f')
 
         for i in range(batchsize):
             x_in[i, :] = xp.asarray(batch[i][0])

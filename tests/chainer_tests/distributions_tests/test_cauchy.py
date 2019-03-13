@@ -24,16 +24,16 @@ class TestCauchy(testing.distribution_unittest):
         self.dist = distributions.Cauchy
         self.scipy_dist = stats.cauchy
 
-        self.test_targets = set(["batch_shape", "cdf", "entropy",
-                                 "event_shape", "icdf", "log_prob",
-                                 "support"])
+        self.test_targets = set(['batch_shape', 'cdf', 'entropy',
+                                 'event_shape', 'icdf', 'log_prob',
+                                 'support'])
 
         loc = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
         scale = utils.force_array(numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
-        self.params = {"loc": loc, "scale": scale}
-        self.scipy_params = {"loc": loc, "scale": scale}
+        self.params = {'loc': loc, 'scale': scale}
+        self.scipy_params = {'loc': loc, 'scale': scale}
 
     def sample_for_test(self):
         smp = numpy.random.normal(

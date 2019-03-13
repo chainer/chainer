@@ -1,13 +1,20 @@
 import os
 import unittest
+import warnings
 
 import numpy
 
 import chainer
-from chainer.exporters import caffe
 import chainer.functions as F
 import chainer.links as L
 from chainer import testing
+
+
+# The caffe submodule relies on protobuf which under protobuf==3.7.0 and
+# Python 3.7 raises a DeprecationWarning from the collections module.
+with warnings.catch_warnings():
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning)
+    from chainer.exporters import caffe
 
 
 # @testing.parameterize([
@@ -21,6 +28,7 @@ from chainer import testing
 #     {'layer': 'ReLU'},
 #     {'layer': 'LeakyReLU'},
 #     {'layer': 'Softmax'},
+#     {'layer': 'Sigmoid'},
 #     {'layer': 'Add'},
 # ])
 class TestCaffeExport(unittest.TestCase):
@@ -35,9 +43,9 @@ class TestCaffeExport(unittest.TestCase):
             def __init__(self):
                 super(Model, self).__init__()
                 with self.init_scope():
-                    self.l1 = L.Convolution2D(None, 1, 1, 1, 0)
+                    self.l1 = L.Convolution2D(None, 1, 1, 1, 0, groups=1)
                     self.b2 = L.BatchNormalization(1, eps=1e-2)
-                    self.l3 = L.Deconvolution2D(None, 1, 1, 1, 0)
+                    self.l3 = L.Deconvolution2D(None, 1, 1, 1, 0, groups=1)
                     self.l4 = L.Linear(None, 1)
 
             def forward(self, x):
@@ -90,6 +98,13 @@ class TestCaffeExport(unittest.TestCase):
         class Link(chainer.Chain):
             def forward(self, x):
                 return F.softmax(x)
+
+        assert_export_import_match(Link(), self.x)
+
+    def test_Sigmoid(self):
+        class Link(chainer.Chain):
+            def forward(self, x):
+                return F.sigmoid(x)
 
         assert_export_import_match(Link(), self.x)
 

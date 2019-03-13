@@ -309,6 +309,17 @@ TEST_P(MathTest, IDivideScalar) {
     EXPECT_ARRAY_EQ(e, a);
 }
 
+TEST_P(MathTest, IDivideInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({2, 4, 6});
+    Array b = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    EXPECT_THROW(internal::IDivide(a, b), DtypeError);
+}
+
+TEST_P(MathTest, IDivideScalarInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    EXPECT_THROW(internal::IDivide(a, Scalar{1}), DtypeError);
+}
+
 TEST_THREAD_SAFE_P(MathTest, Add) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
@@ -782,6 +793,16 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, FloorDivide) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
+    Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-2, 1, 0});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{FloorDivide(xs[0], xs[1])}; }, {a, b}, {e});
+    });
+}
+
 TEST_THREAD_SAFE_P(MathTest, Divide) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({-3, -3, 0}).WithPadding(1);
     Array b = testing::BuildArray({3, 1}).WithData<float>({2, -2, 1}).WithPadding(2);
@@ -843,6 +864,21 @@ TEST_P(MathTest, DivideScalar) {
     Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
 
     testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], Scalar{2.f})}; }, {a}, {e});
+}
+
+TEST_P(MathTest, DivideInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<int64_t>({2, 2, 12});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({0.5f, 1.f, 0.25f});
+
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], xs[1])}; }, {a, b}, {e});
+}
+
+TEST_P(MathTest, DivideScalarInteger) {
+    Array a = testing::BuildArray({3, 1}).WithData<int64_t>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({0.5f, 1.f, 1.5f});
+
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Divide(xs[0], Scalar{2})}; }, {a}, {e});
 }
 
 TEST_P(MathTest, DivideBackward) {
@@ -1262,6 +1298,78 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
     CheckDoubleBackwardComputation(
             [s](const std::vector<Array>& xs) -> std::vector<Array> {
                 auto y = Maximum(s, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumArrayScalar) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarArray) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(Scalar{0.f}, xs[0])}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarEmpty) {
+    Array a = testing::BuildArray({0}).WithData<float>({});
+    Array e = testing::BuildArray({0}).WithData<float>({});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_P(MathTest, MinimumScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // Minimum(array, scalar)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(xs[0], s)}; }, {a}, {go}, {eps});
+    // Minimum(scalar, array)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(s, xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, MinimumScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // Minimum(array, scalar)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(xs[0], s);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // Minimum(scalar, array)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(s, xs[0]);
                 return {y * y};  // to make it nonlinear
             },
             {a},

@@ -47,6 +47,11 @@ Array Multiply(Scalar x1, const Array& x2);
 
 namespace internal {
 
+void IFloorDivide(const Array& x1, const Array& x2);
+void IFloorDivide(const Array& x1, Scalar x2);
+void ITrueDivide(const Array& x1, const Array& x2);
+void ITrueDivide(const Array& x1, Scalar x2);
+
 void IDivide(const Array& x1, const Array& x2);
 void IDivide(const Array& x1, Scalar x2);
 
@@ -56,6 +61,15 @@ Array Divide(const Array& x1, const Array& x2);
 Array Divide(const Array& x1, Scalar x2);
 Array Divide(Scalar x1, const Array& x2);
 
+// TODO(imanishi): Support bool
+Array FloorDivide(const Array& x1, const Array& x2);
+Array FloorDivide(const Array& x1, Scalar x2);
+Array FloorDivide(Scalar x1, const Array& x2);
+
+Array TrueDivide(const Array& x1, const Array& x2);
+Array TrueDivide(const Array& x1, Scalar x2);
+Array TrueDivide(Scalar x1, const Array& x2);
+
 Array Reciprocal(const Array& x);
 
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
@@ -64,6 +78,9 @@ Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keep
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+
+Array Minimum(const Array& x1, Scalar x2);
+Array Minimum(Scalar x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);

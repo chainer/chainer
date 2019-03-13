@@ -24,6 +24,7 @@ Dtype GetDtype(const std::string& name) {
             {"int32", Dtype::kInt32},
             {"int64", Dtype::kInt64},
             {"uint8", Dtype::kUInt8},
+            {"float16", Dtype::kFloat16},
             {"float32", Dtype::kFloat32},
             {"float64", Dtype::kFloat64},
             // character code
@@ -33,6 +34,7 @@ Dtype GetDtype(const std::string& name) {
             {"i", Dtype::kInt32},
             {"l", Dtype::kInt64},
             {"B", Dtype::kUInt8},
+            {"e", Dtype::kFloat16},
             {"f", Dtype::kFloat32},
             {"d", Dtype::kFloat64},
     };
@@ -55,6 +57,7 @@ std::vector<Dtype> GetAllDtypes() {
             Dtype::kInt32,
             Dtype::kInt64,
             Dtype::kUInt8,
+            Dtype::kFloat16,
             Dtype::kFloat32,
             Dtype::kFloat64,
     };
