@@ -8,7 +8,7 @@ from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((), ()),
     ((), (2, 3)),
