@@ -1693,7 +1693,7 @@ TEST_P(MathTest, PowerScalarDoubleBackward) {
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-1);
 
-    // array + scalar
+    
     CheckDoubleBackwardComputation(
             [b](const std::vector<Array>& xs) -> std::vector<Array> {
                 auto y = Pow(xs[0], b);
