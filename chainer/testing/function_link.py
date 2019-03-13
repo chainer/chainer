@@ -410,7 +410,7 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         self.run_test_double_backward(backend_config)
 
 
-class _LinkTestImpl(object):
+class _LinkTestBase(object):
 
     contiguous = None
     backend_config = None
@@ -507,7 +507,7 @@ class _LinkTestImpl(object):
             'Invalid value of `contiguous`: {}'.format(self.contiguous))
 
 
-class LinkTestCase(_LinkTestImpl, unittest.TestCase):
+class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
     """A base class for link forward and backward test cases.
 
@@ -780,7 +780,7 @@ class LinkTestCase(_LinkTestImpl, unittest.TestCase):
         return grad_outputs
 
 
-class LinkInitializersTestCase(_LinkTestImpl, unittest.TestCase):
+class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
 
     """A base class for link parameter initializer test cases.
 
