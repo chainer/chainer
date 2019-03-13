@@ -1,4 +1,5 @@
 import math
+import sys
 import unittest
 import warnings
 
@@ -346,6 +347,13 @@ default_eps = 1e-3
     {'func': 'nan_segment', 'x': [-1.], 'result': True},
     {'func': 'nan_segment', 'x': [1.], 'result': True},
 ])
+# TODO(hvy): Stop skipping when NumPy addressed the below issue described in
+# the skip message.
+@unittest.skipIf(
+    sys.platform == 'darwin' and sys.version_info[:2] == (3, 4),
+    'MacOS (darwin) with Python 3.4 will fail in gradient check because '
+    'it may call numpy.polynomial.polynomial.polyfit, which may fail to '
+    'allocate memory when using NumPy with the Accelerate backend.')
 class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
 
     def setUp(self):
