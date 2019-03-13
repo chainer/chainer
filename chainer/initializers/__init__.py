@@ -114,6 +114,7 @@ def _get_initializer(initializer):
 
 def _check_is_initializer_like(initializer):
     if not (isinstance(initializer, chainer.Initializer)
+            or callable(initializer)
             or isinstance(initializer, chainer.get_array_types())
             or numpy.isscalar(initializer)):
         raise TypeError(
