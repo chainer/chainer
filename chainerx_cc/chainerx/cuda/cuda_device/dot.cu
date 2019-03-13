@@ -81,6 +81,10 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
     CudaSetDeviceScope scope{index()};
 
+    if (GetKind(out.dtype()) != DtypeKind::kFloat) {
+        throw NotImplementedError("dot is not implemented for non-float types in CUDA");
+    }
+
     CHAINERX_ASSERT(a.ndim() == 2);
     CHAINERX_ASSERT(b.ndim() == 2);
     CHAINERX_ASSERT(out.ndim() == 2);
@@ -94,6 +98,7 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
     if (m == 1 && n == 1) {
         // TODO(beam2d): Write a custom reduction kernel.
+        // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
         const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
         const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
         Sum(a_cast.Reshape({k}) * b_cast.Reshape({k}), {0}, out.Reshape({}));
@@ -143,12 +148,15 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
                 cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
 
-    if (out.dtype() == Dtype::kFloat32) {
-        gemm_impl(PrimitiveType<float>{});
-    } else if (out.dtype() == Dtype::kFloat64) {
-        gemm_impl(PrimitiveType<double>{});
-    } else {
-        throw NotImplementedError("dot is not implemented for non-float types in CUDA");
+    switch (out.dtype()) {
+        case Dtype::kFloat32:
+            gemm_impl(PrimitiveType<float>{});
+            break;
+        case Dtype::kFloat64:
+            gemm_impl(PrimitiveType<double>{});
+            break;
+        default:
+            CHAINERX_NEVER_REACH();
     }
 
     if (!is_out_contiguous) {
