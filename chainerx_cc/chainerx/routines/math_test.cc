@@ -1638,13 +1638,6 @@ TEST_THREAD_SAFE_P(MathTest, PowerBroadcast3) {
         [](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e}); });
 }
 
-TEST_THREAD_SAFE_P(MathTest, PowerBroadcast4) {
-    Array a1 = testing::BuildArray({2, 2}).WithData<float>({5.f, 2.f, 3.f, 4.f});
-    Array a2 = testing::BuildArray({3}).WithData<float>({2.f, 3.f, 4.f});
-
-    EXPECT_THROW(Pow(a1, a2), ChainerxError);
-}
-
 TEST_P(MathTest, PowerBackward) {
     using T = double;
     Shape shape{2, 3};

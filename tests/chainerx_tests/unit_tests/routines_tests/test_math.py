@@ -584,8 +584,7 @@ class test_tanh(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('lhs, rhs', [
     (numpy.asarray([[1., 2.],[4., 5.]]), numpy.asarray([1., 3.])), (numpy.asarray(
-        [1., 2., 3.]), numpy.asarray([3., 4., 5.])), (numpy.random.uniform(0, 1, (4, 5, 5)),
-    numpy.random.uniform(0, 1, (4, 5, 5)))
+        [1., 2., 3.]), numpy.asarray([3., 4., 5.]))
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class testPow(op_utils.NumpyOpTest):
@@ -611,7 +610,7 @@ class testPow(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input, scalar', [
     (numpy.asarray([[1., 2.],[4., 5.]]), 3), (numpy.asarray(
-        [1., 2., 3.]), 4), (numpy.random.uniform(0, 1, (4, 5, 5)), 2)
+        [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class testPowScalar(op_utils.NumpyOpTest):

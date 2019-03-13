@@ -590,11 +590,10 @@ Array Pow(const Array& x1, const Array& x2) {
     {
         BackwardBuilder bb{"power", {x1, broadcasted_x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& out = bctx.GetRetainedOutput(out_tok);
                 
                 bctx.input_grad() = gout * x2 * Pow(x1, x2 - 1);
             });
