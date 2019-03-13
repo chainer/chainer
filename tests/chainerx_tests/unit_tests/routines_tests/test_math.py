@@ -1048,7 +1048,7 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-class test_square(op_utils.NumpyOpTest):
+class TestSquare(op_utils.NumpyOpTest):
 
     def setup(self, float_dtype):
         self.dtype = float_dtype
