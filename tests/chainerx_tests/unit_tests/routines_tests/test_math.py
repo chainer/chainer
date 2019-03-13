@@ -1496,6 +1496,7 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+<<<<<<< HEAD
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
