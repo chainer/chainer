@@ -715,12 +715,6 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
             inits = self._generate_params()
             link, _, _ = self._create_initialized_link(inits, backend_config)
 
-            def f(inputs, ps):
-                with link.init_scope():
-                    for param_name, p in zip(self.param_names, ps):
-                        setattr(link, param_name, p)
-                return self._forward(link, inputs, backend_config)
-
             link, inputs, outputs = self._create_initialized_link(
                 inits, backend_config)
 
@@ -735,6 +729,12 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
             inputs = self._to_noncontiguous_as_needed(inputs)
             params = self._to_noncontiguous_as_needed(params)
             grad_outputs = self._to_noncontiguous_as_needed(grad_outputs)
+
+            def f(inputs, ps):
+                with link.init_scope():
+                    for param_name, p in zip(self.param_names, ps):
+                        setattr(link, param_name, p)
+                return self._forward(link, inputs, backend_config)
 
             with LinkTestError.raise_if_fail(
                     'backward is not implemented correctly'):
