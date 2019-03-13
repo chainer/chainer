@@ -927,6 +927,8 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
 
         params_inits = self._get_initializers()
 
+        # TODO(hvy): Reduce the number of loop iterations by checking
+        # multiple parameters simultaneously.
         for i_param, param_inits in enumerate(params_inits):
             # When testing an initializer for a particular parameter, other
             # initializers are picked from generate_params.
