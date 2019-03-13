@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import _cpu
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -155,9 +155,9 @@ class TestSoftmaxCrossEntropy(testing.FunctionTestCase):
         # must be positive.
         # TODO(niboshi): Use device.xp.where once chainerx supports it.
         assert numpy.where(
-            _cpu._to_cpu(t == -1),
+            backend.CpuDevice().send(t == -1),
             True,
-            _cpu._to_cpu(loss.array) > 0).all()
+            backend.CpuDevice().send(loss.array) > 0).all()
 
         return loss,
 
