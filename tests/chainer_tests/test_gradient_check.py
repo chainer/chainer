@@ -274,15 +274,11 @@ def _skip_nondifferential_test():
     # Skip if NumPy is installed with the Accelerate backend with Python 3.4
     # because of a failure in NumPy's polyfit function.
     # Please refer to the actual usage of this function.
-    warnings.filterwarnings('error')
-    is_using_accelerate = False
-    try:
+    with warnings.catch_warnings(record=True) as w:
         chainer._environment_check._check_osx_numpy_backend()
-    except Warning:
-        is_using_accelerate = True
 
     return (
-        is_using_accelerate
+        len(w) > 0  # Using Accelerate with MacOS.
         and sys.version_info[0] == 3
         and sys.version_info[1] == 4)
 
