@@ -463,8 +463,7 @@ class _LinkTestBase(object):
 
         return link
 
-    def _create_initialized_link(
-            self, inits, backend_config, return_inputs_outputs=False):
+    def _create_initialized_link(self, inits, backend_config):
         inits = [_get_initializer_argument_value(i) for i in inits]
         link = self._create_link(inits, backend_config)
 
@@ -475,16 +474,11 @@ class _LinkTestBase(object):
         inputs_xp = self._to_noncontiguous_as_needed(inputs_xp)
         input_vars = [chainer.Variable(i) for i in inputs_xp]
         output_vars = self._forward(link, input_vars, backend_config)
+        outputs_xp = [v.array for v in output_vars]
 
         link.cleargrads()
 
-        ret = link
-
-        if return_inputs_outputs:
-            outputs_xp = [v.array for v in output_vars]
-            ret = ret, inputs_xp, outputs_xp
-
-        return ret
+        return link, inputs_xp, outputs_xp
 
     def _forward(self, link, inputs, backend_config):
         assert all(isinstance(x, chainer.Variable) for x in inputs)
@@ -719,7 +713,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
         def do_check():
             inits = self._generate_params()
-            link = self._create_initialized_link(inits, backend_config)
+            link, _, _ = self._create_initialized_link(inits, backend_config)
 
             def f(inputs, ps):
                 with link.init_scope():
@@ -728,7 +722,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
                 return self._forward(link, inputs, backend_config)
 
             link, inputs, outputs = self._create_initialized_link(
-                inits, backend_config, return_inputs_outputs=True)
+                inits, backend_config)
 
             params = _get_link_params(link, self.param_names)
             params = [p.array for p in params]
@@ -963,7 +957,7 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
         # of the argument that should be tested among these.
         inits_orig = inits
         inits = [_get_initializer_argument_value(i) for i in inits]
-        link = self._create_initialized_link(inits, backend_config)
+        link, _, _ = self._create_initialized_link(inits, backend_config)
 
         # Extract the parameters from the initialized link.
         params = _get_link_params(link, self.param_names)
