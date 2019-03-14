@@ -119,9 +119,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
     const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
 
-    auto gemm_impl = [& a = a_cast, &b = b_cast, &out_contiguous, n, m, k, this](auto pt) {
-        CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
-        CHAINERX_ASSERT(b.dtype() == out_contiguous.dtype());
+    auto gemm_impl = [&](auto pt) {
+        CHAINERX_ASSERT(a_cast.dtype() == out_contiguous.dtype());
+        CHAINERX_ASSERT(b_cast.dtype() == out_contiguous.dtype());
 
         using T = typename decltype(pt)::type;
         using StorageType = cuda_internal::StorageType<T>;
@@ -130,22 +130,35 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
         // Note that cuBLAS uses Fortran order.
         // To compute out = a x b, we use cuBLAS to compute out^T = b^T x a^T (here x is the matrix product).
 
-        GemmInputLayout a_layout;
-        GemmInputLayout b_layout;
-        Array a_config = a_layout.Configure(a);
-        Array b_config = b_layout.Configure(b);
+        GemmInputLayout a_cast_layout;
+        GemmInputLayout b_cast_layout;
+        Array a_cast_config = a_cast_layout.Configure(a_cast);
+        Array b_cast_config = b_cast_layout.Configure(b_cast);
 
         const CudaType one{chainerx::Float16{1}};
         const CudaType zero{chainerx::Float16{0}};
-        const CudaType* a_ptr =
-                &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(a_config)));
-        const CudaType* b_ptr =
-                &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(b_config)));
+        const CudaType* a_cast_ptr =
+                &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(a_cast_config)));
+        const CudaType* b_cast_ptr =
+                &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(b_cast_config)));
         CudaType* out_ptr = &cuda_internal::StorageToDataType<T>(*static_cast<StorageType*>(internal::GetRawOffsetData(out_contiguous)));
 
         std::lock_guard<std::mutex> lock{cublas_handle_mutex_};
         Gemm<T>{}(
-                cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
+                cublas_handle(),
+                b_cast_layout.trans,
+                a_cast_layout.trans,
+                n,
+                m,
+                k,
+                &one,
+                b_cast_ptr,
+                b_cast_layout.ld,
+                a_cast_ptr,
+                a_cast_layout.ld,
+                &zero,
+                out_ptr,
+                n);
     };
 
     switch (out.dtype()) {
