@@ -98,8 +98,8 @@ class SplitAxis(function_node.FunctionNode):
 
         x, = inputs
         self._xp = backend.get_array_module(x)
-        split = utils._patch_array_module(self._xp).split
-        ret = split(x, self.indices_or_sections, self.axis)
+        ret = utils.numpy_compat.split(
+            self._xp, x, self.indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
         return tuple(ret)
 

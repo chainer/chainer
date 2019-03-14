@@ -219,7 +219,7 @@ class BatchNormalization(function_node.FunctionNode):
             var = x.var(axis=self.axis)
             if xp is numpy:
                 self.inv_std = numpy.reciprocal(
-                    utils._patch_array_module(numpy).sqrt(var + self.eps))
+                    utils.numpy_compat.sqrt(numpy, var + self.eps))
             else:
                 self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
@@ -493,7 +493,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             var = var + self.eps
             self.inv_var = xp.reciprocal(var)
-            self.inv_std = utils._patch_array_module(xp).sqrt(self.inv_var)
+            self.inv_std = utils.numpy_compat.sqrt(xp, self.inv_var)
             y = _apply_bn_fwd(xp, x, mean[expander], self.inv_std[expander],
                               gamma, beta)
 
@@ -524,7 +524,7 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
         if self.inv_std is None or self.inv_var is None:
             self.inv_var = xp.reciprocal(var + self.eps)
-            self.inv_std = utils._patch_array_module(xp).sqrt(self.inv_var)
+            self.inv_std = utils.numpy_compat.sqrt(xp, self.inv_var)
 
         self.gamma_over_std = gamma * self.inv_std
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])

@@ -16,7 +16,7 @@ from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.error import _format_array_props  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.nondeterministic import nondeterministic  # NOQA
-from chainer.utils.numpy_compat import _patch_array_module  # NOQA
+import chainer.utils.numpy_compat
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA

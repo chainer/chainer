@@ -1,10 +1,14 @@
 import numpy
 
 
-# patched functions does not support array-likes other than numpy.ndarray
+_np_version = numpy.lib.NumpyVersion(numpy.__version__)
 
 
-def split_1_11(ary, indices_or_sections, axis=0):
+def split(xp, *args, **kwargs):
+    return (_np_split if xp is numpy else xp.split)(*args, **kwargs)
+
+
+def _np_1_11_split(ary, indices_or_sections, axis=0):
     x = ary
     ys = numpy.split(x)
     if all(y.ndim == x.ndim for y in ys):
@@ -22,7 +26,14 @@ def split_1_11(ary, indices_or_sections, axis=0):
     return ys
 
 
-def sqrt_1_11_2(x, out=None, **kwargs):
+_np_split = numpy.split if _np_version >= '1.11.0' else _np_1_11_split
+
+
+def sqrt(xp, *args, **kwargs):
+    return (_np_sqrt if xp is numpy else xp.sqrt)(*args, **kwargs)
+
+
+def _np_1_11_2_sqrt(x, out=None, **kwargs):
     # Before NumPy 1.11.2, `numpy.sqrt` casts float16 to float32
     # Note: This func is not a ufunc while numpy.sqrt is.
     if x.dtype == numpy.float16:
@@ -30,24 +41,4 @@ def sqrt_1_11_2(x, out=None, **kwargs):
     return numpy.sqrt(x, out, **kwargs)
 
 
-class _PatchedNumpy(object):
-
-    def __init__(self):
-        np_version = numpy.lib.NumpyVersion(numpy.__version__)
-        if np_version < '1.11.0':
-            self.split = split_1_11
-        if np_version < '1.11.2':
-            self.sqrt = sqrt_1_11_2
-
-    def __getattr__(self, name):
-        return getattr(numpy, name)
-
-
-_patched_numpy = _PatchedNumpy()
-
-
-def _patch_array_module(xp):
-    if xp is numpy:
-        return _patched_numpy
-    else:
-        return xp
+_np_sqrt = numpy.sqrt if _np_version >= '1.11.2' else _np_1_11_2_sqrt

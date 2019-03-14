@@ -82,10 +82,10 @@ class BatchRenormalizationFunction(function.Function):
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         mean = x.mean(axis=axis)
         var = x.var(axis=axis) + self.eps
-        xp_sqrt = utils._patch_array_module(xp).sqrt
-        self.std = xp_sqrt(var)
+        self.std = utils.numpy_compat.sqrt(xp, var)
 
-        running_sigma = xp_sqrt(self._running_var + self.eps)
+        running_sigma = utils.numpy_compat.sqrt(
+            xp, self._running_var + self.eps)
         self.r = xp.clip(self.std / running_sigma,
                          1.0 / self.rmax, self.rmax)
         d = xp.clip(
