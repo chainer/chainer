@@ -1,5 +1,3 @@
-import functools
-
 import numpy
 import six
 
@@ -14,7 +12,7 @@ from chainer import variable
 import chainerx
 
 
-_broadcast_to = functools.partial(numpy_compat.broadcast_to, numpy)
+_broadcast_to = numpy_compat.broadcast_to(numpy)
 
 
 def _check_class_weight_option(class_weight):

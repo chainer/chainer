@@ -4,9 +4,8 @@ import numpy
 _np_version = numpy.lib.NumpyVersion(numpy.__version__)
 
 
-def broadcast_to(xp, *args, **kwargs):
-    return (_np_1_10_broadcast_to if xp is numpy else xp.broadcast_to)(
-        *args, **kwargs)
+def broadcast_to(xp):
+    return _np_1_10_broadcast_to if xp is numpy else xp.broadcast_to
 
 
 def _np_1_10_broadcast_to(array, shape, subok=False):
@@ -14,8 +13,8 @@ def _np_1_10_broadcast_to(array, shape, subok=False):
     return numpy.broadcast_arrays(array, dummy)[0]
 
 
-def split(xp, *args, **kwargs):
-    return (_np_split if xp is numpy else xp.split)(*args, **kwargs)
+def split(xp):
+    return _np_split if xp is numpy else xp.split
 
 
 def _np_1_11_split(ary, indices_or_sections, axis=0):
@@ -39,8 +38,8 @@ def _np_1_11_split(ary, indices_or_sections, axis=0):
 _np_split = numpy.split if _np_version >= '1.11.0' else _np_1_11_split
 
 
-def sqrt(xp, *args, **kwargs):
-    return (_np_sqrt if xp is numpy else xp.sqrt)(*args, **kwargs)
+def sqrt(xp):
+    return _np_sqrt if xp is numpy else xp.sqrt
 
 
 def _np_1_11_2_sqrt(x, out=None, **kwargs):

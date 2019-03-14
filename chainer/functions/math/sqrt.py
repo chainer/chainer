@@ -25,7 +25,7 @@ class Sqrt(function_node.FunctionNode):
     def forward(self, x):
         self.retain_outputs((0,))
         xp = backend.get_array_module(*x)
-        return utils.force_array(numpy_compat.sqrt(xp, x[0])),
+        return utils.force_array(numpy_compat.sqrt(xp)(x[0])),
 
     def backward(self, indexes, grad_outputs):
         gx = self.get_retained_outputs()[0]

@@ -46,8 +46,8 @@ class NormalizeL2(function_node.FunctionNode):
         x, = inputs
         xp = backend.get_array_module(x)
         norm = (
-            numpy_compat.sqrt(
-                xp, xp.sum(xp.square(x), axis=self.axis, keepdims=True))
+            numpy_compat.sqrt(xp)(
+                xp.sum(xp.square(x), axis=self.axis, keepdims=True))
             + x.dtype.type(self.eps))
         return utils.force_array(x / norm),
 
