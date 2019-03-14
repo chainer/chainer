@@ -603,10 +603,9 @@ class testPow(op_utils.NumpyOpTest):
         return self.lhs, self.rhs
 
     def forward_xp(self, inputs, xp):
-        if not self.is_module:
-            return xp.power(inputs[0], inputs[1]),
-        return inputs[0] ** inputs[1], 
-
+        if xp is not chainerx and xp is not numpy:
+            return inputs[0] ** inputs[1], 
+        return xp.power(inputs[0], inputs[1]),
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input, scalar', [
