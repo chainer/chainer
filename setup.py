@@ -40,7 +40,7 @@ requirements = {
         'pycodestyle>=2.4,<2.5',
     ],
     'test': [
-        'pytest',
+        'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
         'mock',
     ],
     'doctest': [
