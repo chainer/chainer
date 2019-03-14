@@ -1,3 +1,5 @@
+import functools
+
 import numpy
 import six
 
@@ -6,16 +8,13 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.activation import log_softmax
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 from chainer import variable
 import chainerx
 
 
-def _broadcast_to(array, shape):
-    if hasattr(numpy, 'broadcast_to'):
-        return numpy.broadcast_to(array, shape)
-    dummy = numpy.empty(shape, array.dtype)
-    return numpy.broadcast_arrays(array, dummy)[0]
+_broadcast_to = functools.partial(numpy_compat.broadcast_to, numpy)
 
 
 def _check_class_weight_option(class_weight):

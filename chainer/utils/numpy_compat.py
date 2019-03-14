@@ -4,6 +4,16 @@ import numpy
 _np_version = numpy.lib.NumpyVersion(numpy.__version__)
 
 
+def broadcast_to(xp, *args, **kwargs):
+    return (_np_1_10_broadcast_to if xp is numpy else xp.broadcast_to)(
+        *args, **kwargs)
+
+
+def _np_1_10_broadcast_to(array, shape, subok=False):
+    dummy = numpy.empty(shape, dtype=numpy.int8)
+    return numpy.broadcast_arrays(array, dummy)[0]
+
+
 def split(xp, *args, **kwargs):
     return (_np_split if xp is numpy else xp.split)(*args, **kwargs)
 
