@@ -13,9 +13,7 @@ if cuda.cudnn_enabled:
 
 class GroupNormalization(function_node.FunctionNode):
 
-    cache_x_hat = False
-
-    def __init__(self, groups, eps=1e-5):
+    def __init__(self, groups, eps=1e-5, cache_x_hat=False):
         if not isinstance(groups, int):
             raise TypeError('Argument: \'groups\' type must be (int).')
 
@@ -24,6 +22,7 @@ class GroupNormalization(function_node.FunctionNode):
         self.mean = None
         self.inv_std = None
         self.dummy_gamma = None
+        self.cache_x_hat = cache_x_hat
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -374,7 +373,7 @@ class _MulInvStd(function_node.FunctionNode):
         return -gx, gy
 
 
-def group_normalization(x, groups, gamma, beta, eps=1e-5):
+def group_normalization(x, groups, gamma, beta, eps=1e-5, cache_x_hat=False):
     """Group normalization function.
 
     This function implements a "group normalization"
@@ -396,6 +395,9 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         beta (:class:`~chainer.Variable` or :ref:`ndarray`):
             Shifting parameter.
         eps (float): Epsilon value for numerical stability of normalization.
+        cache_x_hat (bool): If ``True``, cache normalized ``x`` for faster
+            backward with increased memory consumption. The default value is
+            ``False``.
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape
@@ -403,4 +405,5 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
 
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
     """
-    return GroupNormalization(groups, eps).apply((x, gamma, beta))[0]
+    gn = GroupNormalization(groups, eps, cache_x_hat)
+    return gn.apply((x, gamma, beta))[0]

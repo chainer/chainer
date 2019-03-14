@@ -31,6 +31,10 @@ class GroupNormalization(link.Link):
             If ``None``, then the vector is filled by 0.
             If a scalar, the vector is filled by it.
             If ``numpy.ndarray``, the vector is set by it.
+        cache_x_hat (bool): If ``True``, cache normalized input ``x`` for
+            faster backward. The default value is ``Nonee`` because Group
+            Normalization is a normalization technique for training with
+            very small batchsizes.
 
     Attributes:
         groups (int): The number of channel groups.
@@ -42,18 +46,19 @@ class GroupNormalization(link.Link):
     """
 
     def __init__(self, groups, size=None, eps=1e-5, initial_gamma=None,
-                 initial_beta=None):
+                 initial_beta=None, cache_x_hat=False):
         super(GroupNormalization, self).__init__()
         if initial_gamma is None:
             initial_gamma = 1
         if initial_beta is None:
             initial_beta = 0
 
+        self.groups = groups
+        self.eps = eps
+        self.cache_x_hat = cache_x_hat
         with self.init_scope():
-            self.groups = groups
             self.gamma = variable.Parameter(initial_gamma)
             self.beta = variable.Parameter(initial_beta)
-            self.eps = eps
 
         if size is not None:
             self._initialize_params(size)
@@ -85,4 +90,4 @@ class GroupNormalization(link.Link):
             self._initialize_params(channels)
 
         return group_normalization.group_normalization(
-            x, self.groups, self.gamma, self.beta, self.eps)
+            x, self.groups, self.gamma, self.beta, self.eps, self.cache_x_hat)
