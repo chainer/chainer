@@ -10,6 +10,9 @@ from chainer import testing
     'axis': [None, 0, 1, 2, -1, (0, 1), (1, 0), (0, -1), (-2, 0)],
     'keepdims': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    # sum_dtype == float16 would cause too much error.
+    #'sum_dtype': [None, numpy.float32, numpy.float64],
+    'sum_dtype': [None, numpy.float32],
 }))
 @testing.fix_random()
 @testing.inject_backend_tests(
@@ -32,7 +35,7 @@ from chainer import testing
 class TestSum(testing.FunctionTestCase):
 
     def setUp(self):
-        if self.dtype == numpy.float16:
+        if self.dtype == numpy.float16 or self.sum_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-2})
             self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
             self.check_double_backward_options \
@@ -44,11 +47,14 @@ class TestSum(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        return functions.sum(x, axis=self.axis, keepdims=self.keepdims),
+        y = functions.sum(
+            x, axis=self.axis, keepdims=self.keepdims, dtype=self.sum_dtype)
+        return y,
 
     def forward_expected(self, inputs):
         x, = inputs
-        expected = x.sum(axis=self.axis, keepdims=self.keepdims)
+        expected = x.sum(
+            axis=self.axis, keepdims=self.keepdims, dtype=self.sum_dtype)
         expected = numpy.asarray(expected)
         return expected,
 

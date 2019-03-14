@@ -40,6 +40,7 @@ def empty_like(x):
 
 
 def size_of_shape(shape):
+    # TODO(niboshi): Write docstring
     size = 1
     for i in shape:
         size *= i
@@ -48,18 +49,21 @@ def size_of_shape(shape):
     return int(size)
 
 
-def sum_to(x, shape):
-    if x.shape == shape:
-        return x
+def sum_to(x, shape, dtype=None):
+    # TODO(niboshi): Write docstring
     if isinstance(x, chainer.Variable):
         raise TypeError(
             'chainer.utils.sum_to does not support Variable input. '
             'Use chainer.functions.sum_to instead.')
+    if x.shape == shape:
+        if dtype is None or x.dtype == dtype:
+            return x
+        return x.astype(dtype)
     ndim = len(shape)
     lead = x.ndim - ndim
     lead_axis = tuple(six.moves.range(lead))
     axis = tuple([i + lead for i, sx in enumerate(shape) if sx == 1])
-    y = x.sum(lead_axis + axis, keepdims=True)
+    y = x.sum(lead_axis + axis, dtype=dtype, keepdims=True)
     if lead > 0:
         y = y.squeeze(lead_axis)
     return y
