@@ -13,7 +13,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def __init__(self, mpi_comm, allreduce_grad_dtype=None,
                  batched_copy=False):
         super(PureNcclCommunicator, self).__init__(mpi_comm)
-        if not nccl._available or nccl.get_version() < 2000:
+        if not nccl._available or nccl.get_build_version() < 2000:
             raise RuntimeError(
                 'PureNcclCommunicator is only supported on NCCL 2.0+')
 

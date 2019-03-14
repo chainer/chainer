@@ -83,11 +83,13 @@ def cast_if_numpy_array(xp, array, chx_expected_dtype):
     This function receives result arrays for both NumPy and ChainerX and only
     converts dtype of the NumPy array.
     """
-    assert xp in (chainerx, numpy)
-    assert isinstance(array, xp.ndarray)
+    if xp is chainerx:
+        assert isinstance(array, chainerx.ndarray)
+        return array
 
-    # Dtype conversion to allow comparing the correctnesses of the values.
     if xp is numpy:
+        assert isinstance(array, (numpy.ndarray, numpy.generic))
+        # Dtype conversion to allow comparing the correctnesses of the values.
         return array.astype(chx_expected_dtype, copy=False)
 
-    return array
+    assert False

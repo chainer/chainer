@@ -32,7 +32,6 @@ install(FILES
 
 if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_routines_test
-      connection_test.cc
       creation_test.cc
       indexing_test.cc
       linalg_test.cc

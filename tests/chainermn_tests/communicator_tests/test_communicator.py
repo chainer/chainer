@@ -144,7 +144,7 @@ def create_communicator(param, use_gpu):
         if inter_size > 1:
             pytest.skip('This test is for single node only')
 
-    if use_gpu and not param.nccl1 and nccl.get_version() < 2000:
+    if use_gpu and not param.nccl1 and nccl.get_build_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
 
     if param.communicator_class is PureNcclCommunicator:
@@ -291,7 +291,7 @@ def test_communicator_gpu(param):
 class TestPureNcclCommunicator(unittest.TestCase):
 
     def setUp(self):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.mpi_comm = mpi4py.MPI.COMM_WORLD
 
