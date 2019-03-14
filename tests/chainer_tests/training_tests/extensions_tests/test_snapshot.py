@@ -91,4 +91,29 @@ class TestSnapshotOnError(unittest.TestCase):
         self.assertTrue(os.path.exists(self.filename))
 
 
+class TestAutoSnapshot(unittest.TestCase):
+
+    def test_autosnapshot(self):
+        trainer = testing.get_trainer_with_mock_updater()
+        trainer.out = '.'
+        snapshot = extensions.AutoSnapshot(trainer, num_retain=0)
+        trainer.run()
+        snapshot(trainer)
+
+        trainer1 = testing.get_trainer_with_mock_updater()
+        trainer1.out = '.'
+        snapshot1 = extensions.AutoSnapshot(trainer1, num_retain=0)
+        snapshot1.maybe_load()
+
+        # test autoload
+        trainer2 = testing.get_trainer_with_mock_updater()
+        trainer2.out = '.'
+        snapshot2 = extensions.AutoSnapshot(trainer2, num_retain=0,
+                                            autoload=True)
+        
+        # TODO: check trainers' equality
+        snapshot.finalize()
+        # TODO: check the file removed
+
+
 testing.run_module(__name__, __file__)

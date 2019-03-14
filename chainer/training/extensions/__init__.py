@@ -1,4 +1,5 @@
 # import classes and functions
+from chainer.training.extensions._snapshot import AutoSnapshot  # NOQA
 from chainer.training.extensions._snapshot import snapshot  # NOQA
 from chainer.training.extensions._snapshot import snapshot_object  # NOQA
 from chainer.training.extensions.computational_graph import DumpGraph  # NOQA

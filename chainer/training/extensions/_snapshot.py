@@ -1,3 +1,4 @@
+import chainer
 from chainer.serializers import npz
 from chainer.training import extension
 from chainer.training.extensions import snapshot_writers
@@ -227,3 +228,85 @@ class _Snapshot(extension.Extension):
     def finalize(self):
         if hasattr(self.writer, 'finalize'):
             self.writer.finalize()
+
+
+class AutoSnapshot(_Snapshot):
+    """Automatically take and load snapshot on training.
+
+    """
+    def __init__(
+            self, target=None, condition=None, writer=None,
+            num_retain=1,
+            autoload=False,
+            snapshot_on_error=False):
+
+        super(AutoSnapshot, self).__init__(target, condition, writer,
+                                           self._make_filename, snapshot_on_error)
+
+        self.num_retain = num_retain if num_retain > 0 else 1
+        self.files = []
+        if autoload:
+            self.maybe_load()
+
+    def __call__(self, trainer):
+        files = []
+        try:
+            files = os.list_dir(trainer.out)
+        except Exception as e:
+            if chainer.is_debug():
+                print("Cannot list directory {}: {}".format(trainer.out, e))
+
+        if self.condition():
+            self._make_snapshot(trainer)
+
+        self._maybe_cleanup(trainer.out, files)
+
+    def _maybe_cleanup(self, path, files):
+        if len(files) + 1 <= self.num_retain:
+            return
+        num_remove = len(files) + 1 - self.num_retain
+
+        files = filter(None, [(self._parse_filename(f), f) for f in files])
+        files = list(files)
+        files.sort()
+
+        for _, file in files[:num_remove]:
+            # TODO(kuenishi): Do we print debug message here in case of exception?
+            os.remove(os.path.join(path, file))
+
+    def _make_filename(self, trainer):
+        return 'snapshot-trainer.{:d}'.format(trainer.updater.iteration)
+
+    def _parse_filename(self, filename):
+        # Parse filename and get iteration number of the file
+        tokens = filename.split('.')
+        if len(tokens) != 2 or tokens[0] == 'snapshot-trainer':
+            return
+        return int(tokens[1])
+
+    def maybe_load(self, path=None):
+        target = self._target
+        if path is None:
+            path = target.out
+
+        local_files = []
+        try:
+            local_files = os.listdir(path)
+        except Exception as e:
+            if chainer.is_debug():
+                print("Cannot list directory {}: {}".format(trainer.out, e))
+
+        files = filter(None, [(self._parse_filename(f), f) for f in local_files])
+        files = list(files)
+        files.sort()
+
+        if len(files) > 0:
+            # Adopt latest snapshot from iteration number
+            _i, filename = max(files)
+            filename = os.path.join(path, filename)
+
+            # Note that checkpointer only verifies file name - if
+            # exception happens here, currently manual deletion of
+            # *latest* snapshot may checkpointer work sanely against
+            # one older snapshot
+            chainer.serializers.load_npz(filename, target, filename)
