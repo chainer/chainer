@@ -3,6 +3,7 @@ import six
 import chainer
 from chainer import backend
 from chainer import function_node
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 import chainerx
 
@@ -91,13 +92,7 @@ class BroadcastTo(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         xp = backend.get_array_module(x)
-        if hasattr(xp, 'broadcast_to'):
-            return xp.broadcast_to(x, self._shape),
-        else:
-            # numpy 1.9 doesn't support broadcast_to method
-            dummy = xp.empty(self._shape)
-            bx, _ = xp.broadcast_arrays(x, dummy)
-            return bx,
+        return numpy_compat.broadcast_to(xp)(x, self._shape),
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs

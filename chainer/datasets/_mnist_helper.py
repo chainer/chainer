@@ -6,6 +6,7 @@ import six
 
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
+from chainer.utils import numpy_compat
 
 
 def make_npz(path, urls):
@@ -41,8 +42,8 @@ def preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
     elif ndim == 3:
         images = images.reshape(-1, 1, 28, 28)
         if rgb_format:
-            images = numpy.broadcast_to(images,
-                                        (len(images), 3) + images.shape[2:])
+            images = numpy_compat.broadcast_to(numpy)(
+                images, (len(images), 3) + images.shape[2:])
     elif ndim != 1:
         raise ValueError('invalid ndim for MNIST dataset')
     images = images.astype(image_dtype)
