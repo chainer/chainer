@@ -662,6 +662,7 @@ class testPowScalarArray(op_utils.NumpyOpTest):
             return xp.power(self.scalar, inputs[0]),
         return self.scalar ** inputs[0],
 
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
