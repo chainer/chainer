@@ -122,14 +122,10 @@ class GroupNormalization(function_node.FunctionNode):
         reduced_shape = (batch_size * groups, -1)
         x = x.reshape(reduced_shape)
 
-        if self.cache_x_hat:
-            x_hat, = _XHat(
-                self.eps, self.mean, self.inv_std,
-                self.dummy_gamma, self.x_hat).apply((x,))
-        else:
-            x_hat, = _XHat(
-                self.eps, self.mean, self.inv_std,
-                self.dummy_gamma).apply((x,))
+        cached_x_hat = self.x_hat if self.cache_x_hat else None
+        x_hat, = _XHat(
+            self.eps, self.mean, self.inv_std,
+            self.dummy_gamma, cached_x_hat).apply((x,))
         gx_hat, ggamma, gbeta = _ScaleShiftGrad().apply((x_hat, gamma, gy))
         gx, = _XHatGrad(
             self.eps, self.mean, self.inv_std,
