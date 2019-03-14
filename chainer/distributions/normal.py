@@ -49,7 +49,7 @@ class Normal(distribution.Distribution):
                 kwargs, ('log_scale', log_scale))
         if not (scale is None) ^ (log_scale is None):
             raise ValueError(
-                "Either `scale` or `log_scale` (not both) must have a value.")
+                'Either `scale` or `log_scale` (not both) must have a value.')
 
         self.__loc = loc
         self.__scale = scale

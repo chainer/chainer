@@ -60,25 +60,50 @@ cpu_params = [Param(p) for p in [
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }]]
+
 gpu_params = [Param(p) for p in [
     {
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
+        'communicator_class': NaiveCommunicator,
+        'model_dtype': np.float16,
+        'multi_node': True,
+    }, {
         'communicator_class': FlatCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': FlatCommunicator,
+        'model_dtype': np.float16,
         'multi_node': True,
     }, {
         'communicator_class': HierarchicalCommunicator,
         'multi_node': True,
     }, {
+        'communicator_class': HierarchicalCommunicator,
+        'model_dtype': np.float16,
+        'multi_node': True,
+    }, {
         'communicator_class': TwoDimensionalCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': TwoDimensionalCommunicator,
+        'model_dtype': np.float16,
         'multi_node': True,
     }, {
         'communicator_class': SingleNodeCommunicator,
         'multi_node': False,
     }, {
+        'communicator_class': SingleNodeCommunicator,
+        'model_dtype': np.float16,
+        'multi_node': False,
+    }, {
         'communicator_class': NonCudaAwareCommunicator,
         'multi_node': True,
+    }, {
+        'communicator_class': NonCudaAwareCommunicator,
+        'model_dtype': np.float16,
+        'multi_node': False,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
@@ -140,7 +165,7 @@ def create_communicator(param, use_gpu):
         if inter_size > 1:
             pytest.skip('This test is for single node only')
 
-    if use_gpu and not param.nccl1 and nccl.get_version() < 2000:
+    if use_gpu and not param.nccl1 and nccl.get_build_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
 
     if param.communicator_class is PureNcclCommunicator:
@@ -158,7 +183,7 @@ def create_communicator(param, use_gpu):
 
 def check_send_and_recv(communicator, *shape):
     if communicator.size < 2:
-        pytest.skip("This test is for multiple nodes")
+        pytest.skip('This test is for multiple nodes')
 
     if communicator.rank > 0:
         rank_prev = (communicator.rank - 1) % communicator.size
@@ -175,7 +200,7 @@ def check_send_and_recv(communicator, *shape):
 
 def check_send_and_recv_tuple(communicator, data):
     if communicator.size < 2:
-        pytest.skip("This test is for multiple nodes")
+        pytest.skip('This test is for multiple nodes')
 
     if communicator.rank > 0:
         rank_prev = (communicator.rank - 1) % communicator.size
@@ -287,7 +312,7 @@ def test_communicator_gpu(param):
 class TestPureNcclCommunicator(unittest.TestCase):
 
     def setUp(self):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.mpi_comm = mpi4py.MPI.COMM_WORLD
 

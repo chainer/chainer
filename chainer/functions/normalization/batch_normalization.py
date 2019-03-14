@@ -200,16 +200,15 @@ class BatchNormalization(function_node.FunctionNode):
                 y = numpy.squeeze(y, axis=(2, 3))
 
         elif self.use_cudnn:
-            if self.mean is None:
-                # Output cache to speed up backward pass.
-                self.mean = xp.empty_like(gamma)
-                # Output cache to speed up backward pass.
-                self.inv_std = xp.empty_like(gamma)
-            y = cudnn.batch_normalization_forward_training(
-                x, gamma, beta, self.running_mean, self.running_var,
-                self.mean, self.inv_std, self.eps, self.decay,
-                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                chainer.is_debug())
+            # self.mean and self.inv_std are used as buffers to save
+            # intermediate results computed during forward pass. These buffers
+            # are used to speed-up backward pass.
+            y, self.mean, self.inv_std = (
+                cudnn.batch_normalization_forward_training(
+                    x, gamma, beta, self.running_mean, self.running_var,
+                    None, None, self.eps, self.decay,
+                    self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
+                    chainer.is_debug()))
         else:
             # Generic CPU and GPU implementation
 

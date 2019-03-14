@@ -293,25 +293,6 @@ Array ConvTranspose(
     return out;
 }
 
-namespace {
-void LinearGradWeight(BackwardBuilder& bb) {
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
-            const Array& w_matrix = bctx.GetRetainedInput(w_matrix_tok);
-            const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Dot(gout, w_matrix);
-        });
-    }
-    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-        bt.Define([x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-            const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
-            const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Dot(gout.Transpose(), x_matrix);
-        });
-    }
-}
-}  // namespace
-
 Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, uint8_t n_batch_axes) {
     n_batch_axes = internal::NormalizeAxis(n_batch_axes, x.ndim());
 
@@ -331,16 +312,16 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         throw DimensionError{"b.ndim should be 1"};
     }
 
+    bool has_bias = b.has_value();
     int64_t out_dim = std::accumulate(x.shape().begin(), x.shape().begin() + n_batch_axes, int64_t{1}, std::multiplies<>());
     int64_t m_dim = w.shape()[0];
     int64_t n_dim = w.shape()[1];
 
-    Shape out_shape{};
-    std::copy(x.shape().begin(), x.shape().begin() + n_batch_axes, std::back_inserter(out_shape));
+    Shape out_shape{x.shape().begin(), x.shape().begin() + n_batch_axes};
     out_shape.emplace_back(m_dim);
 
     if (m_dim == 0 || n_dim == 0) {
-        if (b.has_value()) {
+        if (has_bias) {
             return b->BroadcastTo(out_shape);
         }
         return Zeros(out_shape, x.dtype(), x.device());
@@ -348,35 +329,43 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 
     Array x_matrix = x.Reshape({out_dim, n_dim});
     Array out_matrix = Empty({out_dim, m_dim}, x.dtype(), x.device());
+    Array b_matrix = has_bias ? b->BroadcastTo({out_dim, m_dim}) : Array{};
 
-    if (b.has_value()) {
-        Array b_matrix = b->BroadcastTo({out_dim, m_dim});
-        {
-            NoBackpropModeScope scope{};
-            x.device().Dot(x_matrix, w.Transpose(), out_matrix);
+    {
+        NoBackpropModeScope scope{};
+        x.device().Dot(x_matrix, w.Transpose(), out_matrix);
+
+        if (has_bias) {
             x.device().Add(out_matrix, b_matrix, out_matrix);
         }
-        BackwardBuilder bb{"linear", {x_matrix, w, b_matrix}, out_matrix};
-        {
-            LinearGradWeight(bb);
+    }
+
+    BackwardBuilder bb = has_bias ? BackwardBuilder{"linear", {x_matrix, w, b_matrix}, out_matrix}
+                                  : BackwardBuilder{"linear_nobias", {x_matrix, w}, out_matrix};
+    {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+                const Array& w_matrix = bctx.GetRetainedInput(w_matrix_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = Dot(gout, w_matrix);
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+                const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = Dot(gout.Transpose(), x_matrix);
+            });
+        }
+        if (has_bias) {
             if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
                 bt.Define([](BackwardContext& bctx) {
                     const Array& gout = *bctx.output_grad();
                     bctx.input_grad() = gout;
                 });
             }
-            bb.Finalize();
         }
-    } else {
-        {
-            NoBackpropModeScope scope{};
-            x.device().Dot(x_matrix, w.Transpose(), out_matrix);
-        }
-        BackwardBuilder bb{"linear_nobias", {x_matrix, w}, out_matrix};
-        {
-            LinearGradWeight(bb);
-            bb.Finalize();
-        }
+        bb.Finalize();
     }
     return out_matrix.Reshape(out_shape);
 }

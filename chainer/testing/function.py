@@ -3,6 +3,7 @@ import typing as tp  # NOQA
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -68,6 +69,17 @@ class FunctionTestBase(object):
             for a in inputs_template])
         return grad_grad_inputs
 
+    def check_forward_outputs(self, outputs, expected_outputs):
+        assert isinstance(outputs, tuple)
+        assert isinstance(expected_outputs, tuple)
+        assert all(isinstance(a, chainer.get_array_types()) for a in outputs)
+        assert all(
+            isinstance(a, chainer.get_array_types()) for a in expected_outputs)
+        _check_forward_output_arrays_equal(
+            outputs,
+            expected_outputs,
+            'forward', **self.check_forward_options)
+
     def _to_noncontiguous_as_needed(self, contig_arrays):
         if self.contiguous is None:
             # non-contiguous
@@ -126,7 +138,9 @@ class FunctionTestBase(object):
 
         # Compute actual outputs
         outputs = self._forward(
-            tuple([chainer.Variable(a) for a in inputs]),
+            tuple([
+                chainer.Variable(a, requires_grad=a.dtype.kind == 'f')
+                for a in inputs]),
             backend_config)
 
         # Check inputs has not changed
@@ -146,10 +160,9 @@ class FunctionTestBase(object):
                     ', '.join(str(i) for i in indices),
                     utils._format_array_props(inputs)))
 
-        _check_forward_output_arrays_equal(
-            cpu_expected,
-            [var.array for var in outputs],
-            'forward', **self.check_forward_options)
+        self.check_forward_outputs(
+            tuple([var.array for var in outputs]),
+            cpu_expected)
 
     def run_test_backward(self, backend_config):
         # Runs the backward test.
@@ -293,6 +306,12 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         ``input_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
+    ``check_forward_outputs(self, outputs, expected_outputs)``
+        Implements check logic of forward outputs. Typically additional check
+        can be done after calling ``super().check_forward_outputs``.
+        ``outputs`` and ``expected_outputs`` are tuples of arrays.
+        In case the check fails, ``FunctionTestError`` should be raised.
+
     .. rubric:: Attributes
 
     The concrete class can override the following attributes to control the
@@ -397,56 +416,66 @@ def _check_variable_types(vars, device, func_name):
             '{}() must return a tuple of Variables of arrays supported by '
             'device {}.\n'
             'Actual: {}'.format(
-                func_name, device, ', '.join(type(a.array) for a in vars)))
+                func_name, device,
+                ', '.join(str(type(a.array)) for a in vars)))
 
 
 def _check_forward_output_arrays_equal(
-        expected_arrays, actual_arrays, func_name, **opts):
+        actual_arrays, expected_arrays, func_name, **opts):
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
     message = None
+    detail_message = None
     while True:
         # Check number of arrays
-        if len(expected_arrays) != len(actual_arrays):
+        if len(actual_arrays) != len(expected_arrays):
             message = (
                 'Number of outputs of forward() ({}, {}) does not '
                 'match'.format(
-                    len(expected_arrays), len(actual_arrays)))
+                    len(actual_arrays), len(expected_arrays)))
             break
 
         # Check dtypes and shapes
         dtypes_match = all([
-            ye.dtype == y.dtype
-            for ye, y in zip(expected_arrays, actual_arrays)])
+            y.dtype == ye.dtype
+            for y, ye in zip(actual_arrays, expected_arrays)])
         shapes_match = all([
-            ye.shape == y.shape
-            for ye, y in zip(expected_arrays, actual_arrays)])
+            y.shape == ye.shape
+            for y, ye in zip(actual_arrays, expected_arrays)])
         if not (shapes_match and dtypes_match):
-            message = (
-                'Shapes and/or dtypes of forward() do not match'.format())
+            message = 'Shapes and/or dtypes of forward() do not match'
             break
 
         # Check values
-        indices = []
-        for i, (expected, actual) in (
-                enumerate(zip(expected_arrays, actual_arrays))):
+        errors = []
+        for i, (actual, expected) in (
+                enumerate(zip(actual_arrays, expected_arrays))):
             try:
-                array_module.assert_allclose(expected, actual, **opts)
-            except AssertionError:
-                indices.append(i)
-        if len(indices) > 0:
+                array_module.assert_allclose(actual, expected, **opts)
+            except AssertionError as e:
+                errors.append((i, e))
+        if len(errors) > 0:
             message = (
                 'Outputs of forward() do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(
-                    ', '.join(str(i) for i in indices)))
+                    ', '.join(str(i) for i, e in errors)))
+            f = six.StringIO()
+            for i, e in errors:
+                f.write('Error details of output [{}]:\n'.format(i))
+                f.write(str(e))
+                f.write('\n')
+            detail_message = f.getvalue()
             break
         break
 
     if message is not None:
-        FunctionTestError.fail(
+        msg = (
             '{}\n'
             'Expected shapes and dtypes: {}\n'
             'Actual shapes and dtypes:   {}\n'.format(
                 message,
                 utils._format_array_props(expected_arrays),
                 utils._format_array_props(actual_arrays)))
+        if detail_message is not None:
+            msg += '\n\n' + detail_message
+        FunctionTestError.fail(msg)

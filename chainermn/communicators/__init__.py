@@ -48,11 +48,11 @@ def create_communicator(
         try:
             import mpi4py.MPI
         except ImportError as e:
-            raise ImportError(str(e) + ": "
-                              "ChainerMN requires mpi4py for "
-                              "distributed training. "
-                              "Please read the Chainer official document "
-                              "and setup MPI and mpi4py.")
+            raise ImportError(str(e) + ': '
+                              'ChainerMN requires mpi4py for '
+                              'distributed training. '
+                              'Please read the Chainer official document '
+                              'and setup MPI and mpi4py.')
         mpi_comm = mpi4py.MPI.COMM_WORLD
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:

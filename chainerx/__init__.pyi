@@ -704,6 +704,9 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
+
+
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 

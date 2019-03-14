@@ -20,12 +20,12 @@ class TestGeometric(testing.distribution_unittest):
         self.scipy_dist = stats.geom
 
         self.test_targets = set([
-            "batch_shape", "event_shape", "log_prob", "mean", "sample",
-            "support", "variance"])
+            'batch_shape', 'event_shape', 'log_prob', 'mean', 'sample',
+            'support', 'variance'])
 
         p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
-        self.params = {"p": p}
-        self.scipy_params = {"p": p}
+        self.params = {'p': p}
+        self.scipy_params = {'p': p}
 
         self.support = 'positive integer'
         self.continuous = False
