@@ -5,12 +5,16 @@ _np_version = numpy.lib.NumpyVersion(numpy.__version__)
 
 
 def broadcast_to(xp):
-    return _np_1_10_broadcast_to if xp is numpy else xp.broadcast_to
+    return _np_broadcast_to if xp is numpy else xp.broadcast_to
 
 
 def _np_1_10_broadcast_to(array, shape, subok=False):
     dummy = numpy.empty(shape, dtype=numpy.int8)
     return numpy.broadcast_arrays(array, dummy)[0]
+
+
+_np_broadcast_to = (
+    numpy.broadcast_to if _np_version >= '1.10.0' else _np_1_10_broadcast_to)
 
 
 def stack(xp):
