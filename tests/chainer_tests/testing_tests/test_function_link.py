@@ -673,7 +673,6 @@ class TestLinkIncorrectCreateLink(DotLinkTestImpl, testing.LinkTestCase):
     'invalid_forward_backward_initializer': [
         chainer.Variable(numpy.array([1])),
         chainer.Parameter(numpy.array([1])),
-        testing.InitializerArgument(None, None),
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)
@@ -701,7 +700,6 @@ class TestLinkIncorrectBackwardInitializers(
     'invalid_initializer': [
         chainer.Variable(numpy.array([1])),
         chainer.Parameter(numpy.array([1])),
-        testing.InitializerArgument(None, None),
     ]}))
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=TypeError)

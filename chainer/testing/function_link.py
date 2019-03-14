@@ -60,8 +60,9 @@ class InitializerArgument(object):
     """
 
     def __init__(self, argument_value, expected_initializer):
-        if expected_initializer is not None:
-            initializers._check_is_initializer_like(expected_initializer)
+        if expected_initializer is None:
+            raise ValueError('Expected initialized cannot be None.')
+        initializers._check_is_initializer_like(expected_initializer)
 
         self.argument_value = argument_value
         self.expected_initializer = expected_initializer
@@ -1004,6 +1005,10 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
 def _check_generated_initializer(init):
     if isinstance(init, InitializerArgument):
         init = init.expected_initializer
+    elif init is None:
+        raise ValueError(
+            'A None initializer must be wrapped in a InitializerArgument '
+            'along with the expected initializer fallen back to.')
     initializers._check_is_initializer_like(init)
 
 
