@@ -178,7 +178,7 @@ void InitChainerxArray(pybind11::module& m) {
             case DtypeKind::kBool:
                 return py::bool_{static_cast<bool>(s)};
             case DtypeKind::kInt:
-                // fallthrough
+            // fallthrough
             case DtypeKind::kUInt:
                 return py::int_{static_cast<int64_t>(s)};
             case DtypeKind::kFloat:
@@ -366,14 +366,12 @@ void InitChainerxArray(pybind11::module& m) {
           py::is_operator());
     c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} / rhs); }, py::is_operator());
     c.def("__pow__",
-      [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self}.Power(Array{rhs})); },
-      py::is_operator());
-    c.def("__pow__",
-      [](const ArrayBodyPtr& self, const Scalar rhs) { return MoveArrayBody(Array{self}.Power(rhs)); },
-      py::is_operator());
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self}.Power(Array{rhs})); },
+          py::is_operator());
+    c.def("__pow__", [](const ArrayBodyPtr& self, const Scalar rhs) { return MoveArrayBody(Array{self}.Power(rhs)); }, py::is_operator());
     c.def("__rpow__",
-      [](const ArrayBodyPtr& self, const Scalar lhs) { return MoveArrayBody(chainerx::Power(lhs, Array{self})); },
-      py::is_operator());
+          [](const ArrayBodyPtr& self, const Scalar lhs) { return MoveArrayBody(chainerx::Power(lhs, Array{self})); },
+          py::is_operator());
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           py::arg("axis"),
