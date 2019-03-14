@@ -1616,7 +1616,7 @@ TEST_THREAD_SAFE_P(MathTest, Power) {
     Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 3.f), std::pow(4.f, 2.f), std::pow(-3.f, 6.f)});
 
     Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e});
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], xs[1])}; }, {a1, a2}, {e});
     });
 }
 
@@ -1626,7 +1626,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerBroadcast1) {
     Array e = testing::BuildArray({2, 2}).WithData<int>({25, 8, 9, 64});
 
     Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e});
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], xs[1])}; }, {a1, a2}, {e});
     });
 }
 
@@ -1636,7 +1636,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerBroadcast2) {
     Array e = testing::BuildArray({2, 2}).WithData<float>({25.f, 4.f, 27.f, 64.f});
 
     Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e});
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], xs[1])}; }, {a1, a2}, {e});
     });
 }
 
@@ -1646,7 +1646,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerBroadcast3) {
     Array e = testing::BuildArray({2, 2}).WithData<int>({25, 8, 9, 64});
 
     Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], xs[1])}; }, {a1, a2}, {e});
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], xs[1])}; }, {a1, a2}, {e});
     });
 }
 
@@ -1658,7 +1658,7 @@ TEST_P(MathTest, PowerBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Power(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
 
 TEST_THREAD_SAFE_P(MathTest, PowerScalar) {
@@ -1666,7 +1666,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerScalar) {
     Scalar b{2.0f};
     Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 2.f), std::pow(4.f, 2.f), std::pow(3.f, 2.f)});
 
-    Run([&]() { testing::CheckForward([b](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], b)}; }, {a}, {e}); });
+    Run([&]() { testing::CheckForward([b](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], b)}; }, {a}, {e}); });
 }
 
 TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
@@ -1677,7 +1677,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(xs[0], b)}; }, {a}, {go}, {eps});
+    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Power(xs[0], b)}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, PowerScalarDoubleBackward) {
@@ -1691,7 +1691,7 @@ TEST_P(MathTest, PowerScalarDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [b](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Pow(xs[0], b);
+                auto y = Power(xs[0], b);
                 return {y};  // to make it nonlinear
             },
             {a},
