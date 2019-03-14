@@ -603,9 +603,10 @@ class testPow(op_utils.NumpyOpTest):
         return self.lhs, self.rhs
 
     def forward_xp(self, inputs, xp):
-        if xp is not chainerx and xp is not numpy:
-            return inputs[0] ** inputs[1], 
-        return xp.power(inputs[0], inputs[1]),
+        if self.is_module:
+            return xp.power(inputs[0], inputs[1]),
+        return inputs[0] ** inputs[1], 
+        
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input, scalar', [
@@ -620,6 +621,7 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
         self.scalar = scalar
         self.contiguous = contiguous
         self.is_module = is_module
+        
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
@@ -628,9 +630,10 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
         return self.input,
 
     def forward_xp(self, inputs, xp):
-        if not self.is_module:
-            return inputs[0] ** self.scalar,
-        return xp.power(inputs[0], self.scalar),
+        if self.is_module:
+            return xp.power(inputs[0], self.scalar),
+        return inputs[0] ** self.scalar,
+        
         
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -641,10 +644,11 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class testPowScalarArray(op_utils.NumpyOpTest):
 
-    def setup(self, input, scalar, contiguous, float_dtype):
+    def setup(self, input, scalar, contiguous, float_dtype, is_module):
         self.input = input
         self.scalar = scalar
         self.contiguous = contiguous
+        self.is_module = is_module
 
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
@@ -654,8 +658,9 @@ class testPowScalarArray(op_utils.NumpyOpTest):
         return self.input,
 
     def forward_xp(self, inputs, xp):
-        return xp.power(self.scalar, inputs[0]),
-
+        if self.is_module:
+            return xp.power(self.scalar, inputs[0]),
+        return self.scalar ** inputs[0],
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

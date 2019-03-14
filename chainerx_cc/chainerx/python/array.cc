@@ -371,6 +371,9 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__pow__",
       [](const ArrayBodyPtr& self, const Scalar rhs) { return MoveArrayBody(Array{self}.Power(rhs)); },
       py::is_operator());
+    c.def("__rpow__",
+      [](const ArrayBodyPtr& self, const Scalar lhs) { return MoveArrayBody(chainerx::Power(lhs, Array{self})); },
+      py::is_operator());
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           py::arg("axis"),
