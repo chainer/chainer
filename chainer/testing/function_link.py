@@ -549,9 +549,12 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         :class:`unittest.SkipTest`.
         ``test_name`` is one of ``'test_forward'`` and ``'test_backward'``.
 
-    ``forward_expected(self, inputs, params)``
+    ``forward_expected(self, inputs, link)``
         Implements the expectation of the target forward function.
-        ``inputs`` and ``params`` are tuples of :class:`numpy.ndarray`\\ s.
+        ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s and ``link`` is an
+        initialized link that was used to compute the actual forward which the
+        results of this method will be compared against. The link is guaranteed
+        to reside on the CPU.
         This method is expected to return the output
         :class:`numpy.ndarray`\\ s.
         This method must be implemented if either ``skip_forward_test`` or
@@ -642,9 +645,10 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
                     x, = inputs
                     return link(x),
 
-                def forward_expected(self, inputs, params):
+                def forward_expected(self, inputs, link):
                     x, = inputs
-                    W, b = params
+                    W = link.W.array
+                    b = link.b.array
                     expected = x.dot(W.T) + b
                     return expected,
 
@@ -660,7 +664,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
     skip_backward_test = False
     dodge_nondifferentiable = False
 
-    def forward_expected(self, inputs, params):
+    def forward_expected(self, inputs, link):
         raise NotImplementedError('forward_expected() is not implemented.')
 
     def generate_grad_outputs(self, outputs_template):
@@ -688,13 +692,11 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         output_vars = self._forward(link, input_vars, backend_config)
         outputs_xp = [v.array for v in output_vars]
 
-        # Expected outputs are computed on the CPU so inputs and parameters
-        # must be transferred.
-        cpu_device = backend.CpuDevice()
-        params = _get_link_params(link, self.param_names)
-        params_np = [cpu_device.send(p.array) for p in params]
+        # Expected outputs are computed on the CPU so the link must be
+        # transferred.
+        link.to_cpu()
 
-        expected_outputs_np = self._forward_expected(inputs_np, params_np)
+        expected_outputs_np = self._forward_expected(inputs_np, link)
 
         _check_forward_output_arrays_equal(
             expected_outputs_np, outputs_xp,
@@ -768,11 +770,10 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         else:
             do_check()
 
-    def _forward_expected(self, inputs, params):
+    def _forward_expected(self, inputs, link):
         assert all(isinstance(x, numpy.ndarray) for x in inputs)
-        assert all(isinstance(x, numpy.ndarray) for x in params)
 
-        outputs = self.forward_expected(inputs, params)
+        outputs = self.forward_expected(inputs, link)
         _check_array_types(inputs, backend.CpuDevice(), 'test_forward')
 
         return outputs

@@ -591,9 +591,9 @@ class DotLinkTestImpl(object):
         return numpy.random.rand(self.n, self.in_size).astype(self.dtype),
 
     # Required for forward backward tests.
-    def forward_expected(self, inputs, params):
+    def forward_expected(self, inputs, link):
         x, = inputs
-        p, = params
+        p = link.p.array
         return numpy.dot(x, p),
 
     # Requires for initializers test.
