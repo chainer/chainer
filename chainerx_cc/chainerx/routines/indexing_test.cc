@@ -125,7 +125,7 @@ TEST_P(IndexingTest, TakeUInt8IndicesBackward) {
     Array a = (*testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array indices = testing::BuildArray(indices_shape).WithData<uint8_t>({0, 14, 3, 1, 0, 1});
     Array go = testing::BuildArray(output_shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(input_shape, 1e-3);
+    Array eps = Full(input_shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward(
             [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
@@ -159,7 +159,7 @@ TEST_P(IndexingTest, TakeInt8IndicesBackward) {
     Array a = (*testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array indices = testing::BuildArray(indices_shape).WithData<int8_t>({0, 14, 3, 1, -10, 1});
     Array go = testing::BuildArray(output_shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(input_shape, 1e-3);
+    Array eps = Full(input_shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward(
             [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
@@ -193,7 +193,7 @@ TEST_P(IndexingTest, TakeInt16IndicesBackward) {
     Array a = (*testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array indices = testing::BuildArray(indices_shape).WithData<int16_t>({0, 14, 3, 1, -10, 1});
     Array go = testing::BuildArray(output_shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(input_shape, 1e-3);
+    Array eps = Full(input_shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward(
             [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
@@ -227,7 +227,7 @@ TEST_P(IndexingTest, TakeInt32IndicesBackward) {
     Array a = (*testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array indices = testing::BuildArray(indices_shape).WithData<int32_t>({0, 14, 3, 1, -10, 1});
     Array go = testing::BuildArray(output_shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(input_shape, 1e-3);
+    Array eps = Full(input_shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward(
             [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
