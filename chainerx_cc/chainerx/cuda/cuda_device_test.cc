@@ -47,6 +47,45 @@ CudaDevice& GetCudaDevice(Context& ctx, int device_index) {
     return dynamic_cast<CudaDevice&>(ctx.GetDevice({"cuda", device_index}));
 }
 
+TEST(CudaDeviceTest, ComputeCapability) {
+    EXPECT_EQ((ComputeCapability{}.major), 0);
+    EXPECT_EQ((ComputeCapability{}.minor), 0);
+    EXPECT_EQ((ComputeCapability{6, 3}.major), 6);
+    EXPECT_EQ((ComputeCapability{6, 3}.minor), 3);
+}
+
+TEST(CudaDeviceTest, ComputeCapabilityComparison) {
+    // Same value
+    EXPECT_TRUE((ComputeCapability{6, 3} == ComputeCapability{6, 3}));
+    EXPECT_FALSE((ComputeCapability{6, 3} != ComputeCapability{6, 3}));
+    EXPECT_FALSE((ComputeCapability{6, 3} < ComputeCapability{6, 3}));
+    EXPECT_TRUE((ComputeCapability{6, 3} <= ComputeCapability{6, 3}));
+    EXPECT_FALSE((ComputeCapability{6, 3} > ComputeCapability{6, 3}));
+    EXPECT_TRUE((ComputeCapability{6, 3} >= ComputeCapability{6, 3}));
+    // Major numbers differ
+    EXPECT_FALSE((ComputeCapability{5, 1} == ComputeCapability{6, 1}));
+    EXPECT_TRUE((ComputeCapability{5, 1} != ComputeCapability{6, 1}));
+    EXPECT_TRUE((ComputeCapability{5, 1} < ComputeCapability{6, 1}));
+    EXPECT_TRUE((ComputeCapability{5, 1} <= ComputeCapability{6, 1}));
+    EXPECT_FALSE((ComputeCapability{5, 1} > ComputeCapability{6, 1}));
+    EXPECT_FALSE((ComputeCapability{5, 1} >= ComputeCapability{6, 1}));
+    // Minor numbers differ
+    EXPECT_FALSE((ComputeCapability{5, 2} == ComputeCapability{5, 5}));
+    EXPECT_TRUE((ComputeCapability{5, 2} != ComputeCapability{5, 5}));
+    EXPECT_TRUE((ComputeCapability{5, 2} < ComputeCapability{5, 5}));
+    EXPECT_TRUE((ComputeCapability{5, 2} <= ComputeCapability{5, 5}));
+    EXPECT_FALSE((ComputeCapability{5, 2} > ComputeCapability{5, 5}));
+    EXPECT_FALSE((ComputeCapability{5, 2} >= ComputeCapability{5, 5}));
+}
+
+TEST(CudaDeviceTest, DeviceComputeCapability) {
+    Context ctx;
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    // TODO(niboshi): What CC are we supporting?
+    EXPECT_TRUE((device.compute_capability() >= ComputeCapability{2, 0}));
+}
+
 TEST(CudaDeviceTest, Allocate) {
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);

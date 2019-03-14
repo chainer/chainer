@@ -61,6 +61,16 @@ DeviceInternals& GetDeviceInternals(CudaDevice& device) { return device.device_i
 
 }  // namespace cuda_internal
 
+CudaDevice::CudaDevice(CudaBackend& backend, int index)
+    : Device{backend, index},
+      device_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
+      pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
+      device_internals_{index} {
+    cudaDeviceProp device_prop{};
+    CheckCudaError(cudaGetDeviceProperties(&device_prop, index));
+    compute_capability_ = ComputeCapability{device_prop.major, device_prop.minor};
+}
+
 void CudaDevice::Synchronize() {
     CudaSetDeviceScope scope{index()};
     CheckCudaError(cudaDeviceSynchronize());

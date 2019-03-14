@@ -94,6 +94,31 @@ DeviceInternals& GetDeviceInternals(CudaDevice& device);
 
 }  // namespace cuda_internal
 
+struct ComputeCapability {
+    int major{};
+    int minor{};
+
+    bool operator==(const ComputeCapability& other) { return major == other.major && minor == other.minor; }
+
+    bool operator!=(const ComputeCapability& other) { return !(*this == other); }
+
+    bool operator<(const ComputeCapability& other) {
+        if (major < other.major) {
+            return true;
+        }
+        if (major > other.major) {
+            return false;
+        }
+        return minor < other.minor;
+    }
+
+    bool operator<=(const ComputeCapability& other) { return *this == other || *this < other; }
+
+    bool operator>(const ComputeCapability& other) { return !(*this <= other); }
+
+    bool operator>=(const ComputeCapability& other) { return !(*this < other); }
+};
+
 struct CudaBatchNormGradState : public BatchNormGradState {
 public:
     CudaBatchNormGradState(Array x_cont, Array x_mean, Array x_inv_std, Dtype beta_dtype)
@@ -140,6 +165,9 @@ class CudaDevice : public Device {
 public:
     const std::shared_ptr<MemoryPool>& device_memory_pool() { return device_memory_pool_; }
 
+    // Compute capability of the device. A pair of major and minor numbers.
+    ComputeCapability compute_capability() const { return compute_capability_; }
+
     void Synchronize() override;
 
     // memory.cc
@@ -159,12 +187,7 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-protected:
-    CudaDevice(CudaBackend& backend, int index)
-        : Device{backend, index},
-          device_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
-          pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
-          device_internals_{index} {}
+    CudaDevice(CudaBackend& backend, int index);
 
 private:
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend& backend, int index);
@@ -190,6 +213,8 @@ private:
 
     // Memory keeper.
     cuda_internal::MemoryKeeper memory_keeper_{};
+
+    ComputeCapability compute_capability_{};
 };
 
 }  // namespace cuda
