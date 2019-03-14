@@ -92,9 +92,11 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sqrt(const Array& x);
 
-Array Pow(const Array& x1, const Array& x2);
+Array Power(const Array& x1, const Array& x2);
 
-Array Pow(const Array& x1, Scalar x2);
+Array Power(const Array& x1, Scalar x2);
+
+Array Power(Scalar x1, const Array& x2);
 
 Array IsNan(const Array& x);
 

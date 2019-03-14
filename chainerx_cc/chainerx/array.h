@@ -138,9 +138,9 @@ public:
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 
-    Array Pow(const Array& b) const;
+    Array Power(const Array& b) const;
 
-    Array Pow(const Scalar b) const;
+    Array Power(Scalar b) const;
     // Takes elements specified by indices from the array.
     //
     // TODO(niboshi): Support Scalar and StackVector as indices.

@@ -1666,7 +1666,7 @@ TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
     using T = double;
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.})).RequireGrad();
-    Scalar b{2.0f};
+    Scalar b{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
     Array eps = Full(shape, 1e-3);
 

@@ -589,10 +589,11 @@ class test_tanh(op_utils.NumpyOpTest):
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class testPow(op_utils.NumpyOpTest):
 
-    def setup(self, lhs, rhs, contiguous, float_dtype):
+    def setup(self, lhs, rhs, contiguous, float_dtype, is_module):
         self.lhs = lhs
         self.rhs = rhs
         self.contiguous = contiguous
+        self.is_module = is_module
 
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
@@ -602,9 +603,9 @@ class testPow(op_utils.NumpyOpTest):
         return self.lhs, self.rhs
 
     def forward_xp(self, inputs, xp):
-        if xp is numpy:
+        if not self.is_module:
             return xp.power(inputs[0], inputs[1]),
-        return xp.pow(inputs[0], inputs[1]),
+        return inputs[0] ** inputs[1], 
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -613,7 +614,33 @@ class testPow(op_utils.NumpyOpTest):
         [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
-class testPowScalar(op_utils.NumpyOpTest):
+class testPowArrayScalar(op_utils.NumpyOpTest):
+
+    def setup(self, input, scalar, contiguous, float_dtype, is_module):
+        self.input = input
+        self.scalar = scalar
+        self.contiguous = contiguous
+        self.is_module = is_module
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        if not self.is_module:
+            return inputs[0] ** self.scalar,
+        return xp.power(inputs[0], self.scalar),
+        
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input, scalar', [
+    (numpy.asarray([[1., 2.],[4., 5.]]), 3), (numpy.asarray(
+        [1., 2., 3.]), 4)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class testPowScalarArray(op_utils.NumpyOpTest):
 
     def setup(self, input, scalar, contiguous, float_dtype):
         self.input = input
@@ -628,9 +655,7 @@ class testPowScalar(op_utils.NumpyOpTest):
         return self.input,
 
     def forward_xp(self, inputs, xp):
-        if xp is numpy:
-            return xp.power(inputs[0], self.scalar),
-        return xp.pow(inputs[0], self.scalar),
+        return xp.power(self.scalar, inputs[0]),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

@@ -576,7 +576,7 @@ Array Sqrt(const Array& x) {
     return out;
 }
 
-Array Pow(const Array& x1, const Array& x2) {
+Array Power(const Array& x1, const Array& x2) {
     Array broadcasted_x2 = x2.BroadcastTo(x1.shape());
     
     CheckEqual(x1.dtype(), broadcasted_x2.dtype());
@@ -595,7 +595,7 @@ Array Pow(const Array& x1, const Array& x2) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
                 
-                bctx.input_grad() = gout * x2 * Pow(x1, x2 - 1);
+                bctx.input_grad() = gout * x2 * Power(x1, x2 - 1);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
@@ -613,23 +613,43 @@ Array Pow(const Array& x1, const Array& x2) {
     return out;
 }
 
-Array Pow(const Array& x1, Scalar x2) {
+Array Power(const Array& x1, Scalar x2) {
     Array out = EmptyLike(x1, x1.device());
     {
         NoBackpropModeScope scope{};
         x1.device().PowAS(x1, x2, out);
     }
 
-    BackwardBuilder bb{"pow_scalar", x1, out};
+    BackwardBuilder bb{"pow__array_scalar", x1, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
         const Array& x1 = bctx.GetRetainedInput(x1_tok);
 
-        bctx.input_grad() = *bctx.output_grad() * x2 * Pow(x1, x2 + (-1));
+        bctx.input_grad() = *bctx.output_grad() * x2 * Power(x1, x2 + (-1));
         });
     }
     bb.Finalize();
     return out;
+}
+
+Array Power(Scalar x1, const Array& x2) {
+    Array x1_array = OnesLike(x2, x2.device()) * x1;
+    Array out = EmptyLike(x2, x2.device());
+    {
+        NoBackpropModeScope scope{};
+        x2.device().Pow(x1_array, x2, out);
+    }
+    BackwardBuilder bb{"pow_scalar_array", x2, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0), x1_array](BackwardContext& bctx) {
+        const Array& out = bctx.GetRetainedOutput(out_tok);
+
+        bctx.input_grad() = *bctx.output_grad() * out * Log(x1_array);
+        });
+    }
+    bb.Finalize();
+    return out;
+
 }
 
 Array Tanh(const Array& x) {
