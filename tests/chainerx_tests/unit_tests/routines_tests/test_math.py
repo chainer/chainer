@@ -583,8 +583,8 @@ class test_tanh(op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('lhs, rhs', [
-    (numpy.asarray([[1., 2.],[4., 5.]]), numpy.asarray([1., 3.])), (numpy.asarray(
-        [1., 2., 3.]), numpy.asarray([3., 4., 5.]))
+    (numpy.asarray([[1., 2.], [4., 5.]]), numpy.asarray([1., 3.])),
+    (numpy.asarray([1., 2., 3.]), numpy.asarray([3., 4., 5.]))
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class testPow(op_utils.NumpyOpTest):
@@ -605,12 +605,12 @@ class testPow(op_utils.NumpyOpTest):
     def forward_xp(self, inputs, xp):
         if self.is_module:
             return xp.power(inputs[0], inputs[1]),
-        return inputs[0] ** inputs[1], 
-        
+        return inputs[0] ** inputs[1],
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input, scalar', [
-    (numpy.asarray([[1., 2.],[4., 5.]]), 3), (numpy.asarray(
+    (numpy.asarray([[1., 2.], [4., 5.]]), 3), (numpy.asarray(
         [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
@@ -621,7 +621,7 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
         self.scalar = scalar
         self.contiguous = contiguous
         self.is_module = is_module
-        
+
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
@@ -633,12 +633,11 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
         if self.is_module:
             return xp.power(inputs[0], self.scalar),
         return inputs[0] ** self.scalar,
-        
-        
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input, scalar', [
-    (numpy.asarray([[1., 2.],[4., 5.]]), 3), (numpy.asarray(
+    (numpy.asarray([[1., 2.], [4., 5.]]), 3), (numpy.asarray(
         [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
