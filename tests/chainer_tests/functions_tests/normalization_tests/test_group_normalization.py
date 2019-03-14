@@ -31,6 +31,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
     'groups': [1, 2, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [1e-5, 1e-1],
+    'cache_x_hat': [True, False],
 })))
 @testing.inject_backend_tests(
     None,

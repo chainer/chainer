@@ -54,8 +54,8 @@ class GroupNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     @attr.multi_gpu(2)
     @condition.retry(3)
@@ -86,9 +86,9 @@ class GroupNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
         self.link(numpy.zeros(self.shape, dtype='f'))
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
