@@ -13,6 +13,8 @@ if cuda.cudnn_enabled:
 
 class GroupNormalization(function_node.FunctionNode):
 
+    cache_x_hat = False
+
     def __init__(self, groups, eps=1e-5):
         if not isinstance(groups, int):
             raise TypeError('Argument: \'groups\' type must be (int).')
@@ -65,6 +67,8 @@ class GroupNormalization(function_node.FunctionNode):
         xp.sqrt(self.inv_std, out=self.inv_std, dtype=x.dtype)
         xp.reciprocal(self.inv_std, out=self.inv_std)
         x_hat *= self.inv_std[:, None]
+        if self.cache_x_hat:
+            self.x_hat = x_hat
 
         y = x_hat.reshape((batch_size, channels, -1))
         y *= gamma[:, None]
@@ -97,6 +101,8 @@ class GroupNormalization(function_node.FunctionNode):
                 x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta, None,
                 None, self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
                 configuration.config.debug)
+        if self.cache_x_hat:
+            self.x_hat = xp.squeeze(x_hat)
 
         y = x_hat.reshape((batch_size, channels, -1))
         cuda.elementwise(
@@ -117,9 +123,14 @@ class GroupNormalization(function_node.FunctionNode):
         reduced_shape = (batch_size * groups, -1)
         x = x.reshape(reduced_shape)
 
-        x_hat, = _XHat(
-            self.eps, self.mean, self.inv_std,
-            self.dummy_gamma).apply((x,))
+        if self.cache_x_hat:
+            x_hat, = _XHat(
+                self.eps, self.mean, self.inv_std,
+                self.dummy_gamma, self.x_hat).apply((x,))
+        else:
+            x_hat, = _XHat(
+                self.eps, self.mean, self.inv_std,
+                self.dummy_gamma).apply((x,))
         gx_hat, ggamma, gbeta = _ScaleShiftGrad().apply((x_hat, gamma, gy))
         gx, = _XHatGrad(
             self.eps, self.mean, self.inv_std,
@@ -178,27 +189,36 @@ class _ScaleShiftGrad(function_node.FunctionNode):
 
 class _XHat(function_node.FunctionNode):
 
-    def __init__(self, eps, mean, inv_std, dummy_gamma):
+    def __init__(self, eps, mean, inv_std, dummy_gamma, cached_x_hat=None):
         self.eps = eps
         self.mean = mean
         self.inv_std = inv_std
         self.dummy_gamma = dummy_gamma
 
+        self.cached_x_hat = cached_x_hat
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
-        x, = inputs
-        x_hat = x - self.mean[:, None]
-        x_hat *= self.inv_std[:, None]
+        if self.cached_x_hat is not None:
+            x_hat = self.cached_x_hat
+        else:
+            x, = inputs
+            x_hat = x - self.mean[:, None]
+            x_hat *= self.inv_std[:, None]
         self.retain_outputs((0,))
         return x_hat,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0,))
-        x, = inputs
-        x_hat = cuda.elementwise(
-            'T x, T mean, T inv_std', 'T x_hat',
-            'x_hat = (x - mean) * inv_std',
-            'groupnorm_x_hat')(x, self.mean[:, None], self.inv_std[:, None])
+        if self.cached_x_hat is not None:
+            x_hat = self.cached_x_hat
+        else:
+            x, = inputs
+            x_hat = cuda.elementwise(
+                'T x, T mean, T inv_std', 'T x_hat',
+                'x_hat = (x - mean) * inv_std',
+                'groupnorm_x_hat')(
+                    x, self.mean[:, None], self.inv_std[:, None])
         self.retain_outputs((0,))
         return x_hat,
 
