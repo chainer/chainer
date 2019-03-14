@@ -665,7 +665,7 @@ def test_fill(xp, shape, dtype, value, device):
 def test_fill_with_scalar(xp, device, shape, dtype, value):
     a = xp.empty(shape, dtype)
     if xp is chainerx:
-        value = chainerx.Scalar(value, dtype)
+        value = chainerx.Scalar(value)
     a.fill(value)
     return a
 
