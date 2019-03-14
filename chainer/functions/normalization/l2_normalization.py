@@ -2,6 +2,7 @@ from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 
 
@@ -45,7 +46,7 @@ class NormalizeL2(function_node.FunctionNode):
         x, = inputs
         xp = backend.get_array_module(x)
         norm = (
-            utils.numpy_compat.sqrt(
+            numpy_compat.sqrt(
                 xp, xp.sum(xp.square(x), axis=self.axis, keepdims=True))
             + x.dtype.type(self.eps))
         return utils.force_array(x / norm),

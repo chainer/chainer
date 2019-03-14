@@ -7,7 +7,7 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
 from chainer.functions.normalization import batch_normalization
-from chainer import utils
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 
 
@@ -82,9 +82,9 @@ class BatchRenormalizationFunction(function.Function):
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         mean = x.mean(axis=axis)
         var = x.var(axis=axis) + self.eps
-        self.std = utils.numpy_compat.sqrt(xp, var)
+        self.std = numpy_compat.sqrt(xp, var)
 
-        running_sigma = utils.numpy_compat.sqrt(
+        running_sigma = numpy_compat.sqrt(
             xp, self._running_var + self.eps)
         self.r = xp.clip(self.std / running_sigma,
                          1.0 / self.rmax, self.rmax)

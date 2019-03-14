@@ -5,8 +5,8 @@ import chainer
 from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
-from chainer import utils
 from chainer.utils import collections_abc
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 import chainerx
 
@@ -98,7 +98,7 @@ class SplitAxis(function_node.FunctionNode):
 
         x, = inputs
         self._xp = backend.get_array_module(x)
-        ret = utils.numpy_compat.split(
+        ret = numpy_compat.split(
             self._xp, x, self.indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
         return tuple(ret)
