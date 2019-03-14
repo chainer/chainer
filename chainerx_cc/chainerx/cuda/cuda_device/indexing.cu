@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <mutex>
 #include <numeric>
+#include <type_traits>
+
+#include <gsl/gsl>
 
 #include <cuda_runtime.h>
 
@@ -42,21 +45,22 @@ Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
     return permutation;
 }
 
-template <typename T>
+template <typename T, typename TIndex>
 __global__ void TakeKernel(
         IndexableArray<const T> a_iarray,
         IndexableArray<T> out_iarray,
-        IndexableArray<const int64_t> indices_iarray,
+        IndexableArray<const TIndex> indices_iarray,
         Indexer<> a_indexer,
         Indexer<> out_indexer,
         Indexer<> indices_indexer,
-        int64_t common_total_size,
-        int64_t axis_dim) {
+        TIndex common_total_size,
+        TIndex axis_dim) {
+    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        int64_t indices_pos = it.raw_index() / common_total_size;
-        int64_t common_pos = it.raw_index() % common_total_size;
+        TIndex indices_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
+        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
 
-        int64_t index = indices_iarray[indices_indexer.It(indices_pos)];
+        TIndex index = indices_iarray[indices_indexer.It(indices_pos)];
         if (index < 0) {
             index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
         } else {
@@ -69,25 +73,26 @@ __global__ void TakeKernel(
     }
 }
 
-template <typename T>
+template <typename T, typename TIndex>
 __global__ void AddAtKernel(
         IndexableArray<const T> a_iarray,
         IndexableArray<const T> b_iarray,
         IndexableArray<T> out_iarray,
-        IndexableArray<const int64_t> indices_iarray,
+        IndexableArray<const TIndex> indices_iarray,
         Indexer<> b_indexer,
         Indexer<> out_indexer,
         Indexer<> indices_indexer,
-        int64_t common_total_size,
-        int64_t axis_dim) {
+        TIndex common_total_size,
+        TIndex axis_dim) {
+    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        int64_t axis_pos = it.raw_index() / common_total_size;
-        int64_t common_pos = it.raw_index() % common_total_size;
+        TIndex axis_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
+        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
 
         cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a_iarray[it]);
 
         for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
-            int64_t index = indices_iarray[it_indices];
+            TIndex index = indices_iarray[it_indices];
 
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
@@ -107,12 +112,17 @@ __global__ void AddAtKernel(
     }
 }
 
-}  // namespace
+template <typename TIndex>
+void TakeImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t axis, const Array& out) {
+    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
+    CHAINERX_ASSERT(
+            (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
+            (std::is_same<TIndex, int32_t>::value && indices.dtype() == Dtype::kInt32));
+    device.CheckDevicesCompatible(a, indices, out);
 
-void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
-    CheckDevicesCompatible(a, indices, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
+    CudaSetDeviceScope scope{device.index()};
+
+    VisitDtype(out.dtype(), [&a, &indices, axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         // a and out are transposed as follows.
@@ -134,32 +144,41 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
-        IndexableArray<const int64_t> indices_iarray{indices};
+        IndexableArray<const TIndex> indices_iarray{indices};
         Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
-        int64_t common_total_size = a_indexer.total_size() / a_shape[0];
+        TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
+
+        TIndex axis_dim = gsl::narrow<TIndex>(a_shape[0]);
 
         // TODO(niboshi): Calculate kMaxBlockSize per device
         std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T, TIndex>).block_size;
         int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+        int64_t block_size = std::min<TIndex>(total_size, kMaxBlockSize);
 
         TakeKernel<<<grid_size, block_size>>>(
-                a_iarray, out_iarray, indices_iarray, a_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
+                a_iarray, out_iarray, indices_iarray, a_indexer, out_indexer, indices_indexer, common_total_size, axis_dim);
     });
 }
 
-void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+template <typename TIndex>
+void AddAtImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
     // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
 
+    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
+    CHAINERX_ASSERT(
+            (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
+            (std::is_same<TIndex, int32_t>::value && indices.dtype() == Dtype::kInt32));
     CHAINERX_ASSERT(a.shape() == out.shape());
-    CheckDevicesCompatible(a, indices, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
+    device.CheckDevicesCompatible(a, indices, out);
+
+    CudaSetDeviceScope scope{device.index()};
+
+    VisitDtype(out.dtype(), [&a, &indices, axis, &b, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         // b and out are transposed as follows.
@@ -188,20 +207,52 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
-        IndexableArray<const int64_t> indices_iarray{indices};
+        IndexableArray<const TIndex> indices_iarray{indices};
         Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
-        int64_t common_total_size = a_indexer.total_size() / a_shape[0];
+        TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
 
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtKernel<T>).block_size;
+        TIndex axis_dim = gsl::narrow<TIndex>(a_shape[0]);
+
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtKernel<T, TIndex>).block_size;
         int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
         AddAtKernel<<<grid_size, block_size>>>(
-                a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
+                a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, axis_dim);
     });
+}
+
+}  // namespace
+
+void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
+    CheckDevicesCompatible(a, indices, out);
+
+    CudaSetDeviceScope scope{index()};
+
+    if (indices.dtype() == Dtype::kInt64) {
+        TakeImpl<int64_t>(*this, a, indices, axis, out);
+    } else {
+        const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
+        TakeImpl<int32_t>(*this, a, indices_cast, axis, out);
+    }
+}
+
+void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
+    CheckDevicesCompatible(a, indices, out);
+
+    CudaSetDeviceScope scope{index()};
+
+    if (indices.dtype() == Dtype::kInt64) {
+        AddAtImpl<int64_t>(*this, a, indices, axis, b, out);
+    } else {
+        const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
+        AddAtImpl<int32_t>(*this, a, indices_cast, axis, b, out);
+    }
 }
 
 }  // namespace cuda

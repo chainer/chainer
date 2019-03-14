@@ -1,9 +1,20 @@
-import chainerx
+import itertools
 
 import numpy
 
+import chainerx
 
-result_dtypes_two_arrays = [
+
+def _permutate_dtype_mapping(dtype_mapping_list):
+    # Permutates in dtypes of dtype mapping.
+    d = {}
+    for in_dtypes, out_dtype in dtype_mapping_list:
+        for in_dtypes_ in itertools.permutations(in_dtypes):
+            d[in_dtypes_] = out_dtype
+    return sorted(d.items())
+
+
+result_dtypes_two_arrays = _permutate_dtype_mapping([
     # Bools.
     (('bool_', 'bool_'), 'bool'),
     # Floats.
@@ -42,10 +53,10 @@ result_dtypes_two_arrays = [
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'float16'), 'float16'),
     (('bool_', 'float64'), 'float64'),
-]
+])
 
 
-result_dtypes_three_arrays = [
+result_dtypes_three_arrays = _permutate_dtype_mapping([
     # Signed ints.
     (('int32', 'int32', 'int32'), 'int32'),
     (('int8', 'int8', 'int32'), 'int32'),
@@ -73,7 +84,7 @@ result_dtypes_three_arrays = [
     (('bool_', 'bool_', 'int32'), 'int32'),
     (('bool_', 'float16', 'float32'), 'float32'),
     (('bool_', 'bool_', 'float64'), 'float64'),
-]
+])
 
 
 def cast_if_numpy_array(xp, array, chx_expected_dtype):
