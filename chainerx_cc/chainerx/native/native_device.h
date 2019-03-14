@@ -132,7 +132,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
+            bool cover_all,
+            Dtype out_dtype) override;
 
     Array ConvGradWeight(
             Dtype w_dtype,

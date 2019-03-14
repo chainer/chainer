@@ -240,7 +240,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
+            bool cover_all,
+            Dtype out_dtype) = 0;
 
     virtual Array ConvGradWeight(
             Dtype w_dtype,

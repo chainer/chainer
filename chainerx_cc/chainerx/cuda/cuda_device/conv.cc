@@ -18,8 +18,9 @@ Array CudaDevice::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
-    return cuda_conv_.Conv(*this, x, w, b, stride, pad, cover_all);
+        bool cover_all,
+        Dtype out_dtype) {
+    return cuda_conv_.Conv(*this, x, w, b, stride, pad, cover_all, out_dtype);
 }
 
 Array CudaDevice::ConvTranspose(

@@ -190,7 +190,8 @@ Array GetPadModeIgnorePoolingWidths(
             Shape width_expanded{1};
             std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
 
-            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
+            widths = TensorDot(
+                    widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0}, dtype);
         }
     }
     return widths;

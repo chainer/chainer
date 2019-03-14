@@ -30,34 +30,39 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-Dtype GetConvDtype(Dtype dtype) {
+// Dtype configuration in Conv
+struct ConvDtypes {
+    Dtype in_dtype;
+    Dtype conv_dtype;
+    Dtype out_dtype;
+};
+
+ConvDtypes GetConvDtypes(Dtype in_dtype1, Dtype in_dtype2, Dtype out_dtype) {
     // TODO(imanishi): Support TRUE_HALF_CONFIG data type configuration if the compute capability is 5.3 or later.
-    switch (dtype) {
+    // TODO(niboshi): Devices with CC>=6.1 should support (int8, int32, int8) and (int8, int32, float32).
+
+    if (in_dtype1 != in_dtype2) {
+        in_dtype1 = out_dtype;
+        in_dtype2 = out_dtype;
+    }
+
+    CHAINERX_ASSERT(in_dtype1 == in_dtype2);
+
+    // Float output
+    switch (in_dtype1) {
         case Dtype::kFloat16:  // fallthrough
         case Dtype::kFloat32:
-            return Dtype::kFloat32;
+            return ConvDtypes{in_dtype1, Dtype::kFloat32, out_dtype};
         case Dtype::kFloat64:
-            return Dtype::kFloat64;
+            return ConvDtypes{in_dtype2, Dtype::kFloat64, out_dtype};
         default:
-            CHAINERX_NEVER_REACH();
+            break;
     }
-}
 
-void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
-    if (GetKind(x.dtype()) != DtypeKind::kFloat) {
-        throw ChainerxError{"ChainerX cuDNN supports only float arrays, but the input array dtype is: ", x.dtype()};
-    }
-    if (w.dtype() != x.dtype()) {
-        throw ChainerxError{"ChainerX cuDNN requires the filter (kernel) array dtype: ",
-                            w.dtype(),
-                            " and the input array dtype: ",
-                            x.dtype(),
-                            " to be the same"};
-    }
-    if (b && b->dtype() != x.dtype()) {
-        throw ChainerxError{
-                "ChainerX cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " to be the same"};
-    }
+    CHAINERX_ASSERT(GetKind(in_dtype1) != DtypeKind::kFloat);
+
+    // Non-float output
+    return ConvDtypes{Dtype::kFloat64, Dtype::kFloat64, Dtype::kFloat64};
 }
 
 }  // namespace
@@ -272,7 +277,8 @@ Array CudaConv::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        bool cover_all,
+        Dtype out_dtype) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
     }
@@ -283,8 +289,6 @@ Array CudaConv::Conv(
         device.CheckDevicesCompatible(x, w);
     }
     CudaSetDeviceScope scope{device.index()};
-
-    ConvCheckDtype(x, w, b);
 
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {
@@ -305,17 +309,22 @@ Array CudaConv::Conv(
         out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
         CHAINERX_ASSERT(out_shape.back() > 0);
     }
-    Array y = Empty(out_shape, x.dtype(), device);
+    ConvDtypes dtypes = GetConvDtypes(x.dtype(), w.dtype(), out_dtype);
+
+    Array y = Empty(out_shape, dtypes.out_dtype, device);
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = internal::AsContiguous(x);
-    Array w_cont = internal::AsContiguous(w);
+    const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
+    const Array& w_cast = dtypes.in_dtype == w.dtype() ? w : w.AsType(dtypes.in_dtype);
+
+    Array x_cont = internal::AsContiguous(x_cast);
+    Array w_cont = internal::AsContiguous(w_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{GetConvDtype(x.dtype()), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     CudnnHandle& handle = device.cudnn_handle();
@@ -330,7 +339,7 @@ Array CudaConv::Conv(
 
     handle.Call(
             cudnnConvolutionForward,
-            GetCudnnCoefficientPtr<1>(x.dtype()),
+            GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *x_desc,
             internal::GetRawOffsetData(x_cont),
             *filter_desc,
@@ -339,12 +348,17 @@ Array CudaConv::Conv(
             algo,
             workspace.get(),
             workspace_size,
-            GetCudnnCoefficientPtr<0>(x.dtype()),
+            GetCudnnCoefficientPtr<0>(x_cont.dtype()),
             *y_desc,
             internal::GetRawOffsetData(y));
 
     if (b) {
-        AddBias(handle, y_desc, y, *b);
+        const Array& b_cast = b->dtype() == y.dtype() ? *b : b->AsType(y.dtype());
+        AddBias(handle, y_desc, y, b_cast);
+    }
+
+    if (y.dtype() != out_dtype) {
+        y = y.AsType(out_dtype);
     }
 
     return y;
@@ -374,8 +388,6 @@ Array CudaConv::ConvTranspose(
     }
     CudaSetDeviceScope scope{device.index()};
 
-    ConvCheckDtype(x, w, b);
-
     if (ndim < 2) {
         throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
@@ -394,17 +406,23 @@ Array CudaConv::ConvTranspose(
     Shape out_shape{batch_size, out_channels};
     std::copy(out_size.begin(), out_size.end(), std::back_inserter(out_shape));
 
-    Array y = Empty(out_shape, x.dtype(), device);
+    Dtype out_dtype = x.dtype();  // TODO(niboshi): Specify as a parameter of this function
+    ConvDtypes dtypes = GetConvDtypes(x.dtype(), w.dtype(), out_dtype);
+
+    Array y = Empty(out_shape, dtypes.out_dtype, device);
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = internal::AsContiguous(x);
-    Array w_cont = internal::AsContiguous(w);
+    const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
+    const Array& w_cast = dtypes.in_dtype == w.dtype() ? w : w.AsType(dtypes.in_dtype);
+
+    Array x_cont = internal::AsContiguous(x_cast);
+    Array w_cont = internal::AsContiguous(w_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{GetConvDtype(x.dtype()), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     CudnnHandle& handle = device.cudnn_handle();
@@ -419,7 +437,7 @@ Array CudaConv::ConvTranspose(
 
     handle.Call(
             cudnnConvolutionBackwardData,
-            GetCudnnCoefficientPtr<1>(x.dtype()),
+            GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *filter_desc,
             internal::GetRawOffsetData(w_cont),
             *x_desc,
@@ -428,12 +446,17 @@ Array CudaConv::ConvTranspose(
             algo,
             workspace.get(),
             workspace_size,
-            GetCudnnCoefficientPtr<0>(x.dtype()),
+            GetCudnnCoefficientPtr<0>(x_cont.dtype()),
             *y_desc,
             internal::GetRawOffsetData(y));
 
     if (b) {
-        AddBias(handle, y_desc, y, *b);
+        const Array& b_cast = b->dtype() == y.dtype() ? *b : b->AsType(y.dtype());
+        AddBias(handle, y_desc, y, b_cast);
+    }
+
+    if (y.dtype() != out_dtype) {
+        y = y.AsType(out_dtype);
     }
 
     return y;
@@ -482,18 +505,21 @@ Array CudaConv::ConvGradWeight(
         CHAINERX_ASSERT(gy.shape() == out_shape);
     }
 
-    Array gw = Empty(w_shape, w_dtype, device);
+    ConvDtypes dtypes = GetConvDtypes(x.dtype(), gy.dtype(), w_dtype);
+    Array gw = Empty(w_shape, dtypes.out_dtype, device);
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = internal::AsContiguous(x);
-    Array gy_cont = internal::AsContiguous(gy);
-    Array gw_cont = internal::AsContiguous(gw);
+    const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
+    const Array& gy_cast = dtypes.in_dtype == gy.dtype() ? gy : gy.AsType(dtypes.in_dtype);
+
+    Array x_cont = internal::AsContiguous(x_cast);
+    Array gy_cont = internal::AsContiguous(gy_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
-    CudnnFilterDescriptor gw_desc{gw_cont};
-    CudnnConvolutionDescriptor conv_desc{GetConvDtype(x.dtype()), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnFilterDescriptor gw_desc{gw};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     CudnnHandle& handle = device.cudnn_handle();
@@ -508,7 +534,7 @@ Array CudaConv::ConvGradWeight(
 
     handle.Call(
             cudnnConvolutionBackwardFilter,
-            GetCudnnCoefficientPtr<1>(x.dtype()),
+            GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *x_desc,
             internal::GetRawOffsetData(x_cont),
             *gy_desc,
@@ -517,9 +543,13 @@ Array CudaConv::ConvGradWeight(
             algo,
             workspace.get(),
             workspace_size,
-            GetCudnnCoefficientPtr<0>(x.dtype()),
+            GetCudnnCoefficientPtr<0>(x_cont.dtype()),
             *gw_desc,
             internal::GetRawOffsetData(gw));
+
+    if (gw.dtype() != w_dtype) {
+        gw = gw.AsType(w_dtype);
+    }
 
     return gw;
 }

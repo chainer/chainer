@@ -12,6 +12,7 @@ from chainer.testing.parameterized import parameterize  # NOQA
 from chainer.testing.parameterized import parameterize_pytest  # NOQA
 from chainer.testing.parameterized import product  # NOQA
 from chainer.testing.parameterized import product_dict  # NOQA
+from chainer.testing.parameterized import pytest_to_chainer  # NOQA
 from chainer.testing.random import fix_random  # NOQA
 from chainer.testing.random import generate_seed  # NOQA
 from chainer.testing.serializer import save_and_load  # NOQA
