@@ -1662,6 +1662,14 @@ TEST_THREAD_SAFE_P(MathTest, PowerScalar) {
             [b](const std::vector<Array>& xs) { return std::vector<Array>{Pow(xs[0], b)}; }, {a}, {e}); });
 }
 
+TEST_THREAD_SAFE_P(MathTest, PowerScalarA) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, 3.f});
+    Scalar b{2.0f};
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 2.f), std::pow(2.f, 4.f), std::pow(2.f, 3.f)});
+    Run([&]() { testing::CheckForward(
+            [b](const std::vector<Array>& xs) { return std::vector<Array>{Pow(b,xs[0])}; }, {a}, {e}); });
+}
+
 TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
     using T = double;
     Shape shape{2, 3};
@@ -1670,12 +1678,31 @@ TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
     Array eps = Full(shape, 1e-3);
 
+
+    // Array , Scalar
     CheckBackward(
         [b](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(xs[0], b)}; },
         {a},
         {go},
         {eps});
 }
+TEST_THREAD_SAFE_P(MathTest, PowerScalarABackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.})).RequireGrad();
+    Scalar b{2.0f};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
+    Array eps = Full(shape, 1e-3);
+
+
+    // Array , Scalar
+    CheckBackward(
+        [b](const std::vector<Array>& xs) -> std::vector<Array> { return {Pow(b,xs[0])}; },
+        {a},
+        {go},
+        {eps});
+}
+
 
 TEST_P(MathTest, PowerScalarDoubleBackward) {
     using T = double;
@@ -1686,10 +1713,33 @@ TEST_P(MathTest, PowerScalarDoubleBackward) {
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-1);
 
-    
+    //Array, Scalar   
     CheckDoubleBackwardComputation(
             [b](const std::vector<Array>& xs) -> std::vector<Array> {
                 auto y = Pow(xs[0], b);
+                return {y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+
+
+}
+
+TEST_P(MathTest, PowerScalarADoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    //Array, Scalar   
+    CheckDoubleBackwardComputation(
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Pow(b,xs[0]);
                 return {y};  // to make it nonlinear
             },
             {a},

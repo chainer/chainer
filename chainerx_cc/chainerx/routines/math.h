@@ -96,6 +96,9 @@ Array Pow(const Array& x1, const Array& x2);
 
 Array Pow(const Array& x1, Scalar x2);
 
+Array Pow(Scalar x1,const Array& x2);
+
+
 Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);

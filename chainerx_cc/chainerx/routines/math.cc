@@ -632,6 +632,27 @@ Array Pow(const Array& x1, Scalar x2) {
     return out;
 }
 
+Array Pow(Scalar x1,const Array& x2) {
+    Array out = EmptyLike(x2, x2.device());
+    {
+        NoBackpropModeScope scope{};
+        x2.device().PowSA(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"pow_scalar", x2, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1, out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+
+            bctx.input_grad() = gout * out * std::log(static_cast<double>(x1)); 
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
 Array Tanh(const Array& x) {
     Array out = EmptyLike(x, x.device());
 
