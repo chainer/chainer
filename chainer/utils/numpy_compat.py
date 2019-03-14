@@ -13,6 +13,18 @@ def _np_1_10_broadcast_to(array, shape, subok=False):
     return numpy.broadcast_arrays(array, dummy)[0]
 
 
+def stack(xp):
+    return _np_stack if xp is numpy else xp.stack
+
+
+def _np_1_10_stack(arrays, axis=0, out=None):
+    return numpy.concatenate(
+        [numpy.expand_dims(x, axis) for x in arrays], axis, out),
+
+
+_np_stack = numpy.stack if _np_version >= '1.10.0' else _np_1_10_stack
+
+
 def split(xp):
     return _np_split if xp is numpy else xp.split
 

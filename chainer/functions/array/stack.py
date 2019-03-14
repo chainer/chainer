@@ -1,6 +1,7 @@
 import chainer
 from chainer import backend
 from chainer import function_node
+from chainer.utils import numpy_compat
 from chainer.utils import type_check
 import chainerx
 
@@ -28,12 +29,7 @@ class Stack(function_node.FunctionNode):
 
     def forward(self, inputs):
         xp = backend.get_array_module(*inputs)
-        if hasattr(xp, 'stack'):
-            return xp.stack(inputs, axis=self.axis),
-        else:
-            # Old numpy does not have numpy.stack.
-            return xp.concatenate(
-                [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
+        return numpy_compat.stack(xp)(inputs, axis=self.axis),
 
     def forward_chainerx(self, xs):
         return chainerx.stack(xs, self.axis),

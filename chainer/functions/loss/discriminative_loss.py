@@ -4,6 +4,7 @@ from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.sqrt import sqrt
 from chainer.functions.math.sum import sum as c_sum
+from chainer.utils import numpy_compat
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
@@ -94,11 +95,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             # Create mask for instance
             mask = xp.expand_dims(labels == c + 1, 1)
             ms.append(mask)
-        if hasattr(xp, 'stack'):
-            ms = xp.stack(ms, 0)
-        else:
-            # Old numpy does not have numpy.stack.
-            ms = xp.concatenate([xp.expand_dims(x, 0) for x in ms], 0)
+        ms = numpy_compat.stack(xp)(ms, 0)
         mns = c_sum(emb * ms, axis=(3, 4))
         mns = mns / xp.maximum(xp.sum(ms, (2, 3, 4))[:, :, None], 1)
         mns_exp = mns[:, :, :, None, None]

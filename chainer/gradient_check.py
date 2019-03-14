@@ -12,6 +12,7 @@ from chainer import configuration
 from chainer import FunctionNode
 from chainer import testing
 from chainer import utils
+from chainer.utils import numpy_compat
 from chainer import variable
 import chainerx
 
@@ -254,13 +255,9 @@ def numerical_grad(
                     size = sizes[i_out]
                     cumsize = cumsizes[i_out]
                     shape = shapes[i_out]
-                    # TODO(niboshi): The following two lines could be
-                    # rewritten using xp.stack, which is supported in
-                    # NumPy>=1.10
-                    ymax = xp.concatenate(
-                        [ys[i_out][None] for ys in yss]).max(axis=0)
-                    ymin = xp.concatenate(
-                        [ys[i_out][None] for ys in yss]).min(axis=0)
+                    xp_stack = numpy_compat.stack(xp)
+                    ymax = xp_stack([ys[i_out] for ys in yss]).max(axis=0)
+                    ymin = xp_stack([ys[i_out] for ys in yss]).min(axis=0)
                     # Restore the shape of flattened residual
                     res = residuals[cumsize - size:cumsize]
                     res = res.reshape(shape)

@@ -4,16 +4,7 @@ from chainer import distribution
 from chainer.functions.math import exponential
 import chainer.functions.math.sum as sum_mod
 from chainer.utils import cache
-
-
-def _stack(xp, xs, axis):
-    try:
-        return xp.stack(xs, axis)
-    except AttributeError:
-        # in case numpy<1.10, which does not have numpy.stack
-        return xp.concatenate(
-            [xp.expand_dims(x, axis) for x in xs],
-            axis=axis)
+from chainer.utils import numpy_compat
 
 
 def _random_choice(xp, a, size, p):
@@ -77,7 +68,8 @@ class OneHotCategorical(distribution.Distribution):
         eye = xp.eye(self.event_shape[0], dtype=self.p.dtype)
         eps = [_random_choice(xp, one_p.shape[0], size=(n,), p=one_p)
                for one_p in obo_p]
-        eps = _stack(xp, eps, axis=1).reshape((n,)+self.batch_shape)
+        eps = numpy_compat.stack(xp)(
+            eps, axis=1).reshape((n,)+self.batch_shape)
         eps = eye[eps]
         noise = chainer.Variable(eps)
         return noise

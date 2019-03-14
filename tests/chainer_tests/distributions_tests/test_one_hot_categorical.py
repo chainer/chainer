@@ -3,16 +3,10 @@ import numpy
 from chainer import cuda
 from chainer import distributions
 from chainer import testing
+from chainer.utils import numpy_compat
 
 
-def _numpy_stack(xs, axis):
-    try:
-        return numpy.stack(xs, axis)
-    except AttributeError:
-        # in case numpy<1.10, which does not have numpy.stack
-        return numpy.concatenate(
-            [numpy.expand_dims(x, axis) for x in xs],
-            axis=axis)
+_numpy_stack = numpy_compat.stack(numpy)
 
 
 def _numpy_random_multinomial(n, pvals, size):
