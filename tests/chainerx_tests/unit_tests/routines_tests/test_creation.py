@@ -1,5 +1,4 @@
 from io import StringIO
-import math
 import sys
 import tempfile
 
@@ -612,18 +611,6 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     return xp.full(shape, value, dtype_spec)
-
-
-@pytest.mark.parametrize(
-    'value', [True, False, -2, 0, 1, 2, 2.5, float('inf'), float('nan')])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_full_with_scalar(shape, dtype, value, device):
-    scalar = chainerx.Scalar(value)
-    a = chainerx.full(shape, scalar)
-    if isinstance(value, float) and math.isnan(value):
-        assert all([math.isnan(el) for el in a._debug_flat_data])
-    else:
-        assert a._debug_flat_data == [scalar.tolist()] * a.size
 
 
 @pytest.mark.parametrize(
