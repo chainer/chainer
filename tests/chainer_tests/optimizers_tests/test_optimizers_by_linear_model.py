@@ -239,7 +239,7 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
             'amsgrad': self.amsgrad,
             'adabound': self.adabound,
         }
-        return optimizers.Adam(0.05)
+        return optimizers.Adam(0.05, kwargs)
 
 
 @testing.parameterize(*testing.product({
