@@ -184,6 +184,18 @@ def is_arrays_compatible(arrays):
     return all([isinstance(a, types) for a in arrays])
 
 
+class _Mixed16(object):
+
+    dtype = numpy.dtype(numpy.float16)
+
+    def __repr__(self):
+        return "dtype('mixed16')"
+
+
+mixed16 = _Mixed16()
+"""Dtype-like object that represents 16/32 bits mixed precision float."""
+
+
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
 global_config.warn_nondeterministic = False
@@ -203,10 +215,13 @@ global_config.cudnn_fast_batch_normalization = bool(int(
     os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
-if _chainer_dtype not in ('float16', 'float32', 'float64'):
+if _chainer_dtype in ('float16', 'float32', 'float64'):
+    global_config.dtype = numpy.dtype(_chainer_dtype)
+elif _chainer_dtype == 'mixed16':
+    global_config.dtype = mixed16
+else:
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
-global_config.dtype = numpy.dtype(_chainer_dtype)
 global_config.in_recomputing = False
 
 
@@ -262,17 +277,27 @@ class DebugMode(object):
         self._using.__exit__(*args)
 
 
-def get_dtype(dtype=None):
+def get_dtype(dtype=None, map_mixed16=None):
     """Resolves Chainer's default dtype.
+
+    Args:
+        dtype: Dtype specifier. If this value is specified (not ``None``),
+            this function returns the dtype object corresponding to it.
+        map_mixed16: Dtype specifier. When ``chainer.config.dtype`` is mixed16,
+            this option is used. If this value is ``None``, float16 is used.
 
     Returns:
         If ``dtype`` is not ``None``, it returns the dtype normalized by
         ``numpy.dtype()``. Otherwise, it returns ``chainer.config.dtype`` (see
-        :ref:`configuration`) normalized as well.
+        :ref:`configuration`) normalized as well. When ``chainer.config.dtype``
+        is :data:`~chainer.mixed16` and ``map_mixed16`` is specified, it
+        returns the normalized version of ``map_mixed16``.
 
     """
     if dtype is None:
         dtype = config.dtype
+    if dtype is mixed16 and map_mixed16 is not None:
+        dtype = map_mixed16
     return numpy.dtype(dtype)
 
 
