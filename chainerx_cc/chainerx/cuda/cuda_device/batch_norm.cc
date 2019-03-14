@@ -67,7 +67,7 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
 cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
         const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) {
     cuda_internal::CudnnTensorDescriptor derive_desc{};
-    CheckCudnnError(cudnnDeriveBNTensorDescriptor(*derive_desc, *x_desc, mode));
+    CHAINERX_CUDA_CUDNN_CALL(cudnnDeriveBNTensorDescriptor, *derive_desc, *x_desc, mode);
     return derive_desc;
 }
 
@@ -149,7 +149,8 @@ public:
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnBatchNormalizationForwardTraining,
                 mode,
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
@@ -263,7 +264,8 @@ public:
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnBatchNormalizationBackward,
                 mode,
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
@@ -357,7 +359,8 @@ public:
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnBatchNormalizationForwardInference,
                 GetBatchNormMode(axis),
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),

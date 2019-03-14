@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
@@ -10,21 +12,40 @@
 #include "chainerx/macro.h"
 #include "chainerx/stack_vector.h"
 
+#define CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(handle, func, args...)                                                                    \
+    {                                                                                                                                  \
+        static_assert(std::is_same<std::remove_reference_t<decltype(handle)>, chainerx::cuda::cuda_internal::CudnnHandle>::value, ""); \
+        handle.Call(func, #func, args);                                                                                                \
+    }
+
+#define CHAINERX_CUDA_CUDNN_CALL(func, args...) chainerx::cuda::cudnn_detail::CheckCudnnError(#func, func(args))
+
 namespace chainerx {
 namespace cuda {
 
 class CudnnError : public ChainerxError {
 public:
     using ChainerxError::ChainerxError;
+};
 
-    explicit CudnnError(cudnnStatus_t status);
+class CudnnStatusError : public CudnnError {
+public:
+    CudnnStatusError(const char* func_name, cudnnStatus_t status);
     cudnnStatus_t error() const noexcept { return status_; }
 
 private:
     cudnnStatus_t status_{};
 };
 
-void CheckCudnnError(cudnnStatus_t status);
+namespace cudnn_detail {
+
+inline void CheckCudnnError(const char* func_name, cudnnStatus_t status) {
+    if (status != CUDNN_STATUS_SUCCESS) {
+        throw CudnnStatusError{func_name, status};
+    }
+}
+
+}  // namespace cudnn_detail
 
 namespace cuda_internal {
 
@@ -151,9 +172,9 @@ public:
     CudnnHandle& operator=(CudnnHandle&&) = delete;
 
     template <class Func, class... Args>
-    void Call(Func&& func, Args&&... args) {
+    void Call(Func&& func, const char* func_name, Args&&... args) {
         std::lock_guard<std::mutex> lock{handle_mutex_};
-        CheckCudnnError(func(handle(), args...));
+        cudnn_detail::CheckCudnnError(func_name, func(handle(), args...));
     }
 
 private:

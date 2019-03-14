@@ -13,13 +13,8 @@
 namespace chainerx {
 namespace cuda {
 
-CudnnError::CudnnError(cudnnStatus_t status) : ChainerxError{cudnnGetErrorString(status)}, status_{status} {}
-
-void CheckCudnnError(cudnnStatus_t status) {
-    if (status != CUDNN_STATUS_SUCCESS) {
-        throw CudnnError{status};
-    }
-}
+CudnnStatusError::CudnnStatusError(const char* func_name, cudnnStatus_t status)
+    : CudnnError{func_name, ": ", cudnnGetErrorString(status)}, status_{status} {}
 
 namespace {
 
@@ -88,11 +83,11 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
 
 namespace cuda_internal {
 
-CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+CudnnTensorDescriptor::CudnnTensorDescriptor() { CHAINERX_CUDA_CUDNN_CALL(cudnnCreateTensorDescriptor, &desc_); }
 
 CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
-        cudnnDestroyTensorDescriptor(desc_);
+        CHAINERX_CUDA_CUDNN_CALL(cudnnDestroyTensorDescriptor, desc_);
     }
 }
 
@@ -102,11 +97,11 @@ CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDesc
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnSetTensor4dDescriptor, desc_, CUDNN_TENSOR_NCHW, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]);
     } else {
         StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.GetItemSize());  // strides divided by item size
         StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetTensorNdDescriptor(desc_, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnSetTensorNdDescriptor, desc_, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]);
     }
 }
 
@@ -114,7 +109,7 @@ Dtype CudnnTensorDescriptor::GetDtype() const {
     cudnnDataType_t cudnn_dtype{};
     int ndim{};
 
-    CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
+    CHAINERX_CUDA_CUDNN_CALL(cudnnGetTensorNdDescriptor, desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr);
 
     switch (cudnn_dtype) {
         case CUDNN_DATA_HALF:
@@ -128,10 +123,11 @@ Dtype CudnnTensorDescriptor::GetDtype() const {
     }
 }
 
-CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
+CudnnFilterDescriptor::CudnnFilterDescriptor() { CHAINERX_CUDA_CUDNN_CALL(cudnnCreateFilterDescriptor, &desc_); }
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
+        CHAINERX_CUDA_CUDNN_CALL(cudnnDestroyFilterDescriptor, desc_);
         cudnnDestroyFilterDescriptor(desc_);
     }
 }
@@ -142,18 +138,18 @@ CudnnFilterDescriptor::CudnnFilterDescriptor(const Array& w) : CudnnFilterDescri
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());
     if (w.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(w.shape());
-        CheckCudnnError(cudnnSetFilter4dDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, nchw[0], nchw[1], nchw[2], nchw[3]));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnSetFilter4dDescriptor, desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, nchw[0], nchw[1], nchw[2], nchw[3]);
     } else {
         StackVector<int, kMaxNdim> int_shape = GetIntShape(w.shape());
-        CheckCudnnError(cudnnSetFilterNdDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, w.ndim(), &int_shape[0]));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnSetFilterNdDescriptor, desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, w.ndim(), &int_shape[0]);
     }
 }
 
-CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
+CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CHAINERX_CUDA_CUDNN_CALL(cudnnCreateConvolutionDescriptor, &desc_); }
 
 CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
-        cudnnDestroyConvolutionDescriptor(desc_);
+        CHAINERX_CUDA_CUDNN_CALL(cudnnDestroyConvolutionDescriptor, desc_);
     }
 }
 
@@ -183,7 +179,8 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
 
     if (ndim == 2) {
-        CheckCudnnError(cudnnSetConvolution2dDescriptor(
+        CHAINERX_CUDA_CUDNN_CALL(
+                cudnnSetConvolution2dDescriptor,
                 desc_,
                 int_pad[0],
                 int_pad[1],
@@ -192,21 +189,28 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
                 int_dilation[0],
                 int_dilation[1],
                 CUDNN_CROSS_CORRELATION,
-                compute_type));
+                compute_type);
     } else {
-        CheckCudnnError(cudnnSetConvolutionNdDescriptor(
-                desc_, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], CUDNN_CROSS_CORRELATION, compute_type));
+        CHAINERX_CUDA_CUDNN_CALL(
+                cudnnSetConvolutionNdDescriptor,
+                desc_,
+                ndim,
+                &int_pad[0],
+                &int_stride[0],
+                &int_dilation[0],
+                CUDNN_CROSS_CORRELATION,
+                compute_type);
     }
     if (groups > 1) {
-        CheckCudnnError(cudnnSetConvolutionGroupCount(desc_, groups));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnSetConvolutionGroupCount, desc_, groups);
     }
 }
 
-CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
+CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CHAINERX_CUDA_CUDNN_CALL(cudnnCreatePoolingDescriptor, &desc_); }
 
 CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
-        cudnnDestroyPoolingDescriptor(desc_);
+        CHAINERX_CUDA_CUDNN_CALL(cudnnDestroyPoolingDescriptor, desc_);
     }
 }
 
@@ -226,7 +230,8 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
 
     if (ndim == 2) {
-        CheckCudnnError(cudnnSetPooling2dDescriptor(
+        CHAINERX_CUDA_CUDNN_CALL(
+                cudnnSetPooling2dDescriptor,
                 desc_,
                 mode,
                 max_pooling_nan_opt,
@@ -235,10 +240,10 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
                 int_pad[0],
                 int_pad[1],
                 int_stride[0],
-                int_stride[1]));
+                int_stride[1]);
     } else {
-        CheckCudnnError(
-                cudnnSetPoolingNdDescriptor(desc_, mode, max_pooling_nan_opt, ndim, &int_kernel_size[0], &int_pad[0], &int_stride[0]));
+        CHAINERX_CUDA_CUDNN_CALL(
+                cudnnSetPoolingNdDescriptor, desc_, mode, max_pooling_nan_opt, ndim, &int_kernel_size[0], &int_pad[0], &int_stride[0]);
     }
 }
 
@@ -254,7 +259,7 @@ cudnnHandle_t CudnnHandle::handle() {
     if (handle_ == nullptr) {
         // TODO(hvy): Use CudaSetDeviceScope similar to CublasHandle?
         CheckCudaError(cudaSetDevice(device_index_));
-        CheckCudnnError(cudnnCreate(&handle_));
+        CHAINERX_CUDA_CUDNN_CALL(cudnnCreate, &handle_);
     }
     return handle_;
 }

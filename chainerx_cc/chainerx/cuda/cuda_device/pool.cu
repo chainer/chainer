@@ -126,7 +126,8 @@ Array Pool(
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
-    device_internals.cudnn_handle().Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            device_internals.cudnn_handle(),
             cudnnPoolingForward,
             *pool_desc,
             cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
@@ -182,7 +183,8 @@ Array PoolGrad(
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
-    device_internals.cudnn_handle().Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            device_internals.cudnn_handle(),
             cudnnPoolingBackward,
             *pool_desc,
             cuda_internal::GetCudnnCoefficientPtr<1>(dtype),

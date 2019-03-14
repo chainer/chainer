@@ -110,7 +110,8 @@ void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc,
     Array b_cont = AsContiguous(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnAddTensor,
             GetCudnnCoefficientPtr<1>(y.dtype()),
             *b_desc,
@@ -147,7 +148,8 @@ std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> CudaConv::FindCon
     cudnnConvolutionFwdAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnFindConvolutionForwardAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData(x),
@@ -196,7 +198,8 @@ std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> CudaConv::Fin
     cudnnConvolutionBwdDataAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnFindConvolutionBackwardDataAlgorithmEx,
             *filter_desc,
             internal::GetRawOffsetData(w),
@@ -245,7 +248,8 @@ std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> CudaConv::F
     cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnFindConvolutionBackwardFilterAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData(x),
@@ -341,9 +345,10 @@ Array CudaConv::Conv(
     cudnnMathType_t math_type = std::get<2>(algo_perf);
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    cudnnSetConvolutionMathType(*conv_desc, math_type);
+    CHAINERX_CUDA_CUDNN_CALL(cudnnSetConvolutionMathType, *conv_desc, math_type);
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnConvolutionForward,
             GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *x_desc,
@@ -448,9 +453,10 @@ Array CudaConv::ConvTranspose(
     cudnnMathType_t math_type = std::get<2>(algo_perf);
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    cudnnSetConvolutionMathType(*conv_desc, math_type);
+    CHAINERX_CUDA_CUDNN_CALL(cudnnSetConvolutionMathType, *conv_desc, math_type);
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnConvolutionBackwardData,
             GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *filter_desc,
@@ -551,9 +557,10 @@ Array CudaConv::ConvGradWeight(
     cudnnMathType_t math_type = std::get<2>(algo_perf);
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    cudnnSetConvolutionMathType(*conv_desc, math_type);
+    CHAINERX_CUDA_CUDNN_CALL(cudnnSetConvolutionMathType, *conv_desc, math_type);
 
-    handle.Call(
+    CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+            handle,
             cudnnConvolutionBackwardFilter,
             GetCudnnCoefficientPtr<1>(x_cont.dtype()),
             *x_desc,
