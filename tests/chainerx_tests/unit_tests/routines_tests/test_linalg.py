@@ -14,6 +14,11 @@ from chainerx_tests import array_utils
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),
+    ((4, 5, 2), (3, 2, 5)),
+    ((2, 3, 4, 4), (3, 4, 2)),
+    ((2, 2, 3, 1), (2, 1, 3, 1,  4)),
+    ((2, 4, 3), (1, 2, 3, 2))
+    
     # TODO(niboshi): Add test cases for more than 2 ndim
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -33,6 +38,7 @@ def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
     accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((3, 2), (1, 3)),
+    ((4, 3, 2, 5), (6, 4, 1, 2))
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
