@@ -694,7 +694,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
         # Expected outputs are computed on the CPU so the link must be
         # transferred.
-        link.to_cpu()
+        link.to_device(backend.CpuDevice())
 
         expected_outputs_np = self._forward_expected(inputs_np, link)
 
