@@ -40,6 +40,12 @@ GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.w
 
 GradRef::GradRef(nonstd::nullopt_t /*nullopt*/) : temporary_grad_{std::make_unique<nonstd::optional<Array>>()} {}
 
+GradRef::GradRef(nonstd::optional<Array>* grad) : original_grad_ptr_{grad} {
+    if (original_grad_ptr_->has_value()) {
+        original_grad_owner_body_ = internal::GetArrayBody(**grad);
+    }
+}
+
 nonstd::optional<Array>& GradRef::get() {
     if (original_grad_ptr_ == nullptr) {
         if (temporary_grad_ == nullptr) {

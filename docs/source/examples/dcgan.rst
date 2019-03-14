@@ -295,13 +295,14 @@ After that, we minimize the loss functions with
 the optimizers.
 
 .. note::
-    When we define ``update_core``, we usually want manipulate ``array`` with
-    ``numpy`` library. It should be noted that arrays on CPU should be
-    ``numpy.ndarray``, while arrays on GPU should be ``cupy.ndarray``.
-    But you do not need to write ``if`` condition because you can
-    access the appropriate array module by
-    ``xp = chainer.backends.cuda.get_array_module(array.data)``.
-    On GPU, ``xp`` is ``cupy``, otherwise ``numpy``.
+    When defining ``update_core``, we may want to manipulate the
+    underlying ``array`` of a ``Variable`` with ``numpy`` or ``cupy`` library.
+    Note that the type of arrays on CPU  is ``numpy.ndarray``, while the type
+    of arrays on GPU is ``cupy.ndarray``. However, users do not need to write
+    ``if`` condition explicitly, because the appropriate array module can be
+    obtained by ``xp = chainer.backends.cuda.get_array_module(variable.array)``.
+    If ``variable`` is on GPU, ``cupy`` is assigned to ``xp``, otherwise
+    ``numpy`` is assigned to ``xp``.
 
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
    :language: python

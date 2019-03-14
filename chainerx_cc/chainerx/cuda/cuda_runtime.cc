@@ -49,9 +49,9 @@ bool IsPointerManagedMemory(const void* ptr) {
         case cudaSuccess:
 #if CUDART_VERSION < 10000
             return attr.isManaged != 0;
-#else
+#else  // CUDART_VERSION
             return attr.type == cudaMemoryTypeManaged;
-#endif
+#endif  // CUDART_VERSION
         case cudaErrorInvalidValue:
             return false;
         default:

@@ -21,14 +21,14 @@ class Hinge(function.Function):
         if norm in ['L1', 'L2']:
             self.norm = norm
         else:
-            raise NotImplementedError("norm should be either 'L1' or 'L2'")
+            raise NotImplementedError('norm should be either \'L1\' or \'L2\'')
 
         if reduce in ['mean', 'no']:
             self.reduce = reduce
         else:
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x', 't'))
@@ -149,12 +149,9 @@ def hinge(x, t, norm='L1', reduce='mean'):
         loss values. If it is ``'mean'``, it takes the mean of loss values.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.float`):
-            Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
-            .
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of signed integer):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            The shape of ``x`` should be (:math:`N`, :math:`K`).
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             The :math:`N`-dimensional label vector with values
             :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).

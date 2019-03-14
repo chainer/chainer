@@ -116,6 +116,10 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
     CHAINERX_ASSERT(!inputs_.empty());
     CHAINERX_ASSERT(!outputs_.empty());
     CHAINERX_ASSERT(inputs_.size() == inputs_target_created_.size());
+    CHAINERX_ASSERT(
+            std::all_of(inputs_.begin(), inputs_.end(), [](const Array& input) { return internal::GetArrayBody(input) != nullptr; }));
+    CHAINERX_ASSERT(
+            std::all_of(outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output) != nullptr; }));
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     CHAINERX_ASSERT(std::all_of(
             outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));

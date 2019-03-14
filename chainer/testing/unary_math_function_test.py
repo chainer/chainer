@@ -181,8 +181,8 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
         try:
             func_expected = getattr(numpy, func_name)
         except AttributeError:
-            raise ValueError("NumPy has no functions corresponding "
-                             "to Chainer function '{}'.".format(func_name))
+            raise ValueError('NumPy has no functions corresponding '
+                             'to Chainer function \'{}\'.'.format(func_name))
 
     if label_expected is None:
         label_expected = func_name
@@ -229,7 +229,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 self.backward_options.update(backward_options)
             if double_backward_options is not None:
                 self.double_backward_options.update(double_backward_options)
-        setattr(klass, "setUp", setUp)
+        setattr(klass, 'setUp', setUp)
 
         def check_forward(self, x_data):
             x = variable.Variable(x_data)
@@ -237,30 +237,30 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             self.assertEqual(y.data.dtype, x_data.dtype)
             y_expected = func_expected(cuda.to_cpu(x_data), dtype=x_data.dtype)
             testing.assert_allclose(y_expected, y.data, **self.forward_options)
-        setattr(klass, "check_forward", check_forward)
+        setattr(klass, 'check_forward', check_forward)
 
         def test_forward_cpu(self):
             self.check_forward(self.x)
-        setattr(klass, "test_forward_cpu", test_forward_cpu)
+        setattr(klass, 'test_forward_cpu', test_forward_cpu)
 
         @attr.gpu
         def test_forward_gpu(self):
             self.check_forward(cuda.to_gpu(self.x))
-        setattr(klass, "test_forward_gpu", test_forward_gpu)
+        setattr(klass, 'test_forward_gpu', test_forward_gpu)
 
         def check_backward(self, x_data, y_grad):
             gradient_check.check_backward(
                 func, x_data, y_grad, **self.backward_options)
-        setattr(klass, "check_backward", check_backward)
+        setattr(klass, 'check_backward', check_backward)
 
         def test_backward_cpu(self):
             self.check_backward(self.x, self.gy)
-        setattr(klass, "test_backward_cpu", test_backward_cpu)
+        setattr(klass, 'test_backward_cpu', test_backward_cpu)
 
         @attr.gpu
         def test_backward_gpu(self):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-        setattr(klass, "test_backward_gpu", test_backward_gpu)
+        setattr(klass, 'test_backward_gpu', test_backward_gpu)
 
         if is_new_style:
             def check_double_backward(self, x_data, y_grad, x_grad_grad):
@@ -268,11 +268,11 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 gradient_check.check_double_backward(
                     func1, x_data, y_grad,
                     x_grad_grad, **self.double_backward_options)
-            setattr(klass, "check_double_backward", check_double_backward)
+            setattr(klass, 'check_double_backward', check_double_backward)
 
             def test_double_backward_cpu(self):
                 self.check_double_backward(self.x, self.gy, self.ggx)
-            setattr(klass, "test_double_backward_cpu",
+            setattr(klass, 'test_double_backward_cpu',
                     test_double_backward_cpu)
 
             @attr.gpu
@@ -280,13 +280,13 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 self.check_double_backward(
                     cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
                     cuda.to_gpu(self.ggx))
-            setattr(klass, "test_double_backward_gpu",
+            setattr(klass, 'test_double_backward_gpu',
                     test_double_backward_gpu)
 
         if func_class is not None:
             def test_label(self):
                 self.assertEqual(func_class().label, label_expected)
-            setattr(klass, "test_label", test_label)
+            setattr(klass, 'test_label', test_label)
 
         # Return parameterized class.
         return testing.parameterize(*testing.product({

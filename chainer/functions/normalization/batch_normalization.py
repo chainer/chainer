@@ -200,16 +200,15 @@ class BatchNormalization(function_node.FunctionNode):
                 y = numpy.squeeze(y, axis=(2, 3))
 
         elif self.use_cudnn:
-            if self.mean is None:
-                # Output cache to speed up backward pass.
-                self.mean = xp.empty_like(gamma)
-                # Output cache to speed up backward pass.
-                self.inv_std = xp.empty_like(gamma)
-            y = cudnn.batch_normalization_forward_training(
-                x, gamma, beta, self.running_mean, self.running_var,
-                self.mean, self.inv_std, self.eps, self.decay,
-                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+            # self.mean and self.inv_std are used as buffers to save
+            # intermediate results computed during forward pass. These buffers
+            # are used to speed-up backward pass.
+            y, self.mean, self.inv_std = (
+                cudnn.batch_normalization_forward_training(
+                    x, gamma, beta, self.running_mean, self.running_var,
+                    None, None, self.eps, self.decay,
+                    self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
+                    chainer.is_debug()))
         else:
             # Generic CPU and GPU implementation
 
@@ -230,7 +229,7 @@ class BatchNormalization(function_node.FunctionNode):
 
             xp = backend.get_array_module(self.running_mean, self.running_var)
             if xp is chainerx:
-                self.running_mean, self.running_var = backend.from_chainerx(
+                self.running_mean, self.running_var = backend.from_chx(
                     (self.running_mean, self.running_var))
 
             self.running_mean *= self.decay
@@ -239,8 +238,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var += (1 - self.decay) * adjust * var
 
             if xp is chainerx:
-                self.running_mean = backend.to_chainerx(self.running_mean)
-                self.running_var = backend.to_chainerx(self.running_var)
+                self.running_mean = backend.to_chx(self.running_mean)
+                self.running_var = backend.to_chx(self.running_var)
 
         return y,
 
@@ -307,7 +306,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
                 x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                configuration.config.debug)
+                chainer.is_debug())
         else:
             # CPU and GPU implementation
             gbeta = gy.sum(axis=self.axis)
@@ -613,7 +612,7 @@ class _BNMode(object):
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.
         # cuDNN v5 batch normalization does not seem to support float16.
-        return (xp is not numpy and
+        return (xp is cuda.cupy and
                 chainer.should_use_cudnn('>=auto', 5000) and
                 self.cudnn_dim_ok and
                 self.cudnn_dtype_ok)
@@ -698,21 +697,20 @@ def batch_normalization(x, gamma, beta, **kwargs):
     input dimensions except the second dimension.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        running_mean (numpy.ndarray or cupy.ndarray):
+        running_mean (:ref:`ndarray`):
             Running average of the mean. This is a running average of
             the mean over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
             the array in-place by the new running average.
             If ``None``, the running average is not computed. If this is
             ``None``, then ``runnng_var`` must also be ``None``.
-        running_var (numpy.ndarray or cupy.ndarray):
+        running_var (:ref:`ndarray`):
             Running average of the variance. This is a running average of
             the variance over several mini-batches using the decay parameter.
             The function takes a previous running average, and updates
@@ -756,16 +754,15 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Scaling parameter of normalized data.
-        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
-        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Shifting parameter of input.
-        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Square of scaling parameter of input.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :ref:`ndarray`): Scaling parameter
+            of normalized data.
+        beta (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :ref:`ndarray`): Shifting parameter
+            of input.
+        var (:class:`~chainer.Variable` or :ref:`ndarray`): Square of scaling
+            parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input

@@ -9,6 +9,7 @@ import unittest
 
 
 from chainer.backends import cuda
+from chainer.testing import _bundle
 
 
 _old_python_random_state = None
@@ -114,29 +115,42 @@ def fix_random():
                 finally:
                     _teardown_random()
             return test_func
+
+        if isinstance(impl, _bundle._ParameterizedTestCaseBundle):
+            cases = impl
         elif isinstance(impl, type) and issubclass(impl, unittest.TestCase):
-            # Applied to test case class
-            klass = impl
-
-            setUp_ = klass.setUp
-            tearDown_ = klass.tearDown
-
-            @functools.wraps(setUp_)
-            def setUp(self):
-                _setup_random()
-                setUp_(self)
-
-            @functools.wraps(tearDown_)
-            def tearDown(self):
-                try:
-                    tearDown_(self)
-                finally:
-                    _teardown_random()
-
-            klass.setUp = setUp
-            klass.tearDown = tearDown
-            return klass
+            tup = _bundle._TestCaseTuple(impl, None, None)
+            cases = _bundle._ParameterizedTestCaseBundle([tup])
         else:
             raise ValueError('Can\'t apply fix_random to {}'.format(impl))
+
+        for case, _, _ in cases.cases:
+            # Applied to test case class
+            klass = case
+
+            def make_methods():
+                # make_methods is required to bind the variables setUp_ and
+                # tearDown_.
+
+                setUp_ = klass.setUp
+                tearDown_ = klass.tearDown
+
+                @functools.wraps(setUp_)
+                def setUp(self):
+                    _setup_random()
+                    setUp_(self)
+
+                @functools.wraps(tearDown_)
+                def tearDown(self):
+                    try:
+                        tearDown_(self)
+                    finally:
+                        _teardown_random()
+
+                return setUp, tearDown
+
+            klass.setUp, klass.tearDown = make_methods()
+
+        return cases
 
     return decorator

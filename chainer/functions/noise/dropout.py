@@ -136,12 +136,11 @@ def dropout(x, ratio=.5, **kwargs):
     and just returns ``x``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
-        mask (`ndarray` or None):
+        mask (:ref:`ndarray` or None):
             The mask to be used for dropout.
             You do not have to specify this value, unless you need to make
             results deterministic.
@@ -163,9 +162,9 @@ def dropout(x, ratio=.5, **kwargs):
             When ``return_mask`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            mask (`ndarray`). The mask will be on the same device as the input.
-            The mask will become ``None`` when ``chainer.config.train`` is set
-            to ``False``.
+            mask (:ref:`ndarray`). The mask will be on the same device as the
+            input. The mask will become ``None`` when ``chainer.config.train``
+            is set to ``False``.
 
     See the paper by G. Hinton: `Improving neural networks by preventing \
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.

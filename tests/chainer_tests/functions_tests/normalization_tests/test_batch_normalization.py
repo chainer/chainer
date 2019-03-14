@@ -173,10 +173,6 @@ class TestBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         if self.running_statistics:
             running_mean_expected = self.running_mean.copy()
             running_var_expected = self.running_var.copy()
@@ -192,9 +188,10 @@ class TestBatchNormalization(unittest.TestCase):
         running_var = backend_config.get_array(self.running_var)
 
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            running_mean = _as_noncontiguous_array(running_mean)
-            running_var = _as_noncontiguous_array(running_var)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                running_mean = _as_noncontiguous_array(running_mean)
+                running_var = _as_noncontiguous_array(running_var)
 
         with backend_config:
             y = functions.batch_normalization(
@@ -216,15 +213,12 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
 
         def f(*inputs):
             y = functions.batch_normalization(
@@ -241,17 +235,14 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
+                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
 
         def f(*inputs):
             return functions.batch_normalization(
@@ -339,15 +330,12 @@ class TestFixedBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, enable_backprop, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         y_expected, = self.forward_cpu(inputs)
 
         inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
 
         with chainer.using_config('enable_backprop', enable_backprop):
             with backend_config:
@@ -364,15 +352,12 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, True, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
 
         def f(*inputs):
             y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
@@ -388,17 +373,14 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _as_noncontiguous_array(inputs)
-            grad_outputs = _as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
+            with backend_config:
+                inputs = _as_noncontiguous_array(inputs)
+                grad_outputs = _as_noncontiguous_array(grad_outputs)
+                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
 
         def f(*inputs):
             return functions.fixed_batch_normalization(*inputs, eps=self.eps)

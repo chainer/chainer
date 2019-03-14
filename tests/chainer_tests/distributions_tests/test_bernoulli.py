@@ -26,19 +26,19 @@ class TestBernoulli(testing.distribution_unittest):
         from scipy import stats
         self.dist = distributions.Bernoulli
         self.scipy_dist = stats.bernoulli
-        self.options = {"binary_check": self.binary_check}
+        self.options = {'binary_check': self.binary_check}
 
         self.test_targets = set([
-            "batch_shape", "entropy", "log_prob", "mean", "prob", "sample",
-            "stddev", "support", "variance"])
+            'batch_shape', 'entropy', 'log_prob', 'mean', 'prob', 'sample',
+            'stddev', 'support', 'variance'])
 
         if self.extreme_values:
             p = numpy.random.randint(0, 2, self.shape).astype(numpy.float32)
         else:
             p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
 
-        self.params = {"p": p}
-        self.scipy_params = {"p": p}
+        self.params = {'p': p}
+        self.scipy_params = {'p': p}
 
         self.support = '{0, 1}'
         self.continuous = False

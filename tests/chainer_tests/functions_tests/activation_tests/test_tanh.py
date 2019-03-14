@@ -5,116 +5,54 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer.functions.activation import tanh
-from chainer import gradient_check
 from chainer import testing
+from chainer import utils
 from chainer.testing import attr
-import chainerx
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'contiguous': [None, 'C'],
 }))
 @testing.fix_random()
-class TestTanh(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'}
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ('never', 'always'),
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1']
+    })
+)
+class TestTanh(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-
-        self.check_backward_options = {}
-        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
-    def check_forward(self, x_data, use_cudnn='always'):
-        x = chainer.Variable(x_data)
-        with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.tanh(x)
-        self.assertEqual(y.data.dtype, self.dtype)
-        y_expect = functions.tanh(chainer.Variable(self.x))
-        testing.assert_allclose(y_expect.data, y.data)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
+        return x,
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.tanh(x),
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), 'always')
-
-    @attr.gpu
-    def test_forward_gpu_non_contiguous(self):
-        self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-                           'always')
-
-    @attr.gpu
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), 'never')
-
-    @attr.chainerx
-    def test_forward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        self.check_forward(chainerx.array(self.x))
-
-    def check_backward(self, x_data, gy_data, use_cudnn='always'):
-        with chainer.using_config('use_cudnn', use_cudnn):
-            gradient_check.check_backward(
-                functions.tanh, x_data, gy_data, dtype=numpy.float64,
-                **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    def test_backward_gpu_non_contiguous(self):
-        self.check_backward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-                            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
-
-    @attr.gpu
-    def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
-
-    @attr.chainerx
-    def test_backward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
-
-    def check_double_backward(self, x_data, gy_data, ggx_data):
-        gradient_check.check_double_backward(
-            chainer.functions.tanh, x_data, gy_data, ggx_data,
-            dtype=numpy.float64, **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.gy, self.ggx)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
-
-    @attr.chainerx
-    def test_double_backward_chainerx(self):
-        # TODO(sonots): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        self.check_double_backward(
-            chainerx.array(self.x),
-            chainerx.array(self.gy),
-            chainerx.array(self.ggx))
+    def forward_expected(self, inputs):
+        x, = inputs
+        return utils.force_array(numpy.tanh(x)),
 
 
 @testing.parameterize(*testing.product({
@@ -151,41 +89,6 @@ class TestTanhCudnnCall(unittest.TestCase):
                 func.side_effect = default_func
                 y.backward()
                 self.assertEqual(func.called, self.expect)
-
-
-@testing.parameterize(*testing.product({
-    'shape': [(3, 2), ()],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
-@testing.fix_random()
-class TestTanhGrad(unittest.TestCase):
-
-    def setUp(self):
-        self.x = numpy.random.uniform(-.5, .5, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.check_backward_options = {}
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-
-    def check_backward(self, x_data, y_data, gy_data, ggx_data):
-        def f(y, gy):
-            return tanh.TanhGrad(x_data).apply((y, gy))[0]
-
-        gradient_check.check_backward(
-            f, (y_data, gy_data), ggx_data, dtype=numpy.float64,
-            **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        y = numpy.array(numpy.tanh(self.x))
-        self.check_backward(self.x, y, self.gy, self.ggx)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        y = numpy.array(numpy.tanh(self.x))
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(y), cuda.to_gpu(self.gy),
-            cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)

@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+from chainer.testing import _bundle
 from chainer.testing import attr
 import chainerx
 
@@ -151,23 +152,44 @@ class BackendConfig(object):
         return self.device.send(np_array)
 
 
-def _wrap_backend_test_method(impl, param, method_name):
-    backend_config = BackendConfig(param)
-    marks = backend_config.get_pytest_marks()
-    new_method_name = '{}__{}'.format(
-        method_name, backend_config.get_func_str())
+def _test_case_generator(base, method_names, params):
+    # Defines the logic to generate test case classes parameterized with
+    # backends.
 
-    @functools.wraps(impl)
-    def func(self, *args, **kwargs):
-        impl(self, backend_config, *args, **kwargs)
+    if method_names is not None:
+        def method_generator(base_method):
+            if base_method.__name__ in method_names:
+                return None
+            return base_method
 
-    func.__name__ = new_method_name
+        yield (base.__name__, {}, method_generator)
 
-    # Apply test marks
-    for mark in marks:
-        func = mark(func)
+    for i_param, param in enumerate(params):
+        backend_config = BackendConfig(param)
+        marks = backend_config.get_pytest_marks()
+        cls_name = '{}_{}'.format(base.__name__, backend_config.get_func_str())
 
-    return func, new_method_name
+        def method_generator(base_method):
+            # Generates a wrapped test method
+
+            if (method_names is not None
+                    and base_method.__name__ not in method_names):
+                return None
+
+            # Bind to a new variable.
+            backend_config2 = backend_config
+
+            @functools.wraps(base_method)
+            def new_method(self, *args, **kwargs):
+                return base_method(self, backend_config2, *args, **kwargs)
+
+            # Apply test marks
+            for mark in marks:
+                new_method = mark(new_method)
+
+            return new_method
+
+        yield (cls_name, {}, method_generator)
 
 
 def inject_backend_tests(method_names, params):
@@ -178,22 +200,5 @@ def inject_backend_tests(method_names, params):
     if not all(isinstance(d, dict) for d in params):
         raise TypeError('params must be a list of dicts.')
 
-    def wrap(case):
-        if method_names is None:
-            meth_names = [_ for _ in dir(case) if _.startswith('test_')]
-        else:
-            meth_names = method_names
-
-        for method_name in meth_names:
-            impl = getattr(case, method_name)
-            delattr(case, method_name)
-            for i_param, param in enumerate(params):
-                new_impl, new_method_name = _wrap_backend_test_method(
-                    impl, param, method_name)
-                if hasattr(case, new_method_name):
-                    raise RuntimeError(
-                        'Test fixture already exists: {}'.format(
-                            new_method_name))
-                setattr(case, new_method_name, new_impl)
-        return case
-    return wrap
+    return _bundle.make_decorator(
+        lambda base: _test_case_generator(base, method_names, params))

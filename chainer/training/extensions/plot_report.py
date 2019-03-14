@@ -9,6 +9,7 @@ from chainer import reporter
 from chainer import serializer as serializer_module
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
+from chainer.utils import argument
 
 
 _available = None
@@ -88,8 +89,12 @@ class PlotReport(extension.Extension):
         postprocess: Callback to postprocess the result dictionaries. Figure
             object, Axes object, and all plot data are passed to this callback
             in this order. This callback can modify the figure.
-        file_name (str): Name of the figure file under the output directory.
-            It can be a format string.
+        filename (str): Name of the figure file under the output directory.
+            It can be a format string. Although it is recommended to
+            use this argument, you can also specify the file name of
+            a figure with the `file_name` argument for backward
+            compatibility.  If both `filename` and `file_name` are specified,
+            `filename` will be used.
         marker (str): The marker used to plot the graph. Default is ``'x'``. If
             ``None`` is given, it draws with no markers.
         grid (bool): Set the axis grid on if True. Default is True.
@@ -97,8 +102,12 @@ class PlotReport(extension.Extension):
     """
 
     def __init__(self, y_keys, x_key='iteration', trigger=(1, 'epoch'),
-                 postprocess=None, file_name='plot.png', marker='x',
-                 grid=True):
+                 postprocess=None, filename=None, marker='x',
+                 grid=True, **kwargs):
+
+        file_name, = argument.parse_kwargs(kwargs, ('file_name', 'plot.png'))
+        if filename is None:
+            filename = file_name
 
         _check_available()
 

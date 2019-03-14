@@ -1,9 +1,39 @@
 import os
+import subprocess
 
 from chainer import computational_graph
 from chainer import configuration
 from chainer.training import extension
+from chainer.utils import argument
 from chainer import variable
+
+
+def is_return_code_zero(args):
+    """Return `True` if the return code of the given command
+    is zero.
+
+    All the messages sent to stdout or stderr are suppressed.
+
+    Args:
+        args (list of str): A command to execute.
+
+    """
+
+    with open(os.devnull, 'wb') as FNULL:
+        try:
+            subprocess.check_call(args, stdout=FNULL, stderr=FNULL)
+        except subprocess.CalledProcessError:
+            # The given command returned an error
+            return False
+        except OSError:
+            # The given command was not found
+            return False
+        return True
+
+
+def is_graphviz_available():
+    """Tell whether graphviz is available or not."""
+    return is_return_code_zero(['dot', '-V'])
 
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
@@ -15,7 +45,8 @@ class DumpGraph(extension.Extension):
     """Trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
-    language.
+    language. If graphviz is available, this also renders and saves the image
+    of the computational graph.
 
     It only dumps a graph at the first invocation.
 
@@ -49,7 +80,11 @@ class DumpGraph(extension.Extension):
         root_name (str): Name of the root of the computational graph. The
             root variable is retrieved by this name from the observation
             dictionary of the trainer.
-        out_name (str): Output file name.
+        filename (str): Output file name. Although it is recommended to
+            use this argument, you can also specify the name of the output
+            file with `out_name` argument for backward compatibility.
+            If both `filename` and `out_name` are specified, `filename`
+            is used.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.
         function_style (dict): Dot node style for functions. Each function is
@@ -62,10 +97,13 @@ class DumpGraph(extension.Extension):
     """
     default_name = 'dump_graph'
 
-    def __init__(self, root_name, out_name='cg.dot',
-                 variable_style=None, function_style=None):
+    def __init__(self, root_name, filename=None,
+                 variable_style=None, function_style=None, **kwargs):
+        out_name, = argument.parse_kwargs(kwargs, ('out_name', 'cg.dot'))
+        if filename is None:
+            filename = out_name
         self._root_name = root_name
-        self._out_name = out_name
+        self._filename = filename
         if variable_style is None:
             variable_style = _var_style
         self._variable_style = variable_style
@@ -97,10 +135,14 @@ class DumpGraph(extension.Extension):
                 function_style=self._function_style
             ).dump()
 
-            out_path = os.path.join(trainer.out, self._out_name)
-            # TODO(beam2d): support outputting images by the dot command
-            with open(out_path, 'w') as f:
+            filename = os.path.join(trainer.out, self._filename)
+            with open(filename, 'w') as f:
                 f.write(cg)
+            if is_graphviz_available():
+                img_fn = os.path.splitext(self._filename)[0] + '.png'
+                image_filename = os.path.join(trainer.out, img_fn)
+                subprocess.check_call(
+                    ['dot', '-Tpng', filename, '-o', image_filename])
         finally:
             configuration.config.keep_graph_on_report = self._original_flag
 

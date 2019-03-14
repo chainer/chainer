@@ -13,8 +13,8 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
-from chainer.utils import collections_abc
 from chainer import types  # NOQA
+from chainer.utils import collections_abc
 from chainer import variable
 import chainerx
 
@@ -141,6 +141,7 @@ class Link(object):
     """
 
     _local_link_hooks = None  # type: tp.Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
+    __init_done = False
 
     def __init__(self, **params):
         # type: (**tp.Any) -> None
@@ -151,9 +152,16 @@ class Link(object):
         self._within_init_scope = False  # type: bool
         self.name = None  # type: tp.Optional[str]
 
+        # This flag has to be set before calling add_param().
+        self.__init_done = True
+
         for name, value in six.iteritems(params):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
+
+    def __check_init_done(self):
+        if not self.__init_done:
+            raise RuntimeError('Link.__init__() has not been called.')
 
     @property
     def local_link_hooks(self):
@@ -238,6 +246,9 @@ class Link(object):
                           self.b = chainer.Parameter(0, (5,))
 
         """
+        # super().__init__ must be called before init_scope().
+        self.__check_init_done()
+
         old_flag = self.within_init_scope
         self._within_init_scope = True
         try:
@@ -247,6 +258,7 @@ class Link(object):
 
     def __call__(self, *args, **kwargs):
         # type: (*tp.Any, **tp.Any) -> tp.Any # NOQA
+        self.__check_init_done()
 
         # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer._get_link_hooks()
@@ -460,7 +472,7 @@ class Link(object):
         intel64.check_ideep_available()
         return self.to_device(intel64)
 
-    def to_chainerx(self):
+    def to_chx(self):
         """Converts parameter variables and persistent values to ChainerX \
 without any copy.
 
@@ -479,25 +491,25 @@ without any copy.
 
         d = self.__dict__
         for name in self._params:
-            d[name].to_chainerx()
+            d[name].to_chx()
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.to_chainerx(d[name])
+                d[name] = backend.to_chx(d[name])
 
         self._device = (
             backend.ChainerxDevice.from_fallback_device(self._device))
 
         return self
 
-    def from_chainerx(self):
+    def from_chx(self):
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy."""
         d = self.__dict__
         for name in self._params:
-            d[name].from_chainerx()
+            d[name].from_chx()
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.from_chainerx(d[name])
+                d[name] = backend.from_chx(d[name])
 
         if isinstance(self._device, backend.ChainerxDevice):
             self._device = self._device.fallback_device
@@ -1029,22 +1041,22 @@ class Chain(Link):
             d[name] = copied
         return ret  # type: ignore
 
-    def to_chainerx(self):
+    def to_chx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).to_chainerx()
+        super(Chain, self).to_chx()
         d = self.__dict__
         for name in self._children:
-            d[name].to_chainerx()
+            d[name].to_chx()
         return self
 
-    def from_chainerx(self):
+    def from_chx(self):
         # type: () -> 'Chain'
 
-        super(Chain, self).from_chainerx()
+        super(Chain, self).from_chx()
         d = self.__dict__
         for name in self._children:
-            d[name].from_chainerx()
+            d[name].from_chx()
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):
@@ -1179,17 +1191,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (int, Link) -> None
-        pass
-
-    @tp.overload  # NOQA
-    def __setitem__(self, key, value):
-        # type: (slice, tp.Iterable[Link]) -> None
-        pass
-
-    def __setitem__(self, index, value):  # NOQA
+    def __setitem__(self, index, value):
         # type: (tp.Union[int, slice], tp.Union[Link, tp.Iterable[Link]]) -> None # NOQA
 
         if isinstance(index, int):
@@ -1205,18 +1207,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 'ChainList indices must be integers or slices, not %s' %
                 type(index).__name__)
 
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (int) -> Link
-        pass
-
-    @tp.overload  # NOQA
-    def __getitem__(self, key):
-        # type: (slice) -> collections_abc.MutableSequence[Link]
-        pass
-
-    def __getitem__(self, index):  # NOQA
-        # type: (tp.Union[int, slice]) -> tp.Union[Link, collections_abc.MutableSequence[Link]] # NOQA
+    def __getitem__(self, index):
         """Returns the child at given index.
 
         Args:
@@ -1285,12 +1276,12 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret  # type: ignore
 
-    def to_chainerx(self):
+    def to_chx(self):
         # type: () -> 'ChainList'
 
-        super(ChainList, self).to_chainerx()
+        super(ChainList, self).to_chx()
         for link in self._children:
-            link.to_chainerx()
+            link.to_chx()
         return self
 
     def _to_device(self, device, skip_between_cupy_devices=False):

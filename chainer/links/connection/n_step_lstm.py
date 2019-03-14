@@ -31,19 +31,20 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         Calculate all hidden states and cell states.
 
         Args:
-            hx (~chainer.Variable or None): Initial hidden states. If ``None``
-                is specified zero-vector is used. Its shape is ``(S, B, N)``
-                for uni-directional LSTM and ``(2S, B, N)`` for
-                bi-directional LSTM where ``S`` is the number of layers
-                and is equal to ``n_layers``, ``B`` is the mini-batch size,
+            hx (:class:`~chainer.Variable` or None):
+                Initial hidden states. If ``None`` is specified zero-vector
+                is used. Its shape is ``(S, B, N)`` for uni-directional LSTM
+                and ``(2S, B, N)`` for bi-directional LSTM where ``S`` is
+                the number of layers and is equal to ``n_layers``,
+                ``B`` is the mini-batch size,
                 and ``N`` is the dimension of the hidden units.
-            cx (~chainer.Variable or None): Initial cell states. If ``None``
-                is specified zero-vector is used.
-                It has the same shape as ``hx``.
-            xs (list of ~chainer.Variable): List of input sequences.
+            cx (:class:`~chainer.Variable` or None):
+                Initial cell states. If ``None`` is specified zero-vector is
+                used.  It has the same shape as ``hx``.
+            xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_t, I)``, where ``L_t`` is the
-                length of a sequence for time ``t``, and ``I`` is the size of
+                a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
+                length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
         Returns:
@@ -55,10 +56,10 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
             - ``cy`` is an updated cell states whose shape is the same as
               ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
-              ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(L_t, N)`` for
-              uni-directional LSTM and ``(L_t, 2N)`` for bi-directional LSTM
-              where ``L_t`` is the length of a sequence for time ``t``,
+              ``ys[i]`` holds hidden states of the last layer corresponding
+              to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
+              uni-directional LSTM and ``(L_i, 2N)`` for bi-directional LSTM
+              where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy, cy), ys = self._call([hx, cx], xs, **kwargs)

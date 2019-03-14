@@ -80,8 +80,8 @@ class BatchNormalization(link.Link):
     Attributes:
         gamma (~chainer.Variable): Scaling parameter.
         beta (~chainer.Variable): Shifting parameter.
-        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
+        avg_mean (:ref:`ndarray`): Population mean.
+        avg_var (:ref:`ndarray`): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
@@ -240,7 +240,7 @@ class BatchNormalization(link.Link):
             initializer = default_value
         initializer = initializers._get_initializer(initializer)
         return initializers.generate_array(
-            initializer, size, self.xp, dtype=self._dtype)
+            initializer, size, self.xp, dtype=self._dtype, device=self.device)
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)

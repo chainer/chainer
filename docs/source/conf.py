@@ -345,8 +345,8 @@ intersphinx_mapping = {
 }
 
 doctest_global_setup = '''
+import os
 import numpy as np
-import cupy
 import chainer
 from chainer.backends import cuda
 from chainer import Function, gradient_check, training, utils, Variable
@@ -354,6 +354,7 @@ from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
+from chainer.testing import doctest_helper
 from chainer.training import extensions
 import chainerx
 np.random.seed(0)

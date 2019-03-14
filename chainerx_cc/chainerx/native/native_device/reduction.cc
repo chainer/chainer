@@ -7,6 +7,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/reduce.h"
+#include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/shape.h"
 
@@ -46,11 +47,12 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
         using In = typename decltype(in_pt)::type;
         using Out = typename decltype(out_pt)::type;
+        using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
         struct Impl {
-            Out Identity() { return Out{0}; }
-            Out MapIn(In in, int64_t /*index*/) { return static_cast<Out>(in); }
-            void Reduce(Out next, Out& accum) { accum += next; }
-            Out MapOut(Out accum) { return accum; }
+            Accum Identity() { return Accum{0}; }
+            Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+            void Reduce(Accum next, Accum& accum) { accum += next; }
+            Out MapOut(Accum accum) { return static_cast<Out>(accum); }
         };
         Reduce<In, Out>(a, axis, out, Impl{});
     };
@@ -68,7 +70,7 @@ void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
             T Identity() { return NumericLimits<T>::LowestOrInf(); }
             T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) {
-                if (std::isnan(next) || accum < next) {
+                if (chainerx::IsNan(next) || accum < next) {
                     accum = next;
                 }
             }

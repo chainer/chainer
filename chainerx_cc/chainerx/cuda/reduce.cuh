@@ -7,6 +7,7 @@
 
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/data_type.cuh"
 #include "chainerx/macro.h"
 #include "chainerx/reduction_kernel_arg.h"
 
@@ -31,10 +32,10 @@ inline int64_t RoundUpToPowerOf2(int64_t x) {
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 __global__ void ReductionKernel(
         ReductionKernelArg<In, Out, InNdim, OutNdim> arg, int out_block_size, int reduce_block_size, ReductionImpl impl) {
-    using T = decltype(impl.Identity());
+    using AccumType = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
-    T* work = reinterpret_cast<T*>(work_bytes);
+    AccumType* work = reinterpret_cast<AccumType*>(work_bytes);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     int tid = threadIdx.x;
 
     int64_t reduce_block_offset = tid / out_block_size;
@@ -48,11 +49,11 @@ __global__ void ReductionKernel(
     auto it_in = arg.in_indexer.It(0, reduce_stride);
 
     for (auto it_out = arg.out_indexer.It(out_base + out_offset, out_stride); it_out; ++it_out) {
-        T accum = impl.Identity();
+        AccumType accum = impl.Identity();
 
         int64_t i_reduce = reduce_block_offset;
         for (it_in.Restart(it_out.raw_index() + reduce_offset); it_in; ++it_in, i_reduce += reduce_block_size) {
-            impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
+            impl.Reduce(impl.MapIn(cuda_internal::StorageToDataType<const In>(arg.in[it_in]), i_reduce), accum);
         }
 
         if (out_block_size <= kMaxReductionBlockSize / 2) {
@@ -71,7 +72,7 @@ __global__ void ReductionKernel(
             __syncthreads();
         }
         if (reduce_block_offset == 0 && it_out) {
-            arg.out[it_out] = impl.MapOut(accum);
+            arg.out[it_out] = cuda_internal::DataToStorageType<Out>(impl.MapOut(accum));
         }
     }
 }
@@ -181,7 +182,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             }
             break;
     }
-#endif
+#endif  // NDEBUG
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
             MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl);

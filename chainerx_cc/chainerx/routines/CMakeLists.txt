@@ -10,6 +10,7 @@ add_library(chainerx_routines STATIC
     pooling.cc
     sorting.cc
     statistics.cc
+    type_util.cc
 )
 
 install(FILES
@@ -25,12 +26,12 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
+    type_util.h
     DESTINATION include/chainerx/routines
     )
 
 if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_routines_test
-      connection_test.cc
       creation_test.cc
       indexing_test.cc
       linalg_test.cc
@@ -41,6 +42,7 @@ if(${CHAINERX_BUILD_TEST})
       pooling_test.cc
       sorting_test.cc
       statistics_test.cc
+      type_util_test.cc
   )
   target_link_libraries(chainerx_routines_test
       chainerx

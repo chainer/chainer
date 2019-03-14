@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -12,6 +13,7 @@
 #include "chainerx/array_node.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/numeric.h"
 
 namespace chainerx {
 namespace testing {
@@ -103,8 +105,8 @@ void ExpectDataEqual(T expected, const Array& actual) {
     Indexer<> indexer{actual.shape()};
     for (auto it = indexer.It(0); it; ++it) {
         T actual_value = actual_iarray[it];
-        if (std::isnan(expected)) {
-            EXPECT_TRUE(std::isnan(actual_value)) << "where i is " << it.raw_index();
+        if (IsNan(expected)) {
+            EXPECT_TRUE(IsNan(actual_value)) << "where i is " << it.raw_index();
         } else {
             EXPECT_EQ(expected, actual_value) << "where i is " << it.raw_index();
         }

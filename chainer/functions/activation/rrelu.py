@@ -31,44 +31,48 @@ class RReLU(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
+        if self.r is not None:
+            type_check.expect(x_type.dtype == self.r.dtype)
+            type_check.expect(x_type.shape == self.r.shape)
 
-    def forward_cpu(self, x):
+    def forward_cpu(self, inputs):
+        x, = inputs
         if chainer.config.train:
             if self.r is None:
                 self.r = np.random.uniform(
-                    self.lower, self.upper, x[0].shape).astype(x[0].dtype)
+                    self.lower, self.upper, x.shape
+                ).astype(x.dtype, copy=False)
         else:
             self.r = np.full(
-                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
-        y = np.where(x[0] >= 0, x[0], x[0] * self.r)
+                x.shape, (self.lower + self.upper) / 2, dtype=x.dtype)
+        y = np.where(x >= 0, x, x * self.r)
         self.retain_outputs((0,))
         return y,
 
-    def forward_gpu(self, x):
+    def forward_gpu(self, inputs):
+        x, = inputs
         xp = cuda.cupy
         if chainer.config.train:
             if self.r is None:
                 self.r = xp.random.uniform(
-                    self.lower, self.upper, x[0].shape).astype(x[0].dtype)
+                    self.lower, self.upper, x.shape
+                ).astype(x.dtype, copy=False)
         else:
             self.r = xp.full(
-                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
-        y = _kern()(x[0], x[0], self.r.astype(x[0].dtype))
-        self.retain_inputs(())
+                x.shape, (self.lower + self.upper) / 2, dtype=x.dtype)
+        y = _kern()(x, x, self.r)
         self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x = None
         y = self.get_retained_outputs()[0].data
-        return _RReLUGrad(x, y, self.r).apply(grad_outputs)
+        return _RReLUGrad(y, self.r).apply(grad_outputs)
 
 
 class _RReLUGrad(function_node.FunctionNode):
 
-    def __init__(self, x, y, r):
+    def __init__(self, y, r):
         self.r = r
-        self.x = x
         self.y = y
 
     def forward_cpu(self, inputs):
@@ -82,7 +86,7 @@ class _RReLUGrad(function_node.FunctionNode):
         return gy,
 
     def backward(self, indexes, grad_outputs):
-        return _RReLUGrad(self.x, self.y, self.r).apply(grad_outputs)
+        return _RReLUGrad(self.y, self.r).apply(grad_outputs)
 
 
 def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
@@ -104,7 +108,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         l (float): The lower bound of the uniform distribution.
         u (float): The upper bound of the uniform distribution.
-        r (:class:`numpy.ndarray` or None):
+        r (:ref:`ndarray` or None):
             The r to be used for rrelu.
             The shape and dtype must be the same as ``x[0]`` and should be on
             the same device.
@@ -121,7 +125,8 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
         ~chainer.Variable or tuple:
             When ``return_r`` is ``False`` (default), return the output
             variable. Otherwise returnes the tuple of the output variable and
-            ``r`` (ndarray). The ``r`` will be on the same device as the input.
+            ``r`` (:ref:`ndarray`). The ``r`` will be on the same device as
+            the input.
             A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
 
     .. admonition:: Example
@@ -145,7 +150,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
                   'Use chainer.using_config')
 
     func = RReLU(l, u, r)
-    out = func.apply((x,))[0]
+    out, = func.apply((x,))
     r = func.r
 
     if return_r:

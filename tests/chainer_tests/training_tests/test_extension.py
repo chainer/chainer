@@ -1,10 +1,21 @@
 import unittest
 
+import pytest
+
 from chainer import testing
 from chainer import training
 
 
 class TestExtension(unittest.TestCase):
+
+    def test_raise_error_if_call_not_implemented(self):
+        class MyExtension(training.Extension):
+            pass
+
+        ext = MyExtension()
+        trainer = testing.get_trainer_with_mock_updater()
+        with pytest.raises(NotImplementedError):
+            ext(trainer)
 
     def test_default_name(self):
         class MyExtension(training.Extension):
