@@ -117,8 +117,6 @@ class TestNStepGRU(unittest.TestCase):
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
 
-    @attr.cudnn
-    @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
         # See chainer/chainer#6262
         # NStepGRU w/ cudnn & dropout should work on not current device
@@ -141,9 +139,13 @@ class TestNStepGRU(unittest.TestCase):
                 msg = e
         assert msg is None
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_training(self):
         self.check_multi_gpu_forward(True)
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_test(self):
         self.check_multi_gpu_forward(False)
 
@@ -321,8 +323,6 @@ class TestNStepBiGRU(unittest.TestCase):
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
 
-    @attr.cudnn
-    @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
         # See chainer/chainer#6262
         # NStepBiGRU w/ cudnn and dropout should work on not current device
@@ -345,9 +345,13 @@ class TestNStepBiGRU(unittest.TestCase):
                 msg = e
         assert msg is None
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_training(self):
         self.check_multi_gpu_forward(True)
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_test(self):
         self.check_multi_gpu_forward(False)
 

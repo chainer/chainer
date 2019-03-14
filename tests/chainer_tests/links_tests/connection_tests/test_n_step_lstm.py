@@ -140,8 +140,6 @@ class TestNStepLSTM(unittest.TestCase):
                 cuda.to_gpu(self.c, 1),
                 [cuda.to_gpu(x, 1) for x in self.xs])
 
-    @attr.cudnn
-    @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
         # See chainer/chainer#6262
         # NStepLSTM w/ cudnn & dropout should work on not current device
@@ -165,9 +163,13 @@ class TestNStepLSTM(unittest.TestCase):
                 msg = e
         assert msg is None
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_training(self):
         self.check_multi_gpu_forward(True)
 
+    @attr.cudnn
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_test(self):
         self.check_multi_gpu_forward(False)
 
@@ -321,8 +323,9 @@ class TestNStepBiLSTM(unittest.TestCase):
                     c_bar = numpy.tanh(x.dot(p.w2.array.T) +
                                        h_prev.dot(p.w6.array.T) +
                                        p.b2.array + p.b6.array)
-                    o = sigmoid(x.dot(p.w3.array.T) + h_prev.dot(p.w7.array.T) +
-                                p.b3.array + p.b7.array)
+                    o = sigmoid(
+                        x.dot(p.w3.array.T) + h_prev.dot(p.w7.array.T) +
+                        p.b3.array + p.b7.array)
                     e_c = (f * c_prev + i * c_bar)
                     e_h = o * numpy.tanh(e_c)
 
@@ -368,8 +371,6 @@ class TestNStepBiLSTM(unittest.TestCase):
                 cuda.to_gpu(self.c),
                 [cuda.to_gpu(x) for x in self.xs])
 
-    @attr.gpu
-    @attr.multi_gpu(2)
     def check_multi_gpu_forward(self, train=True):
         # See chainer/chainer#6262
         # NStepBiLSTM w/ cudnn & dropout should work on not current device
@@ -393,9 +394,13 @@ class TestNStepBiLSTM(unittest.TestCase):
                 msg = e
         assert msg is None
 
+    @attr.gpu
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_training(self):
         self.check_multi_gpu_forward(True)
 
+    @attr.gpu
+    @attr.multi_gpu(2)
     def test_multi_gpu_forward_test(self):
         self.check_multi_gpu_forward(False)
 
