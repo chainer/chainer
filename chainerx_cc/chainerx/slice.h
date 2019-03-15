@@ -32,7 +32,7 @@ public:
             if (*start_ < 0) {
                 return std::max(int64_t{0}, *start_ + dim);
             }
-            return std::min(*start_, dim);
+            return std::min(*start_, dim - 1);
         }
         return step_ > 0 ? 0 : dim - 1;
     }
