@@ -20,9 +20,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     _device = _cpu.CpuDevice()
 
-    # Indicates the object is mixed-device.
-    _MIXED_DEVICE = object()
-
     def __init__(self):
         # Store overridden to_device family method names.
         self._overridden_to_methods = tuple([
