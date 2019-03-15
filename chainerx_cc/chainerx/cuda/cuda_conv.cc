@@ -488,11 +488,10 @@ Array CudaConv::ConvGradWeight(
 
     Array x_cont = internal::AsContiguous(x);
     Array gy_cont = internal::AsContiguous(gy);
-    Array gw_cont = internal::AsContiguous(gw);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
-    CudnnFilterDescriptor gw_desc{gw_cont};
+    CudnnFilterDescriptor gw_desc{gw};
     CudnnConvolutionDescriptor conv_desc{GetConvDtype(x.dtype()), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
