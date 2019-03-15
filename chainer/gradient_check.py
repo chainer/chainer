@@ -186,11 +186,8 @@ def numerical_grad(
         y = _copy_arrays(f())
         assert len(y) == len(grad_outputs)
         assert all([
-            gy is None
-            for y_, gy in zip(y, grad_outputs)
-            if y_ is None])
-        assert all([
-            gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
+            y_ is None or gy is None or numpy.isscalar(gy)
+            or y_.shape == gy.shape
             for y_, gy in zip(y, grad_outputs)])
         x[i] = orig
         return y
@@ -465,10 +462,6 @@ class _CheckBackward(object):
             self.y_grad = tuple([_ones_like(y.array) for y in ys])
         else:
             _check_outputs_and_grad_outputs(ys, self.y_grad)
-
-        # Strike out y_grad corresponding to None y
-        self.y_grad = tuple([
-            None if y is None else gy for gy, y in zip(self.y_grad, y0_data)])
 
         # Sample a direction vector.
         directions = self._sample_directions()
@@ -904,10 +897,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                     raise RuntimeError(
                         'gradient of int variable must be None')
             else:
-                if x.grad is None:
-                    gxs.append(None)
-                else:
-                    gxs.append(x.grad_var)
+                gxs.append(x.grad_var)
 
         return tuple(gxs + [p.grad_var for p in params])
 
@@ -961,8 +951,6 @@ def _apply_grad_setter_func(ys, gys):
     assert len(ys) == len(gys)
     assert all(y is None or isinstance(y, chainer.Variable) for y in ys)
     assert all(gy is None or isinstance(gy, chainer.Variable) for gy in gys)
-    # y is None => gy is None
-    assert all(gy is None for y, gy in zip(ys, gys) if y is None)
 
     ys_ = [y for y in ys if y is not None]
     gys_ = [gy for y, gy in zip(ys, gys) if y is not None]
