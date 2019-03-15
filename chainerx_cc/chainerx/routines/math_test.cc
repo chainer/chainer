@@ -1370,7 +1370,7 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExp) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-     Array e = testing::BuildArray({}).WithData<T>({std::log(
+    Array e = testing::BuildArray({}).WithData<T>({std::log(
             std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0])}; }, {a}, {e}); });
@@ -1380,9 +1380,9 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpReduceFirstAxis) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
-                                                     std::log(std::exp(adata[1]) + std::exp(adata[4])),
-                                                     std::log(std::exp(adata[2]) + std::exp(adata[5]))});
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[1]) + std::exp(adata[4])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{0})}; }, {a}, {e});
@@ -1418,9 +1418,8 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpKeepdims) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
-                                                    std::log(std::exp(adata[2]) + std::exp(adata[3])),
-                                                    std::log(std::exp(adata[4]) + std::exp(adata[5]))});
+    Array e = testing::BuildArray({2, 1}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                                                       std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{1}, true)}; }, {a}, {e});
@@ -1652,45 +1651,6 @@ TEST_P(MathTest, PowerBackward) {
     Array eps = Full(shape, 1e-3);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Power(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
-}
-
-TEST_THREAD_SAFE_P(MathTest, PowerScalar) {
-    Array a = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, 3.f});
-    Scalar b{2.0f};
-    Array e = testing::BuildArray({3, 1}).WithData<float>({std::pow(2.f, 2.f), std::pow(4.f, 2.f), std::pow(3.f, 2.f)});
-
-    Run([&]() { testing::CheckForward([b](const std::vector<Array>& xs) { return std::vector<Array>{Power(xs[0], b)}; }, {a}, {e}); });
-}
-
-TEST_THREAD_SAFE_P(MathTest, PowerScalarBackward) {
-    using T = double;
-    Shape shape{2, 3};
-    Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.})).RequireGrad();
-    Scalar b{T{2.0}};
-    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1);
-    Array eps = Full(shape, 1e-3);
-
-    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Power(xs[0], b)}; }, {a}, {go}, {eps});
-}
-
-TEST_P(MathTest, PowerScalarDoubleBackward) {
-    using T = double;
-    Shape shape{2, 3};
-    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
-    Scalar b{T{2.0}};
-    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
-    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
-
-    CheckDoubleBackwardComputation(
-            [b](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Power(xs[0], b);
-                return {y};  // to make it nonlinear
-            },
-            {a},
-            {go},
-            {ggi},
-            {eps, eps});
 }
 
 TEST_THREAD_SAFE_P(MathTest, Tanh) {

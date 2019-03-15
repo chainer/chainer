@@ -410,7 +410,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"sum", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext & bctx) {
+        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -448,7 +448,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         // a and out are used only for restoring the mask. We don't need graph
         // nodes.
-        bt.Define([ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
+        bt.Define([ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -489,10 +489,10 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     BackwardBuilder bb{"if_less_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ x1 = x1.AsGradStopped(), x2 ](BackwardContext& bctx) {
+        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
-        }); 
+       }); 
     }
     bb.Finalize();
 
@@ -517,7 +517,7 @@ Array Exp(const Array& x) {
 
     BackwardBuilder bb{"exp", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = *bctx.output_grad() * out;
         });

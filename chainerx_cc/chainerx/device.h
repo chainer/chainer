@@ -77,8 +77,7 @@ private:
 };
 
 // Device base class.
-// Note that these member functions may be called from the framework or user
-// code.
+// Note that these member functions may be called from the framework or user code.
 class Device {
 public:
     virtual ~Device() = default;
@@ -105,8 +104,7 @@ public:
     virtual void MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) = 0;
 
     // Transfers the data from the specified device to this device.
-    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this
-    // function can assume transfer between the devices are
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
     // supported.
     //
     // It returns a pointer to the allocated memory.
@@ -114,8 +112,7 @@ public:
             Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) = 0;
 
     // Transfers the data from this device to the specified device.
-    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this
-    // function can assume transfer between the devices are
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
     // supported.
     //
     // It returns a pointer to the allocated memory.
@@ -152,8 +149,7 @@ public:
     // The arrays must match in shape and dtype and need to reside on this device.
     virtual void Copy(const Array& a, const Array& out) = 0;
 
-    // Casts the elements from one array to the other dtype, and store into the
-    // other.
+    // Casts the elements from one array to the other dtype, and store into the other.
     virtual void AsType(const Array& a, const Array& out) = 0;
 
     virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
@@ -184,8 +180,7 @@ public:
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
 
-    // Matrix multiplication. All the operands are matrices (i.e., two-dimensional
-    // arrays).
+    // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
     // Otherwise, the behavior is undefined.
@@ -207,10 +202,8 @@ public:
     // `axis` must be within [0, a.ndim()).
     virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 
-    // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices,
-    // specified by `indices`.
-    // The result is assigned in `out. Input arrays `a`, `indices`, and `b` are
-    // not altered.
+    // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices,  specified by `indices`.
+    // The result is assigned in `out. Input arrays `a`, `indices`, and `b` are  not altered.
     //
     // TODO(niboshi): This function may be replaced with full-featured assignable
     // advanced indexing.
@@ -222,8 +215,7 @@ public:
     // out must be a square 2-dim array.
     virtual void Identity(const Array& out) = 0;
 
-    // Creates a 2-dimensional array with ones along the k-th diagonal and zeros
-    // elsewhere.
+    // Creates a 2-dimensional array with ones along the k-th diagonal and zeros elsewhere.
     // out must be a square 2-dim array.
     virtual void Eye(int64_t k, const Array& out) = 0;
 
@@ -239,8 +231,7 @@ public:
     // w: (out_channels, in_channels, k_1, k_2, ..., k_n)
     // b: (out_channels)
     //
-    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ...,
-    // out_n).
+    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ...,out_n).
     virtual Array Conv(
             const Array& x,
             const Array& w,
@@ -264,8 +255,7 @@ public:
     // w: (in_channels, out_channels, k_1, k_2, ..., k_n)
     // b: (out_channels)
     //
-    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ...,
-    // out_n).
+    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
     virtual Array ConvTranspose(
             const Array& x,
             const Array& w,
@@ -326,14 +316,12 @@ Device* GetDefaultDeviceNoExcept() noexcept;
 
 }  // namespace internal
 
-// Gets the default device. If the default device is null in this thread, it
-// sets and returns the "native:0" device of the default context.
+// Gets the default device. If the default device is null in this thread, it sets and returns the "native:0" device of the default context.
 Device& GetDefaultDevice();
 
 // Sets thread local device.
 //
-// Raises ContextError if context mismatches between given device and default
-// context.
+// Raises ContextError if context mismatches between given device and default context.
 void SetDefaultDevice(Device* device);
 
 void CheckEqual(const Device& lhs, const Device& rhs);
@@ -355,8 +343,7 @@ public:
 
     ~DeviceScope() { Exit(); }
 
-    // Explicitly recovers the original device. It will invalidate the scope
-    // object so that dtor will do nothing.
+    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
             SetDefaultDevice(orig_);

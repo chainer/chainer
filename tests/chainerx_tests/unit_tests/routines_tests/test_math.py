@@ -587,7 +587,7 @@ class test_tanh(op_utils.NumpyOpTest):
     (numpy.asarray([1., 2., 3.]), numpy.asarray([3., 4., 5.]))
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
-class testPow(op_utils.NumpyOpTest):
+class TestPow(op_utils.NumpyOpTest):
 
     def setup(self, lhs, rhs, contiguous, float_dtype, is_module):
         self.lhs = lhs
@@ -614,7 +614,7 @@ class testPow(op_utils.NumpyOpTest):
         [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
-class testPowArrayScalar(op_utils.NumpyOpTest):
+class TestPowArrayScalar(op_utils.NumpyOpTest):
 
     def setup(self, input, scalar, contiguous, float_dtype, is_module):
         self.input = input
@@ -641,7 +641,7 @@ class testPowArrayScalar(op_utils.NumpyOpTest):
         [1., 2., 3.]), 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
-class testPowScalarArray(op_utils.NumpyOpTest):
+class TestPowScalarArray(op_utils.NumpyOpTest):
 
     def setup(self, input, scalar, contiguous, float_dtype, is_module):
         self.input = input
