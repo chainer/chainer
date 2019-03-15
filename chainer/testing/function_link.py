@@ -110,10 +110,9 @@ class FunctionTestBase(object):
         assert all(isinstance(a, chainer.get_array_types()) for a in outputs)
         assert all(
             isinstance(a, chainer.get_array_types()) for a in expected_outputs)
-        _check_forward_output_arrays_equal(
-            outputs,
-            expected_outputs,
-            'forward', FunctionTestError, **self.check_forward_options)
+        _check_arrays_equal(
+            outputs, expected_outputs, FunctionTestError,
+            **self.check_forward_options)
 
     def _to_noncontiguous_as_needed(self, contig_arrays):
         if self.contiguous is None:
@@ -461,10 +460,9 @@ class _LinkTestBase(object):
         assert all(isinstance(a, chainer.get_array_types()) for a in outputs)
         assert all(
             isinstance(a, chainer.get_array_types()) for a in expected_outputs)
-        _check_forward_output_arrays_equal(
-            outputs,
-            expected_outputs,
-            'forward', LinkTestError, **self.check_forward_options)
+        _check_arrays_equal(
+            outputs, expected_outputs, LinkTestError,
+            **self.check_forward_options)
 
     def _generate_params(self):
         params_init = self.generate_params()
@@ -1033,8 +1031,8 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
         expected_init(expected_np)
 
         # Compare the values of the expected and actual parameter.
-        _check_forward_output_arrays_equal(
-            (expected_np,), (param_np,), 'forward', LinkTestError,
+        _check_arrays_equal(
+            (expected_np,), (param_np,), LinkTestError,
             **self.check_initializers_options)
 
 
@@ -1113,8 +1111,8 @@ def _check_variable_types(vars, device, func_name, test_error_cls):
                 func_name, device, ', '.join(type(a.array) for a in vars)))
 
 
-def _check_forward_output_arrays_equal(
-        actual_arrays, expected_arrays, func_name, test_error_cls, **opts):
+def _check_arrays_equal(
+        actual_arrays, expected_arrays, test_error_cls, **opts):
     # `opts` is passed through to `testing.assert_all_close`.
     # Check all outputs are equal to expected values
     assert issubclass(test_error_cls, _TestError)
@@ -1125,8 +1123,7 @@ def _check_forward_output_arrays_equal(
         # Check number of arrays
         if len(actual_arrays) != len(expected_arrays):
             message = (
-                'Number of outputs of forward() ({}, {}) does not '
-                'match'.format(
+                'Number of outputs ({}, {}) does not match'.format(
                     len(actual_arrays), len(expected_arrays)))
             break
 
@@ -1138,7 +1135,7 @@ def _check_forward_output_arrays_equal(
             y.shape == ye.shape
             for y, ye in zip(actual_arrays, expected_arrays)])
         if not (shapes_match and dtypes_match):
-            message = 'Shapes and/or dtypes of forward() do not match'
+            message = 'Shapes and/or dtypes do not match'
             break
 
         # Check values
@@ -1151,7 +1148,7 @@ def _check_forward_output_arrays_equal(
                 errors.append((i, e))
         if len(errors) > 0:
             message = (
-                'Outputs of forward() do not match the expected values.\n'
+                'Outputs do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(
                     ', '.join(str(i) for i, e in errors)))
             f = six.StringIO()
