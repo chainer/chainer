@@ -193,8 +193,7 @@ class BatchNormalizationTestBase(object):
         super(BatchNormalizationTestBase, self).check_forward_outputs(
             outputs, expected_outputs)
         y, = outputs
-        assert False
-        self.assertEqual(y.dtype, chainer.get_dtype(self.dtype))
+        assert y.dtype == chainer.get_dtype(self.dtype)
 
 
 @_inject_backend_tests
