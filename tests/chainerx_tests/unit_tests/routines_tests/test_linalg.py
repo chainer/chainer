@@ -22,7 +22,7 @@ from chainerx_tests import op_utils
 @chainer.testing.parameterize_pytest(
     'in_dtypes,chx_expected_dtype', dtype_utils.result_dtypes_two_arrays)
 @chainer.testing.parameterize_pytest('is_module', [True, False])
-class test_dot(op_utils.NumpyOpTest):
+class TestDot(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
