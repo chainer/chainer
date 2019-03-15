@@ -3,6 +3,8 @@ import random
 import librosa
 import numpy
 
+import chainer
+
 
 class MuLaw(object):
     def __init__(self, mu=256, int_type=numpy.int32, float_type=numpy.float32):
