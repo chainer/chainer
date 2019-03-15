@@ -52,7 +52,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             return None
         return device.xp
 
-    @utils.final(action=DeprecationWarning)
     def to_cpu(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
@@ -71,7 +70,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
-    @utils.final(action=DeprecationWarning)
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
@@ -100,7 +98,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
-    @utils.final(action=DeprecationWarning)
     def to_intel64(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU."""
