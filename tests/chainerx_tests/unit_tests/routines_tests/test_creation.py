@@ -53,7 +53,7 @@ def _get_default_dtype(value):
         return 'int32'
     if isinstance(value, float):
         return 'float32'
-    raise ValueError('There is no default dtype for {}'.format(type(value)))
+    assert False
 
 
 # A special parameter object used to represent an unspecified argument.
@@ -620,7 +620,7 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
 def test_full_with_scalar(shape, dtype, value, device):
     scalar = chainerx.Scalar(value)
     a = chainerx.full(shape, scalar)
-    if isinstance(scalar.tolist(), float) and math.isnan(float(scalar)):
+    if isinstance(value, float) and math.isnan(value):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
         assert a._debug_flat_data == [scalar.tolist()] * a.size
