@@ -82,12 +82,17 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 
 void InitChainerxCreation(pybind11::module& m) {
     // creation routines
-    // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
-    // interface to allow this, but users may want to convert cupy.ndarray to ChainerX before CuPy's support will be implemented. In such
+    // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle
+    // it's CuPy's responsibility to provide some standard
+    // interface to allow this, but users may want to convert cupy.ndarray to
+    // ChainerX before CuPy's support will be implemented. In such
     // case, ChainerX should provide the support for convenience.
-    // TODO(niboshi): Add convenient function to convert to CuPy ndarray. Currently chainerx.ndarray exposes internal pointer
-    // (ndarray.data_ptr, etc.) to support this, but users may want more convenient method. In principle ChainerX should support some
-    // standard way (not depending on CuPy), but we might tentatively provide one which concretely depends on CuPy.
+    // TODO(niboshi): Add convenient function to convert to CuPy ndarray.
+    // Currently chainerx.ndarray exposes internal pointer
+    // (ndarray.data_ptr, etc.) to support this, but users may want more
+    // convenient method. In principle ChainerX should support some
+    // standard way (not depending on CuPy), but we might tentatively provide one
+    // which concretely depends on CuPy.
     m.def("array",
           [](py::handle object, py::handle dtype, bool copy, py::handle device) { return MakeArray(object, dtype, copy, device); },
           py::arg("object"),
@@ -260,21 +265,20 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
-              return MoveArrayBody(
-                      Linspace(
-                              start,
-                              stop,
-                              num,
-                              endpoint,
-                              dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
-                              GetDevice(device)));
-          },
-          py::arg("start"),
-          py::arg("stop"),
-          py::arg("num") = 50,
-          py::arg("endpoint") = true,
-          py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
+              return MoveArrayBody(Linspace(
+                      start,
+                      stop,
+                      num,
+                      endpoint,
+                      dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
+                      GetDevice(device)));
+           },
+           py::arg("start"),
+           py::arg("stop"),
+           py::arg("num") = 50,
+           py::arg("endpoint") = true,
+           py::arg("dtype") = nullptr,
+           py::arg("device") = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -295,7 +299,10 @@ void InitChainerxIndexing(pybind11::module& m) {
                   return MoveArrayBody(
                           Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
               }
-              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
+              throw py::type_error{
+                      "only integers, slices (`:`), sequence, "
+                      "numpy.ndarray and chainerx.newaxis (`None`) "
+                      "are valid indices"};
           },
           py::arg("a"),
           py::arg("indices"),
@@ -407,7 +414,8 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis") = 0);
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
-              // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
+              // TODO(niboshi): Perhaps we would want more general approach to handle
+              // multi-type arguments like indices_or_sections to
               // provide more helpful error message for users.
 
               auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) {
@@ -648,7 +656,8 @@ void InitChainerxConnection(pybind11::module& m) {
              py::handle stride,
              py::handle pad,
              bool cover_all) {
-              // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
+              // Create an Array from x to compute the image dimensions and the
+              // expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
               return MoveArrayBody(
@@ -672,18 +681,18 @@ void InitChainerxConnection(pybind11::module& m) {
              py::handle stride,
              py::handle pad,
              const nonstd::optional<py::tuple>& outsize) {
-              // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
+              // Create an Array from x to compute the image dimensions and the
+              // expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return MoveArrayBody(
-                      ConvTranspose(
-                              x_array,
-                              Array{w},
-                              b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                              ToStackVector<int64_t>(stride, ndim),
-                              ToStackVector<int64_t>(pad, ndim),
-                              outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
-                                                  : nonstd::nullopt));
+              return MoveArrayBody(ConvTranspose(
+                      x_array,
+                      Array{w},
+                      b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                      ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
+                                          : nonstd::nullopt));
           },
           py::arg("x"),
           py::arg("w"),
@@ -745,7 +754,8 @@ void InitChainerxNormalization(pybind11::module& m) {
 
 void InitChainerxPooling(pybind11::module& m) {
     // pooling routines
-    // TODO(sonots): Support return_indicies option of chainer.functions.max_pooling_nd.
+    // TODO(sonots): Support return_indicies option of
+    // chainer.functions.max_pooling_nd.
     m.def("max_pool",
           [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
               Array x_array{x};
@@ -776,13 +786,12 @@ void InitChainerxPooling(pybind11::module& m) {
                   throw py::value_error{"pad_mode must be either of 'zero' or 'ignore'"};
               }
 
-              return MoveArrayBody(
-                      AveragePool(
-                              x_array,
-                              ToStackVector<int64_t>(ksize, ndim),
-                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                              ToStackVector<int64_t>(pad, ndim),
-                              mode));
+              return MoveArrayBody(AveragePool(
+                      x_array,
+                      ToStackVector<int64_t>(ksize, ndim),
+                      stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      mode));
           },
           py::arg("x"),
           py::arg("ksize"),

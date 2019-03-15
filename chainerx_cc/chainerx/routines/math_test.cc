@@ -1370,10 +1370,8 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExp) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({}).WithData<T>(
-            {std::log(
-                    std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) +
-                    std::exp(adata[5]))});
+     Array e = testing::BuildArray({}).WithData<T>({std::log(
+            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0])}; }, {a}, {e}); });
 }
@@ -1382,10 +1380,9 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpReduceFirstAxis) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({3}).WithData<T>(
-            {std::log(std::exp(adata[0]) + std::exp(adata[3])),
-             std::log(std::exp(adata[1]) + std::exp(adata[4])),
-             std::log(std::exp(adata[2]) + std::exp(adata[5]))});
+     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
+                                                     std::log(std::exp(adata[1]) + std::exp(adata[4])),
+                                                     std::log(std::exp(adata[2]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{0})}; }, {a}, {e});
@@ -1396,9 +1393,8 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpReduceSecondAxis) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({2}).WithData<T>(
-            {std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
-             std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    Array e = testing::BuildArray({2}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                                                    std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{1})}; }, {a}, {e});
@@ -1409,10 +1405,9 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpReduceMultipleAxes) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({1, 3, 1, 2}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({3}).WithData<T>(
-            {std::log(std::exp(adata[0]) + std::exp(adata[1])),
-             std::log(std::exp(adata[2]) + std::exp(adata[3])),
-             std::log(std::exp(adata[4]) + std::exp(adata[5]))});
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{0, 2, 3})}; }, {a}, {e});
@@ -1423,9 +1418,9 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpKeepdims) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({2, 1}).WithData<T>(
-            {std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
-             std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSumExp(xs[0], Axes{1}, true)}; }, {a}, {e});
@@ -1436,10 +1431,8 @@ TEST_THREAD_SAFE_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
     using T = double;
     std::vector<T> adata{-1, 0, 1, 2, 3, 4};
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({1, 1}).WithData<T>(
-            {std::log(
-                    std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) +
-                    std::exp(adata[5]))});
+    Array e = testing::BuildArray({1, 1}).WithData<T>({std::log(
+            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
 
     Run([&]() {
         testing::CheckForward(
