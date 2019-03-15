@@ -167,10 +167,10 @@ class BatchNormalizationTestBase(object):
 
         return y,
 
-    def forward_expected(self, inputs, link):
-        x, = inputs
+    def forward_expected(self, link, inputs):
         gamma = link.gamma.array
         beta = link.beta.array
+        x, = inputs
 
         if self.test:
             mean = self.mean[self.expander]

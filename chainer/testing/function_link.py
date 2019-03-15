@@ -578,12 +578,12 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         :class:`unittest.SkipTest`.
         ``test_name`` is one of ``'test_forward'`` and ``'test_backward'``.
 
-    ``forward_expected(self, inputs, link)``
+    ``forward_expected(self, link, inputs)``
         Implements the expectation of the target forward function.
-        ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s and ``link`` is an
-        initialized link that was used to compute the actual forward which the
-        results of this method will be compared against. The link is guaranteed
-        to reside on the CPU.
+        ``link`` is the initialized link that was used to compute the actual
+        forward which the results of this method will be compared against.
+        The link is guaranteed to reside on the CPU.
+        ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s and
         This method is expected to return the output
         :class:`numpy.ndarray`\\ s.
         This method must be implemented if either ``skip_forward_test`` or
@@ -680,10 +680,10 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
                     x, = inputs
                     return link(x),
 
-                def forward_expected(self, inputs, link):
-                    x, = inputs
+                def forward_expected(self, link, inputs):
                     W = link.W.array
                     b = link.b.array
+                    x, = inputs
                     expected = x.dot(W.T) + b
                     return expected,
 
@@ -699,7 +699,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
     skip_backward_test = False
     dodge_nondifferentiable = False
 
-    def forward_expected(self, inputs, link):
+    def forward_expected(self, link, inputs):
         raise NotImplementedError('forward_expected() is not implemented.')
 
     def generate_grad_outputs(self, outputs_template):
@@ -732,7 +732,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         # transferred.
         link.to_device(backend.CpuDevice())
 
-        expected_outputs_np = self._forward_expected(inputs_np, link)
+        expected_outputs_np = self._forward_expected(link, inputs_np)
 
         self.check_forward_outputs(
             tuple(outputs_xp), expected_outputs_np)
@@ -806,10 +806,10 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         else:
             do_check()
 
-    def _forward_expected(self, inputs, link):
+    def _forward_expected(self, link, inputs):
         assert all(isinstance(x, numpy.ndarray) for x in inputs)
 
-        outputs = self.forward_expected(inputs, link)
+        outputs = self.forward_expected(link, inputs)
         _check_array_types(inputs, backend.CpuDevice(), 'test_forward')
 
         return outputs
