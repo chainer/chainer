@@ -24,7 +24,8 @@ def _copy_arrays(xs):
     xp = backend.get_array_module(*xs)
     if xp is chainerx:
         return [
-            xp.array(x, dtype=numpy.float64, copy=True, device=x.device)
+            None if x is None
+            else xp.array(x, dtype=numpy.float64, copy=True, device=x.device)
             for x in xs]
     else:
         return [xp.array(x, dtype=numpy.float64, copy=True) for x in xs]
@@ -52,10 +53,19 @@ def _check_outputs_and_grad_outputs(outputs, grad_outputs):
             'the number of output elements.\n'
             '{}'.format(
                 _make_outputs_props_in_error_message(outputs, grad_outputs)))
-    shapes_match = all([gy is None or y.shape == gy.shape
-                        for y, gy in zip(outputs, grad_outputs)])
-    dtypes_match = all([gy is None or y.dtype == gy.dtype
-                        for y, gy in zip(outputs, grad_outputs)])
+
+    shapes_match = True
+    dtypes_match = True
+    for y, gy in zip(outputs, grad_outputs):
+        if gy is None:
+            continue
+        if y is None and (gy == 0).all():
+            continue
+        if y.shape != gy.shape:
+            shapes_match = False
+        if y.dtype != gy.dtype:
+            dtypes_match = False
+
     if not (shapes_match and dtypes_match):
         raise ValueError(
             'Shapes and/or dtypes of outputs and output gradients do not '
@@ -175,6 +185,10 @@ def numerical_grad(
         x[i] = orig + delta
         y = _copy_arrays(f())
         assert len(y) == len(grad_outputs)
+        assert all([
+            gy is None
+            for y_, gy in zip(y, grad_outputs)
+            if y_ is None])
         assert all([
             gy is None or numpy.isscalar(gy) or y_.shape == gy.shape
             for y_, gy in zip(y, grad_outputs)])
@@ -302,6 +316,15 @@ def numerical_grad(
             gpu_ = (xp is cuda.cupy and
                     all(isinstance(ys[i_out], cuda.ndarray)
                         for ys in yss))
+            # If any output sample is None, all others must be.
+            assert all([
+                (yss[0][i_out] is None) == (yss[j][i_out] is None)
+                for j in range(len(yss))])
+            # If outputs samples are None, the part of numeric gradient for
+            # this output is considered as zero: skip the accumulation.
+            if yss[0][i_out] is None:
+                continue
+
             if len(yss) == 2:  # 1st order
                 y0 = yss[0][i_out]
                 y1 = yss[1][i_out]
@@ -427,7 +450,7 @@ class _CheckBackward(object):
         xs_backward, ys = (
             self._forward_for_backward_gradients())
         # Keep output arrays to save computation in numerical gradients
-        y0_data = tuple([y.array for y in ys])
+        y0_data = tuple([None if y is None else y.array for y in ys])
 
         # If y_grad is not given, generate the all-1 gradients.
         if self.y_grad is None:
@@ -442,6 +465,10 @@ class _CheckBackward(object):
             self.y_grad = tuple([_ones_like(y.array) for y in ys])
         else:
             _check_outputs_and_grad_outputs(ys, self.y_grad)
+
+        # Strike out y_grad corresponding to None y
+        self.y_grad = tuple([
+            None if y is None else gy for gy, y in zip(self.y_grad, y0_data)])
 
         # Sample a direction vector.
         directions = self._sample_directions()
@@ -641,9 +668,11 @@ class _CheckBackward(object):
 
             ys = func(*g_x_vars)
             ys = _as_tuple(ys)
-            ys_data = tuple(y.data for y in ys)
+            ys_data = tuple([None if y is None else y.array for y in ys])
             if xp is chainerx:
-                ys_data = tuple([y.as_grad_stopped() for y in ys_data])
+                ys_data = tuple([
+                    None if y is None else y.as_grad_stopped()
+                    for y in ys_data])
             for param, data in six.moves.zip(params, casted_data):
                 param.data = data
             return ys_data
@@ -876,9 +905,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                         'gradient of int variable must be None')
             else:
                 if x.grad is None:
-                    raise RuntimeError(
-                        'gradients of some arguments are not calculated')
-                gxs.append(x.grad_var)
+                    gxs.append(None)
+                else:
+                    gxs.append(x.grad_var)
 
         return tuple(gxs + [p.grad_var for p in params])
 
@@ -923,14 +952,21 @@ class _GradientSetter(FunctionNode):
         return self.grad
 
 
-def _apply_grad_setter_func(y, y_grad):
+def _apply_grad_setter_func(ys, gys):
     # Applies the `_GradientSetter` function.
     # The gradient setter function accepts any number of upstream outputs as
     # its inputs, and returns a single output variable with dummy data.
     # This variable will be later backward()ed and during backprop, this
     # function returns the given gradients (`y_grad`) on its backward.
-    assert len(y) == len(y_grad)
-    assert all(isinstance(y_, chainer.Variable) for y_ in y)
-    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in y_grad)
-    y, = _GradientSetter(y_grad).apply(y)
+    assert len(ys) == len(gys)
+    assert all(y is None or isinstance(y, chainer.Variable) for y in ys)
+    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in gys)
+    # y is None => gy is None
+    assert all(gy is None for y, gy in zip(ys, gys) if y is None)
+
+    ys_ = [y for y in ys if y is not None]
+    gys_ = [gy for y, gy in zip(ys, gys) if y is not None]
+    assert len(ys_) == len(gys_)
+    grad_setter = _GradientSetter(gys_)
+    y, = grad_setter.apply(ys_)
     return y

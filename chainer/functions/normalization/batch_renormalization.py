@@ -57,8 +57,8 @@ class BatchRenormalizationFunction(function.Function):
             x_type.ndim >= gamma_type.ndim + 1,
             x_type.shape[1:1 + M] == gamma_type.shape,
             # TODO(tkerola): Check shape
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
+            gamma_type.dtype.kind == 'f',
+            gamma_type.dtype == beta_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
 
@@ -79,8 +79,8 @@ class BatchRenormalizationFunction(function.Function):
         # NOTE(tommi): cuDNN is not used since it does not support
         # batch renormalization
         axis = (0,) + tuple(range(head_ndim, x.ndim))
-        mean = x.mean(axis=axis)
-        var = x.var(axis=axis) + self.eps
+        mean = x.mean(axis=axis, dtype=gamma.dtype)
+        var = x.var(axis=axis, dtype=gamma.dtype) + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
 
         running_sigma = xp.sqrt(self._running_var + self.eps,
@@ -113,10 +113,11 @@ class BatchRenormalizationFunction(function.Function):
             self.x_hat_renorm = self.x_hat * self.r[expander] + d[expander]
             y = gamma * self.x_hat_renorm
             y += beta
+            y = y.astype(dtype=x.dtype)
         else:
             self.x_hat, self.x_hat_renorm, y = cuda.elementwise(
-                'T x, T mean, T std, T gamma, T beta, T r, T d',
-                'T x_hat, T x_hat_renorm, T y',
+                'T x, U mean, U std, U gamma, U beta, U r, U d',
+                'U x_hat, U x_hat_renorm, T y',
                 '''
                 x_hat = (x - mean) / std;
                 x_hat_renorm = x_hat * r + d;
@@ -140,18 +141,19 @@ class BatchRenormalizationFunction(function.Function):
         assert configuration.config.train
         # NOTE(tommi): cuDNN is not used since it does not support
         # batch renormalization
-        gbeta = gy.sum(axis=axis)
+        gbeta = gy.sum(axis=axis, dtype=gamma.dtype)
         ggamma = (gy * self.x_hat_renorm).sum(axis=axis)
         gsigma_batch = (gy * self.x_hat).sum(axis=axis)
         if xp is numpy:
             scale = (self.r * gamma / self.std)[expander]
             gx = scale * (gy - (self.x_hat * gsigma_batch[expander] +
                                 gbeta[expander]) / m)
+            gx = gx.astype(dtype=x.dtype)
         else:
             inv_m = numpy.float32(1) / m
             gx = cuda.elementwise(
-                'T gy, T x_hat, T gamma, T std, T gsigma_batch, T gbeta, \
-                T inv_m, T r',
+                'T gy, U x_hat, U gamma, U std, U gsigma_batch, U gbeta, \
+                U inv_m, U r',
                 'T gx',
                 'gx = (r * gamma / std) * (gy - (x_hat * gsigma_batch + gbeta) * \
                 inv_m)',

@@ -9,7 +9,51 @@ import chainer.testing
 import chainerx
 
 
-class _OpTest(chainer.testing.function.FunctionTestBase):
+class OpTest(chainer.testing.function.FunctionTestBase):
+
+    """Base class for op test.
+
+    It must be used in conjunction with `op_test` decorator.
+
+    Examples:
+
+    @op_utils.op_test(['native:0', 'cuda:0'])
+    class test_relu(op_utils.OpTest):
+
+        # ReLU function has a non-differentiable point around zero, so
+        # dodge_nondifferentiable should be set to True.
+        dodge_nondifferentiable = True
+
+        def setup(self, float_dtype):
+            self.dtype = float_dtype
+
+        def generate_inputs(self):
+            dtype = self.dtype
+            x = numpy.random.uniform(-1, 1, (1, 3)).astype(dtype)
+            return x, w, b
+
+        def forward_chainerx(self, inputs):
+            x, w, b = inputs
+            y = chainerx.relu(x)
+            return y,
+
+        def forward_expected(self, inputs):
+            x, w, b = inputs
+            expected = x.copy()
+            expected[expected < 0] = 0
+            return expected,
+
+    In this example, `float_dtype` is a Pytest fixture for parameterizing
+    floating-point dtypes (i.e. float16, float32, float64). As seen from
+    this, arguments in the `setup` method are treated as Pytest fixtures.
+
+    Test implementations must at least override the following methods:
+      * `generate_inputs`: Generates inputs to the test target.
+      * `forward_chainerx`: Forward implementation using ChainerX.
+      * `forward_expected`: Forward reference implementation.
+
+    It can have the same attributes as `chainer.testing.FunctionTestCase`.
+    """
 
     def setup(self):
         # This method can be overridden by a concrete class with arbitrary
@@ -36,7 +80,7 @@ class _OpTest(chainer.testing.function.FunctionTestBase):
             'Op test implementation must override `forward_chainerx`.')
 
 
-class ChainerOpTest(_OpTest):
+class ChainerOpTest(OpTest):
 
     """Base class for op test that compares the output with Chainer
     implementation.
@@ -94,7 +138,7 @@ class ChainerOpTest(_OpTest):
             'Op test implementation must override `forward_chainer`.')
 
 
-class NumpyOpTest(_OpTest):
+class NumpyOpTest(OpTest):
 
     """Base class for op test that compares the output with NumPy
     implementation.
@@ -126,7 +170,13 @@ class NumpyOpTest(_OpTest):
       * `forward_xp`: Forward implementation using both ChainerX and NumPy.
 
     It can have the same attributes as `chainer.testing.FunctionTestCase`.
+
+    This test also compares strides of forward output arrays with NumPy
+    outputs. Set ``check_numpy_strides_compliance`` attribute to ``False``
+    to skip this check.
     """
+
+    check_numpy_strides_compliance = True
 
     def forward_chainerx(self, inputs):
         return self.forward_xp(inputs, chainerx)
@@ -138,6 +188,25 @@ class NumpyOpTest(_OpTest):
     def forward_xp(self, inputs, xp):
         raise NotImplementedError(
             'Op test implementation must override `forward_xp`.')
+
+    def check_forward_outputs(self, outputs, expected_outputs):
+        super(NumpyOpTest, self).check_forward_outputs(
+            outputs, expected_outputs)
+        if self.check_numpy_strides_compliance:
+            if not all(
+                    a.strides == e.strides
+                    for a, e in zip(outputs, expected_outputs)):
+                msg = (
+                    'Strides do not match with NumPy outputs.\n'
+                    'Expected shapes and dtypes: {}\n'
+                    'Actual shapes and dtypes:   {}\n'
+                    'Expected strides: {}\n'
+                    'Actual strides:   {}\n'.format(
+                        chainer.utils._format_array_props(expected_outputs),
+                        chainer.utils._format_array_props(outputs),
+                        ', '.join(str(e.strides) for e in expected_outputs),
+                        ', '.join(str(a.strides) for a in outputs)))
+                chainer.testing.FunctionTestError.fail(msg)
 
 
 def _make_backend_config(device_name):
@@ -158,6 +227,17 @@ def _create_test_entry_function(
     # method_name:
     #    The name of the test method name defined in `FunctionTestBase` class.
 
+    # We enforce 'Test' prefix in OpTest implementations so that they look like
+    # unittest.TestCase implementations. OTOH generated entry function must
+    # have a prefix 'test_' in order for it to be found in pytest test
+    # collection.
+    if not cls.__name__.startswith('Test'):
+        raise TypeError(
+            'OpTest class name must start with \'Test\'. Actual: {!r}'.format(
+                cls.__name__))
+
+    func_name = 'test_{}_{}'.format(cls.__name__[len('Test'):], func_suffix)
+
     @pytest.mark.parametrize_device(devices)
     def entry_func(device, *args, **kwargs):
         obj = cls()
@@ -168,7 +248,6 @@ def _create_test_entry_function(
         finally:
             obj.teardown()
 
-    func_name = '{}_{}'.format(cls.__name__, func_suffix)
     entry_func.__name__ = func_name
 
     # Set the signature of the entry function
