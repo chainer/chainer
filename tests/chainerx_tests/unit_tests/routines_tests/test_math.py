@@ -1048,18 +1048,26 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
+        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
 class TestSquare(op_utils.NumpyOpTest):
 
-    def setup(self, float_dtype):
+    def setup(self, input, contiguous, float_dtype):
+        self.input = input
         self.dtype = float_dtype
+        self.contiguous = contiguous
+        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
 
         if float_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
-        return x,
+        return self.input,
 
     def forward_xp(self, inputs, xp):
         x, = inputs
