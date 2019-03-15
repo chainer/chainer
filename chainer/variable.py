@@ -1591,6 +1591,26 @@ def backward(outputs, grad_outputs=None, **kwargs):
             raise TypeError(
                 'each output must be a Variable, not {}'.format(type(v)))
 
+    if any(v._has_chainerx_array for v in outputs):
+        if grad_outputs is None:
+            raise NotImplementedError('TODO')
+
+        if not outputs:
+            return
+        outputs = chainer.functions.identity(*outputs)
+        if not isinstance(outputs, tuple):
+            outputs = outputs,
+
+        arrs = []
+        for y, gy in zip(outputs, grad_outputs):
+            y.grad_var = gy
+            arr = y._data[0]
+            assert isinstance(arr, chainerx.ndarray)
+            arrs.append(arr)
+        chainerx.backward(
+            arrs, enable_double_backprop=enable_double_backprop)
+        return
+
     if grad_outputs is None:
         grad_outputs = []
         for y in outputs:
