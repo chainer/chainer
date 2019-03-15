@@ -48,7 +48,10 @@ Configuration Keys
 
    Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
 
-   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``float16``, ``float32`` or ``float64``.
+   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``mixed16``, ``float16``, ``float32``, ``float64``.
+
+   .. note::
+      If you want to use float16 for better performance, it is recommended to use ``mixed16`` instead of ``float16``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -266,6 +269,7 @@ Related functions
    :nosignatures:
 
    chainer.get_dtype
+   chainer.mixed16
 
 
 Environment Variables
@@ -305,7 +309,7 @@ Here are the environment variables Chainer uses.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
-|                                           | The value must be any of ``'float16'``, ``'float32'`` or ``'float64'``.                               |
+|                                           | The value must be any of ``'mixed16'``, ``'float16'``, ``'float32'`` or ``'float64'``.                |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |

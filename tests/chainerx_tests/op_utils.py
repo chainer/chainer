@@ -227,6 +227,17 @@ def _create_test_entry_function(
     # method_name:
     #    The name of the test method name defined in `FunctionTestBase` class.
 
+    # We enforce 'Test' prefix in OpTest implementations so that they look like
+    # unittest.TestCase implementations. OTOH generated entry function must
+    # have a prefix 'test_' in order for it to be found in pytest test
+    # collection.
+    if not cls.__name__.startswith('Test'):
+        raise TypeError(
+            'OpTest class name must start with \'Test\'. Actual: {!r}'.format(
+                cls.__name__))
+
+    func_name = 'test_{}_{}'.format(cls.__name__[len('Test'):], func_suffix)
+
     @pytest.mark.parametrize_device(devices)
     def entry_func(device, *args, **kwargs):
         obj = cls()
@@ -237,7 +248,6 @@ def _create_test_entry_function(
         finally:
             obj.teardown()
 
-    func_name = '{}_{}'.format(cls.__name__, func_suffix)
     entry_func.__name__ = func_name
 
     # Set the signature of the entry function

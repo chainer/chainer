@@ -680,6 +680,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
 
+        self.backend_config = backend_config
         self.before_test('test_forward')
 
         inits = self._generate_params()
@@ -709,6 +710,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         if self.skip_backward_test:
             raise unittest.SkipTest('skip_backward_test is set')
 
+        self.backend_config = backend_config
         self.before_test('test_backward')
 
         # avoid cyclic import
@@ -938,6 +940,7 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
     def test_initializers(self, backend_config):
         """Tests that the parameters of a links are correctly initialized."""
 
+        self.backend_config = backend_config
         self.before_test('test_initializers')
 
         params_inits = self._get_initializers()

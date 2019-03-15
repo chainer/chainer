@@ -69,8 +69,8 @@ class BatchNormalization(function_node.FunctionNode):
         x_type, gamma_type, beta_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
+            gamma_type.dtype.kind == 'f',
+            gamma_type.dtype == beta_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
         _x_ndim = type_check.eval(x_type.ndim)
@@ -119,8 +119,8 @@ class BatchNormalization(function_node.FunctionNode):
 
         xp = backend.get_array_module(x)
         if self.running_mean is None:
-            self.running_mean = xp.zeros_like(gamma)
-            self.running_var = xp.zeros_like(gamma)
+            self.running_mean = xp.zeros_like(gamma, dtype=x.dtype)
+            self.running_var = xp.zeros_like(gamma, dtype=x.dtype)
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
@@ -169,13 +169,14 @@ class BatchNormalization(function_node.FunctionNode):
 
             y, self.mean, self.var, self.inv_std = (
                 intel64.ideep.batchNormalization.Forward(
-                    intel64.ideep.array(x),
+                    intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
                     intel64.ideep.array(gamma),
                     intel64.ideep.array(beta),
                     None,
                     None,
                     self.eps
                 ))
+            y = y.astype(x.dtype, copy=False)
 
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)
@@ -214,13 +215,14 @@ class BatchNormalization(function_node.FunctionNode):
 
             gamma = gamma[expander]
             beta = beta[expander]
-            self.mean = x.mean(axis=self.axis)
-            var = x.var(axis=self.axis)
+            self.mean = x.mean(axis=self.axis, dtype=gamma.dtype)
+            var = x.var(axis=self.axis, dtype=gamma.dtype)
             if xp is numpy:
                 self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=x.dtype))
+                    var + self.eps, dtype=gamma.dtype))
             else:
-                self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
+                self.inv_std = cuda.cupyx.rsqrt(var + self.eps,
+                                                dtype=gamma.dtype)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics
@@ -278,7 +280,6 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1, 2))
         x, gamma, gy = inputs
         expander = self.expander
-        inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         xp = backend.get_array_module(x)
 
         if self.use_ideep:
@@ -290,13 +291,14 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 gy = gy[:, :, None, None]
 
             gx, gW = intel64.ideep.batchNormalization.Backward(
-                intel64.ideep.array(x),
-                intel64.ideep.array(gy),
+                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
+                intel64.ideep.array(gy.astype(gamma.dtype, copy=False)),
                 self.mean,
                 self.var,
                 intel64.ideep.array(gamma),
                 self.eps)
 
+            gx = gx.astype(x.dtype, copy=False)
             ggamma, gbeta = gW[:2]
 
             if expand_dim:
@@ -309,17 +311,25 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 chainer.is_debug())
         else:
             # CPU and GPU implementation
-            gbeta = gy.sum(axis=self.axis)
+            if isinstance(gy, intel64.mdarray):
+                # intel64.mdarray does not support dtype option in sum, so we
+                # convert it to numpy here.
+                gy = numpy.asarray(gy)
+
+            gbeta = gy.sum(axis=self.axis, dtype=gamma.dtype)
             x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
-            ggamma = (gy * x_hat).sum(axis=self.axis)
+            ggamma = (gy * x_hat).sum(axis=self.axis, dtype=gamma.dtype)
+
+            inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
             if xp is numpy:
                 gx = (gamma * self.inv_std)[expander] * (
                     gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
+                gx = gx.astype(dtype=x.dtype, copy=False)
             else:
                 gx = cuda.elementwise(
                     '''
-                    T gy, T x_hat, T gamma, T inv_std, T ggamma, T gbeta,
-                    T inv_m
+                    T gy, U x_hat, U gamma, U inv_std, U ggamma, U gbeta,
+                    U inv_m
                     ''',
                     'T gx',
                     '''
@@ -340,6 +350,12 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         gx1, ggamma1 = self.get_retained_outputs()
         ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = backend.get_array_module(x)
+
+        if gamma.dtype != x.dtype:
+            gamma = F.cast(gamma, x.dtype)
+            ggamma1 = F.cast(ggamma1, x.dtype)
+            gggamma1 = F.cast(gggamma1, x.dtype)
+            ggbeta1 = F.cast(ggbeta1, x.dtype)
 
         # auxiliary values
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
@@ -366,6 +382,9 @@ class BatchNormalizationGrad(function_node.FunctionNode):
             gmean2[expander] + x_hat * gstd2[expander])
         ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
                 + coeff[expander] * ggx1)
+
+        gx2 = chainer.functions.cast(gx2, x.dtype)
+        ggy2 = chainer.functions.cast(ggy2, gy.dtype)
 
         return gx2, ggamma2, ggy2
 
@@ -403,12 +422,12 @@ class FixedBatchNormalization(function_node.FunctionNode):
         type_check.expect(
             x_type.dtype.kind == 'f',
             # TODO(beam2d): Check shape
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
-            gamma_type.shape == beta_type.shape,
-            mean_type.dtype == x_type.dtype,
+            gamma_type.dtype.kind == 'f',
+            beta_type.dtype == gamma_type.dtype,
+            mean_type.dtype == gamma_type.dtype,
+            var_type.dtype == gamma_type.dtype,
+            beta_type.shape == gamma_type.shape,
             mean_type.shape == gamma_type.shape,
-            var_type.dtype == x_type.dtype,
             var_type.shape == gamma_type.shape,
         )
         _x_ndim = type_check.eval(x_type.ndim)
@@ -467,13 +486,14 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 x = x[:, :, None, None]
 
             y, = intel64.ideep.batchNormalization.Forward(
-                intel64.ideep.array(x),
+                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
                 intel64.ideep.array(gamma),
                 intel64.ideep.array(beta),
                 intel64.ideep.array(mean),
                 intel64.ideep.array(var),
                 self.eps
             )
+            y = y.astype(x.dtype, copy=False)
 
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
@@ -529,10 +549,13 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
         x_hat = _x_hat(x, mean[expander], self.inv_std[expander])
 
         gx = self.gamma_over_std[expander] * gy
-        gbeta = gy.sum(axis=self.axis)
+        gbeta = gy.sum(axis=self.axis, dtype=gamma.dtype)
         ggamma = (x_hat * gy).sum(axis=self.axis)
         gmean = -self.gamma_over_std * gbeta
-        gvar = - 0.5 * gamma * self.inv_var * ggamma
+        gvar = - 0.5 * self.inv_var * (
+            gamma * ggamma).astype(var.dtype, copy=False)
+
+        gx = gx.astype(dtype=x.dtype)
 
         self.retain_outputs((0, 1, 2, 3, 4))
         return gx, ggamma, gbeta, gmean, gvar
@@ -550,6 +573,18 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
         ggbeta1 = _zero_if_none(xp, ggbeta1, gamma.shape, gamma.dtype)
         ggmean1 = _zero_if_none(xp, ggmean1, mean.shape, mean.dtype)
         ggvar1 = _zero_if_none(xp, ggvar1, mean.shape, mean.dtype)
+
+        if x.dtype != gamma.dtype:
+            gamma = F.cast(gamma, x.dtype)
+            ggamma1 = F.cast(ggamma1, x.dtype)
+            gggamma1 = F.cast(gggamma1, x.dtype)
+            gbeta1 = F.cast(gbeta1, x.dtype)
+            ggbeta1 = F.cast(ggbeta1, x.dtype)
+            mean = F.cast(mean, x.dtype)
+            gmean1 = F.cast(gmean1, x.dtype)
+            ggmean1 = F.cast(ggmean1, x.dtype)
+            gvar1 = F.cast(gvar1, x.dtype)
+            ggvar1 = F.cast(ggvar1, x.dtype)
 
         expander = self.expander
 
@@ -574,6 +609,9 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
         gvar2 = -(ggamma2 * gamma_over_var + 0.5 * self.inv_var * (
             F.sum(x_hat * gx_hat, axis=self.axis)
             - self.gamma_over_std * g_gamma_over_std))
+
+        gx2 = chainer.functions.cast(gx2, x.dtype)
+        ggy2 = chainer.functions.cast(ggy2, gy.dtype)
 
         return gx2, ggamma2, gmean2, gvar2, ggy2
 
@@ -653,11 +691,12 @@ def _apply_bn_fwd(xp, x, mean, inv_std, gamma, beta):
     # (mean, inv_std, gamma, and beta have to already be expanded)
     if xp is numpy:
         x_hat = _x_hat(x, mean, inv_std)
-        y = gamma * x_hat
+        y = x_hat * gamma
         y += beta
+        y = y.astype(x.dtype)
     else:
         y = cuda.elementwise(
-            'T x, T mean, T inv_std, T gamma, T beta', 'T y',
+            'T x, U mean, U inv_std, U gamma, U beta', 'T y',
             'y = gamma * (x - mean) * inv_std + beta', 'bn_fwd'
         )(x, mean, inv_std, gamma, beta)
     return y

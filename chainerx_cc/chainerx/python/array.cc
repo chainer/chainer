@@ -216,7 +216,7 @@ void InitChainerxArray(pybind11::module& m) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
-              if (py::isinstance<ArrayBodyPtr>(indices)) {
+              if (py::isinstance<ArrayBody>(indices)) {
                   return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
               }
               if (py::isinstance<py::sequence>(indices)) {

@@ -13,13 +13,15 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import type_check
+import chainerx
 
 
 _parameterize = testing.parameterize(*(testing.product_dict(
     testing.product({
         'test': [True, False],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'size': ['skip', 'explicit'],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64,
+                  chainer.mixed16],
     }),
     testing.product({
         'ndim': [0, 1, 2, 3],
@@ -67,6 +69,11 @@ class BatchNormalizationTestBase(object):
     param_names = ('gamma', 'beta')
 
     def setUp(self):
+        if self.dtype == chainer.mixed16:
+            self.highprec_dtype = numpy.float32
+        else:
+            self.highprec_dtype = self.dtype
+
         if hasattr(self, 'axis') and hasattr(self, 'input_shape'):
             aggr_axes = self.axis
             if isinstance(aggr_axes, int):
@@ -94,24 +101,30 @@ class BatchNormalizationTestBase(object):
 
         if self.test:
             self.mean = numpy.random.uniform(
-                -1, 1, self.param_shape).astype(self.dtype)
+                -1, 1, param_shape).astype(self.highprec_dtype)
             self.var = numpy.random.uniform(
-                0.5, 1, self.param_shape).astype(self.dtype)
+                0.5, 1, param_shape).astype(self.highprec_dtype)
         else:
             self.mean = None
             self.var = None
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
+        if self.dtype in (numpy.float16, chainer.mixed16):
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-1}
             self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
 
+    def before_test(self, test_name):
+        if (self.dtype == chainer.mixed16
+                and self.backend_config.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX does not yet support mixed-FP16 mode.')
+
     def generate_params(self):
         initial_gamma = numpy.random.uniform(
-            -1, 1, self.param_shape).astype(self.dtype)
+            -1, 1, self.param_shape).astype(self.highprec_dtype)
         initial_beta = numpy.random.uniform(
-            -1, 1, self.param_shape).astype(self.dtype)
+            -1, 1, self.param_shape).astype(self.highprec_dtype)
         return initial_gamma, initial_beta
 
     def create_link(self, initializers):
@@ -143,12 +156,15 @@ class BatchNormalizationTestBase(object):
         # initialized with. In that case, persistent values must be manually
         # cast. This is needed when forward is called in order to compute
         # numerical gradients.
-        if link.avg_mean is not None and x.dtype != link.avg_mean.dtype:
+        if ((self.dtype == chainer.mixed16 and x.dtype != numpy.float16)
+            or (self.dtype != chainer.mixed16 and link.avg_mean is not None
+                and x.dtype != link.avg_mean.dtype)):
             link.avg_mean = link.avg_mean.astype(x.dtype)
             link.avg_var = link.avg_var.astype(x.dtype)
 
         with chainer.using_config('train', not self.test):
             y = link(x, finetune=self.finetune)
+
         return y,
 
     def forward_expected(self, inputs, link):
@@ -161,11 +177,24 @@ class BatchNormalizationTestBase(object):
             var = self.var[self.expander]
             std = numpy.sqrt(var)
         else:
-            mean = x.mean(axis=self.aggr_axes, keepdims=True)
-            var = x.var(axis=self.aggr_axes, keepdims=True)
+            mean = x.mean(
+                axis=self.aggr_axes, dtype=self.highprec_dtype, keepdims=True)
+            var = x.var(
+                axis=self.aggr_axes, dtype=self.highprec_dtype, keepdims=True)
             std = numpy.sqrt(var + self.eps)
         y = gamma[self.expander] * (x - mean) / std + beta[self.expander]
+
+        if self.dtype == chainer.mixed16:
+            y = y.astype(x.dtype)
+
         return y,
+
+    def check_forward_outputs(self, outputs, expected_outputs):
+        super(BatchNormalizationTestBase, self).check_forward_outputs(
+            outputs, expected_outputs)
+        y, = outputs
+        assert False
+        self.assertEqual(y.dtype, chainer.get_dtype(self.dtype))
 
 
 @_inject_backend_tests
@@ -402,6 +431,78 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
 def _generate_uniform(low, high, shape, dtype=numpy.float32):
     return numpy.random.uniform(low, high, shape).astype(dtype)
+
+
+@testing.parameterize(*testing.product({
+    'size': [3, (2, 3)],
+}))
+class TestInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.decay = 0.9
+        self.initial_gamma = _generate_uniform(-1, 1, self.size)
+        self.initial_beta = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_mean = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_var = _generate_uniform(-1, 1, self.size)
+        self.link = links.BatchNormalization(
+            self.size, self.decay,
+            initial_gamma=self.initial_gamma,
+            initial_beta=self.initial_beta,
+            initial_avg_mean=self.initial_avg_mean,
+            initial_avg_var=self.initial_avg_var,
+        )
+
+    @condition.retry(3)
+    def test_initialize_cpu(self):
+        testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
+        testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_initialize_gpu(self):
+        self.link.to_gpu()
+        testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
+        testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16, chainer.mixed16],
+}))
+class TestDefaultInitializer(unittest.TestCase):
+
+    def setUp(self):
+        self.decay = 0.9
+        self.size = 3
+        with chainer.using_config('dtype', self.dtype):
+            self.link = links.BatchNormalization(self.size, self.decay)
+        dtype = numpy.float32 if self.dtype == chainer.mixed16 else self.dtype
+        assert self.link.beta.dtype == dtype
+        assert self.link.gamma.dtype == dtype
+        assert self.link.avg_mean.dtype == dtype
+        assert self.link.avg_var.dtype == dtype
+
+        self.x = numpy.arange(6, dtype=self.dtype).reshape(2, 3)
+
+    def check_initialize(self):
+        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.array)
+        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.array)
+        testing.assert_allclose(0, self.link.avg_mean)
+        testing.assert_allclose(1, self.link.avg_var)
+        y = self.link(self.x)
+        assert y.dtype == self.x.dtype
+
+    def test_initialize_cpu(self):
+        self.check_initialize()
+
+    @attr.gpu
+    def test_initialize_gpu(self):
+        self.link.to_gpu()
+        self.x = cuda.to_gpu(self.x)
+        self.check_initialize()
 
 
 @testing.parameterize(*testing.product({

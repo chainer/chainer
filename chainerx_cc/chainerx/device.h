@@ -203,6 +203,7 @@ public:
     // Indices that are out of bounds are wrapped around.
     //
     // `axis` must be within [0, a.ndim()).
+    // `indices` must have dtype kind of either kInt or kUInt.
     virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 
     // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
@@ -211,6 +212,7 @@ public:
     // TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
     //
     // `axis` must be within [0, b.ndim()).
+    // `indices` must have dtype kind of either kInt or kUInt.
     virtual void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
 
     // Creates the identity array.
