@@ -30,9 +30,6 @@ Array Dot(const Array& a, const Array& b) {
         return a_cast * b_cast;
     }
 
-    // TODO(beam2d): dtype conversion
-    CheckEqual(a.dtype(), b.dtype());
-
     Array modified_b{};
 
     Shape out_shape{};
