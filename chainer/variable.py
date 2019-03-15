@@ -1561,7 +1561,7 @@ class Variable(object):
     __hash__ = None  # type: tp.Callable[[object], int]
 
 
-def backward(outputs, **kwargs):
+def backward(outputs, grad_outputs=None, **kwargs):
     """Runs from variables simultaneously.
 
     Args:
@@ -1590,9 +1590,23 @@ def backward(outputs, **kwargs):
         if not isinstance(v, Variable):
             raise TypeError(
                 'each output must be a Variable, not {}'.format(type(v)))
-        if v.grad is None:
-            warnings.warn(
-                'chainer.backward does not have default grad')
+
+    if grad_outputs is None:
+        grad_outputs = []
+        for y in outputs:
+            grad_var = y.node._pop_grad_var_if_available()
+            grad_outputs.append(grad_var)
+            if grad_var is None:
+                warnings.warn(
+                    'outputs contains a Variable without grad, or '
+                    'duplicate outputs. Note that'
+                    'chainer.backward does not have default grad.')
+    else:
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'TODO')
+    outputs = [
+        (y.node, gy) for y, gy in zip(outputs, grad_outputs) if gy is not None]
     with chainer.using_config('enable_backprop', enable_double_backprop):
         _backprop_to_all(outputs, False, None)
 
