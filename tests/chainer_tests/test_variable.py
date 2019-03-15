@@ -2650,6 +2650,16 @@ class TestBackwardRetainedOutput(unittest.TestCase):
         testing.assert_allclose(x.grad, gx_expected)
 
 
+class TestBackwardV5Compat1(unittest.TestCase):
+
+    def test_backward(self):
+        x = chainer.Variable(np.array([1, 2], np.float32))
+        y0, y1, y2 = chainer.functions.identity(x, x, x)
+        y1.grad = np.array([3, 4], np.float32)
+        y2.backward()
+        testing.assert_allclose(x.grad, [3, 4])
+
+
 class IdentityFunction(chainer.Function):
 
     def forward(self, inputs):

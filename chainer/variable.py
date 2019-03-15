@@ -1435,6 +1435,9 @@ class Variable(object):
         grad_var = node._pop_grad_var_if_available()
 
         with chainer.using_config('enable_backprop', enable_double_backprop):
+            # TODO(kataoka): The following line should not pass grad_var = None
+            # to _backprop_to_all, but it is working because grad_var is
+            # immediately popped away as None = _backprop_utils._reduce([None])
             _backprop_to_all([(node, grad_var)], retain_grad, loss_scale)
 
     def reshape(self, *shape):
