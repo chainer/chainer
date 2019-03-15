@@ -587,7 +587,7 @@ def test_sqrt(xp, device, input, in_dtype, out_dtype):
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 @pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
-class test_tanh(op_utils.NumpyOpTest):
+class TestTanh(op_utils.NumpyOpTest):
 
     def setup(self, input, contiguous, in_dtype, out_dtype):
         self.input = input.astype(in_dtype)
