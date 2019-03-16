@@ -210,8 +210,12 @@ class Link(object):
     def printable_specs(self):
         """Generator of printable specs of this link.
 
-        Usually, this indicates the arguments passed to the :meth:`__init__`.
-
+        Yields:
+            specs (tuple of str and object):
+                Basically, it returns the arguments (pair of keyword and value)
+                that are passed to the :meth:`__init__`. This pair of key and
+                value is used for representing this class or subclass with
+                :meth:`__str__`.
         """
         if 0:
             yield
