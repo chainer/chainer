@@ -75,11 +75,13 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def _allreduce_grad_async(self, model, stream):
         self._init_comms()
         params = _memory_utility.extract_params_set_grad(model)
+        print(params[0])
         grad_dtype = _get_param_grad_dtype(params[0])
         if self.allreduce_grad_dtype is None:
             allreduce_grad_dtype = grad_dtype
         else:
             allreduce_grad_dtype = self.allreduce_grad_dtype
+        print(allreduce_grad_dtype)
         n_elems = sum(param.grad.size for param in params)
         needs_sync = self._assign_for_allreduce_grad(grad_dtype,
                                                      allreduce_grad_dtype,

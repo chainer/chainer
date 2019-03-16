@@ -30,6 +30,30 @@ def create_communicator(
     |naive          |OK |OK |        |Testing on CPU mode                   |
     +---------------+---+---+--------+--------------------------------------+
 
+    ChainerMN supports multiple data types, FP32 and FP16,
+    in gradient exchange. The communication data type is determined based on
+    `chainer.global_config.dtype` and `allreduce_grad_dtype`.
+    When `allreduce_grad_dtype` is the default value `None`,
+    FP32 is used when `chainer.global_config.dtype` is `numpy.float32` and
+    FP16 otherwise.
+    `allreduce_grad_dtype` parameter,
+    which is either `numpy.float16` or `numpy.float32`,
+    overwrites the `chainer.global_config.dtype`.
+
+    The table blow summarizes the data type selection in gradient exchange.
+
+    +-----------------+----------------------------------------------+
+    | chainer.        |             allreduce_grad_dtype             |
+    | global_config.  |                                              |
+    | dtype           | None    |   numpy.float16  | numpy.float32   |
+    |-----------------+---------+------------------+-----------------+
+    | chainer.mixed16 | FP16    |   FP16           | FP32            |
+    |-----------------+---------+------------------+-----------------+
+    | numpy.float16   | FP16    |   FP16           | FP32            |
+    |-----------------+---------+------------------+-----------------+
+    | numpy.float32   | FP32    |   FP16           | FP32            |
+    |-----------------+----------------------------+-----------------+
+
     Args:
         communicator_name: The name of communicator (``naive``, ``flat``,
           ``hierarchical``, ``two_dimensional``, ``pure_nccl``, or
