@@ -27,6 +27,13 @@ def _to_gpu(x):
         return cuda.to_gpu(x)
 
 
+def _shaped_random(shape, dtype=numpy.float32):
+    if isinstance(shape, list):
+        return [_shaped_random(s, dtype) for s in shape]
+    else:
+        return numpy.random.uniform(-1, 1, shape).astype(dtype)
+
+
 def _wrap_variable(x):
     if isinstance(x, list):
         return [_wrap_variable(xi) for xi in x]
@@ -34,6 +41,9 @@ def _wrap_variable(x):
         return chainer.Variable(x)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestNStepGRU(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -44,10 +54,10 @@ class TestNStepGRU(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
+        self.xs = _shaped_random(
+            [(b, self.in_size) for b in self.batches], self.dtype)
         h_shape = (self.n_layers, self.batches[0], self.out_size)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.hx = _shaped_random(h_shape, self.dtype)
 
         self.ws = []
         self.bs = []
@@ -60,16 +70,18 @@ class TestNStepGRU(unittest.TestCase):
                 else:
                     w_in = self.out_size
 
-                weights.append(numpy.random.uniform(
-                    -1, 1, (self.out_size, w_in)).astype('f'))
-                biases.append(numpy.random.uniform(
-                    -1, 1, (self.out_size,)).astype('f'))
+                weights.append(
+                    _shaped_random((self.out_size, w_in), self.dtype))
+                biases.append(_shaped_random((self.out_size,), self.dtype))
             self.ws.append(weights)
             self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size)).astype('f')
-                    for b in self.batches]
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random(
+            [(b, self.out_size) for b in self.batches], self.dtype)
+        self.dhy = _shaped_random(h_shape, self.dtype)
+
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-2}
 
     def check_forward(self, h_data, xs_data, ws_data, bs_data):
         h = _wrap_variable(h_data)
@@ -100,9 +112,9 @@ class TestNStepGRU(unittest.TestCase):
                 x = e_h
 
             testing.assert_allclose(
-                ys[ind].data, x, rtol=1e-4, atol=1e-4)
+                ys[ind].array, x, **self.check_forward_options)
 
-        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(hy.array, e_hy, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.xs, self.ws, self.bs)
@@ -149,7 +161,7 @@ class TestNStepGRU(unittest.TestCase):
             return (hy, ) + ys
 
         gradient_check.check_backward(
-            f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
+            f, args, grads, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
@@ -218,6 +230,9 @@ class TestNStepGRU(unittest.TestCase):
         self.check_call_cudnn_backward('auto')
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestNStepBiGRU(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -228,10 +243,10 @@ class TestNStepBiGRU(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
+        self.xs = _shaped_random(
+            [(b, self.in_size) for b in self.batches], self.dtype)
         h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.hx = _shaped_random(h_shape, self.dtype)
 
         self.ws = []
         self.bs = []
@@ -247,17 +262,19 @@ class TestNStepBiGRU(unittest.TestCase):
                     else:
                         w_in = self.out_size
 
-                    weights.append(numpy.random.uniform(
-                        -1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(numpy.random.uniform(
-                        -1, 1, (self.out_size,)).astype('f'))
+                    weights.append(
+                        _shaped_random((self.out_size, w_in), self.dtype))
+                    biases.append(
+                        _shaped_random((self.out_size,), self.dtype))
                 self.ws.append(weights)
                 self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1,
-                                         (b, self.out_size * 2)).astype('f')
-                    for b in self.batches]
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random(
+            [(b, self.out_size * 2) for b in self.batches], self.dtype)
+        self.dhy = _shaped_random(h_shape, self.dtype)
+
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-2}
 
     def check_forward(self, h_data, xs_data, ws_data, bs_data):
         h = chainer.Variable(h_data)
@@ -316,9 +333,10 @@ class TestNStepBiGRU(unittest.TestCase):
                        zip(xf, xb)]
 
         for k, (ysi, xsi) in enumerate(zip(ys, xs_next)):
-            testing.assert_allclose(ysi.data, xsi, rtol=1e-4, atol=1e-4)
+            testing.assert_allclose(
+                ysi.array, xsi, **self.check_forward_options)
 
-        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(hy.array, e_hy, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.xs, self.ws, self.bs)
@@ -365,7 +383,7 @@ class TestNStepBiGRU(unittest.TestCase):
             return (hy, ) + ys
 
         gradient_check.check_backward(
-            f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
+            f, args, grads, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,

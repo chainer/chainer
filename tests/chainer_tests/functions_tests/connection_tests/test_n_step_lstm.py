@@ -28,6 +28,13 @@ def _to_gpu(x):
         return cuda.to_gpu(x)
 
 
+def _shaped_random(shape, dtype=numpy.float32):
+    if isinstance(shape, list):
+        return [_shaped_random(s, dtype) for s in shape]
+    else:
+        return numpy.random.uniform(-1, 1, shape).astype(dtype)
+
+
 def _wrap_variable(x):
     if isinstance(x, list):
         return [_wrap_variable(xi) for xi in x]
@@ -35,6 +42,9 @@ def _wrap_variable(x):
         return chainer.Variable(x)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestNStepLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -45,11 +55,11 @@ class TestNStepLSTM(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
+        self.xs = _shaped_random(
+            [(b, self.in_size) for b in self.batches], self.dtype)
         h_shape = (self.n_layers, self.batches[0], self.out_size)
-        self.cx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.cx = _shaped_random(h_shape, self.dtype)
+        self.hx = _shaped_random(h_shape, self.dtype)
 
         self.ws = []
         self.bs = []
@@ -62,17 +72,19 @@ class TestNStepLSTM(unittest.TestCase):
                 else:
                     w_in = self.out_size
 
-                weights.append(numpy.random.uniform(
-                    -1, 1, (self.out_size, w_in)).astype('f'))
-                biases.append(numpy.random.uniform(
-                    -1, 1, (self.out_size,)).astype('f'))
+                weights.append(
+                    _shaped_random((self.out_size, w_in), self.dtype))
+                biases.append(_shaped_random((self.out_size,), self.dtype))
             self.ws.append(weights)
             self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size)).astype('f')
-                    for b in self.batches]
-        self.dcy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random(
+            [(b, self.out_size) for b in self.batches], self.dtype)
+        self.dcy = _shaped_random(h_shape, self.dtype)
+        self.dhy = _shaped_random(h_shape, self.dtype)
+
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-2}
 
     def check_forward(
             self, h_data, c_data, xs_data, ws_data, bs_data):
@@ -107,10 +119,10 @@ class TestNStepLSTM(unittest.TestCase):
                 x = e_h
 
             testing.assert_allclose(
-                ys[ind].data, x, rtol=1e-4, atol=1e-4)
+                ys[ind].array, x, **self.check_forward_options)
 
-        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
-        testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(hy.array, e_hy, **self.check_forward_options)
+        testing.assert_allclose(cy.array, e_cy, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
@@ -158,7 +170,7 @@ class TestNStepLSTM(unittest.TestCase):
             return (hy, cy) + ys
 
         gradient_check.check_backward(
-            f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
+            f, args, grads, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
@@ -242,15 +254,13 @@ class TestNStepLSTM(unittest.TestCase):
 
     def test_inconsistent_input_size_cpu(self):
         x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in self.batches]
+        xs = _shaped_random([(b, x_in_size) for b in self.batches], self.dtype)
         self.check_inconsistent_input_size(
             self.hx, self.cx, xs, self.ws, self.bs)
 
     def check_inconsistent_input_size_gpu(self, use_cudnn):
         x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in self.batches]
+        xs = _shaped_random([(b, x_in_size) for b in self.batches], self.dtype)
 
         hx = _to_gpu(self.hx)
         cx = _to_gpu(self.cx)
@@ -269,6 +279,9 @@ class TestNStepLSTM(unittest.TestCase):
         self.check_inconsistent_input_size_gpu('never')
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
 class TestNStepBiLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -279,11 +292,11 @@ class TestNStepBiLSTM(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
-        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
-        self.cx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.xs = _shaped_random(
+            [(b, self.in_size) for b in self.batches], self.dtype)
+        h_shape = (self.n_layers, self.batches[0], self.out_size)
+        self.cx = _shaped_random(h_shape, self.dtype)
+        self.hx = _shaped_random(h_shape, self.dtype)
 
         self.ws = []
         self.bs = []
@@ -299,17 +312,19 @@ class TestNStepBiLSTM(unittest.TestCase):
                     else:
                         w_in = self.out_size
 
-                    weights.append(numpy.random.uniform(
-                        -1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(numpy.random.uniform(
-                        -1, 1, (self.out_size,)).astype('f'))
+                    weights.append(
+                        _shaped_random((self.out_size, w_in), self.dtype))
+                    biases.append(_shaped_random((self.out_size,), self.dtype))
                 self.ws.append(weights)
                 self.bs.append(biases)
 
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size * 2))
-                    .astype('f') for b in self.batches]
-        self.dcy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random(
+            [(b, self.out_size * 2) for b in self.batches], self.dtype)
+        self.dcy = _shaped_random(h_shape, self.dtype)
+        self.dhy = _shaped_random(h_shape, self.dtype)
+
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-2}
 
     def check_forward(
             self, h_data, c_data, xs_data, ws_data, bs_data):
@@ -376,10 +391,11 @@ class TestNStepBiLSTM(unittest.TestCase):
                        zip(xf, xb)]
 
         for k, (ysi, xsi) in enumerate(zip(ys, xs_next)):
-            testing.assert_allclose(ysi.data, xsi, rtol=1e-4, atol=1e-4)
+            testing.assert_allclose(
+                ysi.array, xsi, **self.check_forward_options)
 
-        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
-        testing.assert_allclose(cy.data, e_cy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(hy.array, e_hy, **self.check_forward_options)
+        testing.assert_allclose(cy.array, e_cy, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.cx, self.xs, self.ws, self.bs)
@@ -427,7 +443,7 @@ class TestNStepBiLSTM(unittest.TestCase):
             return (hy, cy) + ys
 
         gradient_check.check_backward(
-            f, args, grads, eps=1e-2, rtol=1e-3, atol=1e-3)
+            f, args, grads, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.hx, self.cx, self.xs, self.ws, self.bs,
@@ -511,15 +527,13 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     def test_inconsistent_input_size_cpu(self):
         x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in self.batches]
+        xs = _shaped_random([(b, x_in_size) for b in self.batches], self.dtype)
         self.check_inconsistent_input_size(
             self.hx, self.cx, xs, self.ws, self.bs)
 
     def check_inconsistent_input_size_gpu(self, use_cudnn):
         x_in_size = 4  # inconsistent in_size with that of ws.
-        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
-              for b in self.batches]
+        xs = _shaped_random([(b, x_in_size) for b in self.batches], self.dtype)
 
         hx = _to_gpu(self.hx)
         cx = _to_gpu(self.cx)
@@ -581,10 +595,8 @@ def lstm_without_dropout(n_layer, dropout, hx, cx, ws, bs, xs):
     return hy, cy, ys
 
 
-def rand_vector(shape):
-    # return cuda.cupy.random.randint(-2, 2, shape).astype('f')
-    return cuda.cupy.random.uniform(-1, 1, shape).astype('f')
-    # return cuda.cupy.ones(shape).astype('f')
+def rand_vector(shape, dtype=numpy.float32):
+    return cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
 
 
 @testing.parameterize(*testing.product({
@@ -643,11 +655,11 @@ class TestNStepLSTMDropout(unittest.TestCase):
                     self.bs, self.xs)
 
             for i in range(self.length):
-                y_counts[i] += count_close(ys1[i].data, ys2[i].data)
+                y_counts[i] += count_close(ys1[i].array, ys2[i].array)
 
             for i in range(self.n_layers):
-                h_counts[i] += count_close(hy1[i].data, hy2[i].data)
-                c_counts[i] += count_close(cy1[i].data, cy2[i].data)
+                h_counts[i] += count_close(hy1[i].array, hy2[i].array)
+                c_counts[i] += count_close(cy1[i].array, cy2[i].array)
 
         total = self.batch * self.n_tests
         for i in range(self.length):
