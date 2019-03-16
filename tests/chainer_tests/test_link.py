@@ -48,32 +48,6 @@ class LinkTestBase(object):
         if cuda.available:
             self.current_device_id = cuda.cupy.cuda.get_device_id()
 
-    def test_str(self):
-
-        class LinearForTest(chainer.Link):
-            def __init__(self, in_size, out_size, nobias=False):
-                self.in_size = in_size
-                self.out_size = out_size
-                self.nobias = nobias
-
-            @property
-            def printable_specs(self):
-                specs = [
-                    ('in_size', self.in_size),
-                    ('out_size', self.out_size),
-                    ('nobias', self.nobias)
-                ]
-                for spec in specs:
-                    yield spec
-
-            def __call__(self):
-                pass
-
-        self.assertEqual(
-            str(LinearForTest(10, 1)),
-            'LinearForTest(in_size=10, out_size=1, nobias=False)',
-        )
-
     def tearDown(self):
         if cuda.available \
                 and cuda.cupy.cuda.get_device_id() != self.current_device_id:
@@ -116,12 +90,39 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.check_param_init('v', (2, 3), 'f')
 
     def test_str(self):
+        # empty Link
         self.assertEqual(str(chainer.Link()), 'Link()')
 
         class MyLink(chainer.Link):
-            pass  # won't override printable_specs
+            pass
 
+        # Link without overriding printable_specs
         self.assertEqual(str(MyLink()), 'MyLink()')
+
+        class LinearForTest(chainer.Link):
+            def __init__(self, in_size, out_size, nobias=False):
+                self.in_size = in_size
+                self.out_size = out_size
+                self.nobias = nobias
+
+            @property
+            def printable_specs(self):
+                specs = [
+                    ('in_size', self.in_size),
+                    ('out_size', self.out_size),
+                    ('nobias', self.nobias)
+                ]
+                for spec in specs:
+                    yield spec
+
+            def __call__(self):
+                pass
+
+        # Link with overriding printable_specs
+        self.assertEqual(
+            str(LinearForTest(10, 1)),
+            'LinearForTest(in_size=10, out_size=1, nobias=False)',
+        )
 
     def test_assign_param_outside_of_init_scope(self):
         p = chainer.Parameter()
