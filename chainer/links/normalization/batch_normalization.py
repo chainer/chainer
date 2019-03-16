@@ -192,15 +192,6 @@ class BatchNormalization(link.Link):
                  initial_avg_mean=None, initial_avg_var=None):
         super(BatchNormalization, self).__init__()
 
-        self._kwargs = [
-            ('size', size),
-            ('decay', decay),
-            ('eps', eps),
-            ('dtype', dtype),
-            ('use_gamma', use_gamma),
-            ('use_beta', use_beta),
-        ]
-
         if size is None and axis is None:
             raise RuntimeError('size or axis is required')
         self._initial_avg_mean = initial_avg_mean
