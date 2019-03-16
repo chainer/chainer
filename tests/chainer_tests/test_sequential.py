@@ -489,6 +489,8 @@ class TestSequential(unittest.TestCase):
                 six.moves.cPickle.dump(self.s2, fp)
 
     def test_str(self):
+        self.assertEqual(str(chainer.Sequential()), 'Sequential()')
+
         expected = '''\
   (0): Sequential(
     (0): Linear(in_size=None, out_size=3, nobias=False),

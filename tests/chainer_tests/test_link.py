@@ -115,6 +115,14 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.link.v.initialize((2, 3))
         self.check_param_init('v', (2, 3), 'f')
 
+    def test_str(self):
+        self.assertEqual(str(chainer.Link()), 'Link()')
+
+        class MyLink(chainer.Link):
+            pass  # won't override printable_specs
+
+        self.assertEqual(str(MyLink()), 'MyLink()')
+
     def test_assign_param_outside_of_init_scope(self):
         p = chainer.Parameter()
         self.link.p = p
@@ -875,6 +883,7 @@ class TestChain(ChainTestBase, unittest.TestCase):
         self.assertEqual(self.l3.name, 'l3')
 
     def test_str(self):
+        self.assertEqual(str(chainer.Chain()), 'Chain()')
         self.assertEqual(
             str(self.c2),
             '''\
@@ -1458,6 +1467,7 @@ class TestChainList(unittest.TestCase):
         self.assertEqual(self.c1.name, '0')
 
     def test_str(self):
+        self.assertEqual(str(chainer.ChainList()), 'ChainList()')
         self.assertEqual(
             str(self.c2),
             '''\
