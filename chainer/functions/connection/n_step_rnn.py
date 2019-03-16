@@ -110,12 +110,12 @@ class CudnnRNNWeightConcat(function.Function):
                             w_in = out_size
 
                     type_check.expect(
-                        w_type.dtype == numpy.float32,
+                        w_type.dtype.kind == 'f',
                         w_type.ndim == 2,
                         w_type.shape[0] == out_size,
                         w_type.shape[1] == w_in,
-
-                        b_type.dtype == numpy.float32,
+                        w_type.dtype == b_type.dtype,
+                        b_type.dtype.kind == 'f',
                         b_type.ndim == 1,
                         b_type.shape[0] == out_size,
                     )
@@ -234,8 +234,9 @@ class BaseNStepRNN(function.Function):
             h_type, c_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
-                h_type.dtype == numpy.float32,
-                c_type.dtype == numpy.float32,
+                h_type.dtype.kind == 'f',
+                c_type.dtype.kind == 'f',
+                h_type.dtype == c_type.dtype,
 
                 h_type.ndim == 3,
                 h_type.shape[0] == h_size,
@@ -254,14 +255,14 @@ class BaseNStepRNN(function.Function):
             h_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
-                h_type.dtype == numpy.float32,
+                h_type.dtype.kind == 'f',
 
                 h_type.ndim == 3,
                 h_type.shape[0] == h_size,
             )
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 2,
             x_type.shape[0] == self.sections[-1],
         )
