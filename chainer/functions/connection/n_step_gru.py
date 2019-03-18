@@ -295,7 +295,7 @@ use_bi_direction)
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        with chainer.using_device(xs.device):
+        with cuda.get_device_from_array(xs.array):
             states = cuda.get_cudnn_dropout_states()
             states.set_dropout_ratio(dropout_ratio)
 
