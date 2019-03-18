@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.backends import _chainerx
@@ -83,42 +84,54 @@ def get_device(device_spec):
 
               * A string representing a device.
                 (ex. ``'native:0'``, ``'native'``)
-              * A tuple of ChainerX backend name and device index.
-                (ex. ``('native', 0)``)
               * A :class:`chainerx.Device` object.
 
             * CuPy
 
-              * A tuple of :mod:`cupy` module object and device ID.
-                (ex. ``(cupy, 0)``)
+              * A string starts with ``'@cupy:'``.
+                (ex. ``'@cupy:0'``)
               * A :class:`chainer.backends.cuda.Device` object.
 
             * NumPy
 
-              * :mod:`numpy` module object. (``numpy``)
+              * The string ``'@numpy'``.
 
             * NumPy with Intel Architecture
 
-              * :mod:`chainer.backends.intel64` module object.
-                (``chainer.backends.intel64``)
+              * The string ``'@intel64'``.
     """
-    if device_spec is None:
-        raise ValueError('Invalid dtype specifier: {}'.format(device_spec))
-
     if isinstance(device_spec, Device):
         return device_spec
 
-    get_device_funcs = (
-        _chainerx._get_device,
-        _cpu._get_device,
-        cuda._get_device,
-        intel64._get_device,
-    )
+    if isinstance(device_spec, cuda._integer_types):
+        # legacy spec of (gpu) device
+        if device_spec >= 0:
+            return cuda.GpuDevice.from_device_id(device_spec)
+        else:
+            return _cpu.CpuDevice()
 
-    for get_device_func in get_device_funcs:
-        device = get_device_func(device_spec)
-        if device is not None:
-            return device
+    if chainerx.is_available() and isinstance(device_spec, chainerx.Device):
+        return _chainerx.ChainerxDevice(device_spec)
+
+    if cuda.available and isinstance(device_spec, cuda.Device):
+        return cuda.GpuDevice(device_spec)
+
+    if isinstance(device_spec, six.string_types):
+        if device_spec.startswith('@'):
+            # '@module:...'
+            mod_name, colon, precise_spec = device_spec[1:].partition(':')
+            if mod_name == 'numpy':
+                if not colon:
+                    return _cpu.CpuDevice()
+            elif mod_name == 'cupy':
+                if colon:
+                    return cuda.GpuDevice.from_device_id(int(precise_spec))
+            elif mod_name == 'intel64':
+                if not colon:
+                    return intel64.Intel64Device()
+
+        elif chainerx.is_available():
+            return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
     raise ValueError('Invalid device specifier: {}'.format(device_spec))
 
