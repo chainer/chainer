@@ -166,14 +166,15 @@ class FunctionTestBase(object):
         self.before_test(self.test_name)
 
         cpu_inputs = self._generate_inputs()
+        cpu_inputs = self._to_noncontiguous_as_needed(cpu_inputs)
         inputs_copied = [a.copy() for a in cpu_inputs]
 
         # Compute expected outputs
         cpu_expected = self._forward_expected(cpu_inputs)
-        inputs = backend_config.get_array(cpu_inputs)
-        inputs = self._to_noncontiguous_as_needed(inputs)
 
         # Compute actual outputs
+        inputs = backend_config.get_array(cpu_inputs)
+        inputs = self._to_noncontiguous_as_needed(inputs)
         outputs = self._forward(
             tuple([
                 chainer.Variable(a, requires_grad=a.dtype.kind == 'f')
