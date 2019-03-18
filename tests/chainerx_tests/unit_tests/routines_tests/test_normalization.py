@@ -1,3 +1,5 @@
+import unittest
+
 import chainer
 import numpy
 import pytest
@@ -99,9 +101,9 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         # contiguous copy in the cuDNN wrapper.
         self.is_cuda = chainerx.get_default_device().backend.name == 'cuda'
         if self.is_cuda and self.contiguous is None:
-            self.skip_forward_test = True
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
+            raise unittest.SkipTest(
+                'batch_norm with CUDA currently has limited support for '
+                'non-contiguous inputs.')
 
         # Float16 backward is unstable.
         if float_dtype == 'float16':
