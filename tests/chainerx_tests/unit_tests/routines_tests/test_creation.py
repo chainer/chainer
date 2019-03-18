@@ -10,6 +10,7 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
 
 
 _array_params_list = [
@@ -43,6 +44,16 @@ def _is_all_finite(obj):
         return all(_is_all_finite(o) for o in obj)
     else:
         return numpy.isfinite(obj)
+
+
+def _get_default_dtype(value):
+    if isinstance(value, bool):
+        return 'bool_'
+    if isinstance(value, int):
+        return 'int32'
+    if isinstance(value, float):
+        return 'float32'
+    assert False
 
 
 # A special parameter object used to represent an unspecified argument.
@@ -464,6 +475,8 @@ def test_empty(xp, shape_as_tuple_or_int, dtype_spec, device):
     else:
         a = xp.empty(shape_as_tuple_or_int, dtype_spec)
     a.fill(0)
+    if dtype_spec in (None, Unspecified):
+        a = dtype_utils.cast_if_numpy_array(xp, a, 'float32')
     return a
 
 
@@ -505,9 +518,12 @@ def test_zeros(xp, shape_as_tuple_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     if dtype_spec is Unspecified:
-        return xp.zeros(shape_as_tuple_or_int)
+        out = xp.zeros(shape_as_tuple_or_int)
     else:
-        return xp.zeros(shape_as_tuple_or_int, dtype_spec)
+        out = xp.zeros(shape_as_tuple_or_int, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out
 
 
 @pytest.mark.parametrize(
@@ -544,9 +560,12 @@ def test_ones(xp, shape_as_tuple_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     if dtype_spec is Unspecified:
-        return xp.ones(shape_as_tuple_or_int)
+        out = xp.ones(shape_as_tuple_or_int)
     else:
-        return xp.ones(shape_as_tuple_or_int, dtype_spec)
+        out = xp.ones(shape_as_tuple_or_int, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out
 
 
 @pytest.mark.parametrize(
@@ -580,7 +599,8 @@ def test_ones_like_with_device(shape, device):
     'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full(xp, shape_as_tuple_or_int, value, device):
-    return xp.full(shape_as_tuple_or_int, value)
+    out = xp.full(shape_as_tuple_or_int, value)
+    return dtype_utils.cast_if_numpy_array(xp, out, _get_default_dtype(value))
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -595,12 +615,12 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
 
 
 @pytest.mark.parametrize(
-    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+    'value', [True, False, -2, 0, 1, 2, 2.5, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_with_scalar(shape, dtype, value, device):
-    scalar = chainerx.Scalar(value, dtype)
+    scalar = chainerx.Scalar(value)
     a = chainerx.full(shape, scalar)
-    if scalar.dtype.kind == 'f' and math.isnan(float(scalar)):
+    if isinstance(value, float) and math.isnan(value):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
         assert a._debug_flat_data == [scalar.tolist()] * a.size
@@ -656,10 +676,15 @@ def test_arange_stop(xp, stop, dtype_spec, device):
     if isinstance(stop, bool) and dtype_spec is None:
         # TODO(niboshi): This pattern needs dtype promotion.
         return chainerx.testing.ignore()
-    return xp.arange(stop, dtype=dtype_spec)
+    out = xp.arange(stop, dtype=dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        expected_dtype = _get_default_dtype(stop)
+        out = dtype_utils.cast_if_numpy_array(xp, out, expected_dtype)
+    return out
 
 
-@chainerx.testing.numpy_chainerx_allclose(float16_rtol=5e-3, float16_atol=5e-3)
+@chainerx.testing.numpy_chainerx_allclose(
+    atol=1e-7, float16_rtol=5e-3, float16_atol=5e-3)
 @pytest.mark.parametrize('start,stop', [
     (0, 0),
     (0, 3),
@@ -685,7 +710,11 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
             and dtype_spec is None):
         # TODO(niboshi): This pattern needs dtype promotion.
         return chainerx.testing.ignore()
-    return xp.arange(start, stop, dtype=dtype_spec)
+    out = xp.arange(start, stop, dtype=dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        expected_dtype = _get_default_dtype(stop)
+        out = dtype_utils.cast_if_numpy_array(xp, out, expected_dtype)
+    return out
 
 
 @chainerx.testing.numpy_chainerx_allclose(float16_rtol=1e-3)
@@ -716,7 +745,11 @@ def test_arange_start_stop_step(xp, start, stop, step, dtype_spec, device):
             and dtype_spec is None):
         # TODO(niboshi): This pattern needs dtype promotion.
         return chainerx.testing.ignore()
-    return xp.arange(start, stop, step, dtype=dtype_spec)
+    out = xp.arange(start, stop, step, dtype=dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        expected_dtype = _get_default_dtype(step)
+        out = dtype_utils.cast_if_numpy_array(xp, out, expected_dtype)
+    return out
 
 
 @pytest.mark.parametrize(
@@ -767,7 +800,10 @@ def test_arange_invalid_zero_step(device):
 def test_identity(xp, n, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    return xp.identity(n, dtype_spec)
+    out = xp.identity(n, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out
 
 
 @pytest.mark.parametrize(
@@ -816,7 +852,10 @@ def test_identity_invalid_n_type(xp, device):
 def test_eye(xp, N, M, k, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    return xp.eye(N, M, k, dtype_spec)
+    out = xp.eye(N, M, k, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -879,7 +918,7 @@ def test_eye_invalid_NMk_type(xp, N, M, k, device):
 @pytest.mark.parametrize('transpose', [False, True])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diag(xp, k, shape, transpose, device):
-    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape), dtype='int32').reshape(shape)
     if transpose:  # Test non-contiguous inputs for multi-dimensional shapes.
         v = v.T
     return xp.diag(v, k)
@@ -891,7 +930,7 @@ def test_diag(xp, k, shape, transpose, device):
 @pytest.mark.parametrize('shape', [(), (2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diag_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape), dtype='int32').reshape(shape)
     return xp.diag(v, k)
 
 
@@ -901,7 +940,7 @@ def test_diag_invalid_ndim(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(), (4,), (2, 3), (6, 5), (2, 0)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diagflat(xp, k, shape, device):
-    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape), dtype='int32').reshape(shape)
     return xp.diagflat(v, k)
 
 
@@ -911,7 +950,7 @@ def test_diagflat(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diagflat_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape), dtype='int32').reshape(shape)
     return xp.diagflat(v, k)
 
 

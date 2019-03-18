@@ -28,7 +28,7 @@ Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
         throw DtypeError{"Cannot negate a boolean array."};
     }
-    return Multiply(x, Scalar{-1, x.dtype()});
+    return Multiply(x, Scalar{-1, GetKind(x.dtype())});
 }
 
 namespace {
@@ -368,7 +368,7 @@ Array TrueDivide(const Array& x1, Scalar x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat) {
         return Binary(&DivideASImpl, x1, x2);
     }
-    return Binary(&DivideASImpl, x1.AsType(Dtype::kFloat64), Scalar(static_cast<double>(x2), Dtype::kFloat64));
+    return Binary(&DivideASImpl, x1.AsType(Dtype::kFloat64), Scalar{static_cast<double>(x2)});
 }
 
 Array TrueDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
@@ -489,7 +489,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
+            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
         });
     }
     bb.Finalize();
@@ -522,7 +522,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, gout.dtype()}, gout);
+            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
         });
     }
     bb.Finalize();

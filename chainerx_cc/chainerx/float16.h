@@ -62,4 +62,25 @@ private:
     CHAINERX_HOST_DEVICE constexpr Float16(uint16_t data, FromDataTag) : data_{data} {}
     uint16_t data_;
 };
+
+template <typename T>
+CHAINERX_HOST_DEVICE inline bool operator==(const T& l, const Float16& r) {
+    return l == static_cast<float>(r);
+}
+
+template <typename T>
+CHAINERX_HOST_DEVICE inline bool operator==(const Float16& l, const T& r) {
+    return static_cast<float>(l) == r;
+}
+
+template <typename T>
+CHAINERX_HOST_DEVICE inline bool operator!=(const T& l, const Float16& r) {
+    return l != static_cast<float>(r);
+}
+
+template <typename T>
+CHAINERX_HOST_DEVICE inline bool operator!=(const Float16& l, const T& r) {
+    return static_cast<float>(l) != r;
+}
+
 }  // namespace chainerx

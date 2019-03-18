@@ -37,9 +37,9 @@ void ResultTypeResolver::AddArg(const Array& arg) {
 
 void ResultTypeResolver::AddArg(Scalar arg) {
     if (scalar_max_dtype_.has_value()) {
-        scalar_max_dtype_ = PromoteType(*scalar_max_dtype_, arg.dtype());
+        scalar_max_dtype_ = PromoteType(*scalar_max_dtype_, internal::GetDefaultDtype(arg.kind()));
     } else {
-        scalar_max_dtype_ = arg.dtype();
+        scalar_max_dtype_ = internal::GetDefaultDtype(arg.kind());
     }
 }
 
