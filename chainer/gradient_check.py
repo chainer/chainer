@@ -393,9 +393,24 @@ class _CheckBackward(object):
 
     def __init__(
             self, func, x_data, y_grad, params, eps, atol, rtol, no_grads,
-            dtype, detect_nondifferentiable):
+            dtype, detect_nondifferentiable, is_immutable_params):
+        # If `is_immutable_params` is `False`, `params` are expected to be of
+        # type `chainer.Parameter` and are updated in-place.
+        # To run `_CheckBackward` with ChainerX ndarrays however which cannot
+        # be updated in-place when wrapped in `chainer.Parameter`s, this flag
+        # should be `True` and parameters should be given as ndarrays.
+        # `func` in the former case must take inputs as arguments only. In the
+        # latter, it must take the parameters in addition.
+
         if dtype is not None and numpy.dtype(dtype).kind != 'f':
             raise ValueError('`dtype` is allowed only float type')
+        if is_immutable_params:
+            if not all(
+                    isinstance(p, chainer.get_array_types()) for p in params):
+                raise ValueError(
+                    'All parameters in `params` must be ndarrays if '
+                    '`is_immutable_params` is `True`. Actual: {}.'.format(
+                        ', '.join(str(type(p)) for p in params)))
 
         x_data = _as_tuple(x_data)
         if y_grad is not None:
@@ -413,10 +428,11 @@ class _CheckBackward(object):
         device = backend.get_device_from_array(*x_data)
 
         if device.xp is chainerx:
-            if len(params) > 0:
+            if len(params) > 0 and not is_immutable_params:
                 raise NotImplementedError(
-                    'gradient_check does not support params argument for '
-                    'ChainerX arrays')
+                    'gradient_check must be called with '
+                    'is_immutable_params=True to test parameters with '
+                    'ChainerX.')
             if any(no_grads):
                 raise NotImplementedError(
                     'gradient_check does not support no_grads argument for '
@@ -431,6 +447,7 @@ class _CheckBackward(object):
         self.no_grads = no_grads
         self.atol = atol
         self.rtol = rtol
+        self.is_immutable_params = is_immutable_params
         # options for numeric gradients
         self.eps = eps
         self.dtype = dtype
@@ -447,7 +464,7 @@ class _CheckBackward(object):
         # This must be done before sampling a direction vector, because
         # otherwise the shapes of uninitialized parameters wouldn't be
         # determined.
-        xs_backward, ys = (
+        xs_backward, ys, params_backward = (
             self._forward_for_backward_gradients())
         # Keep output arrays to save computation in numerical gradients
         y0_data = tuple([None if y is None else y.array for y in ys])
@@ -475,7 +492,7 @@ class _CheckBackward(object):
 
         # Compute backward gradients by running a backward pass.
         gx_backward = self._directional_backward_gradients(
-            xs_backward, ys, directions)
+            xs_backward, ys, params_backward, directions)
 
         # Compute numeric gradients
         gx_numeric = self._directional_numeric_gradients(directions, y0_data)
@@ -554,17 +571,23 @@ class _CheckBackward(object):
         params = self.params
 
         xs = [variable.Variable(x, requires_grad=True) for x in x_data]
-        y = func(*xs)
+
+        if self.is_immutable_params:
+            params = tuple([chainer.Parameter(p) for p in params])
+            y = func(xs, params)
+        else:
+            y = func(*xs)
+
         y = _as_tuple(y)
 
         # Clear gradients which may exist if func calls backward inside of
         # itself.
         self._clear_grads(xs)
         self._clear_grads(params)
-        return xs, y
 
-    def _directional_backward_gradients(self, xs, ys, directions):
-        params = self.params
+        return xs, y, params
+
+    def _directional_backward_gradients(self, xs, ys, params, directions):
         no_grads = self.no_grads
 
         # We need to start backprop from a single variable,
@@ -610,27 +633,30 @@ class _CheckBackward(object):
         no_grads = self.no_grads
         dtype = self.dtype
         detect_nondifferentiable = self.detect_nondifferentiable
+        params_data = [
+            p if self.is_immutable_params else p.array for p in params]
 
         xp = device.xp
 
         x_vars = [variable.Variable(x, requires_grad=False) for x in x_data]
-        variables = (
-            [x for x, no_grad in six.moves.zip(x_vars, no_grads)
-             if not no_grad]
-            + list(params))
+
+        x_data_filtered = [
+            x.array for x, skip in six.moves.zip(x_vars, no_grads) if not skip]
 
         if dtype is None:
-            casted_data = [x.array for x in variables]
+            casted_data = [x for x in x_data_filtered + params_data]
         else:
             if numpy.dtype(dtype).kind != 'f':
                 raise ValueError('`dtype` is allowed only float type')
-            casted_data = [
-                x.array.astype(dtype, copy=False) for x in variables]
 
             # Even skipped variable must have the same dtype.
             for x, skip in six.moves.zip(x_vars, no_grads):
                 if skip and x.array.dtype.kind == 'f':
                     x.array = x.array.astype(dtype, copy=False)
+
+            casted_data = [
+                x.astype(dtype, copy=False)
+                for x in x_data_filtered + params_data]
 
         delta = xp.array(0., numpy.float64)
 
@@ -649,32 +675,49 @@ class _CheckBackward(object):
             # Input arrays
             g_x_vars = []
             j = 0
-            for i in range(len(x_vars)):
-                if no_grads[i]:
-                    g_x_vars.append(x_vars[i])
+            for x_var, skip in six.moves.zip(x_vars, no_grads):
+                if skip:
+                    g_x_vars.append(x_var)
                 else:
                     data = perturb(casted_data[j], directions[j])
                     g_x_vars.append(variable.Variable(data))
                     j += 1
+
             # Parameters
             for i in range(len(params)):
-                params[i].data = perturb(
-                    casted_data[j + i], directions[j + i])
+                data = perturb(casted_data[j + i], directions[j + i])
+
+                if self.is_immutable_params:
+                    # Update the parameter array since it is converted into
+                    # a Parameter just before calling the func.
+                    params_data[i] = data
+                else:
+                    # Update the given Parameter in-place since the object is
+                    # held by the caller.
+                    params[i].array = data
 
             # Clear gradients to support func that calls backward inside of
             # itself.
             self._clear_grads(g_x_vars)
-            self._clear_grads(params)
+            if not self.is_immutable_params:
+                self._clear_grads(params)
 
-            ys = func(*g_x_vars)
+            if self.is_immutable_params:
+                ps = tuple([chainer.Parameter(p) for p in params_data])
+                ys = func(g_x_vars, ps)
+            else:
+                ys = func(*g_x_vars)
             ys = _as_tuple(ys)
             ys_data = tuple([None if y is None else y.array for y in ys])
             if xp is chainerx:
                 ys_data = tuple([
                     None if y is None else y.as_grad_stopped()
                     for y in ys_data])
-            for param, data in six.moves.zip(params, casted_data):
-                param.data = data
+
+            if not self.is_immutable_params:
+                for i, param in enumerate(params):
+                    param.array = casted_data[j + i]
+
             return ys_data
 
         gx, = numerical_grad(
@@ -837,7 +880,26 @@ def check_backward(
     """
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable,
+        detect_nondifferentiable, is_immutable_params=False
+    ).run()
+
+
+def _check_backward_with_params(
+    # This function was introduced along with the `is_immutable_params`
+    # argument to `_CheckBackward`.
+    # It allows passing `params` as ndarrays instead of `Parameter`s and thus
+    # depends less on the state of the parameter held by the caller.
+    # It is required by the `LinkTestCase` to check ChainerX parameter
+    # gradients, since those parameters cannot perturbed in-place for the
+    # numerical gradients if passed as `Parameter`s as those requiring
+    # gradients cannot be updated in-place.
+        func, x_data, y_grad, params=(),
+        eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
+        detect_nondifferentiable=False):
+    assert all(isinstance(p, chainer.get_array_types()) for p in params)
+    _CheckBackward(
+        func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
+        detect_nondifferentiable, is_immutable_params=True
     ).run()
 
 

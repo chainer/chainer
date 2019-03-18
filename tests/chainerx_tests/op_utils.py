@@ -9,7 +9,7 @@ import chainer.testing
 import chainerx
 
 
-class OpTest(chainer.testing.function.FunctionTestBase):
+class OpTest(chainer.testing.function_link.FunctionTestBase):
 
     """Base class for op test.
 
