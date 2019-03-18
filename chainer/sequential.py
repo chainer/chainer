@@ -83,10 +83,12 @@ class Sequential(_link.ChainList):
         as following:
 
         >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
-        0       Linear  W(10, 10)       b(10,)
-        1       relu
-        2       Linear  W(10, 10)       b(10,)
-        3       sigmoid
+        Sequential(
+          (0): Linear(in_size=10, out_size=10, nobias=False),
+          (1): <function relu at 0x7f45b1d36510>,
+          (2): Linear(in_size=10, out_size=10, nobias=False),
+          (3): <function sigmoid at 0x7f45b1d3f510>,
+        )
 
         .. note::
 
