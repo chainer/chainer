@@ -4,6 +4,7 @@ import numpy
 import pytest
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -21,6 +22,7 @@ from chainer.testing import condition
 class TestInstanceNormalization(unittest.TestCase):
 
     def setUp(self):
+<<<<<<< HEAD
         dtype = self.dtype
         self.link = links.InstanceNormalization(
             3, dtype=self.dtype, track_avg_stats=self.track_avg_stats)
@@ -87,8 +89,8 @@ class TestInstanceNormalization(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     @attr.multi_gpu(2)
     def test_forward_multi_gpu(self):
@@ -105,26 +107,17 @@ class TestInstanceNormalization(unittest.TestCase):
             eps=1e-2, **self.check_backward_options)
 
     def test_backward_cpu(self):
-        # TODO(crcrpar): Support it.
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest
         self.check_backward(self.x, self.gy)
 
-    @attr.gpu
+    @attr.cudnn
     def test_backward_gpu(self):
-        # TODO(crcrpar): Support it.
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        # TODO(crcrpar): Support it.
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
