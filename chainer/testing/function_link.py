@@ -581,7 +581,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         ``link`` is the initialized link that was used to compute the actual
         forward which the results of this method will be compared against.
         The link is guaranteed to reside on the CPU.
-        ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s and
+        ``inputs`` is a tuple of :class:`numpy.ndarray`\\ s.
         This method is expected to return the output
         :class:`numpy.ndarray`\\ s.
         This method must be implemented if either ``skip_forward_test`` or
