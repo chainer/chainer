@@ -119,7 +119,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         else:
             self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
             self.check_backward_options.update({
-                'eps': 1e-3, 'rtol': 1e-3, 'atol': 1e-4})
+                'eps': 1e-3, 'rtol': 5e-3, 'atol': 5e-4})
             self.check_double_backward_options.update({
                 'rtol': 5e-2, 'atol': 5e-3})
 
