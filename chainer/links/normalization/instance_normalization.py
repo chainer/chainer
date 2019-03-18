@@ -156,7 +156,6 @@ class InstanceNormalization(link.Link):
         return initializers.generate_array(
             initializer, size, self.xp, dtype=self._dtype)
 
-
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
 

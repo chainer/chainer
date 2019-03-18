@@ -1,4 +1,5 @@
 import chainer
+
 from chainer import backend
 from chainer.functions.array import reshape
 from chainer.functions.array import tile
@@ -65,8 +66,8 @@ def instance_normalization(x, gamma, beta, **kwargs):
             training.
 
     Returns:
-        ~chainer.Variable: The output variable which has the same shape
-        as :math:`x`.
+        :class:`~chainer.Variable`: The output variable which has the same
+        shape as :math:`x`.
 
     See: `Instance Normalization: The Missing Ingredient for Fast Stylization
            <https://arxiv.org/abs/1607.08022>`_
@@ -88,7 +89,6 @@ def instance_normalization(x, gamma, beta, **kwargs):
     with chainer.using_device(device):
         gamma = _tile(xp, gamma, batch_size)
         beta = _tile(xp, beta, batch_size)
-
         if running_mean is not None:
             tiled_mean = _tile(xp, running_mean, batch_size)
         if running_var is not None:
