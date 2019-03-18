@@ -65,8 +65,8 @@ def instance_normalization(x, gamma, beta, **kwargs):
             training.
 
     Returns:
-        :class:`~chainer.Variable`: The output variable which has the same
-        shape as :math:`x`.
+        ~chainer.Variable: The output variable which has the same shape
+        as :math:`x`.
 
     See: `Instance Normalization: The Missing Ingredient for Fast Stylization
            <https://arxiv.org/abs/1607.08022>`_

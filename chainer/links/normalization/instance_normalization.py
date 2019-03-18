@@ -51,14 +51,12 @@ class InstanceNormalization(link.Link):
        :func:`~chainer.functions.instance_normalization`,
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
-        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
+        gamma (:class:`~chainer.Variable`): Scaling parameter.
+        beta (:class:`~chainer.Variable`): Shifting parameter.
+        avg_mean (:ref:`ndarray`): Population mean.
+        avg_var (:ref:`ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        eps (float): Epsilon value for numerical stability. This value is added
-            to the batch variances.
         eps (float): Epsilon value for numerical stability. This value is added
             to the batch variances.
 
@@ -150,9 +148,6 @@ class InstanceNormalization(link.Link):
             self.avg_var = self._init_array(self._initial_avg_var, 1, size)
             self._initial_avg_var = None
             self.register_persistent('avg_var')
-        else:
-            self.avg_mean = None
-            self.avg_var = None
 
     def _init_array(self, initializer, default_value, size):
         if initializer is None:
@@ -160,6 +155,7 @@ class InstanceNormalization(link.Link):
         initializer = initializers._get_initializer(initializer)
         return initializers.generate_array(
             initializer, size, self.xp, dtype=self._dtype)
+
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
@@ -177,7 +173,8 @@ class InstanceNormalization(link.Link):
             See :func:`chainer.using_config`.
 
         Args:
-            x (Variable): Input variable, mini-batch of instances.
+            x (:class:`~chainer.Variable`):
+                Input variable, mini-batch of instances.
             finetune (bool): Finetune is triggered only when
                 ``track_avg_stats`` is ``True`` and it is in training mode.
                 In fine-tuning mode, this accumulates the input array
@@ -194,7 +191,7 @@ class InstanceNormalization(link.Link):
             warnings.warn(
                 'Because `track_avg_stats` is ``False``,'
                 'finetune is ineffective.',
-                warnings.UserWarning
+                UserWarning
             )
 
         gamma = self.gamma
@@ -208,15 +205,16 @@ class InstanceNormalization(link.Link):
 
         avg_mean, avg_var = self.avg_mean, self.avg_var
         decay = self.decay
-        if self.track_avg_stats:
-            if finetune:
-                self.N += 1
-                decay = 1. - 1. / self.N
-        if chainer.config.in_recomputing:
-            if finetune:
-                self.N -= 1
-            avg_mean = None
-            avg_var = None
+        if chainer.congig.tain:
+            if self.track_avg_stats:
+                if finetune:
+                    self.N += 1
+                    decay = 1. - 1. / self.N
+            if chainer.config.in_recomputing:
+                if finetune:
+                    self.N -= 1
+                avg_mean = None
+                avg_var = None
 
         if not chainer.config.train and self.track_avg_stats:
             ret = instance_normalization.fixed_instance_normalization(
@@ -241,6 +239,6 @@ class InstanceNormalization(link.Link):
             warnings.warn(
                 'Because `track_avg_stats` is ``False``,'
                 'finetune is ineffective.',
-                warnings.UserWarning
+                UserWarning
             )
         self.N = 0
