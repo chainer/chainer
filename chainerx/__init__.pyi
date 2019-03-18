@@ -234,9 +234,6 @@ class BackpropScope:
 
 # chainerx_cc/chainerx/python/scalar.cc
 class Scalar:
-    @property
-    def dtype(self) -> numpy.dtype: ...
-
     @tp.overload
     def __init__(self, value: bool) -> None: ...
 

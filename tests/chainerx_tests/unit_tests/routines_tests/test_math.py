@@ -52,7 +52,7 @@ def test_iadd(xp, device, shape, dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_scalar(scalar, device, shape, dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
@@ -63,7 +63,7 @@ def test_add_scalar(scalar, device, shape, dtype):
     expected = x_np + numpy.dtype(dtype).type(scalar)
 
     x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar)
     chainerx.testing.assert_array_equal_ex(x + scalar, expected)
     chainerx.testing.assert_array_equal_ex(x + scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar + x, expected)
@@ -108,7 +108,7 @@ def test_isub(xp, device, shape, numeric_dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sub_scalar(scalar, device, shape, dtype):
     if dtype == 'bool_':
@@ -123,7 +123,7 @@ def test_sub_scalar(scalar, device, shape, dtype):
     expected_rev = numpy.dtype(dtype).type(scalar) - x_np
 
     x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar)
     chainerx.testing.assert_array_equal_ex(x - scalar, expected)
     chainerx.testing.assert_array_equal_ex(x - scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar - x, expected_rev)
@@ -173,7 +173,7 @@ def test_imul(xp, device, shape, dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_mul_scalar(scalar, device, shape, dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
@@ -184,7 +184,7 @@ def test_mul_scalar(scalar, device, shape, dtype):
     expected = x_np * numpy.dtype(dtype).type(scalar)
 
     x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar)
     chainerx.testing.assert_array_equal_ex(x * scalar, expected)
     chainerx.testing.assert_array_equal_ex(x * scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar * x, expected)
@@ -312,14 +312,14 @@ def test_itruediv(xp, device, shape, float_dtype):
 
 # TODO(hvy): Support and test zero division and mixed dtypes (dtype kinds).
 # TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
-@pytest.mark.parametrize('scalar', [1, 2])
+@pytest.mark.parametrize('scalar', [1, 2, -1.0, -2.0])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv_scalar(scalar, device, shape, numeric_dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, numeric_dtype)
     expected = x_np / scalar
 
     x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, numeric_dtype)
+    scalar_chx = chainerx.Scalar(scalar)
     chainerx.testing.assert_array_equal_ex(
         x / scalar, expected, strides_check=False)
     chainerx.testing.assert_array_equal_ex(
