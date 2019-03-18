@@ -1,10 +1,7 @@
-import chainer
-
 import numpy
 
 import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer.functions.array import reshape
 from chainer.functions.array import tile
 from chainer.functions.normalization import batch_normalization
