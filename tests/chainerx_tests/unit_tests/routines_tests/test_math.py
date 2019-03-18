@@ -1,6 +1,7 @@
 import numpy
 import pytest
 
+import chainer
 import chainerx
 import chainerx.testing
 
@@ -9,16 +10,46 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_negative(xp, device, shape, dtype, is_module):
-    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return chainerx.testing.ignore()
-    x = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        return xp.negative(x)
-    else:
-        return -x
+_shapes = [
+    (),
+    (0,),
+    (1,),
+    (2, 3),
+    (1, 1, 1),
+    (2, 0, 3),
+]
+
+
+def _random_array(shape, dtype):
+    return numpy.random.uniform(-10, 10, shape).astype(dtype)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.numeric_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestNegative(op_utils.NumpyOpTest):
+
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = _random_array(self.shape, self.dtype)
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if self.is_module:
+            out = xp.negative(x)
+        else:
+            out = -x
+        return out,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -32,15 +63,33 @@ def test_negative_invalid_bool(xp, device, is_module):
         -x
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add(xp, device, shape, dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
-    if is_module:
-        return xp.add(lhs, rhs)
-    else:
-        return lhs + rhs
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestAdd(op_utils.NumpyOpTest):
+
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        lhs = _random_array(self.shape, self.dtype)
+        rhs = _random_array(self.shape, self.dtype)
+        return lhs, rhs
+
+    def forward_xp(self, inputs, xp):
+        lhs, rhs = inputs
+        if self.is_module:
+            out = xp.add(lhs, rhs)
+        else:
+            out = lhs + rhs
+        return out,
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -52,21 +101,39 @@ def test_iadd(xp, device, shape, dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add_scalar(scalar, device, shape, dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np + numpy.dtype(dtype).type(scalar)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+@chainer.testing.parameterize_pytest('is_rhs_scalar', [True, False])
+@chainer.testing.parameterize_pytest('scalar_value', [-1, 0, 1, 2])
+class TestAddScalar(op_utils.NumpyOpTest):
 
-    x = chainerx.array(x_np)
-    chainerx.testing.assert_array_equal_ex(x + scalar, expected)
-    chainerx.testing.assert_array_equal_ex(scalar + x, expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar, x), expected)
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = _random_array(self.shape, self.dtype)
+        self.scalar = numpy.dtype(self.dtype).type(self.scalar_value).item()
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if self.is_rhs_scalar:
+            lhs, rhs = (x, self.scalar)
+        else:
+            lhs, rhs = (self.scalar, x)
+        if self.is_module:
+            out = xp.add(lhs, rhs)
+        else:
+            out = lhs + rhs
+        return dtype_utils.cast_if_numpy_array(xp, out, self.dtype),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -81,15 +148,33 @@ def test_iadd_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sub(xp, device, shape, numeric_dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=2)
-    if is_module:
-        return xp.subtract(lhs, rhs)
-    else:
-        return lhs - rhs
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.numeric_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSub(op_utils.NumpyOpTest):
+
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        lhs = _random_array(self.shape, self.dtype)
+        rhs = _random_array(self.shape, self.dtype)
+        return lhs, rhs
+
+    def forward_xp(self, inputs, xp):
+        lhs, rhs = inputs
+        if self.is_module:
+            out = xp.subtract(lhs, rhs)
+        else:
+            out = lhs - rhs
+        return out,
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -101,27 +186,39 @@ def test_isub(xp, device, shape, numeric_dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sub_scalar(scalar, device, shape, dtype):
-    if dtype == 'bool_':
-        # Boolean subtract is deprecated.
-        return chainerx.testing.ignore()
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np - numpy.dtype(dtype).type(scalar)
-    expected_rev = numpy.dtype(dtype).type(scalar) - x_np
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.numeric_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+@chainer.testing.parameterize_pytest('is_rhs_scalar', [True, False])
+@chainer.testing.parameterize_pytest('scalar_value', [-1, 0, 1, 2])
+class TestSubScalar(op_utils.NumpyOpTest):
 
-    x = chainerx.array(x_np)
-    chainerx.testing.assert_array_equal_ex(x - scalar, expected)
-    chainerx.testing.assert_array_equal_ex(scalar - x, expected_rev)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(scalar, x), expected_rev)
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = _random_array(self.shape, self.dtype)
+        self.scalar = numpy.dtype(self.dtype).type(self.scalar_value).item()
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if self.is_rhs_scalar:
+            lhs, rhs = (x, self.scalar)
+        else:
+            lhs, rhs = (self.scalar, x)
+        if self.is_module:
+            out = xp.subtract(lhs, rhs)
+        else:
+            out = lhs - rhs
+        return dtype_utils.cast_if_numpy_array(xp, out, self.dtype),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -139,15 +236,33 @@ def test_isub_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul(xp, device, shape, dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
-    if is_module:
-        return xp.multiply(lhs, rhs)
-    else:
-        return lhs * rhs
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestMul(op_utils.NumpyOpTest):
+
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 3e-3, 'rtol': 3e-3}
+            self.check_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+            self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        lhs = _random_array(self.shape, self.dtype)
+        rhs = _random_array(self.shape, self.dtype)
+        return lhs, rhs
+
+    def forward_xp(self, inputs, xp):
+        lhs, rhs = inputs
+        if self.is_module:
+            out = xp.multiply(lhs, rhs)
+        else:
+            out = lhs * rhs
+        return out,
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -159,23 +274,39 @@ def test_imul(xp, device, shape, dtype):
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2, 0.0, -1.0, 1.0, 2.0])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar(scalar, device, shape, dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np * numpy.dtype(dtype).type(scalar)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest('dtype', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+@chainer.testing.parameterize_pytest('is_rhs_scalar', [True, False])
+@chainer.testing.parameterize_pytest('scalar_value', [-1, 0, 1, 2])
+class TestMulScalar(op_utils.NumpyOpTest):
 
-    x = chainerx.array(x_np)
-    chainerx.testing.assert_array_equal_ex(x * scalar, expected)
-    chainerx.testing.assert_array_equal_ex(scalar * x, expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(scalar, x), expected)
+    def setup(self):
+        if self.dtype == 'float16':
+            self.check_forward_options = {'atol': 3e-3, 'rtol': 3e-3}
+            self.check_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+            self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = _random_array(self.shape, self.dtype)
+        self.scalar = numpy.dtype(self.dtype).type(self.scalar_value).item()
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if self.is_rhs_scalar:
+            lhs, rhs = (x, self.scalar)
+        else:
+            lhs, rhs = (self.scalar, x)
+        if self.is_module:
+            out = xp.multiply(lhs, rhs)
+        else:
+            out = lhs * rhs
+        return dtype_utils.cast_if_numpy_array(xp, out, self.dtype),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -266,16 +397,48 @@ def test_ifloordiv(xp, lhs, rhs, device, numeric_dtype):
     return lhs
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_truediv(xp, device, shape, numeric_dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
-    rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
-    # TODO(beam2d): Remove astype after supporting correct dtype promotion.
-    if is_module:
-        return xp.divide(lhs, rhs)
-    else:
-        return lhs / rhs
+_expected_dtypes_true_divide = [
+    ('int8', 'float64'),
+    ('int16', 'float64'),
+    ('int32', 'float64'),
+    ('int64', 'float64'),
+    ('uint8', 'float64'),
+    ('float16', 'float16'),
+    ('float32', 'float32'),
+    ('float64', 'float64'),
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest(
+    'in_dtype,out_dtype', _expected_dtypes_true_divide)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestTrueDiv(op_utils.NumpyOpTest):
+
+    def setup(self):
+        self.check_numpy_strides_compliance = False
+        self.check_forward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        self.check_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        if numpy.dtype(self.in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        lhs = _random_array(self.shape, self.in_dtype)
+        rhs = _random_array(self.shape, self.in_dtype)
+        while numpy.any(numpy.abs(rhs) < 1):
+            rhs = _random_array(self.shape, self.in_dtype)
+        return lhs, rhs
+
+    def forward_xp(self, inputs, xp):
+        lhs, rhs = inputs
+        if self.is_module:
+            out = xp.divide(lhs, rhs)
+        else:
+            out = lhs / rhs
+        return dtype_utils.cast_if_numpy_array(xp, out, self.out_dtype),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -291,17 +454,35 @@ def test_itruediv(xp, device, shape, float_dtype):
 
 # TODO(hvy): Support and test zero division and mixed dtypes (dtype kinds).
 # TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
-@pytest.mark.parametrize('scalar', [1, 2, -1.0, -2.0])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_truediv_scalar(scalar, device, shape, numeric_dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, numeric_dtype)
-    expected = x_np / scalar
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', _shapes)
+@chainer.testing.parameterize_pytest(
+    'in_dtype,out_dtype', _expected_dtypes_true_divide)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+@chainer.testing.parameterize_pytest('scalar_value', [-2, -1, 1, 2])
+class TestTrueDivScalar(op_utils.NumpyOpTest):
 
-    x = chainerx.array(x_np)
-    chainerx.testing.assert_array_equal_ex(
-        x / scalar, expected, strides_check=False)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.divide(x, scalar), expected, strides_check=False)
+    def setup(self):
+        self.check_numpy_strides_compliance = False
+        self.check_forward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        self.check_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-3}
+        if numpy.dtype(self.in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = _random_array(self.shape, self.in_dtype)
+        self.scalar = numpy.dtype(self.in_dtype).type(self.scalar_value).item()
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if self.is_module:
+            out = xp.divide(x, self.scalar)
+        else:
+            out = x / self.scalar
+        return dtype_utils.cast_if_numpy_array(xp, out, self.out_dtype),
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
