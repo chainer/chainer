@@ -1,7 +1,7 @@
+import chainer
 import numpy
 import pytest
 
-import chainer
 import chainerx
 
 from chainerx_tests import array_utils
