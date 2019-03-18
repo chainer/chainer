@@ -710,7 +710,8 @@ def _zero_if_none(xp, x, shape, dtype):
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
-    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9, axis=None)
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, \
+running_var=None, decay=0.9, axis=None)
 
     Batch normalization function.
 
@@ -772,7 +773,7 @@ def batch_normalization(x, gamma, beta, **kwargs):
 
     .. seealso:: :class:`~chainer.links.BatchNormalization`
 
-    """  # NOQA
+    """
 
     eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
         kwargs, ('eps', 2e-5), ('running_mean', None),
