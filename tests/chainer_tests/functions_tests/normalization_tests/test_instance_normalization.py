@@ -6,8 +6,9 @@ from chainer import testing
 from chainer.testing import backend
 
 
-def _instance_normalization(x, gamma, beta, running_mean=None,
-                            running_var=None, eps=2e-5, decay=0.9):
+def _instance_normalization(
+        x, gamma, beta, running_mean=None, running_var=None,
+        eps=2e-5, decay=0.9):
     org_shape = x.shape
     b, c = org_shape[:2]
     x_reshaped = x.reshape((1, b * c) + org_shape[2:])
@@ -18,10 +19,19 @@ def _instance_normalization(x, gamma, beta, running_mean=None,
     expander = tuple(expander)
     mean = numpy.mean(x_reshaped, axis=aggr_axes)
     var = numpy.var(x_reshaped, axis=aggr_axes)
-    std = numpy.sqrt(var + eps)
+    std = numpy.sqrt(var + eps, dtype=x.dtype)
     x_reshaped_normalized = (x_reshaped - mean[expander]) / std[expander]
     x_normalized = x_reshaped_normalized.reshape(org_shape)
     y = gamma[expander] * x_normalized + beta[expander]
+    if running_mean is not None or running_var is not None:
+        m = x.size // c
+        adjust = m / max(m - 1., 1.)  # unbiased estimation
+        if running_mean is not None:
+            running_mean *= decay
+            running_mean += (1 - decay) * mean.reshape(b, c).mean(axis=0)
+        if running_var is not None:
+            running_var *= decay
+            running_var += (1 - decay) * adjust * var.reshape(b, c).mean(axis=0)
     return y
 
 
@@ -41,7 +51,7 @@ def _fixed_instance_normalization(
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'running_statistics': [True, False],
+    'running_statistics': [False],
     'eps': [2e-5],
     'decay': [0.9],
 })))
@@ -90,27 +100,38 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         return x, gamma, beta
 
-    def _get(self, device=None):
-        mean, var = None, None
-        if self.running_statistics:
-            mean, var = self.mean.copy(), self.var.copy()
-            if device is not None:
-                mean, var = device.send((mean, var))
-        return mean, var
-
     def forward(self, inputs, device):
         x, gamma, beta = inputs
-        mean, var = self._get(device)
-        return functions.instance_normalization(
-            x, gamma, beta, running_mean=mean, running_var=var,
+        running_mean = self.running_mean
+        running_var = self.running_var
+        if self.running_statistics:
+            running_mean = device.send(running_mean.copy())
+            running_var = device.send(running_var.copy())
+        y = functions.instance_normalization(
+            x, gamma, beta, running_mean=running_mean, running_var=running_var,
             eps=self.eps, decay=self.decay),
+        if self.running_statistics:
+            return (
+                y, chainer.Variable(running_mean),
+                chainer.Variable(running_var))
+        return y,
 
     def forward_expected(self, inputs):
         x, gamma, beta = inputs
-        mean, var = self._get()
+        running_mean = self.running_mean
+        running_var = self.running_var
+        if self.running_statistics:
+            running_mean = running_mean.copy()
+            running_var = running_var.copy()
         y = _instance_normalization(
-            x, gamma, beta, mean, var, self.eps, self.decay)
+            x, gamma, beta, running_mean, running_var, self.eps, self.decay)
+        if self.running_statistics:
+            return y, running_mean, running_var
         return y,
+
+    def before_test(self, test_name):
+        if 'backward' in test_name and self.running_statistics:
+            raise unittest.SkipTest()
 
 
 @testing.parameterize(*(testing.product({
@@ -152,16 +173,16 @@ class TestFixedInstanceNormalization(testing.FunctionTestCase):
     def generate_inputs(self):
         shape, dtype = self.shape, self.dtype
         x = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gamma = numpy.random.uniform(0.5, 1, shape[1]).astype(dtype)
+        gamma = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         mean = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-        var = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
+        var = numpy.random.uniform(.5, 1, shape[1]).astype(dtype)
         return x, gamma, beta, mean, var
 
     def forward(self, inputs, device):
         x, gamma, beta, mean, var = inputs
         return functions.fixed_instance_normalization(
-            x, gamma, beta, mean, var, eps=self.eps, decay=self.decay),
+            x, gamma, beta, mean, var, eps=self.eps),
 
     def forward_expected(self, inputs):
         x, gamma, beta, mean, var = inputs

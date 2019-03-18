@@ -4,7 +4,6 @@ import numpy
 import pytest
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -106,20 +105,17 @@ class TestInstanceNormalization(unittest.TestCase):
             eps=1e-2, **self.check_backward_options)
 
     def test_backward_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype='f'))
         self.check_backward(self.x, self.gy)
 
     @attr.cudnn
     def test_backward_gpu(self):
         self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype='f'))
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.link(numpy.zeros(self.shape, dtype='f'))
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -227,7 +223,9 @@ class TestInsanceNormalizationWithoutGammaAndBeta(unittest.TestCase):
             mean = self.link.avg_mean
             var = self.link.avg_var
             std = numpy.sqrt(var + self.link.eps)
-            y_expected = (x_ - numpy.concatenate([mean] * 2)[expander]) / numpy.concatenate([std] * 2)[expander]
+            y_expected = (
+                x_ - numpy.concatenate([mean] * 2)[expander]
+            ) / numpy.concatenate([std] * 2)[expander]
             self.y_expected = y_expected.reshape(shape)
         else:
             aggr_axes = (0, 2, 3)

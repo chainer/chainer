@@ -180,6 +180,8 @@ class TestBatchNormalization(unittest.TestCase):
                     elif link_name == 'dbn':
                         self.link = links.DecorrelatedBatchNormalization(
                             3, groups=3)
+                    elif link_name == 'in':
+                        self.link = links.InstanceNormalization(3)
                 self.forget = forget
                 self.finetune = finetune
 
@@ -191,7 +193,8 @@ class TestBatchNormalization(unittest.TestCase):
                 else:
                     return self.link(x, finetune=self.finetune)
 
-        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        # x is 3-D for InstanceNormalization.
+        x = numpy.random.uniform(-1, 1, (4, 3, 2)).astype(numpy.float32)
 
         model1 = Model(self.link_name, self.finetune, forget=False)
         model2 = Model(self.link_name, self.finetune, forget=True)
