@@ -110,7 +110,7 @@ class TestInstanceNormalization(testing.FunctionTestCase):
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15)],
+    'shape': [(2, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [2e-5],
     'decay': [0.9],
@@ -145,8 +145,6 @@ class TestFixedInstanceNormalization(testing.FunctionTestCase):
             self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
             self.check_double_backward_options.update(
                 {'atol': 1e-2, 'rtol': 1e-2})
-        if self.running_statistics:
-            c = self.shape[1]
 
     def generate_inputs(self):
         shape, dtype = self.shape, self.dtype
