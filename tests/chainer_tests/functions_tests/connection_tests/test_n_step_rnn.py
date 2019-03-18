@@ -80,7 +80,7 @@ class TestNStepRNN(unittest.TestCase):
             [(b, self.out_size) for b in self.batches], self.dtype)
         self.dhy = _shaped_random(h_shape, self.dtype)
 
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 5e-2, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
@@ -137,9 +137,9 @@ class TestNStepRNN(unittest.TestCase):
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
-        args = tuple([h_data, ] + sum(ws_data, []) + sum(bs_data, []) +
+        args = tuple([h_data] + sum(ws_data, []) + sum(bs_data, []) +
                      xs_data)
-        grads = tuple([dhy_data, ] + dys_data)
+        grads = tuple([dhy_data] + dys_data)
 
         def f(*inputs):
             (hx, ), inputs = _split(inputs, 1)
@@ -434,9 +434,9 @@ class TestNStepBiRNN(unittest.TestCase):
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
                        dhy_data, dys_data):
-        args = tuple([h_data, ] + sum(ws_data, []) + sum(bs_data, []) +
+        args = tuple([h_data] + sum(ws_data, []) + sum(bs_data, []) +
                      xs_data)
-        grads = tuple([dhy_data, ] + dys_data)
+        grads = tuple([dhy_data] + dys_data)
 
         def f(*inputs):
             (hx, ), inputs = _split(inputs, 1)
