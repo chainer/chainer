@@ -50,7 +50,7 @@ public:
     // Returns the number of elements after slicing an axis of length dim.
     int64_t GetLength(int64_t dim) const {
         // TODO(hvy): Round according to step sign, nicely.
-        return std::max(int64_t{0}, (GetStop(dim) - GetStart(dim) + (step_ > 0 ? -1 : 1)) / step_ + 1);
+        return std::max(int64_t{0}, (GetStop(dim) - GetStart(dim) + step_ + (step_ > 0 ? -1 : 1)) / step_);
     }
 
 private:
