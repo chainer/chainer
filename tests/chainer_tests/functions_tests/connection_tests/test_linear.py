@@ -38,10 +38,15 @@ from chainer.testing import backend
 class TestNonparameterizedLinear(testing.FunctionTestCase):
 
     def setUp(self):
-        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        if self.x_dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_backward_options = {'eps': 100}
+        self.check_double_backward_options = {'eps': 100}
+        if numpy.float16 in (self.x_dtype, self.W_dtype):
+            self.check_forward_options['atol'] = 1e-3
+            self.check_forward_options['rtol'] = 1e-3
+            self.check_backward_options['atol'] = 1e-3
+            self.check_backward_options['rtol'] = 1e-3
+            self.check_double_backward_options['atol'] = 1e-3
+            self.check_double_backward_options['rtol'] = 1e-3
         self.n_batch_axes = self.x_shape['n_batch_axes']
 
     def before_test(self, test_name):
