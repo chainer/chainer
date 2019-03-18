@@ -29,10 +29,11 @@ public:
 
     int64_t GetStart(int64_t dim) const {
         if (start_.has_value()) {
+            int64_t first_valid_start = step_ > 0 ? 0 : -1;
             if (*start_ < 0) {
-                return std::max(int64_t{0}, *start_ + dim);
+                return std::max(first_valid_start, *start_ + dim);
             }
-            return std::min(*start_, step_ > 0 ? dim : dim - 1);
+            return std::min(*start_, dim + first_valid_start);
         }
         return step_ > 0 ? 0 : dim - 1;
     }

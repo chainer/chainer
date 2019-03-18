@@ -75,6 +75,7 @@ from chainerx_tests import array_utils
     ((6,), (slice(50, 50, 1),)),
     ((6,), (slice(50, 50, -2),)),
     ((6,), (slice(-50, -50, 1),)),
+    ((6,), (slice(-50, -50, -2),)),
     ((2, 3), (slice(None), slice(None))),
     ((2, 3), (slice(1), slice(2))),
     ((2, 3), (slice(0, 2), slice(0, 3))),
