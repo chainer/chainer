@@ -58,6 +58,16 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         libcudnn.CUDNN_LSTM: True,
     }
 
+    def _cudnn_dtype(dtype):
+        if dtype == numpy.float16:
+            return libcudnn.CUDNN_DATA_HALF
+        elif dtype == numpy.float32:
+            return libcudnn.CUDNN_DATA_FLOAT
+        elif dtype == numpy.float64:
+            return libcudnn.CUDNN_DATA_DOUBLE
+        else:
+            raise RuntimeError()
+
 
 class CudnnRNNWeightConcat(function.Function):
 
@@ -127,20 +137,22 @@ class CudnnRNNWeightConcat(function.Function):
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
+        dtype = ws[0].dtype
+        cudnn_data_type = _cudnn_dtype(dtype)
 
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
             out_size, self.n_layers, self.states._desc,
             libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
-            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
+            self.rnn_mode, cudnn_data_type)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
+        dummy_x = cuda.cupy.empty((1, in_size, 1), dtype=dtype)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(
-            handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
+            handle, rnn_desc.value, x_desc.value, cudnn_data_type)
+        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=dtype)
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):

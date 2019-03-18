@@ -82,6 +82,9 @@ class TestNStepRNN(unittest.TestCase):
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 5e-2, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-1, 'rtol': 5e-2})
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
@@ -107,9 +110,7 @@ class TestNStepRNN(unittest.TestCase):
                 elif self.activation == 'relu':
                     e_h = _relu(x.dot(w[0].T) +
                                 h_prev.dot(w[1].T) + b[0] + b[1])
-
                 e_hy[layer, :batch] = e_h
-
                 x = e_h
 
             testing.assert_allclose(
@@ -123,10 +124,8 @@ class TestNStepRNN(unittest.TestCase):
     def check_forward_gpu(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             self.check_forward(
-                _to_gpu(self.hx),
-                _to_gpu(self.xs),
-                _to_gpu(self.ws),
-                _to_gpu(self.bs))
+                _to_gpu(self.hx), _to_gpu(self.xs),
+                _to_gpu(self.ws), _to_gpu(self.bs))
 
     @attr.gpu
     def test_forward_gpu_cudnn_always(self):
@@ -312,7 +311,7 @@ class TestNStepRNN(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'activation': ['tanh', 'relu']
+    'activation': ['tanh', 'relu'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestNStepBiRNN(unittest.TestCase):
