@@ -82,12 +82,12 @@ class Sequential(_link.ChainList):
         You can check the structure of your model briefly using ``print``
         as following:
 
-        >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(model_C)  # doctest: +ELLIPSIS
         Sequential(
           (0): Linear(in_size=10, out_size=10, nobias=False),
-          (1): <function relu at 0x7f45b1d36510>,
+          (1): <function relu at 0x...>,
           (2): Linear(in_size=10, out_size=10, nobias=False),
-          (3): <function sigmoid at 0x7f45b1d3f510>,
+          (3): <function sigmoid at 0x...>,
         )
 
         .. note::
