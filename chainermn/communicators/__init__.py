@@ -30,7 +30,7 @@ def create_communicator(
     |naive          |OK |OK |        |Testing on CPU mode                   |
     +---------------+---+---+--------+--------------------------------------+
 
-    ChainerMN supports multiple data types, FP32 and FP16,
+    pure_nccl communicator supports multiple data types, FP32 and FP16,
     in gradient exchange. The communication data type is determined based on
     `chainer.global_config.dtype` and `allreduce_grad_dtype`.
     When `allreduce_grad_dtype` is the default value `None`,
@@ -54,6 +54,10 @@ def create_communicator(
     |-----------------+---------+------------------+-----------------+
     | numpy.float32   | FP32    |   FP16           | FP32            |
     |-----------------+----------------------------+-----------------+
+
+    Other communicator, including flat and hierarchical, support only
+    float32 communication, no matter what the model is. This is due to
+    MPI's limited support of float16.
 
     Args:
         communicator_name: The name of communicator (``naive``, ``flat``,
