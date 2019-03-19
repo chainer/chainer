@@ -350,6 +350,9 @@ class TestNStepBiRNN(unittest.TestCase):
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 5e-2, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-1, 'rtol': 5e-2})
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
