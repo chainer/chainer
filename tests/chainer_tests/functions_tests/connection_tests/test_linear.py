@@ -1,33 +1,25 @@
 import unittest
 
 import numpy
+import pytest
 
 import chainer
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import backend
-import chainerx
-
-
-def _to_noncontiguous(arrays):
-    xp = chainer.backend.get_array_module(*arrays)
-    # TODO(niboshi): Fix it. Non-contiguous tests are skipped for ChainerX.
-    if xp is chainerx:
-        raise unittest.SkipTest('ChainerX does not support asfortranarray')
-    return [None if a is None else xp.asfortranarray(a) for a in arrays]
 
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'x_shape': [{'n_batch_axes': 1, 'data_shape': (3,)},
-                {'n_batch_axes': 3, 'data_shape': (3, 5)}],
-    'c_contiguous': [True, False],
+                {'n_batch_axes': 3, 'data_shape': (3, 5)},
+                ],
+    'contiguous': ['C', None],
     'nobias': [True, False],
 }))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # CPU tests
     testing.product({
         'use_cuda': [False],
@@ -41,137 +33,62 @@ def _to_noncontiguous(arrays):
     + [
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
-class TestNonparameterizedLinear(unittest.TestCase):
+    ]
+)
+class TestNonparameterizedLinear(testing.FunctionTestCase):
 
     def setUp(self):
+        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        if self.x_dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
         self.n_batch_axes = self.x_shape['n_batch_axes']
-        data_shape = self.x_shape['data_shape']
-        input_size = numpy.prod(data_shape)
-        W = numpy.random.uniform(-1, 1, (2, input_size)).astype(self.W_dtype)
-        if self.nobias:
-            b = None
-        else:
-            b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
+    def before_test(self, test_name):
+        # TODO(crcrpar): Remove this relaxation when
+        # a known issue in the reduction of ChainerX is resolved.
+        if test_name == 'test_forward':
+            if (self.x_dtype == numpy.float16 and
+                    self.W_dtype == numpy.float16 and
+                    self.n_batch_axes == 3 and
+                    self.backend_config.use_chainerx and
+                    self.backend_config.chainerx_device == 'native:0'):
+                self.check_forward_options['atol'] = 5e-3
+
+    def generate_inputs(self):
+        data_shape = self.x_shape['data_shape']
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
         x = numpy.random.uniform(
             -1, 1, batch_shape + data_shape).astype(self.x_dtype)
-        gy = numpy.random.uniform(
-            -1, 1, batch_shape + (2,)).astype(self.x_dtype)
-        ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
-        ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
+        input_size = numpy.prod(data_shape)
+        W = numpy.random.uniform(-1, 1, (2, input_size)).astype(self.W_dtype)
         if self.nobias:
-            ggb = None
+            return x, W
         else:
-            ggb = numpy.random.uniform(-1, 1, b.shape).astype(self.x_dtype)
-        self.inputs = [x, W, b]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx, ggW, ggb]
-        if self.x_dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-        elif self.W_dtype == numpy.float16:
-            self.check_forward_options = {}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-        else:
-            self.check_forward_options = {}
-            self.check_backward_options = {
-                'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'atol': 1e-2, 'rtol': 1e-2}
+            b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
+            return x, W, b
 
-    def forward_cpu(self, inputs):
-        x, W, b = inputs
+    def forward_expected(self, inputs):
+        x, W = inputs[:2]
         if self.n_batch_axes > 1:
             batch_shape = x.shape[:self.n_batch_axes]
             batch_size = numpy.prod(batch_shape)
             x = x.reshape(batch_size, -1)
         y = x.dot(W.T)
-        if b is not None:
-            y += b
+        if not self.nobias:
+            y += inputs[-1]
         if self.n_batch_axes > 1:
             y = y.reshape(batch_shape + (-1,))
-        return y,
+        return y.astype(self.x_dtype),
 
-    def forward(self, *inputs):
-        if len(inputs) == 3:
-            x, W, b = inputs
-            y = functions.linear(x, W, b, n_batch_axes=self.n_batch_axes)
-        else:
+    def forward(self, inputs, device):
+        if self.nobias:
             x, W = inputs
-            y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
+            b = None
+        else:
+            x, W, b = inputs
+        y = functions.linear(x, W, b, n_batch_axes=self.n_batch_axes)
         return y,
-
-    def test_forward(self, backend_config):
-        inputs = self.inputs
-
-        y_expected, = self.forward_cpu(inputs)
-
-        if self.nobias:
-            inputs = inputs[:-1]
-
-        inputs = backend_config.get_array(inputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _to_noncontiguous(inputs)
-
-        input_vars = [chainer.Variable(x) for x in inputs]
-        with backend_config:
-            y, = self.forward(*input_vars)
-
-        assert y.data.dtype == self.x_dtype
-        testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
-
-    def test_backward(self, backend_config):
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-
-        if self.nobias:
-            inputs = inputs[:-1]
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _to_noncontiguous(inputs)
-                grad_outputs = _to_noncontiguous(grad_outputs)
-
-        with backend_config:
-            gradient_check.check_backward(
-                self.forward, inputs, grad_outputs,
-                **self.check_backward_options)
-
-    def test_double_backward(self, backend_config):
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-        grad_grad_inputs = self.grad_grad_inputs
-
-        if self.nobias:
-            inputs = inputs[:-1]
-            grad_grad_inputs = grad_grad_inputs[:-1]
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _to_noncontiguous(inputs)
-                grad_outputs = _to_noncontiguous(grad_outputs)
-                grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                self.forward, inputs, grad_outputs, grad_grad_inputs,
-                **self.check_double_backward_options)
 
 
 class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
@@ -206,12 +123,12 @@ class TestLinearNBatchAxesBoundaryCondition(unittest.TestCase):
 
     def test_negative(self):
         n_batch_axes = -1
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
 
     def test_zero(self):
         n_batch_axes = 0
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
 
 

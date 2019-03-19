@@ -1088,6 +1088,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     input_nodes = set(x.node for x in inputs)
     ret_dict = {}
 
+    is_debug = chainer.is_debug()
     while candidate_funcs:
         func = pop_candidate()
 
@@ -1136,7 +1137,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
-            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
+            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads,
+                                          is_debug)
 
             # Call post-backward hooks
             for hook in hooks:

@@ -75,7 +75,7 @@ class GradTable(object):
 
 
 def backprop_step(
-        func, target_input_indexes, grad_outputs, grad_inputs):
+        func, target_input_indexes, grad_outputs, grad_inputs, is_debug):
     """Accumulates gradients of a FunctionNode
 
     This routine is used by :meth:`chainer.Variable.backward` and
@@ -93,9 +93,9 @@ def backprop_step(
             are removed from the list to reduce memory consumption.
         grad_inputs (dict): References of the gradients w.r.t. the input
             variables.
+        is_debug (bool): ``True`` if the debug mode is enabled.
 
     """
-    is_debug = chainer.is_debug()
     if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))

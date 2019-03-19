@@ -21,7 +21,7 @@ class TestVariableStatisticsPlot(unittest.TestCase):
     def setUp(self):
         stop_trigger = (2, 'iteration')
         extension_trigger = (1, 'iteration')
-        self.file_name = 'variable_statistics_plot_test.png'
+        self.filename = 'variable_statistics_plot_test.png'
 
         self.trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=stop_trigger)
@@ -29,7 +29,7 @@ class TestVariableStatisticsPlot(unittest.TestCase):
         x = numpy.random.rand(1, 2, 3)
         self.extension = extensions.VariableStatisticsPlot(
             chainer.variable.Variable(x), trigger=extension_trigger,
-            file_name=self.file_name)
+            filename=self.filename)
         self.trainer.extend(self.extension, extension_trigger)
 
     # In the following we explicitly use plot_report._available instead of
@@ -43,7 +43,7 @@ class TestVariableStatisticsPlot(unittest.TestCase):
         try:
             self.trainer.run()
         finally:
-            os.remove(os.path.join(self.trainer.out, self.file_name))
+            os.remove(os.path.join(self.trainer.out, self.filename))
 
 
 @testing.parameterize(

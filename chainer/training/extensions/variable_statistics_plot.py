@@ -10,6 +10,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
+from chainer.utils import argument
 
 
 _available = None
@@ -114,14 +115,8 @@ class Statistician(object):
             out['std'] = x.std(axis=axis)
 
         if self.percentile_sigmas:
-            xp = backend.get_array_module(x)
-            if xp is numpy:
-                p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
-            else:
-                # TODO(hvy): Use percentile from CuPy once it is supported
-                p = cuda.to_gpu(
-                    numpy.percentile(
-                        cuda.to_cpu(x), self.percentile_sigmas, axis=axis))
+            xp = cuda.get_array_module(x)
+            p = xp.percentile(x, self.percentile_sigmas, axis=axis)
             out['percentile'] = p
 
         return out
@@ -170,8 +165,12 @@ class VariableStatisticsPlot(extension.Extension):
             distinct from the trigger of this extension itself. If it is a
             tuple in the form ``<int>, 'epoch'`` or ``<int>, 'iteration'``, it
             is passed to :class:`IntervalTrigger`.
-        file_name (str):
+        filename (str):
             Name of the output image file under the output directory.
+            Although it is recommended to use `filename`, you can also
+            specify the name of the output image file with the `file_name`
+            argument for backward compatibility. However, if both `filename`
+            and `file_name` are specified, `filename` will be used.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
@@ -188,10 +187,16 @@ class VariableStatisticsPlot(extension.Extension):
                  plot_mean=True, plot_std=True,
                  percentile_sigmas=(
                      0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100),
-                 trigger=(1, 'epoch'), file_name='statistics.png',
-                 figsize=None, marker=None, grid=True):
+                 trigger=(1, 'epoch'), filename='statistics.png',
+                 figsize=None, marker=None, grid=True, **kwargs):
 
-        if file_name is None:
+        file_name, = argument.parse_kwargs(
+            kwargs, ('file_name', 'statistics.png')
+        )
+        if filename is None:
+            filename = file_name
+
+        if filename is None:
             raise ValueError('Missing output file name of statstics plot')
 
         self._vars = _unpack_variables(targets)
@@ -221,7 +226,7 @@ class VariableStatisticsPlot(extension.Extension):
         self._plot_percentile = bool(percentile_sigmas)
 
         self._trigger = trigger_module.get_trigger(trigger)
-        self._file_name = file_name
+        self._filename = filename
         self._figsize = figsize
         self._marker = marker
         self._grid = grid
@@ -275,7 +280,7 @@ class VariableStatisticsPlot(extension.Extension):
         self._samples.add(stats, idx=trainer.updater.iteration)
 
         if self._trigger(trainer):
-            file_path = os.path.join(trainer.out, self._file_name)
+            file_path = os.path.join(trainer.out, self._filename)
             self.save_plot_using_module(file_path, plt)
 
     def save_plot_using_module(self, file_path, plt):
