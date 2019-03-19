@@ -2246,12 +2246,12 @@ class TestToDevice(unittest.TestCase):
         return link
 
     def test_to_device_numpy(self):
-        link = self.check_to_device(numpy, numpy.ndarray)
+        link = self.check_to_device('@numpy', numpy.ndarray)
         assert isinstance(link.device, backend.CpuDevice)
 
     @attr.gpu
     def test_to_device_cupy(self):
-        link = self.check_to_device((cuda.cupy, 0), cuda.ndarray)
+        link = self.check_to_device('@cupy:0', cuda.ndarray)
         assert link.device.device == cuda.Device(0)
 
     @attr.chainerx

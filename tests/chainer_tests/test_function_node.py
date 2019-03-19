@@ -86,7 +86,7 @@ class TestFunctionNode(unittest.TestCase):
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup(chainer.get_device((cuda.cupy, 0)))
+        self._setup(backend.GpuDevice.from_device_id(0))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_chainerx(self, device_name='native:0'):
