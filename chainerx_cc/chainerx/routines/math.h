@@ -78,6 +78,7 @@ Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keep
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+Array Maximum(const Array& x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
