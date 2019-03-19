@@ -470,7 +470,7 @@ class Link(object):
         # type: () -> 'Link'
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
-        return self.to_device(intel64)
+        return self.to_device(intel64.Intel64Device())
 
     def to_chx(self):
         """Converts parameter variables and persistent values to ChainerX \
