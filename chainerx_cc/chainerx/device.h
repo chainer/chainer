@@ -173,6 +173,7 @@ public:
     //
     // Formally, it calculates: out = x1 < x2 ? pos : neg
     virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
+    virtual void IfLessElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //
