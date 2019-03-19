@@ -74,7 +74,6 @@ Utilities for testing serializable objects.
    chainer.testing.save_and_load
    chainer.testing.save_and_load_hdf5
    chainer.testing.save_and_load_npz
-   chainer.testing.get_trainer_with_mock_updater
 
 Trainer Extension Testing Utilities
 -----------------------------------
