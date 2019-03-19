@@ -71,6 +71,15 @@ def copyto(dst, src):
             type(dst)))
 
 
+def _get_default_device_from_module(xp):
+    if xp is cuda.cupy:
+        return cuda.GpuDevice(cuda.Device())
+    elif xp is chainerx:
+        return _chainerx.ChainerxDevice(chainerx.get_default_device())
+    else:
+        return _cpu.CpuDevice()
+
+
 def get_device(device_spec):
     # type: (types.DeviceSpec) -> Device
     """Returns a device object.
