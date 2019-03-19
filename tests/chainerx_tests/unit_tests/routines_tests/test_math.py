@@ -1059,7 +1059,7 @@ class TestSquare(op_utils.NumpyOpTest):
     def setup(self, input, contiguous, float_dtype):
         # Backward and double backward tests skipped to avoid
         # numerical gradient calculation problem
-        if input == numpy.isinf(input).any():
+        if numpy.isinf(input).any():
             op_utils.NumpyOpTest.skip_backward_test = True
             op_utils.NumpyOpTest.skip_double_backward_test = True
         self.input = input
