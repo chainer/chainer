@@ -145,18 +145,6 @@ def get_device(device_spec):
     raise ValueError('Invalid device specifier: {}'.format(device_spec))
 
 
-def _get_device_compat(device_spec):
-    # Backward-compatibility version of get_device.
-    # It supports CUDA device index as an integer (numpy if negative)
-    # Returns chainer.Device.
-    if isinstance(device_spec, cuda._integer_types):
-        if device_spec < 0:
-            return CpuDevice()
-        else:
-            return GpuDevice.from_device_id(device_spec)
-    return get_device(device_spec)
-
-
 def using_device(device_spec):
     """Context manager to apply the thread-local device state.
 

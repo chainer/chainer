@@ -67,7 +67,7 @@ class StandardUpdater(_updater.Updater):
                  device=None, loss_func=None, loss_scale=None,
                  auto_new_epoch=True):
         if device is not None:
-            device = backend._get_device_compat(device)
+            device = backend.get_device(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
