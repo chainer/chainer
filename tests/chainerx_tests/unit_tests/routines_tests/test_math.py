@@ -1729,3 +1729,30 @@ def test_max(is_module, xp, device, input, axis, dtype):
         return xp.max(a, axis)
     else:
         return a.max(axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
+        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class TestMinimum(op_utils.NumpyOpTest):
+
+    def setup(self, input, contiguous, float_dtype):
+        self.input = input
+        self.dtype = float_dtype
+        self.contiguous = contiguous
+        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.minimum(x),
