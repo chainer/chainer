@@ -1732,27 +1732,36 @@ def test_max(is_module, xp, device, input, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
-        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
+@chainer.testing.parameterize_pytest('x1_shape,x2_shape', [
+    ((3, 2), (3, 2)),
+    ((), ()),
+    ((3, 2), (3, 1)),
+    ((2,), (3, 2)),
 ])
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class TestMinimum(op_utils.NumpyOpTest):
+class TestMinimum(op_utils.ChainerOpTest):
 
-    def setup(self, input, contiguous, float_dtype):
-        self.input = input
+    def setup(self, float_dtype):
+
         self.dtype = float_dtype
-        self.contiguous = contiguous
-        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
 
         if float_dtype == 'float16':
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 3e-3, 'atol': 3e-3})
 
     def generate_inputs(self):
-        return self.input,
+        x1_shape = self.x1_shape
+        x2_shape = self.x2_shape
+        x1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+        return x1, x2
 
-    def forward_xp(self, inputs, xp):
-        x, = inputs
-        return xp.minimum(x),
+    def forward_chainerx(self, inputs):
+        x1, x2 = inputs
+        y = chainerx.minimum(x1, x2)
+        return y,
+
+    def forward_chainer(self, inputs):
+        x1, x2 = inputs
+        y = chainer.functions.minimum(x1, x2)
+        return y,
