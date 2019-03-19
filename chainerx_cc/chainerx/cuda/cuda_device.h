@@ -109,6 +109,7 @@ public:
     // activation.cu
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfLessElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
     void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
