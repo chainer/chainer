@@ -77,7 +77,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if self.allreduce_grad_dtype:
             allreduce_grad_dtype = self.allreduce_grad_dtype
         else:
-            allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+            allreduce_grad_dtype = chainer.get_dtype(
+                chainer.global_config.dtype)
 
         assert allreduce_grad_dtype is not None
 

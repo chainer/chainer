@@ -188,8 +188,7 @@ def _get_nccl_type_id(dtype):
 
 
 def get_allreduce_grad_dtype(allreduce_grad_dtype=None):
-    """
-    Get a dtype object which is used for allreduce_grad communication.
+    """Get a dtype object which is used for allreduce_grad communication.
 
     :return: dtype object (either float16, float32, or float64)
     """

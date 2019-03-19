@@ -1,7 +1,6 @@
 import mpi4py.MPI
 import numpy as np
 
-import chainer
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import mpi_communicator_base
 

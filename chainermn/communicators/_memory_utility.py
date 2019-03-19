@@ -100,7 +100,6 @@ def pack_params(params, attr_name, buffer,
         return
 
     # NOTE: dtypes of params might be mixed, in particular f16 & f32.
-    xp = chainer.backend.get_array_module(getattr(params[0], attr_name))
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
@@ -116,10 +115,7 @@ def pack_params(params, attr_name, buffer,
 
 def unpack_params(params, attr_name, buffer,
                   transfer_dtype, stream=None):
-    """Pack parameters into a single CuPy array
-    for the sake of efficient communication.
-
-    """
+    """Pack parameters into a single CuPy array for efficient communication."""
     if len(params) == 0:
         return
     xp = chainer.backend.get_array_module(getattr(params[0], attr_name))

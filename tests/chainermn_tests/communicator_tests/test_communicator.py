@@ -289,9 +289,6 @@ def check_allreduce_grad(communicator, model, comm_prec=None):
         model.b.W.grad[:] = communicator.rank + 1
         model.c.b.grad[:] = communicator.rank + 2
 
-        from chainermn.communicators import _memory_utility
-        params = _memory_utility.extract_params_set_grad(model)
-
         communicator.allreduce_grad(model)
         base = (communicator.size - 1.0) / 2
 
@@ -342,7 +339,7 @@ def check_send_recv(param, use_gpu):
     check_send_and_recv_tuple(communicator, data)
 
 
-class SimpleMock():
+class SimpleMock(object):
     """A very simple mock class.
 
     To test mixed-precision communication, it is necessary to check
@@ -385,9 +382,9 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
             pytest.skip('This test is for single node only')
 
     if comm_class is PureNcclCommunicator:
-        communicator = comm_class(mpi_comm,
-                                  allreduce_grad_dtype=param.allreduce_grad_dtype,
-                                  batched_copy=param.batched_copy)
+        communicator = comm_class(
+            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
+            batched_copy=param.batched_copy)
     else:
         communicator = comm_class(mpi_comm)
 
