@@ -1619,6 +1619,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     del outputs[:]
 
     is_debug = chainer.is_debug()
+    base_hooks = chainer.get_function_hooks().values()
     while cand_funcs:
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
@@ -1643,20 +1644,21 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             x = None  # fix Python 2
             continue
 
-        in_data = tuple([x.data for x in inputs])
-        out_grad_array = tuple(
-            [None if gy is None else gy.array for gy in out_grad])
+        in_data = [x.data for x in inputs]
+        out_grad_array = [None if gy is None else gy.array for gy in out_grad]
         gy = None  # fix Python 2
 
-        hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(func.local_function_hooks)
-        hooks = hooks.values()  # avoid six for performance
+            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
+            local_hooks.update(func.local_function_hooks)
+            hooks = local_hooks.values()  # avoid six for performance
+        else:
+            hooks = base_hooks
 
         with cuda.get_device_from_array(*(in_data + out_grad_array)):
             for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_array)
+                hook.backward_preprocess(
+                    func, tuple(in_data), tuple(out_grad_array))
 
             if not hooks:
                 in_data, out_grad_array = None, None  # to reduce memory usage
@@ -1681,7 +1683,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 func, target_input_indexes, out_grad, in_grad, is_debug)
 
             for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_array)
+                hook.backward_postprocess(
+                    func, tuple(in_data), tuple(out_grad_array))
         del in_data, out_grad_array
 
         for x, gx in in_grad.items():

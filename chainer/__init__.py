@@ -186,6 +186,7 @@ def is_arrays_compatible(arrays):
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
+global_config.warn_nondeterministic = False
 global_config.enable_backprop = True
 global_config.keep_graph_on_report = bool(int(
     os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))

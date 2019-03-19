@@ -51,9 +51,8 @@ class TestRReLU(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        r = self.r
+        r = self.r.astype(x.dtype)
         r = device.send(r)
-        r = r.astype(x.dtype)
         with chainer.using_config('train', self.train):
             y = functions.rrelu(x, l=self.l, u=self.u, r=r)
         return y,
@@ -64,7 +63,7 @@ class TestRReLU(testing.FunctionTestCase):
         if self.train:
             expected = numpy.where(x >= 0, x, x * r)
         else:
-            r_test = numpy.mean([self.l, self.u], dtype=self.dtype)
+            r_test = numpy.mean([self.l, self.u]).astype(self.dtype)
             expected = numpy.where(x >= 0, x, x * r_test)
         return expected,
 

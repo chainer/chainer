@@ -168,6 +168,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
+            utils.nondeterministic('atomicAdd')
             cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
