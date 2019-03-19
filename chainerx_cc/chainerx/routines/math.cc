@@ -630,6 +630,10 @@ Array Minimum(const Array& x1, Scalar x2) {
 
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
+Array Minimum(const Array& x1, const Array& x2) {
+    return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
+}
+
 Array Exp(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
