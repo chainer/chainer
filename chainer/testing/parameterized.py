@@ -63,6 +63,9 @@ def _parameterize_test_case_generator(base, params):
         def method_generator(base_method):
             # Generates a wrapped test method
 
+            # Bind to a new variable.
+            param2 = param
+
             @functools.wraps(base_method)
             def new_method(self, *args, **kwargs):
                 try:
@@ -75,7 +78,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Base test method: {}.{}\n'.format(
                         base.__name__, base_method.__name__))
                     s.write('Test parameters:\n')
-                    for k, v in six.iteritems(param):
+                    for k, v in six.iteritems(param2):
                         s.write('  {}: {}\n'.format(k, v))
                     utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method

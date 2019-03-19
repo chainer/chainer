@@ -22,7 +22,7 @@
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
-For more details of Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
+For more details about Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
 ## Stable version
 
