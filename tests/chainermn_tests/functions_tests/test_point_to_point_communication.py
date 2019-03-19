@@ -53,30 +53,25 @@ class Variables(object):
         # Evaluation function.
         self.evaluation = chainer.functions.mean_squared_error
 
-        dtype = param.dtype
-        self.x = chainer.Variable(
-            numpy.arange(10).reshape(1, 10).astype(dtype) / 10)
-        self.model = chainer.links.Linear(
-            10, 10, initialW=self._init_w(self.communicator.rank, dtype),
-            initial_bias=self._init_b(dtype))
-        self.entire_model = [chainer.links.Linear(
-            10, 10, initialW=self._init_w(l, dtype),
-            initial_bias=self._init_b(dtype))
-            for l in range(self.communicator.size)]
-        self.device = device
+        with chainer.using_config('dtype', param.dtype):
+            self.x = chainer.Variable(
+                numpy.arange(10).reshape(1, 10).astype(param.dtype) / 10)
+            self.model = chainer.links.Linear(
+                10, 10, initialW=self._init_w(self.communicator.rank))
+            self.entire_model = [chainer.links.Linear(
+                10, 10, initialW=self._init_w(l))
+                for l in range(self.communicator.size)]
+            self.device = device
 
-        if device >= 0:
-            self.x.to_gpu()
-            self.model.to_gpu()
-            for model in self.entire_model:
-                model.to_gpu()
+            if device >= 0:
+                self.x.to_gpu()
+                self.model.to_gpu()
+                for model in self.entire_model:
+                    model.to_gpu()
 
-    def _init_w(self, l, dtype=numpy.float32):
-        return 1.0 * numpy.arange(100).reshape(10, 10).astype(dtype) \
+    def _init_w(self, l):
+        return 1.0 * numpy.arange(100).reshape(10, 10) \
             / ((l + 1) * 100)
-
-    def _init_b(self, dtype=numpy.float32):
-        return chainer.initializers.Zero(dtype=dtype)
 
 
 params = [Param(p) for p in [
