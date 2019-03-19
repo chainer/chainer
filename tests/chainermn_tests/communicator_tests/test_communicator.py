@@ -176,59 +176,19 @@ gpu_params = [Param(p) for p in [
         'batched_copy': True,
     }]]
 
-gpu_mixed_dtype_params = [Param(p) for p in [
-    {
-    #     'communicator_class': NaiveCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': FlatCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': HierarchicalCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': TwoDimensionalCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': SingleNodeCommunicator,
-    #     'multi_node': False,
-    # }, {
-    #     'communicator_class': NonCudaAwareCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': PureNcclCommunicator,
-    #     'multi_node': True,
-    #     'nccl1': False,
-    #     'allreduce_grad_dtype': np.float16,
-    # }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'global_dtype': chainer.mixed16,
-        'allreduce_dtype': None,
-    # }, {
-    #     'communicator_class': PureNcclCommunicator,
-    #     'multi_node': True,
-    #     'nccl1': False,
-    #     'allreduce_grad_dtype': np.float64,
-    # }, {
-    #     'communicator_class': PureNcclCommunicator,
-    #     'multi_node': True,
-    #     'nccl1': False,
-    #     'allreduce_grad_dtype': np.float16,
-    #     'batched_copy': True,
-    # }, {
-    #     'communicator_class': PureNcclCommunicator,
-    #     'multi_node': True,
-    #     'nccl1': False,
-    #     'allreduce_grad_dtype': np.float32,
-    #     'batched_copy': True,
-    # }, {
-    #     'communicator_class': PureNcclCommunicator,
-    #     'multi_node': True,
-    #     'nccl1': False,
-    #     'allreduce_grad_dtype': np.float64,
-    #     'batched_copy': True,
-    }]]
+
+gpu_mixed_dtype_params = []
+for global_dtype in [None, np.float32, np.float16, chainer.mixed16]:
+    for allreduce_dtype in [None, np.float32, np.float32]:
+        if global_dtype is None and allreduce_dtype is None:
+            continue
+        gpu_mixed_dtype_params.append(Param({
+            'communicator_class': PureNcclCommunicator,
+            'multi_node': True,
+            'global_dtype': global_dtype,
+            'allreduce_dtype': allreduce_dtype,
+        }))
+
 
 mpi_comm = mpi4py.MPI.COMM_WORLD
 
@@ -309,10 +269,6 @@ def check_allreduce_grad(communicator, model, comm_prec=None):
 
         from chainermn.communicators import _memory_utility
         params = _memory_utility.extract_params_set_grad(model)
-        print("\nparams = {}".format(params))
-        for param in params:
-            print('param = {}'.format(param))
-            print("\tgrad = {}".format(getattr(param, 'grad')))
 
         communicator.allreduce_grad(model)
         base = (communicator.size - 1.0) / 2

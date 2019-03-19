@@ -73,13 +73,13 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def _allreduce_grad_async(self, model, stream):
         self._init_comms()
         params = _memory_utility.extract_params_set_grad(model)
-        print([p.dtype.num for p in params])
-        print("allreduce_grad_dtype = {}".format(self.allreduce_grad_dtype))
 
         if self.allreduce_grad_dtype:
             allreduce_grad_dtype = self.allreduce_grad_dtype
         else:
             allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+
+        assert allreduce_grad_dtype is not None
 
         n_elems = sum(param.grad.size for param in params)
         # TODO(kfukuda): do we need to pass allreduce_grad_dtype twice?
