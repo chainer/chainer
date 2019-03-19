@@ -249,6 +249,20 @@ class TestDeviceSpec(unittest.TestCase):
 
     def test_str_chainerx_invalid(self):
         self.check_invalid('native:foo')
+        self.check_invalid('')
+
+    def test_str_module_invalid(self):
+        self.check_invalid('@foo')
+        self.check_invalid('@foo:0')
+
+    def test_str_cupy_invalid(self):
+        self.check_invalid('@cupy')
+        self.check_invalid('@cupy::0')
+
+    def test_str_numpy_invalid(self):
+        self.check_invalid('@numpy:')
+        self.check_invalid('@numpy:0')
+        self.check_invalid('@:numpy')
 
     def test_tuple_invalid(self):
         # tuple is no longer supported from Chainer
