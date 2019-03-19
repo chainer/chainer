@@ -178,16 +178,18 @@ gpu_params = [Param(p) for p in [
 
 
 gpu_mixed_dtype_params = []
-for global_dtype in [None, np.float32, np.float16, chainer.mixed16]:
-    for allreduce_dtype in [None, np.float32, np.float32]:
+for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
+    for allreduce_dtype in [np.float32, np.float32, None]:
         if global_dtype is None and allreduce_dtype is None:
             continue
-        gpu_mixed_dtype_params.append(Param({
-            'communicator_class': PureNcclCommunicator,
-            'multi_node': True,
-            'global_dtype': global_dtype,
-            'allreduce_dtype': allreduce_dtype,
-        }))
+        for batched_copy in [True, False]:
+            gpu_mixed_dtype_params.append(Param({
+                'communicator_class': PureNcclCommunicator,
+                'multi_node': True,
+                'global_dtype': global_dtype,
+                'allreduce_dtype': allreduce_dtype,
+                'batched_copy': batched_copy,
+            }))
 
 
 mpi_comm = mpi4py.MPI.COMM_WORLD
@@ -355,12 +357,14 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
 
     chainer.global_config.dtype = param.global_dtype
     comm_class = param.communicator_class
-    communicator = comm_class(
-        mpi_comm, allreduce_grad_dtype=param.allreduce_dtype)
+    communicator = comm_class(mpi_comm,
+                              allreduce_grad_dtype=param.allreduce_dtype,
+                              batched_copy=param.batched_copy)
 
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
     allreduce_dtype = param.allreduce_dtype
+
     answer_dtype = None
     if allreduce_dtype == np.float16:
         answer_dtype = np.float16
@@ -415,7 +419,7 @@ def test_communicator_cpu(param):
 @pytest.mark.parametrize('param', gpu_params)
 @chainer.testing.attr.gpu
 def test_communicator_gpu(param):
-    # check_send_recv(param, True)
+    check_send_recv(param, True)
     check_collective_communication(param, True)
 
 
