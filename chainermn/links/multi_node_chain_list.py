@@ -186,7 +186,7 @@ class MultiNodeChainList(chainer.ChainList):
                     # If the graph component is not the first one,
                     # backprop to the previous graph component must be
                     # guaranteed.
-                    x = chainermn.functions.pseudo_connect(
+                    x, = chainermn.functions.pseudo_connect(
                         delegate_variable,
                         *inputs)
                     x = f(x)
@@ -200,7 +200,7 @@ class MultiNodeChainList(chainer.ChainList):
                         if delegate_variable is None:
                             _x = comm_queue.get()
                         else:
-                            _x = chainermn.functions.pseudo_connect(
+                            _x, = chainermn.functions.pseudo_connect(
                                 delegate_variable,
                                 comm_queue.get())
                     else:
@@ -232,7 +232,7 @@ class MultiNodeChainList(chainer.ChainList):
                     if _rank_out == self._comm.rank:
                         # Send outputs to itself.
                         if delegate_variable is not None:
-                            x = chainermn.functions.pseudo_connect(
+                            x, = chainermn.functions.pseudo_connect(
                                 delegate_variable,
                                 x)
                         comm_queue.put(x)
@@ -246,7 +246,7 @@ class MultiNodeChainList(chainer.ChainList):
                         # we must guarantee backwards of each send to be
                         # called in the reversed order.
                         if delegate_variable is not None:
-                            x = chainermn.functions.pseudo_connect(
+                            x, = chainermn.functions.pseudo_connect(
                                 delegate_variable,
                                 x)
                         delegate_variable = chainermn.functions.send(
@@ -264,7 +264,8 @@ class MultiNodeChainList(chainer.ChainList):
             return y
         elif y is not None:
             # The intermediate graph component returns model output.
-            return chainermn.functions.pseudo_connect(delegate_variable, y)
+            y, = chainermn.functions.pseudo_connect(delegate_variable, y)
+            return y
         else:
             # Do not have any model output.
             return delegate_variable

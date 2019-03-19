@@ -17,7 +17,7 @@ def _make_onehot_arrays(shape, dtype, value1, value2):
 @pytest.mark.parametrize(
     'dtype1,dtype2',
     list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
-        ('float32', 'int64'),  # arrays with different dtypes
+        (numpy.float32, numpy.int64),  # arrays with different dtypes
     ])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
@@ -93,7 +93,7 @@ def test_assert_array_equal_fail_scalar(value1, value2):
 @pytest.mark.parametrize(
     'dtype1,dtype2',
     list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
-        ('float32', 'int64'),  # arrays with different dtypes
+        (numpy.float32, numpy.int64),  # arrays with different dtypes
     ])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
@@ -103,7 +103,7 @@ def test_assert_array_equal_fail_scalar(value1, value2):
     ((2, 3), True),  # arrays with different strides
 ])
 def test_assert_allclose(shape, transpose, dtype1, dtype2):
-    atol = 1e-5
+    atol = 1e-3 if numpy.dtype('float16') in [dtype1, dtype2] else 1e-5
 
     np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
     if transpose:
@@ -197,31 +197,24 @@ def test_assert_allclose_exact(shape, dtype):
     chainerx.testing.assert_allclose(a, b)
 
 
-def test_assert_allclose_close(float_dtype):
-    dtype = float_dtype
+def test_assert_allclose_close_default_tol():
+    dtype = numpy.float64
     shape = (2, 3)
+
+    # small absolute error
     a, b = _make_onehot_arrays(shape, dtype, 1.0, 1.0 + 5e-8)
     chainerx.testing.assert_allclose(a, b)
 
+    # large absolute error
+    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 5)
+    chainerx.testing.assert_allclose(a, b)
 
-def test_assert_allclose_fail_not_close(float_dtype):
-    dtype = float_dtype
-    shape = (2, 3)
+    # expected failure: small absolute error
     a, b = _make_onehot_arrays(shape, dtype, 1.0, 1.0 + 2e-7)
     with pytest.raises(AssertionError):
         chainerx.testing.assert_allclose(a, b)
 
-
-def test_assert_allclose_close2(float_dtype):
-    dtype = float_dtype
-    shape = (2, 3)
-    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 5)
-    chainerx.testing.assert_allclose(a, b)
-
-
-def test_assert_allclose_fail_not_close2(float_dtype):
-    dtype = float_dtype
-    shape = (2, 3)
+    # expected failure: large absolute error
     a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 20)
     with pytest.raises(AssertionError):
         chainerx.testing.assert_allclose(a, b)
@@ -230,14 +223,13 @@ def test_assert_allclose_fail_not_close2(float_dtype):
 def test_assert_allclose_rtol(float_dtype):
     dtype = float_dtype
     shape = (2, 3)
-    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 5e5)
+
+    # relative error < rtol
+    a, b = _make_onehot_arrays(shape, dtype, 1e4, 1e4 + 50)
     chainerx.testing.assert_allclose(a, b, rtol=1e-2, atol=0)
 
-
-def test_assert_allclose_fail_rtol(float_dtype):
-    dtype = float_dtype
-    shape = (2, 3)
-    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 2e6)
+    # relative error > rtol
+    a, b = _make_onehot_arrays(shape, dtype, 1e4, 1e4 + 200)
     with pytest.raises(AssertionError):
         chainerx.testing.assert_allclose(a, b, rtol=1e-2, atol=0)
 
@@ -245,22 +237,21 @@ def test_assert_allclose_fail_rtol(float_dtype):
 def test_assert_allclose_atol(float_dtype):
     dtype = float_dtype
     shape = (2, 3)
-    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 5e1)
-    chainerx.testing.assert_allclose(a, b, rtol=0, atol=1e2)
 
+    # absolute error < atol
+    a, b = _make_onehot_arrays(shape, dtype, 1e-3, 1e-3 + 1e-2)
+    chainerx.testing.assert_allclose(a, b, rtol=0, atol=2e-2)
 
-def test_assert_allclose_fail_atol(float_dtype):
-    dtype = float_dtype
-    shape = (2, 3)
-    a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 2e2)
+    # absolute error > atol
+    a, b = _make_onehot_arrays(shape, dtype, 1e-3, 1e-3 + 1e-2)
     with pytest.raises(AssertionError):
-        chainerx.testing.assert_allclose(a, b, rtol=0, atol=1e2)
+        chainerx.testing.assert_allclose(a, b, rtol=0, atol=5e-3)
 
 
 def test_assert_array_equal_ex_fail_dtype():
     shape = (3, 2)
-    dtype1 = 'float32'
-    dtype2 = 'int64'
+    dtype1 = numpy.float32
+    dtype2 = numpy.int64
     a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
     b = a.astype(dtype2)
     with pytest.raises(AssertionError):
@@ -273,7 +264,7 @@ def test_assert_array_equal_ex_fail_dtype():
 
 def test_assert_array_equal_ex_fail_strides():
     shape = (3, 2)
-    dtype = 'float32'
+    dtype = numpy.float32
     a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype).reshape(shape)
     b = numpy.empty(a.T.shape, dtype).T
     b[:] = a

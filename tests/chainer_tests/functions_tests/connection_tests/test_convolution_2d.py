@@ -118,12 +118,6 @@ class TestConvolution2DFunction(unittest.TestCase):
             y_expected.data, y_actual.data, atol=1e-3, rtol=5e-3)
 
     def test_forward(self, backend_config):
-        # TODO(hvy): chainerx does not support fp16 yet
-        if backend_config.use_chainerx:
-            if (any(x.dtype == numpy.float16
-                    for x in self.inputs if x is not None)):
-                raise unittest.SkipTest('Not yet supported')
-
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
@@ -148,12 +142,6 @@ class TestConvolution2DFunction(unittest.TestCase):
 
     @condition.retry(3)
     def test_backward(self, backend_config):
-        # TODO(hvy): chainerx does not support fp16 yet
-        if backend_config.use_chainerx:
-            if (any(x.dtype == numpy.float16
-                    for x in self.inputs if x is not None)):
-                raise unittest.SkipTest('Not yet supported')
-
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
@@ -185,12 +173,6 @@ class TestConvolution2DFunction(unittest.TestCase):
 
     @condition.retry(3)
     def test_double_backward(self, backend_config):
-        # TODO(hvy): chainerx does not support fp16 yet
-        if backend_config.use_chainerx:
-            if (any(x.dtype == numpy.float16
-                    for x in self.inputs if x is not None)):
-                raise unittest.SkipTest('Not yet supported')
-
         self.check_double_backward(
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)

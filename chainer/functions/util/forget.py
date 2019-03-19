@@ -112,8 +112,8 @@ def forget(func, *xs):
 
     .. note::
 
-        In case input argument variables are of class :class:`numpy.ndarray` or
-        :class:`cupy.ndarray` objects, arguments will automatically be
+        In case input argument variables are of :ref:`ndarray` objects,
+        arguments will automatically be
         converted to :class:`~chainer.Variable`\\ s.
         This conversion takes place to ensure that this function is included
         in the computational graph to enable backward computations.
