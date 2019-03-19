@@ -33,6 +33,17 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
     });
 }
 
+void NativeDevice::IfLessElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(x1, x2, pos, neg, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T x2, T pos, T neg, T& out) { out = x1 < x2 ? pos : neg; }
+        };
+        Elementwise<const T, const T, const T, const T, T>(Impl{}, x1, x2, pos, neg, out);
+    });
+}
+
 void NativeDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
     Dtype x_dtype = ResultType(x1, x2);
