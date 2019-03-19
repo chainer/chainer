@@ -124,6 +124,51 @@ def unpack_params(params, itemsize, attr_name, buffer,
             setattr(param, attr_name, v.astype(comp_dtype))
 
 
+def pack_params2(params, attr_name, buffer,
+                transfer_dtype, stream):
+    if len(params) == 0:
+        return
+
+    # NOTE: dtypes of params might be mixed, in particular f16 & f32.
+    xp = chainer.backend.get_array_module(getattr(params[0], attr_name))
+    offset = 0
+    for param in params:
+        v = getattr(param, attr_name)
+        size = v.size * v.dtype.itemsize
+        if v.dtype != transfer_dtype:
+            tmp = xp.zeros(shape=v.shape, dtype=transfer_dtype)
+            buffer.from_device(tmp, size, offset, stream)
+            v = tmp.astype(v.dtype)
+        else:
+            buffer.from_device(v, size, offset, stream)
+
+        offset += size
+
+
+def unpack_params2(params, attr_name, buffer,
+                   transfer_dtype, stream=None):
+    """Pack parameters into a single CuPy array
+    for the sake of efficient communication.
+
+    """
+    if len(params) == 0:
+        return
+    xp = chainer.backend.get_array_module(getattr(params[0], attr_name))
+    offset = 0
+    for param in params:
+        v = getattr(param, attr_name)
+        size = v.size * v.itemsize
+        grad_dtype = v.dtype
+        if grad_dtype != transfer_dtype:
+            v = xp.array(v, copy=False, dtype=transfer_dtype)
+
+        buffer.to_device(v, size, offset, stream)
+        offset += size
+
+        if grad_dtype != transfer_dtype:
+            setattr(param, attr_name, v.astype(grad_dtype))
+
+
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
     xp = chainer.backend.get_array_module(array)
 

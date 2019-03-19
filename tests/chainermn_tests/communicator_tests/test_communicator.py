@@ -60,6 +60,7 @@ class ExampleMixedModel(chainer.Chain):
             self.c = chainer.links.Linear(None, 5, initialW=W16,
                                           initial_bias=bias32)
 
+
 class Param(object):
     def __init__(self, param):
         self.gpu = False
@@ -80,94 +81,94 @@ gpu_params = [Param(p) for p in [
     {
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
-    }, {
-        'communicator_class': NaiveCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': FlatCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': FlatCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'multi_node': False,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': False,
-    }, {
-        'communicator_class': NonCudaAwareCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': NonCudaAwareCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': False,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'allreduce_grad_dtype': np.float16,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float16,
-        'allreduce_grad_dtype': np.float16,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float64,
-        'allreduce_grad_dtype': np.float64,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float16,
-        'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float16,
-        'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float32,
-        'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
-    }, {
-        'communicator_class': PureNcclCommunicator,
-        'multi_node': True,
-        'nccl1': False,
-        'model_dtype': np.float32,
-        'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
+    # }, {
+    #     'communicator_class': NaiveCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': FlatCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': FlatCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': HierarchicalCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': HierarchicalCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': TwoDimensionalCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': TwoDimensionalCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': SingleNodeCommunicator,
+    #     'multi_node': False,
+    # }, {
+    #     'communicator_class': SingleNodeCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': False,
+    # }, {
+    #     'communicator_class': NonCudaAwareCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': NonCudaAwareCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': False,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'allreduce_grad_dtype': np.float16,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float16,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float64,
+    #     'allreduce_grad_dtype': np.float64,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float16,
+    #     'batched_copy': True,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float32,
+    #     'batched_copy': True,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float32,
+    #     'allreduce_grad_dtype': np.float32,
+    #     'batched_copy': True,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float32,
+    #     'allreduce_grad_dtype': np.float16,
+    #     'batched_copy': True,
     }]]
 
 gpu_mixed_dtype_params = [Param(p) for p in [
@@ -286,7 +287,9 @@ def check_bcast_data(communicator, model):
     model.a.W.data[:] = communicator.rank
     model.b.W.data[:] = communicator.rank + 1
     model.c.b.data[:] = communicator.rank + 2
+    print("<{}>".format(communicator))
     communicator.bcast_data(model)
+    print("</>")
     chainer.testing.assert_allclose(model.a.W.data, 0 * np.ones((3, 2)))
     chainer.testing.assert_allclose(model.b.W.data, 1 * np.ones((4, 3)))
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
@@ -310,7 +313,6 @@ def check_allreduce_grad(communicator, model, comm_prec=None):
                                         (base + 1) * np.ones((4, 3)))
         chainer.testing.assert_allclose(model.c.b.grad,
                                         (base + 2) * np.ones((5, )))
-
 
 
 def check_allreduce_grad_empty(communicator, model):
@@ -363,6 +365,7 @@ class SimpleMock():
 
     NOTE: unittest.mock is from PYthon 3.3.
     """
+
     def __init__(self, orig_obj):
         self.orig_obj = orig_obj
         self.__mock_call_args = []

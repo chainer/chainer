@@ -610,13 +610,17 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
     def bcast_data(self, model):
         for _, param in sorted(model.namedparams()):
+            print(_)
             if param.data is not None:
                 data = param.data
                 is_float16 = param.data.dtype == numpy.float16
                 if is_float16:
                     data = data.astype(numpy.float32)
                 buf = _memory_utility.array_to_buffer_object(data)
+                print("<Bcast>")
+                print("buf={} {}".format(buf, len(buf[0])))
                 self.mpi_comm.Bcast(buf)
+                print("</Bcast>")
                 if is_float16:
                     param.data = data.astype(numpy.float16)
 

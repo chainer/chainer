@@ -57,8 +57,13 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
 
-        _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+        if self.allreduce_grad_dtype:
+            allreduce_grad_dtype = self.allreduce_grad_dtype
+        else:
+            allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+
+        _memory_utility.pack_params2(
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
 
         # Intra-node reduce-scatter (1st dimension)
         self.intra_nccl_comm.reduceScatter(
@@ -77,5 +82,5 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_buffer_b.ptr(), self.gpu_buffer_a.ptr(),
             n_elems_per_node_1d, nccl.NCCL_FLOAT, stream.ptr)
 
-        _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+        _memory_utility.unpack_params2(
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)

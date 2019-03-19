@@ -75,8 +75,13 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
 
-        _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+        if self.allreduce_grad_dtype:
+            allreduce_grad_dtype = self.allreduce_grad_dtype
+        else:
+            allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+
+        _memory_utility.pack_params2(
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -114,5 +119,5 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_buffer_b.ptr(), n_elems_total, nccl.NCCL_FLOAT, 0,
             stream.ptr)
 
-        _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+        _memory_utility.unpack_params2(
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)
