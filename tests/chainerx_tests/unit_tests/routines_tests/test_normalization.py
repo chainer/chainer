@@ -5,6 +5,7 @@ import pytest
 import chainerx
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 def _create_batch_norm_ndarray_args(
@@ -138,35 +139,61 @@ def test_batch_norm_invalid_dimensions(
             eps=1e-2, decay=0.9, axis=axis)
 
 
-@pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
-@pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fixed_batch_norm(
-        device, x_shape, reduced_shape, eps, axis, float_dtype):
-    def create_args(xp):
-        return _create_batch_norm_ndarray_args(
-            xp, device, x_shape, reduced_shape, reduced_shape, reduced_shape,
-            reduced_shape, float_dtype)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest('eps', [None, 3e-5, 1.2])
+@chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
+class TestFixedBatchNorm(op_utils.ChainerOpTest):
 
-    x_chx, gamma_chx, beta_chx, mean_chx, var_chx = create_args(chainerx)
-    x_np, gamma_np, beta_np, mean_np, var_np = create_args(numpy)
+    # Backward and double backward for fixed_batch_norm is not supported yet.
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-    optional_args = {}
-    if eps is not None:
-        optional_args['eps'] = eps
-    if axis is not None:
-        optional_args['axis'] = axis
+    def setup(self, float_dtype):
+        self.dtype = float_dtype
 
-    y_chx = chainerx.fixed_batch_norm(
-        x_chx, gamma_chx, beta_chx, mean=mean_chx, var=var_chx,
-        **optional_args)
-    y_np = chainer.functions.fixed_batch_normalization(
-        x_np, gamma_np, beta_np, mean=mean_np, var=var_np,
-        **optional_args).data
+        eps = self.eps
+        axis = self.axis
 
-    chainerx.testing.assert_allclose_ex(
-        y_chx, y_np, rtol=1e-6, atol=1e-5,
-        float16_rtol=1e-2, float16_atol=1e-2)
+        optional_args = {}
+        if eps is not None:
+            optional_args['eps'] = eps
+        if axis is not None:
+            optional_args['axis'] = axis
+        self.optional_args = optional_args
+
+        if float_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+        else:
+            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
+
+    def generate_inputs(self):
+        x_shape = self.x_shape
+        reduced_shape = self.reduced_shape
+        dtype = self.dtype
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
+        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
+        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(dtype)
+
+        return x, gamma, beta, mean, var
+
+    def forward_chainerx(self, inputs):
+        x, gamma, beta, mean, var = inputs
+
+        y = chainerx.fixed_batch_norm(
+            x, gamma, beta, mean=mean, var=var, **self.optional_args)
+        return y,
+
+    def forward_chainer(self, inputs):
+        x, gamma, beta, mean, var = inputs
+
+        y = chainer.functions.fixed_batch_normalization(
+            x, gamma, beta, mean=mean, var=var, **self.optional_args)
+        return y,
 
 
 @pytest.mark.parametrize(
