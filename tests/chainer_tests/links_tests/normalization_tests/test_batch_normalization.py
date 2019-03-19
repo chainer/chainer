@@ -184,10 +184,7 @@ class BatchNormalizationTestBase(object):
             std = numpy.sqrt(var + self.eps)
         y = gamma[self.expander] * (x - mean) / std + beta[self.expander]
 
-        if self.dtype == chainer.mixed16:
-            y = y.astype(x.dtype)
-
-        return y,
+        return y.astype(self.dtype),
 
     def check_forward_outputs(self, outputs, expected_outputs):
         super(BatchNormalizationTestBase, self).check_forward_outputs(
