@@ -1643,8 +1643,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             x = None  # fix Python 2
             continue
 
-        # TODO(kataoka): remove NOQA if flake8 is fixed
-        in_data = tuple([x.data for x in inputs])  # NOQA
+        in_data = tuple([x.data for x in inputs])
         out_grad_array = tuple(
             [None if gy is None else gy.array for gy in out_grad])
         gy = None  # fix Python 2
