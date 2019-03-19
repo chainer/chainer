@@ -379,6 +379,10 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     if use_gpu:
         model.to_gpu()
 
+    model.a.W.grad[:] = communicator.rank
+    model.b.W.grad[:] = communicator.rank + 1
+    model.c.b.grad[:] = communicator.rank + 2
+
     if isinstance(communicator, PureNcclCommunicator):
         communicator._init_comms()
         communicator.nccl_comm = SimpleMock(communicator.nccl_comm)
@@ -391,6 +395,15 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
         called_args = communicator.nccl_comm.allReduce.__mock_call_args[0][0]
         actual_dtype = called_args[3]
         assert answer_dtype == actual_dtype
+    else:
+        assert False
+        # TODO(kfukuda): implement tests for other comms
+
+    base = (communicator.size - 1.0) / 2
+    chainer.testing.assert_allclose(model.a.W.grad,
+                                    (base + 0) * np.ones((3, 2)))
+    chainer.testing.assert_allclose(model.b.W.grad,
+                                    (base + 1) * np.ones((4, 3)))
 
     communicator.mpi_comm.barrier()
 
