@@ -394,6 +394,14 @@ class TestTrueDivide(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
 
+    def setup(self, shape, dtype):
+        super().setup(shape, dtype)
+        if dtype == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
+
     def generate_inputs(self):
         shape = self.shape
         dtype = self.dtype
