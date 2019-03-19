@@ -57,13 +57,13 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_tmp_buffer.assign(data_grad_n_bytes)
         stream = chainer.cuda.Stream.null
 
-        _memory_utility.pack_params2(
+        _memory_utility.pack_params(
             params, 'data', self.gpu_tmp_buffer, data_dtype, stream)
         self.nccl_comm.bcast(self.gpu_tmp_buffer.ptr(), n_elems,
                              _communication_utility._get_nccl_type_id(
                                  data_dtype),
                              0, stream.ptr)
-        _memory_utility.unpack_params2(
+        _memory_utility.unpack_params(
             params, 'data', self.gpu_tmp_buffer, data_dtype, stream)
 
     def allreduce_grad(self, model):
@@ -146,7 +146,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.params_data = params_data
             # self.params_data will be re-used by _unpack_params_from_buffer
         else:
-            _memory_utility.pack_params2(
+            _memory_utility.pack_params(
                 params, 'grad',
                 self.gpu_buffer_a,
                 transfer_dtype=allreduce_grad_dtype,
@@ -164,7 +164,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                    allreduce_grad_dtype)
             return
         else:
-            _memory_utility.unpack_params2(
+            _memory_utility.unpack_params(
                 params, 'grad', self.gpu_buffer_a,
                 allreduce_grad_dtype, stream)
 

@@ -1,4 +1,5 @@
 import mpi4py.MPI
+import numpy as np
 
 import chainer
 from chainermn.communicators import _memory_utility
@@ -21,12 +22,9 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_total)
         self.gpu_buffer_b.assign(n_bytes_total)
 
-        if self.allreduce_grad_dtype:
-            allreduce_grad_dtype = self.allreduce_grad_dtype
-        else:
-            allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+        allreduce_grad_dtype = np.float32
 
-        _memory_utility.pack_params2(
+        _memory_utility.pack_params(
             params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
 
         self.mpi_comm.Allreduce(
@@ -35,5 +33,5 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         arr = self.gpu_buffer_b.array(n_elems_total)
         arr *= (1.0 / self.size)
 
-        _memory_utility.unpack_params2(
+        _memory_utility.unpack_params(
             params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)

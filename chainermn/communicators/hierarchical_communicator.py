@@ -1,6 +1,7 @@
-import chainer.cuda
 import math
+import numpy as np
 
+import chainer.cuda
 from chainermn.communicators import _communication_utility
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import mpi_communicator_base
@@ -53,13 +54,11 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
 
-        if self.allreduce_grad_dtype:
-            allreduce_grad_dtype = self.allreduce_grad_dtype
-        else:
-            allreduce_grad_dtype = chainer.get_dtype(chainer.global_config.dtype)
+        allreduce_grad_dtype = np.float32
 
-        _memory_utility.pack_params2(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
+        _memory_utility.pack_params(
+            params, 'grad', self.gpu_buffer_a,
+            allreduce_grad_dtype, stream)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -78,5 +77,5 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_buffer_b.ptr(), n_elems_total, nccl.NCCL_FLOAT, 0,
             stream.ptr)
 
-        _memory_utility.unpack_params2(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)
+        _memory_utility.unpack_params(
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, stream)

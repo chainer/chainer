@@ -94,38 +94,8 @@ def extract_params_set_grad(model):
             if param.grad is not None]
 
 
-def pack_params(params, itemsize, attr_name, buffer,
-                stream=None, transfer_dtype=np.float32):
-    offset = 0
-    for param in params:
-        v = getattr(param, attr_name)
-        if v.dtype != transfer_dtype:
-            v = v.astype(transfer_dtype)
-
-        size = v.size * itemsize
-        buffer.from_device(v, size, offset, stream)
-        offset += size
-
-
-def unpack_params(params, itemsize, attr_name, buffer,
-                  stream=None, transfer_dtype=np.float32):
-    offset = 0
-    for param in params:
-        v = getattr(param, attr_name)
-        size = v.size * itemsize
-        comp_dtype = v.dtype
-        if comp_dtype != transfer_dtype:
-            v = cp.array(v, copy=False, dtype=transfer_dtype)
-
-        buffer.to_device(v, size, offset, stream)
-        offset += size
-
-        if comp_dtype != transfer_dtype:
-            setattr(param, attr_name, v.astype(comp_dtype))
-
-
-def pack_params2(params, attr_name, buffer,
-                transfer_dtype, stream):
+def pack_params(params, attr_name, buffer,
+                transfer_dtype, stream=None):
     if len(params) == 0:
         return
 
@@ -134,19 +104,18 @@ def pack_params2(params, attr_name, buffer,
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
-        size = v.size * v.dtype.itemsize
+        size = v.size * np.dtype(transfer_dtype).itemsize
         if v.dtype != transfer_dtype:
-            tmp = xp.zeros(shape=v.shape, dtype=transfer_dtype)
+            tmp = v.astype(transfer_dtype)
             buffer.from_device(tmp, size, offset, stream)
-            v = tmp.astype(v.dtype)
         else:
             buffer.from_device(v, size, offset, stream)
 
         offset += size
 
 
-def unpack_params2(params, attr_name, buffer,
-                   transfer_dtype, stream=None):
+def unpack_params(params, attr_name, buffer,
+                  transfer_dtype, stream=None):
     """Pack parameters into a single CuPy array
     for the sake of efficient communication.
 
@@ -157,14 +126,12 @@ def unpack_params2(params, attr_name, buffer,
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
-        size = v.size * v.itemsize
+        size = v.size * np.dtype(transfer_dtype).itemsize
         grad_dtype = v.dtype
         if grad_dtype != transfer_dtype:
             v = xp.array(v, copy=False, dtype=transfer_dtype)
-
         buffer.to_device(v, size, offset, stream)
         offset += size
-
         if grad_dtype != transfer_dtype:
             setattr(param, attr_name, v.astype(grad_dtype))
 
