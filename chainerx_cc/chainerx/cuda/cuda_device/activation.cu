@@ -57,8 +57,9 @@ namespace {
 template <typename T>
 struct IfGreaterElseAAAAImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2,
-                               CudaType pos, CudaType neg, CudaType& out) { out = x1 > x2 ? pos : neg; }
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType pos, CudaType neg, CudaType& out) {
+        out = x1 > x2 ? pos : neg;
+    }
 };
 
 }  // namespace
