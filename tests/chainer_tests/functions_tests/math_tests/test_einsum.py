@@ -107,7 +107,7 @@ class TestEinSum(unittest.TestCase):
     def test_einsum_forward_cpu(self):
         if self.dtype == numpy.float16:
             _skip_float16_bug()
-            self.check_forward(self.inputs, atol=1e-3, rtol=1e-3)
+            self.check_forward(self.inputs, atol=2e-3, rtol=1e-3)
         else:
             self.check_forward(self.inputs)
 
@@ -115,7 +115,7 @@ class TestEinSum(unittest.TestCase):
     def test_einsum_forward_gpu(self):
         inputs = _tuple_to_gpu(self.inputs)
         if self.dtype == numpy.float16:
-            self.check_forward(inputs, atol=1e-3, rtol=1e-3)
+            self.check_forward(inputs, atol=2e-3, rtol=1e-3)
         else:
             self.check_forward(inputs)
 
