@@ -242,7 +242,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
+            bool cover_all,
+            Dtype out_dtype) = 0;
 
     virtual Array ConvGradWeight(
             Dtype w_dtype,
@@ -266,7 +267,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size) = 0;
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype) = 0;
 
     virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
             const StackVector<int64_t, kMaxNdim>& kernel_size,

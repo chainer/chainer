@@ -430,12 +430,7 @@ class _CheckBackward(object):
         if device.xp is chainerx:
             if len(params) > 0 and not is_immutable_params:
                 raise NotImplementedError(
-                    'gradient_check must be called with '
-                    'is_immutable_params=True to test parameters with '
-                    'ChainerX.')
-            if any(no_grads):
-                raise NotImplementedError(
-                    'gradient_check does not support no_grads argument for '
+                    'gradient_check does not support params argument for '
                     'ChainerX arrays')
 
         self.device = device
@@ -570,7 +565,9 @@ class _CheckBackward(object):
         x_data = self.x_data
         params = self.params
 
-        xs = [variable.Variable(x, requires_grad=True) for x in x_data]
+        xs = [
+            variable.Variable(x, requires_grad=x.dtype.kind == 'f')
+            for x in x_data]
 
         if self.is_immutable_params:
             params = tuple([chainer.Parameter(p) for p in params])
