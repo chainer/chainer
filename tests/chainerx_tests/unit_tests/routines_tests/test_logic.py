@@ -1,3 +1,6 @@
+import unittest
+
+import chainer
 import numpy
 import pytest
 
@@ -5,21 +8,21 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 # Skip if creating an ndarray while casting the data to the parameterized dtype
 # fails.
 # E.g. [numpy.inf] to numpy.int32.
-def _to_array_safe(xp, a_object, dtype):
+def _to_numpy_array_or_skip(a_object, dtype):
     try:
-        return xp.array(a_object, dtype)
+        return numpy.array(a_object, dtype)
     except (ValueError, OverflowError):
-        return None
+        raise unittest.SkipTest('Invalid input combination')
 
 
-# Ignore warnings from numpy for NaN comparisons.
-@pytest.mark.filterwarnings('ignore:invalid value encountered in ')
-@pytest.mark.parametrize('a_object,b_object', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_object,b_object', [
     ([], []),
     ([0], [0]),
     ([0], [-0]),
@@ -49,32 +52,42 @@ def _to_array_safe(xp, a_object, dtype):
     ([0], [[0, 1, 2], [3, 4, 5]]),
     ([[0], [1]], [0, 1, 2]),
 ])
-@pytest.mark.parametrize('cmp_op, chx_cmp, np_cmp', [
-    (lambda a, b: a == b, chainerx.equal, numpy.equal),
-    (lambda a, b: a != b, chainerx.not_equal, numpy.not_equal),
-    (lambda a, b: a > b, chainerx.greater, numpy.greater),
-    (lambda a, b: a >= b, chainerx.greater_equal, numpy.greater_equal),
-    (lambda a, b: a < b, chainerx.less, numpy.less),
-    (lambda a, b: a <= b, chainerx.less_equal, numpy.less_equal),
+@chainer.testing.parameterize_pytest('cmp_op,module_func', [
+    (lambda a, b: a == b, 'equal'),
+    (lambda a, b: a != b, 'not_equal'),
+    (lambda a, b: a > b, 'greater'),
+    (lambda a, b: a >= b, 'greater_equal'),
+    (lambda a, b: a < b, 'less'),
+    (lambda a, b: a <= b, 'less_equal'),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
-    a_np = _to_array_safe(numpy, a_object, dtype)
-    b_np = _to_array_safe(numpy, b_object, dtype)
-    if a_np is None or b_np is None:
-        return
+# Ignore warnings from numpy for NaN comparisons.
+@pytest.mark.filterwarnings('ignore:invalid value encountered in ')
+class TestCmp(op_utils.NumpyOpTest):
 
-    a_chx = chainerx.array(a_np)
-    b_chx = chainerx.array(b_np)
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-    chainerx.testing.assert_array_equal_ex(
-        cmp_op(a_chx, b_chx), cmp_op(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(
-        cmp_op(b_chx, a_chx), cmp_op(b_np, a_np))
-    chainerx.testing.assert_array_equal_ex(
-        chx_cmp(a_chx, b_chx), np_cmp(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(
-        chx_cmp(b_chx, a_chx), np_cmp(b_np, a_np))
+    def setup(self, dtype):
+        a_object = self.a_object
+        b_object = self.b_object
+        self.a_np = _to_numpy_array_or_skip(a_object, dtype)
+        self.b_np = _to_numpy_array_or_skip(b_object, dtype)
+
+    def generate_inputs(self):
+        a = self.a_np
+        b = self.b_np
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        cmp_op = self.cmp_op
+        module_func = getattr(xp, self.module_func)
+
+        y1 = cmp_op(a, b)
+        y2 = cmp_op(b, a)
+        y3 = module_func(a, b)
+        y4 = module_func(b, a)
+        return y1, y2, y3, y4
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -104,24 +117,35 @@ def test_cmp_invalid(cmp_op, chx_cmp, a_shape, b_shape):
     check(b, a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('a_object', [
-    ([]),
-    ([0]),
-    ([1]),
-    ([0.2]),
-    ([-0.3]),
-    ([True]),
-    ([False]),
-    ([0, 1, 2]),
-    ([0., numpy.nan]),
-    ([numpy.nan, numpy.inf]),
-    ([-numpy.inf, numpy.nan]),
-    ([[0, 1], [2, 0]]),
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_object', [
+    [],
+    [0],
+    [1],
+    [0.2],
+    [-0.3],
+    [True],
+    [False],
+    [0, 1, 2],
+    [0., numpy.nan],
+    [numpy.nan, numpy.inf],
+    [-numpy.inf, numpy.nan],
+    [[0, 1], [2, 0]],
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_logical_not(xp, device, a_object, dtype):
-    a = _to_array_safe(xp, a_object, dtype)
-    if a is None:
-        return chainerx.testing.ignore()
-    return xp.logical_not(a)
+class TestLogicalNot(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def setup(self, dtype):
+        a_object = self.a_object
+        self.a_np = _to_numpy_array_or_skip(a_object, dtype)
+
+    def generate_inputs(self):
+        a = self.a_np
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.logical_not(a)
+        return b,
