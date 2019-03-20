@@ -186,16 +186,3 @@ def _get_nccl_type_id(dtype):
         raise ValueError(
             'dtype must be float16, float32, or float64.')
 
-
-def get_allreduce_grad_dtype(allreduce_grad_dtype=None):
-    """Get a dtype object which is used for allreduce_grad communication.
-
-    :return: dtype object (either float16, float32, or float64)
-    """
-    if allreduce_grad_dtype is not None:
-        return allreduce_grad_dtype
-    else:
-        if chainer.global_config.dtype == chainer.mixed16:
-            return np.float16
-        else:
-            return chainer.global_config.dtype

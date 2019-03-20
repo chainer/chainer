@@ -83,7 +83,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         assert allreduce_grad_dtype is not None
 
         n_elems = sum(param.grad.size for param in params)
-        # TODO(kfukuda): do we need to pass allreduce_grad_dtype twice?
         needs_sync = self._prepare_allreduce_pack_buffer(allreduce_grad_dtype,
                                                          allreduce_grad_dtype,
                                                          n_elems)
@@ -91,7 +90,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             chainer.cuda.Stream.null.synchronize()
 
         # pack grads from params -> buffer A
-        # TODO(kfukuda): do we need to pass allreduce_grad_dtype twice?
         self._pack_params_to_buffer(params, allreduce_grad_dtype,
                                     n_elems, stream)
         # Allreduce from buffer A -> buffer B
@@ -130,12 +128,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_buffer_b.assign(allreduce_grad_n_bytes)
             needs_sync = True
 
-        # TODO(kfukuda): What type should gpu_tmp_buffer be?
-        if grad_dtype != allreduce_grad_dtype:
-            grad_n_bytes = grad_dtype.itemsize * n_elems
-            if self.gpu_tmp_buffer.size != grad_n_bytes:
-                self.gpu_tmp_buffer.assign(grad_n_bytes)
-                needs_sync = True
         return needs_sync
 
     def _pack_params_to_buffer(self, params, allreduce_grad_dtype,
