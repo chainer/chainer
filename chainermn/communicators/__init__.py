@@ -42,18 +42,17 @@ def create_communicator(
 
     The table blow summarizes the data type selection in gradient exchange.
 
-    +-----------------+----------------------------------------------+
-    | chainer.        |             allreduce_grad_dtype             |
-    | global_config.  |                                              |
-    | dtype           | None    |   numpy.float16  | numpy.float32   |
-    |-----------------+---------+------------------+-----------------+
-    | chainer.mixed16 | FP16    |   FP16           | FP32            |
-    |-----------------+---------+------------------+-----------------+
-    | numpy.float16   | FP16    |   FP16           | FP32            |
-
-    |-----------------+---------+------------------+-----------------+
-    | numpy.float32   | FP32    |   FP16           | FP32            |
-    |-----------------+----------------------------+-----------------+
+    +---------------------+--------------------------------------------+
+    |                     |              allreduce_grad_dtype          |
+    +---------------------+---------+------------------+---------------+
+    | global_config.dtype | None    |   numpy.float16  | numpy.float32 |
+    +=====================+=========+==================+===============+
+    | chainer.mixed16     | FP16    |   FP16           | FP32          |
+    +---------------------+---------+------------------+---------------+
+    | numpy.float16       | FP16    |   FP16           | FP32          |
+    +---------------------+---------+------------------+---------------+
+    | numpy.float32       | FP32    |   FP16           | FP32          |
+    +---------------------+----------------------------+---------------+
 
     Other communicator, including flat and hierarchical, support only
     float32 communication, no matter what the model is. This is due to
