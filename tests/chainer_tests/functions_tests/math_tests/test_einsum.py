@@ -1,4 +1,3 @@
-import functools
 import unittest
 
 import numpy
