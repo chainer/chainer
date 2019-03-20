@@ -5,8 +5,6 @@ import pickle
 
 import mpi4py.MPI
 
-import chainer
-
 
 def init_ranks(mpi_comm):
     """Returns rank information of the local process in `mpi_comm`.
@@ -185,4 +183,3 @@ def _get_nccl_type_id(dtype):
     else:
         raise ValueError(
             'dtype must be float16, float32, or float64.')
-
