@@ -213,16 +213,18 @@ class BatchNormalization(function_node.FunctionNode):
         else:
             # Generic CPU and GPU implementation
 
-            gamma = gamma[expander]
-            beta = beta[expander]
-            self.mean = x.mean(axis=self.axis, dtype=gamma.dtype)
-            var = x.var(axis=self.axis, dtype=gamma.dtype)
+            dtype = numpy.result_type(x, gamma)
+
+            gamma = gamma[expander].astype(dtype, copy=False)
+            beta = beta[expander].astype(dtype, copy=False)
+            self.mean = x.mean(axis=self.axis, dtype=dtype)
+            var = x.var(axis=self.axis, dtype=dtype)
             if xp is numpy:
                 self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=gamma.dtype))
+                    var + self.eps, dtype=dtype))
             else:
-                self.inv_std = cuda.cupyx.rsqrt(var + self.eps,
-                                                dtype=gamma.dtype)
+                self.inv_std = cuda.cupyx.rsqrt(var + self.eps, dtype=dtype)
+
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics

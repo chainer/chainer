@@ -6,6 +6,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/context.h"
+#include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
@@ -81,7 +82,7 @@ GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
         const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis)
     : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
-void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
+void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(x_mean)->nodes().empty());
@@ -90,6 +91,7 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
     gamma_ = std::make_shared<Array>(std::move(gamma));
     x_mean_ = std::make_shared<Array>(std::move(x_mean));
     x_inv_std_ = std::make_shared<Array>(std::move(x_inv_std));
+    beta_dtype_ = beta_dtype;
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
@@ -111,7 +113,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     running_var_ *= decay_;
     running_var_ += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    SetForwardResults(x, gamma, std::move(x_mean), std::move(x_inv_std));
+    SetForwardResults(x, gamma, std::move(x_mean), std::move(x_inv_std), beta.dtype());
 
     return std::move(out);
 }
@@ -131,6 +133,19 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     Array ggamma = (gout * x_hat).Sum(axis_, true);
     Array gbeta = gout.Sum(axis_, true);
     Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
+
+    // TODO(hvy): Avoid explicit cast if possible.
+    /*
+    if (gx.dtype() != x.dtype()) {
+        gx = gx.AsType(x.dtype());
+    }
+    if (ggamma.dtype() != gamma.dtype()) {
+        ggamma = ggamma.AsType(gamma.dtype());
+    }
+    if (gbeta.dtype() != beta_dtype()) {
+        gbeta = gbeta.AsType(beta_dtype());
+    }
+    */
 
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }

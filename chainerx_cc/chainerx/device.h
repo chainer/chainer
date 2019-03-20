@@ -9,6 +9,8 @@
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
 #include "chainerx/constant.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
@@ -48,7 +50,7 @@ public:
     std::array<Array, 3> Backward(const Array& gout) override;
 
 protected:
-    void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std);
+    void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype);
 
     const Array& running_mean() { return running_mean_; }
     const Array& running_var() { return running_var_; }
@@ -61,6 +63,12 @@ protected:
     const Array& gamma() { return *gamma_; }
     const Array& x_mean() { return *x_mean_; }
     const Array& x_inv_std() { return *x_inv_std_; }
+    Dtype beta_dtype() {
+        if (!beta_dtype_.has_value()) {
+            throw ChainerxError{"Beta dtype must first be set with a call to SetForwardResults."};
+        }
+        return *beta_dtype_;
+    }
 
 private:
     const Array& running_mean_;
@@ -74,6 +82,7 @@ private:
     std::shared_ptr<Array> gamma_;
     std::shared_ptr<Array> x_mean_;
     std::shared_ptr<Array> x_inv_std_;
+    nonstd::optional<Dtype> beta_dtype_;
 };
 
 // Device base class.
