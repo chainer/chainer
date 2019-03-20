@@ -66,7 +66,7 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
         elif dtype == numpy.float64:
             return libcudnn.CUDNN_DATA_DOUBLE, 8
         else:
-            raise RuntimeError()
+            raise ValueError('Invalid dtype of {}'.format(dtype))
 
 
 class CudnnRNNWeightConcat(function.Function):
@@ -124,8 +124,7 @@ class CudnnRNNWeightConcat(function.Function):
                         w_type.ndim == 2,
                         w_type.shape[0] == out_size,
                         w_type.shape[1] == w_in,
-                        w_type.dtype == b_type.dtype,
-                        b_type.dtype.kind == 'f',
+                        b_type.dtype == w_type.dtype,
                         b_type.ndim == 1,
                         b_type.shape[0] == out_size,
                     )
@@ -247,8 +246,7 @@ class BaseNStepRNN(function.Function):
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
                 h_type.dtype.kind == 'f',
-                c_type.dtype.kind == 'f',
-                h_type.dtype == c_type.dtype,
+                c_type.dtype == h_type.dtype,
 
                 h_type.ndim == 3,
                 h_type.shape[0] == h_size,
@@ -274,7 +272,6 @@ class BaseNStepRNN(function.Function):
             )
 
         type_check.expect(
-            x_type.dtype.kind == 'f',
             x_type.dtype == h_type.dtype,
             x_type.ndim == 2,
             x_type.shape[0] == self.sections[-1],

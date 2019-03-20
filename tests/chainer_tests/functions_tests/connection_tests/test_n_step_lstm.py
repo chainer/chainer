@@ -297,7 +297,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     def setUp(self):
         self.xs = _shaped_random(
             [(b, self.in_size) for b in self.batches], self.dtype)
-        h_shape = (self.n_layers, self.batches[0], self.out_size)
+        h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
         self.cx = _shaped_random(h_shape, self.dtype)
         self.hx = _shaped_random(h_shape, self.dtype)
 
