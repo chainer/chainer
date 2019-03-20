@@ -162,7 +162,8 @@ class FunctionTestBase(object):
             raise unittest.SkipTest('skip_forward_test is set')
 
         self.backend_config = backend_config
-        self.before_test('test_forward')
+        self.test_name = 'test_forward'
+        self.before_test(self.test_name)
 
         cpu_inputs = self._generate_inputs()
         inputs_copied = [a.copy() for a in cpu_inputs]
@@ -210,7 +211,8 @@ class FunctionTestBase(object):
         from chainer import gradient_check
 
         self.backend_config = backend_config
-        self.before_test('test_backward')
+        self.test_name = 'test_backward'
+        self.before_test(self.test_name)
 
         def f(*args):
             return self._forward(args, backend_config)
@@ -253,7 +255,8 @@ class FunctionTestBase(object):
         from chainer import gradient_check
 
         self.backend_config = backend_config
-        self.before_test('test_double_backward')
+        self.test_name = 'test_double_backward'
+        self.before_test(self.test_name)
 
         def f(*args):
             return self._forward(args, backend_config)
