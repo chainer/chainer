@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.functions.array import reshape
@@ -97,7 +95,7 @@ def instance_normalization(x, gamma, beta, **kwargs):
 
     bn = batch_normalization.BatchNormalization(
         eps=eps, mean=tiled_mean, var=tiled_var, decay=decay, axis=None)
-    bn.warn_on_single_sample = False
+    bn.warn_on_single_input = False
     y = bn.apply((x, gamma, beta))[0]
     y = reshape.reshape(y, original_shape)
 
@@ -105,22 +103,22 @@ def instance_normalization(x, gamma, beta, **kwargs):
     with chainer.using_device(device):
         if running_mean is not None:
             if xp is chainerx:
-                running_mean, tiled_mean = backend.from_chainerx(
+                running_mean, tiled_mean = backend.from_chx(
                     (running_mean, tiled_mean)
                 )
             mean = tiled_mean.reshape(batch_size, channels).mean(axis=0)
             running_mean[:] = mean
             if xp is chainerx:
-                running_mean = backend.to_chainerx(running_mean)
+                running_mean = backend.to_chx(running_mean)
         if running_var is not None:
             if xp is chainerx:
-                running_var, tiled_var = backend.from_chainerx(
+                running_var, tiled_var = backend.from_chx(
                     (running_var, tiled_var)
                 )
             var = tiled_var.reshape(batch_size, channels).mean(axis=0)
             running_var[:] = var
             if xp is chainerx:
-                running_var = backend.to_chainerx(running_var)
+                running_var = backend.to_chx(running_var)
     return y
 
 

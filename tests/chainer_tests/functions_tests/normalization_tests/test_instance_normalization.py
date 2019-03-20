@@ -1,6 +1,7 @@
 import numpy
 import unittest
 
+import chainer
 from chainer import functions
 from chainer import testing
 from chainer.testing import backend
@@ -31,7 +32,8 @@ def _instance_normalization(
             running_mean += (1 - decay) * mean.reshape(b, c).mean(axis=0)
         if running_var is not None:
             running_var *= decay
-            running_var += (1 - decay) * adjust * var.reshape(b, c).mean(axis=0)
+            running_var += (
+                1 - decay) * adjust * var.reshape(b, c).mean(axis=0)
     return y
 
 
@@ -51,7 +53,7 @@ def _fixed_instance_normalization(
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'running_statistics': [False],
+    'running_statistics': [True, False],
     'eps': [2e-5],
     'decay': [0.9],
 })))
@@ -102,14 +104,17 @@ class TestInstanceNormalization(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, gamma, beta = inputs
-        running_mean = self.running_mean
-        running_var = self.running_var
         if self.running_statistics:
-            running_mean = device.send(running_mean.copy())
-            running_var = device.send(running_var.copy())
+            # FIXME(crcrpar): device seems not to work well.
+            running_mean, running_var = device.send((
+                self.running_mean.copy(), self.running_var.copy()
+            ))
+        else:
+            running_mean, running_var = None, None
+
         y = functions.instance_normalization(
             x, gamma, beta, running_mean=running_mean, running_var=running_var,
-            eps=self.eps, decay=self.decay),
+            eps=self.eps, decay=self.decay)
         if self.running_statistics:
             return (
                 y, chainer.Variable(running_mean),
@@ -123,6 +128,7 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         if self.running_statistics:
             running_mean = running_mean.copy()
             running_var = running_var.copy()
+
         y = _instance_normalization(
             x, gamma, beta, running_mean, running_var, self.eps, self.decay)
         if self.running_statistics:

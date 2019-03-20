@@ -10,7 +10,8 @@ from chainer.utils import argument
 
 class InstanceNormalization(link.Link):
 
-    """Instance normalization layer on outputs of linear or convolution functions.
+    """Instance normalization layer on outputs of linear or \
+convolution functions.
 
     This link wraps the :func:`~chainer.functions.instance_normalization`.
     Instance normalization is very close to batch normalization but different
@@ -180,6 +181,9 @@ class InstanceNormalization(link.Link):
                 to compute population statistics for normalization,
                 and normalizes the input using instance statistics.
 
+        Returns:
+            ~chainer.Variable: Output variable with the same shape of ``x``.
+
         """
         finetune, = argument.parse_kwargs(
             kwargs, ('finetune', False),
@@ -204,7 +208,7 @@ class InstanceNormalization(link.Link):
 
         avg_mean, avg_var = self.avg_mean, self.avg_var
         decay = self.decay
-        if chainer.congig.tain:
+        if chainer.config.train:
             if self.track_avg_stats:
                 if finetune:
                     self.N += 1
