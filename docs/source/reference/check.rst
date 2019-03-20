@@ -32,6 +32,7 @@ The :mod:`chainer.gradient_check` module makes it easy to implement the gradient
    :nosignatures:
 
    chainer.gradient_check.check_backward
+   chainer.gradient_check.check_double_backward
    chainer.gradient_check.numerical_grad
 
 Standard Assertions
