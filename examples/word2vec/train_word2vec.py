@@ -137,8 +137,8 @@ class WindowIterator(chainer.dataset.Iterator):
                                            self.current_position)
         self.epoch = serializer('epoch', self.epoch)
         self.is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
-        if self._order is not None:
-            serializer('_order', self._order)
+        if self.order is not None:
+            serializer('order', self.order)
 
 
 def convert(batch, device):
