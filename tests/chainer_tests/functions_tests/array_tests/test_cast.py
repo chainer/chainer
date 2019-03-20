@@ -16,11 +16,21 @@ from chainer.testing import attr
         {'shape': ()},
     ],
     [
+        {'in_type': numpy.bool_},
+        {'in_type': numpy.uint8},
+        {'in_type': numpy.uint64},
+        {'in_type': numpy.int8},
+        {'in_type': numpy.int64},
         {'in_type': numpy.float16},
         {'in_type': numpy.float32},
         {'in_type': numpy.float64},
     ],
     [
+        {'out_type': numpy.bool_},
+        {'out_type': numpy.uint8},
+        {'out_type': numpy.uint64},
+        {'out_type': numpy.int8},
+        {'out_type': numpy.int64},
         {'out_type': numpy.float16},
         {'out_type': numpy.float32},
         {'out_type': numpy.float64},
@@ -46,6 +56,10 @@ class TestCast(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, g_data):
+        if (numpy.dtype(self.in_type).kind != 'f'
+                or numpy.dtype(self.out_type).kind != 'f'):
+            raise unittest.SkipTest('Non-float dtypes')
+
         def func(x):
             return functions.cast(x, self.out_type)
 

@@ -52,6 +52,7 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
+
         _memory_utility.pack_params(
             params, itemsize, 'grad', self.gpu_buffer_a)
 

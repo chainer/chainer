@@ -22,6 +22,8 @@
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
 
+#include "chainerx/routines/type_util.h"
+
 namespace chainerx {
 namespace internal {
 
@@ -96,7 +98,9 @@ Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
     return array;
 }
 
-Array Full(const Shape& shape, Scalar fill_value, Device& device) { return Full(shape, fill_value, fill_value.dtype(), device); }
+Array Full(const Shape& shape, Scalar fill_value, Device& device) {
+    return Full(shape, fill_value, internal::GetDefaultDtype(fill_value.kind()), device);
+}
 
 Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 0, dtype, device); }
 
@@ -104,7 +108,7 @@ Array Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape,
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device) {
     // TODO(hvy): Simplify comparison if Scalar::operator== supports dtype conversion.
-    if (step == Scalar{0, step.dtype()}) {
+    if (static_cast<double>(step) == 0.0) {
         throw ChainerxError("Cannot create an arange array with 0 step size.");
     }
 
@@ -128,19 +132,19 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Device& device) {
     // TODO(hvy): Type promote instead of using the dtype of step.
-    return Arange(start, stop, step, step.dtype(), device);
+    return Arange(start, stop, step, internal::GetDefaultDtype(step.kind()), device);
 }
 
 Array Arange(Scalar start, Scalar stop, Dtype dtype, Device& device) { return Arange(start, stop, 1, dtype, device); }
 
 Array Arange(Scalar start, Scalar stop, Device& device) {
     // TODO(hvy): Type promote dtype instead of using the dtype of stop.
-    return Arange(start, stop, 1, stop.dtype(), device);
+    return Arange(start, stop, 1, internal::GetDefaultDtype(stop.kind()), device);
 }
 
 Array Arange(Scalar stop, Dtype dtype, Device& device) { return Arange(0, stop, 1, dtype, device); }
 
-Array Arange(Scalar stop, Device& device) { return Arange(0, stop, 1, stop.dtype(), device); }
+Array Arange(Scalar stop, Device& device) { return Arange(0, stop, 1, internal::GetDefaultDtype(stop.kind()), device); }
 
 Array EmptyLike(const Array& a, Device& device) { return Empty(a.shape(), a.dtype(), device); }
 
@@ -315,7 +319,7 @@ Array Linspace(
     static const int64_t kDefaultNum = 50;
 
     // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.
-    Dtype dtype_a = dtype.value_or(start.dtype());
+    Dtype dtype_a = dtype.value_or(internal::GetDefaultDtype(start.kind()));
     int64_t num_a = num.value_or(kDefaultNum);
 
     if (num_a < 0) {
