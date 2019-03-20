@@ -214,7 +214,19 @@ def numerical_grad(
                 eval_func(x, i, +eps * 1, orig),
             ]
 
-        if detect_nondifferentiable:
+        assert all([
+            y is None
+            or (y.shape == yss[0][i].shape and y.dtype == yss[0][i].dtype)
+            for ys in yss
+            for i, y in enumerate(ys)])
+
+        # If all the outputs are 0-size, skip non-differentiable check.
+        if all([y is None or y.size == 0 for y in yss[0]]):
+            detect_nondifferentiable_ = False
+        else:
+            detect_nondifferentiable_ = detect_nondifferentiable
+
+        if detect_nondifferentiable_:
             # Detect non-differentiable point by quadratic fitting
 
             # Check for non-finite output.
