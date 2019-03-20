@@ -24,22 +24,13 @@ def _from_str_subscript(subscript):
     ]
 
 
-def _skip_if(cond, reason):
-    def decorator(impl):
-        @functools.wraps(impl)
-        def wrapper(self, *args, **kwargs):
-            if cond(self):
-                raise unittest.SkipTest(reason)
-            else:
-                impl(self, *args, **kwargs)
-        return wrapper
-    return decorator
+_np_einsum_float16_bug = numpy.lib.NumpyVersion(numpy.__version__) < '1.15.0'
 
 
-_skip_if_float16 = _skip_if(
-    lambda self: self.dtype == numpy.float16,
-    'float16 is not supported. See numpy issue #10899.'
-)
+def _skip_float16_bug():
+    if _np_einsum_float16_bug:
+        raise unittest.SkipTest(
+            'float16 is not supported. See numpy issue #10899.')
 
 
 @testing.parameterize(*testing.product_dict(
@@ -113,9 +104,9 @@ class TestEinSum(unittest.TestCase):
         out = self.op(*[chainer.Variable(x) for x in inputs_data])
         testing.assert_allclose(self.forward_answer, out.data, atol, rtol)
 
-    @_skip_if_float16
     def test_einsum_forward_cpu(self):
         if self.dtype == numpy.float16:
+            _skip_float16_bug()
             self.check_forward(self.inputs, atol=1e-3, rtol=1e-3)
         else:
             self.check_forward(self.inputs)
@@ -133,8 +124,9 @@ class TestEinSum(unittest.TestCase):
             self.op, inputs_data, output_grad, atol=atol, rtol=rtol,
             dtype=numpy.float64)
 
-    @_skip_if_float16
     def test_einsum_backward_cpu(self):
+        if self.dtype == numpy.float16:
+            _skip_float16_bug()
         self.check_backward(self.inputs, self.g, atol=1e-2, rtol=5e-2)
 
     @attr.gpu
@@ -150,8 +142,9 @@ class TestEinSum(unittest.TestCase):
             self.op, inputs_data, y_grad, inputs_grad_grad,
             atol=atol, rtol=rtol, dtype=numpy.float64)
 
-    @_skip_if_float16
     def test_einsum_double_backward_cpu(self):
+        if self.dtype == numpy.float16:
+            _skip_float16_bug()
         self.check_double_backward(
             self.inputs, self.g, self.gg_inputs,
             atol=1e-2, rtol=5e-2)
