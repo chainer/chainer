@@ -22,6 +22,8 @@ Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
 // Returns a transposed view of the array.
 Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
 
+Array Pad(const Array& a, int8_t pad_width, const std::string& mode, int64_t constant_values);
+Array Pad(const Array& a, std::vector<int8_t> pad_width, const std::string& mode, std::vector<int64_t> constant_values);
 // Returns a reshaped array.
 Array Reshape(const Array& a, const Shape& newshape);
 
