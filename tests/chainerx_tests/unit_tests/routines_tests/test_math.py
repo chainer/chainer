@@ -1049,33 +1049,32 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
-    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
-        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
 class TestSquare(op_utils.NumpyOpTest):
 
-    def setup(self, input, contiguous, float_dtype):
-        # Backward and double backward tests skipped to avoid
-        # numerical gradient calculation problem
-        if numpy.isinf(input).any():
-            op_utils.NumpyOpTest.skip_backward_test = True
-            op_utils.NumpyOpTest.skip_double_backward_test = True
-        self.input = input
-        self.dtype = float_dtype
+    def setup(self, input, contiguous, in_dtype, out_dtype):
+        self.input = input.astype(in_dtype)
+        self.chx_dtype = out_dtype
         self.contiguous = contiguous
-        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
 
-        if float_dtype == 'float16':
+        if in_dtype == 'float16':
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
 
     def generate_inputs(self):
         return self.input,
 
     def forward_xp(self, inputs, xp):
         x, = inputs
+        x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
         return xp.square(x),
 
 
