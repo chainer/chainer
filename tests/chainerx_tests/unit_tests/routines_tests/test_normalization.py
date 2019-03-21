@@ -224,8 +224,7 @@ def test_batch_norm_invalid_dimensions(
             eps=1e-2, decay=0.9, axis=axis)
 
 
-# @op_utils.op_test(['native:0', 'cuda:0'])
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
 @chainer.testing.parameterize_pytest(
