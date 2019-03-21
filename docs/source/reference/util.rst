@@ -5,7 +5,7 @@ Utilities
    :maxdepth: 2
 
 Convolution/Deconvolution utilities
----------------------
+------------------------------------
 
 .. autosummary::
    :toctree: generated/
