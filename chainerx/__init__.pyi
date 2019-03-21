@@ -760,6 +760,13 @@ def transpose(
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def pad(
+	a: ndarray,
+	pad_width: tp.Union[int, tp.List[int]],
+	mode: str,
+	constant_values: tp.Union[int, tp.List[int]]) -> ndarray: ...
+
+
 def zeros(
         shape: tp.Union[int, tp.Tuple[int, ...]],
         dtype: tp.Optional[tp.Any]=None,
