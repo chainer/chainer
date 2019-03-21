@@ -57,6 +57,28 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2, Dtype dtype
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
+// Called from Maximum, Minimum, etc. to handle broadcasting.
+template <typename Impl>
+Array BroadcastQuaternary(Impl&& impl, const Array& x1, const Array& x2) {
+    auto func = [&impl](const Array& x1, const Array& x2) -> Array {
+        Array out = EmptyLike(x1, x1.device());
+        out = impl(x1, x2, x2, x1);
+        return out;
+    };
+
+    if(x1.shape() == x2.shape()) {
+        return func(x1, x2);
+    }
+    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
+    }
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
+    }
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+}
+
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
 template <typename Impl>
 void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
@@ -590,6 +612,8 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 namespace {
 
 Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
     Array out = EmptyLike(x1, x1.device());
     {
         NoBackpropModeScope scope{};
@@ -631,7 +655,7 @@ Array Minimum(const Array& x1, Scalar x2) {
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
-    return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
+    return BroadcastQuaternary(&IfGreaterElse, x1, x2);  // x1 > x2 ? x2 : x1
 }
 
 Array Exp(const Array& x) {
