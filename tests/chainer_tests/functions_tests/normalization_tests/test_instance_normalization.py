@@ -38,7 +38,7 @@ def _instance_normalization(
 
 
 def _fixed_instance_normalization(
-        x, gamma, beta, mean, var, eps=2e-5, decay=0.9):
+        x, gamma, beta, mean, var, eps=2e-5):
     org_shape = x.shape
     aggr_axes = (0,) + tuple(range(2, len(org_shape)))
     expander = [Ellipsis] * len(org_shape)
@@ -139,7 +139,6 @@ class TestInstanceNormalization(testing.FunctionTestCase):
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [2e-5],
-    'decay': [0.9],
 })))
 @backend.inject_backend_tests(
     None,
@@ -187,8 +186,7 @@ class TestFixedInstanceNormalization(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, gamma, beta, mean, var = inputs
-        y = _fixed_instance_normalization(
-            x, gamma, beta, mean, var, self.eps, self.decay)
+        y = _fixed_instance_normalization(x, gamma, beta, mean, var, self.eps)
         return y,
 
 
