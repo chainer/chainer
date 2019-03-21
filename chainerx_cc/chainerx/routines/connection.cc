@@ -312,7 +312,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         CheckEqual(x.dtype(), b->dtype());
     }
 
-    if (w.ndim() < 1) {
+    if (x.ndim() < 1) {
         throw DimensionError{"x.ndim should be greater than or equal to 1"};
     }
     if (w.ndim() != 2) {
