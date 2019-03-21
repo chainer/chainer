@@ -50,9 +50,6 @@ private:
     nonstd::optional<Dtype> array_max_dtype_;
     nonstd::optional<Dtype> scalar_max_dtype_;
 
-    // Returns the minimal dtype which can be safely casted from both dtypes.
-    static Dtype PromoteType(Dtype dt1, Dtype dt2);
-
     void AddArgsImpl() {
         // nop
     }

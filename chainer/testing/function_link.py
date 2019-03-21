@@ -267,6 +267,10 @@ class FunctionTestBase(object):
             grad_outputs = self._generate_grad_outputs(outputs)
             grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
 
+            # Drop ggx corresponding to non-differentiable inputs.
+            grad_grad_inputs = [
+                ggx for ggx in grad_grad_inputs if ggx.dtype.kind == 'f']
+
             inputs = backend_config.get_array(inputs)
             grad_outputs = backend_config.get_array(grad_outputs)
             grad_grad_inputs = backend_config.get_array(grad_grad_inputs)

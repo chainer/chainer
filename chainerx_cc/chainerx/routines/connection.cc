@@ -21,6 +21,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/stack_vector.h"
 
 namespace chainerx {
@@ -69,26 +70,27 @@ Array ConvGradW(
     {
         NoBackpropModeScope scope{};
         out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
     {
         BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 CHAINERX_ASSERT(out_size.size() == stride.size());
-                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size);
+                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size, x_dtype);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
+                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all, gy_dtype);
             });
         }
         bb.Finalize();
@@ -125,7 +127,8 @@ Array Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        bool cover_all,
+        nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
     if (w.shape()[1] != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -134,10 +137,12 @@ Array Conv(
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
     }
 
+    Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : b.has_value() ? ResultType(x, w, *b) : ResultType(x, w);
+
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().Conv(x, w, b, stride, pad, cover_all);
+        out = x.device().Conv(x, w, b, stride, pad, cover_all, real_out_dtype);
     }
 
     {
@@ -151,11 +156,11 @@ Array Conv(
         BackwardBuilder bb{"conv", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size);
+                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size, x_dtype);
             });
         }
 
@@ -169,13 +174,14 @@ Array Conv(
 
         if (b.has_value()) {
             if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
-                bt.Define([](BackwardContext& bctx) {
+                bt.Define([b_dtype = b->dtype()](BackwardContext& bctx) {
                     const Array& gout = *bctx.output_grad();
                     Axes axis{0};
                     for (int8_t i = 2; i < gout.ndim(); ++i) {
                         axis.emplace_back(int64_t{i});
                     }
-                    bctx.input_grad() = Sum(gout, axis, false);
+                    // TODO(niboshi): Avoid AsType
+                    bctx.input_grad() = Sum(gout, axis, false).AsType(b_dtype, false);
                 });
             }
         }
@@ -191,7 +197,8 @@ Array ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size,
+        nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
     if (x.shape()[1] != w.shape()[0]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -241,11 +248,13 @@ Array ConvTranspose(
         }
     }
 
+    Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : b.has_value() ? ResultType(x, w, *b) : ResultType(x, w);
+
     // Compute transposed convolution
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
+        out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size, real_out_dtype);
     }
 
     {
@@ -259,11 +268,11 @@ Array ConvTranspose(
         BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all);
+                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all, x_dtype);
             });
         }
 
@@ -277,13 +286,14 @@ Array ConvTranspose(
 
         if (b.has_value()) {
             if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
-                bt.Define([](BackwardContext& bctx) {
+                bt.Define([b_dtype = b->dtype()](BackwardContext& bctx) {
                     const Array& gout = *bctx.output_grad();
                     Axes axis{0};
                     for (int8_t i = 2; i < gout.ndim(); ++i) {
                         axis.emplace_back(int64_t{i});
                     }
-                    bctx.input_grad() = Sum(gout, axis, false);
+                    // TODO(niboshi): Avoid AsType
+                    bctx.input_grad() = Sum(gout, axis, false).AsType(b_dtype, false);
                 });
             }
         }
@@ -302,7 +312,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         CheckEqual(x.dtype(), b->dtype());
     }
 
-    if (w.ndim() < 1) {
+    if (x.ndim() < 1) {
         throw DimensionError{"x.ndim should be greater than or equal to 1"};
     }
     if (w.ndim() != 2) {

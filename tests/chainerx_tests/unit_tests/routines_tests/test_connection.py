@@ -1,10 +1,12 @@
 import chainer
+from chainer import functions as F
 import numpy
 import pytest
 
 import chainerx
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
@@ -28,24 +30,48 @@ def _create_conv_args(
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('x_shape,w_shape,b_shape,stride,pad', [
-    ((1, 3), (5, 3), (5,), 1, 0),
-    ((1, 3), (5, 3), None, 1, 0),
-    ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
-    ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
-    ((1, 3, 4), (5, 3, 2), None, 3, 2),
-    ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
-    ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
-    ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
-    ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
-    ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
-    ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
-    ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
-])
+@chainer.testing.parameterize(*(
+    # without bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (5, 3), None, 1, 0),
+                ((1, 3, 4), (5, 3, 2), None, 3, 2),
+                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
+                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
+    ]) +
+    # with bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (5, 3), (5,), 1, 0),
+                ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
+                ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
+                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
+    ])
+))
 @chainer.testing.parameterize_pytest('cover_all', [True, False])
 class TestConv(op_utils.ChainerOpTest):
 
-    def setup(self, float_dtype):
+    def setup(self):
+        if len(self.in_dtypes) == 3:
+            x_dtype, w_dtype, b_dtype = self.in_dtypes
+        else:
+            (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
+
+        x_kind = numpy.dtype(x_dtype).kind
+        w_kind = numpy.dtype(w_dtype).kind
+        b_kind = None if b_dtype is None else numpy.dtype(b_dtype).kind
 
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
@@ -53,13 +79,15 @@ class TestConv(op_utils.ChainerOpTest):
             pytest.skip('cudnn does not support 1-dim convolution')
         if device.backend.name == 'cuda' and self.cover_all:
             pytest.skip('cudnn does not support cover_all')
-        if device.backend.name == 'native' and float_dtype == 'float16':
-            # TODO(niboshi): Fix accuracy
-            pytest.skip('Native float16 operation has insufficient accuracy')
 
-        self.dtype = float_dtype
+        # Skip backward/double-backward tests for int dtypes
+        if (x_kind != 'f' and w_kind != 'f'
+                and (b_kind is None or b_kind != 'f')):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
 
-        if float_dtype == 'float16':
+        if (x_dtype == 'float16' or w_dtype == 'float16'
+                or b_dtype == 'float16'):
             self.check_forward_options.update({'rtol': 5e-2, 'atol': 5e-3})
             self.check_backward_options.update({
                 'eps': 2 ** -3, 'rtol': 1e-1, 'atol': 1e-2})
@@ -74,13 +102,16 @@ class TestConv(op_utils.ChainerOpTest):
         x_shape = self.x_shape
         w_shape = self.w_shape
         b_shape = self.b_shape
-        dtype = self.dtype
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        w = numpy.random.uniform(-1, 1, w_shape).astype(dtype)
+        if len(self.in_dtypes) == 3:
+            x_dtype, w_dtype, b_dtype = self.in_dtypes
+        else:
+            (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
+        x = array_utils.uniform(x_shape, x_dtype)
+        w = array_utils.uniform(w_shape, w_dtype)
         if b_shape is None:
             return x, w
         else:
-            b = numpy.random.uniform(-1, 1, b_shape).astype(dtype)
+            b = array_utils.uniform(b_shape, b_dtype)
             return x, w, b
 
     def forward_chainerx(self, inputs):
@@ -96,8 +127,15 @@ class TestConv(op_utils.ChainerOpTest):
             (x, w), b = inputs, None
         else:
             x, w, b = inputs
-        y = chainer.functions.convolution_nd(
+        if x.dtype.kind != 'f':
+            x = F.cast(x, 'float64')
+        if w.dtype.kind != 'f':
+            w = F.cast(w, 'float64')
+        if b is not None and b.dtype.kind != 'f':
+            b = F.cast(b, 'float64')
+        y = F.convolution_nd(
             x, w, b, self.stride, self.pad, self.cover_all)
+        y = F.cast(y, self.out_dtype)
         return y,
 
 
@@ -123,26 +161,49 @@ def test_conv_invalid(
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('x_shape,w_shape,b_shape,stride,pad', [
-    ((1, 3), (3, 5), (5,), 1, 0),
-    ((1, 3), (3, 5), None, 1, 0),
-    ((2, 3, 4), (3, 5, 1), (5,), 1, 0),
-    ((1, 3, 4), (3, 5, 2), (5,), 3, 2),
-    ((1, 3, 4), (3, 5, 2), None, 3, 2),
-    ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0),
-    ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1),
-    ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0)),
-    ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0)),
-    ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1)),
-    ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
-    ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
-])
+@chainer.testing.parameterize(*(
+    # without bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (3, 5), None, 1, 0),
+                ((1, 3, 4), (3, 5, 2), None, 3, 2),
+                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0)),
+                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
+    ]) +
+    # with bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (3, 5), (5,), 1, 0),
+                ((2, 3, 4), (3, 5, 1), (5,), 1, 0),
+                ((1, 3, 4), (3, 5, 2), (5,), 3, 2),
+                ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
+    ])
+))
 # If None, outsize argument will be None.
 @chainer.testing.parameterize_pytest('cover_all', [None, True, False])
 class TestConvTranspose(op_utils.ChainerOpTest):
 
-    def setup(self, float_dtype):
-        self.dtype = float_dtype
+    def setup(self):
+        if len(self.in_dtypes) == 3:
+            x_dtype, w_dtype, b_dtype = self.in_dtypes
+        else:
+            (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
+
+        x_kind = numpy.dtype(x_dtype).kind
+        w_kind = numpy.dtype(w_dtype).kind
+        b_kind = None if b_dtype is None else numpy.dtype(b_dtype).kind
 
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
@@ -154,7 +215,14 @@ class TestConvTranspose(op_utils.ChainerOpTest):
             pytest.skip(
                 'outsize (for cover_all=True) is not supported by CUDA')
 
-        if float_dtype == 'float16':
+        # Skip backward/double-backward tests for int dtypes
+        if (x_kind != 'f' and w_kind != 'f'
+                and (b_kind is None or b_kind != 'f')):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if (x_dtype == 'float16' or w_dtype == 'float16'
+                or b_dtype == 'float16'):
             self.check_forward_options.update({'rtol': 5e-2, 'atol': 5e-3})
             self.check_backward_options.update({
                 'eps': 2 ** -3, 'rtol': 1e-1, 'atol': 1e-2})
@@ -187,16 +255,19 @@ class TestConvTranspose(op_utils.ChainerOpTest):
         self.outsize = outsize
 
     def generate_inputs(self):
-        dtype = self.dtype
         x_shape = self.x_shape
         w_shape = self.w_shape
         b_shape = self.b_shape
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        w = numpy.random.uniform(-1, 1, w_shape).astype(dtype)
+        if len(self.in_dtypes) == 3:
+            x_dtype, w_dtype, b_dtype = self.in_dtypes
+        else:
+            (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
+        x = array_utils.uniform(x_shape, x_dtype)
+        w = array_utils.uniform(w_shape, w_dtype)
         if b_shape is None:
             return x, w
         else:
-            b = numpy.random.uniform(-1, 1, b_shape).astype(dtype)
+            b = array_utils.uniform(b_shape, b_dtype)
             return x, w, b
 
     def forward_chainerx(self, inputs):
@@ -213,8 +284,15 @@ class TestConvTranspose(op_utils.ChainerOpTest):
             x, w, b = inputs
         else:
             (x, w), b = inputs, None
+        if x.dtype.kind != 'f':
+            x = F.cast(x, 'float64')
+        if w.dtype.kind != 'f':
+            w = F.cast(w, 'float64')
+        if b is not None and b.dtype.kind != 'f':
+            b = F.cast(b, 'float64')
         y = chainer.functions.deconvolution_nd(
             x, w, b, self.stride, self.pad, self.outsize)
+        y = F.cast(y, self.out_dtype)
         return y,
 
 
@@ -291,12 +369,12 @@ class TestLinear(op_utils.OpTest):
         w_shape = self.w_shape
         b_shape = self.b_shape
         dtype = self.dtype
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        w = numpy.random.uniform(-1, 1, w_shape).astype(dtype)
+        x = array_utils.uniform(x_shape, dtype)
+        w = array_utils.uniform(w_shape, dtype)
         if b_shape in (None, Unspecified):
             return x, w
         else:
-            b = numpy.random.uniform(-1, 1, b_shape).astype(dtype)
+            b = array_utils.uniform(b_shape, dtype)
             return x, w, b
 
     def forward_chainerx(self, inputs):
