@@ -168,7 +168,7 @@ converting between a :class:`chainer.Variable` and these representations.
    
 
 Experimental feature annotation
-------------------------------
+---------------------------------
 .. autosummary::
    :toctree: generated/
    :nosignatures:
