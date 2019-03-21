@@ -2,6 +2,7 @@ import unittest
 
 import chainer
 import numpy
+import pytest
 
 import chainerx
 import chainerx.testing
@@ -111,15 +112,16 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         self.running_mean = numpy.random.uniform(
             -1, 1, reduced_shape).astype(float_dtype_gamma_beta_mean_var)
         self.running_var = numpy.random.uniform(
-            .1, 1, reduced_shape).astype(float_dtype_gamma_beta_mean_var)
+            0.1, 1, reduced_shape).astype(float_dtype_gamma_beta_mean_var)
 
-        self.optional_args = {}
+        optional_args = {}
         if eps is not None:
-            self.optional_args['eps'] = eps
+            optional_args['eps'] = eps
         if decay is not None:
-            self.optional_args['decay'] = decay
+            optional_args['decay'] = decay
         if axis is not None:
-            self.optional_args['axis'] = axis
+            optional_args['axis'] = axis
+        self.optional_args = optional_args
 
         if (float_dtype_x == 'float16'
                 or float_dtype_gamma_beta_mean_var == 'float16'):
@@ -204,7 +206,6 @@ class TestBatchNorm(op_utils.ChainerOpTest):
             self.running_var_chx, self.running_var_ch, **check_running_options)
 
 
-'''
 @pytest.mark.parametrize(
     'x_shape,gamma_shape,beta_shape,running_mean_shape,running_var_shape,axis',
     _batch_norm_invalid_dimensions_params)
@@ -223,9 +224,14 @@ def test_batch_norm_invalid_dimensions(
             eps=1e-2, decay=0.9, axis=axis)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
+# @op_utils.op_test(['native:0', 'cuda:0'])
+@op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest(
+    'float_dtype_x', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest(
+    'float_dtype_gamma_beta_mean_var', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest('eps', [None, 3e-5, 1.2])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
 class TestFixedBatchNorm(op_utils.ChainerOpTest):
@@ -235,8 +241,8 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
     skip_double_backward_test = True
 
     def setup(self, float_dtype):
-        self.dtype = float_dtype
-
+        float_dtype_x = self.float_dtype_x
+        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
         eps = self.eps
         axis = self.axis
 
@@ -247,7 +253,8 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
-        if float_dtype == 'float16':
+        if (float_dtype_x == 'float16'
+                or float_dtype_gamma_beta_mean_var == 'float16'):
             self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
         else:
             self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
@@ -255,13 +262,18 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x_shape = self.x_shape
         reduced_shape = self.reduced_shape
-        dtype = self.dtype
+        float_dtype_x = self.float_dtype_x
+        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
 
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(float_dtype_x)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(
+            float_dtype_gamma_beta_mean_var)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(
+            float_dtype_gamma_beta_mean_var)
+        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(
+            float_dtype_gamma_beta_mean_var)
+        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(
+            float_dtype_gamma_beta_mean_var)
 
         return x, gamma, beta, mean, var
 
@@ -294,4 +306,3 @@ def test_fixed_batch_norm_invalid_dimensions(
     with pytest.raises(chainerx.DimensionError):
         chainerx.fixed_batch_norm(
             x, gamma, beta, mean=mean, var=var, eps=1e-2, axis=axis)
-'''

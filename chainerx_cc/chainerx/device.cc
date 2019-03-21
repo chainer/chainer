@@ -181,7 +181,8 @@ Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     Dtype dtype = ResultType(x, gamma, beta, mean, var);
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, dtype);
-    return std::move(result.out);
+    const Array& out = result.out;
+    return out.dtype() == x.dtype() ? out : out.AsType(x.dtype());
 }
 
 }  // namespace chainerx
