@@ -293,10 +293,11 @@ use_bi_direction)
     xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = cuda.get_cudnn_dropout_states()
-        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
+        with cuda.get_device_from_array(xs.array):
+            states = cuda.get_cudnn_dropout_states()
+            states.set_dropout_ratio(dropout_ratio)
 
         w = n_step_rnn.cudnn_rnn_weight_concat(
             n_layers, states, use_bi_direction, 'gru', ws, bs)

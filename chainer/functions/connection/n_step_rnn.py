@@ -120,10 +120,10 @@ class CudnnRNNWeightConcat(function.Function):
                         b_type.shape[0] == out_size,
                     )
 
-    def forward(self, inputs):
+    def forward_gpu(self, inputs):
         handle = cudnn.get_handle()
         ws_size = self.n_layers * self.rnn_direction * self.n_W
-        ws = inputs[0:ws_size]
+        ws = inputs[:ws_size]
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
@@ -266,7 +266,7 @@ class BaseNStepRNN(function.Function):
             x_type.shape[0] == self.sections[-1],
         )
 
-    def forward(self, inputs):
+    def forward_gpu(self, inputs):
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs
@@ -668,10 +668,11 @@ use_bi_direction)
     xp = backend.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = cuda.get_cudnn_dropout_states()
-        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
+        with cuda.get_device_from_array(xs.array):
+            states = cuda.get_cudnn_dropout_states()
+            states.set_dropout_ratio(dropout_ratio)
 
         rnn_mode = 'rnn_%s' % activation
         w = cudnn_rnn_weight_concat(
