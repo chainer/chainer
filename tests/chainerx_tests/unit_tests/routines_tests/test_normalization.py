@@ -103,7 +103,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 'batch_norm with CUDA currently has limited support for '
                 'non-contiguous inputs.')
 
-        # Backward is unstable for fp16
+        # Backward is unstable for fp16.
         if (float_dtype_x == 'float16'
                 and float_dtype_gamma_beta_mean_var == 'float16'):
             self.skip_backward_test = True

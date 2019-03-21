@@ -126,9 +126,9 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     Array x_mean = Mean(x_cast, axis_, true);
     Array x_var = Var(x_cast, axis_, true);
 
-    const ApplyBatchNormResult result = ApplyBatchNorm(x_cast, gamma, beta, x_mean, x_var, eps_, axis_, dtype);
-    const Array& out = result.out;
-    const Array& x_inv_std = result.inv_std;
+    ApplyBatchNormResult result = ApplyBatchNorm(x_cast, gamma, beta, x_mean, x_var, eps_, axis_, dtype);
+    Array& out = result.out;
+    Array& x_inv_std = result.inv_std;
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();

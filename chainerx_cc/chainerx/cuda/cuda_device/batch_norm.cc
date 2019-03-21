@@ -50,7 +50,7 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
     CHAINERX_ASSERT(running.IsContiguous());
     CHAINERX_ASSERT(running_updated.IsContiguous());
 
-    Array running_casted_back = running_updated.AsType(running.dtype());
+    const Array& running_casted_back = running_updated.AsType(running.dtype());
 
     CHAINERX_ASSERT(&running.device() == &running_updated.device());
     Device& device = running.device();

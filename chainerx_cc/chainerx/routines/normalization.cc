@@ -45,11 +45,22 @@ Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
     return a.Reshape(shape);
 }
 
+void CheckBatchNormSupportedKind(const Array& array) {
+    // BatchNorm only supports inputs of float kind.
+    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"BatchNorm only supports floating kind inputs."};
+    }
+}
+
 // Reshapes the input arrays (except x) as needed.
 // Sorted axes is also returned.
 PreprocessBatchNormResult PreprocessBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, const OptionalAxes& axis) {
-    // Dtype dtype = x.dtype();
+    CheckBatchNormSupportedKind(x);
+    CheckBatchNormSupportedKind(gamma);
+    CheckBatchNormSupportedKind(beta);
+    CheckBatchNormSupportedKind(mean);
+    CheckBatchNormSupportedKind(var);
 
     Axes sorted_axis = axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0};
 
@@ -85,13 +96,6 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
-void CheckBatchNormSupportedKind(const Array& array) {
-    // BatchNorm only supports inputs of float kind.
-    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"BatchNorm only supports float kind inputs."};
-    }
-}
-
 Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template) {
     if (array.has_value()) {
         return *array;
@@ -110,12 +114,6 @@ Array BatchNorm(
         Scalar eps,
         Scalar decay,
         const OptionalAxes& axis) {
-    CheckBatchNormSupportedKind(x);
-    CheckBatchNormSupportedKind(gamma);
-    CheckBatchNormSupportedKind(beta);
-    CheckBatchNormSupportedKind(running_mean);
-    CheckBatchNormSupportedKind(running_var);
-
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, running_mean, running_var, axis);
     std::shared_ptr<BatchNormForwardBackward> fb =
             x.device().GetBatchNormForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
