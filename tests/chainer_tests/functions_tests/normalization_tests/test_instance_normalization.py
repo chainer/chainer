@@ -102,38 +102,33 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
         return x, gamma, beta
 
+    def get_running_averages(self, device=None):
+        if not self.running_statistics:
+            return None, None
+        mean = self.running_mean.copy()
+        var = self.running_var.copy()
+        if device is None:
+            return mean, var
+        return device.send((mean, var))
+
     def forward(self, inputs, device):
         x, gamma, beta = inputs
-        if self.running_statistics:
-            # FIXME(crcrpar): device seems not to work well.
-            running_mean, running_var = device.send((
-                self.running_mean.copy(), self.running_var.copy()
-            ))
-        else:
-            running_mean, running_var = None, None
-
+        mean, var = self.get_running_averages(device)
         y = functions.instance_normalization(
-            x, gamma, beta, running_mean=running_mean, running_var=running_var,
+            x, gamma, beta, running_mean=mean, running_var=var,
             eps=self.eps, decay=self.decay)
-        if self.running_statistics:
-            return (
-                y, chainer.Variable(running_mean),
-                chainer.Variable(running_var))
-        return y,
+        if not self.running_statistics:
+            return y,
+        return y, chainer.Variable(mean), chainer.Variable(var)
 
     def forward_expected(self, inputs):
         x, gamma, beta = inputs
-        running_mean = self.running_mean
-        running_var = self.running_var
-        if self.running_statistics:
-            running_mean = running_mean.copy()
-            running_var = running_var.copy()
-
+        running_mean, running_var = self.get_running_averages()
         y = _instance_normalization(
             x, gamma, beta, running_mean, running_var, self.eps, self.decay)
-        if self.running_statistics:
-            return y, running_mean, running_var
-        return y,
+        if not self.running_statistics:
+            return y,
+        return y, running_mean, running_var
 
     def before_test(self, test_name):
         if 'backward' in test_name and self.running_statistics:
