@@ -70,8 +70,7 @@ _batch_norm_invalid_dimensions_params = [
 ]
 
 
-# @op_utils.op_test(['native:0', 'cuda:0'])
-@op_utils.op_test(['cuda:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
 @chainer.testing.parameterize_pytest(
@@ -82,10 +81,6 @@ _batch_norm_invalid_dimensions_params = [
 @chainer.testing.parameterize_pytest('decay', [None, 0.5])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
 class TestBatchNorm(op_utils.ChainerOpTest):
-
-    skip_forward_test = False
-    skip_backward_test = False
-    skip_double_backward_test = False
 
     def setup(self):
         reduced_shape = self.reduced_shape
@@ -107,8 +102,9 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 'batch_norm with CUDA currently has limited support for '
                 'non-contiguous inputs.')
 
-        # Backward is unstable for fp16 parameters.
-        if float_dtype_gamma_beta_mean_var == 'float16':
+        # Backward is unstable for fp16
+        if (float_dtype_x == 'float16'
+                and float_dtype_gamma_beta_mean_var == 'float16'):
             self.skip_backward_test = True
             self.skip_double_backward_test = True
 

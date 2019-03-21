@@ -124,6 +124,7 @@ Array BatchNorm(
     const Array& beta_reshaped = result.beta;
 
     Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
+    CHAINERX_ASSERT(out.dtype() == x.dtype());
     internal::MakeViewForForwardBackwardOutput(out);
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
@@ -165,10 +166,8 @@ Array BatchNorm(
                         const Array& gamma_reshaped_retained = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout_retained = bctx2.GetRetainedInput(gout_tok);
 
-                        // TODO(hvy): Stop casting all arrays to this result type when intermediate operations in this double backward
-                        // definition starts supporting mixed dtypes.
+                        // TODO(hvy): Avoid AsType.
                         Dtype dtype = ResultType(gout_retained, x_retained, gamma_reshaped_retained);
-
                         const Array& x = x_retained.AsType(dtype, false);
                         const Array& gamma_reshaped = gamma_reshaped_retained.AsType(dtype, false);
                         const Array& gout = gout_retained.AsType(dtype, false);
@@ -204,14 +203,14 @@ Array BatchNorm(
                         Array ggamma2 = r / gamma_reshaped;
 
                         if (gx2.dtype() != x_retained.dtype()) {
-                            gx2 = gx2.AsType(x_retained.dtype(), false);
+                            gx2 = gx2.AsType(x_retained.dtype());
                         }
                         if (ggamma2.dtype() != gamma_reshaped_retained.dtype()) {
-                            ggamma2 = ggamma2.AsType(gamma_reshaped_retained.dtype(), false);
+                            ggamma2 = ggamma2.AsType(gamma_reshaped_retained.dtype());
                         }
 
                         if (ggout2.dtype() != gout_retained.dtype()) {
-                            ggout2 = ggout2.AsType(gout_retained.dtype(), false);
+                            ggout2 = ggout2.AsType(gout_retained.dtype());
                         }
 
                         bctx2.input_grad(0) = std::move(gx2);
