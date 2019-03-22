@@ -96,11 +96,14 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
-Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template) {
+Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template, Dtype dtype) {
     if (array.has_value()) {
-        return *array;
+        if (array->dtype() == dtype) {
+            return *array;
+        }
+        return array->AsType(dtype);
     }
-    return ZerosLike(zeros_template, zeros_template.device());
+    return Zeros(zeros_template.shape(), dtype, zeros_template.device());
 }
 
 }  // namespace
@@ -164,22 +167,22 @@ Array BatchNorm(
                         const Array& gamma_reshaped_retained = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout_retained = bctx2.GetRetainedInput(gout_tok);
 
-                        // TODO(hvy): Avoid AsType.
-                        Dtype dtype = ResultType(gout_retained, x_retained, gamma_reshaped_retained);
-                        const Array& x = x_retained.AsType(dtype, false);
-                        const Array& gamma_reshaped = gamma_reshaped_retained.AsType(dtype, false);
-                        const Array& gout = gout_retained.AsType(dtype, false);
+                        // TODO(hvy): Avoid AsType by passing dtype arguments to Mean, Var, etc. to minimize copies.
+                        Dtype interm_dtype = ResultType(gout_retained, x_retained, gamma_reshaped_retained);
+                        const Array& x = x_retained.AsType(interm_dtype, false);
+                        const Array& gamma_reshaped = gamma_reshaped_retained.AsType(interm_dtype, false);
+                        const Array& gout = gout_retained.AsType(interm_dtype, false);
 
-                        Array ggx = ArrayOrZeros(bctx2.output_grad(0), x).AsType(dtype, false);
-                        Array gggamma = ArrayOrZeros(bctx2.output_grad(1), gamma_reshaped).AsType(dtype, false);
-                        Array ggbeta = ArrayOrZeros(bctx2.output_grad(2), gamma_reshaped).AsType(dtype, false);
+                        Array ggx = ArrayOrZeros(bctx2.output_grad(0), x, interm_dtype);
+                        Array gggamma = ArrayOrZeros(bctx2.output_grad(1), gamma_reshaped, interm_dtype);
+                        Array ggbeta = ArrayOrZeros(bctx2.output_grad(2), gamma_reshaped, interm_dtype);
 
-                        const Array& x_mean = Mean(x, sorted_axis, true).AsType(dtype, false);
-                        const Array& x_var = Var(x, sorted_axis, true).AsType(dtype, false);
-                        const Array& x_inv_std = Reciprocal(Sqrt(x_var + eps)).AsType(dtype, false);
+                        const Array& x_mean = Mean(x, sorted_axis, true).AsType(interm_dtype, false);
+                        const Array& x_var = Var(x, sorted_axis, true).AsType(interm_dtype, false);
+                        const Array& x_inv_std = Reciprocal(Sqrt(x_var + eps)).AsType(interm_dtype, false);
 
-                        const Array& gx = bctx2.GetRetainedOutput(gx_tok).AsType(dtype, false);
-                        const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok).AsType(dtype, false);
+                        const Array& gx = bctx2.GetRetainedOutput(gx_tok).AsType(interm_dtype, false);
+                        const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok).AsType(interm_dtype, false);
 
                         // Auxiliary values
                         int64_t n = x.GetTotalSize() / gamma_reshaped.GetTotalSize();

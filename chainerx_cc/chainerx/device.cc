@@ -67,7 +67,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         const Array& var,
         Scalar eps,
         const Axes& axis,
-        Dtype dtype) {
+        Dtype interm_dtype) {
     if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -78,11 +78,11 @@ ApplyBatchNormResult ApplyBatchNorm(
         CHAINERX_ASSERT(var.GetTotalSize() == reduced_total_size);
     }
     // TODO(hvy): Avoid AsType by passing dtype arguments to the following routines to minimize copies.
-    const Array& x_cast = x.AsType(dtype, false);
-    const Array& gamma_cast = gamma.AsType(dtype, false);
-    const Array& beta_cast = beta.AsType(dtype, false);
-    const Array& mean_cast = mean.AsType(dtype, false);
-    const Array& var_cast = var.AsType(dtype, false);
+    const Array& x_cast = x.AsType(interm_dtype, false);
+    const Array& gamma_cast = gamma.AsType(interm_dtype, false);
+    const Array& beta_cast = beta.AsType(interm_dtype, false);
+    const Array& mean_cast = mean.AsType(interm_dtype, false);
+    const Array& var_cast = var.AsType(interm_dtype, false);
 
     Array inv_std = Reciprocal(Sqrt(var_cast + eps));
 
@@ -121,12 +121,12 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     CHAINERX_ASSERT(GetKind(running_var().dtype()) == DtypeKind::kFloat);
 
     // Compute the mean and variance of x with promoted dtype if the parameters have higher precisions.
-    Dtype dtype = ResultType(x, gamma, beta);
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype, false);
+    Dtype interm_dtype = ResultType(x, gamma, beta);
+    const Array& x_cast = x.dtype() == interm_dtype ? x : x.AsType(interm_dtype);
     Array x_mean = Mean(x_cast, axis_, true);
     Array x_var = Var(x_cast, axis_, true);
 
-    ApplyBatchNormResult result = ApplyBatchNorm(x_cast, gamma, beta, x_mean, x_var, eps_, axis_, dtype);
+    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps_, axis_, interm_dtype);
     Array& x_inv_std = result.inv_std;
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
@@ -152,16 +152,16 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     const Array& x_mean = *x_mean_;  // Promoted dtype.
     const Array& x_inv_std = *x_inv_std_;  // Promoted dtype.
 
-    Dtype dtype = x_mean.dtype();
+    Dtype interm_dtype = x_mean.dtype();
 
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
     double inv_n = 1.0 / n;
     // TODO(hvy): Avoid AsType.
-    Array gout_cast = gout.AsType(dtype, false);
-    Array x_hat = (x.AsType(dtype, false) - x_mean) * x_inv_std;
+    Array gout_cast = gout.AsType(interm_dtype, false);
+    Array x_hat = (x.AsType(interm_dtype, false) - x_mean) * x_inv_std;
     Array ggamma = (gout_cast * x_hat).Sum(axis_, true);
     Array gbeta = gout_cast.Sum(axis_, true);
-    Array gx = (gamma.AsType(dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma + gbeta) * inv_n);
+    Array gx = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma + gbeta) * inv_n);
 
     if (gx.dtype() != x.dtype()) {
         gx = gx.AsType(x.dtype());
@@ -178,8 +178,8 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
 
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    Dtype dtype = ResultType(x, gamma, beta, mean, var);
-    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, dtype);
+    Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
+    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype);
     return std::move(result.out);
 }
 
