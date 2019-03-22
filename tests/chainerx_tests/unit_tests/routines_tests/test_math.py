@@ -15,9 +15,13 @@ class UnaryMathTestBase(object):
     def setup(self):
         if hasattr(self, 'expected_dtypes'):
             self.dtype, self.out_dtype = self.expected_dtypes
+        elif not hasattr(self, 'out_dtype'):
+            self.out_dtype = None
+
         if numpy.dtype(self.dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
+
         if self.dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
             self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
@@ -33,6 +37,8 @@ class UnaryMathTestBase(object):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+        if self.out_dtype is not None:
+            a = dtype_utils.cast_if_numpy_array(xp, a, self.out_dtype)
         y = self.func(xp, a)
         return y,
 
@@ -977,8 +983,7 @@ _expected_dtypes_math_functions = _expected_float_dtypes_math_functions + [
 class TestExp(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
-        out = xp.exp(a)
-        return dtype_utils.cast_if_numpy_array(xp, out, self.out_dtype)
+        return xp.exp(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -1008,8 +1013,7 @@ class TestExp(UnaryMathTestBase, op_utils.NumpyOpTest):
 class TestLog(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
-        out = xp.log(a)
-        return dtype_utils.cast_if_numpy_array(xp, out, self.out_dtype)
+        return xp.log(a)
 
 
 _logsumexp_params = [
@@ -1127,8 +1131,7 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 class TestSqrt(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
-        out = xp.sqrt(a)
-        return dtype_utils.cast_if_numpy_array(xp, out, self.out_dtype)
+        return xp.sqrt(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -1151,10 +1154,8 @@ class TestSqrt(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    def forward_xp(self, inputs, xp):
-        x, = inputs
-        x = dtype_utils.cast_if_numpy_array(xp, x, self.out_dtype)
-        return xp.tanh(x),
+    def func(self, xp, a):
+        return xp.tanh(a)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
