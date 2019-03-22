@@ -75,9 +75,9 @@ _batch_norm_invalid_dimensions_params = [
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
 @chainer.testing.parameterize_pytest(
-    'float_dtype_x', chainerx.testing.float_dtypes)
+    'x_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest(
-    'float_dtype_gamma_beta_mean_var', chainerx.testing.float_dtypes)
+    'param_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest('eps', [2e-5, 5e-1])
 @chainer.testing.parameterize_pytest('decay', [None, 0.5])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
@@ -85,8 +85,8 @@ class TestBatchNorm(op_utils.ChainerOpTest):
 
     def setup(self):
         reduced_shape = self.reduced_shape
-        float_dtype_x = self.float_dtype_x
-        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
         eps = self.eps
         decay = self.decay
         axis = self.axis
@@ -104,15 +104,14 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 'non-contiguous inputs.')
 
         # Backward is unstable for fp16.
-        if (float_dtype_x == 'float16'
-                and float_dtype_gamma_beta_mean_var == 'float16'):
+        if x_dtype == 'float16' and param_dtype == 'float16':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
 
         self.running_mean = numpy.random.uniform(
-            -1, 1, reduced_shape).astype(float_dtype_gamma_beta_mean_var)
+            -1, 1, reduced_shape).astype(param_dtype)
         self.running_var = numpy.random.uniform(
-            0.1, 1, reduced_shape).astype(float_dtype_gamma_beta_mean_var)
+            0.1, 1, reduced_shape).astype(param_dtype)
 
         optional_args = {}
         if eps is not None:
@@ -123,8 +122,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
-        if (float_dtype_x == 'float16'
-                or float_dtype_gamma_beta_mean_var == 'float16'):
+        if x_dtype == 'float16' or param_dtype == 'float16':
             self.check_forward_options.update({
                 'atol': 1e-1, 'rtol': 1e-1})
             self.check_backward_options.update({
@@ -148,14 +146,12 @@ class TestBatchNorm(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x_shape = self.x_shape
         reduced_shape = self.reduced_shape
-        float_dtype_x = self.float_dtype_x
-        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
 
-        x = numpy.random.uniform(-1, 1, x_shape).astype(float_dtype_x)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
-        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
 
         return x, gamma, beta,
 
@@ -195,8 +191,8 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         super().check_forward_outputs(outputs, expected_outputs)
 
         # Check that running values are updated.
-        if (self.float_dtype_x == 'float16'
-                or self.float_dtype_gamma_beta_mean_var == 'float16'):
+        if (self.x_dtype == 'float16'
+                or self.param_dtype == 'float16'):
             check_running_options = {'atol': 1e-1, 'rtol': 1e-1}
         else:
             check_running_options = {'atol': 1e-5, 'rtol': 1e-4}
@@ -230,9 +226,9 @@ def test_batch_norm_invalid_dimensions(
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
 @chainer.testing.parameterize_pytest(
-    'float_dtype_x', chainerx.testing.float_dtypes)
+    'x_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest(
-    'float_dtype_gamma_beta_mean_var', chainerx.testing.float_dtypes)
+    'param_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest('eps', [None, 3e-5, 1.2])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
 class TestFixedBatchNorm(op_utils.ChainerOpTest):
@@ -242,8 +238,8 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
     skip_double_backward_test = True
 
     def setup(self, float_dtype):
-        float_dtype_x = self.float_dtype_x
-        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
         eps = self.eps
         axis = self.axis
 
@@ -254,8 +250,7 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
-        if (float_dtype_x == 'float16'
-                or float_dtype_gamma_beta_mean_var == 'float16'):
+        if x_dtype == 'float16' or param_dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-1, 'rtol': 1e-1})
         else:
             self.check_forward_options.update({'atol': 1e-5, 'rtol': 1e-4})
@@ -263,18 +258,14 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x_shape = self.x_shape
         reduced_shape = self.reduced_shape
-        float_dtype_x = self.float_dtype_x
-        float_dtype_gamma_beta_mean_var = self.float_dtype_gamma_beta_mean_var
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
 
-        x = numpy.random.uniform(-1, 1, x_shape).astype(float_dtype_x)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
-        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
-        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
-        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(
-            float_dtype_gamma_beta_mean_var)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(param_dtype)
 
         return x, gamma, beta, mean, var
 
