@@ -197,7 +197,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 or self.param_dtype == 'float16'):
             check_running_options = {'rtol': 1e-1, 'atol': 1e-1}
         else:
-            check_running_options = {'rtol': 1e-4, 'atol': 1e-5}
+            check_running_options = {'rtol': 1e-6, 'atol': 1e-5}
 
         chainerx.testing.assert_allclose(
             self.running_mean_chx, self.running_mean_ch,
@@ -255,7 +255,7 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
         if x_dtype == 'float16' or param_dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
         else:
-            self.check_forward_options.update({'rtol': 1e-4, 'atol': 1e-5})
+            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
 
     def generate_inputs(self):
         x_shape = self.x_shape
