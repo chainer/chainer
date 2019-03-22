@@ -83,7 +83,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         n_elems = sum(param.grad.size for param in params)
         needs_sync = self._prepare_allreduce_pack_buffer(allreduce_grad_dtype,
-                                                         allreduce_grad_dtype,
                                                          n_elems)
         if stream != chainer.cuda.Stream.null and needs_sync:
             chainer.cuda.Stream.null.synchronize()
@@ -114,8 +113,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         # unpack params from buffer A -> params
         self._unpack_params_from_buffer(params, allreduce_grad_dtype, stream)
 
-    def _prepare_allreduce_pack_buffer(self, grad_dtype, allreduce_grad_dtype,
-                                       n_elems):
+    def _prepare_allreduce_pack_buffer(self, allreduce_grad_dtype, n_elems):
         allreduce_grad_n_bytes = allreduce_grad_dtype.itemsize * n_elems
         needs_sync = False
 
