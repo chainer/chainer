@@ -6,6 +6,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -36,40 +37,46 @@ Array BroadcastComparison(Impl&& impl, const Array& x1, const Array& x2) {
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
+void CheckLogicDtypes(const Array& x1, const Array& x2) {
+    if ((x1.dtype() == Dtype::kBool) != (x2.dtype() == Dtype::kBool)) {
+        throw DtypeError{"Comparison of ", GetDtypeName(x1.dtype()), " and ", GetDtypeName(x2.dtype()), " is not supported."};
+    }
+}
+
 }  // namespace
 
 Array Equal(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Equal(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array NotEqual(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().NotEqual(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array Greater(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array GreaterEqual(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array Less(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x2, x1, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array LessEqual(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+    CheckLogicDtypes(x1, x2);
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x2, x1, out); };
     return BroadcastComparison(func, x1, x2);
 }

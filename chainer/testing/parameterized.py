@@ -92,21 +92,27 @@ def parameterize(*params):
         lambda base: _parameterize_test_case_generator(base, params))
 
 
-def parameterize_pytest(names, values):
+def from_pytest_parameterize(names, values):
     # Pytest-style parameterization.
     # TODO(niboshi): Add documentation
     assert isinstance(names, str)
     assert isinstance(values, (tuple, list))
 
     def safe_zip(ns, vs):
-        if not isinstance(vs, (tuple, list)):
-            vs = (vs,)
-        assert len(ns) == len(vs)
+        if len(ns) == 1:
+            return [(ns[0], vs)]
+        assert isinstance(vs, (tuple, list)) and len(ns) == len(vs)
         return zip(ns, vs)
 
     names = names.split(',')
     params = [dict(safe_zip(names, value_list)) for value_list in values]
-    return parameterize(*params)
+    return params
+
+
+def parameterize_pytest(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    return parameterize(*from_pytest_parameterize(names, values))
 
 
 def product(parameter):

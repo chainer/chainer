@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 
 try:
@@ -52,7 +50,7 @@ class DaliPipelineTrain(pipeline.Pipeline):
         # self.cntrst = ops.Contrast(device="gpu")
         # self.rotate = ops.Rotate(device="gpu")
         # self.jitter = ops.Jitter(device="gpu")
-        random_area = (crop_size[0] / 256) * (crop_size[1] / 256)
+        random_area = (crop_size[0] / 256.0) * (crop_size[1] / 256.0)
         random_area = _pair(random_area)
         random_aspect_ratio = _pair(1.0)
         self.rrcrop = ops.RandomResizedCrop(

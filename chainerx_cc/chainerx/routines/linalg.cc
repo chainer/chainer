@@ -65,6 +65,7 @@ Array Dot(const Array& a, const Array& b) {
             bt.Define([b_matrix_tok = bb.RetainInput(1), a_dtype = a.dtype()](BackwardContext& bctx) {
                 const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = *bctx.output_grad();
+                // TODO(hvy): Compute gradients by specifying accumulation/output dtype to Dot when it is supported.
                 Array ga = Dot(gout, b_matrix.Transpose());
                 if (ga.dtype() == a_dtype) {
                     bctx.input_grad() = std::move(ga);
@@ -77,6 +78,7 @@ Array Dot(const Array& a, const Array& b) {
             bt.Define([a_matrix_tok = bb.RetainInput(0), b_dtype = b.dtype()](BackwardContext& bctx) {
                 const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = *bctx.output_grad();
+                // TODO(hvy): Compute gradients by specifying accumulation/output dtype to Dot when it is supported.
                 Array gb = Dot(a_matrix.Transpose(), gout);
                 if (gb.dtype() == b_dtype) {
                     bctx.input_grad() = std::move(gb);

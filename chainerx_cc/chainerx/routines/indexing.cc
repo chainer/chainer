@@ -156,11 +156,9 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 }  // namespace
 
 Array Take(const Array& a, const Array& indices, int8_t axis) {
-    // TODO(niboshi): Support other dtypes by casting
-    if (indices.dtype() != Dtype::kInt64) {
-        throw DtypeError(
-                std::string{"Only "} + GetDtypeName(Dtype::kInt64) + " is supported as indices, but given " +
-                GetDtypeName(indices.dtype()));
+    DtypeKind indices_kind = GetKind(indices.dtype());
+    if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
+        throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
     }
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());

@@ -203,6 +203,7 @@ public:
     // Indices that are out of bounds are wrapped around.
     //
     // `axis` must be within [0, a.ndim()).
+    // `indices` must have dtype kind of either kInt or kUInt.
     virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 
     // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
@@ -211,6 +212,7 @@ public:
     // TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
     //
     // `axis` must be within [0, b.ndim()).
+    // `indices` must have dtype kind of either kInt or kUInt.
     virtual void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
 
     // Creates the identity array.
@@ -240,7 +242,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
+            bool cover_all,
+            Dtype out_dtype) = 0;
 
     virtual Array ConvGradWeight(
             Dtype w_dtype,
@@ -264,7 +267,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size) = 0;
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype) = 0;
 
     virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
             const StackVector<int64_t, kMaxNdim>& kernel_size,

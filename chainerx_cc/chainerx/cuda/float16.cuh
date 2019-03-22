@@ -82,5 +82,25 @@ private:
     uint16_t data_;
 };
 
+template <typename T>
+__device__ inline bool operator==(const T& l, const Float16& r) {
+    return l == static_cast<float>(r);
+}
+
+template <typename T>
+__device__ inline bool operator==(const Float16& l, const T& r) {
+    return static_cast<float>(l) == r;
+}
+
+template <typename T>
+__device__ inline bool operator!=(const T& l, const Float16& r) {
+    return !(l == r);
+}
+
+template <typename T>
+__device__ inline bool operator!=(const Float16& l, const T& r) {
+    return !(l == r);
+}
+
 }  // namespace cuda
 }  // namespace chainerx

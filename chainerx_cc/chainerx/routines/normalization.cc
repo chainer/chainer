@@ -4,6 +4,8 @@
 #include <memory>
 #include <utility>
 
+#include <nonstd/optional.hpp>
+
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/backprop_mode.h"
@@ -14,6 +16,7 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
@@ -85,6 +88,13 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
+Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template) {
+    if (array.has_value()) {
+        return *array;
+    }
+    return ZerosLike(zeros_template, zeros_template.device());
+}
+
 }  // namespace
 
 Array BatchNorm(
@@ -145,9 +155,9 @@ Array BatchNorm(
                         const Array& gamma_reshaped = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout = bctx2.GetRetainedInput(gout_tok);
 
-                        const Array& ggx = *bctx2.output_grad(0);
-                        const Array& gggamma = *bctx2.output_grad(1);
-                        const Array& ggbeta = *bctx2.output_grad(2);
+                        Array ggx = ArrayOrZeros(bctx2.output_grad(0), x);
+                        Array gggamma = ArrayOrZeros(bctx2.output_grad(1), gamma_reshaped);
+                        Array ggbeta = ArrayOrZeros(bctx2.output_grad(2), gamma_reshaped);
 
                         const Array& x_mean = Mean(x, sorted_axis, true);
                         const Array& x_var = Var(x, sorted_axis, true);
@@ -159,17 +169,17 @@ Array BatchNorm(
                         // Auxiliary values
                         int64_t n = x.GetTotalSize() / gamma_reshaped.GetTotalSize();
                         double inv_n = 1.0 / n;
-                        Array r = (gx * ggx).Sum(sorted_axis);
+                        Array r = (gx * ggx).Sum(sorted_axis, true);
                         Array coeff = gamma_reshaped * x_inv_std;
                         Array coeff_m = coeff * inv_n;
                         Array x_hat = (x - x_mean) * x_inv_std;
 
-                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(sorted_axis);
-                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(sorted_axis);
+                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(sorted_axis, true);
+                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(sorted_axis, true);
 
                         Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
-                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(sorted_axis));
-                        Array gmean2 = -x_inv_std * gx_hat2.Sum(sorted_axis);
+                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(sorted_axis, true));
+                        Array gmean2 = -x_inv_std * gx_hat2.Sum(sorted_axis, true);
                         Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
                         Array ggout2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
 
