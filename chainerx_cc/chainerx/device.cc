@@ -132,7 +132,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
 
-    // TODO(hvy): Avoid AsType.
+    // TODO(hvy): Avoid AsType when IAdd supports mixed dtypes.
     running_mean_ *= decay_;
     running_mean_ += (inv_decay * x_mean).AsType(running_mean_.dtype(), false);
     running_var_ *= decay_;
