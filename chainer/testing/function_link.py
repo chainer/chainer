@@ -81,7 +81,8 @@ class FunctionTestBase(object):
     dodge_nondifferentiable = False
     contiguous = None
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super(FunctionTestBase, self).__init__(*args, **kwargs)
         self.check_forward_options = {}
         self.check_backward_options = {}
         self.check_double_backward_options = {}
