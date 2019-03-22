@@ -112,8 +112,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream=stream)
 
         # unpack params from buffer A -> params
-        self._unpack_params_from_buffer(params,
-                                        allreduce_grad_dtype, n_elems, stream)
+        self._unpack_params_from_buffer(params, allreduce_grad_dtype, stream)
 
     def _prepare_allreduce_pack_buffer(self, grad_dtype, allreduce_grad_dtype,
                                        n_elems):
@@ -145,7 +144,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 stream=stream)
 
     def _unpack_params_from_buffer(self, params,
-                                   allreduce_grad_dtype, n_elems, stream):
+                                   allreduce_grad_dtype, stream):
         if self.batched_copy:
             if self.params_data is not None:
                 params_data = self.params_data
