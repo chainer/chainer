@@ -37,6 +37,9 @@ cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
 
 // Helper function to update the running mean and running variance.
 void UpdateRunning(const Array& running, const Array& running_updated) {
+    CHAINERX_ASSERT(running.IsContiguous());
+    CHAINERX_ASSERT(running_updated.IsContiguous());
+    CHAINERX_ASSERT(&running.device() == &running_updated.device());
     CHAINERX_ASSERT(
             (running.dtype() == running_updated.dtype()) ==
             (internal::GetRawOffsetData(running) == internal::GetRawOffsetData(running_updated)));
@@ -47,14 +50,8 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
     }
 
     // The running values must be written back.
-    CHAINERX_ASSERT(running.IsContiguous());
-    CHAINERX_ASSERT(running_updated.IsContiguous());
-
     const Array& running_casted_back = running_updated.AsType(running.dtype());
-
-    CHAINERX_ASSERT(&running.device() == &running_updated.device());
     Device& device = running.device();
-
     device.MemoryCopyFrom(
             internal::GetRawOffsetData(running), internal::GetRawOffsetData(running_casted_back), running.GetNBytes(), device);
 }

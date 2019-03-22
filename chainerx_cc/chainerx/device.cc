@@ -77,7 +77,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         CHAINERX_ASSERT(mean.GetTotalSize() == reduced_total_size);
         CHAINERX_ASSERT(var.GetTotalSize() == reduced_total_size);
     }
-    // TODO(hvy): Avoid AsType.
+    // TODO(hvy): Avoid AsType by passing dtype arguments to the following routines to minimize copies.
     const Array& x_cast = x.AsType(dtype, false);
     const Array& gamma_cast = gamma.AsType(dtype, false);
     const Array& beta_cast = beta.AsType(dtype, false);
@@ -88,7 +88,7 @@ ApplyBatchNormResult ApplyBatchNorm(
 
     Array out = (x_cast - mean_cast) * inv_std * gamma_cast + beta_cast;
 
-    return {std::move(out), std::move(inv_std)};
+    return {out.dtype() == x.dtype() ? std::move(out) : out.AsType(x.dtype()), std::move(inv_std)};
 }
 
 }  // namespace
@@ -127,7 +127,6 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     Array x_var = Var(x_cast, axis_, true);
 
     ApplyBatchNormResult result = ApplyBatchNorm(x_cast, gamma, beta, x_mean, x_var, eps_, axis_, dtype);
-    Array& out = result.out;
     Array& x_inv_std = result.inv_std;
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
@@ -141,7 +140,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
 
     SetForwardResults(x, gamma, std::move(x_mean), std::move(x_inv_std), beta.dtype());
 
-    return out.dtype() == x.dtype() ? out : out.AsType(x.dtype());
+    return std::move(result.out);
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
@@ -181,8 +180,7 @@ Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     Dtype dtype = ResultType(x, gamma, beta, mean, var);
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, dtype);
-    const Array& out = result.out;
-    return out.dtype() == x.dtype() ? out : out.AsType(x.dtype());
+    return std::move(result.out);
 }
 
 }  // namespace chainerx
