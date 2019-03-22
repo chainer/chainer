@@ -57,28 +57,6 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2, Dtype dtype
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
-// Called from Maximum, Minimum, etc. to handle broadcasting.
-template <typename Impl>
-Array BroadcastQuaternary(Impl&& impl, const Array& x1, const Array& x2) {
-    auto func = [&impl](const Array& x1, const Array& x2) -> Array {
-        Array out = EmptyLike(x1, x1.device());
-        out = impl(x1, x2, x2, x1);
-        return out;
-    };
-
-    if(x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
 template <typename Impl>
 void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
@@ -625,7 +603,7 @@ Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Ar
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfGreaterElse(x1, x2, ZerosLike(gout, gout.device()), gout);
+                bctx.input_grad() = IfGreaterElse(x1, x2, gout, ZerosLike(gout, gout.device()));
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
@@ -637,6 +615,36 @@ Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Ar
         bb.Finalize();
 
         return out;
+    }
+}
+
+} // namespace
+
+namespace {
+
+void MinimumImpl(const Array& x1, const Array& x2, const Array& out) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
+    {
+        NoBackpropModeScope scope{};
+        x1.device().IfGreaterElseAAAA(x1, x2, x2, x1, out);
+    }
+
+    {
+        BackwardBuilder bb{"if_greater_else", {x2, x1}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([x1, x2 = x2.AsGradStopped()](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = IfGreaterElse(x1, x2, gout, ZerosLike(gout, gout.device()));
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = IfGreaterElse(x1, x2, ZerosLike(gout, gout.device()), gout);
+            });
+        }
+        bb.Finalize();
     }
 }
 
@@ -655,7 +663,7 @@ Array Minimum(const Array& x1, Scalar x2) {
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
-    return BroadcastQuaternary(&IfGreaterElse, x1, x2);  // x1 > x2 ? x2 : x1
+    return BroadcastBinary(&MinimumImpl, x1, x2);  // x1 > x2 ? x2 : x1
 }
 
 Array Exp(const Array& x) {
