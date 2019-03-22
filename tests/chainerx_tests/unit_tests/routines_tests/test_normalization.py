@@ -125,17 +125,19 @@ class TestBatchNorm(op_utils.ChainerOpTest):
 
         if (float_dtype_x == 'float16'
                 or float_dtype_gamma_beta_mean_var == 'float16'):
-            self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
+            self.check_forward_options.update({
+                'atol': 1e-1, 'rtol': 1e-1})
             self.check_backward_options.update({
-                'rtol': 1e-1, 'atol': 1e-2})
+                'atol': 1e-1, 'rtol': 1e-1})
             self.check_double_backward_options.update({
-                'rtol': 1e-1, 'atol': 1e-2})
+                'atol': 1e-1, 'rtol': 1e-1})
         else:
-            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
+            self.check_forward_options.update({
+                'atol': 1e-5, 'rtol': 1e-4})
             self.check_backward_options.update({
-                'rtol': 5e-3, 'atol': 5e-4})
+                'atol': 5e-4, 'rtol': 5e-3})
             self.check_double_backward_options.update({
-                'rtol': 5e-2, 'atol': 5e-3})
+                'atol': 1e-2, 'rtol': 1e-1})
 
         # Running values that are recorded in forward for similarity checks.
         self.running_mean_chx = None
@@ -195,9 +197,9 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         # Check that running values are updated.
         if (self.float_dtype_x == 'float16'
                 or self.float_dtype_gamma_beta_mean_var == 'float16'):
-            check_running_options = {'rtol': 1e-3, 'atol': 1e-3}
+            check_running_options = {'atol': 1e-1, 'rtol': 1e-1}
         else:
-            check_running_options = {'rtol': 1e-6, 'atol': 1e-5}
+            check_running_options = {'atol': 1e-5, 'rtol': 1e-4}
 
         chainerx.testing.assert_allclose(
             self.running_mean_chx, self.running_mean_ch,
@@ -254,9 +256,9 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
 
         if (float_dtype_x == 'float16'
                 or float_dtype_gamma_beta_mean_var == 'float16'):
-            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_forward_options.update({'atol': 1e-1, 'rtol': 1e-1})
         else:
-            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
+            self.check_forward_options.update({'atol': 1e-5, 'rtol': 1e-4})
 
     def generate_inputs(self):
         x_shape = self.x_shape
