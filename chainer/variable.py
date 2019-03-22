@@ -1424,6 +1424,17 @@ class Variable(object):
         with chainer.using_config('enable_backprop', enable_double_backprop):
             _backprop_to_all([self], retain_grad, loss_scale)
 
+    def item(self):
+        """Converts the variable with one element to a Python scalar.
+
+        This will incur host-device synchronization.
+
+        Returns:
+            int or float: The element of the array.
+
+        """
+        return self.array.item()
+
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
 
