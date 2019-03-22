@@ -103,7 +103,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 'batch_norm with CUDA currently has limited support for '
                 'non-contiguous inputs.')
 
-        # Backward is unstable for fp16.
+        # BatchNorm is unstable for fp16 for both native and CUDA.
         # TODO(hvy): Fix backward and double backward for fp16.
         if x_dtype == 'float16' and param_dtype == 'float16':
             self.skip_backward_test = True
@@ -123,6 +123,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
+        # TODO(hvy): Fix forward, backward and double backward for fp16.
         if x_dtype == 'float16' or param_dtype == 'float16':
             self.check_forward_options.update({
                 'rtol': 1e-1, 'atol': 1e-1})
