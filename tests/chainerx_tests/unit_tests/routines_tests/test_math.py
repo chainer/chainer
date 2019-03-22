@@ -1162,8 +1162,8 @@ class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
         10), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2),
-    numpy.random.randn(2, 4), numpy.random.randn(4, 4), 
-numpy.random.randn(1, 4)
+    numpy.random.randn(2, 4), numpy.random.randn(4, 4),
+    numpy.random.randn(1, 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 @pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
@@ -1189,12 +1189,13 @@ class TestSin(op_utils.NumpyOpTest):
         x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
         return xp.sin(x),
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
         10), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2),
-    numpy.random.randn(2, 4), numpy.random.randn(4, 4), 
-numpy.random.randn(1, 4)
+    numpy.random.randn(2, 4), numpy.random.randn(4, 4),
+    numpy.random.randn(1, 4)
 ])
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 @pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
@@ -1219,6 +1220,7 @@ class TestCos(op_utils.NumpyOpTest):
         x, = inputs
         x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
         return xp.cos(x),
+
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
