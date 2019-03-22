@@ -84,14 +84,14 @@ void CudaDevice::Tanh(const Array& x, const Array& out) {
 
 namespace {
 
-    template <typename T>
-    struct SinImpl {
-        using CudaType = cuda_internal::DataType<T>;
-        __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sin(x); }
-    };
-    
-    }  // namespace
-    
+template <typename T>
+struct SinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sin(x); }
+};
+
+}  // namespace
+
 void CudaDevice::Sin(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
@@ -104,14 +104,14 @@ void CudaDevice::Sin(const Array& x, const Array& out) {
 
 namespace {
 
-    template <typename T>
-    struct CosImpl {
-        using CudaType = cuda_internal::DataType<T>;
-        __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Cos(x); }
-    };
-    
-    }  // namespace
-    
+template <typename T>
+struct CosImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Cos(x); }
+};
+
+}  // namespace
+
 void CudaDevice::Cos(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
