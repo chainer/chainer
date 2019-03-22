@@ -113,11 +113,7 @@ def get_device(device_spec):
         return device_spec
 
     if isinstance(device_spec, cuda._integer_types):
-        # legacy spec of (gpu) device
-        if device_spec >= 0:
-            return cuda.GpuDevice.from_device_id(device_spec)
-        else:
-            return _cpu.CpuDevice()
+        return _get_device_cupy_or_numpy(device_spec)
 
     if chainerx.is_available() and isinstance(device_spec, chainerx.Device):
         return _chainerx.ChainerxDevice(device_spec)
@@ -126,6 +122,14 @@ def get_device(device_spec):
         return cuda.GpuDevice(device_spec)
 
     if isinstance(device_spec, six.string_types):
+        # '-1', '0', '1', ...
+        try:
+            int_device_spec = int(device_spec)
+        except ValueError:
+            pass
+        else:
+            return _get_device_cupy_or_numpy(int_device_spec)
+
         if device_spec.startswith('@'):
             # '@module:...'
             mod_name, colon, precise_spec = device_spec[1:].partition(':')
@@ -143,6 +147,14 @@ def get_device(device_spec):
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
     raise ValueError('Invalid device specifier: {}'.format(device_spec))
+
+
+def _get_device_cupy_or_numpy(device_spec):
+    # legacy spec of (gpu) device
+    if device_spec >= 0:
+        return cuda.GpuDevice.from_device_id(device_spec)
+    else:
+        return _cpu.CpuDevice()
 
 
 def using_device(device_spec):

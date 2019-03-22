@@ -206,6 +206,9 @@ class TestDeviceSpec(unittest.TestCase):
     def test_legacy_int_numpy(self):
         self.check_device_spec_numpy(-1)
 
+    def test_legacy_str_numpy(self):
+        self.check_device_spec_numpy('-1')
+
     def test_module_numpy_device(self):
         self.check_device_spec_numpy(backend.CpuDevice())
 
@@ -225,6 +228,10 @@ class TestDeviceSpec(unittest.TestCase):
     def test_legacy_int_cupy_device(self):
         self.check_device_spec_cupy(0, 0)
 
+    @attr.gpu
+    def test_legacy_str_cupy_device(self):
+        self.check_device_spec_cupy('0', 0)
+
     @attr.multi_gpu(2)
     def test_str_cupy_device_multi_gpu(self):
         self.check_device_spec_cupy('@cupy:1', 1)
@@ -232,6 +239,10 @@ class TestDeviceSpec(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_legacy_int_cupy_device_multi_gpu(self):
         self.check_device_spec_cupy(1, 1)
+
+    @attr.multi_gpu(2)
+    def test_legacy_str_cupy_device_multi_gpu(self):
+        self.check_device_spec_cupy('1', 1)
 
     @attr.chainerx
     def test_chainerx_device(self):
