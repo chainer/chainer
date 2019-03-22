@@ -1158,6 +1158,68 @@ class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.tanh(a)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
+        10), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2),
+    numpy.random.randn(2, 4), numpy.random.randn(4, 4), 
+numpy.random.randn(1, 4)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+class TestSin(op_utils.NumpyOpTest):
+
+    def setup(self, input, contiguous, in_dtype, out_dtype):
+        self.input = input.astype(in_dtype)
+        self.chx_dtype = out_dtype
+        self.contiguous = contiguous
+
+        if in_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
+        return xp.sin(x),
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
+        10), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2),
+    numpy.random.randn(2, 4), numpy.random.randn(4, 4), 
+numpy.random.randn(1, 4)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+@pytest.mark.parametrize('in_dtype,out_dtype', _expected_dtypes_math_functions)
+class TestCos(op_utils.NumpyOpTest):
+
+    def setup(self, input, contiguous, in_dtype, out_dtype):
+        self.input = input.astype(in_dtype)
+        self.chx_dtype = out_dtype
+        self.contiguous = contiguous
+
+        if in_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
+        return xp.cos(x),
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
