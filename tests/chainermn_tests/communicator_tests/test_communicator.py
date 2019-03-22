@@ -371,8 +371,6 @@ class SimpleMock(object):
 def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     # Checks the actual allreduce communication is performed
     # in the correct data type (FP16 or FP32)
-
-    chainer.global_config.dtype = param.global_dtype
     comm_class = param.communicator_class
 
     if not param.multi_node:
@@ -391,6 +389,9 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
     allreduce_dtype = param.allreduce_grad_dtype
+
+    # assert test configuration.
+    assert chainer.get_dtype() == global_dtype
 
     answer_dtype = None
     if allreduce_dtype == np.float16:
@@ -470,7 +471,8 @@ def test_communicator_gpu(param):
 @chainer.testing.attr.gpu
 def test_mixed_dtype_communicator_gpu(param):
     model = ExampleMixedModel()
-    check_allreduce_grad_mixed_dtype(param, model, True)
+    with chainer.using_config('dtype', param.global_dtype):
+        check_allreduce_grad_mixed_dtype(param, model, True)
 
 
 class TestPureNcclCommunicator(unittest.TestCase):
