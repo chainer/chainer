@@ -199,7 +199,7 @@ gpu_mixed_dtype_params = [Param(p) for p in [
     }
 ]]
 for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
-    for allreduce_dtype in [np.float32, np.float32, None]:
+    for allreduce_dtype in [np.float32, np.float16, None]:
         if global_dtype is None and allreduce_dtype is None:
             continue
         for batched_copy in [True, False]:
