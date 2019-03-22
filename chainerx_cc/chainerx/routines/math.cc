@@ -622,16 +622,16 @@ Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Ar
 
 namespace {
 
-void MinimumImpl(const Array& x1, const Array& x2, const Array& out) {
+void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
     {
         NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseAAAA(x1, x2, x2, x1, out);
+        x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
     }
 
     {
-        BackwardBuilder bb{"if_greater_else", {x2, x1}, out};
+        BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x1, x2 = x2.AsGradStopped()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
@@ -646,6 +646,14 @@ void MinimumImpl(const Array& x1, const Array& x2, const Array& out) {
         }
         bb.Finalize();
     }
+}
+
+}  // namespace
+
+namespace {
+
+void MinimumImpl(const Array& x1, const Array& x2, const Array& out) {
+    IfGreaterElseImpl(x1, x2, x2, x1, out);
 }
 
 }  // namespace
