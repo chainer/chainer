@@ -104,6 +104,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
                 'non-contiguous inputs.')
 
         # Backward is unstable for fp16.
+        # TODO(hvy): Fix backward and double backward for fp16.
         if x_dtype == 'float16' and param_dtype == 'float16':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
@@ -124,18 +125,18 @@ class TestBatchNorm(op_utils.ChainerOpTest):
 
         if x_dtype == 'float16' or param_dtype == 'float16':
             self.check_forward_options.update({
-                'atol': 1e-1, 'rtol': 1e-1})
+                'rtol': 1e-1, 'atol': 1e-1})
             self.check_backward_options.update({
-                'atol': 1e-1, 'rtol': 1e-1})
+                'rtol': 1e-1, 'atol': 1e-1})
             self.check_double_backward_options.update({
-                'atol': 1e-1, 'rtol': 1e-1})
+                'rtol': 1e-1, 'atol': 1e-1})
         else:
             self.check_forward_options.update({
-                'atol': 1e-5, 'rtol': 1e-4})
+                'rtol': 1e-4, 'atol': 1e-5})
             self.check_backward_options.update({
-                'atol': 5e-3, 'rtol': 5e-2})
+                'rtol': 5e-2, 'atol': 5e-3})
             self.check_double_backward_options.update({
-                'atol': 1e-2, 'rtol': 1e-1})
+                'rtol': 1e-1, 'atol': 1e-2})
 
         # Running values that are recorded in forward for similarity checks.
         self.running_mean_chx = None
@@ -193,9 +194,9 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         # Check that running values are updated.
         if (self.x_dtype == 'float16'
                 or self.param_dtype == 'float16'):
-            check_running_options = {'atol': 1e-1, 'rtol': 1e-1}
+            check_running_options = {'rtol': 1e-1, 'atol': 1e-1}
         else:
-            check_running_options = {'atol': 1e-5, 'rtol': 1e-4}
+            check_running_options = {'rtol': 1e-4, 'atol': 1e-5}
 
         chainerx.testing.assert_allclose(
             self.running_mean_chx, self.running_mean_ch,
@@ -251,9 +252,9 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
         self.optional_args = optional_args
 
         if x_dtype == 'float16' or param_dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-1, 'rtol': 1e-1})
+            self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
         else:
-            self.check_forward_options.update({'atol': 1e-5, 'rtol': 1e-4})
+            self.check_forward_options.update({'rtol': 1e-4, 'atol': 1e-5})
 
     def generate_inputs(self):
         x_shape = self.x_shape
