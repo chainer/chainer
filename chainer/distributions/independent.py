@@ -1,11 +1,13 @@
-from functools import reduce
+import functools
 import operator
 
 import numpy
 
 from chainer.backend import cuda
 from chainer import distribution
-from chainer.functions.array import reshape, repeat, transpose
+from chainer.functions.array import repeat
+from chainer.functions.array import reshape
+from chainer.functions.array import transpose
 from chainer.functions.math import sum as sum_mod
 from chainer.functions.math import prod
 from chainer.utils import cache
@@ -81,10 +83,10 @@ class Independent(distribution.Distribution):
         Note that this relationship holds only if the covariance matrix of the
         original distribution is given analytically.
         '''
-        num_repeat = reduce(
+        num_repeat = functools.reduce(
             operator.mul,
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:], 1)
-        dim = reduce(operator.mul, self.distribution.event_shape, 1)
+        dim = functools.reduce(operator.mul, self.distribution.event_shape, 1)
         cov = repeat.repeat(
             reshape.reshape(
                 self.distribution.covariance,
@@ -184,10 +186,10 @@ class Independent(distribution.Distribution):
 
     @cache.cached_property
     def _block_indicator(self):
-        num_repeat = reduce(
+        num_repeat = functools.reduce(
             operator.mul,
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:], 1)
-        dim = reduce(operator.mul, self.distribution.event_shape, 1)
+        dim = functools.reduce(operator.mul, self.distribution.event_shape, 1)
         block_indicator = numpy.fromfunction(
             lambda i, j: i // dim == j // dim,
             (num_repeat * dim, num_repeat * dim)).astype(int)
