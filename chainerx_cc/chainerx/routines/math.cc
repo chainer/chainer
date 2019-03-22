@@ -649,6 +649,50 @@ Array Tanh(const Array& x) {
     return out;
 }
 
+Array Sin(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Sin(x, out);
+    }
+
+    BackwardBuilder bb{"sin", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Cos(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Cos(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Cos(x, out);
+    }
+
+    BackwardBuilder bb{"cos", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * -Sin(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {

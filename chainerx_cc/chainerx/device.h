@@ -185,6 +185,10 @@ public:
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
 
+    virtual void Sin(const Array& x, const Array& out) = 0;
+
+    virtual void Cos(const Array& x, const Array& out) = 0;
+
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
