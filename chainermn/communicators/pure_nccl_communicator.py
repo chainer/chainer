@@ -88,8 +88,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             chainer.cuda.Stream.null.synchronize()
 
         # pack grads from params -> buffer A
-        self._pack_params_to_buffer(params, allreduce_grad_dtype,
-                                    n_elems, stream)
+        self._pack_params_to_buffer(params, allreduce_grad_dtype, stream)
         # Allreduce from buffer A -> buffer B
         self.nccl_comm.allReduce(self.gpu_buffer_a.ptr(),
                                  self.gpu_buffer_b.ptr(), n_elems,
@@ -126,8 +125,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         return needs_sync
 
-    def _pack_params_to_buffer(self, params, allreduce_grad_dtype,
-                               n_elems, stream):
+    def _pack_params_to_buffer(self, params, allreduce_grad_dtype, stream):
         if self.batched_copy:
             params_data = _ParamsData(params, 'grad')
             _batched_pack_params(params_data, self.gpu_buffer_a,
