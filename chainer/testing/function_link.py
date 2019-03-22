@@ -436,12 +436,20 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
 class _LinkTestBase(object):
 
-    contiguous = None
     backend_config = None
+    check_forward_options = None
+    check_backward_options = None
+    check_initializers_options = None
+    contiguous = None
 
     # List of parameter names represented as strings.
     # I.e. ('gamma', 'beta') for BatchNormalization.
     param_names = ()
+
+    def __init__(self):
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+        self.check_initializers_options = {}
 
     def before_test(self, test_name):
         pass
@@ -698,8 +706,6 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
     """
 
-    check_forward_options = {}
-    check_backward_options = {}
     skip_forward_test = False
     skip_backward_test = False
     dodge_nondifferentiable = False
@@ -969,8 +975,6 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
         :class:`~chainer.testing.FunctionTestCase`
 
     """
-
-    check_initializers_options = {}
 
     def get_initializers(self):
         raise NotImplementedError('get_initializers is not implemented.')
