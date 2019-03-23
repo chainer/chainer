@@ -8,6 +8,52 @@ namespace chainerx {
 
 std::ostream& operator<<(std::ostream& os, Dtype dtype) { return os << GetDtypeName(dtype); }
 
+// Returns the minimal dtype which can be safely casted from both dtypes.
+Dtype PromoteTypes(Dtype dt1, Dtype dt2) {
+    DtypeKind kind1 = GetKind(dt1);
+    DtypeKind kind2 = GetKind(dt2);
+    // Bools always have least priority
+    if (kind1 == DtypeKind::kBool) {
+        return dt2;
+    }
+    if (kind2 == DtypeKind::kBool) {
+        return dt1;
+    }
+    // Same kinds -> return the wider one
+    if (kind1 == kind2) {
+        if (GetItemSize(dt1) >= GetItemSize(dt2)) {
+            return dt1;
+        }
+        return dt2;
+    }
+    // Float takes priority over the other
+    if (kind1 == DtypeKind::kFloat) {
+        return dt1;
+    }
+    if (kind2 == DtypeKind::kFloat) {
+        return dt2;
+    }
+    // Kinds are kInt and kUInt
+    if (kind1 == DtypeKind::kUInt) {
+        std::swap(dt1, dt2);
+        std::swap(kind1, kind2);
+    }
+    CHAINERX_ASSERT(kind1 == DtypeKind::kInt && kind2 == DtypeKind::kUInt);
+    if (GetItemSize(dt1) > GetItemSize(dt2)) {
+        // Unsigned one has narrower width.
+        // Return the signed dtype.
+        return dt1;
+    }
+    // Otherwise return the signed dtype with one-level wider than the unsigned one.
+    switch (dt2) {
+        case Dtype::kUInt8:
+            return Dtype::kInt16;
+            // If there will be more unsigned int types, add here.
+        default:
+            CHAINERX_NEVER_REACH();
+    }
+}
+
 Dtype GetDtype(const std::string& name) {
     // We define an ad-hoc POD struct to comply with the coding guideline.
     // Note that std::tuple is not a POD type.

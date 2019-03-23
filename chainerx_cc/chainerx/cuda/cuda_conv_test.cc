@@ -58,9 +58,9 @@ TEST(CudaConvTest, FwdAlgoCache) {
         bool cover_all = false;
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        cuda_conv.Conv(device, x, w, b, stride, pad, cover_all);
+        cuda_conv.Conv(device, x, w, b, stride, pad, cover_all, x.dtype());
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        cuda_conv.Conv(device, x, w, b, stride, pad, cover_all);
+        cuda_conv.Conv(device, x, w, b, stride, pad, cover_all, x.dtype());
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
     }
     {

@@ -1,3 +1,4 @@
+import chainer
 import numpy
 import pytest
 
@@ -5,76 +6,109 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
-# Skip if creating an ndarray while casting the data to the parameterized dtype
-# fails.
-# E.g. [numpy.inf] to numpy.int32.
-def _to_array_safe(xp, a_object, dtype):
-    try:
-        return xp.array(a_object, dtype)
-    except (ValueError, OverflowError):
-        return None
+_expected_numeric_dtypes_comparison = [
+    (t1, t2)
+    for (t1, t2), _ in dtype_utils.result_dtypes_two_arrays
+    if all([numpy.dtype(t) != 'bool_' for t in (t1, t2)])
+]
 
 
+_expected_float_dtypes_comparison = [
+    (t1, t2)
+    for (t1, t2), _ in dtype_utils.result_dtypes_two_arrays
+    if all([numpy.dtype(t).kind == 'f' for t in (t1, t2)])
+]
+
+
+_expected_all_dtypes_comparison = _expected_numeric_dtypes_comparison + [
+    ('bool_', 'bool_'),
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # All dtypes
+    chainer.testing.product({
+        'dtypes': _expected_all_dtypes_comparison,
+        'inputs': [
+            ([], []),
+            ([True], [True]),
+            ([True], [False]),
+        ]
+    })
+    # Numeric dtypes
+    + chainer.testing.product({
+        'dtypes': _expected_numeric_dtypes_comparison,
+        'inputs': [
+            ([0], [0]),
+            ([0], [-0]),
+            ([0], [1]),
+            ([0, 1, 2], [0, 1, 2]),
+            ([1, 1, 2], [0, 1, 2]),
+            ([0, 1, 2], [1, 2, 3]),
+            ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
+            ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
+            ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
+            (0, [0]),
+            (1, [0]),
+            ([], [0]),
+            ([0], [[0, 1, 2], [3, 4, 5]]),
+            ([[0], [1]], [0, 1, 2]),
+            ([0.2], [0.2]),
+            ([0.2], [-0.3]),
+        ],
+    })
+    # Float dtypes
+    + chainer.testing.product({
+        'dtypes': _expected_float_dtypes_comparison,
+        'inputs': [
+            ([0., numpy.nan], [0., 1.]),
+            ([0., numpy.nan], [0., numpy.nan]),
+            ([0., numpy.inf], [0., 1.]),
+            ([0., -numpy.inf], [0., 1.]),
+            ([numpy.inf, 1.], [numpy.inf, 1.]),
+            ([-numpy.inf, 1.], [-numpy.inf, 1.]),
+            ([numpy.inf, 1.], [-numpy.inf, 1.]),
+            ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
+        ]
+    })
+))
+@chainer.testing.parameterize_pytest('cmp_op,module_func', [
+    (lambda a, b: a == b, 'equal'),
+    (lambda a, b: a != b, 'not_equal'),
+    (lambda a, b: a > b, 'greater'),
+    (lambda a, b: a >= b, 'greater_equal'),
+    (lambda a, b: a < b, 'less'),
+    (lambda a, b: a <= b, 'less_equal'),
+])
 # Ignore warnings from numpy for NaN comparisons.
 @pytest.mark.filterwarnings('ignore:invalid value encountered in ')
-@pytest.mark.parametrize('a_object,b_object', [
-    ([], []),
-    ([0], [0]),
-    ([0], [-0]),
-    ([0], [1]),
-    ([0.2], [0.2]),
-    ([0.2], [-0.3]),
-    ([True], [True]),
-    ([True], [False]),
-    ([0, 1, 2], [0, 1, 2]),
-    ([1, 1, 2], [0, 1, 2]),
-    ([0, 1, 2], [1, 2, 3]),
-    ([0., numpy.nan], [0., 1.]),
-    ([0., numpy.nan], [0., numpy.nan]),
-    ([0., numpy.inf], [0., 1.]),
-    ([0., -numpy.inf], [0., 1.]),
-    ([numpy.inf, 1.], [numpy.inf, 1.]),
-    ([-numpy.inf, 1.], [-numpy.inf, 1.]),
-    ([numpy.inf, 1.], [-numpy.inf, 1.]),
-    ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
-    ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
-    ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
-    ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
-    # broadcast
-    (0, [0]),
-    (1, [0]),
-    ([], [0]),
-    ([0], [[0, 1, 2], [3, 4, 5]]),
-    ([[0], [1]], [0, 1, 2]),
-])
-@pytest.mark.parametrize('cmp_op, chx_cmp, np_cmp', [
-    (lambda a, b: a == b, chainerx.equal, numpy.equal),
-    (lambda a, b: a != b, chainerx.not_equal, numpy.not_equal),
-    (lambda a, b: a > b, chainerx.greater, numpy.greater),
-    (lambda a, b: a >= b, chainerx.greater_equal, numpy.greater_equal),
-    (lambda a, b: a < b, chainerx.less, numpy.less),
-    (lambda a, b: a <= b, chainerx.less_equal, numpy.less_equal),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
-    a_np = _to_array_safe(numpy, a_object, dtype)
-    b_np = _to_array_safe(numpy, b_object, dtype)
-    if a_np is None or b_np is None:
-        return
+class TestCmp(op_utils.NumpyOpTest):
 
-    a_chx = chainerx.array(a_np)
-    b_chx = chainerx.array(b_np)
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-    chainerx.testing.assert_array_equal_ex(
-        cmp_op(a_chx, b_chx), cmp_op(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(
-        cmp_op(b_chx, a_chx), cmp_op(b_np, a_np))
-    chainerx.testing.assert_array_equal_ex(
-        chx_cmp(a_chx, b_chx), np_cmp(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(
-        chx_cmp(b_chx, a_chx), np_cmp(b_np, a_np))
+    def generate_inputs(self):
+        a_object, b_object = self.inputs
+        a_dtype, b_dtype = self.dtypes
+        a = numpy.array(a_object, a_dtype)
+        b = numpy.array(b_object, b_dtype)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        cmp_op = self.cmp_op
+        module_func = getattr(xp, self.module_func)
+
+        y1 = cmp_op(a, b)
+        y2 = cmp_op(b, a)
+        y3 = module_func(a, b)
+        y4 = module_func(b, a)
+        return y1, y2, y3, y4
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -90,7 +124,7 @@ def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
     (lambda a, b: a < b, chainerx.less),
     (lambda a, b: a < b, chainerx.less_equal),
 ])
-def test_cmp_invalid(cmp_op, chx_cmp, a_shape, b_shape):
+def test_cmp_invalid_shapes(cmp_op, chx_cmp, a_shape, b_shape):
     def check(x, y):
         with pytest.raises(chainerx.DimensionError):
             cmp_op(x, y)
@@ -104,24 +138,70 @@ def test_cmp_invalid(cmp_op, chx_cmp, a_shape, b_shape):
     check(b, a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('a_object', [
-    ([]),
-    ([0]),
-    ([1]),
-    ([0.2]),
-    ([-0.3]),
-    ([True]),
-    ([False]),
-    ([0, 1, 2]),
-    ([0., numpy.nan]),
-    ([numpy.nan, numpy.inf]),
-    ([-numpy.inf, numpy.nan]),
-    ([[0, 1], [2, 0]]),
+@pytest.mark.parametrize('cmp_op, chx_cmp', [
+    (lambda a, b: a == b, chainerx.equal),
+    (lambda a, b: a != b, chainerx.not_equal),
+    (lambda a, b: a > b, chainerx.greater),
+    (lambda a, b: a >= b, chainerx.greater_equal),
+    (lambda a, b: a < b, chainerx.less),
+    (lambda a, b: a < b, chainerx.less_equal),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_logical_not(xp, device, a_object, dtype):
-    a = _to_array_safe(xp, a_object, dtype)
-    if a is None:
-        return chainerx.testing.ignore()
-    return xp.logical_not(a)
+def test_cmp_invalid_dtypes(cmp_op, chx_cmp, numeric_dtype):
+    def check(x, y):
+        with pytest.raises(chainerx.DtypeError):
+            cmp_op(x, y)
+
+        with pytest.raises(chainerx.DtypeError):
+            chx_cmp(x, y)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'bool_')
+    b = array_utils.create_dummy_ndarray(chainerx, (2, 3), numeric_dtype)
+    check(a, b)
+    check(b, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # All dtypes
+    chainer.testing.product({
+        'dtype': chainerx.testing.all_dtypes,
+        'input': [
+            [],
+            [True],
+            [False],
+        ]
+    })
+    # Numeric dtypes
+    + chainer.testing.product({
+        'dtype': chainerx.testing.numeric_dtypes,
+        'input': [
+            [0],
+            [1],
+            [0, 1, 2],
+            [[0, 1], [2, 0]],
+        ],
+    })
+    # Float dtypes
+    + chainer.testing.product({
+        'dtype': chainerx.testing.float_dtypes,
+        'input': [
+            [0.2],
+            [-0.3],
+            [0., numpy.nan],
+            [numpy.nan, numpy.inf],
+            [-numpy.inf, numpy.nan],
+        ]
+    })
+))
+class TestLogicalNot(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return numpy.array(self.input, self.dtype),
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.logical_not(a)
+        return b,

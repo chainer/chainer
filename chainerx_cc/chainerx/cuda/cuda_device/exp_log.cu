@@ -28,9 +28,10 @@ struct ExpImpl {
 void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(ExpImpl<T>{}, x, out);
+        Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
     });
 }
 
@@ -47,9 +48,10 @@ struct LogImpl {
 void CudaDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(LogImpl<T>{}, x, out);
+        Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
     });
 }
 
