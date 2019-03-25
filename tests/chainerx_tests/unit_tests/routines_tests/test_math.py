@@ -1139,7 +1139,7 @@ class TestSquare(op_utils.NumpyOpTest):
         x = dtype_utils.cast_if_numpy_array(xp, x, self.chx_dtype)
         return xp.square(x),
 
-      
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
