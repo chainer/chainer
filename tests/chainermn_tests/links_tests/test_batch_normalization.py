@@ -92,15 +92,6 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     y_local = comm.mpi_comm.scatter(
         y.reshape(comm.size, local_batchsize))
 
-    x = x.astype(dtype)
-    x_local = x_local.astype(dtype)
-
-    if use_gpu:
-        x = chainer.cuda.to_gpu(x)
-        y = chainer.cuda.to_gpu(y)
-        x_local = chainer.cuda.to_gpu(x_local)
-        y_local = chainer.cuda.to_gpu(y_local)
-
     io_dtype = dtype
     l_dtype = dtype
     bn_dtype = dtype
@@ -111,6 +102,12 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
 
     x = x.astype(io_dtype)
     x_local = x_local.astype(io_dtype)
+
+    if use_gpu:
+        x = chainer.cuda.to_gpu(x)
+        y = chainer.cuda.to_gpu(y)
+        x_local = chainer.cuda.to_gpu(x_local)
+        y_local = chainer.cuda.to_gpu(y_local)
 
     cls = chainer.links.Classifier
     with chainer.using_config('dtype', dtype):
