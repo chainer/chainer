@@ -7,6 +7,7 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/kernels/sorting.h"
@@ -44,6 +45,11 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<ArgMaxKernel>(a, sorted_axis, out);
+    }
+    {
+        BackwardBuilder bb{"argmax", {a}, out};
+        // No backprop is required
+        bb.Finalize();
     }
     return out;
 }

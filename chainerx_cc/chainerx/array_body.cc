@@ -84,18 +84,11 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
 }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
-    CHAINERX_ASSERT(GetKind(body->dtype()) == DtypeKind::kFloat);
     return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id));
 }
 
 void ArrayBody::AssertConsistency() const {
     if (CHAINERX_DEBUG) {
-        // Array with integral dtypes can neither have array nodes nor gradients.
-        if (GetKind(dtype()) != DtypeKind::kFloat) {
-            CHAINERX_ASSERT(nodes_.empty());
-            CHAINERX_ASSERT(grads_.empty());
-        }
-
         CHAINERX_ASSERT(nodes_.size() == grads_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
@@ -108,6 +101,11 @@ void ArrayBody::AssertConsistency() const {
                 CHAINERX_ASSERT(grad->shape() == array_node->shape());
                 CHAINERX_ASSERT(grad->dtype() == array_node->dtype());
                 CHAINERX_ASSERT(&grad->device() == &array_node->device());
+            }
+
+            // Array with integral dtypes can have array nodes but not gradients.
+            if (GetKind(dtype()) != DtypeKind::kFloat) {
+                CHAINERX_ASSERT(grad == nonstd::nullopt);
             }
         }
     }
@@ -141,7 +139,9 @@ ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_i
         return nullptr;
     }
     CHAINERX_ASSERT(*i < this_ptr->grads_.size());
-    return this_ptr->grads_[*i].get();
+    ReturnType grad = this_ptr->grads_[*i].get();
+    CHAINERX_ASSERT(grad != nullptr);
+    return grad;
 }
 
 template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const BackpropId&);

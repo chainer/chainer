@@ -169,9 +169,9 @@ array([[1., 1., 1.],
        [1., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
 
 >>> y = a.astype(chx.int32)
->>> y  # not backpropagatable
+>>> y
 array([[1, 2, 3],
-       [4, 5, 6]], shape=(2, 3), dtype=int32, device='native:0')
+       [4, 5, 6]], shape=(2, 3), dtype=int32, device='native:0', backprop_ids=['<default>'])
 
 Take
 ----

@@ -206,8 +206,13 @@ private:
     // This can be checked by calling is_complete();
     std::vector<bool> inputs_target_created_;
 
-    // Output arrays of the op.
+    // Output arrays.
     std::vector<ConstArrayRef> outputs_;
+
+    // Output array nodes.
+    // Care should be taken not to invalidate the references during the lifetime of the builder. Creating a new array node would invalidate
+    // them.
+    std::unordered_map<BackpropId, std::vector<std::reference_wrapper<const std::shared_ptr<internal::ArrayNode>>>> output_nodes_map_;
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.

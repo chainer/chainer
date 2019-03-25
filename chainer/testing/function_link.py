@@ -277,7 +277,8 @@ class FunctionTestBase(object):
 
             # Drop ggx corresponding to non-differentiable inputs.
             grad_grad_inputs = [
-                ggx for ggx in grad_grad_inputs if ggx.dtype.kind == 'f']
+                None if ggx.dtype.kind != 'f' else ggx
+                for ggx in grad_grad_inputs]
 
             inputs = backend_config.get_array(inputs)
             grad_outputs = backend_config.get_array(grad_outputs)

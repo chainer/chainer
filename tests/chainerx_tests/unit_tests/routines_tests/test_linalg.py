@@ -38,18 +38,6 @@ class TestDot(op_utils.NumpyOpTest):
         if device.name == 'cuda:0' and (a_kind != 'f' and b_kind != 'f'):
             pytest.skip('non-float dot is not supported on CUDA')
 
-        # Skip backward/double-backward tests for int dtypes
-        if a_kind != 'f' or b_kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-        # Skip backward/double-backward tests if the output will be
-        # disconnected.
-        # TODO(niboshi): Remove this skip condition after enabling backward()
-        # for such cases.
-        if self.a_shape and self.a_shape[-1] == 0:
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
         if a_dtype == 'float16' or b_dtype == 'float16':
             self.check_forward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})

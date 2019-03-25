@@ -74,7 +74,10 @@ class OpNode {
 public:
     // Creates a new op node that has output array nodes corresponding to the given outputs.
     static std::shared_ptr<OpNode> CreateWithOutputArrayNodes(
-            std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
+            std::string name,
+            BackpropId backprop_id,
+            size_t input_count,
+            const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;

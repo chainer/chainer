@@ -26,10 +26,6 @@ _unspecified = _UnspecifiedType()
 class TestTranspose(op_utils.NumpyOpTest):
 
     def setup(self, shape, dtype):
-        # Skip backward/double-backward tests for int dtypes
-        if numpy.dtype(dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
         self.shape = shape
         self.dtype = dtype
 
@@ -67,11 +63,6 @@ class TestTranspose(op_utils.NumpyOpTest):
 class TestTransposeAxes(op_utils.NumpyOpTest):
 
     def setup(self, dtype):
-        # Skip backward/double-backward tests for int dtypes
-        if numpy.dtype(dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
         self.dtype = dtype
 
     def generate_inputs(self):
@@ -138,11 +129,6 @@ def test_transpose_invalid_axes(shape, axes):
 class TestRollaxis(op_utils.NumpyOpTest):
 
     def setup(self, dtype):
-        # Skip backward/double-backward tests for int dtypes
-        if numpy.dtype(dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
         self.dtype = dtype
 
     def generate_inputs(self):
@@ -416,11 +402,6 @@ class ConcatenateTestBase(op_utils.NumpyOpTest):
     dtypes = None
 
     def setup(self):
-        # Skip backward/double-backward tests for int dtypes
-        if any(numpy.dtype(dt).kind != 'f' for dt in self.dtypes):
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
         # TODO(niboshi): Fix strides for 0-size inputs
         if any(0 in shape for shape in self.shapes):
             self.check_numpy_strides_compliance = False

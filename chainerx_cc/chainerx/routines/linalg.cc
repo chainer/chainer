@@ -60,7 +60,13 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
         throw DimensionError{"Axis dimension mismatch"};
     }
     if (k == 0) {
-        return Zeros(out_shape, real_out_dtype, a.device());
+        Array out = Zeros(out_shape, real_out_dtype, a.device());
+        {
+            BackwardBuilder bb{"dot", {a, b}, out};
+            // No backprop is required
+            bb.Finalize();
+        }
+        return out;
     }
 
     // Make each operand a matrix

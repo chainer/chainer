@@ -71,22 +71,12 @@ class TestConv(op_utils.ChainerOpTest):
         else:
             (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
 
-        x_kind = numpy.dtype(x_dtype).kind
-        w_kind = numpy.dtype(w_dtype).kind
-        b_kind = None if b_dtype is None else numpy.dtype(b_dtype).kind
-
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
             # TODO(hvy): Support 1 dimensional convolution with CUDA.
             pytest.skip('cudnn does not support 1-dim convolution')
         if device.backend.name == 'cuda' and self.cover_all:
             pytest.skip('cudnn does not support cover_all')
-
-        # Skip backward/double-backward tests for int dtypes
-        if (x_kind != 'f' and w_kind != 'f'
-                and (b_kind is None or b_kind != 'f')):
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
 
         if (x_dtype == 'float16' or w_dtype == 'float16'
                 or b_dtype == 'float16'):
@@ -203,10 +193,6 @@ class TestConvTranspose(op_utils.ChainerOpTest):
         else:
             (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
 
-        x_kind = numpy.dtype(x_dtype).kind
-        w_kind = numpy.dtype(w_dtype).kind
-        b_kind = None if b_dtype is None else numpy.dtype(b_dtype).kind
-
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda' and len(self.x_shape) <= 3:
             # TODO(sonots): Support 1 dimensional convolution with CUDA.
@@ -216,12 +202,6 @@ class TestConvTranspose(op_utils.ChainerOpTest):
         if device.backend.name == 'cuda' and self.cover_all is True:
             pytest.skip(
                 'outsize (for cover_all=True) is not supported by CUDA')
-
-        # Skip backward/double-backward tests for int dtypes
-        if (x_kind != 'f' and w_kind != 'f'
-                and (b_kind is None or b_kind != 'f')):
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
 
         if (x_dtype == 'float16' or w_dtype == 'float16'
                 or b_dtype == 'float16'):
@@ -374,20 +354,6 @@ class TestLinear(op_utils.OpTest):
         if device.backend.name == 'cuda' and (
                 x_kind != 'f' or w_kind != 'f' or b_kind != 'f'):
             raise unittest.SkipTest('CUDA dot does not support integers.')
-
-        # Skip backward/double-backward tests for int dtypes
-        if (x_kind != 'f' and w_kind != 'f'
-                and (b_kind is None or b_kind != 'f')):
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
-        # Skip backward/double-backward tests if the output will be
-        # disconnected.
-        # TODO(niboshi): Remove this skip condition after enabling backward()
-        # for such cases.
-        if 0 in self.x_shape or 0 in self.w_shape:
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
 
         if (x_dtype == 'float16' or w_dtype == 'float16'
                 or b_dtype == 'float16'):

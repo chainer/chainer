@@ -23,10 +23,6 @@ class UnaryMathTestBase(object):
     def setup(self):
         in_dtype, = self.in_dtypes
 
-        if numpy.dtype(in_dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
         if in_dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
             self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})

@@ -41,7 +41,15 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
 
 // static
 std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
-        std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs) {
+        std::string name,
+        BackpropId backprop_id,
+        size_t input_count,
+        const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes) {
+    CHAINERX_ASSERT(input_count > 0);
+    CHAINERX_ASSERT(!output_array_nodes.empty());
+    CHAINERX_ASSERT(std::all_of(
+            output_array_nodes.begin(), output_array_nodes.end(), [](const std::shared_ptr<ArrayNode>& node) { return node != nullptr; }));
+
     // Trick to use make_shared with private ctor
     struct OpNodeWithPublicCtor : OpNode {
         OpNodeWithPublicCtor(std::string name, BackpropId backprop_id, size_t input_count)
@@ -49,13 +57,9 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
     };
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), backprop_id, input_count);
 
-    for (const Array& out : outputs) {
-        const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
-        CHAINERX_ASSERT(out_body != nullptr);
-        op_node->output_array_props_.emplace_back(*out_body);
-        if (GetKind(out_body->dtype()) == DtypeKind::kFloat) {
-            CHAINERX_ASSERT(!out_body->HasArrayNode(backprop_id));
-            const std::shared_ptr<ArrayNode>& output_array_node = ArrayBody::CreateArrayNode(out_body, backprop_id);
+    for (const std::shared_ptr<ArrayNode>& output_array_node : output_array_nodes) {
+        op_node->output_array_props_.emplace_back(*output_array_node);
+        if (GetKind(output_array_node->dtype()) == DtypeKind::kFloat) {
             op_node->output_array_nodes_.emplace_back(output_array_node);
             output_array_node->set_creator_op_node(op_node);
         } else {

@@ -319,7 +319,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().backend().CallKernel<AsTypeKernel>(*this, out);
 
-    if (GetKind(dtype) == DtypeKind::kFloat) {
+    {
         BackwardBuilder bb{"astype", *this, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->AsType(src_dtype); });
@@ -386,9 +386,6 @@ bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) cons
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
-    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
-    }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
     internal::ArrayBody::RequireGrad(internal::GetArrayBody(array), actual_backprop_id);
     return array;

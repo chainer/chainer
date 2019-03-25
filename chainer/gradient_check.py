@@ -47,8 +47,10 @@ def _make_outputs_props_in_error_message(outputs, grad_outputs):
             utils._format_array_props(grad_outputs)))
 
 
-def _check_outputs_and_grad_outputs(outputs, grad_outputs):
-    if len(outputs) != len(grad_outputs):
+def _check_outputs_and_grad_outputs(
+        outputs, grad_outputs, checks=('length', 'shape', 'dtype')):
+
+    if 'length' in checks and len(outputs) != len(grad_outputs):
         raise ValueError(
             'Output gradients must contain equally as many elements as '
             'the number of output elements.\n'
@@ -62,9 +64,9 @@ def _check_outputs_and_grad_outputs(outputs, grad_outputs):
             continue
         if y is None and (gy == 0).all():
             continue
-        if y.shape != gy.shape:
+        if 'shape' in checks and y.shape != gy.shape:
             shapes_match = False
-        if y.dtype != gy.dtype:
+        if 'dtype' in checks and y.dtype != gy.dtype:
             dtypes_match = False
 
     if not (shapes_match and dtypes_match):
@@ -580,7 +582,7 @@ class _CheckBackward(object):
         params = self.params
 
         xs = [
-            variable.Variable(x, requires_grad=x.dtype.kind == 'f')
+            variable.Variable(x, requires_grad=True)
             for x in xs]
 
         if self.is_immutable_params:
@@ -671,6 +673,10 @@ class _CheckBackward(object):
 
         delta = xp.array(0., numpy.float64)
 
+        # Output indices active for numerical grads.
+        active_iys = tuple([
+            i for i, gy in enumerate(gys) if gy is not None])
+
         def g():
             # This functions is called twice in `numerical_grad`.
             # `delta` is `epsilon` or `-epsilon` in these calls.
@@ -719,11 +725,13 @@ class _CheckBackward(object):
             else:
                 ys = func(*g_x_vars)
             ys = _as_tuple(ys)
-            ys_data = tuple([None if y is None else y.array for y in ys])
+
+            # Omit outputs inative for numerical grads.
+            ys = tuple([ys[i] for i in active_iys])
+
+            ys_data = tuple([y.array for y in ys])
             if xp is chainerx:
-                ys_data = tuple([
-                    None if y is None else y.as_grad_stopped()
-                    for y in ys_data])
+                ys_data = tuple([y.as_grad_stopped() for y in ys_data])
 
             if not self.is_immutable_params:
                 for i, param in enumerate(params):
@@ -731,8 +739,11 @@ class _CheckBackward(object):
 
             return ys_data
 
+        # Omit output grads inactive for numerical grads.
+        gys_ = tuple([gys[i] for i in active_iys])
+
         gx, = numerical_grad(
-            g, (delta,), gys, eps=eps,
+            g, (delta,), gys_, eps=eps,
             detect_nondifferentiable=detect_nondifferentiable,
             center_outputs=y0_data, diff_atol=0, diff_rtol=self.rtol)
 
@@ -914,6 +925,24 @@ def _check_backward_with_params(
     ).run()
 
 
+def _fill_omitted_grads(xs, ggxs):
+    # Grads for non-float xs might be omitted from `ggxs`.
+    # Returns a new `ggxs` filled with `None` for such xs.
+    if len(xs) == len(ggxs):
+        return ggxs
+    assert len(xs) > len(ggxs)
+    gxs_ = []
+    j = 0
+    for i, x in enumerate(xs):
+        if x.dtype.kind == 'f':
+            gxs_.append(ggxs[j])
+            j += 1
+        else:
+            gxs_.append(None)
+    assert j == len(ggxs)
+    return tuple(gxs_)
+
+
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                           params_grad_grad=(), eps=1e-3, atol=1e-4, rtol=1e-3,
                           no_grads=None, dtype=None,
@@ -964,16 +993,27 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     params = _as_tuple(params)
     gys = _as_tuple(gys)
     ggxs = _as_tuple(ggxs)
+    ggxs = _fill_omitted_grads(xs, ggxs)
     ggparams = _as_tuple(ggparams)
+    ggparams = _fill_omitted_grads(params, ggparams)
     n_x = len(xs)
 
-    first_order_no_gxs = [x.dtype.kind != 'f' for x in xs]
+    first_order_no_gxs = [False for x in xs]
 
     def first_order_grad(*inputs):
+        inputs = [
+            x if x.requires_grad
+            else chainer.Variable(x.array, requires_grad=True)
+            for x in inputs]
         xs = inputs[:n_x]
         gys = inputs[n_x:]
 
         ys = _as_tuple(func(*xs))
+
+        # gys may have been casted to float64 by numerical_grad.
+        # Cast it back to the original dtype.
+        _check_outputs_and_grad_outputs(ys, gys, checks=('length',))
+        gys = [chainer.functions.cast(gy, y.dtype) for y, gy in zip(ys, gys)]
         _check_outputs_and_grad_outputs(ys, gys)
 
         # Let all elements of y share the same creator.
@@ -1065,6 +1105,14 @@ def _apply_grad_setter_func(ys, gys):
     ys_ = [y for y in ys if y is not None]
     gys_ = [gy for y, gy in zip(ys, gys) if y is not None]
     assert len(ys_) == len(gys_)
+
+    # If ys has no valid (non-None) output, return an independent variable so
+    # that backward will work.
+    if len(ys_) == 0:
+        return chainer.Variable(
+            numpy.empty((0,), dtype=numpy.float32),
+            requires_grad=True)
+
     grad_setter = _GradientSetter(gys_)
     y, = grad_setter.apply(ys_)
     return y

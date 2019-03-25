@@ -204,56 +204,66 @@ TEST_P(ArrayTest, RequireGrad) {
 }
 
 TEST_P(ArrayTest, RequireGradDtype) {
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kBool).RequireGrad(); }, DtypeError);
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt8).RequireGrad(); }, DtypeError);
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt16).RequireGrad(); }, DtypeError);
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt32).RequireGrad(); }, DtypeError);
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt64).RequireGrad(); }, DtypeError);
-    EXPECT_THROW({ Ones(Shape{1}, Dtype::kUInt8).RequireGrad(); }, DtypeError);
-    // no throw
-    Ones(Shape{1}, Dtype::kFloat32).RequireGrad();
-    Ones(Shape{1}, Dtype::kFloat64).RequireGrad();
+    for (Dtype dtype : GetAllDtypes()) {
+        Array a = Ones(Shape{1}, dtype).RequireGrad();
+        EXPECT_TRUE(a.IsGradRequired()) << "Dtype: " << GetDtypeName(dtype);
+    }
 }
 
 // TODO(niboshi): Move to ArrayGradTest
 TEST_P(ArrayTest, Grad) {
-    using T = float;
-    BackpropScope backprop_scope{"bp1"};
-    BackpropId backprop_id = backprop_scope.backprop_id();
-    Shape shape{2, 3};
+    Dtype dtypes[]{Dtype::kFloat32, Dtype::kInt32};
 
-    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
-    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
+    for (Dtype dtype : dtypes) {
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
+        Shape shape{2, 3};
 
-    x.RequireGrad(backprop_id);
-    g.RequireGrad(backprop_id);
+        Array x{};
+        Array g{};
+        switch (dtype) {
+            case Dtype::kFloat32:
+                x = testing::BuildArray(shape).WithData<float>({5, 3, 2, 1, 4, 6});
+                g = testing::BuildArray(shape).WithData<float>({8, 4, 6, 3, 2, 1});
+                break;
+            case Dtype::kInt32:
+                x = testing::BuildArray(shape).WithData<int32_t>({5, 3, 2, 1, 4, 6});
+                g = testing::BuildArray(shape).WithData<int32_t>({8, 4, 6, 3, 2, 1});
+                break;
+            default:
+                CHAINERX_NEVER_REACH();
+        }
 
-    EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be initially unset";
+        x.RequireGrad(backprop_id);
+        g.RequireGrad(backprop_id);
 
-    // Set and get grad
-    {
-        x.SetGrad(g, backprop_id);
+        EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be initially unset";
 
-        EXPECT_ARRAY_EQ(g, *x.GetGrad(backprop_id));
-    }
+        // Set and get grad
+        {
+            x.SetGrad(g, backprop_id);
 
-    // Get grad multiple times
-    {
-        const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
-        const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
-        EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
-    }
+            EXPECT_ARRAY_EQ(g, *x.GetGrad(backprop_id));
+        }
 
-    // ClearGrad
-    {
-        Array grad_view = *x.GetGrad(backprop_id);  // Make a view of grad
+        // Get grad multiple times
+        {
+            const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
+            const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
+            EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
+        }
 
-        x.ClearGrad(backprop_id);
+        // ClearGrad
+        {
+            Array grad_view = *x.GetGrad(backprop_id);  // Make a view of grad
 
-        EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
+            x.ClearGrad(backprop_id);
 
-        // ClearGrad() must not affect previously retrieved view to grad
-        EXPECT_ARRAY_EQ(grad_view, g);
+            EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
+
+            // ClearGrad() must not affect previously retrieved view to grad
+            EXPECT_ARRAY_EQ(grad_view, g);
+        }
     }
 }
 
@@ -1026,10 +1036,11 @@ TEST_P(ArrayTest, AsTypeBackward) {
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(TypeToDtype<OutT>)}; }, {a}, {go}, {eps});
 }
 
-TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {
+TEST_P(ArrayTest, AsTypeToNonFloatHasGraph) {
+    BackpropId backprop_id = GetDefaultContext().default_backprop_id();
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<float>(-3).WithPadding(1)).RequireGrad();
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, a.AsType(Dtype::kInt32)));
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, a.AsType(Dtype::kBool)));
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, a.AsType(Dtype::kInt32)));
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, a.AsType(Dtype::kBool)));
 }
 
 TEST_P(ArrayTest, AsTypeDoubleBackward) {

@@ -303,12 +303,8 @@ class TestArgMinMax(unittest.TestCase):
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
         y = self.function(x, axis=self.axis)
-        if isinstance(x_data, chainerx.ndarray):
-            with self.assertRaises(chainerx.ChainerxError):
-                y.backward()
-        else:
-            y.backward()
-            self.assertIsNone(x.grad)
+        y.backward()
+        self.assertIsNone(x.grad)
 
     def test_backward_cpu(self):
         self.check_backward(self.x)
