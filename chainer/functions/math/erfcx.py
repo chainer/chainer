@@ -27,7 +27,7 @@ class Erfcx(function_node.FunctionNode):
                 _erfcx_cpu = special.erfcx
             except ImportError:
                 raise ImportError('SciPy is not available. Forward computation'
-                                  ' of erfcx can not be done.')
+                                  ' of erfcx cannot be done.')
 
         self.retain_inputs((0,))
         self.retain_outputs((0,))
@@ -52,8 +52,7 @@ def erfcx(x):
     """Elementwise scaled complementary error function.
 
     .. note::
-       Forward computation in CPU can be slow if
-       `SciPy <https://www.scipy.org/>`_ is not available.
+       Forward computation in CPU requires `SciPy <https://www.scipy.org/>`_ .
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
