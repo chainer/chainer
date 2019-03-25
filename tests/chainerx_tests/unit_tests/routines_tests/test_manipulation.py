@@ -104,6 +104,84 @@ def test_transpose_invalid_axes(shape, axes):
         a.transpose(axes)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('in_shape,axis,start', [
+    # various axis
+    ((2, 3, 4), 0, _unspecified),
+    ((2, 3, 4), 1, _unspecified),
+    ((2, 3, 4), 2, _unspecified),
+    ((2, 3, 4), -1, _unspecified),
+    ((2, 3, 4), -3, _unspecified),
+    # with start
+    ((2, 3, 4), 1, 0),
+    ((2, 3, 4), 1, 1),
+    ((2, 3, 4), 1, 2),
+    ((2, 3, 4), 1, 3),
+    ((2, 3, 4), 1, -1),
+    ((2, 3, 4), 1, -2),
+    ((2, 3, 4), 1, -3),
+    ((2, 3, 4), 2, 3),
+    ((2, 3, 4), 2, 0),
+    ((2, 3, 4), 0, 3),
+    ((2, 3, 4), 0, 0),
+    # single dim
+    ((1,), 0, _unspecified),
+    ((1,), -1, _unspecified),
+    # zero-length dims
+    ((0,), 0, _unspecified),
+    ((0,), 0, 0),
+    ((0,), 0, 1),
+    ((0,), -1, _unspecified),
+    ((2, 0, 3), 1, _unspecified),
+    ((2, 0, 3), -2, _unspecified),
+])
+class TestRollaxis(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        in_shape = self.in_shape
+        dtype = self.dtype
+        a = array_utils.create_dummy_ndarray(numpy, in_shape, dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axis = self.axis
+        start = self.axis
+        if start is _unspecified:
+            b = xp.rollaxis(a, axis)
+        else:
+            b = xp.rollaxis(a, axis, start)
+        return b,
+
+
+@pytest.mark.parametrize('in_shape,axis,start', [
+    # out of bounds axis
+    ((2, 3, 4), 3, _unspecified),
+    ((2, 3, 4), -4, _unspecified),
+    # out of bounds start
+    ((2, 3, 4), 2, 4),
+    ((2, 3, 4), 2, -4),
+    # empty shape
+    ((), 0, _unspecified),
+    ((), -1, _unspecified),
+])
+def test_rollaxis_invalid(in_shape, axis, start):
+    a = array_utils.create_dummy_ndarray(chainerx, in_shape, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        if start is _unspecified:
+            chainerx.rollaxis(a, axis)
+        else:
+            chainerx.rollaxis(a, axis, start)
+
+
 _reshape_shape = [
     ((), ()),
     ((0,), (0,)),
