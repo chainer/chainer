@@ -1158,6 +1158,60 @@ class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.tanh(a)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'expected_dtypes': _expected_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        if xp is numpy:
+            out_dtype = dict(_expected_dtypes_math_functions).get(self.dtype)
+            a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
+        return xp.sin(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'expected_dtypes': _expected_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        if xp is numpy:
+            out_dtype = dict(_expected_dtypes_math_functions).get(self.dtype)
+            a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
+        return xp.cos(a)
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [

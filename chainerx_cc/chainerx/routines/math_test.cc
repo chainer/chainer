@@ -1703,6 +1703,64 @@ TEST_P(MathTest, TanhDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Tanh(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, Sin) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::sin(-1.f), std::sin(2.f), std::sin(0.f)});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Sin(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(MathTest, SinBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Sin(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, SinDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sin(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
+TEST_THREAD_SAFE_P(MathTest, Cos) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::cos(-1.f), std::cos(2.f), std::cos(0.f)});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Cos(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(MathTest, CosBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Cos(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, CosDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Cos(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
 TEST_THREAD_SAFE_P(MathTest, IsNan) {
     Array a = testing::BuildArray({5, 1}).WithData<float>(
             {-1.f, std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), std::nanf(""), std::nanf("0xf")});
