@@ -204,10 +204,6 @@ _reshape_shape = [
 ]
 
 
-# TODO(niboshi): Test with non-contiguous input array that requires copy to
-# reshape
-# TODO(niboshi): Test with non-contiguous input array that does not require
-# copy to reshape
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
 @chainer.testing.parameterize_pytest('shape_type', [tuple, list])
