@@ -116,7 +116,7 @@ class Memory(object):
         tc = self.TC(inds)
         tm = F.broadcast_to(tm, self.m.shape)
         tc = F.broadcast_to(tc, self.c.shape)
-        p = F.softmax(F.matmul(self.m + tm, u[..., None]))
+        p = F.softmax(F.matmul(self.m + tm, F.expand_dims(u, u.ndim)))
         o = F.matmul(F.swapaxes(self.c + tc, 2, 1), p)
         o = F.squeeze(o, -1)
         u = o + u
