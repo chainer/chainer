@@ -962,6 +962,30 @@ def test_linspace(xp, start, stop, num, endpoint, range_type, dtype, device):
     return xp.linspace(start, stop, num, endpoint=endpoint, dtype=dtype)
 
 
+# Check only for closeness to numpy not the dtype
+# as the default float of numpy and chainerx may differ.
+@chainerx.testing.numpy_chainerx_allclose(dtype_check=False, float16_rtol=1e-7)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('start,stop', [
+    (0, 0),
+    (0, 1),
+    (1, 0),
+    (-1, 0),
+    (0, -1),
+    (1, -1),
+    (-13.3, 352.5),
+    (13.3, -352.5),
+])
+@pytest.mark.parametrize('num', [0, 1, 2, 257])
+@pytest.mark.parametrize('endpoint', [True, False])
+@pytest.mark.parametrize('range_type', [float, int])
+def test_linspace_default_dtype(xp, start, stop, num, endpoint,
+                                range_type, device):
+    start = range_type(start)
+    stop = range_type(stop)
+    return xp.linspace(start, stop, num, endpoint=endpoint)
+
+
 @chainerx.testing.numpy_chainerx_allclose()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')

@@ -318,8 +318,10 @@ Array Linspace(
         Device& device) {
     static const int64_t kDefaultNum = 50;
 
-    // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.
-    Dtype dtype_a = dtype.value_or(internal::GetDefaultDtype(start.kind()));
+    // Always default to float type.
+    // Similar behavior to numpy
+    // Ref: https://github.com/numpy/numpy/issues/8597
+    Dtype dtype_a = dtype.value_or(internal::GetDefaultDtype(chainerx::DtypeKind::kFloat));
     int64_t num_a = num.value_or(kDefaultNum);
 
     if (num_a < 0) {
