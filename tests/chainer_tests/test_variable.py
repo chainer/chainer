@@ -371,7 +371,10 @@ class TestVariable(unittest.TestCase):
         self.check_label(self.label, cuda.to_gpu(self.c))
 
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
-        # This test assumes that `outputs` do not depend each other
+        # Test that `Variable.backward` writes gradients to correct Variables
+        # for a given computational graph (with `inputs`, `outputs`, and other
+        # `intermediate` variables). It is assumed that `outputs` do not depend
+        # each other.
         intermediate_grads = [h.grad_var for h in intermediates]
         output_grads = [y.grad_var for y in outputs]
 
@@ -2638,9 +2641,10 @@ def exp_pair(x):
     return ExpPair().apply((x,))
 
 
-class TestBackwardRetainedOutput(unittest.TestCase):
+class TestBackwardDelOutput(unittest.TestCase):
+    # Variable.backward may have function nodes with deleted outputs.
 
-    def test_backward_cpu_retain_grad(self):
+    def check_backward_cpu(self, retain_grad):
         x = chainer.Variable(np.array([1, 2], np.float32))
         y0, y1 = exp_pair(x)
         del y0
@@ -2649,15 +2653,24 @@ class TestBackwardRetainedOutput(unittest.TestCase):
         gx_expected = y1.array * y1.grad
         testing.assert_allclose(x.grad, gx_expected)
 
+    def test_backward_cpu(self):
+        self.check_backward_cpu(False)
 
-class TestBackwardV5Compat1(unittest.TestCase):
+    def test_backward_cpu_retain_grad(self):
+        self.check_backward_cpu(True)
 
-    def test_backward(self):
+
+class TestBackwardV5Compat(unittest.TestCase):
+
+    def test_backward_multiple_output_func(self):
+        # Before Chainer v6, functions.identity is often used to start
+        # backprop from multiple variables
         x = chainer.Variable(np.array([1, 2], np.float32))
         y0, y1, y2 = chainer.functions.identity(x, x, x)
         y1.grad = np.array([3, 4], np.float32)
         y2.backward()
         testing.assert_allclose(x.grad, [3, 4])
+        assert y1.grad is None  # Changed in v6
 
 
 class IdentityFunction(chainer.Function):
