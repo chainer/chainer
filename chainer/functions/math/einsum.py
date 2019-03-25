@@ -49,6 +49,7 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
             '{xp}.einsum does not support optimize option. '
             'Use newer version of {xp} to speed up.'
             .format(xp=xp.__name__),
+            utils.PerformanceWarning,
         )
         y = xp.einsum(subscripts, *inputs)
 
