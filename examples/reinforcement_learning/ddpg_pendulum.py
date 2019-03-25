@@ -69,7 +69,8 @@ class Policy(chainer.Chain):
 
 def get_action(policy, obs):
     """Get an action by evaluating a given policy."""
-    obs = policy.xp.asarray(obs[None], dtype=np.float32)
+    dtype = chainer.get_dtype()
+    obs = policy.xp.asarray(obs[None], dtype=dtype)
     with chainer.no_backprop_mode():
         action = policy(obs).array[0]
     return chainer.backends.cuda.to_cpu(action)
@@ -78,12 +79,13 @@ def get_action(policy, obs):
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
            samples, gamma=0.99):
     """Update a Q-function and a policy."""
+    dtype = chainer.get_dtype()
     xp = Q.xp
-    obs = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
-    action = xp.asarray([sample[1] for sample in samples], dtype=np.float32)
-    reward = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
-    done = xp.asarray([sample[3] for sample in samples], dtype=np.float32)
-    obs_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
+    obs = xp.asarray([sample[0] for sample in samples], dtype=dtype)
+    action = xp.asarray([sample[1] for sample in samples], dtype=dtype)
+    reward = xp.asarray([sample[2] for sample in samples], dtype=dtype)
+    done = xp.asarray([sample[3] for sample in samples], dtype=dtype)
+    obs_next = xp.asarray([sample[4] for sample in samples], dtype=dtype)
 
     def update_Q():
         # Predicted values: Q(s,a)
