@@ -400,7 +400,7 @@ def _make_inputs(shapes, dtypes):
 
     inputs = []
     for i, (shape, dtype) in enumerate(zip(shapes, dtypes)):
-        size = numpy.product(shape)
+        size = array_utils.total_size(shape)
         a = numpy.arange(i * 100, i * 100 + size)
         a = a.reshape(shape)
         a = a.astype(dtype)

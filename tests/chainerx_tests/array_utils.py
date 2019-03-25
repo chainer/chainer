@@ -24,9 +24,10 @@ def uniform(shape, dtype):
 
 
 def shaped_arange(shape, dtype):
-    size = numpy.prod(shape)
+    size = total_size(shape)
     a = numpy.arange(1, size + 1).reshape(shape)
-    if dtype == 'bool_':
+    dtype = numpy.dtype(dtype)
+    if dtype == numpy.bool_:
         return a % 2 == 0
     return a.astype(dtype, copy=False)
 
