@@ -373,7 +373,7 @@ class TestVariable(unittest.TestCase):
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
         # This test assumes that `outputs` do not depend each other
         intermediate_grads = [h.grad_var for h in intermediates]
-        output_grads = [y.grad_var for y in intermediates]
+        output_grads = [y.grad_var for y in outputs]
 
         for y in outputs:
             y.backward(retain_grad)
@@ -384,7 +384,7 @@ class TestVariable(unittest.TestCase):
             assert all([h.grad_var is not None for h in intermediates])
             # output grads are also retained
             assert all([
-                y.grad_var is not None
+                y.grad_var is gy_orig
                 for y, gy_orig in zip(outputs, output_grads)])
         else:
             # intermediate grads should not be touched
@@ -392,7 +392,7 @@ class TestVariable(unittest.TestCase):
                 h.grad_var is gh_orig
                 for h, gh_orig in zip(intermediates, intermediate_grads)])
             # output grads are used (from Chainer v6)
-            assert any([y.grad_var is None for y in outputs])
+            assert all([y.grad_var is None for y in outputs])
 
     # length is number of edges. So, # of Variables created is length+1
     def create_linear_chain(self, length, xp):
