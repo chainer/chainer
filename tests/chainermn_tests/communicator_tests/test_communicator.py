@@ -1,3 +1,4 @@
+import mock
 import mpi4py.MPI
 import numpy as np
 import pytest
@@ -339,35 +340,6 @@ def check_send_recv(param, use_gpu):
     check_send_and_recv_tuple(communicator, data)
 
 
-class SimpleMock(object):
-    """A very simple mock class.
-
-    To test mixed-precision communication, it is necessary to check
-    the data type of actual communication, as well as check the results.
-    This is a very simple mock class to intercept the allreduce
-    function call to the underlying actual communicators, such as
-    PureNcclCommunicator and FlatCommunicator.
-
-    NOTE: unittest.mock is from PYthon 3.3.
-    """
-
-    def __init__(self, orig_obj):
-        self.orig_obj = orig_obj
-        self.__mock_call_args = []
-        self.__mocks = {}
-
-    def __getattr__(self, attr):
-        if attr == '__mock_call_args':
-            return self.__mock_call_args
-        if attr not in self.__mocks:
-            self.__mocks[attr] = SimpleMock(getattr(self.orig_obj, attr))
-        return self.__mocks[attr]
-
-    def __call__(self, *args, **kwargs):
-        self.__mock_call_args.append([args, kwargs])
-        self.orig_obj.__call__(*args, **kwargs)
-
-
 def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     # Checks the actual allreduce communication is performed
     # in the correct data type (FP16 or FP32)
@@ -413,16 +385,18 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
 
     if isinstance(communicator, PureNcclCommunicator):
         communicator._init_comms()
-        communicator.nccl_comm = SimpleMock(communicator.nccl_comm)
-        answer_dtype = _communication_utility._get_nccl_type_id(answer_dtype)
+        with mock.patch.object(communicator, 'nccl_comm',
+                               wraps=communicator.nccl_comm) as mc:
+            answer_dtype = _communication_utility._get_nccl_type_id(
+                answer_dtype)
 
-        communicator.allreduce_grad(model)
+            communicator.allreduce_grad(model)
 
-        # dtype that was used in the actual communication,
-        # which is nccl_comm.allReduce
-        called_args = communicator.nccl_comm.allReduce.__mock_call_args[0][0]
-        actual_dtype = called_args[3]
-        assert answer_dtype == actual_dtype
+            # dtype that was used in the actual communication,
+            # which is nccl_comm.allReduce
+            call_args = mc.allReduce.call_args[0]
+            actual_dtype = call_args[3]
+            assert answer_dtype == actual_dtype
     else:
         # For other MPI-based communicators,
         # all communication should happen in FP32 as of now, so
