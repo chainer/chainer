@@ -1,3 +1,4 @@
+import mock
 import mpi4py.MPI
 import numpy as np
 import pytest
@@ -45,6 +46,22 @@ class ExampleModel(chainer.Chain):
                                           initial_bias=bias)
 
 
+class ExampleMixedModel(chainer.Chain):
+    def __init__(self):
+        W16 = chainer.initializers.Normal(dtype=np.float16)
+        W32 = chainer.initializers.Normal(dtype=np.float32)
+        bias16 = chainer.initializers.Zero(dtype=np.float16)
+        bias32 = chainer.initializers.Zero(dtype=np.float32)
+        super(ExampleMixedModel, self).__init__()
+        with self.init_scope():
+            self.a = chainer.links.Linear(2, 3, initialW=W32,
+                                          initial_bias=bias32)
+            self.b = chainer.links.Linear(3, 4, initialW=W16,
+                                          initial_bias=bias16)
+            self.c = chainer.links.Linear(None, 5, initialW=W16,
+                                          initial_bias=bias32)
+
+
 class Param(object):
     def __init__(self, param):
         self.gpu = False
@@ -52,7 +69,12 @@ class Param(object):
         self.model_dtype = None
         self.allreduce_grad_dtype = None
         self.batched_copy = False
+        self.global_dtype = None
         self.__dict__.update(param)
+
+    def __repr__(self):
+        import pprint
+        return pprint.pformat(self.__dict__)
 
 
 cpu_params = [Param(p) for p in [
@@ -155,6 +177,42 @@ gpu_params = [Param(p) for p in [
         'batched_copy': True,
     }]]
 
+
+gpu_mixed_dtype_params = [Param(p) for p in [
+    {
+        'communicator_class': NonCudaAwareCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': NaiveCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': TwoDimensionalCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': HierarchicalCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': FlatCommunicator,
+        'multi_node': True,
+    }, {
+        'communicator_class': SingleNodeCommunicator,
+        'multi_node': False,
+    }
+]]
+for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
+    for allreduce_dtype in [np.float32, np.float16, None]:
+        if global_dtype is None and allreduce_dtype is None:
+            continue
+        for batched_copy in [True, False]:
+            gpu_mixed_dtype_params.append(Param({
+                'communicator_class': PureNcclCommunicator,
+                'multi_node': True,
+                'global_dtype': global_dtype,
+                'allreduce_grad_dtype': allreduce_dtype,
+                'batched_copy': batched_copy,
+            }))
+
+
 mpi_comm = mpi4py.MPI.COMM_WORLD
 
 
@@ -223,9 +281,10 @@ def check_bcast_data(communicator, model):
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
-def check_allreduce_grad(communicator, model):
+def check_allreduce_grad(communicator, model, comm_prec=None):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
+
     for _ in range(2):
         model.a.W.grad[:] = communicator.rank
         model.b.W.grad[:] = communicator.rank + 1
@@ -281,6 +340,79 @@ def check_send_recv(param, use_gpu):
     check_send_and_recv_tuple(communicator, data)
 
 
+def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
+    # Checks the actual allreduce communication is performed
+    # in the correct data type (FP16 or FP32)
+    comm_class = param.communicator_class
+
+    if not param.multi_node:
+        ranks = _communication_utility.init_ranks(mpi_comm)
+        inter_size = ranks[4]
+        if inter_size > 1:
+            pytest.skip('This test is for single node only')
+
+    if comm_class is PureNcclCommunicator:
+        communicator = comm_class(
+            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
+            batched_copy=param.batched_copy)
+    else:
+        communicator = comm_class(mpi_comm)
+
+    # answer type: see the document of `create_communicator`
+    global_dtype = param.global_dtype
+    allreduce_dtype = param.allreduce_grad_dtype
+
+    # assert test configuration.
+    assert chainer.get_dtype() == global_dtype
+
+    answer_dtype = None
+    if allreduce_dtype == np.float16:
+        answer_dtype = np.float16
+    elif allreduce_dtype == np.float32:
+        answer_dtype = np.float32
+    else:
+        if global_dtype == np.float32:
+            answer_dtype = np.float32
+        else:
+            answer_dtype = np.float16
+
+    if use_gpu:
+        model.to_gpu()
+
+    model.a.W.grad[:] = communicator.rank
+    model.b.W.grad[:] = communicator.rank + 1
+    model.c.b.grad[:] = communicator.rank + 2
+
+    if isinstance(communicator, PureNcclCommunicator):
+        communicator._init_comms()
+        with mock.patch.object(communicator, 'nccl_comm',
+                               wraps=communicator.nccl_comm) as mc:
+            answer_dtype = _communication_utility._get_nccl_type_id(
+                answer_dtype)
+
+            communicator.allreduce_grad(model)
+
+            # dtype that was used in the actual communication,
+            # which is nccl_comm.allReduce
+            call_args = mc.allReduce.call_args[0]
+            actual_dtype = call_args[3]
+            assert answer_dtype == actual_dtype
+    else:
+        # For other MPI-based communicators,
+        # all communication should happen in FP32 as of now, so
+        # here we just check the results are correct for
+        # 16-32 mixed models.
+        communicator.allreduce_grad(model)
+
+    base = (communicator.size - 1.0) / 2
+    chainer.testing.assert_allclose(model.a.W.grad,
+                                    (base + 0) * np.ones((3, 2)))
+    chainer.testing.assert_allclose(model.b.W.grad,
+                                    (base + 1) * np.ones((4, 3)))
+
+    communicator.mpi_comm.barrier()
+
+
 def check_collective_communication(param, use_gpu):
     communicator = create_communicator(param, use_gpu)
 
@@ -307,6 +439,14 @@ def test_communicator_cpu(param):
 def test_communicator_gpu(param):
     check_send_recv(param, True)
     check_collective_communication(param, True)
+
+
+@pytest.mark.parametrize('param', gpu_mixed_dtype_params)
+@chainer.testing.attr.gpu
+def test_mixed_dtype_communicator_gpu(param):
+    model = ExampleMixedModel()
+    with chainer.using_config('dtype', param.global_dtype):
+        check_allreduce_grad_mixed_dtype(param, model, True)
 
 
 class TestPureNcclCommunicator(unittest.TestCase):
