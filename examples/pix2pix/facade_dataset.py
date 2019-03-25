@@ -1,18 +1,21 @@
+import numpy as np
 from PIL import Image
 
+import chainer
 from chainer.dataset import dataset_mixin
-import numpy as np
 
 # download `BASE` dataset from http://cmp.felk.cvut.cz/~tylecr1/facade/
 
 
 class FacadeDataset(dataset_mixin.DatasetMixin):
-    def __init__(self, dataDir='./facade/base', data_range=(1, 300)):
+    def __init__(
+            self, dataDir='./facade/base', data_range=(1, 300), dtype=None):
         print('load dataset start')
         print('    from: %s' % dataDir)
         print('    range: [%d, %d)' % (data_range[0], data_range[1]))
         self.dataDir = dataDir
         self.dataset = []
+        dtype = chainer.get_dtype(dtype)
         for i in range(data_range[0], data_range[1]):
             img = Image.open(dataDir+'/cmp_b%04d.jpg' % i)
             label = Image.open(dataDir+'/cmp_b%04d.png' % i)
@@ -22,7 +25,7 @@ class FacadeDataset(dataset_mixin.DatasetMixin):
             img = img.resize((int(r*w), int(r*h)), Image.BILINEAR)
             label = label.resize((int(r*w), int(r*h)), Image.NEAREST)
 
-            img = np.asarray(img).astype('f').transpose(2, 0, 1)/128.0-1.0
+            img = np.asarray(img).astype(dtype).transpose(2, 0, 1)/128.0-1.0
             label_ = np.asarray(label)-1  # [0, 12)
             label = np.zeros((12, img.shape[1], img.shape[2])).astype('i')
             for j in range(12):

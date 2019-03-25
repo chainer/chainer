@@ -12,6 +12,11 @@ class FacadeUpdater(chainer.training.StandardUpdater):
 
     def __init__(self, *args, **kwargs):
         self.enc, self.dec, self.dis = kwargs.pop('models')
+        try:
+            dtype = kwargs.pop('dtype')
+        except KeyError:
+            dtype = None
+        self.dtype = chainer.get_dtype(dtype)
         super(FacadeUpdater, self).__init__(*args, **kwargs)
 
     def loss_enc(self, enc, x_out, t_out, y_out, lam1=100, lam2=1):
@@ -54,8 +59,9 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         w_in = 256
         w_out = 256
 
-        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype('f')
-        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype('f')
+        dtype = self.dtype
+        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype(dtype)
+        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype(dtype)
 
         for i in range(batchsize):
             x_in[i, :] = xp.asarray(batch[i][0])
