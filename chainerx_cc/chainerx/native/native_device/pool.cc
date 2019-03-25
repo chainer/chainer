@@ -20,6 +20,7 @@
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/pooling.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
@@ -130,13 +131,6 @@ std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward(
 
 namespace {
 
-// TODO(hvy): Use Device::Mean when implemented.
-void Mean(const Array& a, const Axes& axis, const Array& out) {
-    Device& device = a.device();
-    device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
-}
-
 Array GetPadModeIgnorePoolingWidths(
         const Shape& shape,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
@@ -220,7 +214,7 @@ public:
 
         switch (pad_mode_) {
             case AveragePoolPadMode::kZero:
-                Mean(col, kernel_axes, out);
+                out = Mean(col, kernel_axes);
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
