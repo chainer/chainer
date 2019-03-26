@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import collections
 import os
 import threading
-import warnings
+import warnings as builtin_warnings
 
 import numpy
 
@@ -20,6 +21,7 @@ from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
+from chainer import warnings  # NOQA
 
 
 # import class and function
@@ -265,9 +267,10 @@ class DebugMode(object):
     """
 
     def __init__(self, debug):
-        warnings.warn('chainer.DebugMode is deprecated. '
-                      'Use chainer.using_config("debug", ...) instead.',
-                      DeprecationWarning)
+        builtin_warnings.warn(
+            'chainer.DebugMode is deprecated. '
+            'Use chainer.using_config("debug", ...) instead.',
+            DeprecationWarning)
         self._using = using_config('debug', debug)
 
     def __enter__(self):

@@ -20,7 +20,6 @@ from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
-from chainer.utils.warnings_ import PerformanceWarning  # NOQA
 
 
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.
