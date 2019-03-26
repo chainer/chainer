@@ -364,9 +364,10 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("mode"),
           py::arg("constant_values"));
     m.def("pad",
-          [](const ArrayBodyPtr& a, const std::vector<int8_t> pad_width, const std::string& mode, const std::vector<int64_t> constant_values) {
-              return MoveArrayBody(Pad(Array{a}, pad_width, mode, constant_values));
-          },
+          [](const ArrayBodyPtr& a,
+             const std::vector<int8_t> pad_width,
+             const std::string& mode,
+             const std::vector<int64_t> constant_values) { return MoveArrayBody(Pad(Array{a}, pad_width, mode, constant_values)); },
           py::arg("a"),
           py::arg("pad_width"),
           py::arg("mode"),

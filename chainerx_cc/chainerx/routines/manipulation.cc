@@ -124,15 +124,14 @@ Array PrependConst(const Array& a, int8_t pad_amount, Scalar value, int8_t axis 
     Shape in_shape{a.shape()};
     Shape pad_shape;
     for (int64_t i = 0; i < in_shape.ndim(); ++i) {
-	    if (i != axis) {
-                pad_shape.emplace_back(in_shape[i]);
-            }
-	    else {
-		pad_shape.emplace_back(pad_amount);
-	    }
+        if (i != axis) {
+            pad_shape.emplace_back(in_shape[i]);
+        } else {
+            pad_shape.emplace_back(pad_amount);
         }
+    }
     std::vector<Array> concat_list;
-    concat_list.emplace_back(Full(pad_shape, value,  a.dtype(), a.device()));
+    concat_list.emplace_back(Full(pad_shape, value, a.dtype(), a.device()));
     concat_list.emplace_back(a);
     return Concatenate(concat_list, axis);
 }
@@ -146,16 +145,15 @@ Array AppendConst(const Array& a, int8_t pad_amount, Scalar value, int8_t axis =
     Shape in_shape{a.shape()};
     Shape pad_shape;
     for (int64_t i = 0; i < in_shape.ndim(); ++i) {
-	    if (i != axis) {
-                pad_shape.emplace_back(in_shape[i]);
-            }
-	    else {
-		pad_shape.emplace_back(pad_amount);
-	    }
+        if (i != axis) {
+            pad_shape.emplace_back(in_shape[i]);
+        } else {
+            pad_shape.emplace_back(pad_amount);
         }
+    }
     std::vector<Array> concat_list;
     concat_list.emplace_back(a);
-    concat_list.emplace_back(Full(pad_shape, value,  a.dtype(), a.device()));
+    concat_list.emplace_back(Full(pad_shape, value, a.dtype(), a.device()));
     return Concatenate(concat_list, axis);
 }
 }  // namespace
@@ -164,10 +162,10 @@ Array Pad(const Array& a, int8_t pad_width, const std::string& mode, int64_t con
     Array newarray;
     newarray = a.Copy();
     if (mode == "constant") {
-	for (int64_t i = 0; i < a.ndim(); ++i) {
-		newarray = PrependConst(newarray, pad_width, constant_values, i);
-		newarray = AppendConst(newarray, pad_width, constant_values, i);
-	    }
+        for (int64_t i = 0; i < a.ndim(); ++i) {
+            newarray = PrependConst(newarray, pad_width, constant_values, i);
+            newarray = AppendConst(newarray, pad_width, constant_values, i);
+        }
     }
     return newarray;
 }
@@ -176,10 +174,10 @@ Array Pad(const Array& a, std::vector<int8_t> pad_width, const std::string& mode
     Array newarray;
     newarray = a.Copy();
     if (mode == "constant") {
-	for (size_t i = 0; i < pad_width.size(); i++) {
-		newarray = PrependConst(newarray, pad_width[i], constant_values[i], i);
-		newarray = AppendConst(newarray, pad_width[i], constant_values[i], i);
-	    }
+        for (size_t i = 0; i < pad_width.size(); i++) {
+            newarray = PrependConst(newarray, pad_width[i], constant_values[i], i);
+            newarray = AppendConst(newarray, pad_width[i], constant_values[i], i);
+        }
     }
     return newarray;
 }
