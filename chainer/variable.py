@@ -313,16 +313,6 @@ class VariableNode(object):
         if var is not None:
             var._set_grad_var_without_check(g)
 
-    def _pop_grad_var_if_available(self):
-        # this method is used by Variable.backward
-        var = self._variable()
-        if var is None:
-            return None
-        else:
-            gv = var.grad_var
-            var._set_grad_var_without_check(None)
-            return gv
-
     @property
     def label(self):
         """Short text that represents the variable node."""
@@ -1432,7 +1422,8 @@ class Variable(object):
                 self.grad *= loss_scale
 
         node = self.node
-        grad_var = node._pop_grad_var_if_available()
+        grad_var = self.grad_var
+        self._set_grad_var_without_check(None)
 
         with chainer.using_config('enable_backprop', enable_double_backprop):
             # TODO(kataoka): The following line should not pass grad_var = None
@@ -1585,7 +1576,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
             seen_set.add(cand)
 
-    grads = _backprop_utils.GradTable(load_if_new=True)
+    grads = _backprop_utils.GradTable(accumulate_grad_inputs=True)
 
     leaf_nodes = set()
 

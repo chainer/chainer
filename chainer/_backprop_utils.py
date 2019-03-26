@@ -23,6 +23,17 @@ def _pop_or_none(grad_list):
     return grad_list.pop() if grad_list else None
 
 
+def _grad_var_from_alive_node(node):
+    # Used by `accumulate_grad_inputs` option of `GradTable`
+    var = node._variable()
+    if var is None:
+        return None
+    else:
+        gv = var.grad_var
+        var._set_grad_var_without_check(None)
+        return gv
+
+
 class GradTable(object):
 
     """Dict of nodes to references of gradients
@@ -33,14 +44,15 @@ class GradTable(object):
     lazily.
 
     Args:
-        load_if_new (bool): read ``grad_var`` of node when the node has not
-            been added.
+        accumulate_grad_inputs (bool): Fallback to grad_var of input variables.
+            However, the current implementation reproduces the legacy behavior,
+            i.e. to read ``grad_var`` of node when the node has not been added.
 
     """
 
-    def __init__(self, load_if_new=False):
+    def __init__(self, accumulate_grad_inputs=False):
         self.grads = {}
-        self._load_if_new = load_if_new
+        self._load_if_new = accumulate_grad_inputs
 
     def __setitem__(self, node, grad):
         assert node is not None
@@ -53,7 +65,7 @@ class GradTable(object):
             if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
-                grads[node] = _pure(node._pop_grad_var_if_available())
+                grads[node] = _pure(_grad_var_from_alive_node(node))
             else:
                 grads[node] = []
         return grads[node]
@@ -65,7 +77,7 @@ class GradTable(object):
         if node in grads:
             return _reduce(grads.pop(node))
         if self._load_if_new:
-            return node._pop_grad_var_if_available()
+            return _grad_var_from_alive_node(node)
         else:
             return None
 
