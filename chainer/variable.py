@@ -1647,6 +1647,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                     func, tuple(in_data), tuple(out_grad_array))
 
         if retain_grad:
+            # The gradients of the outputs of `func` are final. Store them if
+            # retain_grad=True.
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None:
                     y._set_grad_var_if_available(gy)
