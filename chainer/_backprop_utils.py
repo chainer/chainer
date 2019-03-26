@@ -58,6 +58,9 @@ class GradTable(object):
         assert node is not None
         self.grads[node] = _pure(grad)
 
+    def add(self, node, grad):
+        self.get_as_list(node).append(grad)
+
     def get_as_list(self, node):
         assert node is not None
         grads = self.grads

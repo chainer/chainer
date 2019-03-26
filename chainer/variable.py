@@ -1581,7 +1581,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     leaf_nodes = set()
 
     for y, gy in outputs:
-        grads.get_as_list(y).append(gy)
+        grads.add(y, gy)
 
         func = y.creator_node
         if func is None:  # leaf
