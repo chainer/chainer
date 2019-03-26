@@ -1,3 +1,4 @@
+import gc
 import mock
 import mpi4py.MPI
 import numpy as np
@@ -358,6 +359,8 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     else:
         communicator = comm_class(mpi_comm)
 
+    communicator.mpi_comm.barrier()
+
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
     allreduce_dtype = param.allreduce_grad_dtype
@@ -411,6 +414,8 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
                                     (base + 1) * np.ones((4, 3)))
 
     communicator.mpi_comm.barrier()
+    del communicator
+    gc.collect()
 
 
 def check_collective_communication(param, use_gpu):
