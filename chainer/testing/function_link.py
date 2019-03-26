@@ -70,15 +70,22 @@ class InitializerArgument(object):
 
 
 class FunctionTestBase(object):
+
     backend_config = None
-    check_forward_options = {}  # type: tp.Dict[str, tp.Any]
-    check_backward_options = {}  # type: tp.Dict[str, tp.Any]
-    check_double_backward_options = {}  # type: tp.Dict[str, tp.Any]
+    check_forward_options = None
+    check_backward_options = None
+    check_double_backward_options = None
     skip_forward_test = False
     skip_backward_test = False
     skip_double_backward_test = False
     dodge_nondifferentiable = False
     contiguous = None
+
+    def __init__(self, *args, **kwargs):
+        super(FunctionTestBase, self).__init__(*args, **kwargs)
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+        self.check_double_backward_options = {}
 
     def before_test(self, test_name):
         pass
