@@ -189,7 +189,7 @@ TEST_P(ManipulationTest, PadVector2D) {
     Array a = testing::BuildArray(input_shape).WithData<T>({1, 2});
     Array e = testing::BuildArray(output_shape).WithData<T>({2, 1, 2, 2, 1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2});
 
-    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1}, "constant", {1, 2}));
+    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1},  "constant", {1, 2}));
 }
 
 TEST_P(ManipulationTest, PadBackward) {
@@ -202,7 +202,7 @@ TEST_P(ManipulationTest, PadBackward) {
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Pad(xs[0], std::vector<int8_t>{2, 1, 0}, "constant", {1, 2, 3})};
+                return {Pad(xs[0], 1, "constant", 0)};
             },
             {x},
             {gy},
