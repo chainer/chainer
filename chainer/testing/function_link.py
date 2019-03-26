@@ -443,8 +443,8 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
 class _LinkTestBase(object):
 
-    contiguous = None
     backend_config = None
+    contiguous = None
 
     # List of parameter names represented as strings.
     # I.e. ('gamma', 'beta') for BatchNormalization.
@@ -705,11 +705,17 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
     """
 
-    check_forward_options = {}
-    check_backward_options = {}
+    check_forward_options = None
+    check_backward_options = None
     skip_forward_test = False
     skip_backward_test = False
     dodge_nondifferentiable = False
+
+    def __init__(self, *args, **kwargs):
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+
+        super(LinkTestCase, self).__init__(*args, **kwargs)
 
     def forward_expected(self, link, inputs):
         raise NotImplementedError('forward_expected() is not implemented.')
@@ -977,7 +983,12 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
 
     """
 
-    check_initializers_options = {}
+    check_initializers_options = None
+
+    def __init__(self, *args, **kwargs):
+        self.check_initializers_options = {}
+
+        super(LinkInitializersTestCase, self).__init__(*args, **kwargs)
 
     def get_initializers(self):
         raise NotImplementedError('get_initializers is not implemented.')
