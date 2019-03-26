@@ -71,12 +71,20 @@ def copyto(dst, src):
             type(dst)))
 
 
-def _get_default_device_from_module(xp):
+def get_default_device_from_array_module(xp):
+    """Returns a device from array module
+
+    .. warning::
+
+        There are non-default devices.
+
+    """
     if xp is cuda.cupy:
         return cuda.GpuDevice(cuda.Device())
     elif xp is chainerx:
         return _chainerx.ChainerxDevice(chainerx.get_default_device())
     else:
+        # Cannot detect intel64, because xp of intel64 is numpy.
         return _cpu.CpuDevice()
 
 
