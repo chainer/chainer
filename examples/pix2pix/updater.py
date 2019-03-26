@@ -72,6 +72,5 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         for z_ in z:
             z_.unchain_backward()
         dec_optimizer.update(self.loss_dec, dec, x_out, t_out, y_fake)
-        x_in.unchain_backward()
         x_out.unchain_backward()
         dis_optimizer.update(self.loss_dis, dis, y_real, y_fake)
