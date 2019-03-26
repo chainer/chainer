@@ -231,7 +231,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         for array in data:
             if numpy.float16 == array.dtype:
-                    array = array.astype(numpy.float32)
+                array = array.astype(numpy.float32)
 
             if chainer.backend.get_array_module(array) is not numpy:
                 chainer.cuda.Stream.null.synchronize()
