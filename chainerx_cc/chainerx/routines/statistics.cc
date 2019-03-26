@@ -7,14 +7,21 @@
 #include "chainerx/backward.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
+#include "chainerx/dtype.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/type_util.h"
 
 namespace chainerx {
 
+Dtype promote_int2float(Dtype dtype){
+    return GetKind(dtype) == DtypeKind::kFloat? dtype :internal::GetDefaultDtype(DtypeKind::kFloat);
+}
+
 Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+    Dtype out_dtype = promote_int2float(a.dtype());
+    Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     Scalar n = internal::CountItemsAlongAxes(a.shape(), sorted_axis);
 
     {
@@ -48,7 +55,9 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
 Array Var(const Array& a, const OptionalAxes& axis, bool keepdims) {
     // TODO(hvy): Consider allowing device implementations.
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array diff = a - Mean(a, sorted_axis, true);
+    Dtype mean_out = promote_int2float(a.dtype());
+    // TODO: remove once subtract allows mixed types.
+    Array diff = a.AsType(mean_out, true) - Mean(a, sorted_axis, true);
     return Mean(diff * diff, sorted_axis, keepdims);
 }
 
