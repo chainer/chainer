@@ -38,7 +38,6 @@ class ClippedReLU(function_node.FunctionNode):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_chainerx(self, inputs):
-        self.retain_inputs((0,))
         x, = inputs
         return chainerx.minimum(chainerx.maximum(0, x), self.cap),
 
