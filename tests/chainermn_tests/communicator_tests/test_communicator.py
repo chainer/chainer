@@ -359,7 +359,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     else:
         communicator = comm_class(mpi_comm)
 
-    communicator.mpi_comm.barrier()
+    mpi_comm.barrier()
 
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
@@ -413,13 +413,14 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     chainer.testing.assert_allclose(model.b.W.grad,
                                     (base + 1) * np.ones((4, 3)))
 
-    communicator.mpi_comm.barrier()
+    mpi_comm.barrier()
     del communicator
     gc.collect()
 
 
 def check_collective_communication(param, use_gpu):
     communicator = create_communicator(param, use_gpu)
+    mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
@@ -429,8 +430,9 @@ def check_collective_communication(param, use_gpu):
     check_allreduce_grad_empty(communicator, model)
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
-    communicator.mpi_comm.barrier()
-
+    mpi_comm.barrier()
+    del communicator
+    gc.collect()
 
 # chainer.testing.parameterize is not available at functions
 @pytest.mark.parametrize('param', cpu_params)
