@@ -161,6 +161,8 @@ Statistics
    :nosignatures:
 
    chainerx.amax
+   chainerx.mean
+   chainerx.var
 
 Connection
 ----------
