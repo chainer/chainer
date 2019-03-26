@@ -60,7 +60,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     dtype = chainer.get_dtype(dtype)
 
     if device is None:
-        backend_device = backend.get_default_device_from_array_module(xp)
+        backend_device = backend._guess_device_from_array_module(xp)
     else:
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:

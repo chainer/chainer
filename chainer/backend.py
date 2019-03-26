@@ -71,12 +71,12 @@ def copyto(dst, src):
             type(dst)))
 
 
-def get_default_device_from_array_module(xp):
-    """Returns a device from array module
+def _guess_device_from_array_module(xp):
+    """Returns a plausible device from array module
 
     .. warning::
 
-        There are non-default devices.
+        There can be multiple devices for a module
 
     """
     if xp is cuda.cupy:
