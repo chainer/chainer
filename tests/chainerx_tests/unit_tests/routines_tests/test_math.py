@@ -13,9 +13,7 @@ from chainerx_tests import op_utils
 class UnaryMathTestBase(object):
 
     def setup(self):
-        if hasattr(self, 'expected_dtypes'):
-            self.dtype, self.out_dtype = self.expected_dtypes
-        elif not hasattr(self, 'out_dtype'):
+        if not hasattr(self, 'out_dtype'):
             self.out_dtype = None
 
         if numpy.dtype(self.dtype).kind != 'f':
@@ -961,20 +959,20 @@ _expected_dtypes_math_functions = _expected_float_dtypes_math_functions + [
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [0, 2, -2],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0), (2, 0, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [0, 2, -2],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -991,20 +989,20 @@ class TestExp(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [1, 3],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0,), (2, 0, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [1, 3],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1109,20 +1107,20 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [1, 3],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0,), (2, 0, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [1, 3],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1139,14 +1137,14 @@ class TestSqrt(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1163,14 +1161,14 @@ class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1190,14 +1188,14 @@ class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'expected_dtypes': _expected_dtypes_math_functions,
+        'dtype,out_dtype': _expected_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'expected_dtypes': _expected_float_dtypes_math_functions,
+        'dtype,out_dtype': _expected_float_dtypes_math_functions,
         'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],

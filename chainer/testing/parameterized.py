@@ -92,9 +92,7 @@ def parameterize(*params):
         lambda base: _parameterize_test_case_generator(base, params))
 
 
-def from_pytest_parameterize(names, values):
-    # Pytest-style parameterization.
-    # TODO(niboshi): Add documentation
+def _values_to_dicts(names, values):
     assert isinstance(names, str)
     assert isinstance(values, (tuple, list))
 
@@ -109,6 +107,12 @@ def from_pytest_parameterize(names, values):
     return params
 
 
+def from_pytest_parameterize(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    return _values_to_dicts(names, values)
+
+
 def parameterize_pytest(names, values):
     # Pytest-style parameterization.
     # TODO(niboshi): Add documentation
@@ -118,10 +122,9 @@ def parameterize_pytest(names, values):
 def product(parameter):
     # TODO(niboshi): Add documentation
     if isinstance(parameter, dict):
-        keys = sorted(parameter)
-        values = [parameter[key] for key in keys]
-        values_product = itertools.product(*values)
-        return [dict(zip(keys, vals)) for vals in values_product]
+        return product([
+            _values_to_dicts(names, values)
+            for names, values in sorted(parameter.items())])
 
     elif isinstance(parameter, list):
         # list of lists of dicts
