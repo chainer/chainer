@@ -411,6 +411,11 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(2, np)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
+    def test_backward2_cpu(self):
+        ret = self.create_linear_chain(3, np)
+        ret[1].grad = ret[3].grad
+        self.check_backward((ret[0], ), (ret[1], ret[2]), (ret[3], ), False)
+
     @attr.gpu
     def test_backward_gpu(self):
         ret = self.create_linear_chain(2, cuda.cupy)
@@ -445,6 +450,11 @@ class TestVariable(unittest.TestCase):
     def test_backward_cpu_retain_grad(self):
         ret = self.create_linear_chain(2, np)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
+
+    def test_backward2_cpu_retain_grad(self):
+        ret = self.create_linear_chain(3, np)
+        ret[1].grad = ret[3].grad
+        self.check_backward((ret[0], ), (ret[1], ret[2]), (ret[3], ), True)
 
     @attr.gpu
     def test_backward_gpu_retain_grad(self):

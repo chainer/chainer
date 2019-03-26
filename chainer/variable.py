@@ -1638,8 +1638,6 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
-                    # to reduce memory usage
-                    x._set_grad_var_if_available(None)
 
             _backprop_utils.backprop_step(
                 func, target_input_indexes, out_grad, in_grad, is_debug)
