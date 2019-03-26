@@ -9,9 +9,6 @@ applies an optimizer to update the model.
 
 import argparse
 import os
-import re
-
-import numpy
 
 import chainer
 from chainer import configuration
@@ -23,19 +20,8 @@ import train_mnist
 
 
 def parse_device(args):
-    gpu = None
     if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
+        return chainer.get_device(args.gpu)
     return chainer.get_device(args.device)
 
 
