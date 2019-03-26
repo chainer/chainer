@@ -79,8 +79,8 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     (2) is different from them, to see that this test working correctly.
     """
 
-    local_batchsize = 10
-    global_batchsize = 10 * comm.size
+    local_batchsize = 8
+    global_batchsize = local_batchsize * comm.size
     ndim = 3
     numpy.random.seed(71)
     x = numpy.random.random(
@@ -172,7 +172,7 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
 
             assert_option = {'atol': 1e-4, 'rtol': 1e-3}
             if param_dtype == numpy.float16:
-                assert_option = {'atol': 1e-3, 'rtol': 1e-2}
+                assert_option = {'atol': 1e-2, 'rtol': 1e-2}
 
             chainer.testing.assert_allclose(p1[1].grad, p3[1].grad,
                                             **assert_option)
@@ -242,6 +242,7 @@ def test_multi_node_bn_gpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=True)
     check_multi_node_bn(comm, use_gpu=True, backend=backend, dtype=dtype)
+    chainer.cuda.Stream.null.synchronize()
     comm.mpi_comm.barrier()
 
 
