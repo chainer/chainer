@@ -10,6 +10,15 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
+class IgnoreNumpyFloatingPointError(object):
+
+    def __enter__(self):
+        self.old_settings = numpy.seterr(all='ignore')
+
+    def __exit__(self, *args):
+        numpy.seterr(**self.old_settings)
+
+
 class UnaryMathTestBase(object):
 
     def setup(self):
@@ -38,7 +47,8 @@ class UnaryMathTestBase(object):
         # This cast was introduced in order to avoid decreasing precision.
         # ex.) numpy.sqrt(x) becomes a float16 array where x is an int8 array.
         a = dtype_utils.cast_if_numpy_array(xp, a, self.out_dtype)
-        y = self.func(xp, a)
+        with IgnoreNumpyFloatingPointError():
+            y = self.func(xp, a)
         y = dtype_utils.cast_if_numpy_array(xp, y, self.out_dtype)
         return y,
 
@@ -82,7 +92,8 @@ class BinaryMathTestBase(object):
         # ex.) x / y becomes a float16 array where x and y are an int8 arrays.
         a = dtype_utils.cast_if_numpy_array(xp, a, self.out_dtype)
         b = dtype_utils.cast_if_numpy_array(xp, b, self.out_dtype)
-        y = self.func(xp, a, b)
+        with IgnoreNumpyFloatingPointError():
+            y = self.func(xp, a, b)
         y = dtype_utils.cast_if_numpy_array(xp, y, self.out_dtype)
         return y,
 
@@ -98,7 +109,8 @@ class InplaceUnaryMathTestBase(UnaryMathTestBase):
             a_ = a.as_grad_stopped().copy()
         else:
             a_ = a.copy()
-        ret = self.func(xp, a_)
+        with IgnoreNumpyFloatingPointError():
+            ret = self.func(xp, a_)
         assert ret is None  # func should not return anything
         return a_,
 
@@ -117,7 +129,8 @@ class InplaceBinaryMathTestBase(BinaryMathTestBase):
         else:
             a_ = a.copy()
             b_ = b
-        ret = self.func(xp, a_, b_)
+        with IgnoreNumpyFloatingPointError():
+            ret = self.func(xp, a_, b_)
         assert ret is None  # func should not return anything
         return a_,
 
@@ -1079,7 +1092,8 @@ class TestTrueDivide(BinaryMathTestBase, op_utils.NumpyOpTest):
         a, b = super().generate_inputs()
         if self.input_lhs == 'random':
             # Avoid (-0.3, 0.3) interval
-            b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+            with IgnoreNumpyFloatingPointError():
+                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
         return a, b
 
     def func(self, xp, a, b):
@@ -1138,7 +1152,8 @@ class TestITrueDivide(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
     def generate_inputs(self):
         a, b = super().generate_inputs()
         if self.input_lhs == 'random':
-            b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+            with IgnoreNumpyFloatingPointError():
+                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
         return a, b
 
     def func(self, xp, a, b):
