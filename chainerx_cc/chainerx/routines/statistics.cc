@@ -14,13 +14,13 @@
 
 namespace chainerx {
 
-Dtype promote_int2float(Dtype dtype){
+Dtype PromoteInt2Float(Dtype dtype){
     return GetKind(dtype) == DtypeKind::kFloat? dtype :internal::GetDefaultDtype(DtypeKind::kFloat);
 }
 
 Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Dtype out_dtype = promote_int2float(a.dtype());
+    Dtype out_dtype = PromoteInt2Float(a.dtype());
     Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     Scalar n = internal::CountItemsAlongAxes(a.shape(), sorted_axis);
 
@@ -55,7 +55,7 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
 Array Var(const Array& a, const OptionalAxes& axis, bool keepdims) {
     // TODO(hvy): Consider allowing device implementations.
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Dtype mean_out = promote_int2float(a.dtype());
+    Dtype mean_out = PromoteInt2Float(a.dtype());
     // TODO: remove once subtract allows mixed types.
     Array diff = a.AsType(mean_out, true) - Mean(a, sorted_axis, true);
     return Mean(diff * diff, sorted_axis, keepdims);
