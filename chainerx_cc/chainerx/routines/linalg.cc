@@ -104,7 +104,7 @@ Array Dot(const Array& a, const Array& b) {
         bb.Finalize();
     }
 
-return out_matrix.Reshape(out_shape);
+    return out_matrix.Reshape(out_shape);
 }
 
 }  // namespace chainerx
