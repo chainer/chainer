@@ -978,14 +978,26 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     if not isinstance(inputs, (tuple, list)):
         raise TypeError(
             'inputs must be a tuple or a list, not {}.'.format(type(inputs)))
-    if not (grad_outputs is None or isinstance(grad_outputs, (tuple, list))):
-        raise TypeError(
-            'grad_outputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_outputs)))
-    if not (grad_inputs is None or isinstance(grad_inputs, (tuple, list))):
-        raise TypeError(
-            'grad_inputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_inputs)))
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (tuple, list)):
+            raise TypeError(
+                'grad_outputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_outputs)))
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
+    if grad_inputs is not None:
+        if not isinstance(grad_inputs, (tuple, list)):
+            raise TypeError(
+                'grad_inputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_inputs)))
+        if len(inputs) != len(grad_inputs):
+            raise ValueError(
+                'grad_inputs must be of the same length as inputs.\n'
+                'len(inputs) = {}, len(grad_inputs) = {}'
+                .format(len(inputs), len(grad_inputs)))
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.

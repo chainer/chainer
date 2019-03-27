@@ -15,16 +15,20 @@ namespace chainerx {
 namespace native {
 
 void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
     CheckDevicesCompatible(a, indices, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
+
+    const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
+
+    VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
-        IndexableArray<const int64_t> indices_iarray{indices};
+        IndexableArray<const int64_t> indices_iarray{indices_cast};
         Indexer<> a_indexer{a.shape()};
         Indexer<> out_indexer{out.shape()};
-        Indexer<> indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices_cast.shape()};
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -72,17 +76,21 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
 }
 
 void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
-    CheckDevicesCompatible(a, indices, b);
     CHAINERX_ASSERT(a.shape() == out.shape());
-    VisitDtype(a.dtype(), [&](auto pt) {
+    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
+    CheckDevicesCompatible(a, indices, b);
+
+    const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
+
+    VisitDtype(a.dtype(), [&a, &indices_cast, axis, &b, &out](auto pt) {
         using T = typename decltype(pt)::type;
 
         IndexableArray<const T> a_iarray{a};
         IndexableArray<const T> b_iarray{b};
-        IndexableArray<const int64_t> indices_iarray{indices};
+        IndexableArray<const int64_t> indices_iarray{indices_cast};
         IndexableArray<T> out_iarray{out};
         Indexer<> b_indexer{b.shape()};
-        Indexer<> indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices_cast.shape()};
         Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
 
         int64_t axis_dim = a.shape()[axis];

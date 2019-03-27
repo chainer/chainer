@@ -171,7 +171,7 @@ def create_communicator(communicator_class, mpi_comm, use_gpu):
     else:
         use_nccl = False
 
-    if use_gpu and not use_nccl and nccl.get_version() < 2000:
+    if use_gpu and not use_nccl and nccl.get_build_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
     communicator = communicator_class(mpi_comm)
     if use_gpu:

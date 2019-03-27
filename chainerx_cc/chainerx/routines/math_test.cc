@@ -57,7 +57,7 @@ TEST_P(MathTest, NegativeBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -68,7 +68,7 @@ TEST_P(MathTest, NegativeDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -396,7 +396,7 @@ TEST_P(MathTest, AddBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Add(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
@@ -408,7 +408,7 @@ TEST_P(MathTest, AddDoubleBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -427,7 +427,7 @@ TEST_P(MathTest, AddScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar b{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array + scalar
     CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Add(xs[0], b)}; }, {a}, {go}, {eps});
@@ -442,7 +442,7 @@ TEST_P(MathTest, AddScalarDoubleBackward) {
     Scalar b{T{2.0}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array + scalar
     CheckDoubleBackwardComputation(
@@ -565,7 +565,7 @@ TEST_P(MathTest, SubtractBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
@@ -577,7 +577,7 @@ TEST_P(MathTest, SubtractDoubleBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -596,7 +596,7 @@ TEST_P(MathTest, SubtractScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar b{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array - scalar
     CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(xs[0], b)}; }, {a}, {go}, {eps});
@@ -611,7 +611,7 @@ TEST_P(MathTest, SubtractScalarDoubleBackward) {
     Scalar b{T{2.0}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array - scalar
     CheckDoubleBackwardComputation(
@@ -723,7 +723,7 @@ TEST_P(MathTest, MultiplyBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
@@ -735,7 +735,7 @@ TEST_P(MathTest, MultiplyDoubleBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -754,7 +754,7 @@ TEST_P(MathTest, MultiplyScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar s{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array * scalar
     CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], s)}; }, {a}, {go}, {eps});
@@ -769,7 +769,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
     Scalar s{T{2.0}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array * scalar
     CheckDoubleBackwardComputation(
@@ -887,7 +887,7 @@ TEST_P(MathTest, DivideBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
@@ -899,7 +899,7 @@ TEST_P(MathTest, DivideDoubleBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; },
@@ -915,7 +915,7 @@ TEST_P(MathTest, DivideScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar s{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array / scalar
     CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], s)}; }, {a}, {go}, {eps});
@@ -930,7 +930,7 @@ TEST_P(MathTest, DivideScalarDoubleBackward) {
     Scalar s{T{2.0}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // array * scalar
     CheckDoubleBackwardComputation(
@@ -985,7 +985,7 @@ TEST_P(MathTest, ReciprocalBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Reciprocal(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -996,7 +996,7 @@ TEST_P(MathTest, ReciprocalDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Reciprocal(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
@@ -1134,7 +1134,7 @@ TEST_P(MathTest, SumBackward) {
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 3, 4, 3}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(MathTest, SumDoubleBackward_Keepdims) {
@@ -1148,7 +1148,7 @@ TEST_P(MathTest, SumDoubleBackward_Keepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-1), Full({2, 1, 4, 1}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64), Full({2, 1, 4, 1}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
@@ -1162,7 +1162,7 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-1), Full({2, 4}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64), Full({2, 4}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(MathTest, AMax) {
@@ -1203,7 +1203,7 @@ TEST_P(MathTest, AMaxBackward) {
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 3, 4, 3}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(MathTest, AMaxDoubleBackward_Keepdims) {
@@ -1217,7 +1217,7 @@ TEST_P(MathTest, AMaxDoubleBackward_Keepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-1), Full({2, 1, 4, 1}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64), Full({2, 1, 4, 1}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_P(MathTest, AMaxDoubleBackward_NoKeepdims) {
@@ -1231,7 +1231,7 @@ TEST_P(MathTest, AMaxDoubleBackward_NoKeepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-1), Full({2, 4}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1, Dtype::kFloat64), Full({2, 4}, 1e-1, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(MathTest, MaximumArrayScalar) {
@@ -1267,7 +1267,7 @@ TEST_P(MathTest, MaximumScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar s{T{0.2}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // Maximum(array, scalar)
     CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(xs[0], s)}; }, {a}, {go}, {eps});
@@ -1282,7 +1282,7 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
     Scalar s{T{0.2}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
 
     // Maximum(array, scalar)
     CheckDoubleBackwardComputation(
@@ -1306,6 +1306,78 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, MinimumArrayScalar) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarArray) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f, 0.f, -.2f});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(Scalar{0.f}, xs[0])}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, MinimumScalarEmpty) {
+    Array a = testing::BuildArray({0}).WithData<float>({});
+    Array e = testing::BuildArray({0}).WithData<float>({});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Minimum(xs[0], Scalar{0.f})}; }, {a}, {e});
+    });
+}
+
+TEST_P(MathTest, MinimumScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
+
+    // Minimum(array, scalar)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(xs[0], s)}; }, {a}, {go}, {eps});
+    // Minimum(scalar, array)
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Minimum(s, xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, MinimumScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1, Dtype::kFloat64);
+
+    // Minimum(array, scalar)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(xs[0], s);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // Minimum(scalar, array)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Minimum(s, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 TEST_THREAD_SAFE_P(MathTest, Exp) {
     Array a = testing::BuildArray({5}).WithData<float>(
             {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
@@ -1319,7 +1391,7 @@ TEST_P(MathTest, ExpBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1330,7 +1402,7 @@ TEST_P(MathTest, ExpDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
@@ -1349,7 +1421,7 @@ TEST_P(MathTest, LogBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.0, 1.0).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1360,7 +1432,7 @@ TEST_P(MathTest, LogDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.0, 1.0).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
@@ -1447,7 +1519,7 @@ TEST_P(MathTest, LogSumExpBackward) {
     using T = double;
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray({}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full({2, 3}, 1e-3);
+    Array eps = Full({2, 3}, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSumExp(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1457,8 +1529,8 @@ TEST_P(MathTest, LogSumExpDoubleBackward) {
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray({}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array gga = testing::BuildArray({2, 3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps_a = Full({2, 3}, 1e-3);
-    Array eps_go = Full({}, 1e-3);
+    Array eps_a = Full({2, 3}, 1e-3, Dtype::kFloat64);
+    Array eps_go = Full({}, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSumExp(xs[0])}; }, {a}, {go}, {gga}, {eps_a, eps_go});
@@ -1556,7 +1628,7 @@ TEST_P(MathTest, LogSoftmaxBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1567,7 +1639,7 @@ TEST_P(MathTest, LogSoftmaxDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
@@ -1585,7 +1657,7 @@ TEST_P(MathTest, SqrtBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1596,7 +1668,7 @@ TEST_P(MathTest, SqrtDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
@@ -1614,7 +1686,7 @@ TEST_P(MathTest, TanhBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Tanh(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1625,10 +1697,68 @@ TEST_P(MathTest, TanhDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Tanh(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
+TEST_THREAD_SAFE_P(MathTest, Sin) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::sin(-1.f), std::sin(2.f), std::sin(0.f)});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Sin(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(MathTest, SinBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Sin(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, SinDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sin(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
+TEST_THREAD_SAFE_P(MathTest, Cos) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::cos(-1.f), std::cos(2.f), std::cos(0.f)});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Cos(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(MathTest, CosBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Cos(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, CosDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Cos(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
 TEST_THREAD_SAFE_P(MathTest, IsNan) {

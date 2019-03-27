@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <utility>
 #include <vector>
+
+#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -13,17 +16,20 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
 
-Array Dot(const Array& a, const Array& b) {
-    if (a.ndim() == 0 || b.ndim() == 0) {
-        return a * b;
-    }
+Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
+    Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : ResultType(a, b);
 
-    // TODO(beam2d): dtype conversion
-    CheckEqual(a.dtype(), b.dtype());
+    if (a.ndim() == 0 || b.ndim() == 0) {
+        // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
+        const Array& a_cast = a.dtype() == real_out_dtype ? a : a.AsType(real_out_dtype);
+        const Array& b_cast = b.dtype() == real_out_dtype ? b : b.AsType(real_out_dtype);
+        return a_cast * b_cast;
+    }
 
     // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
     if (b.ndim() > 2) {
@@ -39,7 +45,7 @@ Array Dot(const Array& a, const Array& b) {
         throw DimensionError{"Axis dimension mismatch"};
     }
     if (k == 0) {
-        return Zeros(out_shape, a.dtype(), a.device());
+        return Zeros(out_shape, real_out_dtype, a.device());
     }
 
     // Make each operand a matrix
@@ -49,7 +55,7 @@ Array Dot(const Array& a, const Array& b) {
     Array b_matrix = b.Reshape({k, n});
 
     // Matrix-matrix product
-    Array out_matrix = Empty({m, n}, a.dtype(), a.device());
+    Array out_matrix = Empty({m, n}, real_out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
         a.device().Dot(a_matrix, b_matrix, out_matrix);
@@ -58,17 +64,17 @@ Array Dot(const Array& a, const Array& b) {
     {
         BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([b_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            bt.Define([b_matrix_tok = bb.RetainInput(1), a_dtype = a.dtype()](BackwardContext& bctx) {
                 const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Dot(gout, b_matrix.Transpose());
+                bctx.input_grad() = Dot(gout, b_matrix.Transpose(), a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([a_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            bt.Define([a_matrix_tok = bb.RetainInput(0), b_dtype = b.dtype()](BackwardContext& bctx) {
                 const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
+                bctx.input_grad() = Dot(a_matrix.Transpose(), gout, b_dtype);
             });
         }
         bb.Finalize();

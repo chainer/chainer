@@ -2330,6 +2330,53 @@ class TestReshape(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'shape': [(0,), (0, 0), (), (1,), (1, 1), (1, 1, 1), (2,), (2, 3)],
+    'dtype': [np.int16, np.int32, np.int64,
+              np.float16, np.float32, np.float64],
+}))
+class TestItem(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.full(self.shape, 1, self.dtype)
+        self.target_type = type(np.array(0, dtype=self.dtype).item())
+
+    def check_item(self, x):
+        var = chainer.Variable(x)
+        if x.size != 1:
+            with pytest.raises(ValueError):
+                var.item()
+        else:
+            value = var.item()
+            assert type(value) is self.target_type
+
+    def test_cpu(self):
+        self.check_item(self.x)
+
+    @attr.gpu
+    def test_gpu(self):
+        self.check_item(cuda.to_gpu(self.x))
+
+    def check_item_chainerx(self, x, requires_grad=True):
+        # TODO(crcrpar): Remove `requires_grad` argument once chainerx.ndarray
+        # with integral dtype supports gradient computation.
+        var = chainer.Variable(x, requires_grad=requires_grad)
+        if x.size != 1:
+            with pytest.raises(chainerx.DimensionError):
+                var.item()
+        else:
+            value = var.item()
+            assert type(value) is self.target_type
+
+    @attr.chainerx
+    def test_chainerx(self):
+        if self.dtype in (np.int16, np.int32, np.int64):
+            requires_grad = False
+        else:
+            requires_grad = True
+        self.check_item_chainerx(chainerx.array(self.x), requires_grad)
+
+
+@testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'axes': [[], [(-1, 0, 1)], [[-1, 0, 1]], [None], [-1, 0, 1]],
     'dtype': [np.float16, np.float32, np.float32],

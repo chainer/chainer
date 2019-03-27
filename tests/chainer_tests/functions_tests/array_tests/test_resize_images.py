@@ -93,6 +93,32 @@ class TestResizeImagesForwardUpScale(unittest.TestCase):
             cuda.to_gpu(self.x), output_shape=self.output_shape[2:])
 
 
+class TestResizeImagesForwardMultiLines(unittest.TestCase):
+
+    in_shape = (1, 1, 987, 123)
+    output_shape = (1, 1, 765, 345)
+
+    def setUp(self):
+        self.x = numpy.arange(numpy.prod(self.in_shape), dtype=numpy.float32)
+        self.x = self.x.reshape(self.in_shape)
+
+        out_row = numpy.linspace(0, 123 - 1, 345, dtype=numpy.float32)
+        out_col = numpy.linspace(0, (987 - 1) * 123, 765, dtype=numpy.float32)
+        self.out = (out_row + out_col[:, None]).reshape(self.output_shape)
+
+    def check_forward(self, x, output_shape):
+        y = functions.resize_images(x, output_shape)
+        testing.assert_allclose(y.data, self.out)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x, output_shape=self.output_shape[2:])
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(
+            cuda.to_gpu(self.x), output_shape=self.output_shape[2:])
+
+
 @testing.parameterize(*testing.product({
     'in_shape': [(2, 3, 8, 6), (2, 1, 4, 6)],
     'output_shape': [(10, 5), (3, 4)]
