@@ -1657,7 +1657,7 @@ TEST_P(MathTest, SquareBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Square(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -1668,7 +1668,7 @@ TEST_P(MathTest, SquareDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Square(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
