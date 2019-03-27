@@ -176,16 +176,11 @@ def relu6(x):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(-100, 100, (10, 20)).astype(np.float32)
-        >>> np.any(x < 0)
-        True
-        >>> np.any(x > 6)
-        True
-        >>> y = F.relu6(x)
-        >>> np.any(y.array < 0)
-        False
-        >>> np.any(y.array > 6)
-        False
+        >>> x = np.array([-20, -2, 0, 2, 4, 10, 100]).astype(np.float32)
+        >>> x
+        array([-20.,  -2.,   0.,   2.,   4.,  10., 100.], dtype=float32)
+        >>> F.relu6(x)
+        variable([0., 0., 0., 2., 4., 6., 6.])
 
     """
     y, = ClippedReLU(6.0).apply((x,))
