@@ -70,12 +70,6 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         return image, label
 
 
-def parse_device(args):
-    if args.gpu is not None:
-        return chainer.get_device(args.gpu)
-    return chainer.get_device(args.device)
-
-
 def main():
     archs = {
         'alex': alex.Alex,
@@ -128,21 +122,22 @@ def main():
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
-
-    device = parse_device(args)
 
     # Set the dtype if supplied.
     if args.dtype is not None:
         chainer.config.dtype = args.dtype
 
-    print('Device: {}'.format(device))
+    print('Device: {}'.format(args.device))
     print('Dtype: {}'.format(chainer.config.dtype))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device = chainer.get_device(args.device)
 
     # Initialize the model to train
     model = archs[args.arch]()

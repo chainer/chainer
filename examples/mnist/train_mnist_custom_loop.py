@@ -19,12 +19,6 @@ from chainer import serializers
 import train_mnist
 
 
-def parse_device(args):
-    if args.gpu is not None:
-        return chainer.get_device(args.gpu)
-    return chainer.get_device(args.device)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
@@ -44,17 +38,18 @@ def main():
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
-
-    print('Device: {}'.format(device))
+    print('Device: {}'.format(args.device))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device = chainer.get_device(args.device)
 
     # Set up a neural network to train
     model = L.Classifier(train_mnist.MLP(args.unit, 10))

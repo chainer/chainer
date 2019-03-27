@@ -215,12 +215,6 @@ def calculate_unknown_ratio(data):
     return unknown / total
 
 
-def parse_device(args):
-    if args.gpu is not None:
-        return chainer.get_device(args.gpu)
-    return chainer.get_device(args.device)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('SOURCE', help='source sentence list')
@@ -267,16 +261,17 @@ def main():
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
-
-    print('Device: {}'.format(device))
+    print('Device: {}'.format(args.device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device = chainer.get_device(args.device)
 
     # If the device is a ChainerX CUDA device, use the shared device memory
     # pool between ChainerX and CuPy.

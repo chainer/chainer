@@ -26,12 +26,6 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-def parse_device(args):
-    if args.gpu is not None:
-        return chainer.get_device(args.gpu)
-    return chainer.get_device(args.device)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
@@ -54,17 +48,18 @@ def main():
     parser.add_argument('--noplot', dest='plot', action='store_false',
                         help='Disable PlotReport extension')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
-
-    print('Device: {}'.format(device))
+    print('Device: {}'.format(args.device))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device = chainer.get_device(args.device)
 
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
