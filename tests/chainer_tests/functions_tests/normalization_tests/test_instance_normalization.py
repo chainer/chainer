@@ -82,12 +82,10 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         shape = self.shape
         dtype = self.dtype
         if self.running_statistics:
-            mean = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-            var = numpy.random.uniform(-1, 1, shape[1]).astype(dtype)
-        else:
-            mean, var = None, None
-        self.running_mean = mean
-        self.running_var = var
+            self.running_mean = numpy.random.uniform(
+                -1, 1, shape[1]).astype(dtype)
+            self.running_var = numpy.random.uniform(
+                -1, 1, shape[1]).astype(dtype)
 
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         if dtype == numpy.float16:
