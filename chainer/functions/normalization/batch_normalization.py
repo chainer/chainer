@@ -117,8 +117,6 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        xp = backend.get_array_module(x)
-
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
 
@@ -154,6 +152,7 @@ class BatchNormalization(function_node.FunctionNode):
         self.expander = expander
 
         self.mode = _BNMode(x, gamma, self.key_axis)
+        xp = backend.get_array_module(x)
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
