@@ -1,6 +1,7 @@
 from io import StringIO
 import sys
 import tempfile
+from random import randint
 
 import numpy
 import pytest
@@ -1173,3 +1174,23 @@ def test_copy(xp, shape, dtype, device, is_module):
         return xp.copy(a)
     else:
         return a.copy()
+
+
+@pytest.mark.parametrize('n_arr', [2, 3, 4, 5, 6, 7, 8, 9])
+@pytest.mark.parametrize('indexing', ['xy', 'ij'])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_meshgrid(n_arr, indexing, device):
+    np_arrs = []
+    chx_arrs = []
+
+    # Generate Co-ordinate Vectors
+    for i in range(n_arr):
+        arr = numpy.linspace(randint(-10, 0), randint(1, 10), randint(3, 7))
+        np_arrs.append(arr)
+        chx_arrs.append(chainerx.array(arr, device=device))
+
+    np_outs = numpy.meshgrid(*np_arrs)
+    chx_outs = chainerx.meshgrid(chx_arrs)
+
+    for chx_out, np_out in zip(chx_outs, np_outs):
+        assert (chx_out - chainerx.array(np_out, device=device)).sum() == 0
