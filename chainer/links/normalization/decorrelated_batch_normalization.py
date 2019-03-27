@@ -47,8 +47,8 @@ class DecorrelatedBatchNormalization(link.Link):
        :func:`~chainer.functions.fixed_decorrelated_batch_normalization`
 
     Attributes:
-        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        avg_projection (numpy.ndarray or cupy.ndarray): Population
+        avg_mean (:ref:`ndarray`): Population mean.
+        avg_projection (:ref:`ndarray): Population
             projection.
         groups (int): Number of groups to use for group whitening.
         N (int): Count of batches given for fine-tuning.
@@ -73,7 +73,9 @@ class DecorrelatedBatchNormalization(link.Link):
         self.groups = groups
 
     def forward(self, x, **kwargs):
-        """Invokes the forward propagation of DecorrelatedBatchNormalization.
+        """forward(self, x, finetune=False)
+
+        Invokes the forward propagation of DecorrelatedBatchNormalization.
 
         In training mode, the DecorrelatedBatchNormalization computes moving
         averages of the mean and projection for evaluation during training,
@@ -114,8 +116,6 @@ class DecorrelatedBatchNormalization(link.Link):
                 decay=decay)
         else:
             # Use running average statistics or fine-tuned statistics.
-            # mean = variable.Variable(self.avg_mean)
-            # projection = variable.Variable(self.avg_projection)
             mean = self.avg_mean
             projection = self.avg_projection
             ret = functions.fixed_decorrelated_batch_normalization(
