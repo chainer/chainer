@@ -30,6 +30,20 @@ __device__ inline T Tanh(T x) {
 __device__ inline cuda::Float16 Tanh(cuda::Float16 x) { return cuda::Float16{std::tanh(static_cast<float>(x))}; }
 
 template <typename T>
+__device__ inline T Sin(T x) {
+    return std::sin(x);
+}
+
+__device__ inline cuda::Float16 Sin(cuda::Float16 x) { return cuda::Float16{std::sin(static_cast<float>(x))}; }
+
+template <typename T>
+__device__ inline T Cos(T x) {
+    return std::cos(x);
+}
+
+__device__ inline cuda::Float16 Cos(cuda::Float16 x) { return cuda::Float16{std::cos(static_cast<float>(x))}; }
+
+template <typename T>
 __device__ inline T Exp(T x) {
     return std::exp(x);
 }

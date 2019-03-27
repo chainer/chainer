@@ -28,7 +28,7 @@ Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
         throw DtypeError{"Cannot negate a boolean array."};
     }
-    return Multiply(x, Scalar{-1, x.dtype()});
+    return Multiply(x, Scalar{-1, GetKind(x.dtype())});
 }
 
 namespace {
@@ -258,8 +258,27 @@ Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 namespace {
 
+void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivide(x1, x2, out);
+    }
+}
+
+void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(imanishi): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().FloorDivideAS(x1, x2, out);
+    }
+}
+
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
-    // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
     // TODO(niboshi): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
@@ -307,6 +326,10 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 namespace internal {
 
+void IFloorDivide(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2); }
+
+void IFloorDivide(const Array& x1, Scalar x2) { BinaryInPlace(&FloorDivideASImpl, x1, x2); }
+
 void ITrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Integer inplace-division is not supported."};
@@ -327,6 +350,12 @@ void IDivide(const Array& x1, Scalar x2) { ITrueDivide(x1, x2); }
 
 }  // namespace internal
 
+Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2); }
+
+Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2); }
+
+Array FloorDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
+
 Array TrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat) {
         return BroadcastBinary(&DivideImpl, x1, x2);
@@ -339,7 +368,7 @@ Array TrueDivide(const Array& x1, Scalar x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat) {
         return Binary(&DivideASImpl, x1, x2);
     }
-    return Binary(&DivideASImpl, x1.AsType(Dtype::kFloat64), Scalar(static_cast<double>(x2), Dtype::kFloat64));
+    return Binary(&DivideASImpl, x1.AsType(Dtype::kFloat64), Scalar{static_cast<double>(x2)});
 }
 
 Array TrueDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
@@ -460,7 +489,40 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
+            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Dtype GetMathResultDtype(Dtype dtype) {
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        return dtype;
+    }
+    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
+}
+
+}  // namespace
+
+namespace {
+
+// Calculates: x1 > x2 ? pos : neg
+// Can only differentiate with respect to neg.
+Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
+    Array out = EmptyLike(x1, x1.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().IfGreaterElseASSA(x1, x2, pos, neg, out);
+    }
+
+    BackwardBuilder bb{"if_greater_else", neg, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
         });
     }
     bb.Finalize();
@@ -476,8 +538,15 @@ Array Maximum(const Array& x1, Scalar x2) {
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
+Array Minimum(const Array& x1, Scalar x2) {
+    return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
+}
+
+Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
+
 Array Exp(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -497,7 +566,8 @@ Array Exp(const Array& x) {
 }
 
 Array Log(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -517,16 +587,27 @@ Array Log(const Array& x) {
 }
 
 Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
-    Array xmax = AMax(x, sorted_axis, true);
-    Array logs = Log(Sum(Exp(x - xmax), sorted_axis, keepdims));
+    Array xmax = AMax(x_cast, sorted_axis, true);
+    Array logs = Log(Sum(Exp(x_cast - xmax), sorted_axis, keepdims));
+
+    // TODO(imanishi): Avoid unnecessary cast here when `chainerx::Add` supports mixed dtypes.
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
-Array LogSoftmax(const Array& x, const OptionalAxes& axis) { return x - LogSumExp(x, axis.has_value() ? axis : OptionalAxes{1}, true); }
+Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+
+    // TODO(imanishi): Avoid unnecessary cast here when `chainerx::Subtract` supports mixed dtypes.
+    return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
+}
 
 Array Sqrt(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -547,7 +628,8 @@ Array Sqrt(const Array& x) {
 }
 
 Array Tanh(const Array& x) {
-    Array out = EmptyLike(x, x.device());
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
@@ -560,6 +642,50 @@ Array Tanh(const Array& x) {
             const Array& gout = *bctx.output_grad();
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = gout * (1 - out * out);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Sin(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Sin(x, out);
+    }
+
+    BackwardBuilder bb{"sin", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Cos(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Cos(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Cos(x, out);
+    }
+
+    BackwardBuilder bb{"cos", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * -Sin(inp);
         });
     }
     bb.Finalize();

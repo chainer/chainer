@@ -13,23 +13,25 @@ namespace native {
 
 void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Exp(x); }
         };
-        Elementwise<const T, T>(Impl{}, x, out);
+        Elementwise<const T, T>(Impl{}, x_cast, out);
     });
 }
 
 void NativeDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Log(x); }
         };
-        Elementwise<const T, T>(Impl{}, x, out);
+        Elementwise<const T, T>(Impl{}, x_cast, out);
     });
 }
 

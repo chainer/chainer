@@ -10,7 +10,7 @@ from chainer.testing import condition
 from chainer.utils import type_check
 
 
-def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
+def r2_score(pred, true, sample_weight=None, multioutput='uniform_average'):
     SS_res = numpy.asarray(
         numpy.sum((pred - true) ** 2, axis=0))
     SS_tot = numpy.asarray(
@@ -39,8 +39,8 @@ def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
          {'x_shape': (10, 5), 't_shape': (10, 5)},
          {'x_shape': (10, 5, 4), 't_shape': (10, 5, 4)}],
         [{'t_input': 'random'}, {'t_input': 'zero'}],
-        [{'multioutput': "uniform_average"},
-         {'multioutput': "raw_values"}],
+        [{'multioutput': 'uniform_average'},
+         {'multioutput': 'raw_values'}],
         [{'sample_weight': None}],
         [{'dtype': numpy.float16},
          {'dtype': numpy.float32},

@@ -46,8 +46,8 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
         y = xp.einsum(subscripts, *inputs, **einsum_kwargs)
     except TypeError:
         warnings.warn(
-            "{xp}.einsum does not support optimize option. "
-            "Use newer version of {xp} to speed up."
+            '{xp}.einsum does not support optimize option. '
+            'Use newer version of {xp} to speed up.'
             .format(xp=xp.__name__),
         )
         y = xp.einsum(subscripts, *inputs)
@@ -56,10 +56,10 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
         sum_ndim = y.ndim - len(out_subscript)
         if check_undefined_ellipsis_sum and sum_ndim > 0:
             raise ValueError(
-                "einsum should not support summing over Ellipsis, "
-                "while NumPy 1.14 sometimes accidentally supports it. "
-                "This feature is no longer supported by Chainer. "
-                "See also NumPy issues #10926, #9984.",
+                'einsum should not support summing over Ellipsis, '
+                'while NumPy 1.14 sometimes accidentally supports it. '
+                'This feature is no longer supported by Chainer. '
+                'See also NumPy issues #10926, #9984.',
             )
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
 
@@ -160,7 +160,7 @@ class DiagEinSum(EinSum):
             diag_y = _einsum(
                 xp, dtype, self.out_sub, ''.join(inverse_sub), y)
             if diag_y.base is not y:
-                raise ValueError("Update CuPy to close CuPy Issue #1199")
+                raise ValueError('Update CuPy to close CuPy Issue #1199')
             # Make the view writeable as numpy PR #5410 for numpy<1.10.
             if xp is not cuda.cupy:  # no setflags in cupy
                 diag_y.setflags(write=True)
@@ -253,10 +253,10 @@ def _parse_einsum_input(operands):
     """
 
     if len(operands) == 0:
-        raise ValueError("No input operands")
+        raise ValueError('No input operands')
 
     if isinstance(operands[0], str):
-        subscripts = operands[0].replace(" ", "")
+        subscripts = operands[0].replace(' ', '')
         operands = operands[1:]
 
         # Ensure all characters are valid
@@ -264,21 +264,21 @@ def _parse_einsum_input(operands):
             if s in '.,->':
                 continue
             if s not in einsum_symbols:
-                raise ValueError("Character %s is not a valid symbol." % s)
+                raise ValueError('Character %s is not a valid symbol.' % s)
 
         # Check for proper "->"
-        if ("-" in subscripts) or (">" in subscripts):
+        if ('-' in subscripts) or ('>' in subscripts):
             if any((
-                    subscripts.count("-") > 1,
-                    subscripts.count(">") > 1,
-                    subscripts.count("->") != 1,
+                    subscripts.count('-') > 1,
+                    subscripts.count('>') > 1,
+                    subscripts.count('->') != 1,
             )):
-                raise ValueError("Subscripts can only contain one '->'.")
+                raise ValueError('Subscripts can only contain one \'->\'.')
 
         # Parse "..."
-        subscripts = subscripts.replace("...", "@")
-        if "." in subscripts:
-            raise ValueError("Invalid Ellipses.")
+        subscripts = subscripts.replace('...', '@')
+        if '.' in subscripts:
+            raise ValueError('Invalid Ellipses.')
 
     else:
         tmp_operands = list(operands)
@@ -290,54 +290,54 @@ def _parse_einsum_input(operands):
 
         output_list = tmp_operands[-1] if len(tmp_operands) else None
         operands = operand_list
-        subscripts = ""
+        subscripts = ''
         last = len(subscript_list) - 1
         for num, sub in enumerate(subscript_list):
             for s in sub:
                 if s is Ellipsis:
-                    subscripts += "@"
+                    subscripts += '@'
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain "
-                                    "either int or Ellipsis")
+                    raise TypeError('For this input type lists must contain '
+                                    'either int or Ellipsis')
             if num != last:
-                subscripts += ","
+                subscripts += ','
 
         if output_list is not None:
-            subscripts += "->"
+            subscripts += '->'
             for s in output_list:
                 if s is Ellipsis:
-                    subscripts += "@"
+                    subscripts += '@'
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
-                    raise TypeError("For this input type lists must contain "
-                                    "either int or Ellipsis")
+                    raise TypeError('For this input type lists must contain '
+                                    'either int or Ellipsis')
 
     # Build output string if does not exist
-    if "->" in subscripts:
-        input_subscripts, output_subscript = subscripts.split("->")
+    if '->' in subscripts:
+        input_subscripts, output_subscript = subscripts.split('->')
 
         # Make sure output subscripts are in the input
         for char in output_subscript:
             if char not in input_subscripts:
                 raise ValueError(
-                    "Output character %s did not appear in the input"
+                    'Output character %s did not appear in the input'
                     % ('...' if char == '@' else char))
 
     else:
         input_subscripts = subscripts
         # Build output subscripts
-        tmp_subscripts = subscripts.replace(",", "")
-        output_subscript = ""
+        tmp_subscripts = subscripts.replace(',', '')
+        output_subscript = ''
         for s in sorted(set(tmp_subscripts)):
             if s == '@' or tmp_subscripts.count(s) == 1:
                 output_subscript += s
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(',')) != len(operands):
-        raise ValueError("Number of einsum subscripts must be equal to the "
-                         "number of operands.")
+        raise ValueError('Number of einsum subscripts must be equal to the '
+                         'number of operands.')
 
     return input_subscripts, output_subscript, operands

@@ -112,9 +112,9 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) "
-            "context where value is either `True` or `False`.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) '
+            'context where value is either `True` or `False`.')
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -123,6 +123,7 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
 
@@ -139,6 +140,21 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
                     initial_bias = 0
                 bias_initializer = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(bias_initializer, out_channels)
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('in_channels', self.in_channels),
+            ('out_channels', self.out_channels),
+            ('ksize', self.ksize),
+            ('stride', self.stride),
+            ('pad', self.pad),
+            ('nobias', self.b is None),
+            ('dilate', self.dilate),
+            ('groups', self.groups),
+        ]
+        for spec in specs:
+            yield spec
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

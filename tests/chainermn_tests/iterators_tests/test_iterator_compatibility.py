@@ -64,7 +64,7 @@ class TestIteratorCompatibility(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.N = 6
         self.dataset = numpy.arange(self.N).astype(numpy.float32)
