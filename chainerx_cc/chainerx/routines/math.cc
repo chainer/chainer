@@ -605,6 +605,12 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
+Array Sigmoid(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Reciprocal(1 + Exp(-x_cast)); 
+}
+
 Array Sqrt(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

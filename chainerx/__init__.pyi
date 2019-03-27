@@ -704,6 +704,8 @@ def reshape(a: ndarray, *args: tp.Any) -> ndarray: ...
 
 def sin(x: ndarray) -> ndarray: ...
 
+def sigmoid(x: ndarray) -> ndarray: ...
+
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
@@ -813,10 +815,6 @@ def loadtxt(
 
 # chainerx/activation.py
 def relu(x: ndarray) -> ndarray: ...
-
-
-def sigmoid(x: ndarray) -> ndarray: ...
-
 
 # chainerx/manipulation/shape.py
 def ravel(a: ndarray) -> ndarray: ...
