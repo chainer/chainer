@@ -239,8 +239,7 @@ class SpectralNormalization(link_hook.LinkHook):
         if self.use_gamma:
             # Initialize the scaling parameter with the max singular value.
             weight_matrix = self.reshape_W(initialW.array)
-            # TODO(crcrpar): Remove this when chainerx supports SVD and
-            # it is allowed to initialize Parameter from chainerx.ndarray.
+            # TODO(crcrpar): Remove this when chainerx supports SVD.
             if link.xp is chainerx:
                 xp, device, array = from_chx_workaround(weight_matrix)
                 if xp is numpy:
