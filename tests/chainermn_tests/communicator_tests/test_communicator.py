@@ -1,4 +1,3 @@
-import gc
 import mock
 import mpi4py.MPI
 import numpy as np
@@ -240,6 +239,18 @@ def create_communicator(param, use_gpu):
     return communicator
 
 
+def destroy_communicator(comm):
+    """Destroy internal NCCL communicator.
+
+    When too many NCCL communicator are alive, NCCL produces
+    unhandled CUDA error. To avoid this, we need to make sure to
+    destory NCCL communicator after every use."""
+    if hasattr(comm, 'nccl_comm'):
+        comm.nccl_comm.destroy()
+    if hasattr(comm, 'intra_nccl_cojmm'):
+        comm.intra_nccl_comm.destroy()
+
+
 def check_send_and_recv(communicator, *shape):
     if communicator.size < 2:
         pytest.skip('This test is for multiple nodes')
@@ -340,6 +351,8 @@ def check_send_recv(param, use_gpu):
         np.ones((50, 20, 5)).astype(np.float32)]
     check_send_and_recv_tuple(communicator, data)
 
+    destroy_communicator(communicator)
+
 
 def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
     # Checks the actual allreduce communication is performed
@@ -414,8 +427,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
                                     (base + 1) * np.ones((4, 3)))
 
     mpi_comm.barrier()
-    del communicator
-    gc.collect()
+    destroy_communicator(communicator)
 
 
 def check_collective_communication(param, use_gpu):
@@ -431,8 +443,8 @@ def check_collective_communication(param, use_gpu):
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()
-    del communicator
-    gc.collect()
+    destroy_communicator(communicator)
+
 
 # chainer.testing.parameterize is not available at functions
 @pytest.mark.parametrize('param', cpu_params)
@@ -488,6 +500,10 @@ class TestDifferentDtype(unittest.TestCase):
         # (because running order of generated test cases is not unique)
         self.dtypes = [np.int32, np.int64, np.float32, np.float64]
 
+    def teardown(self):
+        if self.communicator:
+            destroy_communicator(self.communicator)
+
     def check_send_recv(self, x):
         if self.communicator.rank == 0:
             self.communicator.send(x, dest=1, tag=0)
@@ -506,6 +522,7 @@ class TestDifferentDtype(unittest.TestCase):
 
             x = np.array(1).astype(dtype)
             self.check_send_recv(x)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_send_recv_gpu(self):
@@ -514,6 +531,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = np.arange(18).astype(dtype)
             x = chainer.cuda.to_gpu(x, device=self.device)
             self.check_send_recv(x)
+        self.teardown()
 
     def check_alltoall(self, xs):
         x = xs[self.communicator.rank]
@@ -533,6 +551,7 @@ class TestDifferentDtype(unittest.TestCase):
 
             xs = [np.array(1).astype(dtype)] * 4
             self.check_alltoall(xs)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_alltoall_gpu(self):
@@ -548,6 +567,7 @@ class TestDifferentDtype(unittest.TestCase):
             xs = [np.array(1).astype(dtype)] * 4
             xs = [chainer.cuda.to_gpu(x, device=self.device) for x in xs]
             self.check_alltoall(xs)
+        self.teardown()
 
     def check_allgather(self, xs):
         x = xs[self.communicator.rank]
@@ -568,6 +588,7 @@ class TestDifferentDtype(unittest.TestCase):
             ys = self.communicator.allgather(x)
             for y in ys:
                 chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_allgather_gpu(self):
@@ -585,6 +606,7 @@ class TestDifferentDtype(unittest.TestCase):
             ys = self.communicator.allgather(x)
             for y in ys:
                 chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     def check_bcast(self, x):
         if self.communicator.rank == 0:
@@ -602,6 +624,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = np.array(42).astype(dtype)
             y = self.communicator.bcast(x)
             chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_bcast_gpu(self):
@@ -615,6 +638,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = chainer.cuda.to_gpu(x, device=self.device)
             y = self.communicator.bcast(x)
             chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     def check_gather(self, xs, x1, ans):
         x = xs[self.communicator.rank]
@@ -639,6 +663,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = np.array(self.communicator.rank).astype(dtype)
             ans = np.arange(self.communicator.size, dtype=dtype)
             self.check_gather(xs, x, ans)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_gather_gpu(self):
@@ -654,6 +679,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = chainer.cuda.to_gpu(x, device=self.device)
             ans = np.arange(self.communicator.size, dtype=dtype)
             self.check_gather(xs, x, ans)
+        self.teardown()
 
     def check_scatter(self, xs):
         x = xs[self.communicator.rank]
@@ -676,6 +702,7 @@ class TestDifferentDtype(unittest.TestCase):
             xs = [x] * self.communicator.size
             y = self.communicator.scatter(xs)
             chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_scatter_gpu(self):
@@ -693,6 +720,7 @@ class TestDifferentDtype(unittest.TestCase):
             xs = [x] * self.communicator.size
             y = self.communicator.scatter(xs)
             chainer.testing.assert_allclose(x, y)
+        self.teardown()
 
     def check_allreduce(self, x, dtype, n):
         x = self.communicator.allreduce(x)
@@ -715,6 +743,7 @@ class TestDifferentDtype(unittest.TestCase):
             y = self.communicator.allreduce(x)
             a = x * self.communicator.size
             chainer.testing.assert_allclose(a, y)
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_allreduce_gpu(self):
@@ -729,6 +758,7 @@ class TestDifferentDtype(unittest.TestCase):
             y = self.communicator.allreduce(x)
             a = x * self.communicator.size
             chainer.testing.assert_allclose(a, y)
+        self.teardown()
 
 
 class TestNonContiguousArray(unittest.TestCase):
@@ -745,6 +775,10 @@ class TestNonContiguousArray(unittest.TestCase):
         if self.communicator.size != 2:
             pytest.skip('This test is for two processes')
 
+    def teardown(self):
+        if self.communicator:
+            destroy_communicator(self.communicator)
+
     def check_send(self):
         if self.communicator.rank == 0:
             x = np.arange(18).reshape(3, 3, 2).astype(np.float32)
@@ -757,11 +791,13 @@ class TestNonContiguousArray(unittest.TestCase):
     def test_send_cpu(self):
         self.setup(False)
         self.check_send()
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_send_gpu(self):
         self.setup(True)
         self.check_send()
+        self.teardown()
 
     def check_alltoall(self):
         self.setup(False)
@@ -770,12 +806,15 @@ class TestNonContiguousArray(unittest.TestCase):
         x = x[:, 1, :]
         xs = (x, x)
         self.communicator.alltoall(xs)
+        self.teardown()
 
     def test_alltoall_cpu(self):
         self.setup(False)
         self.check_alltoall()
+        self.teardown()
 
     @chainer.testing.attr.gpu
     def test_alltoall_gpu(self):
         self.setup(True)
         self.check_alltoall()
+        self.teardown()
