@@ -274,6 +274,17 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("endpoint") = true,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+    m.def("meshgrid",
+          [](py::sequence arrays, const nonstd::optional<std::string>& indexing) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBodies(Meshgrid(xs, indexing));
+          },
+          py::arg("arrays"),
+          py::arg("indexing") = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
