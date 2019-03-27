@@ -61,6 +61,10 @@ def _calc_projection(x, mean, eps, groups):
     [{}]
     # GPU tests
     + [{'use_cuda': True}]
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0']
+    })
 )
 class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
@@ -128,6 +132,10 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     [{}]
     # GPU tests
     + [{'use_cuda': True}]
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
 )
 class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
