@@ -1109,7 +1109,7 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'dtype': chainerx.testing.numeric_dtypes,
+        'dtype': _expected_float_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
