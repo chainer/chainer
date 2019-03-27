@@ -1103,29 +1103,31 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # Special shapes
-    chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'dtype,out_dtype': _expected_dtypes_math_functions,
-        'input': [-2, 0, 2],
-        'contiguous': [None, 'C'],
-    })
-    # Special values
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'dtype,out_dtype': _expected_float_dtypes_math_functions,
-        'input': [float('inf'), -float('inf'), float('nan')],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
-    })
-))
-class TestSigmoid(UnaryMathTestBase, op_utils.NumpyOpTest):
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
+        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
+])
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class TestSigmoid(op_utils.NumpyOpTest):
 
-    def func(self, xp, a):
+    def setup(self, input, contiguous, float_dtype):
+        self.input = input
+        self.dtype = float_dtype
+        self.contiguous = contiguous
+        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
         if xp is numpy:
-            return 1 / (1 + numpy.exp(-a))
-        return xp.sigmoid(a)
+            return 1 / (1 + numpy.exp(-inputs[0])),
+        return xp.sigmoid(inputs[0]),
 
 
 
