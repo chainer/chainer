@@ -725,13 +725,13 @@ class Variable(object):
         return len(self.array)
 
     def __iter__(self):
+        if self.ndim == 0:
+            raise TypeError('iteration over a 0-d array')
         if chainer.config.enable_backprop:
             warnings.warn(
                 'Backprop through `Variable.__iter__` is slow. Consider'
                 ' using `chainer.functions.split_axis`.',
                 RuntimeWarning)
-        if self.ndim == 0:
-            raise TypeError('iteration over a 0-d array')
         return (self[i] for i in six.moves.range(len(self)))
 
     @property
