@@ -485,9 +485,6 @@ Array CudaConv::ConvGradWeight(
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
 
-    CHAINERX_ASSERT(x.dtype() == w_dtype);
-    CHAINERX_ASSERT(x.dtype() == gy.dtype());
-
     if (CHAINERX_DEBUG) {
         // w_shape = (out_channels, in_channels, k_1, k_2, ..., k_N)
         int64_t out_channels = w_shape[0];
