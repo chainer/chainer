@@ -9,6 +9,7 @@ from chainer.link_hooks.spectral_normalization import SpectralNormalization
 import chainer.links as L
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 class TestExceptions(unittest.TestCase):
@@ -188,6 +189,40 @@ class BaseTest(object):
     def test_u_not_updated_in_test_gpu(self):
         if not self.lazy_init:
             self.check_u_not_updated_in_test(True)
+
+    @attr.chainerx
+    def test_forward_chx(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+            layer.to_chx()
+            x = chainer.Variable(
+                self.x, requires_grad=self.x.dtype.kind == 'f')
+            x.to_chx()
+            msg = None
+            try:
+                layer(x)
+            except Exception as e:
+                msg = e
+
+            assert msg is None
+
+    @attr.multi_gpu(2)
+    @condition.retry(3)
+    def test_forward_multi_gpu(self):
+        if not self.lazy_init:
+            layer, hook = self.layer, self.hook
+            layer.add_hook(hook)
+            with cuda.get_device_from_id(1):
+                layer.to_gpu()
+                x = cuda.to_gpu(self.x)
+            with cuda.get_device_from_id(0):
+                msg = None
+                try:
+                    layer(x)
+                except Exception as e:
+                    msg = e
+            assert msg is None
 
 
 @testing.parameterize(*testing.product({

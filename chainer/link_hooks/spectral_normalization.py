@@ -1,9 +1,13 @@
+import chainer
 from chainer import backend
 from chainer import configuration
 import chainer.functions as F
 from chainer import link_hook
 import chainer.links as L
 from chainer import variable
+import chainerx
+from chainerx._fallback_workarounds import _from_chx as from_chx
+from chainerx._fallback_workarounds import _to_chx as to_chx
 
 
 def l2normalize(xp, v, eps=1e-12):
@@ -18,7 +22,11 @@ def l2normalize(xp, v, eps=1e-12):
         :class:`numpy.ndarray` or :class:`cupy.ndarray`
 
     """
-    return v / (xp.linalg.norm(v) + eps)
+    if xp is chainerx:
+        norm = chainerx.sqrt(chainerx.sum(v * v))
+    else:
+        norm = xp.linalg.norm(v)
+    return v / (norm + eps)
 
 
 def update_approximate_vectors(
@@ -192,7 +200,8 @@ class SpectralNormalization(link_hook.LinkHook):
         # the unnormalized weight.
         self.original_weight = weight
         # note: `normalized_weight` is ~chainer.Variable
-        normalized_weight = self.normalize_weight(link, weight)
+        with chainer.using_device(link.device):
+            normalized_weight = self.normalize_weight(link, weight)
         setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):
@@ -225,7 +234,14 @@ class SpectralNormalization(link_hook.LinkHook):
         if self.use_gamma:
             # Initialize the scaling parameter with the max singular value.
             weight_matrix = self.reshape_W(initialW.array)
-            _, s, _ = link.xp.linalg.svd(weight_matrix)
+            # TODO(crcrpar): Remove this when chainerx supports SVD.
+            if link.xp is chainerx:
+                xp, dev, array = from_chx(weight_matrix)
+                with chainer.using_device(dev):
+                    _, s, _ = xp.linalg.svd(weight_matrix)
+                s = to_chx(s)
+            else:
+                _, s, _ = link.xp.linalg.svd(weight_matrix)
             with link.init_scope():
                 link.gamma = variable.Parameter(s[0], ())
         self._initialized = True
@@ -251,7 +267,12 @@ class SpectralNormalization(link_hook.LinkHook):
         if not configuration.config.in_recomputing:
             self.v = v
             if configuration.config.train:
-                link.xp.copyto(getattr(link, vector_name), u)
+                if link.xp is chainerx:
+                    getattr(link, vector_name)[:] = u
+                    # link_u = getattr(link, vector_name)
+                    # link_u = u[:]
+                else:
+                    link.xp.copyto(getattr(link, vector_name), u)
         return W
 
     def reshape_W(self, W):
