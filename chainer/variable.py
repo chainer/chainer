@@ -1424,6 +1424,17 @@ class Variable(object):
         with chainer.using_config('enable_backprop', enable_double_backprop):
             _backprop_to_all([self], retain_grad, loss_scale)
 
+    def item(self):
+        """Converts the variable with one element to a Python scalar.
+
+        This will incur host-device synchronization.
+
+        Returns:
+            int or float: The element of the array.
+
+        """
+        return self.array.item()
+
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
 
@@ -1787,9 +1798,9 @@ class Parameter(Variable):
 
         if isinstance(device, backend.ChainerxDevice):
             backend_name = device.device.backend.name
-            if backend_name is 'native':
+            if backend_name == 'native':
                 self._initial_device = backend.CpuDevice()
-            elif backend_name is 'cuda':
+            elif backend_name == 'cuda':
                 self._initial_device = backend.GpuDevice.from_device_id(
                     device.device.index)
 

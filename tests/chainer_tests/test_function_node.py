@@ -853,6 +853,22 @@ class TestGradTypeCheck(unittest.TestCase):
             chainer.grad([y], [x], [gx], gy)
 
 
+class TestGradValueCheck(unittest.TestCase):
+
+    def test_length_check(self):
+        x = chainer.Variable(numpy.array(3, numpy.float32))
+        y = chainer.functions.identity(x)
+
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None, None], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [None, None])
+
+
 class GradTestBase(object):
 
     shape = 3,

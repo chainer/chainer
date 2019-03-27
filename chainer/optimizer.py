@@ -409,7 +409,7 @@ class UpdateRule(object):
           3. copys the data of fp32 parameter variable to the data of original
              parameter variable, converting its data type from fp32 to fp16.
 
-        See meth:`update` for details.
+        See :meth:`update` for details.
         """
         self._use_fp32_update = flag
 

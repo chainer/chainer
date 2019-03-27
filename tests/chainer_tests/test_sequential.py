@@ -1,5 +1,5 @@
+import functools
 import os
-import platform
 import tempfile
 import unittest
 
@@ -488,13 +488,30 @@ class TestSequential(unittest.TestCase):
             with tempfile.TemporaryFile() as fp:
                 six.moves.cPickle.dump(self.s2, fp)
 
-    def test_repr(self):
-        bits, pl = platform.architecture()
-        self.assertEqual(
-            str(self.s1),
-            '0\tLinear\tW(None)\tb{}\t\n'
-            '1\tLinear\tW{}\tb{}\t\n'.format(
-                self.s1[0].b.shape, self.s1[1].W.shape, self.s1[1].b.shape))
+    def test_str(self):
+        self.assertEqual(str(chainer.Sequential()), 'Sequential()')
+
+        expected = '''\
+  (0): Sequential(
+    (0): Linear(in_size=None, out_size=3, nobias=False),
+    (1): Linear(in_size=3, out_size=2, nobias=False),
+  ),
+  (1): Linear(in_size=2, out_size=3, nobias=False),
+  (2): lambda x: functions.leaky_relu(x, slope=0.2),
+'''
+        layers = [
+            self.s1,
+            self.l3,
+            lambda x: functions.leaky_relu(x, slope=0.2),
+        ]
+        if six.PY3:
+            # In Python2, it fails because of different id of the function.
+            layer = functools.partial(functions.leaky_relu, slope=0.2)
+            layers.append(layer)
+            expected += '  (3): %s,\n' % layer
+        expected = 'Sequential(\n%s)' % expected
+        s = chainer.Sequential(*layers)
+        self.assertEqual(str(s), expected)
 
     def test_repeat_with_init(self):
         # s2 ((l1 -> l2) -> l3) -> s2 ((l1 -> l2) -> l3)

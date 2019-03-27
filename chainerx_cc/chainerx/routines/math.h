@@ -101,4 +101,8 @@ Array IsInf(const Array& x);
 
 Array Tanh(const Array& x);
 
+Array Sin(const Array& x);
+
+Array Cos(const Array& x);
+
 }  // namespace chainerx

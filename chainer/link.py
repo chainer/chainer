@@ -163,6 +163,14 @@ class Link(object):
         if not self.__init_done:
             raise RuntimeError('Link.__init__() has not been called.')
 
+    def __str__(self):
+        specs = ', '.join(
+            '{}={}'.format(k, v) for k, v in self.printable_specs
+        )
+        return '{cls}({specs})'.format(
+            cls=self.__class__.__name__, specs=specs,
+        )
+
     @property
     def local_link_hooks(self):
         # type: () -> collections.OrderedDict[str, chainer.LinkHook]
@@ -197,6 +205,20 @@ class Link(object):
         if self._device.xp is cuda.cupy:
             return self._device.device.id
         return None
+
+    @property
+    def printable_specs(self):
+        """Generator of printable specs of this link.
+
+        Yields:
+            specs (tuple of str and object):
+                Basically, it returns the arguments (pair of keyword and value)
+                that are passed to the :meth:`__init__`. This pair of key and
+                value is used for representing this class or subclass with
+                :meth:`__str__`.
+        """
+        if 0:
+            yield
 
     @property
     def xp(self):
@@ -988,6 +1010,23 @@ class Chain(Link):
         for name, link in six.iteritems(links):
             self.add_link(name, link)
 
+    def __str__(self):
+        reps = []
+        for child in self.children():
+            rep = '({name}): {rep},'.format(
+                name=child.name, rep=str(child),
+            )
+            # Add indentation to each line.
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no children.
+            reps = '\n' + reps
+
+        return '{cls}({children})'.format(
+            cls=self.__class__.__name__, children=reps,
+        )
+
     def __getitem__(self, name):
         # type: (str) -> tp.Any
         """Equivalent to getattr."""
@@ -1181,6 +1220,23 @@ class ChainList(Link, collections_abc.MutableSequence):
 
         for link in links:
             self.add_link(link)
+
+    def __str__(self):
+        reps = []
+        for index, child in enumerate(self._children):
+            rep = '({index}): {rep},'.format(
+                index=index, rep=str(child),
+            )
+            # Add indentation to each line.
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no children.
+            reps = '\n' + reps
+
+        return '{cls}({children})'.format(
+            cls=self.__class__.__name__, children=reps,
+        )
 
     def __setattr__(self, name, value):
         # type: (str, tp.Any) -> None

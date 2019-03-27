@@ -213,16 +213,19 @@ class BatchNormalization(function_node.FunctionNode):
         else:
             # Generic CPU and GPU implementation
 
-            gamma = gamma[expander]
-            beta = beta[expander]
-            self.mean = x.mean(axis=self.axis, dtype=gamma.dtype)
-            var = x.var(axis=self.axis, dtype=gamma.dtype)
+            interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+            gamma = gamma[expander].astype(interm_dtype, copy=False)
+            beta = beta[expander].astype(interm_dtype, copy=False)
+            self.mean = x.mean(axis=self.axis, dtype=interm_dtype)
+            var = x.var(axis=self.axis, dtype=interm_dtype)
             if xp is numpy:
                 self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=gamma.dtype))
+                    var + self.eps, dtype=interm_dtype))
             else:
-                self.inv_std = cuda.cupyx.rsqrt(var + self.eps,
-                                                dtype=gamma.dtype)
+                self.inv_std = cuda.cupyx.rsqrt(
+                    var + self.eps, dtype=interm_dtype)
+
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics
@@ -629,7 +632,6 @@ class _BNMode(object):
         self.is_for_conv2d = is_gamma_1d and x.ndim == 4 and key_axis[0] == 1
         self.is_for_linear = is_gamma_1d and key_axis[0] == x.ndim - 1
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
-        # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
         self.ideep_ok = is_gamma_1d and intel64.inputs_all_ready((x,))
         self.inference = inference

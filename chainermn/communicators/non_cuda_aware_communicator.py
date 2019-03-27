@@ -1,3 +1,5 @@
+import warnings
+
 import chainer.cuda
 import math
 import mpi4py.MPI
@@ -18,6 +20,9 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 'NCCL is not available. '
                 'Please confirm that NCCL is enabled in CuPy.'
             )
+        if nccl.get_version() < 2302:
+            warnings.warn('NCCL 2.2 and older versions are deprecated.',
+                          DeprecationWarning)
 
         # We have to delay the initialization of communicators. This is because
         # NCCL's communicators use the current CUDA devices at the time of
@@ -75,8 +80,10 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
 
+        allreduce_grad_dtype = np.float32
+
         _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -115,4 +122,4 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.ptr)
 
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)

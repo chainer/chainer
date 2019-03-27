@@ -89,6 +89,41 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.link.v.initialize((2, 3))
         self.check_param_init('v', (2, 3), 'f')
 
+    def test_str(self):
+        # empty Link
+        self.assertEqual(str(chainer.Link()), 'Link()')
+
+        class MyLink(chainer.Link):
+            pass
+
+        # Link without overriding printable_specs
+        self.assertEqual(str(MyLink()), 'MyLink()')
+
+        class LinearForTest(chainer.Link):
+            def __init__(self, in_size, out_size, nobias=False):
+                self.in_size = in_size
+                self.out_size = out_size
+                self.nobias = nobias
+
+            @property
+            def printable_specs(self):
+                specs = [
+                    ('in_size', self.in_size),
+                    ('out_size', self.out_size),
+                    ('nobias', self.nobias)
+                ]
+                for spec in specs:
+                    yield spec
+
+            def __call__(self):
+                pass
+
+        # Link with overriding printable_specs
+        self.assertEqual(
+            str(LinearForTest(10, 1)),
+            'LinearForTest(in_size=10, out_size=1, nobias=False)',
+        )
+
     def test_assign_param_outside_of_init_scope(self):
         p = chainer.Parameter()
         self.link.p = p
@@ -848,6 +883,20 @@ class TestChain(ChainTestBase, unittest.TestCase):
         self.assertIs(self.c2['l3'], self.l3)
         self.assertEqual(self.l3.name, 'l3')
 
+    def test_str(self):
+        self.assertEqual(str(chainer.Chain()), 'Chain()')
+        self.assertEqual(
+            str(self.c2),
+            '''\
+Chain(
+  (c1): Chain(
+    (l1): Link(),
+    (l2): Link(),
+  ),
+  (l3): Link(),
+)''',
+        )
+
     def test_add_link(self):
         self.assertIs(self.c1.l2, self.l2)
         self.assertEqual(self.l2.name, 'l2')
@@ -1417,6 +1466,20 @@ class TestChainList(unittest.TestCase):
         self.assertEqual(self.l1.name, '0')
         self.assertIs(self.c2[0], self.c1)
         self.assertEqual(self.c1.name, '0')
+
+    def test_str(self):
+        self.assertEqual(str(chainer.ChainList()), 'ChainList()')
+        self.assertEqual(
+            str(self.c2),
+            '''\
+ChainList(
+  (0): ChainList(
+    (0): Link(),
+    (1): Link(),
+  ),
+  (1): Link(),
+)''',
+        )
 
     def test_add_link(self):
         self.assertIs(self.c1[1], self.l2)
