@@ -56,7 +56,7 @@ Array Var(const Array& a, const OptionalAxes& axis, bool keepdims) {
     // TODO(hvy): Consider allowing device implementations.
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Dtype mean_out = PromoteInt2Float(a.dtype());
-    // TODO: remove once subtract allows mixed types.
+    // TODO(kshitij12345): remove once subtract allows mixed types.
     Array diff = a.AsType(mean_out, true) - Mean(a, sorted_axis, true);
     return Mean(diff * diff, sorted_axis, keepdims);
 }
