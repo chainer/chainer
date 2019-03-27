@@ -1130,7 +1130,6 @@ class TestSigmoid(op_utils.NumpyOpTest):
         return xp.sigmoid(inputs[0]),
 
 
-
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
