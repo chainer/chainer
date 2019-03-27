@@ -205,8 +205,7 @@ class SpectralNormalization(link_hook.LinkHook):
         # the unnormalized weight.
         self.original_weight = weight
         # note: `normalized_weight` is ~chainer.Variable
-        with chainer.using_device(link.device):
-            normalized_weight = self.normalize_weight(link, weight)
+        normalized_weight = self.normalize_weight(link)
         setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):
@@ -253,15 +252,16 @@ class SpectralNormalization(link_hook.LinkHook):
                 link.gamma = variable.Parameter(s[0], ())
         self._initialized = True
 
-    def normalize_weight(self, link, *args, **kwargs):
+    def normalize_weight(self, link):
         """Normalize target weight before every single forward computation."""
         weight_name, vector_name = self.weight_name, self.vector_name
         W = getattr(link, weight_name)
         u = getattr(link, vector_name)
         weight_matrix = self.reshape_W(W)
         if not configuration.config.in_recomputing:
-            u, v = update_approximate_vectors(
-                weight_matrix, u, self.n_power_iteration, self.eps)
+            with chainer.using_device(link.device):
+                u, v = update_approximate_vectors(
+                    weight_matrix, u, self.n_power_iteration, self.eps)
         else:
             v = self.v
         sigma = calculate_max_singular_value(weight_matrix, u, v)
@@ -273,13 +273,14 @@ class SpectralNormalization(link_hook.LinkHook):
             W = W / sigma
         if not configuration.config.in_recomputing:
             self.v = v
-            if configuration.config.train:
-                if (link.xp is chainerx or
-                        isinstance(getattr(link, vector_name),
-                                   intel64.ideep.mdarray)):
-                    getattr(link, vector_name)[:] = u
-                else:
-                    link.xp.copyto(getattr(link, vector_name), u)
+            with chainer.using_device(link.device):
+                if configuration.config.train:
+                    if (link.xp is chainerx or
+                            isinstance(getattr(link, vector_name),
+                                       intel64.ideep.mdarray)):
+                        getattr(link, vector_name)[:] = u
+                    else:
+                        link.xp.copyto(getattr(link, vector_name), u)
         return W
 
     def reshape_W(self, W):
