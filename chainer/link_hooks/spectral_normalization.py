@@ -1,5 +1,8 @@
+import numpy
+
 import chainer
 from chainer import backend
+from chainer.backends import intel64
 from chainer import configuration
 import chainer.functions as F
 from chainer import link_hook
@@ -22,6 +25,7 @@ def l2normalize(xp, v, eps=1e-12):
         :class:`numpy.ndarray` or :class:`cupy.ndarray`
 
     """
+    # TODO(crcrpar): Remove this when chainerx.linalg.norm becomes available.
     if xp is chainerx:
         norm = chainerx.sqrt(chainerx.sum(v * v))
     else:
@@ -234,12 +238,15 @@ class SpectralNormalization(link_hook.LinkHook):
         if self.use_gamma:
             # Initialize the scaling parameter with the max singular value.
             weight_matrix = self.reshape_W(initialW.array)
-            # TODO(crcrpar): Remove this when chainerx supports SVD.
+            # TODO(crcrpar): Remove this when chainerx supports SVD and
+            # it is allowed to initialize Parameter from chainerx.ndarray.
             if link.xp is chainerx:
-                xp, dev, array = from_chx(weight_matrix)
-                with chainer.using_device(dev):
-                    _, s, _ = xp.linalg.svd(weight_matrix)
-                s = to_chx(s)
+                xp, device, array = from_chx(weight_matrix)
+                if xp is numpy:
+                    _, s, _ = numpy.linalg.svd(array)
+                else:
+                    with chainer.using_device(device):
+                        _, s, _ = xp.linalg.svd(array)
             else:
                 _, s, _ = link.xp.linalg.svd(weight_matrix)
             with link.init_scope():
@@ -267,10 +274,10 @@ class SpectralNormalization(link_hook.LinkHook):
         if not configuration.config.in_recomputing:
             self.v = v
             if configuration.config.train:
-                if link.xp is chainerx:
+                if (link.xp is chainerx or
+                        isinstance(getattr(link, vector_name),
+                                   intel64.ideep.mdarray)):
                     getattr(link, vector_name)[:] = u
-                    # link_u = getattr(link, vector_name)
-                    # link_u = u[:]
                 else:
                     link.xp.copyto(getattr(link, vector_name), u)
         return W
