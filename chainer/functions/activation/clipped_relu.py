@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 if cuda.cudnn_enabled:
@@ -35,6 +36,10 @@ class ClippedReLU(function_node.FunctionNode):
         type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return chainerx.minimum(chainerx.maximum(0, x), self.cap),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
