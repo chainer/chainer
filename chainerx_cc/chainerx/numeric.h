@@ -36,6 +36,24 @@ inline chainerx::Float16 Tanh<chainerx::Float16>(chainerx::Float16 x) {
 }
 
 template <typename T>
+inline T Sin(T x) {
+    return std::sin(x);
+}
+template <>
+inline chainerx::Float16 Sin<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::sin(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Cos(T x) {
+    return std::cos(x);
+}
+template <>
+inline chainerx::Float16 Cos<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::cos(static_cast<float>(x))};
+}
+
+template <typename T>
 inline T Exp(T x) {
     return std::exp(x);
 }

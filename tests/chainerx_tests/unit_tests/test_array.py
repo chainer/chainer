@@ -658,18 +658,6 @@ def test_fill(xp, shape, dtype, value, device):
     return a
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize(
-    'value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fill_with_scalar(xp, device, shape, dtype, value):
-    a = xp.empty(shape, dtype)
-    if xp is chainerx:
-        value = chainerx.Scalar(value, dtype)
-    a.fill(value)
-    return a
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize(
     'slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])

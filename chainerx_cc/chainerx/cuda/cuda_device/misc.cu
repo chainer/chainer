@@ -27,10 +27,11 @@ struct SqrtImpl {
 
 void CudaDevice::Sqrt(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(SqrtImpl<T>{}, x, out);
+        Elementwise<const T, T>(SqrtImpl<T>{}, x_cast, out);
     });
 }
 

@@ -43,7 +43,7 @@ class ConvolutionND(function_node.FunctionNode):
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
-                b_type.dtype == x_type.dtype,
+                b_type.dtype.kind == 'f',
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
@@ -206,6 +206,8 @@ class ConvolutionND(function_node.FunctionNode):
         if 2 in indexes:
             axis = (0,) + tuple(moves.range(2, gy.ndim))
             gb = chainer.functions.sum(gy, axis=axis)
+            if gb.dtype != self.inputs[2].dtype:
+                gb = chainer.functions.cast(gb, self.inputs[2].dtype)
             ret.append(gb)
 
         return ret

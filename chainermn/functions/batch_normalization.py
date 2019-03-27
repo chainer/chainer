@@ -80,7 +80,7 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
 
         # We need to delay importing MPI4py (and momdules that import MPI4py)
         import chainermn.communicators._memory_utility as memory_utility_module
-        from chainermn.communicators.pure_nccl_communicator import \
+        from chainermn.communicators._communication_utility import \
             _get_nccl_type_id
         from chainermn import nccl
 

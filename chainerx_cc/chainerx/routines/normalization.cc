@@ -4,6 +4,8 @@
 #include <memory>
 #include <utility>
 
+#include <nonstd/optional.hpp>
+
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/backprop_mode.h"
@@ -14,9 +16,11 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -41,15 +45,22 @@ Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
     return a.Reshape(shape);
 }
 
+void CheckBatchNormSupportedKind(const Array& array) {
+    // BatchNorm only supports inputs of float kind.
+    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"BatchNorm only supports floating kind inputs."};
+    }
+}
+
 // Reshapes the input arrays (except x) as needed.
 // Sorted axes is also returned.
 PreprocessBatchNormResult PreprocessBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, const OptionalAxes& axis) {
-    Dtype dtype = x.dtype();
-    CheckEqual(dtype, gamma.dtype());
-    CheckEqual(dtype, beta.dtype());
-    CheckEqual(dtype, mean.dtype());
-    CheckEqual(dtype, var.dtype());
+    CheckBatchNormSupportedKind(x);
+    CheckBatchNormSupportedKind(gamma);
+    CheckBatchNormSupportedKind(beta);
+    CheckBatchNormSupportedKind(mean);
+    CheckBatchNormSupportedKind(var);
 
     Axes sorted_axis = axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0};
 
@@ -85,6 +96,16 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
+Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template, Dtype dtype) {
+    if (array.has_value()) {
+        if (array->dtype() == dtype) {
+            return *array;
+        }
+        return array->AsType(dtype);
+    }
+    return Zeros(zeros_template.shape(), dtype, zeros_template.device());
+}
+
 }  // namespace
 
 Array BatchNorm(
@@ -104,6 +125,7 @@ Array BatchNorm(
     const Array& beta_reshaped = result.beta;
 
     Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
+    CHAINERX_ASSERT(out.dtype() == x.dtype());
     internal::MakeViewForForwardBackwardOutput(out);
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
@@ -141,39 +163,56 @@ Array BatchNorm(
                                 sorted_axis,
                                 gx_tok = bb2.RetainOutput(0),
                                 ggamma_tok = bb2.RetainOutput(1)](BackwardContext& bctx2) {
-                        const Array& x = bctx2.GetRetainedInput(x_tok);
-                        const Array& gamma_reshaped = bctx2.GetRetainedInput(gamma2_tok);
-                        const Array& gout = bctx2.GetRetainedInput(gout_tok);
+                        const Array& x_retained = bctx2.GetRetainedInput(x_tok);
+                        const Array& gamma_reshaped_retained = bctx2.GetRetainedInput(gamma2_tok);
+                        const Array& gout_retained = bctx2.GetRetainedInput(gout_tok);
 
-                        const Array& ggx = *bctx2.output_grad(0);
-                        const Array& gggamma = *bctx2.output_grad(1);
-                        const Array& ggbeta = *bctx2.output_grad(2);
+                        // TODO(hvy): Avoid AsType by passing dtype arguments to Mean, Var, etc. to minimize copies.
+                        Dtype interm_dtype = ResultType(gout_retained, x_retained, gamma_reshaped_retained);
+                        const Array& x = x_retained.AsType(interm_dtype, false);
+                        const Array& gamma_reshaped = gamma_reshaped_retained.AsType(interm_dtype, false);
+                        const Array& gout = gout_retained.AsType(interm_dtype, false);
 
-                        const Array& x_mean = Mean(x, sorted_axis, true);
-                        const Array& x_var = Var(x, sorted_axis, true);
-                        const Array& x_inv_std = Reciprocal(Sqrt(x_var + eps));
+                        Array ggx = ArrayOrZeros(bctx2.output_grad(0), x, interm_dtype);
+                        Array gggamma = ArrayOrZeros(bctx2.output_grad(1), gamma_reshaped, interm_dtype);
+                        Array ggbeta = ArrayOrZeros(bctx2.output_grad(2), gamma_reshaped, interm_dtype);
 
-                        const Array& gx = bctx2.GetRetainedOutput(gx_tok);
-                        const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok);
+                        const Array& x_mean = Mean(x, sorted_axis, true).AsType(interm_dtype, false);
+                        const Array& x_var = Var(x, sorted_axis, true).AsType(interm_dtype, false);
+                        const Array& x_inv_std = Reciprocal(Sqrt(x_var + eps)).AsType(interm_dtype, false);
+
+                        const Array& gx = bctx2.GetRetainedOutput(gx_tok).AsType(interm_dtype, false);
+                        const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok).AsType(interm_dtype, false);
 
                         // Auxiliary values
                         int64_t n = x.GetTotalSize() / gamma_reshaped.GetTotalSize();
                         double inv_n = 1.0 / n;
-                        Array r = (gx * ggx).Sum(sorted_axis);
+                        Array r = (gx * ggx).Sum(sorted_axis, true);
                         Array coeff = gamma_reshaped * x_inv_std;
                         Array coeff_m = coeff * inv_n;
                         Array x_hat = (x - x_mean) * x_inv_std;
 
-                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(sorted_axis);
-                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(sorted_axis);
+                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(sorted_axis, true);
+                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(sorted_axis, true);
 
                         Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
-                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(sorted_axis));
-                        Array gmean2 = -x_inv_std * gx_hat2.Sum(sorted_axis);
+                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(sorted_axis, true));
+                        Array gmean2 = -x_inv_std * gx_hat2.Sum(sorted_axis, true);
                         Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
                         Array ggout2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
 
                         Array ggamma2 = r / gamma_reshaped;
+
+                        if (gx2.dtype() != x_retained.dtype()) {
+                            gx2 = gx2.AsType(x_retained.dtype());
+                        }
+                        if (ggamma2.dtype() != gamma_reshaped_retained.dtype()) {
+                            ggamma2 = ggamma2.AsType(gamma_reshaped_retained.dtype());
+                        }
+
+                        if (ggout2.dtype() != gout_retained.dtype()) {
+                            ggout2 = ggout2.AsType(gout_retained.dtype());
+                        }
 
                         bctx2.input_grad(0) = std::move(gx2);
                         bctx2.input_grad(1) = std::move(ggamma2);
