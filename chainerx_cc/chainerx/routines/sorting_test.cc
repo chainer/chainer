@@ -64,6 +64,37 @@ TEST_P(SortingTest, ArgMaxEmpty) {
     EXPECT_THROW(ArgMax(a), DimensionError);
 }
 
+TEST_THREAD_SAFE_P(SortingTest, ArgMin) {
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4}).WithPadding(1);
+    Array e = testing::BuildArray({3}).WithData<int64_t>({1, 1, 0});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMin(xs[0], 0)}; }, {a}, {e}); });
+}
+
+TEST_THREAD_SAFE_P(SortingTest, ArgMinNegativeAxis) {
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    Array e = testing::BuildArray({2}).WithData<int64_t>({0, 0});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMin(xs[0], -1)}; }, {a}, {e}); });
+}
+
+TEST_THREAD_SAFE_P(SortingTest, ArgMinAllAxes) {
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    Array e = testing::BuildArray({}).WithData<int64_t>({3});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMin(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(SortingTest, ArgMinInvalidAxis) {
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    EXPECT_THROW(ArgMin(a, 3), DimensionError);
+}
+
+TEST_P(SortingTest, ArgMinEmpty) {
+    Array a = Zeros({0}, Dtype::kFloat32);
+    EXPECT_THROW(ArgMin(a), DimensionError);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         SortingTest,

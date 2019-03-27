@@ -9,4 +9,6 @@ namespace chainerx {
 
 Array ArgMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 
+Array ArgMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
+
 }  // namespace chainerx

@@ -328,6 +328,8 @@ class ndarray:
 
     def argmax(self, axis: tp.Optional[int]=None) -> ndarray: ...
 
+    def argmin(self, axis: tp.Optional[int]=None) -> ndarray: ...
+
     @tp.overload
     def as_grad_stopped(self, copy: bool=...) -> ndarray: ...
 
@@ -454,6 +456,9 @@ def arange(
 
 
 def argmax(a: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
+
+
+def argmin(a: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
 
 
 def array(
