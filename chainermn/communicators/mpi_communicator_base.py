@@ -1,4 +1,4 @@
-import collections
+from chainer.utils import collections_abc
 
 import mpi4py
 import numpy
@@ -65,7 +65,7 @@ class _MessageType(object):
             self.ndims = [obj.ndim]
             self.shapes = [obj.shape]
             self.dtype = obj.dtype
-        elif isinstance(obj, collections.Iterable):
+        elif isinstance(obj, collections_abc.Iterable):
             if all(map(_is_numpy_array, obj)):
                 self.is_host = True
             elif all(map(_is_cupy_array, obj)):
