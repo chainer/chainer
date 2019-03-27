@@ -5,6 +5,7 @@ import numpy
 import pytest
 
 import chainerx
+import chainerx.testing
 
 from chainerx_tests import array_utils
 from chainerx_tests import op_utils
@@ -73,17 +74,45 @@ _batch_norm_invalid_dimensions_params = [
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest(
+    'x_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest(
+    'param_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest('eps', [2e-5, 5e-1])
 @chainer.testing.parameterize_pytest('decay', [None, 0.5])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
 class TestBatchNorm(op_utils.ChainerOpTest):
 
-    def setup(self, float_dtype):
-        self.dtype = float_dtype
-
+    def setup(self):
+        reduced_shape = self.reduced_shape
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
         eps = self.eps
         decay = self.decay
         axis = self.axis
+        contiguous = self.contiguous
+
+        # - Non-contiguous running values which are updated in-place are not
+        # supported by CUDA.
+        # - Non-contiguous gamma and beta is not supported by CUDA.
+        # TODO(hvy): Support non-contiguous gamma and beta with CUDA. Create a
+        # contiguous copy in the cuDNN wrapper.
+        if (chainerx.get_default_device().backend.name == 'cuda'
+                and contiguous is None):
+            raise unittest.SkipTest(
+                'batch_norm with CUDA currently has limited support for '
+                'non-contiguous inputs.')
+
+        # BatchNorm is unstable for fp16 for both native and CUDA.
+        # TODO(hvy): Fix backward and double backward for fp16.
+        if x_dtype == 'float16' and param_dtype == 'float16':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        self.running_mean = numpy.random.uniform(
+            -1, 1, reduced_shape).astype(param_dtype)
+        self.running_var = numpy.random.uniform(
+            0.1, 1, reduced_shape).astype(param_dtype)
 
         optional_args = {}
         if eps is not None:
@@ -94,44 +123,23 @@ class TestBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
-        # - Non-contiguous running values which are updated in-place are not
-        # supported by CUDA.
-        # - Non-contiguous gamma and beta is not supported by CUDA.
-        # TODO(hvy): Support non-contiguous gamma and beta with CUDA. Create a
-        # contiguous copy in the cuDNN wrapper.
-        self.is_cuda = chainerx.get_default_device().backend.name == 'cuda'
-        if self.is_cuda and self.contiguous is None:
-            raise unittest.SkipTest(
-                'batch_norm with CUDA currently has limited support for '
-                'non-contiguous inputs.')
-
-        # Float16 backward is unstable.
-        if float_dtype == 'float16':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
-        if float_dtype == 'float16':
-            self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
+        # TODO(hvy): Fix forward, backward and double backward for fp16.
+        if x_dtype == 'float16' or param_dtype == 'float16':
+            self.check_forward_options.update({
+                'rtol': 1e-1, 'atol': 1e-1})
             self.check_backward_options.update({
-                'eps': 1e-3, 'rtol': 1e-1, 'atol': 1e-2})
+                'rtol': 1e-1, 'atol': 1e-1})
             self.check_double_backward_options.update({
-                'rtol': 1e-1, 'atol': 1e-2})
+                'rtol': 1e-1, 'atol': 1e-1})
         else:
-            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
+            self.check_forward_options.update({
+                'rtol': 1e-6, 'atol': 1e-5})
             self.check_backward_options.update({
-                'eps': 1e-3, 'rtol': 5e-3, 'atol': 5e-4})
+                'rtol': 5e-3, 'atol': 5e-4})
             self.check_double_backward_options.update({
                 'rtol': 5e-2, 'atol': 5e-3})
 
-        reduced_shape = self.reduced_shape
-        running_mean = numpy.random.uniform(
-            -1, 1, reduced_shape).astype(float_dtype)
-        running_var = numpy.random.uniform(
-            .1, 1, reduced_shape).astype(float_dtype)
-        self.running_mean = running_mean
-        self.running_var = running_var
-
-        # Used to verify running mean and variance similarity with Chainer.
+        # Running values that are recorded in forward for similarity checks.
         self.running_mean_chx = None
         self.running_var_chx = None
         self.running_mean_ch = None
@@ -140,32 +148,26 @@ class TestBatchNorm(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x_shape = self.x_shape
         reduced_shape = self.reduced_shape
-        dtype = self.dtype
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
 
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
 
         return x, gamma, beta,
 
     def forward_chainerx(self, inputs):
         x, gamma, beta = inputs
 
-        if self.is_cuda and self.contiguous == 'C':
-            # Testing pre-condition.
-            assert x.is_contiguous
-            assert gamma.is_contiguous
-            assert beta.is_contiguous
-
-        running_mean = chainerx.array(
-            self.running_mean, copy=True).astype(x.dtype)
-        running_var = chainerx.array(
-            self.running_var, copy=True).astype(x.dtype)
+        running_mean = chainerx.array(self.running_mean, copy=True)
+        running_var = chainerx.array(self.running_var, copy=True)
 
         y = chainerx.batch_norm(
             x, gamma, beta, running_mean=running_mean, running_var=running_var,
             **self.optional_args)
 
+        # Record running values for later checks.
         self.running_mean_chx = running_mean
         self.running_var_chx = running_var
 
@@ -174,14 +176,14 @@ class TestBatchNorm(op_utils.ChainerOpTest):
     def forward_chainer(self, inputs):
         x, gamma, beta = inputs
 
-        running_mean = numpy.array(
-            self.running_mean, copy=True).astype(x.dtype)
-        running_var = numpy.array(self.running_var, copy=True).astype(x.dtype)
+        running_mean = self.running_mean.copy()
+        running_var = self.running_var.copy()
 
         y = chainer.functions.batch_normalization(
             x, gamma, beta, running_mean=running_mean, running_var=running_var,
             **self.optional_args)
 
+        # Record running values for later checks.
         self.running_mean_ch = running_mean
         self.running_var_ch = running_var
 
@@ -191,8 +193,9 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         super().check_forward_outputs(outputs, expected_outputs)
 
         # Check that running values are updated.
-        if self.dtype == 'float16':
-            check_running_options = {'rtol': 1e-3, 'atol': 1e-3}
+        if (self.x_dtype == 'float16'
+                or self.param_dtype == 'float16'):
+            check_running_options = {'rtol': 1e-1, 'atol': 1e-1}
         else:
             check_running_options = {'rtol': 1e-6, 'atol': 1e-5}
 
@@ -224,6 +227,10 @@ def test_batch_norm_invalid_dimensions(
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest(
+    'x_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest(
+    'param_dtype', chainerx.testing.float_dtypes)
 @chainer.testing.parameterize_pytest('eps', [None, 3e-5, 1.2])
 @chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
 class TestFixedBatchNorm(op_utils.ChainerOpTest):
@@ -233,8 +240,8 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
     skip_double_backward_test = True
 
     def setup(self, float_dtype):
-        self.dtype = float_dtype
-
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
         eps = self.eps
         axis = self.axis
 
@@ -245,21 +252,22 @@ class TestFixedBatchNorm(op_utils.ChainerOpTest):
             optional_args['axis'] = axis
         self.optional_args = optional_args
 
-        if float_dtype == 'float16':
-            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+        if x_dtype == 'float16' or param_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
         else:
             self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
 
     def generate_inputs(self):
         x_shape = self.x_shape
         reduced_shape = self.reduced_shape
-        dtype = self.dtype
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
 
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(dtype)
-        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(param_dtype)
 
         return x, gamma, beta, mean, var
 
