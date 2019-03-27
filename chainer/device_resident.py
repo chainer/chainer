@@ -191,8 +191,8 @@ class DeviceResidentsVisitor(object):
         """
         raise NotImplementedError()
 
-    def visit_param(self, param):
-        """Processes a parameter."""
+    def visit_variable(self, param):
+        """Processes a variable or a parameter."""
         raise NotImplementedError()
 
 
@@ -266,7 +266,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
             return self._device.send(arr)
         return arr
 
-    def visit_param(self, param):
+    def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         if not (self._skip_between_cupy_devices
                 and self._device.xp is cuda.cupy
@@ -285,7 +285,7 @@ class _ToChxVisitor(DeviceResidentsVisitor):
         assert isinstance(arr, chainer.get_array_types())
         return backend.to_chx(arr)
 
-    def visit_param(self, param):
+    def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         param.to_chx()
 
@@ -301,6 +301,6 @@ class _FromChxVisitor(DeviceResidentsVisitor):
         assert isinstance(arr, chainer.get_array_types())
         return backend.from_chx(arr)
 
-    def visit_param(self, param):
+    def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         param.from_chx()

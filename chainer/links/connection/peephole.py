@@ -67,9 +67,9 @@ class StatefulPeepholeLSTM(link.Chain):
     def device_resident_accept(self, visitor):
         super(StatefulPeepholeLSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            visitor.visit_param(self.c)
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            visitor.visit_param(self.h)
+            visitor.visit_variable(self.h)
 
     def reset_state(self):
         """Resets the internal states.

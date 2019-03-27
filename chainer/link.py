@@ -445,7 +445,7 @@ class Link(device_resident.DeviceResident):
         d = self.__dict__
         for name in self._params:
             x = d[name]
-            visitor.visit_param(x)
+            visitor.visit_variable(x)
         for name in self._persistent:
             x = d[name]
             if isinstance(x, chainer.get_array_types()):

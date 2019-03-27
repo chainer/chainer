@@ -201,7 +201,7 @@ class StatefulGRU(GRUBase):
     def device_resident_accept(self, visitor):
         super(StatefulGRU, self).device_resident_accept(visitor)
         if self.h is not None:
-            visitor.visit_param(self.h)
+            visitor.visit_variable(self.h)
 
     def set_state(self, h):
         assert isinstance(h, variable.Variable)

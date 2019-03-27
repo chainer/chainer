@@ -241,9 +241,9 @@ class LSTM(LSTMBase):
     def device_resident_accept(self, visitor):
         super(LSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            visitor.visit_param(self.c)
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            visitor.visit_param(self.h)
+            visitor.visit_variable(self.h)
 
     def set_state(self, c, h):
         """Sets the internal state.
