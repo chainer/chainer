@@ -4,19 +4,15 @@
 It is implemented almost purely in C++ where the C++ implementations are exposed via Python bindings, allowing Chainer to make use of it.
 It does in other words **not** replace Chainer. It aims to instead improve the performance of Chainer in terms of speed by reducing the Python overhead.
 
-The first section is the product backlog of ChainerX listing its milestones.
 Following guides ares aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using ChainerX.
 They explain how to install it, the motivation behind it and how to modify your existing Chainer code to use ChainerX.
+The last section is the product backlog of ChainerX listing its milestones.
 
-- [Product Backlog](#product-backlog)
 - [Installation](#installation)
 - [About ChainerX](#about-chainerx)
 - [Known issues](#known-issues)
 - [FAQ](#faq)
-
-## Product Backlog
-
-[Link to Product Backlog in Google Sheets](https://docs.google.com/spreadsheets/d/1daitXlRhHu7eZENFUs1cHw8o12rmA8bvudUQ0Yof8Jc)
+- [Product Backlog](#product-backlog)
 
 ## Installation
 
@@ -45,3 +41,7 @@ Yes, it is possible. See the code samples below.
 It is almost identical to the Python interface with a 1-to-1 mapping.
 The binding layer is thin and many of the types defined in C++ have Python equivalent classes.
 The bindings are defined [here](https://github.com/pfnet/chainerx/tree/master/chainerx_cc/chainerx/python).
+
+## Product Backlog
+
+[Link to Product Backlog in Google Sheets](https://docs.google.com/spreadsheets/d/1daitXlRhHu7eZENFUs1cHw8o12rmA8bvudUQ0Yof8Jc)
