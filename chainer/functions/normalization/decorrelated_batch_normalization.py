@@ -13,7 +13,7 @@ def _calc_axis_and_m(x_shape, batch_size, groups):
     return spatial_axis, m
 
 
-class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
+class DecorrelatedBatchNormalization(function_node.FunctionNode):
 
     def __init__(self, groups=16, eps=2e-5, mean=None, projection=None,
                  decay=0.9):
@@ -47,10 +47,6 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         C = c // g
         spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
 
-        if self.running_mean is None:
-            self.running_mean = xp.zeros(C, dtype=x.dtype)
-            self.running_projection = xp.eye(C, dtype=x.dtype)
-
         if g > 1:
             x = x.reshape((b * g, C) + x.shape[2:])
         x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
@@ -59,8 +55,8 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         x_hat = x_hat - mean[:, None]
         self.eps = x.dtype.type(self.eps)
 
-        identity = self.eps * xp.eye(C, dtype=x.dtype)
-        cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + identity
+        eps_matrix = self.eps * xp.eye(C, dtype=x.dtype)
+        cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + eps_matrix
         self.eigvals, self.eigvectors = xp.linalg.eigh(cov)
         U = xp.diag(self.eigvals ** -0.5).dot(self.eigvectors.T)
         self.y_hat_pca = U.dot(x_hat)  # PCA whitening
@@ -72,13 +68,14 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
             y = y.reshape((-1, c) + x.shape[2:])
 
         # Update running statistics
-        q = x.size // C
-        adjust = q / max(q - 1., 1.)  # unbiased estimation
-        self.running_mean *= self.decay
-        self.running_mean += (1 - self.decay) * mean
-        self.running_projection *= self.decay
-        projection = self.eigvectors.dot(U)
-        self.running_projection += (1 - self.decay) * adjust * projection
+        if self.running_mean is not None:
+            self.running_mean *= self.decay
+            self.running_mean += (1 - self.decay) * mean
+        if self.running_projection is not None:
+            adjust = m / max(m - 1., 1.)  # unbiased estimation
+            self.running_projection *= self.decay
+            projection = self.eigvectors.dot(U)
+            self.running_projection += (1 - self.decay) * adjust * projection
 
         return y,
 
@@ -146,10 +143,10 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
         raise NotImplementedError('Double backward is not implemented for'
-                                  ' decorrelated batch normalizatin.')
+                                  ' decorrelated batch normalization.')
 
 
-class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
+class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
 
     def __init__(self, groups):
         self.groups = groups
@@ -228,11 +225,14 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
     def backward(self, inputs, grad_outputs):
         # TODO(crcrpar): Implement this.
         raise NotImplementedError('Double backward is not implemented for'
-                                  ' fixed decorrelated batch normalizatin.')
+                                  ' fixed decorrelated batch normalization.')
 
 
 def decorrelated_batch_normalization(x, **kwargs):
-    """Decorrelated batch normalization function.
+    """decorrelated_batch_normalization(x, groups=16, eps2e-5,
+running_mean=None, running_projection=None, decay=0.9)
+
+    Decorrelated batch normalization function.
 
     It takes the input variable ``x`` and normalizes it using
     batch statistics to make the output zero-mean and decorrelated.
@@ -261,20 +261,21 @@ def decorrelated_batch_normalization(x, **kwargs):
 
     .. seealso:: :class:`links.DecorrelatedBatchNormalization`
 
-    """  # NOQA
+    """
     groups, eps, running_mean, running_projection, decay = \
         argument.parse_kwargs(
             kwargs, ('groups', 16), ('eps', 2e-5), ('running_mean', None),
             ('running_projection', None), ('decay', 0.9))
 
-    f = DecorrelatedBatchNormalizationFunction(groups, eps, running_mean,
-                                               running_projection,
-                                               decay)
+    f = DecorrelatedBatchNormalization(
+        groups, eps, running_mean, running_projection, decay)
     return f.apply((x,))[0]
 
 
-def fixed_decorrelated_batch_normalization(x, mean, projection, **kwargs):
-    """Decorrelated batch normalization function with fixed statistics.
+def fixed_decorrelated_batch_normalization(x, mean, projection, groups=16):
+    """fixed_decorrelated_batch_normalization(x, mean, projection, groups=16)
+
+    Decorrelated batch normalization function with fixed statistics.
 
     This is a variant of decorrelated batch normalization, where the mean and
     projection statistics are given by the caller as fixed variables. This is
@@ -298,8 +299,5 @@ def fixed_decorrelated_batch_normalization(x, mean, projection, **kwargs):
        :class:`links.DecorrelatedBatchNormalization`
 
     """
-    groups, = argument.parse_kwargs(
-        kwargs, ('groups', 16))
-
-    f = FixedDecorrelatedBatchNormalizationFunction(groups)
+    f = FixedDecorrelatedBatchNormalization(groups)
     return f.apply((x, mean, projection))[0]
