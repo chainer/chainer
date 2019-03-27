@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -341,6 +342,64 @@ Array Linspace(
         }
     }
     return out;
+}
+
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::optional<std::string>& indexing) {
+    Shape shape;
+    Shape broadcast_shape;
+    std::vector<Shape> arr_reshapes;
+    std::vector<Array> grid_arrs(arrays.size());
+
+    // Algo
+    //
+    // Step 1: Reshape/View each array as broadcastable based
+    // on number of input vectors.
+    // Eg. For tuple of vectors (n1, n2, n3)
+    // where ni is length of that vector.
+    // After this step for Vector 1 , we will reshape it as
+    // (n1, 1, 1) , Vector 2 as (1, n2, 1)
+    //
+    // Step 2: Broadcast each vector to the shape
+    // if (indexing == "ij") -> (n1, n2, n3)
+    // else if (indexing == "xy") -> (n2, n1, n3)
+    // Note : For "xy" only n1 and n2 swap their places
+    //        all others are same as "ij"
+
+    // Step 1
+    for (unsigned int i = 0; i < arrays.size(); i++) {
+        shape.push_back(1);
+        broadcast_shape.push_back(arrays[i].GetTotalSize());
+    }
+
+    // Shape for each array based on number of arrays.
+    for (unsigned int i = 0; i < arrays.size(); i++) {
+        Shape temp_shape(shape.begin(), shape.end());
+        temp_shape[i] = arrays[i].GetTotalSize();
+        arr_reshapes.push_back(temp_shape);
+    }
+
+    // Referred from numpy documentation and source.
+    std::string kind = indexing.value_or("xy");
+    if (kind == "xy") {
+        std::swap(arr_reshapes[0][0], arr_reshapes[0][1]);
+        std::swap(arr_reshapes[1][0], arr_reshapes[1][1]);
+        std::swap(broadcast_shape[0], broadcast_shape[1]);
+    } else if (kind == "ij") {
+    } else {
+        throw ValueError{"Valid values for indexing are \"xy\" or \"ij\""};
+    }
+
+    std::vector<Array> reshaped_arr(arrays.size());
+    for (unsigned int i = 0; i < arrays.size(); i++) {
+        reshaped_arr[i] = arrays[i].Reshape(arr_reshapes[i]);
+    }
+
+    // Step 2
+    for (unsigned int i = 0; i < arrays.size(); i++) {
+        grid_arrs[i] = reshaped_arr[i].BroadcastTo(broadcast_shape);
+    }
+
+    return grid_arrs;
 }
 
 }  // namespace chainerx

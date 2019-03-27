@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
+#include <string>
 
 #include <nonstd/optional.hpp>
 
@@ -119,5 +121,7 @@ Array Linspace(
         bool endpoint = true,
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
+
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::optional<std::string>& indexing);
 
 }  // namespace chainerx
