@@ -1,8 +1,10 @@
+import warnings
+
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
 def create_communicator(
-        communicator_name='hierarchical', mpi_comm=None,
+        communicator_name='pure_nccl', mpi_comm=None,
         allreduce_grad_dtype=None, batched_copy=False):
     """Create a ChainerMN communicator.
 
@@ -105,14 +107,20 @@ def create_communicator(
     elif communicator_name == 'hierarchical':
         from chainermn.communicators.hierarchical_communicator \
             import HierarchicalCommunicator
+        warnings.warn('hierarchical communicator is deprecated.',
+                      DeprecationWarning)
         return HierarchicalCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'two_dimensional':
         from chainermn.communicators.two_dimensional_communicator \
             import TwoDimensionalCommunicator
+        warnings.warn('two_dimensional communicator is deprecated.',
+                      DeprecationWarning)
         return TwoDimensionalCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'single_node':
+        warnings.warn('single_node communicator is deprecated.',
+                      DeprecationWarning)
         from chainermn.communicators.single_node_communicator \
             import SingleNodeCommunicator
         return SingleNodeCommunicator(mpi_comm=mpi_comm)

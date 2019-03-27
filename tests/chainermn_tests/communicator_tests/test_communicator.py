@@ -487,7 +487,7 @@ class TestDifferentDtype(unittest.TestCase):
 
     def setup(self, gpu):
         if gpu:
-            self.communicator = chainermn.create_communicator('hierarchical')
+            self.communicator = chainermn.create_communicator('flat')
             self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
@@ -767,7 +767,7 @@ class TestNonContiguousArray(unittest.TestCase):
 
     def setup(self, gpu):
         if gpu:
-            self.communicator = chainermn.create_communicator('hierarchical')
+            self.communicator = chainermn.create_communicator('flat')
             self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
@@ -820,3 +820,23 @@ class TestNonContiguousArray(unittest.TestCase):
         self.setup(True)
         self.check_alltoall()
         self.teardown()
+
+
+@chainer.testing.attr.gpu
+def test_deprecation():
+    with chainer.testing.assert_warns(DeprecationWarning):
+        chainermn.create_communicator('hierarchical')
+
+    with chainer.testing.assert_warns(DeprecationWarning):
+        chainermn.create_communicator('two_dimensional')
+
+
+@chainer.testing.attr.gpu
+def test_deprecation_single():
+    ranks = _communication_utility.init_ranks(mpi_comm)
+    inter_size = ranks[4]
+    if inter_size > 1:
+        pytest.skip('This test is for single node only')
+
+    with chainer.testing.assert_warns(DeprecationWarning):
+        chainermn.create_communicator('single_node')

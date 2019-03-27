@@ -1,3 +1,5 @@
+import warnings
+
 import chainer.cuda
 
 from chainermn.communicators import _communication_utility
@@ -16,6 +18,10 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if not nccl._available or nccl.get_build_version() < 2000:
             raise RuntimeError(
                 'PureNcclCommunicator is only supported on NCCL 2.0+')
+
+        if nccl.get_version() < 2302:
+            warnings.warn('NCCL 2.2 and older versions are deprecated.',
+                          DeprecationWarning)
 
         # We have to delay the initialization of communicators. This is because
         # NCCL's communicators use the current CUDA devices at the time of
