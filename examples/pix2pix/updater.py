@@ -60,7 +60,6 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         for i in range(batchsize):
             x_in[i, :] = xp.asarray(batch[i][0])
             t_out[i, :] = xp.asarray(batch[i][1])
-        x_in = Variable(x_in)
 
         z = enc(x_in)
         x_out = dec(z)
