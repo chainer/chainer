@@ -99,4 +99,10 @@ public:
     using ChainerxError::ChainerxError;
 };
 
+// Error on using invalid contexts.
+class ValueError : public ChainerxError {
+public:
+    using ChainerxError::ChainerxError;
+};
+
 }  // namespace chainerx
