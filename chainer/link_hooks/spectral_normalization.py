@@ -9,8 +9,7 @@ from chainer import link_hook
 import chainer.links as L
 from chainer import variable
 import chainerx
-from chainerx._fallback_workarounds import _from_chx as from_chx
-from chainerx._fallback_workarounds import _to_chx as to_chx
+from chainerx._fallback_workarounds import _from_chx as from_chx_workaround
 
 
 def l2normalize(xp, v, eps=1e-12):
@@ -27,6 +26,8 @@ def l2normalize(xp, v, eps=1e-12):
     """
     # TODO(crcrpar): Remove this when chainerx.linalg.norm becomes available.
     if xp is chainerx:
+        # NOTE(crcrpar): `chainerx.power` is not available as of 2019/03/27.
+        # See https://github.com/chainer/chainer/pull/6522
         norm = chainerx.sqrt(chainerx.sum(v * v))
     else:
         norm = xp.linalg.norm(v)
@@ -241,7 +242,7 @@ class SpectralNormalization(link_hook.LinkHook):
             # TODO(crcrpar): Remove this when chainerx supports SVD and
             # it is allowed to initialize Parameter from chainerx.ndarray.
             if link.xp is chainerx:
-                xp, device, array = from_chx(weight_matrix)
+                xp, device, array = from_chx_workaround(weight_matrix)
                 if xp is numpy:
                     _, s, _ = numpy.linalg.svd(array)
                 else:
