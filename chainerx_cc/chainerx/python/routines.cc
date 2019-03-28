@@ -574,6 +574,18 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    m.def("prod",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Prod(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("prod",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Prod(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
     m.def("maximum", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Maximum(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
     m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Maximum(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
     m.def("minimum", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Minimum(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));

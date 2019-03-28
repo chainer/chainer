@@ -373,6 +373,16 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    c.def("prod",
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Prod(Axes{axis}, keepdims)); },
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    c.def("prod",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Array{self}.Prod(ToAxes(axis), keepdims));
+          },
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
     c.def("max",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Max(Axes{axis}, keepdims)); },
           py::arg("axis"),
