@@ -48,7 +48,7 @@ class DecorrelatedBatchNormalization(link.Link):
 
     Attributes:
         avg_mean (:ref:`ndarray`): Population mean.
-        avg_projection (:ref:`ndarray): Population
+        avg_projection (:ref:`ndarray`): Population
             projection.
         groups (int): Number of groups to use for group whitening.
         N (int): Count of batches given for fine-tuning.
