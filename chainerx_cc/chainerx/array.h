@@ -125,7 +125,7 @@ public:
     Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
 
     // Returns the indices of the minimum values along the given axis.
-    Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
+    Array ArgMin(const OptionalAxes& axis = nonstd::nullopt) const;
 
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
