@@ -23,6 +23,7 @@
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
 
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
@@ -344,6 +345,57 @@ Array Linspace(
     return out;
 }
 
+namespace {
+
+// Defines the backward pass for Meshgrid.
+void MeshgridBackward(const std::vector<Array>& inputs, const std::vector<Array>& outputs, const std::string& kind) {
+    // TODO(kshitij12345): Avoid creating an intermediate vector of reference when BackwardBuilder accepts std::vector<Array>.
+    std::vector<ConstArrayRef> in_refs{};
+    in_refs.reserve(inputs.size());
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(in_refs), [](const Array& array) { return ConstArrayRef{array}; });
+
+    // TODO(kshitij12345): Avoid creating an intermediate vector of reference when BackwardBuilder accepts std::vector<Array>.
+    std::vector<ConstArrayRef> out_refs{};
+    out_refs.reserve(outputs.size());
+    std::transform(outputs.begin(), outputs.end(), std::back_inserter(out_refs), [](const Array& array) { return ConstArrayRef{array}; });
+
+    std::vector<Shape> shapes;
+    shapes.reserve(inputs.size());
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(shapes), [](const Array& array) { return array.shape(); });
+
+    BackwardBuilder bb{"meshgrid", in_refs, out_refs};
+    if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+        bt.Define([ shapes = std::move(shapes), kind = std::move(kind), dtype = inputs[0].dtype(), &device = inputs[0].device() ](
+                BackwardContext & bctx) {
+            int64_t ndims = bctx.input_count();
+
+            auto get_axis = [ ndims, kind = std::move(kind) ](int64_t dim) {
+                // Handle "XY" case
+                if (kind == "xy" && dim == 0)
+                    dim = 1;
+                else if (kind == "xy" && dim == 1)
+                    dim = 0;
+                Axes axes;
+                for (int i = 0; i < ndims; i++) {
+                    if (i == dim) {
+                        continue;
+                    }
+                    axes.push_back(i);
+                }
+                return axes;
+            };
+
+            for (size_t i = 0; i < bctx.output_count(); ++i) {
+                const nonstd::optional<Array>& gy = bctx.output_grad(i);
+                bctx.input_grad(i) = gy.has_value() ? (*gy).Sum(get_axis(i)) : Zeros(shapes[i], dtype, device);
+            }
+        });
+    }
+    bb.Finalize();
+}
+
+}  // namespace
+
 std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::optional<std::string>& indexing) {
     Shape shape;
     Shape broadcast_shape;
@@ -398,6 +450,8 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::opti
     for (unsigned int i = 0; i < arrays.size(); i++) {
         grid_arrs[i] = reshaped_arr[i].BroadcastTo(broadcast_shape);
     }
+
+    MeshgridBackward(arrays, grid_arrs, kind);
 
     return grid_arrs;
 }
