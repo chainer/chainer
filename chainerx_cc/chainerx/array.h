@@ -130,6 +130,11 @@ public:
     // Note: When implementing chainerx::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
     Array Sum(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    // Return the product of array elements over a given axis.
+    // If `axis` is set, it will be summed over the specified axes.
+    // Otherwise, it will be summed over all the existing axes.
+    Array Prod(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
     // Returns the maximum value of the array.
     // If `axis` is set, the maximum value is chosen along the specified axes.
     // Otherwise, all the elements are searched at once.
