@@ -1,5 +1,7 @@
 from chainer.functions.connection import convolution_2d
+from chainer.functions.normalization import weight_standardization
 from chainer import initializers
+from chainer import functions
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
@@ -8,7 +10,8 @@ from chainer import variable
 class Convolution2D(link.Link):
 
     """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, \
-nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
+nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1, \
+standardizeW=False, eps=1e-5)
 
     Two-dimensional convolutional layer.
 
@@ -51,6 +54,10 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
             convolution operation will be executed independently. Input channel
             size ``in_channels`` and output channel size ``out_channels`` must
             be exactly divisible by this value.
+        standardizeW (bool): A flag to use the weight standardization from the
+            paper: `Weight Standardization <https://arxiv.org/abs/1903.10520>`_
+        eps (float): Small value for the numerical stability in
+            `Weight Standardization`.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -110,8 +117,9 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, standardizeW, eps = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('standardizeW', False),
+            ('eps', 1e-5),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) '
             'context where value is either `True` or `False`.')
@@ -126,6 +134,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
+        self.standardizeW = standardizeW
+        self.eps = eps
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -152,6 +162,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
             ('nobias', self.b is None),
             ('dilate', self.dilate),
             ('groups', self.groups),
+            ('standardizeW', self.standardizeW),
+            ('eps', self.eps),
         ]
         for spec in specs:
             yield spec
@@ -179,8 +191,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         """
         if self.W.array is None:
             self._initialize_params(x.shape[1])
+        W = self.W
+        if self.standardizeW:
+            W = weight_standardization.weight_standardization(W, self.eps)
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
+            x, W, self.b, self.stride, self.pad, dilate=self.dilate,
             groups=self.groups)
 
 
