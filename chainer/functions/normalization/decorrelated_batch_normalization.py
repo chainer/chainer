@@ -273,9 +273,7 @@ running_mean=None, running_projection=None, decay=0.9)
 
 
 def fixed_decorrelated_batch_normalization(x, mean, projection, groups=16):
-    """fixed_decorrelated_batch_normalization(x, mean, projection, groups=16)
-
-    Decorrelated batch normalization function with fixed statistics.
+    """Decorrelated batch normalization function with fixed statistics.
 
     This is a variant of decorrelated batch normalization, where the mean and
     projection statistics are given by the caller as fixed variables. This is
