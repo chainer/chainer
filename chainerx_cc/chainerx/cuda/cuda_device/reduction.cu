@@ -86,6 +86,34 @@ void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
 
 namespace {
 
+template <typename In, typename Out>
+struct ProdImpl {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{1}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum *= next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+}  // namespace
+
+void CudaDevice::Prod(const Array& a, const Axes& axis, const Array& out) {
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+    CudaSetDeviceScope scope{index()};
+
+    auto do_prod = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        using In = typename decltype(in_pt)::type;
+        using Out = typename decltype(out_pt)::type;
+        Reduce<In, Out>(a, axis, out, ProdImpl<In, Out>{});
+    };
+
+    VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_prod ](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
+}
+
+namespace {
+
 template <typename T>
 struct AMaxImpl {
     using CudaType = cuda_internal::DataType<T>;
