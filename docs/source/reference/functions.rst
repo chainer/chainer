@@ -304,6 +304,7 @@ Normalization functions
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
+   chainer.functions.weight_standardization
 
 
 Spatial pooling
