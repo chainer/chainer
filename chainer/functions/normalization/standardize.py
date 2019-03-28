@@ -6,17 +6,6 @@ import chainer.functions
 from chainer.utils import type_check
 
 
-def _broadcast_to(xp, x, shape):
-    # xp: numpy, cupy, or chainer.functions
-    if hasattr(xp, 'broadcast_to'):
-        return xp.broadcast_to(x, shape)
-    else:
-        # numpy 1.9 doesn't support broadcast_to method
-        dummy = xp.empty(shape)
-        bx, _ = xp.broadcast_arrays(x, dummy)
-        return bx
-
-
 class Standardize(function_node.FunctionNode):
 
     """Standardization for `Weight standardization
@@ -74,7 +63,7 @@ class Standardize(function_node.FunctionNode):
         g_x_1 = g_x_mu_1 + g_x_mu_2
         g_mu = F.sum(g_x_1, axis=axes, keepdims=True) * (- 1.)
 
-        g_x_2 = F.broadcast_to(g_mu * (1. / n_units), x.shape)
+        g_x_2 = g_mu * (1. / n_units)
 
         g_x = g_x_1 + g_x_2
 
