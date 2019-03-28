@@ -379,6 +379,14 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
+    @tp.overload
+    def prod(self, axis: int, keepdims: bool=...) -> ndarray: ...
+
+    @tp.overload
+    def prod(self,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
+            keepdims: bool=...) -> ndarray: ...
+
     def ravel(self) -> ndarray: ...
 
     def require_grad(
@@ -695,6 +703,9 @@ def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
 
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
+def prod(a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
+        keepdims: bool=...) -> ndarray: ...
 
 @tp.overload
 def reshape(

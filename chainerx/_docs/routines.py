@@ -876,6 +876,27 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.prod,
+        """prod(a, axis=None, keepdims=False)
+Return the product of array elements over a given axis or axes.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which a product is taken.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: The product of input elements over a given
+    axis or axes.
+
+.. seealso:: :func:`numpy.prod`
+""")
+
+    _docs.set_doc(
         chainerx.maximum,
         """maximum(x1, x2)
 Maximum arguments, element-wise.

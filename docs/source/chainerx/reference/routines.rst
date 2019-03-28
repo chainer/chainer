@@ -118,6 +118,7 @@ Mathematical functions
    chainerx.multiply
    chainerx.divide
    chainerx.sum
+   chainerx.prod
    chainerx.maximum
    chainerx.exp
    chainerx.log

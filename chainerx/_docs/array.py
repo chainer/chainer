@@ -271,6 +271,14 @@ Returns the maximum along a given axis.
 See :func:`chainerx.amax` for the full documentation.
 """)
 
+    _docs.set_doc(
+        ndarray.prod,
+        """mean(axis=None, keepdims=False)
+Return the product of array elements over a given axis or axes.
+
+See :func:`chainerx.prod` for the full documentation.
+""")
+
     # TODO(beam2d): Write about backprop_id argument.
     _docs.set_doc(
         ndarray.require_grad,
