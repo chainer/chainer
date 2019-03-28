@@ -75,32 +75,6 @@ class BaseTest(object):
         if not self.lazy_init:
             self.check_weight_is_parameter(True)
 
-    def check_in_recomputing(self, gpu):
-        layer, hook = self.layer, self.hook
-        layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        xp = cuda.cupy if gpu else numpy
-        x = xp.asarray(self.x)
-
-        y1 = layer(x).array
-        v1 = hook.v.copy()
-        with chainer.using_config('in_recomputing', True):
-            y2 = layer(x).array
-        v2 = hook.v
-
-        xp.testing.assert_array_equal(v1, v2)
-        testing.assert_allclose(y1, y2)
-
-    def test_in_recomputing_cpu(self):
-        if not self.lazy_init:
-            self.check_in_recomputing(False)
-
-    @attr.gpu
-    def test_in_recomputing_gpu(self):
-        if not self.lazy_init:
-            self.check_in_recomputing(True)
-
     def check_deleted(self, gpu):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
@@ -124,54 +98,6 @@ class BaseTest(object):
     @attr.gpu
     def test_deleted_gpu(self):
         self.check_deleted(True)
-
-    def check_u_updated_in_train(self, gpu):
-        layer, hook = self.layer, self.hook
-        layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        x = cuda.to_gpu(self.x) if gpu else self.x
-
-        y1 = layer(x).array
-        y2 = layer(x).array
-        if gpu:
-            y1, y2 = cuda.to_cpu(y1), cuda.to_cpu(y2)
-        assert not numpy.array_equal(y1, y2)
-
-    def test_u_updated_in_train_cpu(self):
-        if not self.lazy_init:
-            self.check_u_updated_in_train(False)
-
-    @attr.gpu
-    def test_u_updated_in_train_gpu(self):
-        if not self.lazy_init:
-            self.check_u_updated_in_train(True)
-
-    def check_u_not_updated_in_test(self, gpu):
-        layer, hook = self.layer, self.hook
-        layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        xp = cuda.cupy if gpu else numpy
-        x = xp.asarray(self.x)
-
-        with chainer.using_config('train', False):
-            y1 = layer(x).array
-            v1 = hook.v.copy()
-            y2 = layer(x).array
-            v2 = hook.v.copy()
-
-        xp.testing.assert_array_equal(v1, v2)
-        testing.assert_allclose(y1, y2)
-
-    def test_u_not_updated_in_test_cpu(self):
-        if not self.lazy_init:
-            self.check_u_not_updated_in_test(False)
-
-    @attr.gpu
-    def test_u_not_updated_in_test_gpu(self):
-        if not self.lazy_init:
-            self.check_u_not_updated_in_test(True)
 
 
 class TestEmbedID(unittest.TestCase, BaseTest):
