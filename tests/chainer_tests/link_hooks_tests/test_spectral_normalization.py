@@ -36,7 +36,7 @@ class TestExceptions(unittest.TestCase):
 
 class BaseTest(object):
 
-    allclose_option = {'atol': 1e-6, 'rtol': 1e-4}
+    allclose_options = {'atol': 1e-6, 'rtol': 1e-4}
 
     def test_add_sn_hook(self):
         layer, hook = self.layer, self.hook
@@ -96,7 +96,7 @@ class BaseTest(object):
         y1, y2 = to_cpu(y1), to_cpu(y2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        numpy.testing.assert_allclose(y1, y2, **self.allclose_option)
+        numpy.testing.assert_allclose(y1, y2, **self.allclose_options)
 
     def test_in_recomputing(self, backend_config):
         if not self.lazy_init:
@@ -160,7 +160,7 @@ class BaseTest(object):
         y1, y2 = to_cpu(y1), to_cpu(y2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        numpy.testing.assert_allclose(y1, y2, **self.allclose_option)
+        numpy.testing.assert_allclose(y1, y2, **self.allclose_options)
 
     def test_u_not_updated_in_test(self, backend_config):
         if not self.lazy_init:
