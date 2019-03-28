@@ -68,7 +68,7 @@ class Standardize(function_node.FunctionNode):
         g_var = g_std * 0.5 * inv_std
 
         n_units = x.size / x.shape[0]
-        g_squ_x_mu = F.broadcast_to(g_var * (1. / n_units), x.shape)
+        g_squ_x_mu = g_var * (1. / n_units)
         g_x_mu_2 = g_squ_x_mu * 2 * x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
