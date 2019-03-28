@@ -37,12 +37,12 @@ class WeightStandardization(function_node.FunctionNode):
         # xp: numpy, cupy, or chainer.functions
         axes = tuple(six.moves.range(1, len(x.shape)))
         mu = xp.mean(x, axis=axes, keepdims=True)
-        x_mu = x - _broadcast_to(xp, mu, x.shape)
+        x_mu = x - chainer.functions.broadcast_to(mu, x.shape)
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=axes, keepdims=True)
         std = xp.sqrt(var + self.eps)
         inv_std = 1. / std
-        x_hat = x_mu * _broadcast_to(xp, inv_std, x_mu.shape)
+        x_hat = x_mu * chainer.functions.broadcast_to(inv_std, x_mu.shape)
         return x_mu, var, inv_std, x_hat
 
     def forward(self, inputs):
