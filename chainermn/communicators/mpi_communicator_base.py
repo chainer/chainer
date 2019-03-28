@@ -1,10 +1,9 @@
-from chainer.utils import collections_abc
-
 import mpi4py
 import numpy
 
 import chainer.backends
 import chainer.utils
+from chainer.utils import collections_abc
 from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
