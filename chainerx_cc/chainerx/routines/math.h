@@ -73,6 +73,9 @@ Array TrueDivide(Scalar x1, const Array& x2);
 Array Reciprocal(const Array& x);
 
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+
+Array Prod(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 

@@ -484,6 +484,50 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     return out;
 }
 
+Array Prod(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a.dtype();
+    }
+
+    Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().Prod(a, sorted_axis, out);
+    }
+
+    BackwardBuilder bb{"prod", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ sorted_axis, a, out, in_shape = a.shape(), keepdims ](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+            if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+                Shape out_shape_broadcastable = gout.shape();
+                for (auto axis : sorted_axis) {
+                    out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+                }
+                bctx.input_grad() = (out / a * gout.Reshape(out_shape_broadcastable)).BroadcastTo(in_shape);
+            } else {
+                bctx.input_grad() = out / a * gout.BroadcastTo(in_shape);
+            }
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
 Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
