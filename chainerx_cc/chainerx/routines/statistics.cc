@@ -14,9 +14,7 @@
 
 namespace chainerx {
 
-Dtype PromoteInt2Float(Dtype dtype){
-    return GetKind(dtype) == DtypeKind::kFloat? dtype :internal::GetDefaultDtype(DtypeKind::kFloat);
-}
+Dtype PromoteInt2Float(Dtype dtype) { return GetKind(dtype) == DtypeKind::kFloat ? dtype : internal::GetDefaultDtype(DtypeKind::kFloat); }
 
 Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
