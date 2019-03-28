@@ -1,8 +1,9 @@
+import six
+
 from chainer import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
-import six
 
 
 def _broadcast_to(xp, x, shape):
