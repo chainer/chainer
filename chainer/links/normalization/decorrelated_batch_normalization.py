@@ -73,7 +73,7 @@ class DecorrelatedBatchNormalization(link.Link):
         self.groups = groups
 
     def forward(self, x, **kwargs):
-        """forward(self, x, finetune=False)
+        """forward(self, x, *, finetune=False)
 
         Invokes the forward propagation of DecorrelatedBatchNormalization.
 
