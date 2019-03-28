@@ -18,6 +18,25 @@ namespace cuda {
 namespace {
 
 template <typename T>
+struct SquareImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = x * x; }
+};
+
+}  // namespace
+
+void CudaDevice::Square(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CudaSetDeviceScope scope{index()};
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(SquareImpl<T>{}, x, out);
+    });
+}
+
+namespace {
+
+template <typename T>
 struct SqrtImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sqrt(x); }
@@ -27,10 +46,11 @@ struct SqrtImpl {
 
 void CudaDevice::Sqrt(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(SqrtImpl<T>{}, x, out);
+        Elementwise<const T, T>(SqrtImpl<T>{}, x_cast, out);
     });
 }
 

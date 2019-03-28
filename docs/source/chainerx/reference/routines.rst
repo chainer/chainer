@@ -124,6 +124,8 @@ Mathematical functions
    chainerx.logsumexp
    chainerx.log_softmax
    chainerx.sqrt
+   chainerx.sin
+   chainerx.cos
    chainerx.tanh
    chainerx.square
    chainerx.clip

@@ -15,6 +15,7 @@ from chainerx.testing.array import assert_array_equal  # NOQA
 from chainerx.testing.array import assert_array_equal_ex  # NOQA
 from chainerx.testing.dtypes import all_dtypes  # NOQA
 from chainerx.testing.dtypes import float_dtypes  # NOQA
+from chainerx.testing.dtypes import integral_dtypes  # NOQA
 from chainerx.testing.dtypes import nonfloat_dtypes  # NOQA
 from chainerx.testing.dtypes import numeric_dtypes  # NOQA
 from chainerx.testing.dtypes import parametrize_dtype_specifier  # NOQA

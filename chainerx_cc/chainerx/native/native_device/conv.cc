@@ -34,7 +34,8 @@ Array NativeDevice::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        bool cover_all,
+        Dtype out_dtype) {
     int8_t ndim = w.ndim() - 2;  // Number of spatial dimensions
 
     // Compute the kernel size from the weight array.
@@ -48,11 +49,12 @@ Array NativeDevice::Conv(
     Axes axes;
     axes.resize(ndim + 1);
     std::iota(axes.begin(), axes.end(), 1);
-    Array y = TensorDot(col, w, axes, axes);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
+    Array y = TensorDot(col, w, axes, axes, out_dtype);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
 
     // Add bias, if given.
     if (b.has_value()) {
-        y += *b;
+        // TODO(niboshi): Remove AsType when += supports dtype promotion.
+        y += b->AsType(y.dtype(), false);
     }
 
     // Move the out channel axis to the second
@@ -63,6 +65,7 @@ Array NativeDevice::Conv(
     std::iota(roll_axes.begin() + 2, roll_axes.end(), 1);
     Array out = y.Transpose(roll_axes);
 
+    CHAINERX_ASSERT(out.dtype() == out_dtype);
     return out;
 }
 
@@ -90,7 +93,7 @@ Array NativeDevice::ConvGradWeight(
         out_axes.emplace_back(int64_t{2 + i});
         col_axes.emplace_back(int64_t{2 + ndim + i});
     }
-    return TensorDot(gy, col, out_axes, col_axes).AsType(w_dtype, false);
+    return TensorDot(gy, col, out_axes, col_axes, w_dtype);
 }
 
 Array NativeDevice::ConvTranspose(
@@ -99,8 +102,9 @@ Array NativeDevice::ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& out_size) {
-    Array col = TensorDot(w, x, {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
+        const StackVector<int64_t, kMaxNdim>& out_size,
+        Dtype out_dtype) {
+    Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
     col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
     Array y = native_internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
@@ -111,9 +115,11 @@ Array NativeDevice::ConvTranspose(
         for (size_t i = 0; i < out_size.size(); ++i) {
             slice.emplace_back(NewAxis{});
         }
-        y += b->At(slice);
+        // TODO(niboshi): Remove AsType when += supports dtype promotion.
+        y += b->At(slice).AsType(out_dtype);
     }
 
+    CHAINERX_ASSERT(y.dtype() == out_dtype);
     return y;
 }
 

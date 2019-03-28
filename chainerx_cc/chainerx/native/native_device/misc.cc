@@ -12,14 +12,26 @@
 namespace chainerx {
 namespace native {
 
+void NativeDevice::Square(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Square(x); }
+        };
+        Elementwise<const T, T>(Impl{}, x, out);
+    });
+}
+
 void NativeDevice::Sqrt(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sqrt(x); }
         };
-        Elementwise<const T, T>(Impl{}, x, out);
+        Elementwise<const T, T>(Impl{}, x_cast, out);
     });
 }
 
