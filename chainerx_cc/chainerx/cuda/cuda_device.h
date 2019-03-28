@@ -155,6 +155,8 @@ public:
 
     // misc.cu
 
+    void Square(const Array& x, const Array& out) override;
+
     void Sqrt(const Array& x, const Array& out) override;
     void Pow(const Array& x1, const Array& x2, const Array& out) override;
     void PowAS(const Array& x1, Scalar x2, const Array& out) override;

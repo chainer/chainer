@@ -207,6 +207,8 @@ public:
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
+    virtual void Square(const Array& x, const Array& out) = 0;
+
     virtual void Sqrt(const Array& x, const Array& out) = 0;
     virtual void Pow(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void PowAS(const Array& x1, Scalar x2, const Array& out) = 0;

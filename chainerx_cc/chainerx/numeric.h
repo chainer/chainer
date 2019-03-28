@@ -72,6 +72,15 @@ inline chainerx::Float16 Log<chainerx::Float16>(chainerx::Float16 x) {
 }
 
 template <typename T>
+inline T Square(T x) {
+    return x * x;
+}
+template <>
+inline chainerx::Float16 Square<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{static_cast<float>(x) * static_cast<float>(x)};
+}
+
+template <typename T>
 inline T Sqrt(T x) {
     return std::sqrt(x);
 }
