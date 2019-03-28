@@ -93,16 +93,16 @@ class TestSnapshotOnError(unittest.TestCase):
 
 class TestAutoSnapshot(unittest.TestCase):
 
-    def test_autosnapshot(self):
+    def test_autosnapshot_trainer(self):
         trainer = testing.get_trainer_with_mock_updater()
         trainer.out = '.'
-        snapshot = extensions.AutoSnapshot(trainer, num_retain=0)
+        snapshot = extensions.AutoSnapshot(trainer)
         trainer.run()
         snapshot(trainer)
 
         trainer1 = testing.get_trainer_with_mock_updater()
         trainer1.out = '.'
-        snapshot1 = extensions.AutoSnapshot(trainer1, num_retain=0)
+        snapshot1 = extensions.AutoSnapshot(trainer1)
         snapshot1.maybe_load()
 
         # test autoload

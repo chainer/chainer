@@ -232,12 +232,13 @@ class _Snapshot(extension.Extension):
 
 class AutoSnapshot(_Snapshot):
     """Automatically take and load snapshot on training.
-
     """
     def __init__(
             self, target=None, condition=None, writer=None,
             num_retain=1,
+            path=None,
             autoload=False,
+            prefix='snapshot-trainer',
             snapshot_on_error=False):
 
         super(AutoSnapshot, self).__init__(target, condition, writer,
@@ -245,56 +246,79 @@ class AutoSnapshot(_Snapshot):
 
         self.num_retain = num_retain if num_retain > 0 else 1
         self.files = []
+        self.path = path
+        self.prefix = prefix
         if autoload:
             self.maybe_load()
 
-    def __call__(self, trainer):
+    def _ensure_path(self, trainer=None):
+        if self.path:
+          return
+        if trainer and hasattr(trainer, 'out'):
+          self.path = trainer.out
+        if hasattr(self._target, 'out'):
+          self.path = self._target.out
+        else:
+          raise RuntimeError("Impossible to decide the output path")
+
+    def __call__(self, trainer, count=None):
         files = []
+        self._ensure_path(trainer)
+        if count is not None:
+            self.count = count
         try:
-            files = os.list_dir(trainer.out)
+            files = os.listdir(self.path)
         except Exception as e:
             if chainer.is_debug():
-                print("Cannot list directory {}: {}".format(trainer.out, e))
+                print("Cannot list directory {}: {}".format(self.path, e))
 
-        if self.condition():
-            self._make_snapshot(trainer)
+        files = filter(None, [(self._parse_filename(f), f) for f in files])
+        files = list(files)
+        files.sort()
 
-        self._maybe_cleanup(trainer.out, files)
+        if isinstance(trainer, Trainer):
+            if self.condition():
+                self._make_snapshot(trainer)
+        else:
+            target = trainer
+            os.makedirs(self.path, exist_ok=True)
+            filename = os.path.join(self.path, self._make_filename(target))
+            chainer.serializers.save_npz(filename, target)
+            print('Saved:', filename)
+
+        self._maybe_cleanup(self.path, files)
 
     def _maybe_cleanup(self, path, files):
         if len(files) + 1 <= self.num_retain:
             return
         num_remove = len(files) + 1 - self.num_retain
 
-        files = filter(None, [(self._parse_filename(f), f) for f in files])
-        files = list(files)
-        files.sort()
-
+        print('Remove:', files[:num_remove])
         for _, file in files[:num_remove]:
-            # TODO(kuenishi): Do we print debug message here in case of exception?
             os.remove(os.path.join(path, file))
 
     def _make_filename(self, trainer):
-        return 'snapshot-trainer.{:d}'.format(trainer.updater.iteration)
+        if hasattr(trainer, 'updater'): # is really a trainer?
+          self.count = trainer.updater.iteration
+        return '{:s}.{:d}'.format(self.prefix, self.count)
 
     def _parse_filename(self, filename):
         # Parse filename and get iteration number of the file
         tokens = filename.split('.')
-        if len(tokens) != 2 or tokens[0] == 'snapshot-trainer':
+        if len(tokens) != 2 or tokens[0] != self.prefix:
             return
         return int(tokens[1])
 
-    def maybe_load(self, path=None):
+    def maybe_load(self):
         target = self._target
-        if path is None:
-            path = target.out
+        self._ensure_path()
 
         local_files = []
         try:
             local_files = os.listdir(path)
         except Exception as e:
             if chainer.is_debug():
-                print("Cannot list directory {}: {}".format(trainer.out, e))
+                print("Cannot list directory {}: {}".format(self.path, e))
 
         files = filter(None, [(self._parse_filename(f), f) for f in local_files])
         files = list(files)
@@ -309,4 +333,5 @@ class AutoSnapshot(_Snapshot):
             # exception happens here, currently manual deletion of
             # *latest* snapshot may checkpointer work sanely against
             # one older snapshot
-            chainer.serializers.load_npz(filename, target, filename)
+            chainer.serializers.load_npz(filename, target)
+            print("Loaded", filename)
