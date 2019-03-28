@@ -267,13 +267,13 @@ void InitChainerxCreation(pybind11::module& m) {
                       endpoint,
                       dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
                       GetDevice(device)));
-         },
-         py::arg("start"),
-         py::arg("stop"),
-         py::arg("num") = 50,
-         py::arg("endpoint") = true,
-         py::arg("dtype") = nullptr,
-         py::arg("device") = nullptr);
+           },
+           py::arg("start"),
+           py::arg("stop"),
+           py::arg("num") = 50,
+           py::arg("endpoint") = true,
+           py::arg("dtype") = nullptr,
+           py::arg("device") = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
