@@ -1,10 +1,9 @@
-import collections
-
 import mpi4py
 import numpy
 
 import chainer.backends
 import chainer.utils
+from chainer.utils import collections_abc
 from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
@@ -65,7 +64,7 @@ class _MessageType(object):
             self.ndims = [obj.ndim]
             self.shapes = [obj.shape]
             self.dtype = obj.dtype
-        elif isinstance(obj, collections.Iterable):
+        elif isinstance(obj, collections_abc.Iterable):
             if all(map(_is_numpy_array, obj)):
                 self.is_host = True
             elif all(map(_is_cupy_array, obj)):
