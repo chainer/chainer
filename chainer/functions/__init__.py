@@ -203,6 +203,7 @@ from chainer.functions.normalization.group_normalization import group_normalizat
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
+from chainer.functions.normalization.weight_standardization import weight_standardization  # NOQA
 
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA
