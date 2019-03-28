@@ -15,7 +15,7 @@ from chainer.testing import attr
     'dtype': [numpy.float32],
     'eps': [1e-5, 1e-1],
 })))
-class TestWeightStandardization(unittest.TestCase):
+class TestStandardize(unittest.TestCase):
 
     def setUp(self):
         shape = self.ch_out, self.size

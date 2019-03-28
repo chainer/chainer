@@ -6,20 +6,10 @@ import chainer.functions
 from chainer.utils import type_check
 
 
-def _broadcast_to(xp, x, shape):
-    # xp: numpy, cupy, or chainer.functions
-    if hasattr(xp, 'broadcast_to'):
-        return xp.broadcast_to(x, shape)
-    else:
-        # numpy 1.9 doesn't support broadcast_to method
-        dummy = xp.empty(shape)
-        bx, _ = xp.broadcast_arrays(x, dummy)
-        return bx
+class Standardize(function_node.FunctionNode):
 
-
-class WeightStandardization(function_node.FunctionNode):
-
-    """Weight standardization"""
+    """Standardization for `Weight standardization
+        <https://arxiv.org/abs/1903.10520>`_"""
 
     def __init__(self, eps=1e-5):
         self.eps = eps
@@ -80,8 +70,9 @@ class WeightStandardization(function_node.FunctionNode):
         return g_x,
 
 
-def weight_standardization(x, eps=1e-5):
-    """Weight standardization.
+def standardize(x, eps=1e-5):
+    """Standardize for `Weight standardization
+    <https://arxiv.org/abs/1903.10520>`_.
 
     This function implements a "weight standardization"
     which standardize the input weights by statistics
@@ -99,4 +90,4 @@ def weight_standardization(x, eps=1e-5):
 
     See: `Weight Standardization <https://arxiv.org/abs/1903.10520>`_
     """
-    return WeightStandardization(eps).apply((x,))[0]
+    return Standardize(eps).apply((x,))[0]
