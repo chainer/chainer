@@ -1279,6 +1279,24 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
+def compute_sum(is_module, xp, a, axis, keepdims):
+    if is_module:
+        out = xp.sum(a, axis=axis, keepdims=keepdims)
+    else:
+        out = a.sum(axis=axis, keepdims=keepdims)
+
+    return out
+
+
+def compute_prod(is_module, xp, a, axis, keepdims):
+    if is_module:
+        out = xp.prod(a, axis=axis, keepdims=keepdims)
+    else:
+        out = a.prod(axis=axis, keepdims=keepdims)
+
+    return out
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
     (('bool_',), 'int64'),
@@ -1324,7 +1342,11 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 ])
 @chainer.testing.parameterize_pytest('keepdims', [True, False])
 @chainer.testing.parameterize_pytest('is_module', [True, False])
-class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
+@chainer.testing.parameterize_pytest('test_func', [
+    compute_prod,
+    compute_sum
+])
+class TestReductions(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
 
@@ -1338,10 +1360,7 @@ class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
                 {'rtol': 1e-2, 'atol': 1e-2})
 
     def func(self, xp, a):
-        if self.is_module:
-            return xp.sum(a, axis=self.axis, keepdims=self.keepdims)
-        else:
-            return a.sum(axis=self.axis, keepdims=self.keepdims)
+        self.test_func(self.is_module, xp, a, self.axis, self.keepdims)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -1361,12 +1380,14 @@ class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
     ((2, 3,), (0, 1, 1)),
     ((2, 3,), (0, -2)),
 ])
-def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
+@pytest.mark.parametrize('test_func', [
+    compute_prod,
+    compute_sum
+])
+def test_reductions_invalid(test_func, is_module, xp, shape,
+                            axis, keepdims, dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        xp.sum(a, axis=axis, keepdims=keepdims)
-    else:
-        a.sum(axis=axis, keepdims=keepdims)
+    test_func(is_module, xp, a, axis, keepdims)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
