@@ -158,11 +158,11 @@ def get_array_module(*args):
 
     Args:
         args: Values to determine whether NumPy, CuPy, or ChainerX should be
-        used.
+            used.
 
     Returns:
         module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
-        on the types of the arguments.
+            on the types of the arguments.
 
     """
     is_chainerx_available = chainerx.is_available()
