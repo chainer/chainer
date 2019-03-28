@@ -229,7 +229,7 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
 
 def decorrelated_batch_normalization(x, **kwargs):
-    """decorrelated_batch_normalization(x, groups=16, eps2e-5,
+    """decorrelated_batch_normalization(x, *, groups=16, eps2e-5,
 running_mean=None, running_projection=None, decay=0.9)
 
     Decorrelated batch normalization function.
