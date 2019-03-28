@@ -712,6 +712,9 @@ def split(
         axis: int=...) -> tp.List[ndarray]: ...
 
 
+def square(x: ndarray) -> ndarray: ...
+
+
 def sqrt(x: ndarray) -> ndarray: ...
 
 

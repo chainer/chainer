@@ -29,10 +29,12 @@ struct AddImpl {
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(AddImpl<T>{}, x1, x2, out);
+        Elementwise<const T, const T, T>(AddImpl<T>{}, x1_cast, x2_cast, out);
     });
 }
 
@@ -49,11 +51,12 @@ struct AddASImpl {
 
 void CudaDevice::AddAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(AddASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        Elementwise<const T, T>(AddASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
     });
 }
 
@@ -69,10 +72,12 @@ struct SubtractImpl {
 
 void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1, x2, out);
+        Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1_cast, x2_cast, out);
     });
 }
 
@@ -89,11 +94,12 @@ struct SubtractASImpl {
 
 void CudaDevice::SubtractAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(SubtractASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        Elementwise<const T, T>(SubtractASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
     });
 }
 
@@ -110,10 +116,12 @@ struct MultiplyImpl {
 // TODO(sonots): support stream
 void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1, x2, out);
+        Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1_cast, x2_cast, out);
     });
 }
 
@@ -130,11 +138,12 @@ struct MultiplyASImpl {
 
 void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
     });
 }
 
@@ -168,10 +177,12 @@ struct FloorDivideImpl {
 
 void CudaDevice::FloorDivide(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(FloorDivideImpl<T>{}, x1, x2, out);
+        Elementwise<const T, const T, T>(FloorDivideImpl<T>{}, x1_cast, x2_cast, out);
     });
 }
 
@@ -188,11 +199,12 @@ struct FloorDivideASImpl {
 
 void CudaDevice::FloorDivideAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(FloorDivideASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        Elementwise<const T, T>(FloorDivideASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
     });
 }
 
@@ -208,10 +220,12 @@ struct DivideImpl {
 
 void CudaDevice::Divide(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(DivideImpl<T>{}, x1, x2, out);
+        Elementwise<const T, const T, T>(DivideImpl<T>{}, x1_cast, x2_cast, out);
     });
 }
 
@@ -228,11 +242,12 @@ struct DivideASImpl {
 
 void CudaDevice::DivideAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(DivideASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        Elementwise<const T, T>(DivideASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
     });
 }
 

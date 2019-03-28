@@ -25,10 +25,7 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : ResultType(a, b);
 
     if (a.ndim() == 0 || b.ndim() == 0) {
-        // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
-        const Array& a_cast = a.dtype() == real_out_dtype ? a : a.AsType(real_out_dtype);
-        const Array& b_cast = b.dtype() == real_out_dtype ? b : b.AsType(real_out_dtype);
-        return a_cast * b_cast;
+        return a * b;
     }
 
     // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.

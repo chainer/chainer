@@ -181,7 +181,7 @@ def test_view(shape, dtype):
 
     # inplace modification
     if array.size > 0:
-        array += array
+        array *= array
         assert array._debug_flat_data == view._debug_flat_data
 
 

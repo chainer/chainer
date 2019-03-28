@@ -95,6 +95,8 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sigmoid(const Array& x);
 
+Array Square(const Array& x);
+
 Array Sqrt(const Array& x);
 
 Array IsNan(const Array& x);
