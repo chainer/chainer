@@ -266,12 +266,12 @@ def main():
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('Device: {}'.format(args.device))
+    device = chainer.get_device(args.device)
+
+    print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    device = chainer.get_device(args.device)
 
     # If the device is a ChainerX CUDA device, use the shared device memory
     # pool between ChainerX and CuPy.

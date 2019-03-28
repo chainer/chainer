@@ -127,17 +127,17 @@ def main():
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
+    device = chainer.get_device(args.device)
+
     # Set the dtype if supplied.
     if args.dtype is not None:
         chainer.config.dtype = args.dtype
 
-    print('Device: {}'.format(args.device))
+    print('Device: {}'.format(device))
     print('Dtype: {}'.format(chainer.config.dtype))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    device = chainer.get_device(args.device)
 
     # Initialize the model to train
     model = archs[args.arch]()

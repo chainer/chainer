@@ -43,13 +43,13 @@ def main():
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('Device: {}'.format(args.device))
+    device = chainer.get_device(args.device)
+
+    print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    device = chainer.get_device(args.device)
 
     # Set up a neural network to train
     model = L.Classifier(train_mnist.MLP(args.unit, 10))
