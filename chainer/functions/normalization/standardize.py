@@ -62,7 +62,7 @@ class Standardize(function_node.FunctionNode):
         x_mu, var, inv_std, x_hat = self._compute(F, x)
 
         g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
-        g_x_mu_1 = gy * F.broadcast_to(inv_std, gy.shape)
+        g_x_mu_1 = gy * inv_std
 
         g_std = g_inv_std * (- 1. / var)
         g_var = g_std * 0.5 * inv_std
