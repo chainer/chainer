@@ -138,8 +138,6 @@ public:
 
     virtual void Arange(Scalar start, Scalar step, const Array& out) = 0;
 
-    virtual void ArgMax(const Array& a, const Axes& axis, const Array& out) = 0;
-
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that
