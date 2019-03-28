@@ -74,9 +74,8 @@ Array ArgMin(const Array& a, const OptionalAxes& axis) {
 
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
     {
-        b = Negative(a)
         NoBackpropModeScope scope{};
-        b.device().ArgMax(b, sorted_axis, out);
+        a.device().ArgMax(Negative(a), sorted_axis, out);
     }
     return out;
 }
