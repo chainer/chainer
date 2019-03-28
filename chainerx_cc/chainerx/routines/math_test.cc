@@ -1749,7 +1749,7 @@ TEST_P(MathTest, PowerBackward) {
     Array a = (*testing::BuildArray(shape).WithData<T>({1., 2., 3., 3., 2., 1.}).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({6, 5, 4, 3, 2, 1}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Power(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
