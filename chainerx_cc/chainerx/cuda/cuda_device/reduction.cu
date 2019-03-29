@@ -109,7 +109,7 @@ void CudaDevice::Prod(const Array& a, const Axes& axis, const Array& out) {
         Reduce<In, Out>(a, axis, out, ProdImpl<In, Out>{});
     };
 
-    VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_prod ](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
+    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
 }
 
 namespace {

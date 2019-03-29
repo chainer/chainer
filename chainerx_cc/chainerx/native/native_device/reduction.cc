@@ -88,7 +88,7 @@ void NativeDevice::Prod(const Array& a, const Axes& axis, const Array& out) {
         Reduce<In, Out>(a, axis, out, Impl{});
     };
 
-    VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_prod ](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
+    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
 }
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {

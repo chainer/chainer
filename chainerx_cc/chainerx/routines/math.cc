@@ -509,7 +509,7 @@ Array Prod(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"prod", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ sorted_axis, a, out, in_shape = a.shape(), keepdims ](BackwardContext& bctx) {
+        bt.Define([sorted_axis, a, out, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
