@@ -359,7 +359,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertEqual(self.link.y.data.device, cuda.Device(0))
         self.assertEqual(self.link.y.grad.device, cuda.Device(0))
         self.assertEqual(self.link.p.device, cuda.Device(0))
-        self.link.to_gpu(1)
+        with testing.assert_warns(FutureWarning):
+            self.link.to_gpu(1)
         self.assertEqual(self.link.device.device, cuda.Device(1))
         self.assertEqual(self.link.x.data.device, cuda.Device(0))
         self.assertEqual(self.link.x.grad.device, cuda.Device(0))
@@ -368,33 +369,44 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertEqual(self.link.p.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
+    def test_to_gpu_different_device_sticky(self):
+        self.link.to_gpu(0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
+        self.link.to_gpu(1, sticky=True)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_different_device_no_sticky(self):
+        self.link.to_gpu(0)
+        self.assertEqual(self.link.device.device, cuda.Device(0))
+        self.assertEqual(self.link.x.data.device, cuda.Device(0))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.y.data.device, cuda.Device(0))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.p.device, cuda.Device(0))
+        self.link.to_gpu(1, sticky=False)
+        self.assertEqual(self.link.device.device, cuda.Device(1))
+        self.assertEqual(self.link.x.data.device, cuda.Device(1))
+        self.assertEqual(self.link.x.grad.device, cuda.Device(1))
+        self.assertEqual(self.link.y.data.device, cuda.Device(1))
+        self.assertEqual(self.link.y.grad.device, cuda.Device(1))
+        self.assertEqual(self.link.p.device, cuda.Device(1))
+
+    @attr.multi_gpu(2)
     def test_to_gpu_current_device(self):
         cuda.Device(1).use()
         self.link.to_gpu()
         self.assertEqual(self.link.device.device, cuda.Device(1))
-
-    @attr.multi_gpu(2)
-    def test_to_gpu_between_devices(self):
-        self.link.to_gpu(0)
-
-        # sticky = default (True in Chainer v5)
-        with testing.assert_warns(FutureWarning):
-            self.link.to_gpu(1)
-        self.assertEqual(self.link.device.device, cuda.Device(0))
-        self.assertEqual(self.link.x.data.device, cuda.Device(0))
-        self.assertEqual(self.link.y.data.device, cuda.Device(0))
-
-        # sticky = True
-        self.link.to_gpu(1, sticky=True)
-        self.assertEqual(self.link.device.device, cuda.Device(0))
-        self.assertEqual(self.link.x.data.device, cuda.Device(0))
-        self.assertEqual(self.link.y.data.device, cuda.Device(0))
-
-        # sticky = False
-        self.link.to_gpu(1, sticky=False)
-        self.assertEqual(self.link.device.device, cuda.Device(1))
-        self.assertEqual(self.link.x.data.device, cuda.Device(1))
-        self.assertEqual(self.link.y.data.device, cuda.Device(1))
 
     def test_params(self):
         params = list(self.link.params())
