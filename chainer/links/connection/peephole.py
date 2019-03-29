@@ -1,5 +1,4 @@
 import chainer
-from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
