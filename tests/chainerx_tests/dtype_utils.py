@@ -16,7 +16,7 @@ def _permutate_dtype_mapping(dtype_mapping_list):
 
 result_dtypes_two_arrays = _permutate_dtype_mapping([
     # Bools.
-    (('bool_', 'bool_'), 'bool'),
+    (('bool_', 'bool_'), 'bool_'),
     # Floats.
     (('float16', 'float16'), 'float16'),
     (('float32', 'float32'), 'float32'),

@@ -1798,9 +1798,9 @@ class Parameter(Variable):
 
         if isinstance(device, backend.ChainerxDevice):
             backend_name = device.device.backend.name
-            if backend_name is 'native':
+            if backend_name == 'native':
                 self._initial_device = backend.CpuDevice()
-            elif backend_name is 'cuda':
+            elif backend_name == 'cuda':
                 self._initial_device = chainer.get_device(
                     (cuda.cupy, device.device.index))
 

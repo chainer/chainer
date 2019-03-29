@@ -64,6 +64,7 @@ Activation functions
    chainer.functions.prelu
    chainer.functions.rrelu
    chainer.functions.relu
+   chainer.functions.relu6
    chainer.functions.selu
    chainer.functions.sigmoid
    chainer.functions.slstm

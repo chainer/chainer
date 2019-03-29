@@ -23,6 +23,15 @@ def uniform(shape, dtype):
     assert False, dtype
 
 
+def shaped_arange(shape, dtype):
+    size = total_size(shape)
+    a = numpy.arange(1, size + 1).reshape(shape)
+    dtype = numpy.dtype(dtype)
+    if dtype == numpy.bool_:
+        return a % 2 == 0
+    return a.astype(dtype, copy=False)
+
+
 # TODO(beam2d): Think better way to make multiple different arrays
 def create_dummy_ndarray(
         xp, shape, dtype, device=None, pattern=1, padding=True, start=None):

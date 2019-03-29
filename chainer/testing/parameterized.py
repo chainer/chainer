@@ -9,6 +9,12 @@ from chainer.testing import _bundle
 from chainer import utils
 
 
+def _param_to_str(obj):
+    if isinstance(obj, type):
+        return obj.__name__
+    return repr(obj)
+
+
 def _shorten(s, maxlen):
     # Shortens the string down to maxlen, by replacing the middle part with
     # a 3-dots string '...'.
@@ -27,7 +33,7 @@ def _make_class_name(base_class_name, i_param, param):
     SINGLE_PARAM_MAXLEN = 100  # Length limit of a single parameter value
     PARAMS_MAXLEN = 5000  # Length limit of the whole parameters part
     param_strs = [
-        '{}={}'.format(k, _shorten(repr(v), SINGLE_PARAM_MAXLEN))
+        '{}={}'.format(k, _shorten(_param_to_str(v), SINGLE_PARAM_MAXLEN))
         for k, v in param.items()]
     param_strs = _shorten(', '.join(param_strs), PARAMS_MAXLEN)
     cls_name = '{}_param_{}_{{{}}}'.format(
@@ -92,9 +98,7 @@ def parameterize(*params):
         lambda base: _parameterize_test_case_generator(base, params))
 
 
-def from_pytest_parameterize(names, values):
-    # Pytest-style parameterization.
-    # TODO(niboshi): Add documentation
+def _values_to_dicts(names, values):
     assert isinstance(names, str)
     assert isinstance(values, (tuple, list))
 
@@ -109,6 +113,12 @@ def from_pytest_parameterize(names, values):
     return params
 
 
+def from_pytest_parameterize(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    return _values_to_dicts(names, values)
+
+
 def parameterize_pytest(names, values):
     # Pytest-style parameterization.
     # TODO(niboshi): Add documentation
@@ -118,10 +128,9 @@ def parameterize_pytest(names, values):
 def product(parameter):
     # TODO(niboshi): Add documentation
     if isinstance(parameter, dict):
-        keys = sorted(parameter)
-        values = [parameter[key] for key in keys]
-        values_product = itertools.product(*values)
-        return [dict(zip(keys, vals)) for vals in values_product]
+        return product([
+            _values_to_dicts(names, values)
+            for names, values in sorted(parameter.items())])
 
     elif isinstance(parameter, list):
         # list of lists of dicts

@@ -35,7 +35,6 @@ if(${CHAINERX_BUILD_TEST})
       creation_test.cc
       linalg_test.cc
       logic_test.cc
-      manipulation_test.cc
       math_test.cc
       normalization_test.cc
       pooling_test.cc
