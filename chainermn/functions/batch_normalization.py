@@ -78,9 +78,9 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
         gpu_buffer_a_array = gpu_buffer_a.array(
             gpu_buffer_n_elems, dtype=gamma.dtype)
         x.mean(axis=axis, out=gpu_buffer_a_array[:gamma.size],
-            dtype = gamma.dtype)
+               dtype=gamma.dtype)
         xp.square(x).mean(axis=axis, out=gpu_buffer_a_array[gamma.size:],
-            dtype = gamma.dtype)
+                          dtype=gamma.dtype)
         self.comm.multi_node_mean_nccl(gpu_buffer_a,
                                        gpu_buffer_b,
                                        gpu_buffer_n_elems,
@@ -106,7 +106,7 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
         gy.sum(axis=axis, out=gpu_buffer_a_array[:gamma.size],
                dtype=gamma.dtype)
         (gy * x_hat).sum(axis=axis, out=gpu_buffer_a_array[gamma.size:],
-               dtype=gamma.dtype)
+                         dtype=gamma.dtype)
         self.comm.multi_node_mean_nccl(gpu_buffer_a,
                                        gpu_buffer_b,
                                        gpu_buffer_n_elems,

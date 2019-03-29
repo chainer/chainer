@@ -244,7 +244,8 @@ def destroy_communicator(comm):
 
     When too many NCCL communicator are alive, NCCL produces
     unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use."""
+    destory NCCL communicator after every use.
+    """
     if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
         comm.nccl_comm.destroy()
         comm.nccl_comm = None
