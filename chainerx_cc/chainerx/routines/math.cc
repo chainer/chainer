@@ -504,8 +504,8 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         // a and out are used only for restoring the mask. We don't need graph
         // nodes.
         bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
-             const Array& gout = *bctx.output_grad();
-             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
             Array reshaped_gout{};
             Array reshaped_out{};

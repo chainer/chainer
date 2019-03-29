@@ -71,6 +71,5 @@ __device__ inline T Pow(T x1, T x2) {
 
 __device__ inline cuda::Float16 Pow(cuda::Float16 x1, cuda::Float16 x2) { return x1.Pow(x2); }
 
-
 }  // namespace cuda
 }  // namespace chainerx
