@@ -1412,7 +1412,7 @@ TEST(ArrayArgMinTest, ArgMin) {
     EXPECT_ARRAY_EQ(e, b);
 }
 
-TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
+TEST(ArrayArgMinTest, ArgMinAllAxes) {
     using T = float;
     testing::ContextSession context_session{};
 
