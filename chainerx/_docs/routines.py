@@ -690,22 +690,6 @@ Note:
 """)
 
     _docs.set_doc(
-        chainerx.asscalar,
-        """asscalar(a)
-Converts an array of size 1 to its scalar equivalent.
-
-Args:
-    a (~chainerx.ndarray): Input array of size 1.
-
-Returns:
-    scalar: Scalar representation of ``a``. The output type is one of the \
-Python scalar types (such as :class:`int` and :class:`float`) which \
-corresponds to the dtype of ``a``.
-
-.. seealso:: :func:`numpy.asscalar`
-""")
-
-    _docs.set_doc(
         chainerx.concatenate,
         """concatenate(arrays, axis=0)
 Joins arrays along an axis.
@@ -1028,6 +1012,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.tanh`
+""")
+
+    _docs.set_doc(
+        chainerx.sin,
+        """sin(x)
+Sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\sin x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.sin`
+""")
+
+    _docs.set_doc(
+        chainerx.cos,
+        """cos(x)
+Cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\cos x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.cos`
 """)
 
     _docs.set_doc(

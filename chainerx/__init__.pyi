@@ -1,7 +1,8 @@
 import typing as tp
 
-from chainer import function_node
 import numpy
+
+from chainer import function_node
 
 
 # TODO(okapies): Split this into independent .py and .pyi files
@@ -231,44 +232,6 @@ class BackpropScope:
     def __exit__(self, *args) -> None: ...
 
 
-# chainerx_cc/chainerx/python/scalar.cc
-class Scalar:
-    @property
-    def dtype(self) -> numpy.dtype: ...
-
-    @tp.overload
-    def __init__(self, value: bool) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: int) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: float) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: bool, dtype: tp.Any) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: int, dtype: tp.Any) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: float, dtype: tp.Any) -> None: ...
-
-    def __bool__(self) -> bool: ...
-
-    def __float__(self) -> float: ...
-
-    def __int__(self) -> int: ...
-
-    def __neg__(self) -> Scalar: ...
-
-    def __pos__(self) -> Scalar: ...
-
-    def __repr__(self) -> str: ...
-
-    def toList(self) -> tp.Any: ...
-
-
 # chainerx_cc/chainerx/python/array.cc
 class ndarray:
     @property
@@ -450,7 +413,8 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
-    def take(self, indices: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
+    def take(self, indices: tp.Union[tp.Sequence[int], numpy.ndarray, ndarray],
+             axis: tp.Optional[int]=None) -> ndarray: ...
 
     @tp.overload
     def to_device(self, arg0: Device) -> ndarray: ...
@@ -511,9 +475,6 @@ def ascontiguousarray(
         device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def asscalar(a: ndarray) -> tp.Any: ...
-
-
 def average_pool(
         x: ndarray,
         ksize: tp.Union[int, tp.Tuple[int, ...]],
@@ -565,6 +526,7 @@ def conv_transpose(
 
 def copy(a: ndarray) -> ndarray: ...
 
+def cos(x: ndarray) -> ndarray: ...
 
 def diag(v: ndarray, k: int=..., device: tp.Optional[Device]=None) -> ndarray: ...
 
@@ -705,6 +667,9 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
+
+
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -737,11 +702,15 @@ def reshape(
 @tp.overload
 def reshape(a: ndarray, *args: tp.Any) -> ndarray: ...
 
+def sin(x: ndarray) -> ndarray: ...
 
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         axis: int=...) -> tp.List[ndarray]: ...
+
+
+def square(x: ndarray) -> ndarray: ...
 
 
 def sqrt(x: ndarray) -> ndarray: ...

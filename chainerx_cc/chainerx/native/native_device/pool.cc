@@ -161,10 +161,10 @@ Array GetPadModeIgnorePoolingWidths(
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t i, T& w) {
-                    T start = i * s - p;
+                    T start = static_cast<T>(i) * s - p;
                     T end = start + k;
-                    if (start < 0) {
-                        start = 0;
+                    if (start < T{0}) {
+                        start = T{0};
                     }
                     if (end > d) {
                         end = d;
@@ -190,7 +190,8 @@ Array GetPadModeIgnorePoolingWidths(
             Shape width_expanded{1};
             std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
 
-            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
+            widths = TensorDot(
+                    widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0}, dtype);
         }
     }
     return widths;

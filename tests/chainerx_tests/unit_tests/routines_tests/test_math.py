@@ -1,3 +1,4 @@
+import chainer
 import numpy
 import pytest
 
@@ -5,18 +6,280 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_negative(xp, device, shape, dtype, is_module):
-    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return chainerx.testing.ignore()
-    x = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        return xp.negative(x)
-    else:
-        return -x
+class UnaryMathTestBase(object):
+
+    def setup(self):
+        in_dtype, = self.in_dtypes
+
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        if self.input == 'random':
+            return array_utils.uniform(self.shape, in_dtype),
+        if isinstance(self.input, (bool, int, float)):
+            return numpy.full(self.shape, self.input, dtype=in_dtype),
+        assert False
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        # This cast was introduced in order to avoid decreasing precision.
+        # ex.) numpy.sqrt(x) becomes a float16 array where x is an int8 array.
+        a = dtype_utils.cast_if_numpy_array(xp, a, self.out_dtype)
+        y = self.func(xp, a)
+        y = dtype_utils.cast_if_numpy_array(xp, y, self.out_dtype)
+        return y,
+
+
+class BinaryMathTestBase(object):
+
+    def setup(self):
+        in_dtype1, in_dtype2 = self.in_dtypes
+
+        kind1 = numpy.dtype(in_dtype1).kind
+        kind2 = numpy.dtype(in_dtype2).kind
+        if kind1 != 'f' or kind2 != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype1 == 'float16' or in_dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        in_dtype1, in_dtype2 = self.in_dtypes
+        if self.input_lhs == 'random':
+            a = array_utils.uniform(self.shape, in_dtype1)
+        elif isinstance(self.input_lhs, (bool, int, float)):
+            a = numpy.full(self.shape, self.input_lhs, dtype=in_dtype1)
+        else:
+            assert False
+        if self.input_rhs == 'random':
+            b = array_utils.uniform(self.shape, in_dtype2)
+        elif isinstance(self.input_rhs, (bool, int, float)):
+            b = numpy.full(self.shape, self.input_rhs, dtype=in_dtype2)
+        else:
+            assert False
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        # This cast was introduced in order to avoid decreasing precision.
+        # ex.) x / y becomes a float16 array where x and y are an int8 arrays.
+        a = dtype_utils.cast_if_numpy_array(xp, a, self.out_dtype)
+        b = dtype_utils.cast_if_numpy_array(xp, b, self.out_dtype)
+        y = self.func(xp, a, b)
+        y = dtype_utils.cast_if_numpy_array(xp, y, self.out_dtype)
+        return y,
+
+
+class InplaceUnaryMathTestBase(UnaryMathTestBase):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if xp is chainerx:
+            a_ = a.as_grad_stopped().copy()
+        else:
+            a_ = a.copy()
+        ret = self.func(xp, a_)
+        assert ret is None  # func should not return anything
+        return a_,
+
+
+class InplaceBinaryMathTestBase(BinaryMathTestBase):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        b = dtype_utils.cast_if_numpy_array(xp, b, a.dtype)
+        if xp is chainerx:
+            a_ = a.as_grad_stopped().copy()
+            b_ = b.as_grad_stopped()
+        else:
+            a_ = a.copy()
+            b_ = b
+        ret = self.func(xp, a_, b_)
+        assert ret is None  # func should not return anything
+        return a_,
+
+
+def _convert_numpy_scalar(scalar, dtype):
+    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
+    # which is not yet supported (ChainerX always casts).
+    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
+    # before the multiplication for NumPy.
+    return numpy.dtype(dtype).type(scalar)
+
+
+class MathScalarTestBase(UnaryMathTestBase):
+
+    def func(self, xp, a):
+        scalar = self.scalar_type(self.scalar_value)
+        return self.func_scalar(xp, a, scalar)
+
+
+class InplaceMathScalarTestBase(InplaceUnaryMathTestBase):
+
+    def func(self, xp, a):
+        scalar = self.scalar_type(self.scalar_value)
+        if xp is numpy:
+            # This cast is to avoid TypeError in the following case
+            #     a: uint8 0-dim numpy.ndarray
+            #     scalar: int
+            in_dtype, = self.in_dtypes
+            scalar = _convert_numpy_scalar(scalar, in_dtype)
+        return self.func_scalar(xp, a, scalar)
+
+
+def _make_same_in_out_dtypes(number_of_in_params, dtypes):
+    return [((dtype,) * number_of_in_params, dtype) for dtype in dtypes]
+
+
+_in_out_dtypes_arithmetic_invalid = [
+    (('bool_', 'bool_'), 'bool_'),
+    (('bool_', 'int8'), 'int8'),
+    (('bool_', 'int16'), 'int16'),
+    (('bool_', 'int32'), 'int32'),
+    (('bool_', 'int64'), 'int64'),
+    (('bool_', 'uint8'), 'uint8'),
+    (('bool_', 'float16'), 'float16'),
+    (('bool_', 'float32'), 'float32'),
+    (('bool_', 'float64'), 'float64'),
+    (('int8', 'bool_'), 'int8'),
+    (('int16', 'bool_'), 'int16'),
+    (('int32', 'bool_'), 'int32'),
+    (('int64', 'bool_'), 'int64'),
+    (('uint8', 'bool_'), 'uint8'),
+    (('float16', 'bool_'), 'float16'),
+    (('float32', 'bool_'), 'float32'),
+    (('float64', 'bool_'), 'float64'),
+]
+
+
+_in_out_dtypes_arithmetic = [
+    dtypes for dtypes in dtype_utils.result_dtypes_two_arrays
+    if dtypes not in _in_out_dtypes_arithmetic_invalid
+]
+
+
+_in_out_dtypes_inplace_arithmetic_invalid = [
+    ((t1, t2), t3) for (t1, t2), t3 in _in_out_dtypes_arithmetic
+    if (numpy.dtype(t1).kind != 'f' and numpy.dtype(t2).kind == 'f')
+] + _in_out_dtypes_arithmetic_invalid
+
+
+_in_out_dtypes_inplace_arithmetic = [
+    dtypes for dtypes in dtype_utils.result_dtypes_two_arrays
+    if dtypes not in _in_out_dtypes_inplace_arithmetic_invalid
+]
+
+
+_in_out_dtypes_array_int_scalar = [
+    # Int scalar.
+    (('int8',), int, 'int8'),
+    (('int16',), int, 'int16'),
+    (('int32',), int, 'int32'),
+    (('int64',), int, 'int64'),
+    (('uint8',), int, 'uint8'),
+    (('float16',), int, 'float16'),
+    (('float32',), int, 'float32'),
+    (('float64',), int, 'float64'),
+]
+
+
+_in_out_dtypes_int_array_float_scalar = [
+    # Int arrays and float scalars.
+    (('int8',), float, 'float32'),
+    (('int16',), float, 'float32'),
+    (('int32',), float, 'float32'),
+    (('int64',), float, 'float32'),
+    (('uint8',), float, 'float32'),
+]
+
+
+_in_out_dtypes_float_array_float_scalar = [
+    # Float arrays and flaot scalars.
+    (('float16',), float, 'float16'),
+    (('float32',), float, 'float32'),
+    (('float64',), float, 'float64'),
+]
+
+
+_in_out_dtypes_arithmetic_scalar = (
+    _in_out_dtypes_array_int_scalar
+    + _in_out_dtypes_int_array_float_scalar
+    + _in_out_dtypes_float_array_float_scalar)
+
+
+_in_out_dtypes_inplace_arithmetic_scalar = (
+    _in_out_dtypes_array_int_scalar
+    + _in_out_dtypes_float_array_float_scalar)
+
+
+_in_out_dtypes_float_arithmetic_scalar = (
+    _in_out_dtypes_int_array_float_scalar
+    + _in_out_dtypes_float_array_float_scalar)
+
+
+_in_out_dtypes_inplace_float_arithmetic_scalar = (
+    _in_out_dtypes_float_array_float_scalar)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.numeric_dtypes)),
+        'input': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.numeric_dtypes)),
+        'input': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.float_dtypes)),
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestNegative(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        if self.is_module:
+            return xp.negative(a)
+        else:
+            return -a
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -30,250 +293,939 @@ def test_negative_invalid_bool(xp, device, is_module):
         -x
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestAdd(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.add(a, b)
+        else:
+            return a + b
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add(xp, device, shape, dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
-    if is_module:
-        return xp.add(lhs, rhs)
-    else:
-        return lhs + rhs
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_add_invalid_dtypes(device, dtypes, is_module):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            a + b
+        else:
+            chainerx.add(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestIAdd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a += b
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_iadd(xp, device, shape, dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
-    lhs += rhs
-    return lhs
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
+def test_iadd_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a += b
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestAddScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a + scalar
+            else:
+                return scalar + a
+        else:
+            if self.is_scalar_rhs:
+                return xp.add(a, scalar)
+            else:
+                return xp.add(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+    })
+))
+class TestIAddScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a += scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSub(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.subtract(a, b)
+        else:
+            return a - b
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add_scalar(scalar, device, shape, dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np + numpy.dtype(dtype).type(scalar)
-
-    x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
-    chainerx.testing.assert_array_equal_ex(x + scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x + scalar_chx, expected)
-    chainerx.testing.assert_array_equal_ex(scalar + x, expected)
-    chainerx.testing.assert_array_equal_ex(scalar_chx + x, expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.add(x, scalar_chx), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar, x), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.add(scalar_chx, x), expected)
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_sub_invalid_dtypes(device, dtypes, is_module):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            a - b
+        else:
+            chainerx.subtract(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestISub(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a -= b
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_iadd_scalar(xp, scalar, device, shape, dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    rhs = scalar
-    if xp is numpy:
-        rhs = numpy.dtype(dtype).type(rhs)
-    lhs += rhs
-    return lhs
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
+def test_isub_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a -= b
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSubScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a - scalar
+            else:
+                return scalar - a
+        else:
+            if self.is_scalar_rhs:
+                return xp.subtract(a, scalar)
+            else:
+                return xp.subtract(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+    })
+))
+class TestISubScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a -= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMul(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.multiply(a, b)
+        else:
+            return a * b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic + [
+            ((t, 'bool_'), t) for t in chainerx.testing.all_dtypes
+        ],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestIMul(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a *= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar + [
+            ((t,), bool, t) for t in chainerx.testing.all_dtypes
+        ],
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMulScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a * scalar
+            else:
+                return scalar * a
+        else:
+            if self.is_scalar_rhs:
+                return xp.multiply(a, scalar)
+            else:
+                return xp.multiply(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': (
+            _in_out_dtypes_inplace_arithmetic_scalar + [
+                ((t,), bool, t) for t in chainerx.testing.all_dtypes
+            ]),
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_float_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+    })
+))
+class TestIMulScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a *= scalar
+
+
+# TODO(imanishi): Support and test zero division and mixed dtypes.
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test bool dtype.
+@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
+@pytest.mark.parametrize('lhs,rhs', [
+    ([], []),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
+    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
+])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sub(xp, device, shape, numeric_dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=2)
-    if is_module:
-        return xp.subtract(lhs, rhs)
-    else:
-        return lhs - rhs
-
-
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_isub(xp, device, shape, numeric_dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=2)
-    lhs -= rhs
-    return lhs
-
-
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sub_scalar(scalar, device, shape, dtype):
-    if dtype == 'bool_':
-        # Boolean subtract is deprecated.
+def test_floordiv(xp, lhs, rhs, device, numeric_dtype, is_module):
+    if (numpy.array(lhs).dtype.kind == 'f' and
+            numpy.dtype(numeric_dtype).kind in ('i', 'u')):
         return chainerx.testing.ignore()
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np - numpy.dtype(dtype).type(scalar)
-    expected_rev = numpy.dtype(dtype).type(scalar) - x_np
-
-    x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
-    chainerx.testing.assert_array_equal_ex(x - scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x - scalar_chx, expected)
-    chainerx.testing.assert_array_equal_ex(scalar - x, expected_rev)
-    chainerx.testing.assert_array_equal_ex(scalar_chx - x, expected_rev)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(x, scalar_chx), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(scalar, x), expected_rev)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.subtract(scalar_chx, x), expected_rev)
-
-
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_isub_scalar(xp, scalar, device, shape, dtype):
-    if dtype == 'bool_':
-        # Boolean subtract is deprecated.
+    if (((numpy.array(lhs) < 0).any() or (numpy.array(rhs) < 0).any()) and
+            numpy.dtype(numeric_dtype).kind == 'u'):
         return chainerx.testing.ignore()
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    rhs = scalar
-    if xp is numpy:
-        rhs = numpy.dtype(dtype).type(rhs)
-    lhs -= rhs
-    return lhs
+    lhs = xp.array(lhs).astype(numeric_dtype)
+    if isinstance(rhs, (list, tuple)):
+        rhs = xp.array(rhs).astype(numeric_dtype)
 
-
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul(xp, device, shape, dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
     if is_module:
-        return xp.multiply(lhs, rhs)
+        return xp.floor_divide(lhs, rhs)
     else:
-        return lhs * rhs
+        return lhs // rhs
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_imul(xp, device, shape, dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
-    rhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=2)
-    lhs *= rhs
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_floordiv_invalid_dtypes(device, dtypes, is_module):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            a // b
+        else:
+            chainerx.floor_divide(a, b)
+
+
+# TODO(imanishi): Support and test zero division and mixed dtypes.
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test bool dtype.
+@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
+@pytest.mark.parametrize('lhs,rhs', [
+    ([], []),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
+    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
+    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
+    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
+    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_ifloordiv(xp, lhs, rhs, device, numeric_dtype):
+    if numpy.array(lhs).dtype.kind != numpy.dtype(numeric_dtype).kind:
+        return chainerx.testing.ignore()
+    lhs = xp.array(lhs).astype(numeric_dtype)
+    if isinstance(rhs, (list, tuple)):
+        rhs = xp.array(rhs).astype(numeric_dtype)
+
+    lhs //= rhs
     return lhs
 
 
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar(scalar, device, shape, dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (ChainerX always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    expected = x_np * numpy.dtype(dtype).type(scalar)
-
-    x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, dtype)
-    chainerx.testing.assert_array_equal_ex(x * scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x * scalar_chx, expected)
-    chainerx.testing.assert_array_equal_ex(scalar * x, expected)
-    chainerx.testing.assert_array_equal_ex(scalar_chx * x, expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(x, scalar_chx), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(scalar, x), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.multiply(scalar_chx, x), expected)
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
+def test_ifloordiv_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a //= b
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+_in_out_dtypes_inplace_truediv = [
+    (('float32', 'int16'), 'float32'),
+    (('float64', 'uint8'), 'float64'),
+    (('float16', 'float16'), 'float16'),
+    (('float32', 'float32'), 'float32'),
+    (('float64', 'float64'), 'float64'),
+    (('float32', 'float16'), 'float32'),
+    (('float16', 'float64'), 'float64'),
+]
+
+
+_in_out_dtypes_truediv = _in_out_dtypes_inplace_truediv + [
+    (('int8', 'int8'), 'float32'),
+    (('int16', 'int16'), 'float32'),
+    (('int32', 'int32'), 'float32'),
+    (('int64', 'int64'), 'float32'),
+    (('uint8', 'uint8'), 'float32'),
+    (('int8', 'int32'), 'float32'),
+    (('uint8', 'int64'), 'float32'),
+    (('int8', 'uint8'), 'float32'),
+    (('int32', 'float16'), 'float16'),
+    (('uint8', 'float32'), 'float32'),
+]
+
+
+_in_out_dtypes_inplace_truediv_scalar = [
+    (('int8',), int, 'float32'),
+    (('int16',), int, 'float32'),
+    (('int32',), int, 'float32'),
+    (('int64',), int, 'float32'),
+    (('uint8',), int, 'float32'),
+    (('float16',), int, 'float16'),
+    (('float32',), int, 'float32'),
+    (('float64',), int, 'float64'),
+    (('float16',), float, 'float16'),
+    (('float32',), float, 'float32'),
+    (('float64',), float, 'float64'),
+]
+
+
+_in_out_dtypes_truediv_scalar = _in_out_dtypes_inplace_truediv_scalar + [
+    (('int8',), float, 'float32'),
+    (('int16',), float, 'float32'),
+    (('int32',), float, 'float32'),
+    (('int64',), float, 'float32'),
+    (('uint8',), float, 'float32'),
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_truediv,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_truediv,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_truediv,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestTrueDivide(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
+
+    def generate_inputs(self):
+        a, b = super().generate_inputs()
+        if self.input_lhs == 'random':
+            # Avoid (-0.3, 0.3) interval
+            b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+        return a, b
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.divide(a, b)
+        else:
+            return a / b
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_imul_scalar(xp, scalar, device, shape, dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    rhs = scalar
-    if xp is numpy:
-        rhs = numpy.dtype(dtype).type(rhs)
-    lhs *= rhs
-    return lhs
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_truediv_invalid_dtypes(device, dtypes, is_module):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            a / b
+        else:
+            chainerx.true_divide(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_truediv(xp, device, shape, numeric_dtype, is_module):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
-    rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
-    # TODO(beam2d): Remove astype after supporting correct dtype promotion.
-    if is_module:
-        return xp.divide(lhs, rhs).astype(numeric_dtype)
-    else:
-        return (lhs / rhs).astype(numeric_dtype)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_truediv,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_truediv,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestITrueDivide(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_itruediv(xp, device, shape, numeric_dtype):
-    # TODO(niboshi): Remove padding=False
-    lhs = array_utils.create_dummy_ndarray(
-        xp, shape, numeric_dtype, padding=False)
-    rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
-    # TODO(beam2d): Fix after supporting correct dtype promotion.
-    if xp is numpy and 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        lhs = (lhs / rhs).astype(numeric_dtype)
-    else:
-        lhs /= rhs
-    return lhs
+    def generate_inputs(self):
+        a, b = super().generate_inputs()
+        if self.input_lhs == 'random':
+            b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+        return a, b
+
+    def func(self, xp, a, b):
+        a /= b
 
 
 # TODO(hvy): Support and test zero division and mixed dtypes (dtype kinds).
-# TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
-@pytest.mark.parametrize('scalar', [1, 2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_truediv_scalar(scalar, device, shape, numeric_dtype):
-    x_np = array_utils.create_dummy_ndarray(numpy, shape, numeric_dtype)
-    if 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        expected = (x_np / scalar).astype(numeric_dtype)
-    else:
-        expected = x_np / scalar
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_truediv_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_truediv_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_truediv_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        # TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
+        'is_scalar_rhs': [True],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.float_dtypes)),
+        'scalar_type': [float],
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [-1, 1, 2, float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestTrueDivideScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
-    x = chainerx.array(x_np)
-    scalar_chx = chainerx.Scalar(scalar, numeric_dtype)
-    chainerx.testing.assert_array_equal_ex(x / scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x / scalar_chx, expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.divide(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(
-        chainerx.divide(x, scalar_chx), expected)
+    check_numpy_strides_compliance = False
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return a / scalar
+        else:
+            return xp.divide(a, scalar)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('scalar', [1, 2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
-    # TODO(niboshi): Remove padding=False
-    lhs = array_utils.create_dummy_ndarray(
-        xp, shape, numeric_dtype, padding=False)
-    rhs = scalar
-    # TODO(hvy): Fix after supporting correct dtype promotion.
-    if xp is numpy and 'int' in numeric_dtype:
-        # NumPy does not support itruediv to integer arrays.
-        lhs = (lhs / rhs).astype(numeric_dtype)
-    else:
-        lhs /= rhs
-    return lhs
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.float_dtypes)),
+        'scalar_type': [float],
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.float_dtypes)),
+        'scalar_type': [float],
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [-1, 1, 2, float('inf'), -float('inf'), float('nan')],
+    })
+))
+class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a /= scalar
 
 
 # TODO(niboshi): Remove strides_check=False
@@ -349,7 +1301,7 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
 
 # TODO(sonots): Fix type compatibility for when shape is ()
 @chainerx.testing.numpy_chainerx_array_equal(dtype_check=False)
-@pytest.mark.parametrize("shape,value", [
+@pytest.mark.parametrize('shape,value', [
     ((), -1),
     ((), 1),
     ((1,), -1),
@@ -372,33 +1324,87 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
     return xp.array(x)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
-    numpy.asarray(-float('inf')), numpy.asarray(float('inf')
-                                                ), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(niboshi): Dtype promotion is not supported yet.
-def test_exp(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.exp(a)
+# An association list that associates a dtype to the type which ChainerX's
+# real-valued functions should return.
+_in_out_float_dtypes_math_functions = [
+    # Float.
+    (('float16',), 'float16'),
+    (('float32',), 'float32'),
+    (('float64',), 'float64'),
+]
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
-        10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(niboshi): Dtype promotion is not supported yet.
-def test_log(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.log(a)
+_in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
+    # Signed int.
+    (('int8',), 'float32'),
+    (('int16',), 'float32'),
+    (('int32',), 'float32'),
+    (('int64',), 'float32'),
+    # Unsigned int.
+    (('uint8',), 'float32'),
+    # Bool.
+    (('bool_',), 'float32'),
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [0, 2, -2],
+    })
+    # Special shapes (array.size = 0)
+    + chainer.testing.product({
+        'shape': [(0), (2, 0, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [0, 2, -2],
+        'check_numpy_strides_compliance': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestExp(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.exp(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+    })
+    # Special shapes (array.size = 0)
+    + chainer.testing.product({
+        'shape': [(0,), (2, 0, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+        'check_numpy_strides_compliance': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestLog(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.log(a)
 
 
 _logsumexp_params = [
@@ -429,79 +1435,190 @@ _invalid_logsumexp_params = [
 ]
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@pytest.mark.parametrize('keepdims', [True, False])
-@chainerx.testing.numpy_chainerx_allclose(rtol=1e-7, atol=0, dtype_check=False)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
-    if xp is numpy:
-        return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
-    return xp.logsumexp(a, axis=axis, keepdims=keepdims)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+@chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
+@chainer.testing.parameterize_pytest('keepdims', [True, False])
+class TestLogSumExp(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        axis = self.axis
+        keepdims = self.keepdims
+        if xp is chainerx:
+            return chainerx.logsumexp(x, axis=axis, keepdims=keepdims),
+        x = x.astype(self.out_dtype)
+        return numpy.log(numpy.exp(x).sum(axis=axis, keepdims=keepdims)),
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-# TODO(hvy): Dtype promotion is not supported yet.
 # TODO(hvy): Should not overflow for large numbers, add tests
-def test_logsumexp_invalid(device, a_shape, axis, float_dtype, keepdims):
-    a = array_utils.create_dummy_ndarray(chainerx, a_shape, float_dtype)
+def test_logsumexp_invalid(device, a_shape, axis, keepdims, dtype):
+    a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         chainerx.logsumexp(a, axis=axis, keepdims=keepdims)
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@chainerx.testing.numpy_chainerx_allclose(
-    rtol=1e-7, atol=1e-5, dtype_check=False)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_log_softmax(xp, device, a_shape, axis, float_dtype):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
-    if xp is numpy:
-        # Default is the second axis
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+class TestLogSoftmax(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+        self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        axis = self.axis
+        if xp is chainerx:
+            return chainerx.log_softmax(x, axis=axis),
+        x = x.astype(self.out_dtype)
         axis = axis if axis is not None else 1
-        return a - xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=True))
-    return xp.log_softmax(a, axis=axis)
+        return x - numpy.log(numpy.exp(x).sum(axis=axis, keepdims=True)),
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_log_softmax_invalid(device, a_shape, axis, float_dtype):
-    a = array_utils.create_dummy_ndarray(chainerx, a_shape, float_dtype)
+def test_log_softmax_invalid(device, a_shape, axis, dtype):
+    a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         return chainerx.log_softmax(a, axis=axis)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
-    numpy.asarray(-float('inf')), numpy.asarray(float('inf')
-                                                ), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(hamaji): Dtype promotion is not supported yet.
-def test_sqrt(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.sqrt(a)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSquare(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.square(a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(
-        10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(hamaji): Dtype promotion is not supported yet.
-def test_tanh(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.tanh(a)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+    })
+    # Special shapes (array.size = 0)
+    + chainer.testing.product({
+        'shape': [(0,), (2, 0, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+        'check_numpy_strides_compliance': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSqrt(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.sqrt(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.tanh(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.sin(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.cos(a)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -512,8 +1629,7 @@ def test_tanh(xp, device, input, float_dtype):
     numpy.asarray(float('nan')), numpy.full(
         (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-def test_isnan(xp, device, input, float_dtype):
-    dtype = float_dtype
+def test_isnan(xp, device, input, dtype):
     a = xp.array(input.astype(dtype))
     return xp.isnan(a)
 
@@ -526,8 +1642,7 @@ def test_isnan(xp, device, input, float_dtype):
     numpy.asarray(float('nan')), numpy.full(
         (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
-def test_isinf(xp, device, input, float_dtype):
-    dtype = float_dtype
+def test_isinf(xp, device, input, dtype):
     a = xp.array(input.astype(dtype))
     return xp.isinf(a)
 

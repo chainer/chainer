@@ -1,4 +1,4 @@
-import mpi4py.MPI
+import numpy as np
 
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import mpi_communicator_base
@@ -20,14 +20,13 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_total)
         self.gpu_buffer_b.assign(n_bytes_total)
 
-        _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+        allreduce_grad_dtype = np.float32
 
-        self.mpi_comm.Allreduce(
-            [self.gpu_buffer_a.buffer(n_bytes_total), mpi4py.MPI.FLOAT],
-            [self.gpu_buffer_b.buffer(n_bytes_total), mpi4py.MPI.FLOAT])
-        arr = self.gpu_buffer_b.array(n_elems_total)
-        arr *= (1.0 / self.size)
+        _memory_utility.pack_params(
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
+
+        self.multi_node_mean(self.gpu_buffer_a.array(n_elems_total),
+                             self.gpu_buffer_b.array(n_elems_total))
 
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)

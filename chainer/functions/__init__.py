@@ -5,6 +5,7 @@ Functions are either implemented as :class:`~chainer.Function`\\ s or
 """
 
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
+from chainer.functions.activation.clipped_relu import relu6  # NOQA
 from chainer.functions.activation.crelu import crelu  # NOQA
 from chainer.functions.activation.elu import elu  # NOQA
 from chainer.functions.activation.hard_sigmoid import hard_sigmoid  # NOQA
@@ -24,6 +25,7 @@ from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
+from chainer.functions.array.as_strided import as_strided  # NOQA
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import broadcast_to  # NOQA
 from chainer.functions.array.cast import cast  # NOQA

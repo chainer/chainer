@@ -12,6 +12,7 @@
 #include "chainerx/check_backward.h"
 #include "chainerx/constant.h"
 #include "chainerx/device_id.h"
+#include "chainerx/error.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
 #include "chainerx/testing/array.h"
@@ -230,6 +231,38 @@ TEST_THREAD_SAFE_P(PoolingTest, MaxPoolNdNoCoverAll) {
                 {x},
                 {e_out});
     });
+}
+
+TEST_P(PoolingTest, MaxPoolInvalidKernelSize) {
+    int64_t batch_size = 3;
+    int64_t channels = 4;
+    Shape in_dims{4, 4};
+    StackVector<int64_t, kMaxNdim> kernel_size{3, 0};  // Invalid kernel size element 0.
+    StackVector<int64_t, kMaxNdim> stride{2, 1};
+    StackVector<int64_t, kMaxNdim> pad{1, 0};
+
+    Shape x_shape{batch_size, channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+
+    EXPECT_THROW(MaxPool(x, kernel_size, stride, pad), DimensionError);
+}
+
+TEST_P(PoolingTest, MaxPoolInvalidStride) {
+    int64_t batch_size = 3;
+    int64_t channels = 4;
+    Shape in_dims{4, 4};
+    StackVector<int64_t, kMaxNdim> kernel_size{3, 1};
+    StackVector<int64_t, kMaxNdim> stride{0, 1};  // Invalid stride element 0.
+    StackVector<int64_t, kMaxNdim> pad{1, 0};
+
+    Shape x_shape{batch_size, channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+
+    EXPECT_THROW(MaxPool(x, kernel_size, stride, pad), DimensionError);
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
@@ -601,6 +634,38 @@ TEST_THREAD_SAFE_P(PoolingTest, AveragePoolPadModeZero) {
                 {x},
                 {e_out});
     });
+}
+
+TEST_P(PoolingTest, AveragePoolInvalidKernelSize) {
+    int64_t batch_size = 3;
+    int64_t channels = 4;
+    Shape in_dims{4, 4};
+    StackVector<int64_t, kMaxNdim> kernel_size{3, 0};  // Invalid kernel size element 0.
+    StackVector<int64_t, kMaxNdim> stride{2, 1};
+    StackVector<int64_t, kMaxNdim> pad{1, 0};
+
+    Shape x_shape{batch_size, channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+
+    EXPECT_THROW(AveragePool(x, kernel_size, stride, pad), DimensionError);
+}
+
+TEST_P(PoolingTest, AveragePoolInvalidStride) {
+    int64_t batch_size = 3;
+    int64_t channels = 4;
+    Shape in_dims{4, 4};
+    StackVector<int64_t, kMaxNdim> kernel_size{3, 1};
+    StackVector<int64_t, kMaxNdim> stride{0, 1};  // Invalid stride element 0.
+    StackVector<int64_t, kMaxNdim> pad{1, 0};
+
+    Shape x_shape{batch_size, channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>();
+
+    EXPECT_THROW(AveragePool(x, kernel_size, stride, pad), DimensionError);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {

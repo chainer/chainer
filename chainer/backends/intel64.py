@@ -35,6 +35,10 @@ class Intel64Device(_backend.Device):
     def xp(self):
         return numpy
 
+    @property
+    def supported_array_types(self):
+        return (numpy.ndarray, mdarray)
+
     @staticmethod
     def from_array(array):
         if isinstance(array, mdarray):

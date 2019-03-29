@@ -19,14 +19,6 @@ environment:
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
 
-#    - PYTHON: "C:\\Miniconda3"
-#      PYTHON_VERSION: "3.4.x"
-#      PYTHON_ARCH: "32"
-
-#    - PYTHON: "C:\\Miniconda3-x64"
-#      PYTHON_VERSION: "3.4.x"
-#      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "32"
@@ -57,13 +49,6 @@ install:
 
   - "conda install -y -q setuptools"
   - "conda install -y -q h5py"
-  # conda-forge dropped win-32 support
-  # See https://github.com/conda-forge/staged-recipes/pull/5705
-  - if [%PYTHON_VERSION%]==[3.5.x] (
-      if [%PYTHON_ARCH%]==[64] (
-        conda install -c conda-forge -y -q mypy
-      )
-    )
 
 build_script:
   # Build the compiled extension
@@ -73,11 +58,5 @@ test_script:
   # Run the project tests
   - "%CMD_IN_ENV% pip install -U -e .[appveyor]"
   # Avoid interuption confirmation of cmd.exe
-  - if [%PYTHON_VERSION%]==[3.5.x] (
-      if [%PYTHON_ARCH%]==[64] (
-        echo mypy chainer > tmp.bat &&
-        call tmp.bat < nul
-      )
-    )
   - "echo python -m pytest --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests/chainer_tests > tmp.bat"
   - "call tmp.bat < nul"

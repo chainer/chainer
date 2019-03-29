@@ -1,8 +1,8 @@
 import numpy
 
 import chainer
-from chainer.backends import _cpu
 from chainer.backends import _chainerx
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainerx
@@ -10,8 +10,8 @@ import chainerx
 # Aliases
 from chainer._backend import Device
 from chainer.backends._chainerx import ChainerxDevice
-from chainer.backends._chainerx import from_chainerx  # NOQA
-from chainer.backends._chainerx import to_chainerx  # NOQA
+from chainer.backends._chainerx import from_chx  # NOQA
+from chainer.backends._chainerx import to_chx  # NOQA
 from chainer.backends._cpu import CpuDevice
 from chainer.backends.cuda import GpuDevice
 from chainer.backends.intel64 import Intel64Device
@@ -158,24 +158,28 @@ def get_array_module(*args):
 
     Args:
         args: Values to determine whether NumPy, CuPy, or ChainerX should be
-        used.
+            used.
 
     Returns:
         module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
         on the types of the arguments.
 
     """
-    if chainerx.is_available() or cuda.available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
-
-    if (chainerx.is_available()
-            and any([isinstance(a, chainerx.ndarray) for a in args])):
-        return chainerx
-    elif cuda.available:
-        return cuda.cupy.get_array_module(*args)
-    else:
-        return numpy
+    is_chainerx_available = chainerx.is_available()
+    if is_chainerx_available or cuda.available:
+        arrays = []
+        for arg in args:
+            # Unwrap arrays
+            if isinstance(arg, chainer.variable.Variable):
+                array = arg.data
+            else:
+                array = arg
+            if is_chainerx_available and isinstance(array, chainerx.ndarray):
+                return chainerx
+            arrays.append(array)
+        if cuda.available:
+            return cuda.cupy.get_array_module(*arrays)
+    return numpy
 
 
 def get_device_from_array(*arrays):

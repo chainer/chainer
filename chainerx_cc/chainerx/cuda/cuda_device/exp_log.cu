@@ -9,6 +9,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 
@@ -18,7 +19,8 @@ namespace {
 
 template <typename T>
 struct ExpImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
 };
 
 }  // namespace
@@ -26,9 +28,10 @@ struct ExpImpl {
 void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(ExpImpl<T>{}, x, out);
+        Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
     });
 }
 
@@ -36,7 +39,8 @@ namespace {
 
 template <typename T>
 struct LogImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
 };
 
 }  // namespace
@@ -44,9 +48,10 @@ struct LogImpl {
 void CudaDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(LogImpl<T>{}, x, out);
+        Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
     });
 }
 

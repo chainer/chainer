@@ -1,10 +1,10 @@
-import collections
-
 import mpi4py
 import numpy
 
+import chainer
 import chainer.backends
 import chainer.utils
+from chainer.utils import collections_abc
 from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
@@ -65,7 +65,7 @@ class _MessageType(object):
             self.ndims = [obj.ndim]
             self.shapes = [obj.shape]
             self.dtype = obj.dtype
-        elif isinstance(obj, collections.Iterable):
+        elif isinstance(obj, collections_abc.Iterable):
             if all(map(_is_numpy_array, obj)):
                 self.is_host = True
             elif all(map(_is_cupy_array, obj)):
@@ -471,9 +471,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         """
 
-        chainer.utils.experimental(
-            'chainermn.communicators.CommunicatorBase.allreduce')
-
         msgtype = _MessageType(x)
         _check_dtype('allreduce', msgtype)
 
@@ -611,8 +608,14 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def bcast_data(self, model):
         for _, param in sorted(model.namedparams()):
             if param.data is not None:
-                buf = _memory_utility.array_to_buffer_object(param.data)
+                data = param.data
+                is_float16 = param.data.dtype == numpy.float16
+                if is_float16:
+                    data = data.astype(numpy.float32)
+                buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
+                if is_float16:
+                    param.data = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
@@ -622,3 +625,55 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self._intra_size = my_ranks[2]
         self._inter_rank = my_ranks[3]
         self._inter_size = my_ranks[4]
+
+    def check_ready_to_allreduce(self, array_a, array_b):
+        my_shapes = ((None if array_a is None else array_a.shape,
+                      None if array_a is None else array_a.dtype),
+                     array_b.shape,
+                     array_b.dtype)
+        all_shapes = self.gather_obj((self.rank, my_shapes))
+        if self.rank == 0:
+            for rank, shapes in all_shapes:
+                if my_shapes != shapes:
+                    raise ValueError('Shape does not match: {}'
+                                     ' at rank 0 while {} at rank {}'
+                                     .format(my_shapes, shapes, rank))
+
+    def ensure_all_finite(self, array):
+        xp = chainer.backend.get_array_module(array)
+        if not xp.isfinite(array).all():
+            raise ValueError('Parameters diverged after allreduce.')
+
+    def multi_node_mean(self, array_a, array_b):
+        # The name is allreduce but actually a mean
+        # Sigma(a, all-procs)/n -> b or
+        # Sigma(b, all-procs)/n -> b if array_a is None
+        if chainer.is_debug():
+            self.check_ready_to_allreduce(array_a, array_b)
+
+        is_float16 = array_b.dtype == numpy.float16
+        if array_a is None:
+            buffer_a = mpi4py.MPI.IN_PLACE
+        elif is_float16:
+            assert array_a.dtype == array_b.dtype
+            buffer_a = _memory_utility.array_to_buffer_object(
+                array_a.astype(numpy.float32))
+        else:
+            buffer_a = _memory_utility.array_to_buffer_object(array_a)
+
+        if is_float16:
+            array_b32 = array_b.astype(numpy.float32)
+        else:
+            array_b32 = array_b
+        buffer_b = _memory_utility.array_to_buffer_object(array_b32)
+
+        self.mpi_comm.Allreduce(buffer_a, buffer_b)
+
+        if is_float16:
+            xp = chainer.backend.get_array_module(array_b)
+            xp.copyto(array_b, array_b32.astype(numpy.float16), casting='no')
+
+        array_b *= 1.0 / self.mpi_comm.size
+
+        if chainer.is_debug():
+            self.ensure_all_finite(array_b)

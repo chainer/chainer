@@ -22,15 +22,15 @@ class TestGumbel(testing.distribution_unittest):
         self.scipy_dist = stats.gumbel_r
 
         self.test_targets = set([
-            "batch_shape", "entropy", "event_shape", "log_prob", "mean",
-            "sample", "support", "variance"])
+            'batch_shape', 'entropy', 'event_shape', 'log_prob', 'mean',
+            'sample', 'support', 'variance'])
 
         loc = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
         scale = utils.force_array(numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
-        self.params = {"loc": loc, "scale": scale}
-        self.scipy_params = {"loc": loc, "scale": scale}
+        self.params = {'loc': loc, 'scale': scale}
+        self.scipy_params = {'loc': loc, 'scale': scale}
 
     def sample_for_test(self):
         smp = numpy.random.normal(

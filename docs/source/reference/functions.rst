@@ -64,6 +64,7 @@ Activation functions
    chainer.functions.prelu
    chainer.functions.rrelu
    chainer.functions.relu
+   chainer.functions.relu6
    chainer.functions.selu
    chainer.functions.sigmoid
    chainer.functions.slstm
@@ -80,6 +81,7 @@ Array manipulations
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.as_strided
    chainer.functions.broadcast
    chainer.functions.broadcast_to
    chainer.functions.cast

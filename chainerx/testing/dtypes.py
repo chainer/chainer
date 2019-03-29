@@ -5,6 +5,7 @@ import chainerx
 
 
 float_dtypes = (
+    'float16',
     'float32',
     'float64',
 )
@@ -14,6 +15,7 @@ signed_dtypes = (
     'int16',
     'int32',
     'int64',
+    'float16',
     'float32',
     'float64',
 )
@@ -21,6 +23,15 @@ signed_dtypes = (
 
 unsigned_dtypes = (
     'uint8',
+)
+
+
+integral_dtypes = (
+    'uint8',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
 )
 
 

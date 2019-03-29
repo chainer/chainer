@@ -11,7 +11,7 @@ class R2_score(function.Function):
         if multioutput in ['uniform_average', 'raw_values']:
             self.multioutput = multioutput
         else:
-            raise ValueError("invalid multioutput argument")
+            raise ValueError('invalid multioutput argument')
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('pred', 'true'))
@@ -48,10 +48,10 @@ def r2_score(pred, true, sample_weight=None, multioutput='uniform_average'):
     """Computes R^2(coefficient of determination) regression score function.
 
     Args:
-        pred(Variable): Variable holding a vector, matrix or tensor of
-                estimated target values.
-        true(Variable): Variable holding a vector, matrix or tensor of
-                correct target values.
+        pred (:class:`~chainer.Variable` or :ref:`ndarray`): Variable holding a
+            vector, matrix or tensor of estimated target values.
+        true (:class:`~chainer.Variable` or :ref:`ndarray`): Variable holding a
+            vector, matrix or tensor of correct target values.
         sample_weight: This argument is for compatibility with scikit-learn's
                 implementation of r2_score. Current implementation admits None
                 only.

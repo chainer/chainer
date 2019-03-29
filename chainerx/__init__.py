@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -12,11 +13,17 @@ else:
 
 
 if _available:
-    from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
+    from numpy import dtype  # NOQA
+    from numpy import (
+        bool_, int8, int16, int32, int64, uint8, float16, float32, float64)  # NOQA
+    all_dtypes = (
+        bool_, int8, int16, int32, int64, uint8, float16, float32, float64)
 
     from chainerx._core import *  # NOQA
 
     from builtins import bool, int, float  # NOQA
+
+    from chainerx import _device  # NOQA
 
     from chainerx.creation.from_data import asanyarray  # NOQA
     from chainerx.creation.from_data import fromfile  # NOQA
@@ -30,8 +37,8 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import square  # NOQA
     from chainerx.math.misc import clip  # NOQA
+    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
@@ -51,6 +58,10 @@ if _available:
     from chainerx import _docs
     _docs.set_docs()
 
+    from chainerx import _cuda
+    # Share memory pool with CuPy.
+    if bool(int(os.getenv('CHAINERX_CUDA_CUPY_SHARE_ALLOCATOR', '0'))):
+        _cuda.cupy_share_allocator()
 else:
     class ndarray(object):
 

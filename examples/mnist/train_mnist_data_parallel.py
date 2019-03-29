@@ -22,7 +22,7 @@ def main():
                         help='First GPU ID')
     parser.add_argument('--gpu1', '-G', type=int, default=1,
                         help='Second GPU ID')
-    parser.add_argument('--out', '-o', default='result_parallel',
+    parser.add_argument('--out', '-o', default='result_data_parallel',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')

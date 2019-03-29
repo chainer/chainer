@@ -10,7 +10,7 @@ import numpy as np
 import chainerx as chx
 
 
-class MLP:
+class MLP(object):
 
     def __init__(self):
         self.W1, self.b1 = new_linear_params(784, 1000)
@@ -168,20 +168,18 @@ def main():
 
 def get_mnist(path, name):
     path = pathlib.Path(path)
-    x_path = path / '{}-images-idx3-ubyte.gz'.format(name)
-    y_path = path / '{}-labels-idx1-ubyte.gz'.format(name)
+    x_path = str(path / '{}-images-idx3-ubyte.gz'.format(name))
+    y_path = str(path / '{}-labels-idx1-ubyte.gz'.format(name))
 
     with gzip.open(x_path, 'rb') as fx:
         fx.read(16)  # skip header
         # read/frombuffer is used instead of fromfile because fromfile does not
         # handle gzip file correctly
         x = np.frombuffer(fx.read(), dtype=np.uint8).reshape(-1, 784)
-        x.flags.writeable = True  # TODO(beam2d): remove this workaround
 
     with gzip.open(y_path, 'rb') as fy:
         fy.read(8)  # skip header
         y = np.frombuffer(fy.read(), dtype=np.uint8)
-        y.flags.writeable = True  # TODO(beam2d): remove this workaround
 
     assert x.shape[0] == y.shape[0]
 
