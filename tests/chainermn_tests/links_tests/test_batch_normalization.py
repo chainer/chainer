@@ -244,8 +244,8 @@ def test_multi_node_bn_gpu(communicator_class, backend, dtype):
     check_multi_node_bn(comm, use_gpu=True, backend=backend, dtype=dtype)
     chainer.cuda.Stream.null.synchronize()
     comm.mpi_comm.barrier()
-    if hasattr(communicator, 'nccl_comm'):
-            communicator.nccl_comm.destroy()
+    if hasattr(comm, 'nccl_comm'):
+        comm.nccl_comm.destroy()
 
 
 @pytest.mark.parametrize(('communicator_class', 'backend'), [
