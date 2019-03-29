@@ -499,7 +499,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self.mpi_comm.send(obj, dest=dest, tag=tag)
 
     def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
-        return self.mpi_comm.recv(source=source, status=None, tag=tag)
+        return self.mpi_comm.recv(source=source, status=status, tag=tag)
 
     def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
         return chunked_bcast_obj(obj, self.mpi_comm,

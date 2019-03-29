@@ -867,7 +867,7 @@ class TestMpiCommunicatorBase(unittest.TestCase):
                                                status=status)
 
             if use_status:
-                status_src = status.Get_status()
+                status_src = status.Get_source()
                 self.assertEqual(0, status_src)
                 status_tag = status.Get_tag()
                 self.assertEqual(tag, status_tag)
