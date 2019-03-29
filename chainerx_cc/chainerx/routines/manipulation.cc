@@ -158,11 +158,11 @@ Array AppendConst(const Array& a, int8_t pad_amount, Scalar value, int8_t axis =
 }
 }  // namespace
 
-Array Pad(const Array& a, int8_t pad_width, const std::string& mode, int64_t constant_values) {
+Array Pad(const Array& array, int8_t pad_width, PadMode mode, int64_t constant_values) {
     Array newarray;
-    newarray = a.Copy();
-    if (mode == "constant") {
-        for (int64_t i = 0; i < a.ndim(); ++i) {
+    newarray = array.Copy();
+    if (mode == PadMode::constant) {
+        for (int64_t i = 0; i < newarray.ndim(); ++i) {
             newarray = PrependConst(newarray, pad_width, constant_values, i);
             newarray = AppendConst(newarray, pad_width, constant_values, i);
         }
@@ -170,10 +170,10 @@ Array Pad(const Array& a, int8_t pad_width, const std::string& mode, int64_t con
     return newarray;
 }
 
-Array Pad(const Array& a, std::vector<int8_t> pad_width, const std::string& mode, std::vector<int64_t> constant_values) {
+Array Pad(const Array& array, std::vector<int8_t> pad_width, PadMode mode, std::vector<int64_t> constant_values) {
     Array newarray;
-    newarray = a.Copy();
-    if (mode == "constant") {
+    newarray = array.Copy();
+    if (mode == PadMode::constant) {
         for (size_t i = 0; i < pad_width.size(); i++) {
             newarray = PrependConst(newarray, pad_width[i], constant_values[i], i);
             newarray = AppendConst(newarray, pad_width[i], constant_values[i], i);

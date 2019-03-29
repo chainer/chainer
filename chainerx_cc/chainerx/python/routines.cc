@@ -357,17 +357,31 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("start") = 0);
     m.def("pad",
           [](const ArrayBodyPtr& a, int8_t pad_width, const std::string& mode, int64_t constant_values) {
-              return MoveArrayBody(Pad(Array{a}, pad_width, mode, constant_values));
+              PadMode pad_mode{};
+              if (mode == "constant") {
+                  pad_mode = PadMode::constant;
+              } else {
+                  throw py::value_error{"Currently only `constant` padding mode is supported"};
+              }
+              return MoveArrayBody(Pad(Array{a}, pad_width, pad_mode, constant_values));
           },
           py::arg("a"),
           py::arg("pad_width"),
           py::arg("mode"),
           py::arg("constant_values"));
     m.def("pad",
-          [](const ArrayBodyPtr& a,
+          [](const ArrayBodyPtr& array,
              const std::vector<int8_t> pad_width,
              const std::string& mode,
-             const std::vector<int64_t> constant_values) { return MoveArrayBody(Pad(Array{a}, pad_width, mode, constant_values)); },
+             const std::vector<int64_t> constant_values) {
+              PadMode pad_mode{};
+              if (mode == "constant") {
+                 pad_mode = PadMode::constant;
+              } else {
+                 throw py::value_error{"Currently only `constant` padding mode is supported"};
+              }
+              return MoveArrayBody(Pad(Array{a}, pad_width, pad_mode, constant_values));
+          },
           py::arg("a"),
           py::arg("pad_width"),
           py::arg("mode"),

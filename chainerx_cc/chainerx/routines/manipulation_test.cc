@@ -155,7 +155,7 @@ TEST_THREAD_SAFE_P(ManipulationTest, Pad) {
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 1, 2, 3, 4, 5, 6, 0});
 
     Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pad(xs[0], 1, "constant", 0)}; }, {a}, {e});
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Pad(xs[0], 1, PadMode::constant, 0)}; }, {a}, {e});
     });
 }
 
@@ -167,7 +167,7 @@ TEST_P(ManipulationTest, Pad2D) {
     Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4});
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 0, 0, 0, 0, 1, 2, 0, 0, 3, 4, 0, 0, 0, 0, 0});
 
-    EXPECT_ARRAY_EQ(e, Pad(a, 1, "constant", 0));
+    EXPECT_ARRAY_EQ(e, Pad(a, 1, PadMode::constant, 0));
 }
 
 TEST_P(ManipulationTest, Pad3D) {
@@ -178,7 +178,7 @@ TEST_P(ManipulationTest, Pad3D) {
     Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4});
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0,
                                                              0, 0, 0, 0, 3, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-    EXPECT_ARRAY_EQ(e, Pad(a, 1, "constant", 0));
+    EXPECT_ARRAY_EQ(e, Pad(a, 1, PadMode::constant, 0));
 }
 
 TEST_P(ManipulationTest, PadVector2D) {
@@ -189,7 +189,7 @@ TEST_P(ManipulationTest, PadVector2D) {
     Array a = testing::BuildArray(input_shape).WithData<T>({1, 2});
     Array e = testing::BuildArray(output_shape).WithData<T>({2, 1, 2, 2, 1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2});
 
-    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1},  "constant", {1, 2}));
+    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1}, PadMode::constant, {1, 2}));
 }
 
 TEST_P(ManipulationTest, PadBackward) {
@@ -201,9 +201,7 @@ TEST_P(ManipulationTest, PadBackward) {
     Array gy = testing::BuildArray(shape_y).WithLinearData<T>(-0.1, 0.1);
 
     CheckBackward(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Pad(xs[0], 1, "constant", 0)};
-            },
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Pad(xs[0], 1, PadMode::constant, 0)}; },
             {x},
             {gy},
             {Full(shape_x, 1e-6, Dtype::kFloat64)});
@@ -220,7 +218,7 @@ TEST_P(ManipulationTest, PadDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                Array y = Pad(xs[0], 1, "constant", 0);
+                Array y = Pad(xs[0], 1, PadMode::constant, 0);
                 return {y * y};  // to make it nonlinear
             },
             {x},
@@ -239,7 +237,7 @@ TEST_P(ManipulationTest, PadVectorBackward) {
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Pad(xs[0], std::vector<int8_t>{2, 1, 0}, "constant", {1, 2, 3})};
+                return {Pad(xs[0], std::vector<int8_t>{2, 1, 0}, PadMode::constant, {1, 2, 3})};
             },
             {x},
             {gy},
@@ -257,7 +255,7 @@ TEST_P(ManipulationTest, PadVectorDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                Array y = Pad(xs[0], std::vector<int8_t>{2, 1, 0}, "constant", {1, 2, 3});
+                Array y = Pad(xs[0], std::vector<int8_t>{2, 1, 0}, PadMode::constant, {1, 2, 3});
                 return {y * y};  // to make it nonlinear
             },
             {x},
