@@ -295,7 +295,7 @@ def check_bcast_data(communicator, model):
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
-def check_allreduce_grad(communicator, model, comm_prec=None):
+def check_allreduce_grad(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
@@ -442,6 +442,19 @@ def check_collective_communication(param, use_gpu):
     check_bcast_data(communicator, model)
     check_allreduce_grad(communicator, model)
     check_allreduce_grad_empty(communicator, model)
+
+    # Check allreduce debug mode
+    model = ExampleModel()
+    if use_gpu:
+        model.to_gpu()
+
+    # The example model includes some nan parameters so the debug mode
+    # must detect it.
+    chainer.set_debug(True)
+    with pytest.raises(ValueError, match=r'.* diverged .*'):
+        check_allreduce_grad(communicator, model)
+    chainer.set_debug(False)
+
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()

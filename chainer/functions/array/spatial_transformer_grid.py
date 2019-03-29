@@ -138,7 +138,7 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
             y_i^t \\\\
             1 \\end{matrix}\\right)
 
-    Notatition: here is a notation for dimensionalities.
+    Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`h_O` and :math:`w_O` are the height and the width of the output
