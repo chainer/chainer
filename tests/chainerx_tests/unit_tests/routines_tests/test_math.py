@@ -1228,10 +1228,22 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
-# TODO(niboshi): Remove strides_check=False
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize('keepdims', [False, True])
-@pytest.mark.parametrize('shape,axis', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
+    (('bool_',), 'int64'),
+    (('int8',), 'int64'),
+    (('int16',), 'int64'),
+    (('int32',), 'int64'),
+    (('int64',), 'int64'),
+    (('float16',), 'float16'),
+    (('float32',), 'float32'),
+    (('float64',), 'float64'),
+
+    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
+    # Currently chainerx returns int64.
+    (('uint8',), 'int64'),
+])
+@chainer.testing.parameterize_pytest('shape,axis', [
     ((), None),
     ((), ()),
     ((2,), None),
@@ -1259,19 +1271,17 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     ((2, 3, 4), (2, 0, 1)),
     ((2, 3, 4), (-2, 2, 0)),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(is_module, xp, device, shape, axis, keepdims, dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        out = xp.sum(a, axis=axis, keepdims=keepdims)
-    else:
-        out = a.sum(axis=axis, keepdims=keepdims)
+@chainer.testing.parameterize_pytest('keepdims', [True, False])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
-    # Currently chainerx returns int64.
-    if xp is numpy and numpy.dtype(dtype).kind == 'u':
-        out = out.astype(numpy.int64)
-    return out
+    input = 'random'
+
+    def func(self, xp, a):
+        if self.is_module:
+            return xp.sum(a, axis=self.axis, keepdims=self.keepdims)
+        else:
+            return a.sum(axis=self.axis, keepdims=self.keepdims)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
