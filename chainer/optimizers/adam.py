@@ -151,10 +151,10 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.final_lr = final_lr
         if gamma is not None:
             self.hyperparam.gamma = gamma
+        if self.hyperparam.adabound:
+            self.initial_alpha = self.hyperparam.alpha
 
     def init_state(self, param):
-        if self.hyperparam.adabound:
-            self.state['initial_alpha'] = self.hyperparam.alpha
         xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
@@ -323,7 +323,7 @@ class AdamRule(optimizer.UpdateRule):
         hp = self.hyperparam
         # Workaround to reflect changing `alpha` in `final_lr`.
         # (by some of `chainer.training.extensions`)
-        final_lr = hp.final_lr * hp.alpha / self.state['initial_alpha']
+        final_lr = hp.final_lr * hp.alpha / self.initial_alpha
         lower = final_lr * (1.0 - 1.0 / (hp.gamma * self.t + 1))
         upper = final_lr * (1.0 + 1.0 / (hp.gamma * self.t))
         return lower, upper
