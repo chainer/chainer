@@ -1,6 +1,7 @@
 import six
 
 from chainer import backend
+from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
@@ -79,8 +80,12 @@ class StandardUpdater(_updater.Updater):
 
         if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target._to_device(
-                    device, skip_between_cupy_devices=True)
+                if isinstance(device, cuda.GpuDevice):
+                    # Do not transfer between different cupy devices.
+                    # TODO(niboshi): Reconsider this behavior
+                    optimizer.target.to_gpu(device.device.id)
+                else:
+                    optimizer.target.to_device(device)
 
         self.converter = converter
         self.loss_func = loss_func

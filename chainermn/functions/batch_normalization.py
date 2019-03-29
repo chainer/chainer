@@ -35,39 +35,25 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
     def __init__(self, comm):
         self.comm = comm
 
-        # We need to delay importing MPI4py (and momdules that import MPI4py)
-        import chainermn.communicators._memory_utility as memory_utility_module
-        from mpi4py import MPI as mpi4py_module
-        self.memory_utility_module = memory_utility_module
-        self.mpi4py_module = mpi4py_module
-
     def forward(self, axis, gamma, x, xp):
-        mpi_comm = self.comm.mpi_comm
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         x.mean(axis=axis, out=tmp[:gamma.size])
         xp.square(x).mean(axis=axis, out=tmp[gamma.size:])
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
-        mpi_comm.Allreduce(
-            self.mpi4py_module.IN_PLACE,
-            self.memory_utility_module.array_to_buffer_object(tmp))
-        tmp *= 1.0 / mpi_comm.size
+        self.comm.multi_node_mean(None, tmp)
         mean = tmp[:gamma.size]
         sqmean = tmp[gamma.size:]
         var = sqmean - xp.square(mean)
         return mean, var
 
     def backward(self, axis, gamma, gy, x_hat, x, xp):
-        mpi_comm = self.comm.mpi_comm
         tmp = xp.empty(gamma.size * 2, dtype=x.dtype)
         gy.sum(axis=axis, out=tmp[:gamma.size])
         (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:])
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
-        mpi_comm.Allreduce(
-            self.mpi4py_module.IN_PLACE,
-            self.memory_utility_module.array_to_buffer_object(tmp))
-        tmp *= 1.0 / mpi_comm.size
+        self.comm.multi_node_mean(None, tmp)
         gbeta = tmp[:gamma.size]
         ggamma = tmp[gamma.size:]
         return gbeta, ggamma
@@ -80,13 +66,7 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
 
         # We need to delay importing MPI4py (and momdules that import MPI4py)
         import chainermn.communicators._memory_utility as memory_utility_module
-        from chainermn.communicators._communication_utility import \
-            _get_nccl_type_id
-        from chainermn import nccl
-
         self.memory_utility_module = memory_utility_module
-        self.get_nccl_type_id = _get_nccl_type_id
-        self.nccl = nccl
 
     def forward(self, axis, gamma, x, xp):
         gpu_buffer_n_elems = gamma.size * 2
@@ -99,20 +79,16 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
             gpu_buffer_n_elems, dtype=x.dtype)
         x.mean(axis=axis, out=gpu_buffer_a_array[:gamma.size])
         xp.square(x).mean(axis=axis, out=gpu_buffer_a_array[gamma.size:])
-        stream = chainer.cuda.Stream.null
-        self.comm._init_comms()
-        self.comm.nccl_comm.allReduce(gpu_buffer_a.ptr(),
-                                      gpu_buffer_b.ptr(),
-                                      gpu_buffer_n_elems,
-                                      self.get_nccl_type_id(x.dtype),
-                                      self.nccl.NCCL_SUM,
-                                      stream.ptr)
-        gpu_buffer_b_array = gpu_buffer_b.array(
+        self.comm.multi_node_mean_nccl(gpu_buffer_a,
+                                       gpu_buffer_b,
+                                       gpu_buffer_n_elems,
+                                       x.dtype)
+        gpu_buffer_a_array = gpu_buffer_a.array(
             gpu_buffer_n_elems,
             dtype=x.dtype)
-        gpu_buffer_b_array *= 1.0 / self.comm.size
-        mean = gpu_buffer_b_array[:gamma.size]
-        sqmean = gpu_buffer_b_array[gamma.size:]
+
+        mean = gpu_buffer_a_array[:gamma.size]
+        sqmean = gpu_buffer_a_array[gamma.size:]
         var = sqmean - xp.square(mean)
         return mean, var
 
@@ -128,20 +104,17 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
             dtype=x.dtype)
         gy.sum(axis=axis, out=gpu_buffer_a_array[:gamma.size])
         (gy * x_hat).sum(axis=axis, out=gpu_buffer_a_array[gamma.size:])
-        stream = chainer.cuda.Stream.null
-        self.comm._init_comms()
-        self.comm.nccl_comm.allReduce(gpu_buffer_a.ptr(),
-                                      gpu_buffer_b.ptr(),
-                                      gpu_buffer_n_elems,
-                                      self.get_nccl_type_id(x.dtype),
-                                      self.nccl.NCCL_SUM,
-                                      stream.ptr)
-        gpu_buffer_b_array = gpu_buffer_b.array(
+
+        self.comm.multi_node_mean_nccl(gpu_buffer_a,
+                                       gpu_buffer_b,
+                                       gpu_buffer_n_elems,
+                                       x.dtype)
+        gpu_buffer_a_array = gpu_buffer_a.array(
             gpu_buffer_n_elems,
             dtype=x.dtype)
-        gpu_buffer_b_array *= 1.0 / self.comm.size
-        gbeta = gpu_buffer_b_array[:gamma.size]
-        ggamma = gpu_buffer_b_array[gamma.size:]
+
+        gbeta = gpu_buffer_a_array[:gamma.size]
+        ggamma = gpu_buffer_a_array[gamma.size:]
 
         return gbeta, ggamma
 

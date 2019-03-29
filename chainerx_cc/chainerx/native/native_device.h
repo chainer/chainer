@@ -117,6 +117,8 @@ public:
 
     // misc.cc
 
+    void Square(const Array& x, const Array& out) override;
+
     void Sqrt(const Array& x, const Array& out) override;
 
     void IsNan(const Array& x, const Array& out) override;
