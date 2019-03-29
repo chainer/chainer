@@ -874,45 +874,79 @@ class TestIMulScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a *= scalar
 
 
-# TODO(imanishi): Support and test zero division and mixed dtypes.
-# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
-# TODO(imanishi): Support and test bool dtype.
-@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
-@pytest.mark.parametrize('lhs,rhs', [
-    ([], []),
-    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
-    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
-    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
-    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_floordiv(xp, lhs, rhs, device, numeric_dtype, is_module):
-    if (numpy.array(lhs).dtype.kind == 'f' and
-            numpy.dtype(numeric_dtype).kind in ('i', 'u')):
-        return chainerx.testing.ignore()
-    if (((numpy.array(lhs) < 0).any() or (numpy.array(rhs) < 0).any()) and
-            numpy.dtype(numeric_dtype).kind == 'u'):
-        return chainerx.testing.ignore()
-    lhs = xp.array(lhs).astype(numeric_dtype)
-    if isinstance(rhs, (list, tuple)):
-        rhs = xp.array(rhs).astype(numeric_dtype)
+# TODO(imanishi): Support and test zero division
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*chainer.testing.product({
+    'lhs,rhs': [
+        ([], []),
+        ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+        ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ],
+    'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+    'is_module': [True, False],
+}))
+class TestFloorDiv(BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    if is_module:
-        return xp.floor_divide(lhs, rhs)
-    else:
-        return lhs // rhs
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        in_dtype1, in_dtype2 = self.in_dtypes
+        a = numpy.array(self.lhs).astype(in_dtype1)
+        b = numpy.array(self.rhs).astype(in_dtype2)
+        return a, b
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.floor_divide(a, b)
+        else:
+            return a // b
+
+
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test zero division
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*chainer.testing.product({
+    'array': [
+        ([]),
+        ([0, 1, 2, 3, 100, 101, 102, 103]),
+        ([-1, -2, -3, -4, -100, -101, -102, -103]),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4]),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4]),
+    ],
+    'scalar_value': [-3, 3, -1.2, 1.2],
+    'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+    'is_module': [True, False],
+}))
+class TestFloorDivScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+
+        # TODO(imanishi): Remove this.
+        if in_dtype == 'uint8' and self.scalar_value < 0:
+            self.skip_forward_test = True
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        a = numpy.array(self.array).astype(in_dtype)
+        return a,
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return xp.floor_divide(a, scalar)
+        else:
+            return a // scalar
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
