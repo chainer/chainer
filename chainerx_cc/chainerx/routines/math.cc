@@ -659,7 +659,7 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
 Array Sigmoid(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Reciprocal(1 + Exp(-x_cast)); 
+    return Reciprocal(1 + Exp(-x_cast));
 }
 
 Array Square(const Array& x) {
