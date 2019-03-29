@@ -365,16 +365,17 @@ void MeshgridBackward(const std::vector<Array>& inputs, const std::vector<Array>
 
     BackwardBuilder bb{"meshgrid", in_refs, out_refs};
     if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-        bt.Define([ shapes = std::move(shapes), kind = std::move(kind), dtype = inputs[0].dtype(), &device = inputs[0].device() ](
+        bt.Define([shapes = std::move(shapes), kind, dtype = inputs[0].dtype(), &device = inputs[0].device()](
                 BackwardContext & bctx) {
             int64_t ndims = bctx.input_count();
 
-            auto get_axis = [ ndims, kind = std::move(kind) ](int64_t dim) {
+            auto get_axis = [ndims, kind = std::move(kind)](int64_t dim) {
                 // Handle "XY" case
-                if (kind == "xy" && dim == 0)
+                if (kind == "xy" && dim == 0) {
                     dim = 1;
-                else if (kind == "xy" && dim == 1)
+                } else if (kind == "xy" && dim == 1) {
                     dim = 0;
+                }
                 Axes axes;
                 for (int i = 0; i < ndims; i++) {
                     if (i == dim) {
@@ -418,9 +419,9 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::opti
     //        all others are same as "ij"
 
     // Step 1
-    for (unsigned int i = 0; i < arrays.size(); i++) {
+    for (const auto& array : arrays) {
         shape.push_back(1);
-        broadcast_shape.push_back(arrays[i].GetTotalSize());
+        broadcast_shape.push_back(array.GetTotalSize());
     }
 
     // Shape for each array based on number of arrays.
@@ -438,7 +439,7 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::opti
         std::swap(broadcast_shape[0], broadcast_shape[1]);
     } else if (kind == "ij") {
     } else {
-        throw ValueError{"Valid values for indexing are \"xy\" or \"ij\""};
+        throw ValueError{R"(Valid values for indexing are "xy" or "ij")"};
     }
 
     std::vector<Array> reshaped_arr(arrays.size());

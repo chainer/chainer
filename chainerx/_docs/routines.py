@@ -433,10 +433,10 @@ Args:
 
 Returns:
     list of :class:`~chainerx.ndarray`\\ s: For vectors x1, x2,…, ‘xn’ with
-        lengths Ni=len(xi), return (N1, N2, N3,...Nn) shaped arrays if
-        indexing=’ij’ or (N2, N1, N3,...Nn) shaped arrays if indexing=’xy’
-        with the elements of xi repeated to fill the matrix along the first
-        dimension for x1, the second for x2 and so on.
+    lengths Ni=len(xi), return (N1, N2, N3,...Nn) shaped arrays if
+    indexing=’ij’ or (N2, N1, N3,...Nn) shaped arrays if indexing=’xy’
+    with the elements of xi repeated to fill the matrix along the first
+    dimension for x1, the second for x2 and so on.
 
 .. seealso:: :func:`numpy.meshgrid`
 """)
