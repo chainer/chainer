@@ -48,22 +48,11 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         dis_optimizer = self.get_optimizer('dis')
 
         enc, dec, dis = self.enc, self.dec, self.dis
-        xp = enc.xp
 
-        batch = self.get_iterator('main').next()
-        batchsize = len(batch)
-        in_ch = batch[0][0].shape[0]
-        out_ch = batch[0][1].shape[0]
-        w_in = 256
-        w_out = 256
-
-        dtype = self.dtype
-        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype(dtype)
-        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype(dtype)
-
-        for i in range(batchsize):
-            x_in[i, :] = xp.asarray(batch[i][0])
-            t_out[i, :] = xp.asarray(batch[i][1])
+        x_in, t_out = self.converter(
+            self.get_iterator('main').next(), device=self.device)
+        x_in = x_in.astype(self.dtype)
+        t_out = t_out.astype(self.dtype)
 
         z = enc(x_in)
         x_out = dec(z)
