@@ -158,7 +158,7 @@ convolution functions.
             initializer, size, self.xp, dtype=self._dtype)
 
     def forward(self, x, **kwargs):
-        """forward(self, x, finetune=False)
+        """forward(self, x, *, finetune=False)
 
         Invokes the forward propagation of InstanceNormalization.
 

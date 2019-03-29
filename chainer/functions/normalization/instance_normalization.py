@@ -42,7 +42,10 @@ def _tile(xp, x, reps):
 
 
 def instance_normalization(x, gamma, beta, **kwargs):
-    """Instance normalization function.
+    """instance_normalization(x, gamma, beta, *, running_mean=None,
+running_var=None, decay=0.9)
+
+    Instance normalization function.
 
     This function implements instance normalization
     which normalizes each sample by its mean and standard deviation.
