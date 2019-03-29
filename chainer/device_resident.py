@@ -15,10 +15,10 @@ from chainer import utils
 import chainerx
 
 
-def _warn_legacy_to_gpu(src, dst, legacy):
+def _warn_legacy_to_gpu(dst, arr, legacy):
     # type: (backend.Device, backend.Device, tp.Optional[bool]) -> bool
-    if isinstance(src, cuda.GpuDevice) and isinstance(dst, cuda.GpuDevice):
-        src_id = src.device.id
+    if isinstance(dst, cuda.GpuDevice) and isinstance(arr, cuda.ndarray):
+        src_id = arr.device.id
         dst_id = dst.device.id
         if src_id == dst_id:
             # The link is already on the requested device; nothing
@@ -303,17 +303,16 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        if not (self._skip_between_cupy_devices
-                and self._device.xp is cuda.cupy
-                and isinstance(arr, cuda.ndarray)):
+        skip = _warn_legacy_to_gpu(
+            self._device, arr, legacy=self._skip_between_cupy_devices)
+        if not skip:
             return self._device.send(arr)
         return arr
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         skip = _warn_legacy_to_gpu(
-            self._device, param.device,
-            legacy=self._skip_between_cupy_devices)
+            self._device, param.array, legacy=self._skip_between_cupy_devices)
         if not skip:
             param.to_device(self._device)
 
