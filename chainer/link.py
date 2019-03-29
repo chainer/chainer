@@ -451,6 +451,11 @@ class Link(device_resident.DeviceResident):
             if isinstance(x, chainer.get_array_types()):
                 d[name] = visitor.visit_array(x)
 
+    def _to_device_if_consistent(self, device):
+        current_device = self.device
+        if all(p.device == current_device for p in self.params()):
+            self.to_device(device)
+
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
         """Returns a generator of all parameters under the link hierarchy.
