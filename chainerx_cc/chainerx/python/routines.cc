@@ -273,7 +273,8 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("num") = 50,
           py::arg("endpoint") = true,
           py::arg("dtype") = nullptr,
-py::arg("device") = nullptr);
+          py::arg("device") = nullptr);
+}
 
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
