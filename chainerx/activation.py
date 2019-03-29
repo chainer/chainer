@@ -16,4 +16,3 @@ Note:
 """
     # TODO(imanishi): The function should also be available to C++ users
     return chainerx.maximum(0, x)
-
