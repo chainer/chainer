@@ -229,7 +229,7 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
 
 def decorrelated_batch_normalization(x, **kwargs):
-    """decorrelated_batch_normalization(x, *, groups=16, eps2e-5,
+    """decorrelated_batch_normalization(x, *, groups=16, eps=2e-5, \
 running_mean=None, running_projection=None, decay=0.9)
 
     Decorrelated batch normalization function.
@@ -259,7 +259,7 @@ running_mean=None, running_projection=None, decay=0.9)
 
     See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
 
-    .. seealso:: :class:`links.DecorrelatedBatchNormalization`
+    .. seealso:: :class:`~chainer.links.DecorrelatedBatchNormalization`
 
     """
     groups, eps, running_mean, running_projection, decay = \
@@ -293,8 +293,8 @@ def fixed_decorrelated_batch_normalization(x, mean, projection, groups=16):
         :math:`x`.
 
     .. seealso::
-       :func:`functions.decorrelated_batch_normalization`,
-       :class:`links.DecorrelatedBatchNormalization`
+       :func:`~chainer.functions.decorrelated_batch_normalization`,
+       :class:`~chainer.links.DecorrelatedBatchNormalization`
 
     """
     f = FixedDecorrelatedBatchNormalization(groups)
