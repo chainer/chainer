@@ -455,6 +455,11 @@ class Link(device_resident.DeviceResident):
         current_device = self.device
         if all(p.device == current_device for p in self.params()):
             self.to_device(device)
+        else:
+            warnings.warn(
+                'Skipping Link.to_device because the link has multiple '
+                'devices',
+                RuntimeWarning)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
