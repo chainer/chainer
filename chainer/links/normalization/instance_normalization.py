@@ -55,7 +55,7 @@ convolution functions.
         gamma (:class:`~chainer.Variable`): Scaling parameter.
         beta (:class:`~chainer.Variable`): Shifting parameter.
         avg_mean (:ref:`ndarray`): Population mean.
-        avg_var (:ref:`ndarray): Population variance.
+        avg_var (:ref:`ndarray`): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
