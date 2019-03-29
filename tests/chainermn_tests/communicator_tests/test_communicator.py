@@ -295,7 +295,7 @@ def check_bcast_data(communicator, model):
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
-def check_allreduce_grad(communicator, model, comm_prec=None):
+def check_allreduce_grad(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
