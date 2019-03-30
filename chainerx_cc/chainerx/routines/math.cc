@@ -610,7 +610,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([x1, x2 = x2.AsGradStopped(), not_mask](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx. input_grad() = gout * not_mask.AsType(gout.dtype());
+                bctx.input_grad() = gout * not_mask.AsType(gout.dtype());
             });
         }
         bb.Finalize();
@@ -621,9 +621,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
 
 namespace {
 
-void MinimumImpl(const Array& x1, const Array& x2, const Array& out) {
-    IfGreaterElseImpl(x1, x2, x2, x1, out);
-}
+void MinimumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x2, x1, out); }
 
 }  // namespace
 
