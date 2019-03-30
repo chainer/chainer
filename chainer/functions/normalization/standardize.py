@@ -80,7 +80,7 @@ def standardize(x, eps=1e-5):
 
 
     Args:
-        x (~chainer.Variable): Weight vectors.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Weight vectors.
             e.g., the input of :func:`~chainer.functions.convolution_2d`.
 
 
