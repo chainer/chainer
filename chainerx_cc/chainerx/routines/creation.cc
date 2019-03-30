@@ -365,11 +365,10 @@ void MeshgridBackward(const std::vector<Array>& inputs, const std::vector<Array>
 
     BackwardBuilder bb{"meshgrid", in_refs, out_refs};
     if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-        bt.Define([shapes = std::move(shapes), kind, dtype = inputs[0].dtype(), &device = inputs[0].device()](
-                BackwardContext & bctx) {
+        bt.Define([shapes = std::move(shapes), kind, dtype = inputs[0].dtype(), &device = inputs[0].device()](BackwardContext& bctx) {
             int64_t ndims = bctx.input_count();
 
-            auto get_axis = [ndims, kind = std::move(kind)](int64_t dim) {
+            auto get_axis = [ndims, kind](int64_t dim) {
                 // Handle "XY" case
                 if (kind == "xy" && dim == 0) {
                     dim = 1;
