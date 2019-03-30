@@ -37,7 +37,7 @@ class Standardize(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, = inputs
         x_mu, var, inv_std, x_hat = self._compute(xp, x)
         return x_hat,
