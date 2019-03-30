@@ -189,7 +189,6 @@ class TweakLink(link_hook.LinkHook):
         pass
 
     def forward_preprocess(self, cb_args):
-        # type: (_ForwardPreprocessCallbackArgs) -> None
         """Callback function invoked before a forward call of a link.
 
         Basically, this function does not need to be overridden.
@@ -217,7 +216,6 @@ class TweakLink(link_hook.LinkHook):
         setattr(cb_args.link, self.target_name, adjusted_target)
 
     def forward_postprocess(self, cb_args):
-        # type: (_ForwardPostprocessCallbackArgs) -> None
         """Callback function invoked after a forward call of a link.
 
         This method also does not need to be overridden like
@@ -242,7 +240,6 @@ class TweakLink(link_hook.LinkHook):
         setattr(cb_args.link, self.target_name, self.original_target)
 
     def adjust_target(self, cb_args):
-        # type: (_ForwardPreprocessCallbackArgs) -> 'chainer.variable.Variable'  # NOQA
         """Adjust the target.
 
         This method implements the processing you want to apply to the link.
@@ -258,11 +255,13 @@ class TweakLink(link_hook.LinkHook):
                     Non-keyword arguments given to the forward method.
                 * kwargs (:class:`dict`)
                     Keyword arguments given to the forward method.
+
+        Returns:
+            ~chainer.Variable: Adjusted :class:`~chainer.Parameter`.
         """
         raise NotImplementedError()
 
     def initialize_link(self, cb_args):
-        # type: (_ForwardPreprocessCallbackArgs) -> 'chainer.variable.Variable'  # NOQA
         """Initialize the link if it is not in its declaration."""
         link = cb_args.link
         inputs = cb_args.args
