@@ -36,6 +36,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/misc.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
+    cuda_device/trigonometric.cu
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc
