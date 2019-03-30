@@ -829,7 +829,7 @@ Array Arccos(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = - gout / (Sqrt(1 - inp * inp));
+            bctx.input_grad() = -gout / (Sqrt(1 - inp * inp));
         });
     }
     bb.Finalize();
@@ -851,7 +851,7 @@ Array Arctan(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = - gout / (1 + inp * inp);
+            bctx.input_grad() = -gout / (1 + inp * inp);
         });
     }
     bb.Finalize();

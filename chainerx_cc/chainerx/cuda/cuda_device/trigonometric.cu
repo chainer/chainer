@@ -65,9 +65,9 @@ struct ArccosImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Arccos(x); }
 };
-    
+
 }  // namespace
-    
+
 void CudaDevice::Arccos(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
@@ -87,7 +87,7 @@ struct ArctanImpl {
 };
 
 }  // namespace
-    
+
 void CudaDevice::Arctan(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
