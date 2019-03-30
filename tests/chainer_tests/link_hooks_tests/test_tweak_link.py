@@ -21,7 +21,7 @@ class SampleParamAddition(link_hooks.TweakLink):
     def adjust_target(self, cb_args):
         return getattr(cb_args.link, self.target_name)
 
-    def prepare_params(self, link):
+    def prepare_parameters(self, link):
         with link.init_scope():
             link.p = chainer.Parameter(
                 numpy.random.uniform(-1, 1, SHAPE).astype(DTYPE))
@@ -80,6 +80,7 @@ class TestSampleParamAddition(unittest.TestCase):
         with chainer.using_config('train', False):
             y1 = layer(x).array
 
+        assert getattr(layer, 'p', None) is not None
         assert layer.p.shape == SHAPE
         assert layer.p.dtype == DTYPE
 
