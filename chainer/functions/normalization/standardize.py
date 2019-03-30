@@ -1,5 +1,6 @@
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
