@@ -75,7 +75,7 @@ def standardize(x, eps=1e-5):
     <https://arxiv.org/abs/1903.10520>`_.
 
     This function implements a "weight standardization"
-    which standardize the input weights by statistics
+    which standardizes the input weights by statistics
     that are computed except the first axis.
 
 
