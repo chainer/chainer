@@ -770,6 +770,95 @@ Array Cos(const Array& x) {
     return out;
 }
 
+Array Tan(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Tan(x, out);
+    }
+
+    BackwardBuilder bb{"tan", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            const Array& out = Cos(inp);
+            bctx.input_grad() = gout / (out * out);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arcsin(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arcsin(x, out);
+    }
+
+    BackwardBuilder bb{"arcsin", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout / (Sqrt(1 - inp * inp));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arccos(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arccos(x, out);
+    }
+
+    BackwardBuilder bb{"arccos", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = - gout / (Sqrt(1 - inp * inp));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arctan(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arctan(x, out);
+    }
+
+    BackwardBuilder bb{"arctan", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = - gout / (1 + inp * inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
