@@ -1,3 +1,4 @@
+#include "chainerx/routines/logic.h"
 #include "chainerx/routines/math.h"
 
 #include <cstdint>
@@ -589,62 +590,32 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 namespace {
 
-Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg) {
+Array IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
-    Array out = EmptyLike(x1, x1.device());
+    Array mask = Greater(x1, x2);
+    Array not_mask = LogicalNot(mask);
     {
         NoBackpropModeScope scope{};
         x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
     }
-
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+            bt.Define([x1 = x1.AsGradStopped(), x2, mask](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfGreaterElse(x1, x2, gout, ZerosLike(gout, gout.device()));
+                bctx.input_grad() = gout * mask.AsType(gout.dtype());
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x1, x2 = x2.AsGradStopped()](BackwardContext& bctx) {
+            bt.Define([x1, x2 = x2.AsGradStopped(), not_mask](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfGreaterElse(x1, x2, ZerosLike(gout, gout.device()), gout);
+                bctx. input_grad() = gout * not_mask.AsType(gout.dtype());
             });
         }
         bb.Finalize();
 
         return out;
-    }
-}
-
-} // namespace
-
-namespace {
-
-void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
-    CheckEqual(x1.dtype(), x2.dtype());
-    CheckEqual(x1.shape(), x2.shape());
-    {
-        NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
-    }
-
-    {
-        BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1, x2 = x2.AsGradStopped()](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfGreaterElse(x1, x2, gout, ZerosLike(gout, gout.device()));
-            });
-        }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfGreaterElse(x1, x2, ZerosLike(gout, gout.device()), gout);
-            });
-        }
-        bb.Finalize();
     }
 }
 
