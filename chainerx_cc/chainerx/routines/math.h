@@ -93,6 +93,8 @@ Array LogSumExp(const Array& x, const OptionalAxes& axis = nonstd::nullopt, bool
 // If no axes are specified, the softmax is applied on the second axis.
 Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
+Array Sigmoid(const Array& x);
+
 Array Square(const Array& x);
 
 Array Sqrt(const Array& x);
