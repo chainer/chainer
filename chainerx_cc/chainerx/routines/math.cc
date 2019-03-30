@@ -590,7 +590,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 namespace {
 
-Array IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
     Array mask = Greater(x1, x2);
@@ -614,8 +614,6 @@ Array IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, cons
             });
         }
         bb.Finalize();
-
-        return out;
     }
 }
 
@@ -642,7 +640,11 @@ Array Minimum(const Array& x1, Scalar x2) {
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
-    return BroadcastBinary(&MinimumImpl, x1, x2);  // x1 > x2 ? x2 : x1
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    if (GetKind(dtype) != DtypeKind::kFloat) {
+        dtype = internal::GetDefaultDtype(DtypeKind::kFloat);
+    }
+    return BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
 Array Exp(const Array& x) {
