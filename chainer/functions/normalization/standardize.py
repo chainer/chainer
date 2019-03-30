@@ -1,3 +1,4 @@
+import numpy
 import six
 
 from chainer import backend
@@ -31,8 +32,13 @@ class Standardize(function_node.FunctionNode):
         x_mu = x - mu
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=axes, keepdims=True)
-        std = xp.sqrt(var + self.eps)
-        inv_std = 1. / std
+        if xp is numpy:
+            std = numpy.sqrt(var + self.eps, dtype=x.dtype)
+            inv_std = 1. / std
+        elif xp is cuda.cupy:
+            inv_std = cuda.cupyx.rsqrt(var + self.eps, dtype=x.dtype)
+        else:
+            inv_std = xp.rsqrt(var + self.eps)
         x_hat = x_mu * inv_std
         return x_mu, var, inv_std, x_hat
 
