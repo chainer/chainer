@@ -8,7 +8,7 @@ from chainer import variable
 class WeightStandardization(link_hook.LinkHook):
     """Weight Standardization link hook implementation.
 
-    This hook standardize a weight by *weight statistics*.
+    This hook standardizes a weight by *weight statistics*.
 
     See: Siyuan Qiao et. al., `Weight Standardization
     <https://arxiv.org/abs/1903.10520>`_
