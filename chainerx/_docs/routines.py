@@ -1051,6 +1051,78 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.tan,
+        """tan(x)
+Tangent, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\tan x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.tan`
+""")
+
+    _docs.set_doc(
+        chainerx.arcsin,
+        """arcsin(x)
+Inverse sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arcsin x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arcsin`
+""")
+
+    _docs.set_doc(
+        chainerx.arccos,
+        """arccos(x)
+Trigonometric inverse cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arccos x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arccos`
+""")
+
+    _docs.set_doc(
+        chainerx.arctan,
+        """arctan(x)
+Trigonometric inverse tangent, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arctan x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arctan`
+""")
+
+    _docs.set_doc(
         chainerx.isnan,
         """isnan(x)
 Test element-wise for NaN and return result as a boolean array.
