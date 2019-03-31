@@ -203,6 +203,8 @@ public:
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;
 
+    virtual void Floor(const Array& x, const Array& out) = 0;
+
     // Creates the identity array.
     // out must be a square 2-dim array.
     virtual void Identity(const Array& out) = 0;

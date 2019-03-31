@@ -160,4 +160,6 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
+Array Floor(const Array& x);
+
 }  // namespace chainerx
