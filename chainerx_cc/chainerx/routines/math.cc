@@ -907,6 +907,27 @@ Array Arctan(const Array& x) {
     return out;
 }
 
+Array Ceil(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Ceil(x, out);
+    }
+
+    BackwardBuilder bb{"ceil", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = ZerosLike(gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
