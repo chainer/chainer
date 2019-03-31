@@ -108,7 +108,7 @@ class SpectralNormalization(link_hook.LinkHook):
     Args:
         n_power_iteration (int): Number of power iteration.
             The default value is 1.
-        eps (int): Numerical stability in norm calculation.
+        eps (float): Numerical stability in norm calculation.
             The default value is 1e-12.
         use_gamma (bool): If ``True``, weight scaling parameter gamma which is
             initialized by initial weight's max singular value is introduced.
