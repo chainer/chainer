@@ -1,9 +1,7 @@
-from chainer import backend
-from chainer import configuration
 import chainer.functions as F
 from chainer import link_hook
 import chainer.links as L
-from chainer import variable
+
 
 class WeightStandardization(link_hook.LinkHook):
     """Weight Standardization link hook implementation.
