@@ -24,7 +24,7 @@ from chainer import testing
     })
     # ChainerX tests
     + testing.product({
-        'use_cuainerx': [True],
+        'use_chainerx': [True],
         'chainerx_device': ['native:0', 'cuda:0'],
     })
 )
