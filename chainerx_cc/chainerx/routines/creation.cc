@@ -1,10 +1,16 @@
 #include "chainerx/routines/creation.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <istream>
+#include <limits>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -69,6 +75,216 @@ Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepd
     return Empty(out_shape, dtype, out_strides, device);
 }
 
+void Strip(std::string& s) {
+    const size_t original_size = s.size();
+    size_t num_spaces_begin = 0, num_spaces_end = 0;
+    for (int i = static_cast<int>(s.size()) - 1; i >= 0; i--) {
+        if (s[i] == '\0' || std::isspace(s[i]))
+            num_spaces_end++;
+        else
+            break;
+    }
+
+    for (int i = 0; i < static_cast<int>(s.size() - num_spaces_end); i++) {
+        if (s[i] == '\0' || std::isspace(s[i]))
+            num_spaces_begin++;
+        else
+            break;
+    }
+
+    s.erase(0, num_spaces_begin);
+    s.erase(original_size - num_spaces_begin - num_spaces_end, num_spaces_end);
+}
+
+bool ParseBoolRepr(const std::string& bool_repr) {
+    std::string bool_repr_lower;
+    bool_repr_lower.resize(bool_repr.size());
+    std::transform(bool_repr.begin(), bool_repr.end(), bool_repr_lower.begin(), tolower);
+
+    Strip(bool_repr_lower);
+
+    if (bool_repr_lower == "true" || bool_repr_lower == "t") return true;
+    if (bool_repr_lower == "false" || bool_repr_lower == "f") return false;
+
+    throw ChainerxError{
+            ("Invalid bool representation, expecting case insensite choice of "
+             "(true, t, false, f).")};
+}
+
+template <typename T>
+T ParseSpecialFloat(const std::string& value) {
+    std::string v = value;
+    std::transform(v.begin(), v.end(), v.begin(), tolower);
+    Strip(v);
+
+    if (v == "inf" || v == "infinity") return std::numeric_limits<T>::infinity();
+    if (v == "-inf" || v == "-infinity") return -std::numeric_limits<T>::infinity();
+    if (v == "nan") return std::numeric_limits<T>::quiet_NaN();
+
+    throw ChainerxError{"Invalid special floating-point value."};
+}
+
+template <typename T>
+T ParseFloating(const std::string& value) {
+    std::istringstream iss(value);
+    T parsed;
+    if (!(iss >> parsed)) parsed = ParseSpecialFloat<T>(value);
+    return parsed;
+}
+
+template <typename T>
+T ParseIntegral(const std::string& value) {
+    std::istringstream iss(value);
+    T parsed;
+    if (!(iss >> parsed)) throw ChainerxError{"Can't parse the text element."};
+    return parsed;
+}
+
+template <typename T>
+std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const char delimiter) {
+    std::string element;
+    std::shared_ptr<T[]> data;
+    if (count >= 0) {
+        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        for (int64_t i = 0; i < count; i++) {
+            if (!std::getline(is, element, delimiter)) throw ChainerxError("Can't read the provided number of elements.");
+            data.get()[i] = (std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element);
+        }
+    } else {
+        std::vector<T> data_vector;
+        int64_t i = 0;
+        while (std::getline(is, element, delimiter)) {
+            data_vector.resize(data_vector.size() + 1);
+            data_vector[i++] = (std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element);
+        }
+
+        count = i;
+        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
+    }
+
+    return std::static_pointer_cast<void>(data);
+}
+
+template <>
+std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count, const char delimiter) {
+    std::string element;
+    std::shared_ptr<bool[]> data;
+    if (count >= 0) {
+        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        for (int64_t i = 0; i < count; i++) {
+            if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
+            data.get()[i] = ParseBoolRepr(element);
+        }
+    } else {
+        std::vector<bool> data_vector;
+        int64_t i = 0;
+        while (std::getline(is, element, delimiter)) {
+            data_vector.push_back(ParseBoolRepr(element));
+            i++;
+        }
+
+        count = i;
+        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        for (size_t j = 0; j < data_vector.size(); j++) {
+            data.get()[j] = data_vector[j];
+        }
+    }
+
+    return std::static_pointer_cast<void>(data);
+}
+
+template <>
+std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& count, const char delimiter) {
+    std::string element;
+    float element_float;
+    std::shared_ptr<uint16_t[]> data;
+    if (count >= 0) {
+        data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
+        for (int64_t i = 0; i < count; i++) {
+            if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
+            element_float = ParseFloating<float>(element);
+            Float16 element_float16{element_float};
+            data.get()[i] = element_float16.data();
+        }
+    } else {
+        std::vector<uint16_t> data_vector;
+        int64_t i = 0;
+        while (std::getline(is, element, delimiter)) {
+            element_float = ParseFloating<float>(element);
+            Float16 element_float16{element_float};
+            data_vector.push_back(element_float16.data());
+            i++;
+        }
+
+        count = i;
+        data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
+        std::memcpy(data.get(), data_vector.data(), sizeof(uint16_t) * count);
+    }
+
+    return std::static_pointer_cast<void>(data);
+}
+
+template <typename T>
+std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
+    T element;
+    std::shared_ptr<T[]> data;
+    if (count >= 0) {
+        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        for (int64_t i = 0; i < count; i++) {
+            if (!is.read(reinterpret_cast<char*>(&element), sizeof(T))) throw ChainerxError{"Can't read the provided number of elements."};
+            data.get()[i] = element;
+        }
+    } else {
+        std::vector<T> data_vector;
+        int64_t i = 0;
+        while (is.read(reinterpret_cast<char*>(&element), sizeof(T))) {
+            data_vector.resize(data_vector.size() + 1);
+            data_vector[i++] = element;
+        }
+
+        count = i;
+        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
+    }
+
+    return std::static_pointer_cast<void>(data);
+}
+
+template <>
+std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& count) {
+    uint8_t element;
+    std::shared_ptr<bool[]> data;
+    if (count >= 0) {
+        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        for (int64_t i = 0; i < count; i++) {
+            if (!is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t)))
+                throw ChainerxError{"Can't read the provided number of elements."};
+            data.get()[i] = element;
+        }
+    } else {
+        std::vector<bool> data_vector;
+        int64_t i = 0;
+        while (is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t))) {
+            data_vector.push_back(static_cast<bool>(element));
+            i++;
+        }
+
+        count = i;
+        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        for (size_t j = 0; j < data_vector.size(); j++) {
+            data.get()[j] = data_vector[j];
+        }
+    }
+
+    return std::static_pointer_cast<void>(data);
+}
+
+template <>
+std::shared_ptr<void> ReadFromBinaryStream<Float16>(std::istream& is, int64_t& count) {
+    return ReadFromBinaryStream<uint16_t>(is, count);
+}
+
 }  // namespace internal
 
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
@@ -84,6 +300,35 @@ Array FromData(
         Device& device) {
     return internal::MakeArray(
             shape, strides.value_or(Strides{shape, dtype}), dtype, device, device.MakeDataFromForeignPointer(data), offset);
+}
+
+Array FromFile(const std::string& filename, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+    std::ifstream::openmode mode = std::ios::in;
+    if (!delimiter.has_value()) mode |= std::ios::binary;
+
+    std::ifstream file{filename, mode};
+    Array x = FromStream(file, dtype, count, delimiter, device);
+    file.close();
+
+    return x;
+}
+
+Array FromString(const std::string& data, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+    std::stringstream::openmode mode = std::ios::in;
+    if (!delimiter.has_value()) mode |= std::ios::binary;
+
+    std::stringstream ss(data);
+    return FromStream(ss, dtype, count, delimiter, device);
+}
+
+Array FromStream(std::istream& is, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+    std::shared_ptr<void> data = VisitDtype(dtype, [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        if (delimiter.has_value()) return internal::ReadFromTextStream<T>(is, count, *delimiter);
+        return internal::ReadFromBinaryStream<T>(is, count);
+    });
+
+    return FromData({count}, dtype, data, nonstd::nullopt, 0, device);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {

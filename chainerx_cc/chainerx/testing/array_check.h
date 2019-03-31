@@ -11,6 +11,7 @@
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
+#include "chainerx/float16.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/native/data_type.h"
@@ -95,6 +96,46 @@ void ExpectDataEqual(Container&& expected_data, const Array& actual) {
         T actual_value = actual_iarray[it];
         int64_t i = it.raw_index();
         EXPECT_EQ(expected_data[i], actual_value) << "where i is " << i;
+    }
+}
+
+template <typename T, typename Container>
+void ExpectDataClose(Container&& expected_data, const Array& actual, const double atol = 1e-8) {
+    Array native_actual = actual.ToNative();
+    IndexableArray<const T> actual_iarray{native_actual};
+    Indexer<> indexer{actual.shape()};
+    for (auto it = indexer.It(0); it; ++it) {
+        T actual_value = actual_iarray[it];
+        int64_t i = it.raw_index();
+        if (IsNan(actual_value))
+            EXPECT_TRUE(IsNan(expected_data[i])) << "expected data: " << expected_data[i];
+        else if (IsInf(actual_value))
+            EXPECT_TRUE(IsInf(expected_data[i])) << "expected data: " << expected_data[i];
+        else if (IsInf(-actual_value))
+            EXPECT_TRUE(IsInf(-expected_data[i])) << "expected data: " << expected_data[i];
+        else
+            EXPECT_NEAR(expected_data[i], actual_value, atol) << "where i is " << i;
+    }
+}
+
+template <typename Container>
+void ExpectDataCloseFloat16(Container&& expected_data, const Array& actual, const double atol = 1e-1) {
+    Array native_actual = actual.ToNative();
+    IndexableArray<const int16_t> actual_iarray{native_actual};
+    Indexer<> indexer{actual.shape()};
+    for (auto it = indexer.It(0); it; ++it) {
+        int16_t raw_value = actual_iarray[it];
+        uint16_t* raw_ptr = reinterpret_cast<uint16_t*>(&raw_value);
+        Float16 actual_value = Float16::FromData(*raw_ptr);
+        int64_t i = it.raw_index();
+        if (IsNan(actual_value))
+            EXPECT_TRUE(IsNan(expected_data[i])) << "expected data: " << expected_data[i];
+        else if (IsInf(actual_value))
+            EXPECT_TRUE(IsInf(expected_data[i])) << "expected data: " << expected_data[i];
+        else if (IsInf(-actual_value))
+            EXPECT_TRUE(IsInf(-expected_data[i])) << "expected data: " << expected_data[i];
+        else
+            EXPECT_NEAR(expected_data[i], static_cast<double>(actual_value), atol) << "where i is " << i;
     }
 }
 

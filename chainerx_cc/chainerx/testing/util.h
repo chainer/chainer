@@ -38,6 +38,8 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num);
 
 bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num);
 
+bool IsLittleEndian();
+
 }  // namespace testing_internal
 }  // namespace testing
 }  // namespace chainerx

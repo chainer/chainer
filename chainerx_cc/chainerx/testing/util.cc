@@ -100,6 +100,13 @@ bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) 
     return SkipIfDeviceUnavailable(Context{}.GetBackend(backend_name), required_num);
 }
 
+bool IsLittleEndian() {
+    const int32_t value = 1;
+    const uint8_t* addr = reinterpret_cast<const uint8_t*>(&value);
+    const uint8_t first_byte = *addr;
+    return first_byte == 1;
+}
+
 }  // namespace testing_internal
 }  // namespace testing
 }  // namespace chainerx
