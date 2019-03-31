@@ -314,7 +314,7 @@ Array FromString(const std::string& data, Dtype dtype, int64_t count, nonstd::op
     std::stringstream::openmode mode = std::ios::in;
     if (!delimiter.has_value()) mode |= std::ios::binary;
 
-    std::stringstream ss(data);
+    std::stringstream ss{data, mode};
     return FromStream(ss, dtype, count, delimiter, device);
 }
 
