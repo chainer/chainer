@@ -1679,7 +1679,7 @@ class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
-        'input': [-1, 0, 1],
+        'input': [-0.75, 0, 0.75],
         'contiguous': [None, 'C'],
     })
     # Special values
@@ -1703,7 +1703,7 @@ class TestArcsin(UnaryMathTestBase, op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
-        'input': [-1, 0, 1],
+        'input': [-0.75, 0, 0.75],
         'contiguous': [None, 'C'],
     })
     # Special values
