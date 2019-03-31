@@ -1123,6 +1123,17 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.floor,
+        """floor(x)
+Return the floor of the input, element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The floor of each element in array.
+.. seealso:: :data:`numpy.floor`
+""")
+
+    _docs.set_doc(
         chainerx.isnan,
         """isnan(x)
 Test element-wise for NaN and return result as a boolean array.
