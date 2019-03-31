@@ -1893,6 +1893,30 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.arctan(a)
 
 
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0.5),
+    numpy.asarray(-1.2),
+    numpy.asarray(10.9),
+    numpy.asarray(float('inf')),
+    numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')),
+    numpy.full((), 2.1),
+    numpy.full((0,), 2),
+    numpy.full((2, 3), 2.6),
+    numpy.full((1, 1), 1.01),
+    numpy.full((1, 1), 1.99),
+])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
+def test_ceil(xp, device, input, dtypes):
+    (in_dtype, ), out_dtype = dtypes
+    a = xp.array(input.astype(in_dtype))
+    a = xp.ceil(a)
+    a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
+    return a
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
