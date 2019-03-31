@@ -51,7 +51,8 @@ class TestStandardize(testing.FunctionTestCase):
         mean = numpy.mean(x, axis=1, keepdims=True)
         var = numpy.mean(numpy.square(x - mean), axis=1, keepdims=True)
         std = numpy.sqrt(var + self.eps, dtype=self.dtype)
-        return (x - mean) / std,
+        inv_std = 1. / std
+        return (x - mean) * inv_std,
 
 
 testing.run_module(__name__, __file__)
