@@ -145,6 +145,8 @@ public:
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
 
+    void Floor(const Array& x, const Array& out) override;
+
     // conv.cc
 
     Array Conv(
