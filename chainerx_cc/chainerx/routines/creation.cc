@@ -146,7 +146,7 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
     std::shared_ptr<T[]> data;
     if (count >= 0) {
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
-        T *data_ptr = data.get();
+        T* data_ptr = data.get();
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError("Can't read the provided number of elements.");
             data_ptr[i] = (std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element);
@@ -173,7 +173,7 @@ std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count,
     std::shared_ptr<bool[]> data;
     if (count >= 0) {
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool *data_ptr = data.get();
+        bool* data_ptr = data.get();
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
             data_ptr[i] = ParseBoolRepr(element);
@@ -188,7 +188,7 @@ std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count,
 
         count = i;
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool *data_ptr = data.get();
+        bool* data_ptr = data.get();
         for (size_t j = 0; j < data_vector.size(); j++) {
             data_ptr[j] = data_vector[j];
         }
@@ -204,7 +204,7 @@ std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& cou
     std::shared_ptr<uint16_t[]> data;
     if (count >= 0) {
         data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
-        uint16_t *data_ptr = data.get();
+        uint16_t* data_ptr = data.get();
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
             element_float = ParseFloating<float>(element);
@@ -235,7 +235,7 @@ std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
     std::shared_ptr<T[]> data;
     if (count >= 0) {
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
-        T *data_ptr = data.get();
+        T* data_ptr = data.get();
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(T))) throw ChainerxError{"Can't read the provided number of elements."};
             data_ptr[i] = element;
@@ -262,7 +262,7 @@ std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& coun
     std::shared_ptr<bool[]> data;
     if (count >= 0) {
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool *data_ptr = data.get();
+        bool* data_ptr = data.get();
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t)))
                 throw ChainerxError{"Can't read the provided number of elements."};
@@ -278,7 +278,7 @@ std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& coun
 
         count = i;
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool *data_ptr = data.get();
+        bool* data_ptr = data.get();
         for (size_t j = 0; j < data_vector.size(); j++) {
             data_ptr[j] = data_vector[j];
         }
