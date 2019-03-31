@@ -143,9 +143,9 @@ T ParseIntegral(const std::string& value) {
 template <typename T>
 std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const char delimiter) {
     std::string element;
-    std::shared_ptr<T[]> data;
+    std::shared_ptr<T> data;
     if (count >= 0) {
-        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        data = std::shared_ptr<T>{new T[count], std::default_delete<T[]>{}};
         T* data_ptr = static_cast<T*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError("Can't read the provided number of elements.");
@@ -158,7 +158,7 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
         }
 
         count = static_cast<int64_t>(data_vector.size());
-        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        data = std::shared_ptr<T>{new T[count], std::default_delete<T[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
     }
 
@@ -168,9 +168,9 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
 template <>
 std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count, const char delimiter) {
     std::string element;
-    std::shared_ptr<bool[]> data;
+    std::shared_ptr<bool> data;
     if (count >= 0) {
-        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        data = std::shared_ptr<bool>{new bool[count], std::default_delete<bool[]>{}};
         bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
@@ -183,7 +183,7 @@ std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count,
         }
 
         count = static_cast<int64_t>(data_vector.size());
-        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        data = std::shared_ptr<bool>{new bool[count], std::default_delete<bool[]>{}};
         bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t j = 0; j < count; j++) {
             data_ptr[j] = data_vector[j];
@@ -197,9 +197,9 @@ template <>
 std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& count, const char delimiter) {
     std::string element;
     float element_float;
-    std::shared_ptr<uint16_t[]> data;
+    std::shared_ptr<uint16_t> data;
     if (count >= 0) {
-        data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
+        data = std::shared_ptr<uint16_t>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
         uint16_t* data_ptr = static_cast<uint16_t*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
@@ -216,7 +216,7 @@ std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& cou
         }
 
         count = static_cast<int64_t>(data_vector.size());
-        data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
+        data = std::shared_ptr<uint16_t>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(uint16_t) * count);
     }
 
@@ -226,9 +226,9 @@ std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& cou
 template <typename T>
 std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
     T element;
-    std::shared_ptr<T[]> data;
+    std::shared_ptr<T> data;
     if (count >= 0) {
-        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        data = std::shared_ptr<T>{new T[count], std::default_delete<T[]>{}};
         T* data_ptr = static_cast<T*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(T))) throw ChainerxError{"Can't read the provided number of elements."};
@@ -241,7 +241,7 @@ std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
         }
 
         count = static_cast<int64_t>(data_vector.size());
-        data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
+        data = std::shared_ptr<T>{new T[count], std::default_delete<T[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
     }
 
@@ -251,9 +251,9 @@ std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
 template <>
 std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& count) {
     uint8_t element;
-    std::shared_ptr<bool[]> data;
+    std::shared_ptr<bool> data;
     if (count >= 0) {
-        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        data = std::shared_ptr<bool>{new bool[count], std::default_delete<bool[]>{}};
         bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t)))
@@ -267,7 +267,7 @@ std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& coun
         }
 
         count = static_cast<int64_t>(data_vector.size());
-        data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
+        data = std::shared_ptr<bool>{new bool[count], std::default_delete<bool[]>{}};
         bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t j = 0; j < count; j++) {
             data_ptr[j] = data_vector[j];
