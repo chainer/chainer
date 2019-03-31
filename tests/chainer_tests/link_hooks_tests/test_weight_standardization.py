@@ -41,11 +41,6 @@ class BaseTest(object):
         if self.lazy_init:
             with chainer.using_config('train', False):
                 layer(self.x)
-        if not self.use_gamma:
-            assert not hasattr(layer, 'gamma')
-        else:  # Use gamma parameter
-            assert hasattr(layer, 'gamma')
-            assert layer.gamma.ndim == 0 and layer.gamma.size == 1
 
     def _init_layer(self):
         hook = WeightStandardization()
@@ -135,7 +130,7 @@ class TestLinear(unittest.TestCase, BaseTest):
 
 @testing.parameterize(*testing.product({
     'lazy_init': [True, False],
-    'link': [L.Convolution1D, L.Deconvolution1D],
+    'link': [L.Convolution1D],
 }))
 class TestConvolution1D(unittest.TestCase, BaseTest):
 
@@ -153,7 +148,7 @@ class TestConvolution1D(unittest.TestCase, BaseTest):
 
 @testing.parameterize(*testing.product({
     'lazy_init': [True, False],
-    'link': [L.Convolution2D, L.Deconvolution2D],
+    'link': [L.Convolution2D],
 }))
 class TestConvolution2D(unittest.TestCase, BaseTest):
 
@@ -171,7 +166,7 @@ class TestConvolution2D(unittest.TestCase, BaseTest):
 
 @testing.parameterize(*testing.product({
     'lazy_init': [True, False],
-    'link': [L.Convolution3D, L.Deconvolution3D],
+    'link': [L.Convolution3D],
 }))
 class TestConvolution3D(unittest.TestCase, BaseTest):
 
