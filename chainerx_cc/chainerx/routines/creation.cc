@@ -146,20 +146,18 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
     std::shared_ptr<T[]> data;
     if (count >= 0) {
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
-        T* data_ptr = data.get();
+        T* data_ptr = static_cast<T*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError("Can't read the provided number of elements.");
             data_ptr[i] = (std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element);
         }
     } else {
         std::vector<T> data_vector;
-        int64_t i = 0;
         while (std::getline(is, element, delimiter)) {
-            data_vector.resize(data_vector.size() + 1);
-            data_vector[i++] = (std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element);
+            data_vector.push_back((std::is_floating_point<T>::value) ? ParseFloating<T>(element) : ParseIntegral<T>(element));
         }
 
-        count = i;
+        count = static_cast<int64_t>(data_vector.size());
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
     }
@@ -173,23 +171,21 @@ std::shared_ptr<void> ReadFromTextStream<bool>(std::istream& is, int64_t& count,
     std::shared_ptr<bool[]> data;
     if (count >= 0) {
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool* data_ptr = data.get();
+        bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
             data_ptr[i] = ParseBoolRepr(element);
         }
     } else {
         std::vector<bool> data_vector;
-        int64_t i = 0;
         while (std::getline(is, element, delimiter)) {
             data_vector.push_back(ParseBoolRepr(element));
-            i++;
         }
 
-        count = i;
+        count = static_cast<int64_t>(data_vector.size());
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool* data_ptr = data.get();
-        for (size_t j = 0; j < data_vector.size(); j++) {
+        bool* data_ptr = static_cast<bool*>(data.get());
+        for (int64_t j = 0; j < count; j++) {
             data_ptr[j] = data_vector[j];
         }
     }
@@ -204,7 +200,7 @@ std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& cou
     std::shared_ptr<uint16_t[]> data;
     if (count >= 0) {
         data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
-        uint16_t* data_ptr = data.get();
+        uint16_t* data_ptr = static_cast<uint16_t*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read the provided number of elements."};
             element_float = ParseFloating<float>(element);
@@ -213,15 +209,13 @@ std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& cou
         }
     } else {
         std::vector<uint16_t> data_vector;
-        int64_t i = 0;
         while (std::getline(is, element, delimiter)) {
             element_float = ParseFloating<float>(element);
             Float16 element_float16{element_float};
             data_vector.push_back(element_float16.data());
-            i++;
         }
 
-        count = i;
+        count = static_cast<int64_t>(data_vector.size());
         data = std::shared_ptr<uint16_t[]>{new uint16_t[count], std::default_delete<uint16_t[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(uint16_t) * count);
     }
@@ -235,20 +229,18 @@ std::shared_ptr<void> ReadFromBinaryStream(std::istream& is, int64_t& count) {
     std::shared_ptr<T[]> data;
     if (count >= 0) {
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
-        T* data_ptr = data.get();
+        T* data_ptr = static_cast<T*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(T))) throw ChainerxError{"Can't read the provided number of elements."};
             data_ptr[i] = element;
         }
     } else {
         std::vector<T> data_vector;
-        int64_t i = 0;
         while (is.read(reinterpret_cast<char*>(&element), sizeof(T))) {
-            data_vector.resize(data_vector.size() + 1);
-            data_vector[i++] = element;
+            data_vector.push_back(element);
         }
 
-        count = i;
+        count = static_cast<int64_t>(data_vector.size());
         data = std::shared_ptr<T[]>{new T[count], std::default_delete<T[]>{}};
         std::memcpy(data.get(), data_vector.data(), sizeof(T) * count);
     }
@@ -262,7 +254,7 @@ std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& coun
     std::shared_ptr<bool[]> data;
     if (count >= 0) {
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool* data_ptr = data.get();
+        bool* data_ptr = static_cast<bool*>(data.get());
         for (int64_t i = 0; i < count; i++) {
             if (!is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t)))
                 throw ChainerxError{"Can't read the provided number of elements."};
@@ -270,16 +262,14 @@ std::shared_ptr<void> ReadFromBinaryStream<bool>(std::istream& is, int64_t& coun
         }
     } else {
         std::vector<bool> data_vector;
-        int64_t i = 0;
         while (is.read(reinterpret_cast<char*>(&element), sizeof(uint8_t))) {
             data_vector.push_back(static_cast<bool>(element));
-            i++;
         }
 
-        count = i;
+        count = static_cast<int64_t>(data_vector.size());
         data = std::shared_ptr<bool[]>{new bool[count], std::default_delete<bool[]>{}};
-        bool* data_ptr = data.get();
-        for (size_t j = 0; j < data_vector.size(); j++) {
+        bool* data_ptr = static_cast<bool*>(data.get());
+        for (int64_t j = 0; j < count; j++) {
             data_ptr[j] = data_vector[j];
         }
     }
