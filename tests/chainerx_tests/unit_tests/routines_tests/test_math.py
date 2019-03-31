@@ -1731,20 +1731,26 @@ def test_max(is_module, xp, device, input, axis, dtype):
         return a.max(axis)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('x1_shape,x2_shape', [
-    ((3, 2), (3, 2)),
-    ((), ()),
-    ((3, 2), (3, 1)),
-    ((2,), (3, 2)),
-])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x1_shape,x2_shape', [
+                ((3, 2), (3, 2)),
+                ((), ()),
+                ((3, 2), (3, 1)),
+                ((2,), (3, 2)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', _in_out_dtypes_arithmetic)
+    ])
+))
 class TestMinimum(op_utils.ChainerOpTest):
 
-    def setup(self, float_dtype):
+    def setup(self, dtype):
 
-        self.dtype = float_dtype
+        x1_dtype, x2_dtype = self.in_dtypes
 
-        if float_dtype == 'float16':
+        if (x1_dtype == 'float16' or x2_dtype == 'float16'):
             self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 3e-3, 'atol': 3e-3})
@@ -1752,8 +1758,10 @@ class TestMinimum(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x1_shape = self.x1_shape
         x2_shape = self.x2_shape
-        x1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
-        x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+        x1_dtype = self.x1_dtype
+        x2_dtype = self.x2_dtype
+        x1 = numpy.random.uniform(-1, 1, x1_shape).astype(x1_dtype)
+        x2 = numpy.random.uniform(-1, 1, x2_shape).astype(x2_dtype)
         return x1, x2
 
     def forward_chainerx(self, inputs):
@@ -1765,3 +1773,14 @@ class TestMinimum(op_utils.ChainerOpTest):
         x1, x2 = inputs
         y = chainer.functions.minimum(x1, x2)
         return y,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_minimum_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (3, 2)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.minimum(a, b)

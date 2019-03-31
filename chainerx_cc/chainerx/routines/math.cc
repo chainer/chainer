@@ -591,7 +591,6 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 namespace {
 
 void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
-    CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
     Array mask = Greater(x1, x2);
     Array not_mask = LogicalNot(mask);
@@ -602,15 +601,15 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1 = x1.AsGradStopped(), x2, mask](BackwardContext& bctx) {
+            bt.Define([mask = std::move(mask)](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * mask.AsType(gout.dtype());
+                bctx.input_grad() = gout * mask;
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x1, x2 = x2.AsGradStopped(), not_mask](BackwardContext& bctx) {
+            bt.Define([not_mask = std::move(not_mask)](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * not_mask.AsType(gout.dtype());
+                bctx.input_grad() = gout * not_mask;
             });
         }
         bb.Finalize();
@@ -639,9 +638,6 @@ Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
     Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    if (GetKind(dtype) != DtypeKind::kFloat) {
-        dtype = internal::GetDefaultDtype(DtypeKind::kFloat);
-    }
     return BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
