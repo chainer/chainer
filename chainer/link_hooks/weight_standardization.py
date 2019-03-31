@@ -1,6 +1,5 @@
 import chainer.functions as F
 from chainer import link_hook
-import chainer.links as L
 
 
 class WeightStandardization(link_hook.LinkHook):
