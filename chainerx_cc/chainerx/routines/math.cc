@@ -770,7 +770,6 @@ Array Cos(const Array& x) {
     return out;
 }
 
-
 Array Absolute(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
