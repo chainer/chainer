@@ -45,7 +45,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.batched_copy = batched_copy
         self.grad_dtype_to_allreduce_dtype_kernel = None
         self.allreduce_dtype_to_grad_dtype_kernel = None
-        self.div_by_size = None
         self.params_data = None
 
     def _init_comms(self):
@@ -168,12 +167,11 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.nccl_comm.allReduce(gpu_buffer_a.ptr(),
                                  gpu_buffer_b.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
-        if self.div_by_size is None:
-            self.div_by_size = chainer.cuda.cupy.ElementwiseKernel(
-                '{} x'.format(dtype.name),
-                '{} y'.format(dtype.name),
-                'y = x*(1.0/{})'.format(self.size), 'div_by_size')
-        self.div_by_size(
+        div_by_size = chainer.cuda.cupy.ElementwiseKernel(
+            '{} x'.format(dtype.name),
+            '{} y'.format(dtype.name),
+            'y = x*(1.0/{})'.format(self.size), 'div_by_size')
+        div_by_size(
             gpu_buffer_b.array(n_elems, dtype=dtype),
             gpu_buffer_a.array(n_elems, dtype=dtype),
             stream=stream)
@@ -251,7 +249,7 @@ def _batched_unpack_params(params_data, buffer, dtype):
 
 def _cupy_batched_pack_params():
     return chainer.cuda.cupy.RawKernel(r'''
-#include <cuda_fp16.h>
+#include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
     extern "C" __global__
@@ -304,7 +302,7 @@ def _cupy_batched_pack_params():
 
 def _cupy_batched_unpack_params():
     return chainer.cuda.cupy.RawKernel(r'''
-#include <cuda_fp16.h>
+#include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
     extern "C" __global__
