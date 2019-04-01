@@ -11,7 +11,7 @@ class WeightStandardization(link_hook.LinkHook):
     <https://arxiv.org/abs/1903.10520>`_
 
     Args:
-    eps (int): Numerical stability in standard deviation calculation.
+    eps (float): Numerical stability in standard deviation calculation.
         The default value is 1e-5.
     weight_name (str): Link's weight name to appky this hook. The default
         value is ``'W'``.
