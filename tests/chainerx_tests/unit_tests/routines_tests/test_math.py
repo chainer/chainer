@@ -1332,6 +1332,46 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
         'skip_double_backward_test': [True],
     })
 ))
+class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_scalar_rhs:
+            return xp.minimum(a, scalar)
+        else:
+            return xp.minimum(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [0, 1],
+        'is_scalar_rhs': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 2, 3, 2, 3, 4])],
+        'scalar_value': [0, 1, 2, 3, 4, 5],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+    # Special float values
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': (
+            _in_out_dtypes_float_arithmetic_scalar),
+        # TODO(imanishi): Add test for NaN.
+        'input': [numpy.array([0, float('inf'), -float('inf')])],
+        'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
 class TestMaximumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
