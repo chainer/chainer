@@ -121,6 +121,7 @@ is necessary. Please uninstall the old ChainerMN in advance.
 # Currently cupy provides source package (cupy) and binary wheel packages
 # (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
+    'cupy-cuda101',
     'cupy-cuda100',
     'cupy-cuda92',
     'cupy-cuda91',
