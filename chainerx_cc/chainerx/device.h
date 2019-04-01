@@ -138,8 +138,6 @@ public:
 
     virtual void Arange(Scalar start, Scalar step, const Array& out) = 0;
 
-    virtual void ArgMax(const Array& a, const Axes& axis, const Array& out) = 0;
-
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that
@@ -197,6 +195,14 @@ public:
     virtual void Sin(const Array& x, const Array& out) = 0;
 
     virtual void Cos(const Array& x, const Array& out) = 0;
+
+    virtual void Tan(const Array& x, const Array& out) = 0;
+
+    virtual void Arcsin(const Array& x, const Array& out) = 0;
+
+    virtual void Arccos(const Array& x, const Array& out) = 0;
+
+    virtual void Arctan(const Array& x, const Array& out) = 0;
 
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.

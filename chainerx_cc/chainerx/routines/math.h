@@ -111,4 +111,12 @@ Array Cos(const Array& x);
 
 Array Absolute(const Array& x);
 
+Array Tan(const Array& x);
+
+Array Arcsin(const Array& x);
+
+Array Arccos(const Array& x);
+
+Array Arctan(const Array& x);
+
 }  // namespace chainerx

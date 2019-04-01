@@ -71,8 +71,6 @@ public:
 
     // reduction.cc
 
-    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
-
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
 
@@ -105,6 +103,16 @@ public:
     void Sin(const Array& x, const Array& out) override;
 
     void Cos(const Array& x, const Array& out) override;
+
+    // trigonometric.cc
+
+    void Tan(const Array& x, const Array& out) override;
+
+    void Arcsin(const Array& x, const Array& out) override;
+
+    void Arccos(const Array& x, const Array& out) override;
+
+    void Arctan(const Array& x, const Array& out) override;
 
     // dot.cc
 

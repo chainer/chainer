@@ -2276,12 +2276,12 @@ class TestToDevice(unittest.TestCase):
         return link
 
     def test_to_device_numpy(self):
-        link = self.check_to_device(numpy, numpy.ndarray)
+        link = self.check_to_device('@numpy', numpy.ndarray)
         assert isinstance(link.device, backend.CpuDevice)
 
     @attr.gpu
     def test_to_device_cupy(self):
-        link = self.check_to_device((cuda.cupy, 0), cuda.ndarray)
+        link = self.check_to_device('@cupy:0', cuda.ndarray)
         assert link.device.device == cuda.Device(0)
 
     @attr.chainerx
@@ -2408,28 +2408,28 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
     def test_to_device_cpu(self):
         cls = self.create_link('to_cpu')
         l = cls()
-        l.to_device(numpy)
+        l.to_device('@numpy')
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_device_gpu(self):
         cls = self.create_link('to_gpu')
         l = cls()
-        l.to_device((cuda.cupy, 0))
+        l.to_device('@cupy:0')
         assert l.child.to_method_called == 1
 
     @attr.multi_gpu(2)
     def test_to_device_multi_gpu(self):
         cls = self.create_link('to_gpu')
         l = cls()
-        l.to_device((cuda.cupy, 1))
+        l.to_device('@cupy:1')
         assert l.child.to_method_called == 1
 
     @attr.ideep
     def test_to_device_intel64(self):
         cls = self.create_link('to_intel64')
         l = cls()
-        l.to_device(intel64)
+        l.to_device('@intel64')
         assert l.child.to_method_called == 1
 
     # Overridden methods are called on to_cpu()/to_gpu()/to_intel()

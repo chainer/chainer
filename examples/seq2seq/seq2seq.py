@@ -7,7 +7,6 @@ import io
 from nltk.translate import bleu_score
 import numpy
 import progressbar
-import re
 import six
 
 import chainer
@@ -93,7 +92,7 @@ class Seq2seq(chainer.Chain):
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
         # support NumPy 1.9.
-        result = chainer.get_device(numpy).send(
+        result = chainer.get_device('@numpy').send(
             self.xp.concatenate([x[None, :] for x in result]).T)
 
         # Remove EOS taggs
@@ -216,23 +215,6 @@ def calculate_unknown_ratio(data):
     return unknown / total
 
 
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.get_device(args.device)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('SOURCE', help='source sentence list')
@@ -279,11 +261,12 @@ def main():
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))

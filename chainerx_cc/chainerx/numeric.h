@@ -54,6 +54,42 @@ inline chainerx::Float16 Cos<chainerx::Float16>(chainerx::Float16 x) {
 }
 
 template <typename T>
+inline T Tan(T x) {
+    return std::tan(x);
+}
+template <>
+inline chainerx::Float16 Tan<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::tan(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Arcsin(T x) {
+    return std::asin(x);
+}
+template <>
+inline chainerx::Float16 Arcsin<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::asin(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Arccos(T x) {
+    return std::acos(x);
+}
+template <>
+inline chainerx::Float16 Arccos<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::acos(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Arctan(T x) {
+    return std::atan(x);
+}
+template <>
+inline chainerx::Float16 Arctan<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::atan(static_cast<float>(x))};
+}
+
+template <typename T>
 inline T Exp(T x) {
     return std::exp(x);
 }
