@@ -18,6 +18,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
@@ -533,7 +534,9 @@ namespace {
 // Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = EmptyLike(x1, x1.device());
+    Array out = Empty(x1.shape(), GetArithmeticResultDtype(x1, x2), x1.device());
+    // TODO(imanishi): Support GreaterEqual(Array, Scalar).
+    Array mask = GreaterEqual(x1, FullLike(x1, x2));
 
     {
         NoBackpropModeScope scope{};
@@ -542,9 +545,9 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     BackwardBuilder bb{"if_less_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+        bt.Define([mask = std::move(mask), dtype = x1.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = (gout * mask).AsType(dtype, false);
         });
     }
     bb.Finalize();
@@ -566,7 +569,9 @@ namespace {
 // Calculates: x1 > x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = EmptyLike(x1, x1.device());
+    Array out = Empty(x1.shape(), GetArithmeticResultDtype(x1, x2), x1.device());
+    // TODO(imanishi): Support LessEqual(Array, Scalar).
+    Array mask = LessEqual(x1, FullLike(x1, x2));
 
     {
         NoBackpropModeScope scope{};
@@ -575,9 +580,9 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     BackwardBuilder bb{"if_greater_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
+        bt.Define([mask = std::move(mask), dtype = x1.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = (gout * mask).AsType(dtype, false);
         });
     }
     bb.Finalize();

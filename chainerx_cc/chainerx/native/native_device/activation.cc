@@ -15,6 +15,8 @@ namespace native {
 
 void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
@@ -22,12 +24,14 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
             T x2;
             T pos;
         };
-        Elementwise<const T, const T, T>(Impl{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
+        Elementwise<const T, const T, T>(Impl{static_cast<T>(x2), static_cast<T>(pos)}, x1_cast, neg_cast, out);
     });
 }
 
 void NativeDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
@@ -35,7 +39,7 @@ void NativeDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, con
             T x2;
             T pos;
         };
-        Elementwise<const T, const T, T>(Impl{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
+        Elementwise<const T, const T, T>(Impl{static_cast<T>(x2), static_cast<T>(pos)}, x1_cast, neg_cast, out);
     });
 }
 

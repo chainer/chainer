@@ -32,11 +32,14 @@ struct IfLessElseASSAImpl {
 
 void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1, neg, out);
+        Elementwise<const T, const T, T>(
+                IfLessElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1_cast, neg_cast, out);
     });
 }
 
@@ -54,11 +57,14 @@ struct IfGreaterElseASSAImpl {
 
 void CudaDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
+    const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+    const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, const T, T>(IfGreaterElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1, neg, out);
+        Elementwise<const T, const T, T>(
+                IfGreaterElseASSAImpl<T>{static_cast<CudaType>(x2), static_cast<CudaType>(pos)}, x1_cast, neg_cast, out);
     });
 }
 
