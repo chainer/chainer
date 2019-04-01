@@ -1630,7 +1630,7 @@ class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
@@ -1654,6 +1654,31 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype':
+        _make_same_in_out_dtypes(1, chainerx.testing.numeric_dtypes),
+        'input': ['random'],
+        'contiguous': [None, 'C'],
+    })
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.float_dtypes)),
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.abs(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
@@ -1662,18 +1687,11 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
-        'input': [-1.57, 2, 3.14, -2.0, 9, -6.0],
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
 ))
-
-class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
-
-    def func(self, xp, a):
-        return xp.abs(a)
-
-
 class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):

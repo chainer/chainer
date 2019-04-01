@@ -775,10 +775,11 @@ Array Absolute(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
-    Array x_flip_1 = IfGreaterElse(x, 0, 0, -x);
-    Array x_flip_2 = IfLessElse(x, 0, 0, x);
+    Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
+    Array x_flip_2 = IfLessElse(x, 0.0, 0.0, x);
 
-    return x_flip_1 + x_flip_2;
+    out = x_flip_1 + x_flip_2;
+    return out;
 }
 
 Array Tan(const Array& x) {
