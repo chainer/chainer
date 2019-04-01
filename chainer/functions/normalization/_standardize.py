@@ -32,10 +32,8 @@ class Standardize(function_node.FunctionNode):
         x_mu = x - mu
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=axes, keepdims=True)
-        if xp is numpy:
-            std = numpy.sqrt(var, dtype=x.dtype) + self.eps
-        elif xp is cuda.cupy:
-            std = cuda.cupyx.sqrt(var, dtype=x.dtype) + self.eps
+        if xp in (numpy, cuda.cupy):
+            std = xp.sqrt(var, dtype=x.dtype) + self.eps
         else:
             std = xp.sqrt(var) + self.eps
         inv_std = 1. / std
