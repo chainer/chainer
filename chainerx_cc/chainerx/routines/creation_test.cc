@@ -691,7 +691,7 @@ TEST_P(CreationTest, FromString) {
     static const std::function<void(Array)> kExpectDataEqualChecks[] = {
             [](const auto& x) { return testing::ExpectDataEqual<bool>(kRandomBoolVector, x); },
             [](const auto& x) { return testing::ExpectDataEqual<int32_t>(kRandomInt32Vector, x); },
-            [](const auto& x) { return testing::ExpectDataCloseFloat16(kRandomFloat16Vector, x, 1e-1); },
+            [](const auto& x) { return testing::ExpectDataClose<Float16>(kRandomFloat16Vector, x, 1e-1); },
             [](const auto& x) { return testing::ExpectDataClose<float>(kRandomFloat32Vector, x, 1e-8); },
             [](const auto& x) { return testing::ExpectDataClose<float>(kSpecialFloat32Vector, x, 1e-8); },
     };

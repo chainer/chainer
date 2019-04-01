@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -105,28 +106,9 @@ void ExpectDataClose(Container&& expected_data, const Array& actual, const doubl
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
     for (auto it = indexer.It(0); it; ++it) {
-        T actual_value = actual_iarray[it];
-        int64_t i = it.raw_index();
-        if (IsNan(actual_value))
-            EXPECT_TRUE(IsNan(expected_data[i])) << "expected data: " << expected_data[i];
-        else if (IsInf(actual_value))
-            EXPECT_TRUE(IsInf(expected_data[i])) << "expected data: " << expected_data[i];
-        else if (IsInf(-actual_value))
-            EXPECT_TRUE(IsInf(-expected_data[i])) << "expected data: " << expected_data[i];
-        else
-            EXPECT_NEAR(expected_data[i], actual_value, atol) << "where i is " << i;
-    }
-}
-
-template <typename Container>
-void ExpectDataCloseFloat16(Container&& expected_data, const Array& actual, const double atol = 1e-1) {
-    Array native_actual = actual.ToNative();
-    IndexableArray<const int16_t> actual_iarray{native_actual};
-    Indexer<> indexer{actual.shape()};
-    for (auto it = indexer.It(0); it; ++it) {
-        int16_t raw_value = actual_iarray[it];
-        uint16_t* raw_ptr = reinterpret_cast<uint16_t*>(&raw_value);
-        Float16 actual_value = Float16::FromData(*raw_ptr);
+        const auto array_value = actual_iarray[it];
+        const T actual_value =
+                (std::is_same<T, Float16>::value) ? static_cast<T>(Float16::FromData(array_value)) : static_cast<T>(array_value);
         int64_t i = it.raw_index();
         if (IsNan(actual_value))
             EXPECT_TRUE(IsNan(expected_data[i])) << "expected data: " << expected_data[i];
