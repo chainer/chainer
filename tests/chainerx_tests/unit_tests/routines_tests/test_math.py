@@ -1649,6 +1649,102 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.cos(a)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.tan(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-0.75, 0, 0.75],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1, -1, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestArcsin(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.arcsin(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-0.75, 0, 0.75],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1, -1, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestArccos(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.arccos(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 0, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.arctan(a)
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [

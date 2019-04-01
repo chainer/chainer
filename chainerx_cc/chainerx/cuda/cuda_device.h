@@ -142,6 +142,16 @@ public:
 
     void Cos(const Array& x, const Array& out) override;
 
+    // trigonometric.cu
+
+    void Tan(const Array& x, const Array& out) override;
+
+    void Arcsin(const Array& x, const Array& out) override;
+
+    void Arccos(const Array& x, const Array& out) override;
+
+    void Arctan(const Array& x, const Array& out) override;
+
     // dot.cc
 
     void Dot(const Array& a, const Array& b, const Array& out) override;
