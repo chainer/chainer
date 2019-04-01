@@ -2092,6 +2092,70 @@ class TestVar(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.var(a, self.axis)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape,axis': [
+            ((), None),
+            (1, 0),
+            ((2, 1, 3), (1, 2)),
+            ((1, 1, 1), (0, 1, 2)),
+            ((2, 3), None),
+            ((1, 2, 3), (0, 2)),
+            ((2, 2, 2, 2), (2, 1, 0)),
+            ((1, 1, 1), (-1))],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': ['random'],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape,axis': [((2, 3), None)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMean(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.mean(a, self.axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape,axis': [
+            ((), None),
+            (1, 0),
+            ((2, 1, 3), (1, 2)),
+            ((1, 1, 1), (0, 1, 2)),
+            ((2, 3), None),
+            ((1, 2, 3), (0, 2)),
+            ((2, 2, 2, 2), (2, 1, 0)),
+            ((1, 1, 1), (-1))],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': ['random'],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape,axis': [((2, 3), None)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestVar(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.var(a, self.axis)
+
+
 def apply_func(is_module, func, xp, device, input, axis, dtypes):
     (in_dtype,), out_dtype = dtypes
     try:
