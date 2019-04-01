@@ -1695,12 +1695,9 @@ def test_max_amax():
     assert chainerx.amax is chainerx.max
 
 
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(ValueError, chainerx.DimensionError), strides_check=False)
-@pytest.mark.parametrize('input,axis', [
+_max_params = [
     # --- single axis
     # input, axis
-    # valid params
     (numpy.asarray(0), None),
     (numpy.asarray(-1), None),
     (numpy.asarray(float('inf')), None),
@@ -1713,35 +1710,71 @@ def test_max_amax():
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
     (numpy.asarray([[True, True, False, False],
                     [True, False, True, False]]), 0),
-    (numpy.ones((2, 0, 3)), 2),
     (numpy.ones((2, 3)), 1),
     (numpy.ones((2, 3)), -2),
-    # invalid params
-    (numpy.ones((0,)), None),
-    (numpy.ones((2, 0, 3)), 1),
-    (numpy.ones((2, 0, 3)), None),
-    (numpy.ones((2, 3)), 2),
-    (numpy.ones((2, 3)), -3),
     # --- multiple axes
     # input, axis
-    # valid params
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
-    # invalid params
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape,axis': [
+            ((), None),
+            ((4,), None),
+            ((4,), 0),
+            ((4, 2), None),
+            ((4, 2), 0),
+            ((4, 2), 1),
+            ((4, 2), -2),
+            ((4, 3), (0, 1)),
+            ((4, 3), (-2, -1)),
+        ],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.all_dtypes)),
+        'is_module': [True, False],
+    }) +
+    chainer.testing.product({
+        'array,axis': _max_params,
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.all_dtypes)),
+        'is_module': [True, False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMax(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        if hasattr(self, 'array'):
+            return self.array.astype(in_dtype),
+        return array_utils.uniform(self.shape, in_dtype),
+
+    def func(self, xp, a):
+        if self.is_module:
+            return xp.max(a, self.axis)
+        else:
+            return a.max(self.axis)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('array,axis', [
+    (numpy.ones((2, 3)), 2),
+    (numpy.ones((2, 3)), -3),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO(niboshi): Remove strides_check=False
-def test_max(is_module, xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
-
-    a = xp.array(a_np)
-    if is_module:
-        return xp.max(a, axis)
-    else:
-        return a.max(axis)
+@pytest.mark.parametrize('dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('is_module', [True, False])
+def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
+    a = chainerx.array(array).astype(dtype)
+    with pytest.raises(chainerx.DimensionError):
+        if is_module:
+            chainerx.max(a, axis)
+        else:
+            a.max(axis)
