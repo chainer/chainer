@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import functions
+from chainer.functions.normalization._standardize import _standardize
 from chainer import testing
 
 
@@ -47,7 +47,7 @@ class TestStandardize(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        return functions.standardize(x, self.eps),
+        return _standardize(x, self.eps),
 
     def forward_expected(self, inputs):
         x, = inputs
