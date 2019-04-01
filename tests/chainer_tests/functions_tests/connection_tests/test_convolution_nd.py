@@ -142,10 +142,10 @@ class TestConvolutionND(testing.FunctionTestCase):
         else:
             b = backend_config.get_array(b)
         with backend_config:
-                y_gpu = F.convolution_nd(
-                    x, W, b, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all, dilate=self.dilate,
-                    groups=self.groups)
+            y_gpu = F.convolution_nd(
+                x, W, b, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         testing.assert_allclose(
             y_cpu.array, y_gpu.array, **self.check_forward_options)
