@@ -89,8 +89,9 @@ class Prior(chainer.Link):
     def __init__(self, n_latent):
         super(Prior, self).__init__()
 
-        self.loc = np.zeros(n_latent, np.float32)
-        self.scale = np.ones(n_latent, np.float32)
+        dtype = chainer.get_dtype(dtype)
+        self.loc = np.zeros(n_latent, dtype)
+        self.scale = np.ones(n_latent, dtype)
         self.register_persistent('loc')
         self.register_persistent('scale')
 
