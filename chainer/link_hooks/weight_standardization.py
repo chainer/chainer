@@ -11,7 +11,7 @@ class WeightStandardization(link_hook.LinkHook):
     normalization but without relying on large batch sizes during training.
     Weight Standardization is originally proposed for 2D convolution layers
     followed by mainly group normalization and sometimes batch normalization.
-    Noted that this hook is able to handle layers such as N-dimensional
+    Note that this hook is able to handle layers such as N-dimensional
     convolutional, linear and embedding layers but there is no guarantee that
     this hook helps training.
 
