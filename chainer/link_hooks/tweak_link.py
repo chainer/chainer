@@ -12,9 +12,10 @@ class TweakLink(link_hook.LinkHook):
     link's attributes including its parameters and persistents (a.k.a.
     buffers or states).
     For example, masking and normalizing
-    the weight of the added link like `Masked AutoEncoder for
-    Density Estimation <https://arxiv.org/abs/1502.03509>`_ (MADE) and
-    :class:`~chainer.link_hooks.SpectralNormalization`.
+    the weight of the added link.
+    :class:`~chainer.link_hooks.SpectralNormalization` is one example
+    implementation that normalizes the weight of the link before
+    :func:`~chainer.Link.forward` is invoked.
 
     By design, you can modify attributes other than the weight such as
     bias and ``avg_mean`` and ``avg_var`` of
