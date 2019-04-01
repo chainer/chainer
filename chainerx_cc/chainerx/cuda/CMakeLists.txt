@@ -13,6 +13,7 @@ install(FILES
     memory_pool.h
     numeric.cuh
     numeric_limits.cuh
+    op_regist.h
     reduce.cuh
     DESTINATION include/chainerx/cuda
     )
