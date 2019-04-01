@@ -115,6 +115,10 @@ class Laplace(distribution.Distribution):
     def mode(self):
         return self.loc
 
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
+
     def prob(self, x):
         scale = self.scale
         return 0.5 / scale * exponential.exp(- abs(x - self.loc) / scale)
