@@ -109,4 +109,6 @@ Array Sin(const Array& x);
 
 Array Cos(const Array& x);
 
+Array Absolute(const Array& x);
+
 }  // namespace chainerx
