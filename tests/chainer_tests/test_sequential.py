@@ -628,7 +628,7 @@ class TestSequentialSerialization(unittest.TestCase):
         return func_impl
 
     def serialize(self, seq):
-        f = six.io.BytesIO()
+        f = six.BytesIO()
         chainer.serializers.save_npz(f, seq)
         return f.getvalue()
 
