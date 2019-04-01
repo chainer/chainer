@@ -311,7 +311,7 @@ class Trainer(object):
         reporter = self.reporter
         stop_trigger = self.stop_trigger
 
-        # call before training loop
+        # call extensions before training loop
         if self.updater.iteration == 0:
             self.observation = {}
             with reporter.scope(self.observation):
