@@ -633,7 +633,7 @@ class TestSequentialSerialization(unittest.TestCase):
         return f.getvalue()
 
     def deserialize(self, seq, bytes):
-        f = six.io.BytesIO(bytes)
+        f = six.BytesIO(bytes)
         chainer.serializers.load_npz(f, seq)
 
     def check_serialization(self, fn_create):
