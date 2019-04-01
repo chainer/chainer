@@ -51,11 +51,12 @@ class TestStandardize(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        mean = numpy.mean(x, axis=1, keepdims=True)
-        var = numpy.mean(numpy.square(x - mean), axis=1, keepdims=True)
-        std = numpy.sqrt(var + self.eps, dtype=x.dtype)
+        mu = numpy.mean(x, axis=1, keepdims=True)
+        x_mu = x - mu
+        var = numpy.mean(numpy.square(x_mu), axis=1, keepdims=True)
+        std = numpy.sqrt(var, dtype=x.dtype) + self.eps
         inv_std = 1. / std
-        return (x - mean) * inv_std,
+        return x_mu * inv_std,
 
 
 testing.run_module(__name__, __file__)
