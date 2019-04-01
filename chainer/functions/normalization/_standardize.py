@@ -77,7 +77,7 @@ class Standardize(function_node.FunctionNode):
         return g_x,
 
 
-def standardize(x, eps=1e-5):
+def _standardize(x, eps=1e-5):
     """Standardize for `Weight standardization
     <https://arxiv.org/abs/1903.10520>`_.
 
