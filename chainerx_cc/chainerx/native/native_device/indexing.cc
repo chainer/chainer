@@ -83,7 +83,7 @@ protected:
 
 CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
 
-class NativeAddAtOp : public internal::AddAtOp {
+class NativeAddAtOp : public AddAtOp {
 protected:
     void Impl(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
@@ -155,7 +155,7 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(internal::AddAtOp, NativeAddAtOp);
+CHAINERX_REGISTER_OP_NATIVE(AddAtOp, NativeAddAtOp);
 
 }  // namespace
 }  // namespace native

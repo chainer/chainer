@@ -247,7 +247,7 @@ protected:
 
 CHAINERX_REGISTER_OP_CUDA(TakeOp, CudaTakeOp);
 
-class CudaAddAtOp : public internal::AddAtOp {
+class CudaAddAtOp : public AddAtOp {
 protected:
     void Impl(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         Device& device = a.device();
@@ -265,7 +265,7 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(internal::AddAtOp, CudaAddAtOp);
+CHAINERX_REGISTER_OP_CUDA(AddAtOp, CudaAddAtOp);
 
 }  // namespace
 }  // namespace cuda

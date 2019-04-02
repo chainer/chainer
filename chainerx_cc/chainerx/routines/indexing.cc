@@ -116,6 +116,8 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
     return out;
 }
 
+}  // namespace internal
+
 // Adds elements of `b` indexed by `indices` into `a` and returns the result.
 // Used in backward pass of Take()
 //
@@ -146,8 +148,6 @@ void AddAtOp::Call(const Array& a, const Array& indices, int8_t axis, const Arra
     }
 }
 
-}  // namespace internal
-
 Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
     DtypeKind indices_kind = GetKind(indices.dtype());
     if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
@@ -175,7 +175,7 @@ Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             Array gx = Zeros(a_shape, gout.dtype(), gout.device());
-            internal::AddAt(gx, indices, axis_norm, gout, gx);
+            AddAt(gx, indices, axis_norm, gout, gx);
             bctx.input_grad() = std::move(gx);
         });
     }
