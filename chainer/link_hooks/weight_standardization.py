@@ -8,7 +8,7 @@ class WeightStandardization(link_hook.LinkHook):
     This hook standardizes a weight by *weight statistics*.
 
     This link hook implements a "weight standardization" which computes the
-    mean and variance along axis "output channels", then normalize by these
+    mean and variance along axis "output channels", then normalizes by these
     statistics.
     That improves training by reducing the Lipschitz constants of the loss and
     the gradients like batch normalization but without relying on large batch
