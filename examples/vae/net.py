@@ -89,7 +89,7 @@ class Prior(chainer.Link):
     def __init__(self, n_latent):
         super(Prior, self).__init__()
 
-        dtype = chainer.get_dtype(dtype)
+        dtype = chainer.get_dtype()
         self.loc = np.zeros(n_latent, dtype)
         self.scale = np.ones(n_latent, dtype)
         self.register_persistent('loc')
