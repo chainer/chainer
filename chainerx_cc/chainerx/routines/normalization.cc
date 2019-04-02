@@ -118,7 +118,7 @@ Array BatchNormOp::Call(
         Scalar decay,
         const OptionalAxes& axis) {
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, running_mean, running_var, axis);
-    std::shared_ptr<BatchNormForwardBackward> fb = GetForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
+    std::shared_ptr<ForwardBackward> fb = GetForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
 
     const Array& gamma_reshaped = result.gamma;
     const Array& beta_reshaped = result.beta;
@@ -283,11 +283,11 @@ ApplyBatchNormResult ApplyBatchNorm(
 
 }  // namespace
 
-GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
+GenericBatchNormOp::GenericForwardBackward::GenericForwardBackward(
         const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis)
     : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
-void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype) {
+void GenericBatchNormOp::GenericForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(x_mean)->nodes().empty());
@@ -299,7 +299,7 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
     beta_dtype_ = beta_dtype;
 }
 
-Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
+Array GenericBatchNormOp::GenericForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
@@ -333,7 +333,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     return std::move(result.out);
 }
 
-std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
+std::array<Array, 3> GenericBatchNormOp::GenericForwardBackward::Backward(const Array& gout) {
     CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
     // Note: x_inv_std_ has the information of eps.
@@ -366,9 +366,9 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
-std::unique_ptr<BatchNormForwardBackward> GenericBatchNormOp::GetForwardBackward(
+std::unique_ptr<BatchNormOp::ForwardBackward> GenericBatchNormOp::GetForwardBackward(
         const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-    return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);
+    return std::make_unique<GenericForwardBackward>(running_mean, running_var, eps, decay, axis);
 }
 
 Array GenericFixedBatchNormOp::Impl(

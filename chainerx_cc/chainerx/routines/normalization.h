@@ -14,15 +14,15 @@
 
 namespace chainerx {
 
-class BatchNormForwardBackward {
-public:
-    virtual ~BatchNormForwardBackward() = default;
-    virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
-    virtual std::array<Array, 3> Backward(const Array& gout) = 0;
-};
-
 class BatchNormOp : public Op {
 public:
+    class ForwardBackward {
+    public:
+        virtual ~ForwardBackward() = default;
+        virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
+        virtual std::array<Array, 3> Backward(const Array& gout) = 0;
+    };
+
     static const char* name() { return "BatchNorm"; }
 
     virtual Array Call(
@@ -36,7 +36,7 @@ public:
             const OptionalAxes& axis);
 
 protected:
-    virtual std::unique_ptr<BatchNormForwardBackward> GetForwardBackward(
+    virtual std::unique_ptr<ForwardBackward> GetForwardBackward(
             const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) = 0;
 };
 
@@ -52,52 +52,53 @@ protected:
             const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) = 0;
 };
 
-class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
-public:
-    GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis);
-
-    Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
-    std::array<Array, 3> Backward(const Array& gout) override;
-
-protected:
-    void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype);
-
-    const Array& running_mean() { return running_mean_; }
-    const Array& running_var() { return running_var_; }
-    Scalar eps() { return eps_; }
-    Scalar decay() { return decay_; }
-    const Axes& axis() { return axis_; }
-
-    // Forward results.
-    const Array& x() { return *x_; }
-    const Array& gamma() { return *gamma_; }
-    const Array& x_mean() { return *x_mean_; }
-    const Array& x_inv_std() { return *x_inv_std_; }
-    Dtype beta_dtype() {
-        if (!beta_dtype_.has_value()) {
-            throw ChainerxError{"Beta dtype must first be set with a call to SetForwardResults."};
-        }
-        return *beta_dtype_;
-    }
-
-private:
-    const Array& running_mean_;
-    const Array& running_var_;
-    Scalar eps_;
-    Scalar decay_;
-    Axes axis_;
-
-    // TODO(niboshi): Fix header dependency order and hold arrays directly.
-    std::shared_ptr<Array> x_;
-    std::shared_ptr<Array> gamma_;
-    std::shared_ptr<Array> x_mean_;
-    std::shared_ptr<Array> x_inv_std_;
-    nonstd::optional<Dtype> beta_dtype_;
-};
-
 class GenericBatchNormOp : public BatchNormOp {
+public:
+    class GenericForwardBackward : public ForwardBackward {
+    public:
+        GenericForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis);
+
+        Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
+        std::array<Array, 3> Backward(const Array& gout) override;
+
+    protected:
+        void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype);
+
+        const Array& running_mean() { return running_mean_; }
+        const Array& running_var() { return running_var_; }
+        Scalar eps() { return eps_; }
+        Scalar decay() { return decay_; }
+        const Axes& axis() { return axis_; }
+
+        // Forward results.
+        const Array& x() { return *x_; }
+        const Array& gamma() { return *gamma_; }
+        const Array& x_mean() { return *x_mean_; }
+        const Array& x_inv_std() { return *x_inv_std_; }
+        Dtype beta_dtype() {
+            if (!beta_dtype_.has_value()) {
+                throw ChainerxError{"Beta dtype must first be set with a call to SetForwardResults."};
+            }
+            return *beta_dtype_;
+        }
+
+    private:
+        const Array& running_mean_;
+        const Array& running_var_;
+        Scalar eps_;
+        Scalar decay_;
+        Axes axis_;
+
+        // TODO(niboshi): Fix header dependency order and hold arrays directly.
+        std::shared_ptr<Array> x_;
+        std::shared_ptr<Array> gamma_;
+        std::shared_ptr<Array> x_mean_;
+        std::shared_ptr<Array> x_inv_std_;
+        nonstd::optional<Dtype> beta_dtype_;
+    };
+
 protected:
-    std::unique_ptr<BatchNormForwardBackward> GetForwardBackward(
+    std::unique_ptr<ForwardBackward> GetForwardBackward(
             const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) override;
 };
 
