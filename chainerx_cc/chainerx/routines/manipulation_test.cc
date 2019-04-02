@@ -181,15 +181,26 @@ TEST_P(ManipulationTest, Pad3D) {
     EXPECT_ARRAY_EQ(e, Pad(a, 1, PadMode::constant, 0));
 }
 
-TEST_P(ManipulationTest, PadVector2D) {
+TEST_P(ManipulationTest, PadTuple2D) {
     using T = int32_t;
     Shape input_shape{2, 1};
-    Shape output_shape{6, 3};
+    Shape output_shape{5, 4};
 
     Array a = testing::BuildArray(input_shape).WithData<T>({1, 2});
-    Array e = testing::BuildArray(output_shape).WithData<T>({2, 1, 2, 2, 1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 1, 2});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 2, 2});
 
-    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1}, PadMode::constant, {1, 2}));
+    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<int8_t>{2, 1}, PadMode::constant, std::vector<int64_t>{1, 2}));
+}
+
+TEST_P(ManipulationTest, PadVectorTuple2D) {
+    using T = int32_t;
+    Shape input_shape{2, 1};
+    Shape output_shape{5, 4};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 2, 2});
+
+    EXPECT_ARRAY_EQ(e, Pad(a, std::vector<std::vector<int8_t>>{{2, 1},{2, 1}}, PadMode::constant, std::vector<int64_t>{{1, 2}, {1, 2}}));
 }
 
 TEST_P(ManipulationTest, PadBackward) {
@@ -227,27 +238,27 @@ TEST_P(ManipulationTest, PadDoubleBackward) {
             {Full(shape_x, 1e-6, Dtype::kFloat64), Full(shape_y, 1e-6, Dtype::kFloat64)});
 }
 
-TEST_P(ManipulationTest, PadVectorBackward) {
+TEST_P(ManipulationTest, PadTupleBackward) {
     using T = double;
     Shape shape_x{2, 2, 1};
-    Shape shape_y{6, 4, 1};
+    Shape shape_y{5, 5, 4};
 
     Array x = (*testing::BuildArray(shape_x).WithData<T>({1, 2, 3, 4})).RequireGrad();
     Array gy = testing::BuildArray(shape_y).WithLinearData<T>(-0.1, 0.1);
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Pad(xs[0], std::vector<int8_t>{2, 1, 0}, PadMode::constant, {1, 2, 3})};
+                return {Pad(xs[0], std::vector<int8_t>{2, 1}, PadMode::constant, {1, 2})};
             },
             {x},
             {gy},
             {Full(shape_x, 1e-6, Dtype::kFloat64)});
 }
 
-TEST_P(ManipulationTest, PadVectorDoubleBackward) {
+TEST_P(ManipulationTest, PadTupleDoubleBackward) {
     using T = double;
     Shape shape_x{2, 2, 1};
-    Shape shape_y{6, 4, 1};
+    Shape shape_y{5, 5, 4};
 
     Array x = (*testing::BuildArray(shape_x).WithData<T>({1, 2, 3, 4})).RequireGrad();
     Array gy = (*testing::BuildArray(shape_y).WithLinearData<T>(-0.1, 0.1)).RequireGrad();
@@ -255,7 +266,7 @@ TEST_P(ManipulationTest, PadVectorDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                Array y = Pad(xs[0], std::vector<int8_t>{2, 1, 0}, PadMode::constant, {1, 2, 3});
+                Array y = Pad(xs[0], std::vector<int8_t>{2, 1}, PadMode::constant, {1, 2});
                 return {y * y};  // to make it nonlinear
             },
             {x},

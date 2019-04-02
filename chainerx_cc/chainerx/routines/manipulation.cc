@@ -115,6 +115,24 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 
 namespace {
 
+std::vector<std::vector<int8_t>> NormalizeShape (const Array& array, int8_t value){
+    std::vector<std::vector<int8_t>> new_value(array.shape().ndim());
+    for (int8_t i = 0; i < array.shape().ndim(); ++i){
+      std::vector<int8_t> tuple = {value, value};
+      new_value[i] = tuple;
+    }
+    return new_value;
+}
+
+std::vector<std::vector<int64_t>> NormalizeShape (const Array& array, int64_t value){
+    std::vector<std::vector<int64_t>> new_value(array.shape().ndim());
+    for (int8_t i = 0; i < array.shape().ndim(); ++i){
+      std::vector<int64_t> tuple = {value, value};
+      new_value[i] = tuple;
+    }
+    return new_value;
+}
+
 // Returns an array after prepending a scalar value by pad_amount along the given axis
 Array PrependConst(const Array& a, int8_t pad_amount, Scalar value, int8_t axis = -1) {
     if (pad_amount == 0) {
@@ -159,24 +177,30 @@ Array AppendConst(const Array& a, int8_t pad_amount, Scalar value, int8_t axis =
 }  // namespace
 
 Array Pad(const Array& array, int8_t pad_width, PadMode mode, int64_t constant_values) {
-    Array newarray;
-    newarray = array.Copy();
-    if (mode == PadMode::constant) {
-        for (int64_t i = 0; i < newarray.ndim(); ++i) {
-            newarray = PrependConst(newarray, pad_width, constant_values, i);
-            newarray = AppendConst(newarray, pad_width, constant_values, i);
-        }
-    }
-    return newarray;
+    std::vector<std::vector<int8_t>> new_pad_width = NormalizeShape(array, pad_width);
+    std::vector<std::vector<int64_t>> new_constant_values = NormalizeShape(array, constant_values);
+    return Pad(array, new_pad_width, mode, new_constant_values);
 }
 
 Array Pad(const Array& array, std::vector<int8_t> pad_width, PadMode mode, std::vector<int64_t> constant_values) {
     Array newarray;
     newarray = array.Copy();
     if (mode == PadMode::constant) {
-        for (size_t i = 0; i < pad_width.size(); i++) {
-            newarray = PrependConst(newarray, pad_width[i], constant_values[i], i);
-            newarray = AppendConst(newarray, pad_width[i], constant_values[i], i);
+        for (int8_t i = 0; i < array.shape().ndim(); ++i) {
+            newarray = PrependConst(newarray, pad_width[0], constant_values[0], i);
+            newarray = AppendConst(newarray, pad_width[1], constant_values[1], i);
+        }
+    }
+    return newarray;
+}
+
+Array Pad(const Array& array, std::vector<std::vector<int8_t>> pad_width, PadMode mode, std::vector<std::vector<int64_t>> constant_values) {
+    Array newarray;
+    newarray = array.Copy();
+    if (mode == PadMode::constant) {
+        for (int8_t i = 0; i < array.shape().ndim(); ++i) {
+            newarray = PrependConst(newarray, pad_width[i][0], constant_values[i][0], i);
+            newarray = AppendConst(newarray, pad_width[i][1], constant_values[i][1], i);
         }
     }
     return newarray;
