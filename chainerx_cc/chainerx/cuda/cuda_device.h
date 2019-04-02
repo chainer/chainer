@@ -80,23 +80,6 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
-    // arithmetic.cu
-
-    void Add(const Array& x1, const Array& x2, const Array& out) override;
-    void AddAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Subtract(const Array& x1, const Array& x2, const Array& out) override;
-    void SubtractAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Multiply(const Array& x1, const Array& x2, const Array& out) override;
-    void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void FloorDivide(const Array& x1, const Array& x2, const Array& out) override;
-    void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Divide(const Array& x1, const Array& x2, const Array& out) override;
-    void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
     // reduction.cu
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
