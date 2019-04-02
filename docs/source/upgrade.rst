@@ -13,7 +13,7 @@ Chainer v6
 ``Variable`` Became a Subclass of ``collections.abc.Iterable``
 --------------------------------------------------------------
 
-Prior to Chainer v5, :class:`~chainer.Variable` did not implement `__iter__`.
+Prior to Chainer v5, :class:`~chainer.Variable` did not implement :meth:`~chainer.Variable.__iter__`.
 In Chainer v6, ``issubclass(chainer.Variable, collections.abc.Iterable)`` (or ``issubclass(chainer.Variable, collections.Iterable)`` with Python 2) returns `True`.
 
 CuPy Needs To Be Manually Updated
