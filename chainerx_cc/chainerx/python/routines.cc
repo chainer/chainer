@@ -603,6 +603,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x"),
           py::arg("axis") = nullptr);
     m.def("sigmoid", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sigmoid(Array{x})); }, py::arg("x"));
+    m.def("relu", [](const ArrayBodyPtr& x) { return MoveArrayBody(Relu(Array{x})); }, py::arg("x"));
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, py::arg("x"));
     m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, py::arg("x"));
     m.def("tanh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Tanh(Array{x})); }, py::arg("x"));

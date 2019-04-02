@@ -669,6 +669,13 @@ Array Sigmoid(const Array& x) {
     return Reciprocal(1 + Exp(-x_cast));
 }
 
+Array Relu(const Array& x)
+{
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Maximum(0, x_cast);   
+}
+
 Array Square(const Array& x) {
     Array out = EmptyLike(x, x.device());
 
