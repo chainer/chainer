@@ -14,8 +14,7 @@ Chainer v6
 --------------------------------------------------------------
 
 Prior to Chainer v5, :class:`~chainer.Variable` did not implement `__iter__`.
-In Chainer v6, ``issubclass(chainer.Variable, collections.abc.Iterable)`` returns `True`.
-It is recommended to check types by ``isinstance(_, collections.abc.Sequence)`` to distinguish :class:`tuple` and :class:`list` from :class:`~chainer.Variable`.
+In Chainer v6, ``issubclass(chainer.Variable, collections.abc.Iterable)`` (or ``issubclass(chainer.Variable, collections.Iterable)`` with Python 2) returns `True`.
 
 CuPy Needs To Be Manually Updated
 ---------------------------------
