@@ -39,6 +39,32 @@ void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
         Reduce<T, int64_t>(a, axis, out, Impl{});
     });
 }
+    
+void NativeDevice::ArgMin(const Array& a, const Axes& axis, const Array& out) {
+    CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            struct MinAndArgMin {
+                T min;
+                int64_t argmin;
+            };
+
+            MinAndArgMin Identity() { return {T{}, -1}; }
+            MinAndArgMin MapIn(T in, int64_t index) { return {in, index}; }
+            void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+                if (accum.argmin < 0 || accum.min > next.min) {
+                    accum = next;
+                }
+            }
+            int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
+        };
+        Reduce<T, int64_t>(a, axis, out, Impl{});
+    });
+}
 
 void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
