@@ -36,6 +36,8 @@ class UnaryMathTestBase(object):
 
     def generate_inputs(self):
         in_dtype, = self.in_dtypes
+        if isinstance(self.input, numpy.ndarray):
+            return self.input.astype(in_dtype),
         if self.input == 'random':
             return array_utils.uniform(self.shape, in_dtype),
         if isinstance(self.input, (bool, int, float)):
@@ -1314,20 +1316,98 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
         a.sum(axis=axis, keepdims=keepdims)
 
 
-# TODO(sonots): Fix type compatibility for when shape is ()
-@chainerx.testing.numpy_chainerx_array_equal(dtype_check=False)
-@pytest.mark.parametrize('shape,value', [
-    ((), -1),
-    ((), 1),
-    ((1,), -1),
-    ((1,), 1),
-    ((2,), 1),
-    ((2, 3), 3),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, signed_dtype)
-    return xp.maximum(a, value)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_scalar_rhs': [False],
+    })
+    # Differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [0, 2, 5],
+        'is_scalar_rhs': [False, True],
+    })
+    # Non-differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [1, 3, 4],
+        'is_scalar_rhs': [False, True],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+    # Special float values
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': (
+            _in_out_dtypes_float_arithmetic_scalar),
+        # TODO(imanishi): Add test for NaN.
+        'input': [numpy.array([0, float('inf'), -float('inf')])],
+        'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_scalar_rhs:
+            return xp.minimum(a, scalar)
+        else:
+            return xp.minimum(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [0, 1],
+        'is_scalar_rhs': [False],
+    })
+    # Differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [0, 2, 5],
+        'is_scalar_rhs': [False, True],
+    })
+    # Non-differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [1, 3, 4],
+        'is_scalar_rhs': [False, True],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+    # Special float values
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': (
+            _in_out_dtypes_float_arithmetic_scalar),
+        # TODO(imanishi): Add test for NaN.
+        'input': [numpy.array([0, float('inf'), -float('inf')])],
+        'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMaximumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_scalar_rhs:
+            return xp.maximum(a, scalar)
+        else:
+            return xp.maximum(scalar, a)
 
 
 def _create_dummy_array_for_dot(xp, shape, dtype):
