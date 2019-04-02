@@ -54,6 +54,36 @@ void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
 
 namespace {
 
+template <typename T>
+struct ArgMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    struct MinAndArgMin {
+        CudaType min;
+        int64_t argmin;
+    };
+    __device__ MinAndArgMin Identity() { return {CudaType{}, -1}; }
+    __device__ MinAndArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+        if (accum.argmin < 0 || accum.min > next.min) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
+};
+
+}  // namespace
+
+void CudaDevice::ArgMin(const Array& a, const Axes& axis, const Array& out) {
+    CheckDevicesCompatible(a, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(a.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Reduce<T, int64_t>(a, axis, out, ArgMinImpl<T>{});
+    });
+}
+    
+namespace {
+
 template <typename In, typename Out>
 struct SumImpl {
     using InCudaType = cuda_internal::DataType<In>;
