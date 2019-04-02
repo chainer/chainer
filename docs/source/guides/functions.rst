@@ -488,7 +488,7 @@ You will need to check the value of the boolean flag ``chainer.config.train`` an
 For example, consider the following simple dropout function::
 
   def dropout(x):
-      xp = backend.get_array_module(x.data)
+      xp = backend.get_array_module(x.array)
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
@@ -500,7 +500,7 @@ We can fix it as follows::
       if not chainer.config.train:
           return x
 
-      xp = backend.get_array_module(x.data)
+      xp = backend.get_array_module(x.array)
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
