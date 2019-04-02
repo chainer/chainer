@@ -25,12 +25,12 @@ def _pop_or_none(grad_list):
 
 def _grad_var_from_alive_node(node):
     # Used by `accumulate_grad_inputs` option of `GradTable`
-    var = node._variable()
+    var = node.get_variable_or_none()
     if var is None:
         return None
     else:
         gv = var.grad_var
-        var._set_grad_var_without_check(None)
+        var.grad_var = None
         return gv
 
 
@@ -58,7 +58,7 @@ class GradTable(object):
         assert node is not None
         self.grads[node] = _pure(grad)
 
-    def add(self, node, grad):
+    def accumulate(self, node, grad):
         self.get_as_list(node).append(grad)
 
     def get_as_list(self, node):

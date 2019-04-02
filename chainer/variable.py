@@ -1423,7 +1423,7 @@ class Variable(object):
 
         node = self.node
         grad_var = self.grad_var
-        self._set_grad_var_without_check(None)
+        self.grad_var = None
 
         with chainer.using_config('enable_backprop', enable_double_backprop):
             # TODO(kataoka): The following line should not pass grad_var = None
@@ -1581,7 +1581,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     leaf_nodes = set()
 
     for y, gy in outputs:
-        grads.add(y, gy)
+        grads.accumulate(y, gy)
 
         func = y.creator_node
         if func is None:  # leaf
