@@ -101,45 +101,5 @@ void CudaDevice::Tanh(const Array& x, const Array& out) {
     });
 }
 
-namespace {
-
-template <typename T>
-struct SinImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sin(x); }
-};
-
-}  // namespace
-
-void CudaDevice::Sin(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CudaSetDeviceScope scope{index()};
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(SinImpl<T>{}, x_cast, out);
-    });
-}
-
-namespace {
-
-template <typename T>
-struct CosImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Cos(x); }
-};
-
-}  // namespace
-
-void CudaDevice::Cos(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CudaSetDeviceScope scope{index()};
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(CosImpl<T>{}, x_cast, out);
-    });
-}
-
 }  // namespace cuda
 }  // namespace chainerx
