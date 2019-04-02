@@ -1,7 +1,9 @@
+from __future__ import absolute_import
 import collections
 import contextlib
 import copy
 import json
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -140,7 +142,7 @@ class Reporter(object):
         observer object if given.
 
         .. note::
-           As of v2.0.0, if a value is of type :class:`~chainer.Variable`, the
+           If a value is of type :class:`~chainer.Variable`, the
            variable is copied without preserving the computational graph and
            the new variable object purged from the graph is stored to the
            observer. This behavior can be changed by setting
@@ -169,7 +171,7 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []
+_reporters = []  # type: tp.Optional[tp.List[Reporter]]
 
 
 def get_current_reporter():

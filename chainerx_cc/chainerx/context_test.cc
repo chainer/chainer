@@ -12,6 +12,7 @@
 #include "chainerx/native/native_backend.h"
 #include "chainerx/native/native_device.h"
 #include "chainerx/testing/threading.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace {
@@ -237,7 +238,8 @@ TEST(ContextTest, ContextScopeResetDevice) {
 }
 
 TEST(ContextTest, UserDefinedBackend) {
-    ::setenv("CHAINERX_PATH", CHAINERX_TEST_DIR "/context_testdata", 1);
+    // TODO(imanishi): Restore the environment variable after this test.
+    SetEnv("CHAINERX_PATH", CHAINERX_TEST_DIR "/backend_testdata");
     Context ctx;
     Backend& backend0 = ctx.GetBackend("backend0");
     EXPECT_EQ("backend0", backend0.GetName());

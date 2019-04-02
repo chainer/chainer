@@ -64,7 +64,6 @@ Array manipulation routines
    chainerx.squeeze
    chainerx.asarray
    chainerx.ascontiguousarray
-   chainerx.asscalar
    chainerx.concatenate
    chainerx.stack
    chainerx.split
@@ -125,6 +124,12 @@ Mathematical functions
    chainerx.logsumexp
    chainerx.log_softmax
    chainerx.sqrt
+   chainerx.sin
+   chainerx.cos
+   chainerx.tan
+   chainerx.arcsin
+   chainerx.arccos
+   chainerx.arctan
    chainerx.tanh
    chainerx.square
    chainerx.clip

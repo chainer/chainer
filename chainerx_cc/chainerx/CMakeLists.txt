@@ -31,7 +31,9 @@ install(FILES
     context.h
     device.h
     device_id.h
+    dims.h
     dtype.h
+    dynamic_lib.h
     enum.h
     error.h
     float16.h
@@ -44,8 +46,11 @@ install(FILES
     numerical_gradient.h
     numeric.h
     numeric_limits.h
+    op.h
     op_node.h
+    op_registry.h
     optional_container_arg.h
+    platform.h
     reduction_kernel_arg.h
     scalar.h
     shape.h
@@ -54,11 +59,12 @@ install(FILES
     stack_vector.h
     strides.h
     thread_local_state.h
+    util.h
     chainerx.h
     DESTINATION include/chainerx
     )
 
-add_library(chainerx SHARED
+set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
@@ -73,37 +79,74 @@ add_library(chainerx SHARED
     context.cc
     device.cc
     device_id.cc
+    dims.cc
     dtype.cc
+    dynamic_lib.cc
     float16.cc
     graph.cc
     numeric.cc
     numerical_gradient.cc
     op_node.cc
+    platform.cc
     reduction_kernel_arg.cc
     scalar.cc
     shape.cc
     strides.cc
     thread_local_state.cc
+    util.cc
     )
 
-target_link_libraries(chainerx
-    PUBLIC
-    ${CMAKE_DL_LIBS}
-    PRIVATE
-    -Wl,--whole-archive)
-target_link_libraries(chainerx PRIVATE chainerx_routines)
-target_link_libraries(chainerx PRIVATE chainerx_native)
-target_link_libraries(chainerx PRIVATE chainerx_testing)
-if(${CUDA_FOUND})
-    target_link_libraries(chainerx PRIVATE chainerx_cuda)
+if(MSVC)
+    install(FILES
+        platform/windows.h
+        DESTINATION include/chainerx/platform
+        )
+
+    set(chainerx_srcs
+        "${chainerx_srcs}"
+        platform/windows.cc
+        )
+    add_library(chainerx STATIC ${chainerx_srcs})
+else()
+    add_library(chainerx SHARED ${chainerx_srcs})
 endif()
-target_link_libraries(chainerx
-    PRIVATE
-    -Wl,--no-whole-archive)
+
+if(${APPLE})
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS})
+
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
+
+    if(${CUDA_FOUND})
+      target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,-noall_load)
+else()
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS}
+        PRIVATE
+        -Wl,--whole-archive)
+
+    target_link_libraries(chainerx PRIVATE chainerx_routines)
+    target_link_libraries(chainerx PRIVATE chainerx_native)
+    target_link_libraries(chainerx PRIVATE chainerx_testing)
+
+    if(${CUDA_FOUND})
+        target_link_libraries(chainerx PRIVATE chainerx_cuda)
+    endif()
+
+    target_link_libraries(chainerx PRIVATE -Wl,--no-whole-archive)
+endif()
+
 install(TARGETS chainerx DESTINATION lib)
 
 if(${CHAINERX_BUILD_TEST})
-    add_subdirectory(context_testdata)
+    add_subdirectory(backend_testdata)
     set(srcs
         array_body_leak_detection_test.cc
         array_device_test.cc
@@ -117,6 +160,7 @@ if(${CHAINERX_BUILD_TEST})
         check_backward_test.cc
         context_test.cc
         device_test.cc
+        dims_test.cc
         dtype_test.cc
         float16_test.cc
         index_iterator_test.cc
@@ -125,6 +169,7 @@ if(${CHAINERX_BUILD_TEST})
         numeric_limits_test.cc
         numerical_gradient_test.cc
         numeric_test.cc
+        op_registry_test.cc
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc

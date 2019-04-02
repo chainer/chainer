@@ -57,7 +57,7 @@ public:
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
             size_t n_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
-            auto ptr = std::make_unique<uint8_t[]>(n_bytes);
+            std::shared_ptr<uint8_t> ptr{new uint8_t[n_bytes], std::default_delete<uint8_t[]>()};
             std::fill(ptr.get(), ptr.get() + n_bytes, uint8_t{0xff});
 
             if (total_size > 0) {

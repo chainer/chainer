@@ -227,15 +227,15 @@ class BleuEvaluator(extensions.Evaluator):
         if self.comm is not None:
             # This evaluator is called via chainermn.MultiNodeEvaluator
             for i in range(0, self.comm.size):
-                print("BleuEvaluator::evaluate(): "
-                      "took {:.3f} [s]".format(et - bt))
+                print('BleuEvaluator::evaluate(): '
+                      'took {:.3f} [s]'.format(et - bt))
                 sys.stdout.flush()
                 self.comm.mpi_comm.Barrier()
         else:
             # This evaluator is called from a conventional
             # Chainer exntension
-            print("BleuEvaluator(single)::evaluate(): "
-                  "took {:.3f} [s]".format(et - bt))
+            print('BleuEvaluator(single)::evaluate(): '
+                  'took {:.3f} [s]'.format(et - bt))
             sys.stdout.flush()
         return observation
 
@@ -256,21 +256,21 @@ def create_optimizer(opt_arg):
     args = m.group(2)
 
     names_dict = {
-        "adadelta": chainer.optimizers.AdaDelta,
-        "adagrad": chainer.optimizers.AdaGrad,
-        "adam": chainer.optimizers.Adam,
-        "momentumsgd": chainer.optimizers.MomentumSGD,
-        "nesterovag": chainer.optimizers.NesterovAG,
-        "rmsprop": chainer.optimizers.RMSprop,
-        "rmspropgraves": chainer.optimizers.RMSpropGraves,
-        "sgd": chainer.optimizers.SGD,
-        "smorms3": chainer.optimizers.SMORMS3,
+        'adadelta': chainer.optimizers.AdaDelta,
+        'adagrad': chainer.optimizers.AdaGrad,
+        'adam': chainer.optimizers.Adam,
+        'momentumsgd': chainer.optimizers.MomentumSGD,
+        'nesterovag': chainer.optimizers.NesterovAG,
+        'rmsprop': chainer.optimizers.RMSprop,
+        'rmspropgraves': chainer.optimizers.RMSpropGraves,
+        'sgd': chainer.optimizers.SGD,
+        'smorms3': chainer.optimizers.SMORMS3,
     }
 
     try:
         opt = names_dict[name]
     except KeyError:
-        raise RuntimeError("Unknown optimizer: '{}' in '{}'".format(
+        raise RuntimeError('Unknown optimizer: \'{}\' in \'{}\''.format(
             name, opt_arg))
 
     # positional arguments
@@ -312,7 +312,7 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
-    parser.add_argument('--bleu', action="store_true", default=False,
+    parser.add_argument('--bleu', action='store_true', default=False,
                         help='Report BLEU score')
     parser.add_argument('--gpu', '-g', action='store_true',
                         help='Use GPU')
@@ -323,13 +323,13 @@ def main():
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
     parser.add_argument('--communicator', default='hierarchical',
-                        help="Type of communicator")
-    parser.add_argument('--stop', '-s', type=str, default="15e",
+                        help='Type of communicator')
+    parser.add_argument('--stop', '-s', type=str, default='15e',
                         help='Stop trigger (ex. "500i", "15e")')
     parser.add_argument('--input', '-i', type=str, default='wmt',
                         help='Input directory')
-    parser.add_argument('--optimizer', type=str, default="adam()",
-                        help="Optimizer and its argument")
+    parser.add_argument('--optimizer', type=str, default='adam()',
+                        help='Optimizer and its argument')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     args = parser.parse_args()
@@ -367,7 +367,7 @@ def main():
         else:
             source_vocab, source_data = read_source(args.input, args.cache)
         et = time.time()
-        print("RD source done. {:.3f} [s]".format(et - bt))
+        print('RD source done. {:.3f} [s]'.format(et - bt))
         sys.stdout.flush()
 
         # Read target data
@@ -380,7 +380,7 @@ def main():
         else:
             target_vocab, target_data = read_target(args.input, args.cache)
         et = time.time()
-        print("RD target done. {:.3f} [s]".format(et - bt))
+        print('RD target done. {:.3f} [s]'.format(et - bt))
         sys.stdout.flush()
 
         print('Original training data size: %d' % len(source_data))
@@ -410,7 +410,7 @@ def main():
     # Print GPU id
     for i in range(0, comm.size):
         if comm.rank == i:
-            print("Rank {} GPU: {}".format(comm.rank, dev))
+            print('Rank {} GPU: {}'.format(comm.rank, dev))
         sys.stdout.flush()
         comm.mpi_comm.Barrier()
 
@@ -422,8 +422,8 @@ def main():
     source_words = {i: w for w, i in source_ids.items()}
 
     if comm.rank == 0:
-        print("target_words : {}".format(len(target_words)))
-        print("source_words : {}".format(len(source_words)))
+        print('target_words : {}'.format(len(target_words)))
+        print('source_words : {}'.format(len(source_words)))
 
     model = Seq2seq(3, len(source_ids), len(target_ids), args.unit)
 
@@ -441,12 +441,12 @@ def main():
             trigger = (int(m.group(1)), 'iteration')
         else:
             if comm.rank == 0:
-                sys.stderr.write("Error: unknown stop trigger: {}".format(
+                sys.stderr.write('Error: unknown stop trigger: {}'.format(
                     args.stop))
             exit(-1)
 
     if comm.rank == 0:
-        print("Trigger: {}".format(trigger))
+        print('Trigger: {}'.format(trigger))
 
     optimizer = chainermn.create_multi_node_optimizer(
         create_optimizer(args.optimizer), comm)

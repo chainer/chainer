@@ -1,18 +1,19 @@
 #include "chainerx/cuda/cuda_backend.h"
 
-#include <cuda_runtime.h>
-
-#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+
+#include <cuda_runtime.h>
+#include <gsl/gsl>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/native/native_backend.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
@@ -23,7 +24,7 @@ constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
 namespace cuda_internal {
 
-CudaDevice* CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
+gsl::owner<CudaDevice*> CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
 
 }  // namespace cuda_internal
 
@@ -67,11 +68,10 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvVarName);
-    if (env == nullptr) {
-        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
+    if (nonstd::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
+        cudnn_max_workspace_size_ = std::stoul(*env);
     } else {
-        cudnn_max_workspace_size_ = std::stoul(env);
+        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
     }
     return *cudnn_max_workspace_size_;
 }

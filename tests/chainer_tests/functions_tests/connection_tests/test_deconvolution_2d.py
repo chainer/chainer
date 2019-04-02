@@ -152,11 +152,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @attr.gpu
     def test_forward(self, backend_config):
-        if backend_config.use_chainerx:
-            # TODO(imanishi): Support float16
-            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
-                raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
@@ -185,11 +180,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_backward(self, backend_config):
-        if backend_config.use_chainerx:
-            # TODO(imanishi): Support float16
-            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
-                raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
@@ -225,11 +215,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_double_backward(self, backend_config):
-        if backend_config.use_chainerx:
-            # TODO(imanishi): Support float16
-            if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
-                raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_double_backward(self.inputs, self.grad_outputs,
                                    self.grad_grad_inputs, backend_config)
 

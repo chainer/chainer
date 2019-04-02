@@ -15,6 +15,7 @@
 #include "chainerx/device.h"
 #include "chainerx/device_id.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/testing/array.h"
@@ -101,7 +102,7 @@ public:
             Array x = Full(Shape{3, 2}, scalar);
             EXPECT_NE(x.data(), nullptr);
             EXPECT_EQ(x.shape(), Shape({3, 2}));
-            EXPECT_EQ(x.dtype(), scalar.dtype());
+            EXPECT_EQ(x.dtype(), internal::GetDefaultDtype(scalar.kind()));
             EXPECT_TRUE(x.IsContiguous());
             EXPECT_EQ(0, x.offset());
             testing::ExpectDataEqual(value, x);
@@ -537,7 +538,7 @@ TEST_P(CreationTest, ArangeStopDtype) {
 
 TEST_P(CreationTest, ArangeStopDevice) {
     testing::RunTestWithThreads([]() {
-        Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
+        Array a = Arange(Scalar{3}, Dtype::kInt32, GetDefaultDevice());
         Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
         EXPECT_ARRAY_EQ(e, a);
     });
@@ -623,10 +624,10 @@ TEST_P(CreationTest, ArangeEmpty) {
     });
 }
 
-TEST_P(CreationTest, ArangeNoDtype) {
+TEST_P(CreationTest, ArangeScalar) {
     testing::RunTestWithThreads([]() {
-        Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
-        Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
+        Array a = Arange(Scalar{1}, Scalar{4}, Scalar{1});
+        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 2, 3});
         EXPECT_ARRAY_EQ(e, a);
     });
 }
@@ -864,7 +865,7 @@ TEST_P(CreationTest, DiagVecToMatBackward) {
     using T = double;
     Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full({3}, 1e-3);
+    Array eps = Full({3}, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diag(xs[0], -1)}; }, {v}, {go}, {eps});
 }
@@ -873,7 +874,7 @@ TEST_P(CreationTest, DiagMatToVecBackward) {
     using T = double;
     Array v = (*testing::BuildArray({4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full({4, 4}, 1e-3);
+    Array eps = Full({4, 4}, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diag(xs[0], 1)}; }, {v}, {go}, {eps});
 }
@@ -883,8 +884,8 @@ TEST_P(CreationTest, DiagVecToMatDoubleBackward) {
     Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggv = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps_v = Full(Shape{3}, 1e-3);
-    Array eps_go = Full(Shape{4, 4}, 1e-3);
+    Array eps_v = Full(Shape{3}, 1e-3, Dtype::kFloat64);
+    Array eps_go = Full(Shape{4, 4}, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -902,8 +903,8 @@ TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
     Array v = (*testing::BuildArray({4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggv = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps_v = Full(Shape{4, 4}, 1e-3);
-    Array eps_go = Full(Shape{3}, 1e-3);
+    Array eps_v = Full(Shape{4, 4}, 1e-3, Dtype::kFloat64);
+    Array eps_go = Full(Shape{3}, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -966,7 +967,7 @@ TEST_P(CreationTest, DiagflatBackward) {
     using T = double;
     Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Full({3}, 1e-3);
+    Array eps = Full({3}, 1e-3, Dtype::kFloat64);
 
     CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diagflat(xs[0], 1)}; }, {v}, {go}, {eps});
 }
@@ -976,8 +977,8 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
     Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggv = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps_v = Full(Shape{3}, 1e-3);
-    Array eps_go = Full(Shape{4, 4}, 1e-3);
+    Array eps_v = Full(Shape{3}, 1e-3, Dtype::kFloat64);
+    Array eps_go = Full(Shape{4, 4}, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {

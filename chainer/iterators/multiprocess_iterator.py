@@ -1,7 +1,7 @@
 from __future__ import division
 import datetime
 import multiprocessing
-from multiprocessing import sharedctypes
+from multiprocessing import sharedctypes  # type: ignore
 import signal
 import sys
 import threading
@@ -11,8 +11,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators._statemachine import (IteratorState,
-                                             iterator_statemachine)
+from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -82,7 +81,7 @@ class MultiprocessIterator(iterator.Iterator):
 
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
@@ -163,7 +162,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     next = __next__
 
-    def __del__(self):
+    def finalize(self):
         if self._finalized:
             return
 
@@ -176,14 +175,6 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = None
         self._prefetch_loop = None
         self._finalized = True
-
-    finalize = __del__
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.finalize()
 
     def __copy__(self):
         # This function is implemented for backward compatibility.
@@ -257,8 +248,8 @@ class MultiprocessIterator(iterator.Iterator):
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
-        self._state = IteratorState(current_position, epoch, is_new_epoch,
-                                    order)
+        self._state = _statemachine.IteratorState(
+            current_position, epoch, is_new_epoch, order)
         self._comm.reset(self._state)
 
     @property
@@ -396,7 +387,7 @@ class _PrefetchLoop(object):
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
 
-        self.prefetch_state, indices = iterator_statemachine(
+        self.prefetch_state, indices = _statemachine.iterator_statemachine(
             self.prefetch_state, self.batch_size, self.repeat,
             self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration
@@ -473,7 +464,7 @@ class _PrefetchLoop(object):
         elif status == _Communicator.STATUS_TERMINATE:
             return False  # stop loop
 
-        self.prefetch_state, indices = iterator_statemachine(
+        self.prefetch_state, indices = _statemachine.iterator_statemachine(
             self.prefetch_state, self.batch_size, self.repeat,
             self.order_sampler, len(self.dataset))
         if indices is None:  # stop iteration
@@ -494,7 +485,7 @@ class _PrefetchLoop(object):
         return True
 
 
-# Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
+# Using `parameterized` function (e.g. bound method) with Pool is tricky due to
 # restrictions imposed by Pickle. Picklable types differ across versions.
 # Just using top-level function with globals seems to be safest.
 # it doesn't mean thread safety broken or global variables visible;

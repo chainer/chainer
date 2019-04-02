@@ -7,6 +7,7 @@
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 
 namespace chainerx {
 
@@ -28,12 +29,12 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
         Indexer<> indexer{a_native.shape()};
 
         for (auto it = indexer.It(0); it; ++it) {
-            T ai = a_iarray[it];
-            T bi = b_iarray[it];
-            if (equal_nan && std::isnan(ai) && std::isnan(bi)) {
+            T ai = native::StorageToDataType<const T>(a_iarray[it]);
+            T bi = native::StorageToDataType<const T>(b_iarray[it]);
+            if (equal_nan && IsNan(ai) && IsNan(bi)) {
                 // nop
             } else if (
-                    std::isnan(ai) || std::isnan(bi) ||
+                    IsNan(ai) || IsNan(bi) ||
                     std::abs(static_cast<double>(ai) - static_cast<double>(bi)) > atol + rtol * std::abs(static_cast<double>(bi))) {
                 return false;
             }

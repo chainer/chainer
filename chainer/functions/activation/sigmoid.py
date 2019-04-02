@@ -8,8 +8,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _mode = libcudnn.CUDNN_ACTIVATION_SIGMOID
+    _mode = cuda.libcudnn.CUDNN_ACTIVATION_SIGMOID
 
 
 class Sigmoid(function_node.FunctionNode):

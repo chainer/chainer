@@ -14,7 +14,10 @@ namespace chainerx {
 namespace cuda {
 
 MallocStatus DeviceMemoryAllocator::Malloc(void** ptr, size_t bytesize) {
-    cudaError_t status = cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal);
+    // Note: Unified memory is not used since using it by default
+    // can cause slowdown for some workload. See
+    // https://github.com/chainer/chainer/pull/5912 for the details.
+    cudaError_t status = cudaMalloc(ptr, bytesize);
     switch (status) {
         case cudaSuccess:
             return MallocStatus::kSuccess;
@@ -174,6 +177,8 @@ MemoryPool::~MemoryPool() {
 
 void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
+
+    std::lock_guard<std::mutex> lock{free_bins_mutex_};
 
     // Frees unused memory blocks
     for (FreeBinsMap::value_type& pair : free_bins_) {

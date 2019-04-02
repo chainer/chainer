@@ -34,6 +34,7 @@ import itertools
 import os
 import threading
 import time
+import typing as tp  # NOQA
 import warnings
 
 import numpy
@@ -44,10 +45,11 @@ from chainer import _backend
 from chainer.backends import _cpu
 from chainer.backends import intel64
 from chainer.configuration import config
+from chainer import types  # NOQA
 import chainerx
 
-available = False
-cudnn_enabled = False
+available = False  # type: bool
+cudnn_enabled = False  # type: bool
 
 try:
     import cupy
@@ -57,30 +59,70 @@ try:
     import cupyx.scipy.linalg  # NOQA
     import cupyx.scipy.special  # NOQA
 
-    from cupy import ndarray  # NOQA
+    from cupy import ndarray  # type: ignore # NOQA
 
-    from cupy.cuda import Device  # NOQA
-    from cupy.cuda import Event  # NOQA
-    from cupy.cuda import Stream  # NOQA
+    from cupy.cuda import Device  # type: ignore # NOQA
+    from cupy.cuda import Event  # type: ignore # NOQA
+    from cupy.cuda import Stream  # type: ignore # NOQA
 
     available = True
 except Exception as e:
     _resolution_error = e
 
-    class ndarray(object):
-        pass  # for type testing
+    class ndarray(object):  # type: ignore # for type testing
+        @property
+        def shape(self):
+            # type: () -> types.Shape
+            pass
 
-    # for `xp is cuda.cupy` to always work
+        @property
+        def device(self):
+            # type: () -> 'Device'
+            pass
+
+        def get(self, stream=None):
+            # type: (tp.Optional['Stream']) -> numpy.ndarray
+            pass
+
+        def set(self, arr, stream=None):
+            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
+            pass
+
+    class Device(object):  # type: ignore # for type testing
+        def __init__(self, device=None):
+            # type: (tp.Optional[int]) -> None
+            pass
+
+        def __enter__(self):
+            # type: () -> 'Device'
+            pass
+
+        def __exit__(self, *args):
+            # type: (*tp.Any) -> None
+            pass
+
+    class Event(object):  # type: ignore # for type testing
+        pass
+
+    class Stream(object):  # type: ignore # for type testing
+        pass
+
+    # for `xp is chainer.backends.cuda.cupy` to always work
     cupy = object()
+
 
 if available:
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
-        cudnn = cupy.cudnn
+        cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
+        libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
         _resolution_error = e
+
+        # for `chainer.backends.cuda.libcudnn` to always work
+        libcudnn = object()
 
 
 def check_cuda_available():
@@ -105,7 +147,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(object):
+class DummyDeviceType(Device):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -114,6 +156,9 @@ class DummyDeviceType(object):
     """
 
     id = -1
+
+    def __init__(self):
+        pass
 
     def __int__(self):
         return -1
@@ -190,6 +235,10 @@ class GpuDevice(_backend.Device):
     def xp(self):
         return cupy
 
+    @property
+    def supported_array_types(self):
+        return (ndarray,)
+
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
         # instance cannot be used across threads.
@@ -202,24 +251,11 @@ class GpuDevice(_backend.Device):
         self.device.use()
 
 
-def _get_device(device_spec):
-    if not available:
-        return None
-
-    if isinstance(device_spec, Device):
-        return GpuDevice(device_spec)
-    if (isinstance(device_spec, tuple) and len(device_spec) == 2
-            and device_spec[0] is cupy
-            and isinstance(device_spec[1], _integer_types)):
-        return GpuDevice.from_device_id(device_spec[1])
-
-    return None
-
-
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
+    # type: (tp.Optional[int]) -> Device
     """Gets the device from an ID integer.
 
     Args:
@@ -234,6 +270,7 @@ def get_device_from_id(device_id):
 
 
 def get_device_from_array(*arrays):
+    # type: (*ndarray) -> Device
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     .. deprecated:: v6.0.0
@@ -268,7 +305,7 @@ def get_device(*args):
 
     .. note::
 
-        This API is deprecated. Please use
+        This API is deprecated since v3.0.0. Please use
         :func:`~chainer.backends.cuda.get_device_from_id`
         or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
@@ -316,6 +353,8 @@ def _get_cuda_device(*args):
 
 
 def _get_device_or_current(device):
+    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
+
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.
@@ -407,30 +446,13 @@ def _array_to_gpu(array, device, stream):
             'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
-    if stream is not None and stream.ptr != 0:
-        ret = cupy.empty_like(array)
-        if is_numpy:
-            # cpu to gpu
-            mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-            src = numpy.frombuffer(
-                mem, array.dtype, array.size).reshape(array.shape)
-            src[...] = array
-            ret.set(src, stream)
-            cupy.cuda.pinned_memory._add_to_watch_list(
-                stream.record(), mem)
-        else:
-            # gpu to gpu
-            with array.device:
-                src = array.copy()
-                event = Stream.null.record()
-            stream.wait_event(event)
-            ret.data.copy_from_device_async(
-                src.data, src.nbytes, stream)
-
-            # to hold a reference until the end of the asynchronous
-            # memcpy
-            stream.add_callback(lambda *x: None, (src, ret))
-        return ret
+    if stream is not None:
+        with device:
+            with stream:
+                if is_numpy:
+                    return cupy.asarray(array)
+                # Need to make a copy when an array is copied to another device
+                return cupy.array(array, copy=True)
 
     with device:
         if is_numpy:
@@ -498,7 +520,7 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with _get_device(out_device):
+        with chainer.get_device(out_device):
             out = cupy.empty_like(array)
 
     with get_device_from_array(array):

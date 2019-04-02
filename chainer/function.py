@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import warnings
 import weakref
 
@@ -11,6 +12,21 @@ from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
 from chainer import variable
 import chainerx
+
+
+class _BackpropModeContext(object):
+    # Combines multiple contexts.
+    # A single context object cannot be nested.
+    def __init__(self, contexts):
+        self.contexts = contexts
+
+    def __enter__(self):
+        for c in self.contexts:
+            c.__enter__()
+
+    def __exit__(self, typ, value, traceback):
+        for c in reversed(self.contexts):
+            c.__exit__(typ, value, traceback)
 
 
 def no_backprop_mode():
@@ -33,13 +49,23 @@ def no_backprop_mode():
     >>> x.grad is None
     True
 
+    .. note::
+
+       ``chainer.no_backprop_mode()`` implicitly applies ChainerX's
+       counterpart :func:`chainerx.no_backprop_mode()`, but not vice versa.
+       Also, setting ``enable_backprop`` :ref:`configuration <configuration>`
+       does not affect ChainerX.
+
     .. seealso::
 
-       See :func:`force_backprop_mode` for details on how to override this
-       context.
+       See :func:`chainer.force_backprop_mode` for details on how to override
+       this context.
 
     """
-    return configuration.using_config('enable_backprop', False)
+    c = configuration.using_config('enable_backprop', False)
+    if chainerx.is_available():
+        return _BackpropModeContext((c, chainerx.no_backprop_mode()))
+    return _BackpropModeContext((c,))
 
 
 def force_backprop_mode():
@@ -63,13 +89,23 @@ def force_backprop_mode():
     >>> x.grad
     array([1.], dtype=float32)
 
+    .. note::
+
+       ``chainer.force_backprop_mode()`` implicitly applies ChainerX's
+       counterpart :func:`chainerx.force_backprop_mode()`, but not vice versa.
+       Also, setting ``enable_backprop`` :ref:`configuration <configuration>`
+       does not affect ChainerX.
+
     .. seealso::
 
-       See :func:`no_backprop_mode` for details on disabled back-propagation
-       mode.
+       See :func:`chainer.no_backprop_mode` for details on disabled
+       back-propagation mode.
 
     """
-    return configuration.using_config('enable_backprop', True)
+    c = configuration.using_config('enable_backprop', True)
+    if chainerx.is_available():
+        return _BackpropModeContext((c, chainerx.force_backprop_mode()))
+    return _BackpropModeContext((c,))
 
 
 class FunctionAdapter(function_node.FunctionNode):
@@ -102,10 +138,12 @@ class FunctionAdapter(function_node.FunctionNode):
 
     """
 
-    _function = None
-    _weak_function = None
+    _function = None  # type: Function
+    _weak_function = None  # type: weakref.ReferenceType[Function]
 
     def __init__(self, function):
+        # type: (Function) -> None
+
         super(FunctionAdapter, self).__init__()
         self._weak_function = weakref.ref(function)
         function._owned_node = self
@@ -134,7 +172,12 @@ class FunctionAdapter(function_node.FunctionNode):
     def forward(self, inputs):
         # Retain all inputs by default in old-style functions.
         self.retain_inputs(six.moves.range(len(inputs)))
-        return self._function.forward(inputs)
+        if self._is_chainerx_fallback_mode:
+            with function_node._chainerx_attribute_fallback(
+                    self._function, self.chainerx_device):
+                return self._function.forward(inputs)
+        else:
+            return self._function.forward(inputs)
 
     def backward(self, target_input_indexes, grad_outputs):
         retained_inputs = self.get_retained_inputs()
@@ -143,28 +186,36 @@ class FunctionAdapter(function_node.FunctionNode):
         for retained, i_in in six.moves.zip(
                 retained_inputs, self._input_indexes_to_retain):
             inputs[i_in] = retained
-            in_data[i_in] = retained.array
+            in_data[i_in] = None if retained is None else retained.array
         in_data = tuple(in_data)
 
         grad_out_data = tuple([None if grad is None else grad.data
                                for grad in grad_outputs])
 
-        # Convert input and output gradients to numpy/cupy
-        xp = backend.get_array_module(*(in_data + grad_out_data))
-        if xp is chainerx:
-            in_data = backend.from_chainerx(in_data)
-            grad_out_data = backend.from_chainerx(grad_out_data)
+        is_chainerx_fallback_mode = self._is_chainerx_fallback_mode
+        if is_chainerx_fallback_mode:
+            # Convert input and output gradients to numpy/cupy
+            in_data = backend.from_chx(in_data)
+            grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
-            gxs = self._function.backward(in_data, grad_out_data)
+            if is_chainerx_fallback_mode:
+                # Enable attribute fallback
+                with function_node._chainerx_attribute_fallback(
+                        self._function, self.chainerx_device):
+                    gxs = self._function.backward(in_data, grad_out_data)
+            else:
+                gxs = self._function.backward(in_data, grad_out_data)
 
+        # Check gradients
         for x, gx in six.moves.zip(self.inputs, gxs):
-            variable._check_grad_type(self, x, True, gx, False)
+            if gx is not None:
+                variable._check_grad_type(self, x, True, gx)
 
         # Convert input gradients back to ChainerX
-        if xp is chainerx:
-            gxs = backend.to_chainerx(gxs)
+        if is_chainerx_fallback_mode:
+            gxs = backend.to_chx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -236,11 +287,9 @@ class Function(object):
         behavior of building the computational graph.
 
         Args:
-            inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
-                :class:`cupy.ndarray` objects.
-                If the input is an :class:`numpy.ndarray` or a
-                :class:`cupy.ndarray`, it is automatically wrapped with
-                :class:`Variable`.
+            inputs: Tuple of input :class:`Variable` or :ref:`ndarray` objects.
+                If the input is :ref:`ndarray`, it is automatically wrapped
+                with :class:`Variable`.
 
         Returns:
             One :class:`Variable` object or a tuple of multiple
@@ -316,8 +365,8 @@ class Function(object):
         retained are set to ``None``.
 
         """
-        if self.node._is_chainerx:
-            return backend.from_chainerx(self.node.output_data)
+        if self.node._is_chainerx_fallback_mode:
+            return backend.from_chx(self.node.output_data)
         return self.node.output_data
 
     @property

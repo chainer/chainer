@@ -10,13 +10,13 @@ class Contrastive(function_node.FunctionNode):
 
     def __init__(self, margin, reduce='mean'):
         if margin <= 0:
-            raise ValueError("margin should be positive value.")
+            raise ValueError('margin should be positive value.')
         self.margin = margin
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -70,7 +70,7 @@ class Contrastive(function_node.FunctionNode):
             alpha = gy[:, None]
         alpha = chainer.functions.broadcast_to(alpha, y.shape)
         dist = chainer.functions.repeat(dist[:, None], x_dim, axis=1)
-        # avoid division by zero, 1e-7 is enoughly small value that can be
+        # avoid division by zero, 1e-7 is sufficiently small value that can be
         # represented even in half precision
         dist = chainer.functions.maximum(
             dist, xp.full(dist.shape, 1e-7, dtype=dist.dtype))
@@ -112,16 +112,14 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
     loss values.
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The first input variable. The shape should be
-            (N, K), where N denotes the mini-batch size, and K denotes the
-            dimension of ``x0``.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): The second input variable. The shape should be
-            the same as ``x0``.
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Labels. All values should be 0 or 1. The shape
-            should be ``(N,)``, where N denotes the mini-batch size.
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`): The first input
+            variable. The shape should be (N, K), where N denotes the
+            mini-batch size, and K denotes the dimension of ``x0``.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`): The second input
+            variable. The shape should be the same as ``x0``.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`): Labels. All values
+            should be 0 or 1. The shape should be ``(N,)``, where N denotes the
+            mini-batch size.
         margin (float): A parameter for contrastive loss. It should be positive
             value.
         reduce (str): Reduction option. Its value must be either

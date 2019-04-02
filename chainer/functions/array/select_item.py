@@ -67,14 +67,14 @@ class Assign(function_node.FunctionNode):
         self.t = t.data
 
     def forward_cpu(self, inputs):
-        t = backend.from_chainerx(self.t)  # Workaround for ChainerX.
+        t = backend.from_chx(self.t)  # Workaround for ChainerX.
 
         gx = numpy.zeros(self.shape, self.dtype)
         gx[six.moves.range(self.t.size), t] = inputs[0]
         return gx,
 
     def forward_gpu(self, inputs):
-        t = backend.from_chainerx(self.t)  # Workaround for ChainerX.
+        t = backend.from_chx(self.t)  # Workaround for ChainerX.
 
         gx = cuda.cupy.zeros(self.shape, self.dtype)
         gx = cuda.elementwise(
@@ -96,11 +96,9 @@ def select_item(x, t):
     ``y[i] == x[i, t[i]]`` for all ``i``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable storing arrays. A two-dimensional float array.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable storing index numbers. A one-dimensional int array.
             Length of the ``t`` should be equal to ``x.shape[0]``.
 

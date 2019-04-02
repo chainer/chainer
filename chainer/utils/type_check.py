@@ -223,7 +223,7 @@ method to evaluate expression.
     __ge__ = _make_bool_operator('>=', '<', operator.__ge__)
 
     # Please refer the Python documentation to know priority of operators.
-    # https://docs.python.org/3.4/reference/expressions.html
+    # https://docs.python.org/3/reference/expressions.html
 
     __add__ = _make_bin_operator('+', 4, operator.__add__)
     __radd__ = _flip(__add__)
@@ -233,7 +233,7 @@ method to evaluate expression.
     __rmul__ = _flip(__mul__)
 
     if sys.version_info < (3, 0, 0):
-        __div__ = _make_bin_operator('/', 5, operator.__div__)
+        __div__ = _make_bin_operator('/', 5, operator.__div__)  # type: ignore # NOQA
         __rdiv__ = _flip(__div__)
     else:
         __truediv__ = _make_bin_operator('/', 5, operator.__truediv__)

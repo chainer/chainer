@@ -44,12 +44,12 @@ def _chainerx_preprocess_const(x, value, label):
     # conversion without copy is possible.
     if isinstance(value, (numpy.ndarray, cuda.ndarray)):
         # TODO(niboshi): force zero-copy
-        return backend.to_chainerx(value)
+        return backend.to_chx(value)
 
     if isinstance(value, (six.integer_types, float)):
         return value
-    if numpy.isscalar(value):
-        return numpy.asscalar(value)
+    if isinstance(value, numpy.generic):
+        return value.item()
     if isinstance(value, variable.Variable):
         value = variable.as_array(value)
     utils._check_arrays_forward_compatible((x, value), label)

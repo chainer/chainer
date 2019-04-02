@@ -24,6 +24,8 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
+        'typing',
+        'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
@@ -31,43 +33,33 @@ requirements = {
     ],
     'stylecheck': [
         'autopep8>=1.4.1,<1.5',
-        'flake8>=3.6,<3.7',
-        'pbr==4.0.4',
-        'pycodestyle>=2.4,<2.5',
+        'flake8>=3.7,<3.8',
+        'pycodestyle>=2.5,<2.6',
     ],
     'test': [
-        'pytest',
+        'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
         'mock',
     ],
     'doctest': [
-        'sphinx==1.7.9',
+        'sphinx==1.8.2',
         'matplotlib',
         'theano',
     ],
     'docs': [
-        'sphinx==1.7.9',
+        'sphinx==1.8.2',
         'sphinx_rtd_theme',
-    ],
-    'travis': [
-        '-r stylecheck',
-        '-r test',
-        '-r docs',
-        # pytest-timeout>=1.3.0 requires pytest>=3.6.
-        # TODO(niboshi): Consider upgrading pytest to >=3.6
-        'pytest-timeout<1.3.0',
-        'pytest-cov',
-        'theano',
-        'h5py',
-        'pillow',
     ],
     'appveyor': [
         '-r test',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
-        'pytest-cov',
     ],
 }
+
+
+if sys.version_info >= (3, 4):  # mypy requires Python 3.4 or later
+    requirements['stylecheck'].append('mypy')
 
 
 def reduce_requirements(key):
@@ -89,8 +81,6 @@ for k in requirements.keys():
 
 
 extras_require = {k: v for k, v in requirements.items() if k != 'install'}
-
-
 setup_requires = []
 install_requires = requirements['install']
 tests_require = requirements['test']
@@ -161,6 +151,7 @@ setup_kwargs = dict(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.link_hooks',
               'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.optimizer_hooks',
@@ -178,6 +169,9 @@ setup_kwargs = dict(
               'chainermn.functions',
               'chainermn.iterators',
               'chainermn.links'],
+    package_data={
+        'chainer': ['py.typed'],
+    },
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

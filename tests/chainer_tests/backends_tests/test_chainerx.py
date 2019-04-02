@@ -101,9 +101,9 @@ class TestFromToChainerx(unittest.TestCase):
         with chainer.using_device(backend.get_device_from_array(arr1)):
             arr1 -= 2
 
-    def test_from_chainerx(self, backend_config):
+    def test_from_chx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
-        arr_converted = backend.from_chainerx(arr)
+        arr_converted = backend.from_chx(arr)
 
         src_device = backend_config.device
         if src_device.xp is chainerx:
@@ -117,9 +117,9 @@ class TestFromToChainerx(unittest.TestCase):
         with backend_config:
             self.check_equal_memory_shared(arr, arr_converted)
 
-    def test_to_chainerx(self, backend_config):
+    def test_to_chx(self, backend_config):
         arr = backend_config.get_array(numpy.ones((2, 3), numpy.float32))
-        arr_converted = backend.to_chainerx(arr)
+        arr_converted = backend.to_chx(arr)
 
         src_device = backend_config.device
         assert isinstance(arr_converted, chainerx.ndarray)

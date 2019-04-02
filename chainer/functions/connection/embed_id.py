@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -74,6 +75,7 @@ class EmbedIDGrad(function_node.FunctionNode):
                     continue
                 gW[ix] += igy
         else:
+            utils.nondeterministic('atomicAdd')
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, S x, S n_out', 'raw T gW',
@@ -128,11 +130,9 @@ def embed_id(x, W, ignore_label=None):
     This function is only differentiable on the input ``W``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Batch vectors of IDs. Each element must be signed integer.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Distributed representation of each ID (a.k.a. word embeddings).
         ignore_label (:class:`int` or :class:`None`):
             If ``ignore_label`` is an int value, ``i``-th column of return

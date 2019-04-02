@@ -82,7 +82,7 @@ class Evaluator(extension.Extension):
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
         if device is not None:
-            device = backend._get_device_compat(device)
+            device = backend.get_device(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -202,6 +202,11 @@ class Evaluator(extension.Extension):
             iterator.reset()
             it = iterator
         else:
+            warnings.warn(
+                'This iterator does not have the reset method. Evaluator '
+                'copies the iterator instead of resetting. This behavior is '
+                'deprecated. Please implement the reset method.',
+                DeprecationWarning)
             it = copy.copy(iterator)
 
         summary = reporter_module.DictSummary()

@@ -53,8 +53,7 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         shape (:class:`tuple` of :class:`int` s):
             Expected shape of the output array. The number of elements which
             the array of ``shape`` contains must be equal to that of input
