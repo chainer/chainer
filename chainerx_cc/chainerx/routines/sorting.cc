@@ -11,7 +11,6 @@
 #include "chainerx/error.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 
