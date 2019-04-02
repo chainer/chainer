@@ -35,15 +35,14 @@ def _is_good_param(param):
         'dtype': [numpy.float32, numpy.float16],
     })
     + testing.product([
-        # nonzeros (optional int): max number of nonzero elems in input
-        # truezero (bool): flag whether zero elems are exactly zero. If false,
-        #     randomly-chosen small values are used.
-        {'eps': 1e-5, 'nonzeros': None},
-        {'eps': 1e-1, 'nonzeros': None},
-        {'eps': 1e-1, 'nonzeros': 0, 'truezero': True},
-        {'eps': 1e-1, 'nonzeros': 0, 'truezero': False},
-        {'eps': 1e-1, 'nonzeros': 2, 'truezero': True},
-        {'eps': 1e-1, 'nonzeros': 2, 'truezero': False},
+        # same (str): flag whether input elems are same values.
+        #   'no'   : all elems are randamly-chosen,
+        #   'equal': all elems are equal,
+        #   'near' : all elems are (randomly-chosen small values + same value).
+        {'eps': 1e-5, 'same': 'no'},
+        {'eps': 1e-1, 'same': 'no'},
+        {'eps': 1e-1, 'same': 'equal'},
+        {'eps': 1e-1, 'same': 'near'},
     ])
 ))
 @testing.backend.inject_backend_tests(
@@ -67,25 +66,16 @@ def _is_good_param(param):
 class TestStandardize(testing.FunctionTestCase):
 
     def setUp(self):
-        self.skip_double_backward_test = (self.nonzeros is not None)
-        if self.nonzeros is not None:
-            # Make self.x have limited number of large values
-
-            # get mask of indices to modify at
-            zeros = self.x.size - self.nonzeros
-            while True:
-                rand = numpy.random.uniform(0, 1, self.shape)
-                mask = rand <= numpy.sort(rand.ravel())[zeros - 1]
-                if self.x[mask].shape == (zeros,):
-                    break
-
-            # set zeros or small values to a part of the input
-            if self.truezero:
-                self.x[mask] = 0
-            else:
-                zero_scale = 10. ** numpy.random.randint(-40, -3)
-                self.x[mask] = numpy.random.uniform(
-                    -zero_scale, zero_scale, zeros)
+        self.skip_double_backward_test = self.same in ('equal', 'near')
+        if self.same == 'equal':
+            # Make self.x have same values
+            self.x[...] = self.x[0]
+        elif self.same == 'near':
+            # Make self.x have slightly different values
+            self.x[...] = self.x[0]
+            zero_scale = 10. ** numpy.random.randint(-40, -3)
+            self.x += numpy.random.uniform(
+                -zero_scale, zero_scale, self.x.shape)
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
             self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
