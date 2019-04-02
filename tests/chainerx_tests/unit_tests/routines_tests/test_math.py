@@ -1877,6 +1877,7 @@ class TestPowScalarArray(op_utils.NumpyOpTest):
             return xp.power(self.scalar, inputs[0]),
         return self.scalar ** inputs[0],
 
+
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
@@ -1970,7 +1971,6 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.arctan(a)
-
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
