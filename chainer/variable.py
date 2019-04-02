@@ -776,7 +776,7 @@ class Variable(object):
             warnings.warn(
                 'Backprop through `Variable.__iter__` is slow. Consider'
                 ' using `chainer.functions.split_axis`.',
-                RuntimeWarning)
+                chainer.warnings.PerformanceWarning)
         return (self[i] for i in six.moves.range(len(self)))
 
     @property

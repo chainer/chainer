@@ -347,11 +347,12 @@ class TestVariable(unittest.TestCase):
         if x.ndim == 0:
             pytest.raises(TypeError, x.__iter__)
         else:
-            i = 0
-            for xi in x:
-                testing.assert_allclose(xi.array, self.x[i])
-                i += 1
-            assert i == len(self.x)
+            with testing.assert_warns(chainer.warnings.PerformanceWarning):
+                i = 0
+                for xi in x:
+                    testing.assert_allclose(xi.array, self.x[i])
+                    i += 1
+                assert i == len(self.x)
 
     def test_iter_cpu(self):
         self.check_iter(self.x)
