@@ -56,49 +56,13 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
             internal::GetRawOffsetData(running), internal::GetRawOffsetData(running_casted_back), running.GetNBytes(), device);
 }
 
-class CudnnBNTensorDescriptor {
-public:
-    CudnnBNTensorDescriptor(const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
-        CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
-    }
-
-    CudnnBNTensorDescriptor(const CudnnBNTensorDescriptor&) = delete;
-    CudnnBNTensorDescriptor& operator=(const CudnnBNTensorDescriptor&) = delete;
-
-    CudnnBNTensorDescriptor(CudnnBNTensorDescriptor&&) = delete;
-    CudnnBNTensorDescriptor& operator=(CudnnBNTensorDescriptor&&) = delete;
-
-    ~CudnnBNTensorDescriptor() {
-        if (desc_ != nullptr) {
-            CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
-        }
-    }
-
-    cudnnTensorDescriptor_t descriptor() const { return desc_; }
-    cudnnTensorDescriptor_t operator*() const { return desc_; }
-
-    Dtype GetDtype() {
-        cudnnDataType_t cudnn_dtype{};
-        int ndim{};
-
-        CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
-
-        switch (cudnn_dtype) {
-            case CUDNN_DATA_HALF:
-                return Dtype::kFloat16;
-            case CUDNN_DATA_FLOAT:
-                return Dtype::kFloat32;
-            case CUDNN_DATA_DOUBLE:
-                return Dtype::kFloat64;
-            default:
-                throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
-        }
-    }
-
-private:
-    CudnnBNTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
-    cudnnTensorDescriptor_t desc_{};
-};
+// Derives a secondary tensor descriptor for the batch normalization parameters.
+cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
+        const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) {
+    cuda_internal::CudnnTensorDescriptor derive_desc{};
+    CheckCudnnError(cudnnDeriveBNTensorDescriptor(*derive_desc, *x_desc, mode));
+    return derive_desc;
+}
 
 class CudaBatchNormForwardBackward : public chainerx::GenericBatchNormForwardBackward {
 public:
@@ -153,7 +117,7 @@ public:
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
         // Let cuDNN decide the parameter dtype based on the input and batch normalization mode.
-        CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
         Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
@@ -238,7 +202,7 @@ public:
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
-        CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
 
@@ -322,7 +286,7 @@ Array CudaDevice::FixedBatchNorm(
     cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
     cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
-    CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+    cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
     Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
     Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
