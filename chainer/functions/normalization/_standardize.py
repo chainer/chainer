@@ -8,6 +8,25 @@ import chainer.functions
 from chainer.utils import type_check
 
 
+class _SetItemZero(function_node.FunctionNode):
+
+    """Write values to mask of zero-initialized array"""
+
+    def __init__(self, mask):
+        self.mask = mask
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = backend.get_array_module(x)
+        y = xp.zeros(self.mask.shape, x.dtype)
+        y[self.mask] = x
+        return y,
+
+    def backward(self, indices, grad_outputs):
+        g, = grad_outputs
+        return g[self.mask],
+
+
 class Standardize(function_node.FunctionNode):
 
     """Standardization for `Weight standardization
@@ -60,7 +79,13 @@ class Standardize(function_node.FunctionNode):
 
         g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
         g_std = g_inv_std * (- 1. / var)
-        g_var = g_std * 0.5 / std_noeps
+
+        # _standardize with eps has continuous backward. However,
+        # the backward is not differentiable for the indices of zero vectors.
+        # To avoid nan in double backward, do not compute outside of mask.
+        mask = std_noeps.array != 0
+        g_var, = _SetItemZero(mask).apply((
+            g_std[mask] * 0.5 / std_noeps[mask],))
 
         n_units = x.size / x.shape[0]
         g_squ_x_mu = g_var * (1. / n_units)
