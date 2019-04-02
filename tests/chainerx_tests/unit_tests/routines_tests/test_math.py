@@ -1308,15 +1308,22 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [0, 1],
+        'scalar_value': [1],
         'is_scalar_rhs': [False],
     })
-    # Special values
+    # Differentiable cases
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-        'input': [numpy.array([1, 2, 3, 2, 3, 4])],
-        'scalar_value': [0, 1, 2, 3, 4, 5],
-        'is_scalar_rhs': [False],
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [0, 2, 5],
+        'is_scalar_rhs': [False, True],
+    })
+    # Non-differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [1, 3, 4],
+        'is_scalar_rhs': [False, True],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
@@ -1351,12 +1358,19 @@ class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
         'scalar_value': [0, 1],
         'is_scalar_rhs': [False],
     })
-    # Special values
+    # Differentiable cases
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-        'input': [numpy.array([1, 2, 3, 2, 3, 4])],
-        'scalar_value': [0, 1, 2, 3, 4, 5],
-        'is_scalar_rhs': [False],
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [0, 2, 5],
+        'is_scalar_rhs': [False, True],
+    })
+    # Non-differentiable cases
+    + chainer.testing.product({
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [numpy.array([1, 3, 3, 4])],
+        'scalar_value': [1, 3, 4],
+        'is_scalar_rhs': [False, True],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
