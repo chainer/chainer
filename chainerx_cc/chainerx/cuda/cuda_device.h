@@ -170,12 +170,6 @@ public:
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
 
-    // indexing.cu
-
-    void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
-
-    void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
-
     // conv.cc
 
     Array Conv(
