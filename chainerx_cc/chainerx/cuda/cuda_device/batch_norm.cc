@@ -309,9 +309,11 @@ Array CudaDevice::FixedBatchNorm(
         CHAINERX_ASSERT(&x.device() == &mean.device());
         CHAINERX_ASSERT(&x.device() == &var.device());
 
-        CHAINERX_ASSERT(gamma.dtype() == beta.dtype());
-        CHAINERX_ASSERT(gamma.dtype() == mean.dtype());
-        CHAINERX_ASSERT(gamma.dtype() == var.dtype());
+        CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(mean.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(var.dtype()) == DtypeKind::kFloat);
     }
 
     Array x_cont = internal::AsContiguous(x);
