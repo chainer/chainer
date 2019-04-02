@@ -394,8 +394,11 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
         functions.batch_normalization(*self.args, eps=1e-5)
 
     def test_invalid(self):
+        eps = -0.1
+        if chainer.backends.cuda.cupy.cuda.cudnn.get_build_version() < 7500:
+            eps = 2e-6
         with self.assertRaises(RuntimeError):
-            functions.batch_normalization(*self.args, eps=2e-6)
+            functions.batch_normalization(*self.args, eps=eps)
 
 
 @attr.cudnn
@@ -416,8 +419,11 @@ class TestFixedBatchNormalizationCudnnEps(unittest.TestCase):
         functions.fixed_batch_normalization(*self.args, eps=1e-5)
 
     def test_invalid(self):
+        eps = -0.1
+        if chainer.backends.cuda.cupy.cuda.cudnn.get_build_version() < 7500:
+            eps = 2e-6
         with self.assertRaises(RuntimeError):
-            functions.fixed_batch_normalization(*self.args, eps=2e-6)
+            functions.fixed_batch_normalization(*self.args, eps=eps)
 
 
 class TestBatchNormalizationWarning(unittest.TestCase):
