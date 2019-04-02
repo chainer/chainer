@@ -1311,6 +1311,15 @@ class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
 
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
     def func(self, xp, a):
         if self.is_module:
             return xp.sum(a, axis=self.axis, keepdims=self.keepdims)
