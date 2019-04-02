@@ -1,19 +1,9 @@
 #include "chainerx/device.h"
 
-#include <algorithm>
-#include <type_traits>
-#include <utility>
-
 #include "chainerx/array.h"
 #include "chainerx/context.h"
-#include "chainerx/dtype.h"
 #include "chainerx/error.h"
-#include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
-#include "chainerx/routines/statistics.h"
-#include "chainerx/routines/type_util.h"
 #include "chainerx/thread_local_state.h"
 
 namespace chainerx {
