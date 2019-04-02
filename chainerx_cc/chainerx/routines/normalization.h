@@ -40,6 +40,18 @@ protected:
             const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) = 0;
 };
 
+class FixedBatchNormOp : public Op {
+public:
+    static const char* name() { return "FixedBatchNorm"; }
+
+    virtual Array
+    Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis);
+
+protected:
+    virtual Array Impl(
+            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) = 0;
+};
+
 class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
 public:
     GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis);
@@ -87,18 +99,6 @@ class GenericBatchNormOp : public BatchNormOp {
 protected:
     std::unique_ptr<BatchNormForwardBackward> GetForwardBackward(
             const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) override;
-};
-
-class FixedBatchNormOp : public Op {
-public:
-    static const char* name() { return "FixedBatchNorm"; }
-
-    virtual Array
-    Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis);
-
-protected:
-    virtual Array Impl(
-            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) = 0;
 };
 
 class GenericFixedBatchNormOp : public FixedBatchNormOp {

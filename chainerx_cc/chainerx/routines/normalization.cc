@@ -232,6 +232,16 @@ Array BatchNormOp::Call(
     return out;
 }
 
+Array FixedBatchNormOp::Call(
+        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
+    PreprocessBatchNormResult result =
+            PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
+    {
+        NoBackpropModeScope scope{};
+        return Impl(x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
+    }
+}
+
 namespace {
 
 struct ApplyBatchNormResult {
@@ -356,26 +366,16 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
+std::unique_ptr<BatchNormForwardBackward> GenericBatchNormOp::GetForwardBackward(
+        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
+    return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);
+}
+
 Array GenericFixedBatchNormOp::Impl(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype);
     return std::move(result.out);
-}
-
-Array FixedBatchNormOp::Call(
-        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
-    PreprocessBatchNormResult result =
-            PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
-    {
-        NoBackpropModeScope scope{};
-        return Impl(x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
-    }
-}
-
-std::unique_ptr<BatchNormForwardBackward> GenericBatchNormOp::GetForwardBackward(
-        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-    return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);
 }
 
 }  // namespace chainerx
