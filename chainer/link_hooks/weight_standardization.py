@@ -3,20 +3,19 @@ from chainer import link_hook
 
 
 class WeightStandardization(link_hook.LinkHook):
-    """Weight Standardization link hook implementation.
+    """Weight Standardization (WS) link hook implementation.
 
     This hook standardizes a weight by *weight statistics*.
 
-    This link hook implements a "weight standardization" which computes the
-    mean and variance along axis "output channels", then normalizes by these
-    statistics.
-    That improves training by reducing the Lipschitz constants of the loss and
-    the gradients like batch normalization but without relying on large batch
-    sizes during training. Specifically, in micro-batch training, weight
-    standardization significantly outperforms other normalization methods like
-    batch normalization.
-    Weight Standardization is originally proposed for 2D convolution layers
-    followed by mainly group normalization and sometimes batch normalization.
+    This link hook implements a WS which computes the mean and variance along
+    axis "output channels", then normalizes by these statistics.
+    WS improves training by reducing the Lipschitz constants of the loss and
+    the gradients like batch normalization (BN) but without relying on large
+    batch sizes during training. Specifically, the performance of WS with group
+    normalization (GN) trained with small-batch is able to match or outperforms
+    that of BN trained with large-batch.
+    WS is originally proposed for 2D convolution layers followed by mainly GN
+    and sometimes BN.
     Note that this hook is able to handle layers such as N-dimensional
     convolutional, linear and embedding layers but there is no guarantee that
     this hook helps training.
