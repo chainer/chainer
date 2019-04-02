@@ -10,11 +10,13 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/normalization.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -287,69 +289,80 @@ private:
 
 }  // namespace
 
-std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward(
-        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle(), running_mean, running_var, eps, decay, axis);
-}
-
-Array CudaDevice::FixedBatchNorm(
-        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
-        throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+class CudaBatchNormOp : public BatchNormOp {
+protected:
+    std::unique_ptr<BatchNormForwardBackward> GetForwardBackward(
+            const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
+        CudaDevice& device = dynamic_cast<CudaDevice&>(running_mean.device());
+        return std::make_unique<CudaBatchNormForwardBackward>(device.cudnn_handle(), running_mean, running_var, eps, decay, axis);
     }
+};
 
-    CudaSetDeviceScope scope{index()};
+CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
 
-    if (CHAINERX_DEBUG) {
-        Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
-        CHAINERX_ASSERT(gamma.shape() == reduced_shape);
-        CHAINERX_ASSERT(beta.shape() == reduced_shape);
-        CHAINERX_ASSERT(mean.shape() == reduced_shape);
-        CHAINERX_ASSERT(var.shape() == reduced_shape);
+class CudaFixedBatchNormOp : public FixedBatchNormOp {
+protected:
+    Array Impl(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
+        if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
+            throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+        }
 
-        CHAINERX_ASSERT(&x.device() == &gamma.device());
-        CHAINERX_ASSERT(&x.device() == &beta.device());
-        CHAINERX_ASSERT(&x.device() == &mean.device());
-        CHAINERX_ASSERT(&x.device() == &var.device());
+        CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
+        CudaSetDeviceScope scope{device.index()};
 
-        CHAINERX_ASSERT(x.dtype() == gamma.dtype());
-        CHAINERX_ASSERT(x.dtype() == beta.dtype());
-        CHAINERX_ASSERT(x.dtype() == mean.dtype());
-        CHAINERX_ASSERT(x.dtype() == var.dtype());
+        if (CHAINERX_DEBUG) {
+            Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
+            CHAINERX_ASSERT(gamma.shape() == reduced_shape);
+            CHAINERX_ASSERT(beta.shape() == reduced_shape);
+            CHAINERX_ASSERT(mean.shape() == reduced_shape);
+            CHAINERX_ASSERT(var.shape() == reduced_shape);
+
+            CHAINERX_ASSERT(&x.device() == &gamma.device());
+            CHAINERX_ASSERT(&x.device() == &beta.device());
+            CHAINERX_ASSERT(&x.device() == &mean.device());
+            CHAINERX_ASSERT(&x.device() == &var.device());
+
+            CHAINERX_ASSERT(x.dtype() == gamma.dtype());
+            CHAINERX_ASSERT(x.dtype() == beta.dtype());
+            CHAINERX_ASSERT(x.dtype() == mean.dtype());
+            CHAINERX_ASSERT(x.dtype() == var.dtype());
+        }
+
+        Array x_cont = internal::AsContiguous(x);
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+
+        CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
+
+        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
+        Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
+
+        Array out = EmptyLike(x, x.device());
+
+        device.cudnn_handle().Call(
+                cudnnBatchNormalizationForwardInference,
+                GetBatchNormMode(axis),
+                cuda_internal::GetCudnnCoefficientPtr<1>(x.dtype()),
+                cuda_internal::GetCudnnCoefficientPtr<0>(x.dtype()),
+                *x_desc,
+                internal::GetRawOffsetData(x_cont),
+                *x_desc,
+                internal::GetRawOffsetData(out),
+                *gamma_beta_mean_var_desc,
+                internal::GetRawOffsetData(gamma_casted_cont),
+                internal::GetRawOffsetData(beta_casted_cont),
+                internal::GetRawOffsetData(mean_casted_cont),
+                internal::GetRawOffsetData(var_casted_cont),
+                static_cast<double>(eps));
+
+        return out;
     }
+};
 
-    Array x_cont = internal::AsContiguous(x);
-    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-    cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
-
-    CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
-    Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
-
-    Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-    Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
-    Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
-    Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
-
-    Array out = EmptyLike(x, x.device());
-
-    cudnn_handle_.Call(
-            cudnnBatchNormalizationForwardInference,
-            GetBatchNormMode(axis),
-            cuda_internal::GetCudnnCoefficientPtr<1>(x.dtype()),
-            cuda_internal::GetCudnnCoefficientPtr<0>(x.dtype()),
-            *x_desc,
-            internal::GetRawOffsetData(x_cont),
-            *x_desc,
-            internal::GetRawOffsetData(out),
-            *gamma_beta_mean_var_desc,
-            internal::GetRawOffsetData(gamma_casted_cont),
-            internal::GetRawOffsetData(beta_casted_cont),
-            internal::GetRawOffsetData(mean_casted_cont),
-            internal::GetRawOffsetData(var_casted_cont),
-            static_cast<double>(eps));
-
-    return out;
-}
+CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
 
 }  // namespace cuda
 }  // namespace chainerx
