@@ -33,18 +33,19 @@ class Standardize(function_node.FunctionNode):
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=axes, keepdims=True)
         if xp in (numpy, cuda.cupy):
-            std = xp.sqrt(var, dtype=x.dtype) + self.eps
+            std_noeps = xp.sqrt(var, dtype=x.dtype)
         else:
-            std = xp.sqrt(var) + self.eps
+            std_noeps = xp.sqrt(var)
+        std = std_noeps + self.eps
         inv_std = 1. / std
         x_hat = x_mu * inv_std
-        return x_mu, var, inv_std, x_hat
+        return x_mu, var, std_noeps, inv_std, x_hat
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)
         x, = inputs
-        x_mu, var, inv_std, x_hat = self._compute(xp, x)
+        x_mu, var, std_noeps, inv_std, x_hat = self._compute(xp, x)
         return x_hat,
 
     def backward(self, indexes, grad_outputs):
@@ -53,13 +54,13 @@ class Standardize(function_node.FunctionNode):
         gy, = grad_outputs
         axes = tuple(six.moves.range(1, len(x.shape)))
 
-        x_mu, var, inv_std, x_hat = self._compute(F, x)
+        x_mu, var, std_noeps, inv_std, x_hat = self._compute(F, x)
 
-        g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
         g_x_mu_1 = gy * inv_std
 
+        g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
         g_std = g_inv_std * (- 1. / var)
-        g_var = g_std * 0.5 * inv_std
+        g_var = g_std * 0.5 / std_noeps
 
         n_units = x.size / x.shape[0]
         g_squ_x_mu = g_var * (1. / n_units)
