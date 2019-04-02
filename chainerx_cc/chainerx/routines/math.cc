@@ -19,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
@@ -535,7 +536,9 @@ namespace {
 // Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = EmptyLike(x1, x1.device());
+    CheckArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), false);
+    Array out = Empty(x1.shape(), ResultType(pos, neg), x1.device());
+    // TODO(niboshi): Create mask array and reuse in backprop.
 
     {
         NoBackpropModeScope scope{};
@@ -546,7 +549,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout).AsType(x1.dtype(), false);
         });
     }
     bb.Finalize();
@@ -568,7 +571,9 @@ namespace {
 // Calculates: x1 > x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = EmptyLike(x1, x1.device());
+    CheckArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), false);
+    Array out = Empty(x1.shape(), ResultType(pos, neg), x1.device());
+    // TODO(niboshi): Create mask array and reuse in backprop.
 
     {
         NoBackpropModeScope scope{};
@@ -579,7 +584,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout).AsType(x1.dtype(), false);
         });
     }
     bb.Finalize();
@@ -590,12 +595,14 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 }  // namespace
 
 Array Maximum(const Array& x1, Scalar x2) {
+    // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Minimum(const Array& x1, Scalar x2) {
+    // TODO(niboshi): IfGreaterElse redundantly casts x1 twice.
     return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
 }
 
@@ -656,6 +663,12 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
+}
+
+Array Sigmoid(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Reciprocal(1 + Exp(-x_cast));
 }
 
 Array Square(const Array& x) {
@@ -833,6 +846,95 @@ Array Cos(const Array& x) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout * -Sin(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Tan(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Tan(x, out);
+    }
+
+    BackwardBuilder bb{"tan", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            const Array& out = Cos(inp);
+            bctx.input_grad() = gout / (out * out);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arcsin(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arcsin(x, out);
+    }
+
+    BackwardBuilder bb{"arcsin", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout / (Sqrt(1 - inp * inp));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arccos(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arccos(x, out);
+    }
+
+    BackwardBuilder bb{"arccos", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = -gout / (Sqrt(1 - inp * inp));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arctan(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Arctan(x, out);
+    }
+
+    BackwardBuilder bb{"arctan", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout / (1 + inp * inp);
         });
     }
     bb.Finalize();

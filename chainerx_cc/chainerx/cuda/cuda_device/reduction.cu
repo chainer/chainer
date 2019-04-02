@@ -12,12 +12,14 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/cuda/numeric_limits.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
+#include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -41,18 +43,20 @@ struct ArgMaxImpl {
     __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
 };
 
-}  // namespace
+class CudaArgMaxOp : public ArgMaxOp {
+protected:
+    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
+        });
+    }
+};
 
-void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(a.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(ArgMaxOp, CudaArgMaxOp);
 
 template <typename In, typename Out>
 struct SumImpl {

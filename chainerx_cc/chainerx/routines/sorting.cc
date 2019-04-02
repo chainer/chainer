@@ -14,7 +14,7 @@
 
 namespace chainerx {
 
-Array ArgMax(const Array& a, const OptionalAxes& axis) {
+Array ArgMaxOp::Call(const Array& a, const OptionalAxes& axis) {
     Axes sorted_axis{};
     Shape out_shape{};
     if (axis.has_value()) {
@@ -42,7 +42,7 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().ArgMax(a, sorted_axis, out);
+        Impl(a, sorted_axis, out);
     }
     return out;
 }
