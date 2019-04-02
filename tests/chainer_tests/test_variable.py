@@ -2630,59 +2630,6 @@ class TestNamedVariableDim2Size0ToString(unittest.TestCase):
         assert str(self.x) == self.str
 
 
-# TODO(kataoka): The same function is defined in test_function_node. DRY.
-class ExpPair(chainer.FunctionNode):
-
-    def forward(self, inputs):
-        x, = inputs
-        xp = backend.get_array_module(x)
-        self.retain_outputs((0, 1))
-        return xp.exp(x), xp.exp(x)
-
-    def backward(self, target_input_indexes, grad_outputs):
-        return sum([
-            g * exp
-            for g, exp in zip(grad_outputs, self.get_retained_outputs())
-            if g is not None
-        ]),
-
-
-def exp_pair(x):
-    return ExpPair().apply((x,))
-
-
-class TestBackwardDelOutput(unittest.TestCase):
-    # Variable.backward may have function nodes with deleted outputs.
-
-    def check_backward_cpu(self, retain_grad):
-        x = chainer.Variable(np.array([1, 2], np.float32))
-        y0, y1 = exp_pair(x)
-        del y0
-        y1.grad = np.array([3, 4], np.float32)
-        y1.backward(retain_grad=True)
-        gx_expected = y1.array * y1.grad
-        testing.assert_allclose(x.grad, gx_expected)
-
-    def test_backward_cpu(self):
-        self.check_backward_cpu(False)
-
-    def test_backward_cpu_retain_grad(self):
-        self.check_backward_cpu(True)
-
-
-class TestBackwardV5Compat(unittest.TestCase):
-
-    def test_backward_multiple_output_func(self):
-        # Before Chainer v6, functions.identity is often used to start
-        # backprop from multiple variables
-        x = chainer.Variable(np.array([1, 2], np.float32))
-        y0, y1, y2 = chainer.functions.identity(x, x, x)
-        y1.grad = np.array([3, 4], np.float32)
-        y2.backward()
-        testing.assert_allclose(x.grad, [3, 4])
-        assert y1.grad is None  # Changed in v6
-
-
 class IdentityFunction(chainer.Function):
 
     def forward(self, inputs):
