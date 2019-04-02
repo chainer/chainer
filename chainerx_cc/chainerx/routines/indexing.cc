@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "nonstd/optional.hpp"
@@ -117,25 +118,21 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
 }  // namespace internal
 
-namespace {
-
 // Adds elements of `b` indexed by `indices` into `a` and returns the result.
 // Used in backward pass of Take()
 //
 // It is not in-place operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
-Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
+void AddAtOp::Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
     CHAINERX_ASSERT(0 <= axis && axis < a.ndim());
     CHAINERX_ASSERT(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
 
-    Array out = EmptyLike(a, a.device());
-
     {
         NoBackpropModeScope scope{};
-        a.device().AddAt(a, indices, axis, b, out);
+        Impl(a, indices, axis, b, out);
     }
 
     {
@@ -149,18 +146,12 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
         }
         bb.Finalize();
     }
-
-    return out;
 }
 
-}  // namespace
-
-Array Take(const Array& a, const Array& indices, int8_t axis) {
-    // TODO(niboshi): Support other dtypes by casting
-    if (indices.dtype() != Dtype::kInt64) {
-        throw DtypeError(
-                std::string{"Only "} + GetDtypeName(Dtype::kInt64) + " is supported as indices, but given " +
-                GetDtypeName(indices.dtype()));
+Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
+    DtypeKind indices_kind = GetKind(indices.dtype());
+    if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
+        throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
     }
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
@@ -175,7 +166,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().Take(a, indices, axis_norm, out);
+        Impl(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};
@@ -183,7 +174,9 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+            Array gx = Zeros(a_shape, gout.dtype(), gout.device());
+            AddAt(gx, indices, axis_norm, gout, gx);
+            bctx.input_grad() = std::move(gx);
         });
     }
     bb.Finalize();

@@ -3,42 +3,53 @@
 #include <cstdint>
 
 #include "chainerx/array.h"
+#include "chainerx/axes.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/op_regist.h"
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
+#include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
 namespace native {
+namespace {
 
-void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
-    CheckDevicesCompatible(a, out);
+class NativeArgMaxOp : public ArgMaxOp {
+protected:
+    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+        a.device().CheckDevicesCompatible(a, out);
 
-    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            struct MaxAndArgMax {
-                T max;
-                int64_t argmax;
-            };
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                struct MaxAndArgMax {
+                    T max;
+                    int64_t argmax;
+                };
 
-            MaxAndArgMax Identity() { return {T{}, -1}; }
-            MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
-            void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
-                if (accum.argmax < 0 || accum.max < next.max) {
-                    accum = next;
+                MaxAndArgMax Identity() { return {T{}, -1}; }
+                MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+                void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
+                    if (accum.argmax < 0 || accum.max < next.max) {
+                        accum = next;
+                    }
                 }
-            }
-            int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
-        };
-        Reduce<T, int64_t>(a, axis, out, Impl{});
-    });
-}
+                int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
+            };
+            Reduce<T, int64_t>(a, axis, out, Impl{});
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(ArgMaxOp, NativeArgMaxOp);
+
+}  // namespace
 
 void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));

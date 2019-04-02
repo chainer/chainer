@@ -26,6 +26,15 @@ unsigned_dtypes = (
 )
 
 
+integral_dtypes = (
+    'uint8',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+)
+
+
 nonfloat_dtypes = (
     'bool_',
     'int8',

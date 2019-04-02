@@ -82,7 +82,7 @@ public:
         Device& device = x_.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x_.dtype(), device);
         offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
-        device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, 0, gout.Reshape(out_flat), gcol);
+        AddAt(gcol, indices_.Reshape(out_flat) + offset_, 0, gout.Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
@@ -190,7 +190,8 @@ Array GetPadModeIgnorePoolingWidths(
             Shape width_expanded{1};
             std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
 
-            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
+            widths = TensorDot(
+                    widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0}, dtype);
         }
     }
     return widths;

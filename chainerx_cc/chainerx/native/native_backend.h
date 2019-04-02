@@ -5,6 +5,7 @@
 
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
+#include "chainerx/op_registry.h"
 
 namespace chainerx {
 namespace native {
@@ -33,6 +34,14 @@ public:
     int GetDeviceCount() const override;
 
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
+
+    static OpRegistry& GetGlobalOpRegistry() {
+        static OpRegistry* global_op_registry = new OpRegistry{};
+        return *global_op_registry;
+    }
+
+protected:
+    OpRegistry& GetParentOpRegistry() override { return GetGlobalOpRegistry(); }
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;

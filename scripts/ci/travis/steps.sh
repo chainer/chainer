@@ -122,7 +122,10 @@ step_chainer_install_from_sdist() {
     popd
 
     # Install from sdist
-    local envs=(MAKEFLAGS=-j"$DEFAULT_JOBS")
+    local envs=(
+        MAKEFLAGS=-j"$DEFAULT_JOBS"
+        CHAINERX_BUILD_TYPE=Debug
+    )
 
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)
