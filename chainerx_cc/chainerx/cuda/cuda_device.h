@@ -110,6 +110,7 @@ public:
     // reduction.cu
 
     void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
+    void ArgMin(const Array& a, const Axes& axis, const Array& out) override;
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
