@@ -74,7 +74,7 @@ class TestConvolutionND(testing.FunctionTestCase):
 
         self.check_backward_options.update({'atol': 5e-5, 'rtol': 5e-4})
         self.check_double_backward_options.update(
-            {'atol': 1e-4, 'rtol': 1e-3})
+            {'atol': 5e-4, 'rtol': 5e-3})
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
             self.check_backward_options.update({
