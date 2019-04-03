@@ -57,13 +57,13 @@ Array FromData(
 
 // Creates an array from the file.
 //
-// Follows the NumPy conventions where if the delimiter is a nullopt
+// Follows the NumPy conventions where if the separator is a nullopt
 // it expects a binary format, otherwise it expects a text format.
 Array FromFile(
         const std::string& filename,
         Dtype dtype,
         int64_t count = -1,
-        nonstd::optional<char> delimiter = nonstd::nullopt,
+        nonstd::optional<std::string> delimiter = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
 // Creates an array from a string.
@@ -71,7 +71,7 @@ Array FromString(
         const std::string& data,
         Dtype dtype,
         int64_t count = -1,
-        nonstd::optional<char> delimiter = nonstd::nullopt,
+        nonstd::optional<std::string> delimiter = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
 // Creates an array from an input stream.
@@ -79,7 +79,7 @@ Array FromStream(
         std::istream& is,
         Dtype dtype,
         int64_t count = -1,
-        nonstd::optional<char> delimiter = nonstd::nullopt,
+        nonstd::optional<std::string> delimiter = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());

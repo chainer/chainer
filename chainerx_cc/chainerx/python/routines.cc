@@ -229,6 +229,15 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("count") = -1,
           py::arg("offset") = 0,
           py::arg("device") = nullptr);
+    m.def("fromstring",
+          [](const std::string& data, Dtype dtype, int64_t count, nonstd::optional<std::string> separator, Device& device) {
+              return MoveArrayBody(FromString(data, dtype, count, separator, device));
+          },
+          py::arg("data"),
+          py::arg("dtype") = "float32",
+          py::arg("count") = -1,
+          py::arg("sep") = " ",
+          py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
               return MoveArrayBody(Identity(n, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));

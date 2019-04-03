@@ -205,63 +205,57 @@ public:
         });
     }
 
-    static constexpr char kTestDelimiter = ',';
-
-    static constexpr size_t kRandomBoolBinLength = 100;
-    static constexpr size_t kRandomInt32BinLength = 400;
-    static constexpr size_t kRandomFloat16BinLength = 200;
-    static constexpr size_t kRandomFloat32BinLength = 400;
-    static constexpr size_t kSpecialFloat32BinLength = 120;
+    static constexpr char kTestSeparator[] = ":-:";
 
     static constexpr char kRandomBoolText[] =
-            "False,True,True,False,False,False,False,True,False,False,False,"
-            "True,True,False,True,False,True,False,False,True,False,False,True,"
-            "False,False,True,False,True,True,False,False,False,False,False,False,"
-            "True,True,False,True,False,True,False,False,True,False,False,True,"
-            "True,True,True,True,False,False,True,False,True,False,True,False,"
-            "False,True,True,True,False,True,False,False,False,False,False,True,"
-            "True,False,True,False,True,True,False,False,False,True,True,False,"
-            "False,True,False,False,True,False,True,True,True,False,True,True,"
-            "True,True,False,False,True";
+            "False:-:True:-:True:-:False:-:False:-:False:-:False:-:True:-:False:-:False:-:False:-:"
+            "True:-:True:-:False:-:True:-:False:-:True:-:False:-:False:-:True:-:False:-:False:-:True:-:"
+            "False:-:False:-:True:-:False:-:True:-:True:-:False:-:False:-:False:-:False:-:False:-:False:-:"
+            "True:-:True:-:False:-:True:-:False:-:True:-:False:-:False:-:True:-:False:-:False:-:True:-:"
+            "True:-:True:-:True:-:True:-:False:-:False:-:True:-:False:-:True:-:False:-:True:-:False:-:"
+            "False:-:True:-:True:-:True:-:False:-:True:-:False:-:False:-:False:-:False:-:False:-:True:-:"
+            "True:-:False:-:True:-:False:-:True:-:True:-:False:-:False:-:False:-:True:-:True:-:False:-:"
+            "False:-:True:-:False:-:False:-:True:-:False:-:True:-:True:-:True:-:False:-:True:-:True:-:"
+            "True:-:True:-:False:-:False:-:True";
 
     static constexpr char kRandomInt32Text[] =
-            "4,-4,-1,4,0,3,2,1,0,-3,4,3,1,-5,4,1,-2,-2,-3,-3,-5,-2,3,4,0,3,-5,"
-            "3,0,-4,-4,-3,1,-5,-1,-5,-2,0,4,1,2,-5,4,3,2,4,1,-2,3,-2,1,0,-2,3,"
-            "-1,-5,0,-4,1,3,2,0,-4,3,-2,4,2,3,0,1,-5,-5,3,1,1,1,0,0,4,-5,1,2,"
-            "-1,3,-2,-5,-5,-5,-4,4,1,-5,-3,-4,4,-2,-4,-3,-3,-2";
+            "4:-:-4:-:-1:-:4:-:0:-:3:-:2:-:1:-:0:-:-3:-:4:-:3:-:1:-:-5:-:4:-:1:-:-2:-:-2:-:-3:-:-3:-:-5:-:-2:-:3:-:4:-:0:-:3:-:-5:-:"
+            "3:-:0:-:-4:-:-4:-:-3:-:1:-:-5:-:-1:-:-5:-:-2:-:0:-:4:-:1:-:2:-:-5:-:4:-:3:-:2:-:4:-:1:-:-2:-:3:-:-2:-:1:-:0:-:-2:-:3:-:"
+            "-1:-:-5:-:0:-:-4:-:1:-:3:-:2:-:0:-:-4:-:3:-:-2:-:4:-:2:-:3:-:0:-:1:-:-5:-:-5:-:3:-:1:-:1:-:1:-:0:-:0:-:4:-:-5:-:1:-:2:-:"
+            "-1:-:3:-:-2:-:-5:-:-5:-:-5:-:-4:-:4:-:1:-:-5:-:-3:-:-4:-:4:-:-2:-:-4:-:-3:-:-3:-:-2";
 
     static constexpr char kRandomFloat16Text[] =
-            "-489.5,-153.5,67.9,85.25,-330.2,-193.9,263.2,-244.6,59.94,68.9,-167.2,"
-            "210.4,326.8,286.8,-318.8,-287.8,-276.0,-41.2,242.8,256.0,-249.6,477.2,"
-            "-148.6,-119.56,-9.516,193.5,239.6,223.1,18.62,-70.44,406.5,478.5,-255.9,"
-            "-77.3,-221.1,104.5,-272.5,79.5,493.5,224.5,234.8,-32.88,32.9,-107.3,-443.2,"
-            "481.8,-192.6,162.5,20.89,-343.2,-33.56,-481.2,373.8,157.9,339.2,-465.0,"
-            "-434.8,-68.25,-57.38,104.6,-488.0,-221.5,489.8,-146.2,-287.0,-59.12,144.1,"
-            "429.5,-208.6,-256.2,-442.8,433.8,398.2,-163.1,112.3,112.3,270.2,-458.5,"
-            "278.5,-112.5,130.0,188.5,-365.5,-371.5,137.1,407.2,369.0,258.0,251.8,"
-            "-490.2,30.23,45.38,-346.2,-499.8,-466.0,250.9,480.8,248.5,462.0,-330.8";
+            "-489.5:-:-153.5:-:67.9:-:85.25:-:-330.2:-:-193.9:-:263.2:-:-244.6:-:59.94:-:68.9:-:-167.2:-:"
+            "210.4:-:326.8:-:286.8:-:-318.8:-:-287.8:-:-276.0:-:-41.2:-:242.8:-:256.0:-:-249.6:-:477.2:-:"
+            "-148.6:-:-119.56:-:-9.516:-:193.5:-:239.6:-:223.1:-:18.62:-:-70.44:-:406.5:-:478.5:-:-255.9:-:"
+            "-77.3:-:-221.1:-:104.5:-:-272.5:-:79.5:-:493.5:-:224.5:-:234.8:-:-32.88:-:32.9:-:-107.3:-:-443.2:-:"
+            "481.8:-:-192.6:-:162.5:-:20.89:-:-343.2:-:-33.56:-:-481.2:-:373.8:-:157.9:-:339.2:-:-465.0:-:"
+            "-434.8:-:-68.25:-:-57.38:-:104.6:-:-488.0:-:-221.5:-:489.8:-:-146.2:-:-287.0:-:-59.12:-:144.1:-:"
+            "429.5:-:-208.6:-:-256.2:-:-442.8:-:433.8:-:398.2:-:-163.1:-:112.3:-:112.3:-:270.2:-:-458.5:-:"
+            "278.5:-:-112.5:-:130.0:-:188.5:-:-365.5:-:-371.5:-:137.1:-:407.2:-:369.0:-:258.0:-:251.8:-:"
+            "-490.2:-:30.23:-:45.38:-:-346.2:-:-499.8:-:-466.0:-:250.9:-:480.8:-:248.5:-:462.0:-:-330.8";
 
     static constexpr char kRandomFloat32Text[] =
-            "-489.52817,-153.45093,67.86676,85.27582,-330.17505,-193.81528,"
-            "263.23346,-244.68239,59.939575,68.89496,-167.29025,210.34674,"
-            "326.85004,286.6725,-318.81125,-287.70892,-276.01904,-41.196655,"
-            "242.77338,255.94086,-249.60991,477.24445,-148.66815,-119.55133,"
-            "-9.512756,193.52155,239.63647,223.14655,18.628479,-70.459625,"
-            "406.3797,478.56787,-255.81458,-77.322754,-221.09692,104.481995,"
-            "-272.51776,79.51709,493.5265,224.5122,234.76495,-32.880127,32.899902,"
-            "-107.33298,-443.27704,481.87183,-192.63309,162.48883,20.88617,"
-            "-343.16333,-33.555756,-481.25684,373.68207,157.91406,339.28485,"
-            "-464.95462,-434.7118,-68.27731,-57.375427,104.630066,-487.9083,"
-            "-221.55606,489.63654,-146.25946,-287.0644,-59.134033,144.11603,"
-            "429.3761,-208.68625,-256.1972,-442.64804,433.63,398.1725,-163.08743,"
-            "112.322754,112.289856,270.16742,-458.46924,278.55164,-112.471924,"
-            "129.9386,188.46356,-365.4979,-371.4936,137.07263,407.36652,369.00543,"
-            "258.0064,251.78638,-490.22543,30.232178,45.373047,-346.2873,"
-            "-499.76062,-466.06503,250.8642,480.76123,248.55377,461.9134,-330.63153";
+            "-489.52817:-:-153.45093:-:67.86676:-:85.27582:-:-330.17505:-:-193.81528:-:"
+            "263.23346:-:-244.68239:-:59.939575:-:68.89496:-:-167.29025:-:210.34674:-:"
+            "326.85004:-:286.6725:-:-318.81125:-:-287.70892:-:-276.01904:-:-41.196655:-:"
+            "242.77338:-:255.94086:-:-249.60991:-:477.24445:-:-148.66815:-:-119.55133:-:"
+            "-9.512756:-:193.52155:-:239.63647:-:223.14655:-:18.628479:-:-70.459625:-:"
+            "406.3797:-:478.56787:-:-255.81458:-:-77.322754:-:-221.09692:-:104.481995:-:"
+            "-272.51776:-:79.51709:-:493.5265:-:224.5122:-:234.76495:-:-32.880127:-:32.899902:-:"
+            "-107.33298:-:-443.27704:-:481.87183:-:-192.63309:-:162.48883:-:20.88617:-:"
+            "-343.16333:-:-33.555756:-:-481.25684:-:373.68207:-:157.91406:-:339.28485:-:"
+            "-464.95462:-:-434.7118:-:-68.27731:-:-57.375427:-:104.630066:-:-487.9083:-:"
+            "-221.55606:-:489.63654:-:-146.25946:-:-287.0644:-:-59.134033:-:144.11603:-:"
+            "429.3761:-:-208.68625:-:-256.1972:-:-442.64804:-:433.63:-:398.1725:-:-163.08743:-:"
+            "112.322754:-:112.289856:-:270.16742:-:-458.46924:-:278.55164:-:-112.471924:-:"
+            "129.9386:-:188.46356:-:-365.4979:-:-371.4936:-:137.07263:-:407.36652:-:369.00543:-:"
+            "258.0064:-:251.78638:-:-490.22543:-:30.232178:-:45.373047:-:-346.2873:-:"
+            "-499.76062:-:-466.06503:-:250.8642:-:480.76123:-:248.55377:-:461.9134:-:-330.63153";
 
     static constexpr char kSpecialFloat32Text[] =
-            "nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,inf,inf,inf,inf,inf,inf,inf,inf,"
-            "inf,inf,-inf,-inf,-inf,-inf,-inf,-inf,-inf,-inf,-inf,-inf";
+            "nan:-:nan:-:nan:-:nan:-:nan:-:nan:-:nan:-:nan:-:nan:-:nan:-:inf:-:inf:-:inf:-:inf:-:inf:-:inf:-:inf:-:inf:-:"
+            "inf:-:inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf:-:-inf";
 
     static const std::vector<bool> kRandomBoolVector;
     static const std::vector<int32_t> kRandomInt32Vector;
@@ -404,11 +398,17 @@ public:
             0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00,
             0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00, 0xff, 0x80, 0x00, 0x00};
 
+    static constexpr size_t kRandomBoolBinLength = sizeof(kRandomBoolBin);
+    static constexpr size_t kRandomInt32BinLength = sizeof(kRandomInt32BigEndianBin);
+    static constexpr size_t kRandomFloat16BinLength = sizeof(kRandomFloat16BigEndianBin);
+    static constexpr size_t kRandomFloat32BinLength = sizeof(kRandomFloat32BigEndianBin);
+    static constexpr size_t kSpecialFloat32BinLength = sizeof(kSpecialFloat32BigEndianBin);
+
 private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-constexpr char CreationTest::kTestDelimiter;
+constexpr char CreationTest::kTestSeparator[];
 
 constexpr size_t CreationTest::kRandomBoolBinLength;
 constexpr size_t CreationTest::kRandomInt32BinLength;
@@ -704,8 +704,9 @@ TEST_P(CreationTest, FromString) {
             int64_t counts[2] = {int64_t(kDataLengths[j]), -1};
             for (size_t i = 0; i < 2; i++) {
                 {
-                    std::cerr << "Running with text" << std::endl;
-                    Array x = FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], kTestDelimiter, device);
+                    std::cerr << "Running with text for " << kDtypes[j] << std::endl;
+                    Array x =
+                            FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], std::string{kTestSeparator}, device);
 
                     Shape expected_shape{int64_t(kDataLengths[j])};
                     Strides expected_strides{expected_shape, kDtypes[j]};
@@ -720,10 +721,10 @@ TEST_P(CreationTest, FromString) {
                 }
 
                 {
-                    std::cerr << "Running with binary" << std::endl;
                     std::string data = (testing::testing_internal::IsLittleEndian())
                                                ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
                                                : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                    std::cerr << "Running with binary for " << kDtypes[j] << std::endl;
                     Array x = FromString(data, kDtypes[j], counts[i], nonstd::nullopt, device);
 
                     Shape expected_shape{int64_t(kDataLengths[j])};
@@ -737,6 +738,40 @@ TEST_P(CreationTest, FromString) {
 
                     kExpectDataEqualChecks[j](x);
                 }
+            }
+
+            if (kDataLengths[j] > 0) {
+                try {
+                    std::cerr << "Failure case on not enough text elements to read" << std::endl;
+                    Array x = FromString(
+                            std::string(kText[j], kTextLengths[j]), kDtypes[j], kDataLengths[j] * 2, std::string{kTestSeparator}, device);
+                    FAIL();
+                } catch (ChainerxError e) {
+                }
+
+                try {
+                    std::cerr << "Failure case on not enough binary elements to read" << std::endl;
+                    std::string data = (testing::testing_internal::IsLittleEndian())
+                                               ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
+                                               : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                    Array x = FromString(data, kDtypes[j], kDataLengths[j] * 2, nonstd::nullopt, device);
+                    FAIL();
+                } catch (ChainerxError e) {
+                }
+            }
+
+            {
+                std::cerr << "Empty string check" << std::endl;
+                Array x = FromString("", kDtypes[j], 0, std::string{kTestSeparator}, device);
+
+                Shape expected_shape{0};
+                Strides expected_strides{expected_shape, kDtypes[j]};
+
+                EXPECT_EQ(expected_shape, x.shape());
+                EXPECT_EQ(kDtypes[j], x.dtype());
+                EXPECT_EQ(expected_strides, x.strides());
+                EXPECT_EQ(0, x.offset());
+                EXPECT_EQ(&device, &x.device());
             }
         }
     });

@@ -100,7 +100,6 @@ bool ParseBoolRepr(const std::string& bool_repr) {
     std::string bool_repr_lower;
     bool_repr_lower.resize(bool_repr.size());
     std::transform(bool_repr.begin(), bool_repr.end(), bool_repr_lower.begin(), tolower);
-
     Strip(bool_repr_lower);
 
     if (bool_repr_lower == "true" || bool_repr_lower == "t") return true;
@@ -121,7 +120,9 @@ T ParseSpecialFloat(const std::string& value) {
     if (v == "-inf" || v == "-infinity") return -std::numeric_limits<T>::infinity();
     if (v == "nan") return std::numeric_limits<T>::quiet_NaN();
 
-    throw ChainerxError{"Invalid special floating-point value."};
+    throw ChainerxError{
+            ("Invalid special floating-point value, expecting case insensitive "
+             "choice of (inf, infinity, -inf, -infinity).")};
 }
 
 template <typename T>
@@ -161,26 +162,109 @@ uint16_t ParseFromString<Float16, uint16_t>(const std::string& element) {
     return ParseFromString<Float16>(element).data();
 }
 
+std::istream& GetLine(std::istream& is, std::string& output, const std::string& separator) {
+    output.erase();
+
+    char c = '\0';
+    size_t separator_index = 0;
+    const size_t max_size = output.max_size();
+    while (separator_index < separator.size()) {
+        // Handle a bad read similar to std::getline which depends
+        // on the state of the input stream. Also, if the maximum number
+        // of characters is read into output, then set the failbit
+        // of the stream and return.
+        if (output.size() >= max_size) {
+            is.setstate(std::ios_base::failbit);
+            return is;
+        } else if (!is.read(&c, 1)) {
+            // If no characters were read from the stream at all,
+            // then set the failbit and return. Otherwise, inspect
+            // the state of the stream.
+            if (output.size() > 0) {
+                // If an irrecoverable error has occurred during the read
+                // then the bad bit will have been set. Return the stream
+                // unmodified.
+                if (is.bad()) {
+                    return is;
+                }
+
+                // If the stream is not bad, then the read reached the
+                // end of file condition in which case the state is
+                // (failbit|eofbit). Clear the state of anything but
+                // the eofbit.
+                is.clear(std::ios_base::eofbit);
+            } else {
+                is.setstate(std::ios_base::failbit);
+            }
+
+            return is;
+        }
+
+        output.push_back(c);
+
+        // Advance the index into the separator if the character is a match.
+        if (c == separator[separator_index]) {
+            separator_index++;
+        } else {
+            // If the read didn't match, then find the largest valid value for
+            // the index into the separator (where the last `separator_index`
+            // characters of output match the first `separator_index` characters
+            // of separator).
+            bool match = false;
+            for (int64_t i = static_cast<int64_t>(separator_index) - 1; i >= 0; i--) {
+                // Set the match to true and revert if no match is found.
+                match = true;
+                int64_t output_size = static_cast<int64_t>(output.size());
+                for (int64_t j = i; j >= 0; j--) {
+                    if (separator[j] != output[output_size + i - j - 1]) {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match) {
+                    // Set the index to the next unmatched separator character.
+                    separator_index = i + 1;
+                    break;
+                }
+            }
+
+            if (!match) {
+                // Nothing matched so reset the index.
+                separator_index = 0;
+            }
+        }
+    }
+
+    // Erase the separator from the end of the output.
+    for (size_t i = 0; i < separator.size(); i++) {
+        if (output.empty()) break;
+        output.pop_back();
+    }
+
+    return is;
+}
+
 template <typename T, typename R>
-R ParseFromTextStream(std::istream& is, const char delimiter) {
+R ParseFromTextStream(std::istream& is, const std::string& separator) {
     std::string element;
-    if (!std::getline(is, element, delimiter)) throw ChainerxError{"Can't read element."};
+    if (!GetLine(is, element, separator)) throw ChainerxError{"Can't read element."};
     return ParseFromString<T, R>(element);
 }
 
 template <typename T, typename S = T>
-std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const char delimiter) {
+std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const std::string& separator) {
     std::shared_ptr<S> data;
     if (count >= 0) {
         data = std::shared_ptr<S>{new S[count], std::default_delete<S[]>{}};
         S* data_ptr = static_cast<S*>(data.get());
         for (int64_t i = 0; i < count; i++) {
-            data_ptr[i] = ParseFromTextStream<T, S>(is, delimiter);
+            data_ptr[i] = ParseFromTextStream<T, S>(is, separator);
         }
     } else {
         std::string element;
         std::vector<S> data_vector;
-        while (std::getline(is, element, delimiter)) {
+        while (GetLine(is, element, separator)) {
             data_vector.push_back(ParseFromString<T, S>(element));
         }
 
@@ -193,8 +277,8 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
 }
 
 template <>
-std::shared_ptr<void> ReadFromTextStream<Float16, Float16>(std::istream& is, int64_t& count, const char delimiter) {
-    return ReadFromTextStream<Float16, uint16_t>(is, count, delimiter);
+std::shared_ptr<void> ReadFromTextStream<Float16, Float16>(std::istream& is, int64_t& count, const std::string& separator) {
+    return ReadFromTextStream<Float16, uint16_t>(is, count, separator);
 }
 
 template <typename T, typename S = T>
@@ -249,30 +333,30 @@ Array FromData(
             shape, strides.value_or(Strides{shape, dtype}), dtype, device, device.MakeDataFromForeignPointer(data), offset);
 }
 
-Array FromFile(const std::string& filename, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+Array FromFile(const std::string& filename, Dtype dtype, int64_t count, nonstd::optional<std::string> separator, Device& device) {
     std::ifstream::openmode mode = std::ios::in;
-    if (!delimiter.has_value()) mode |= std::ios::binary;
+    if (!separator.has_value() || separator == "") mode |= std::ios::binary;
 
     std::ifstream file{filename, mode};
-    Array x = FromStream(file, dtype, count, delimiter, device);
+    Array x = FromStream(file, dtype, count, separator, device);
     file.close();
 
     return x;
 }
 
-Array FromString(const std::string& data, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+Array FromString(const std::string& data, Dtype dtype, int64_t count, nonstd::optional<std::string> separator, Device& device) {
     std::stringstream::openmode mode = std::ios::in;
-    if (!delimiter.has_value()) mode |= std::ios::binary;
+    if (!separator.has_value() || separator == "") mode |= std::ios::binary;
 
     std::stringstream ss{data, mode};
-    return FromStream(ss, dtype, count, delimiter, device);
+    return FromStream(ss, dtype, count, separator, device);
 }
 
-Array FromStream(std::istream& is, Dtype dtype, int64_t count, nonstd::optional<char> delimiter, Device& device) {
+Array FromStream(std::istream& is, Dtype dtype, int64_t count, nonstd::optional<std::string> separator, Device& device) {
     std::shared_ptr<void> data = VisitDtype(dtype, [&](auto pt) {
         using T = typename decltype(pt)::type;
-        if (delimiter.has_value()) return internal::ReadFromTextStream<T>(is, count, *delimiter);
-        return internal::ReadFromBinaryStream<T>(is, count);
+        if (!separator.has_value() || separator == "") return internal::ReadFromBinaryStream<T>(is, count);
+        return internal::ReadFromTextStream<T>(is, count, *separator);
     });
 
     return FromData({count}, dtype, data, nonstd::nullopt, 0, device);
