@@ -1,5 +1,6 @@
 #include "chainerx/routines/normalization.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <utility>
