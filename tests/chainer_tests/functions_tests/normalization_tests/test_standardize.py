@@ -40,15 +40,15 @@ def _is_good_param(param):
         {'dtype': numpy.float16},
     ],
     [
-            # same (str): flag whether input elems are same values.
-            #   'no'   : all elems are randamly-chosen,
-            #   'equal': all elems are equal,
-            #   'near' : all elems are (randomly-chosen small values
-            #            + same value).
-            {'eps': 1e-5, 'same': 'no'},
-            {'eps': 1e-1, 'same': 'no'},
-            {'eps': 1e-1, 'same': 'equal'},
-            {'eps': 1e-1, 'same': 'near'},
+        # same (str): flag whether input elems are same values.
+        #   'no'   : all elems are randamly-chosen,
+        #   'equal': all elems are equal,
+        #   'near' : all elems are (randomly-chosen small values
+        #            + same value).
+        {'eps': 1e-5, 'same': 'no'},
+        {'eps': 1e-1, 'same': 'no'},
+        {'eps': 1e-1, 'same': 'equal'},
+        {'eps': 1e-1, 'same': 'near'},
     ],
 ])))
 @testing.backend.inject_backend_tests(
