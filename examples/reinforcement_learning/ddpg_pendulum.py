@@ -188,7 +188,7 @@ def main():
         policy.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)
     target_policy = copy.deepcopy(policy)
-    opt_Q = optimizers.Adam()
+    opt_Q = optimizers.Adam(eps=1e-5)  # Use larger eps in case of FP16 mode
     opt_Q.setup(Q)
     opt_policy = optimizers.Adam(alpha=1e-4)
     opt_policy.setup(policy)
