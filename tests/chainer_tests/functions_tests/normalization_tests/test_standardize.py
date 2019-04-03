@@ -26,15 +26,20 @@ def _is_good_param(param):
     return param['same'] == 'no'
 
 
-@testing.parameterize(*filter(
-    _is_good_param,
-    testing.product({
-        'ch_out': [1, 5],
-        'size': [10, 20],
-        'dtype': [numpy.float32, numpy.float16],
-    })
-    + testing.product([
-        [
+@testing.parameterize(*filter(_is_good_param, testing.product([
+    [
+        {'ch_out': 1},
+        {'ch_out': 5},
+    ],
+    [
+        {'size': 10},
+        {'size': 20},
+    ],
+    [
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float16},
+    ],
+    [
             # same (str): flag whether input elems are same values.
             #   'no'   : all elems are randamly-chosen,
             #   'equal': all elems are equal,
@@ -43,9 +48,8 @@ def _is_good_param(param):
             {'eps': 1e-1, 'same': 'no'},
             {'eps': 1e-1, 'same': 'equal'},
             {'eps': 1e-1, 'same': 'near'},
-        ],
-    ])
-))
+    ],
+])))
 @testing.backend.inject_backend_tests(
     None,
     # CPU tests
