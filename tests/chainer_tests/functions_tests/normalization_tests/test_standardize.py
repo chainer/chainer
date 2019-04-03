@@ -23,8 +23,7 @@ def _skip_if(cond, reason):
 def _is_good_param(param):
     # Check if 'nonzero' param is valid and meaningful. On the latter point,
     # x should contain at least a zero if 'nonzeros' param is given.
-    return param['nonzeros'] is None \
-        or param['nonzeros'] < numpy.prod(param['shape'])
+    return param['same'] == 'no'
 
 
 @testing.parameterize(*filter(
