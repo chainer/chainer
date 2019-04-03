@@ -561,7 +561,7 @@ This is a test example of :func:`functions.relu` function:
            x = Variable(np.random.randn(3, 2).astype(np.float32))
            y = F.relu(x)
            y.grad = np.random.randn(3, 2).astype(np.float32)
-           y.backward(retain_grad=True)
+           y.backward()
 
            def f():
                return F.relu(x).array,
