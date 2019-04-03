@@ -733,13 +733,13 @@ Array Tanh(const Array& x) {
     return out;
 }
 
-Array Sin(const Array& x) {
+Array SinOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Sin(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"sin", x, out};
@@ -755,13 +755,13 @@ Array Sin(const Array& x) {
     return out;
 }
 
-Array Cos(const Array& x) {
+Array CosOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Cos(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"cos", x, out};
@@ -777,13 +777,13 @@ Array Cos(const Array& x) {
     return out;
 }
 
-Array Tan(const Array& x) {
+Array TanOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Tan(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"tan", x, out};
@@ -792,7 +792,7 @@ Array Tan(const Array& x) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             const Array& out = Cos(inp);
-            bctx.input_grad() = gout / (out * out);
+            bctx.input_grad() = gout / Square(out);
         });
     }
     bb.Finalize();
@@ -800,13 +800,13 @@ Array Tan(const Array& x) {
     return out;
 }
 
-Array Arcsin(const Array& x) {
+Array ArcsinOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arcsin(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"arcsin", x, out};
@@ -814,7 +814,7 @@ Array Arcsin(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = gout / (Sqrt(1 - inp * inp));
+            bctx.input_grad() = gout / Sqrt(1 - Square(inp));
         });
     }
     bb.Finalize();
@@ -822,13 +822,13 @@ Array Arcsin(const Array& x) {
     return out;
 }
 
-Array Arccos(const Array& x) {
+Array ArccosOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arccos(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"arccos", x, out};
@@ -836,7 +836,7 @@ Array Arccos(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = -gout / (Sqrt(1 - inp * inp));
+            bctx.input_grad() = -gout / Sqrt(1 - Square(inp));
         });
     }
     bb.Finalize();
@@ -844,13 +844,13 @@ Array Arccos(const Array& x) {
     return out;
 }
 
-Array Arctan(const Array& x) {
+Array ArctanOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arctan(x, out);
+        Impl(x, out);
     }
 
     BackwardBuilder bb{"arctan", x, out};
@@ -858,7 +858,7 @@ Array Arctan(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = gout / (1 + inp * inp);
+            bctx.input_grad() = gout / (1 + Square(inp));
         });
     }
     bb.Finalize();
