@@ -138,8 +138,6 @@ public:
 
     virtual void Arange(Scalar start, Scalar step, const Array& out) = 0;
 
-    virtual void ArgMax(const Array& a, const Axes& axis, const Array& out) = 0;
-
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that
@@ -160,12 +158,6 @@ public:
 
     // Casts the elements from one array to the other dtype, and store into the other.
     virtual void AsType(const Array& a, const Array& out) = 0;
-
-    virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void NotEqual(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void Greater(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void GreaterEqual(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void LogicalNot(const Array& x1, const Array& out) = 0;
 
     virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void AddAS(const Array& x1, Scalar x2, const Array& out) = 0;
@@ -195,10 +187,6 @@ public:
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
 
-    virtual void Sin(const Array& x, const Array& out) = 0;
-
-    virtual void Cos(const Array& x, const Array& out) = 0;
-
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
@@ -214,22 +202,6 @@ public:
 
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;
-
-    // Takes elements specified by indices from an array.
-    // Indices that are out of bounds are wrapped around.
-    //
-    // `axis` must be within [0, a.ndim()).
-    // `indices` must have dtype kind of either kInt or kUInt.
-    virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
-
-    // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
-    // The result is assigned in `out. Input arrays `a`, `indices`, and `b` are not altered.
-    //
-    // TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
-    //
-    // `axis` must be within [0, b.ndim()).
-    // `indices` must have dtype kind of either kInt or kUInt.
-    virtual void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
 
     // Creates the identity array.
     // out must be a square 2-dim array.
