@@ -70,7 +70,7 @@ class Standardize(function_node.FunctionNode):
         F = chainer.functions
         x, = self.get_retained_inputs()
         gy, = grad_outputs
-        axes = tuple(six.moves.range(1, len(x.shape)))
+        axes = tuple(six.moves.range(1, x.ndim))
 
         x_mu, std_noeps, std, x_hat = self._compute(F, x)
 
