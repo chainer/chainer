@@ -32,6 +32,6 @@ protected:
     virtual void Impl(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
-inline Array ArgMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt) { return a.device().backend().CallOp<ArgMinOp>(a, axis); }
+inline Array ArgMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt) { return a.device().backend().CallOp<ArgMinOp>(a, axis); }
 
 }  // namespace chainerx
