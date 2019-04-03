@@ -102,7 +102,7 @@ MulAdd is simple and can be implemented as follows:
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -174,7 +174,7 @@ You can easily predict that the method we have to write is named :meth:`~Functio
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -201,7 +201,7 @@ In that case, we can reduce them io :meth:`~FunctionNode.forward`.
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -362,13 +362,13 @@ Our MulAdd implementation can be improved as follows:
 
    class MulAdd(FunctionNode):
        def forward_cpu(self, inputs):
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
            x, y, z = inputs
            w = x * y + z
            return w,
 
        def forward_gpu(self, inputs):
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
            x, y, z = inputs
            w = cuda.cupy.elementwise(
                'float32 x, float32 y, float32 z',
