@@ -6,8 +6,7 @@ namespace native {
 
 CHAINERX_REGISTER_OP_NATIVE(BatchNormForwardOp, GenericBatchNormForwardOp);
 CHAINERX_REGISTER_OP_NATIVE(BatchNormBackwardOp, GenericBatchNormBackwardOp);
-// TODO(hvy): Rename to FixedBatchNormForwardOp.
-CHAINERX_REGISTER_OP_NATIVE(FixedBatchNormOp, GenericFixedBatchNormOp);
+CHAINERX_REGISTER_OP_NATIVE(FixedBatchNormForwardOp, GenericFixedBatchNormForwardOp);
 
 }  // namespace native
 }  // namespace chainerx

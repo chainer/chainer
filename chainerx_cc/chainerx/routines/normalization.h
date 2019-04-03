@@ -71,21 +71,17 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) override;
 };
 
-class FixedBatchNormOp : public Op {
+class FixedBatchNormForwardOp : public Op {
 public:
-    static const char* name() { return "FixedBatchNorm"; }
+    static const char* name() { return "FixedBatchNormForward"; }
 
-    virtual Array
-    Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis);
-
-protected:
-    virtual Array Impl(
+    virtual Array Call(
             const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) = 0;
 };
 
-class GenericFixedBatchNormOp : public FixedBatchNormOp {
-protected:
-    Array Impl(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
+class GenericFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
+public:
+    Array Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
             override;
 };
 
@@ -105,15 +101,13 @@ Array BatchNorm(
 // Computes the fixed batch normalization.
 // axis argument is treated in the same way as BatchNorm.
 // Backward computation is not implemented.
-inline Array FixedBatchNorm(
+Array FixedBatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
         const Array& mean,
         const Array& var,
         Scalar eps,
-        const OptionalAxes& axis = nonstd::nullopt) {
-    return x.device().backend().CallOp<FixedBatchNormOp>(x, gamma, beta, mean, var, eps, axis);
-}
+        const OptionalAxes& axis = nonstd::nullopt);
 
 }  // namespace chainerx

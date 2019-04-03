@@ -319,9 +319,10 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(BatchNormBackwardOp, CudaBatchNormBackwardOp);
 
-class CudaFixedBatchNormOp : public FixedBatchNormOp {
-protected:
-    Array Impl(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
+class CudaFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
+public:
+    Array Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
+            override {
         if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
         }
@@ -382,7 +383,7 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
+CHAINERX_REGISTER_OP_CUDA(FixedBatchNormForwardOp, CudaFixedBatchNormForwardOp);
 
 }  // namespace cuda
 }  // namespace chainerx

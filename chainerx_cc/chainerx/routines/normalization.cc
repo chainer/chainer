@@ -107,20 +107,6 @@ Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_temp
     return Zeros(zeros_template.shape(), dtype, zeros_template.device());
 }
 
-}  // namespace
-
-Array FixedBatchNormOp::Call(
-        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
-    PreprocessBatchNormResult result =
-            PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
-    {
-        NoBackpropModeScope scope{};
-        return Impl(x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
-    }
-}
-
-namespace {
-
 struct ApplyBatchNormResult {
     Array out;
     Array inv_std;
@@ -158,9 +144,103 @@ ApplyBatchNormResult ApplyBatchNorm(
     return {out.dtype() == x.dtype() ? std::move(out) : out.AsType(x.dtype()), std::move(inv_std)};
 }
 
+struct GenericBatchNormState {
+    GenericBatchNormState(Array x_mean, Array x_inv_std) : x_mean{std::move(x_mean)}, x_inv_std{std::move(x_inv_std)} {}
+
+    Array x_mean;
+    Array x_inv_std;
+};
+
 }  // namespace
 
-Array GenericFixedBatchNormOp::Impl(
+Array GenericBatchNormForwardOp::Call(
+        const Array& x,
+        const Array& gamma,
+        const Array& beta,
+        const Array& running_mean,
+        const Array& running_var,
+        Scalar eps,
+        Scalar decay,
+        const Axes& axis,
+        nonstd::optional<std::shared_ptr<void>>& state) {
+    CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+    CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
+    CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
+
+    CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(running_mean.dtype()) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(running_var.dtype()) == DtypeKind::kFloat);
+
+    // Compute the mean and variance of x with promoted dtype if the parameters have higher precisions.
+    Dtype interm_dtype = ResultType(x, gamma, beta);
+    const Array& x_cast = x.dtype() == interm_dtype ? x : x.AsType(interm_dtype);
+    Array x_mean = Mean(x_cast, axis, true);
+    Array x_var = Var(x_cast, axis, true);
+
+    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype);
+    Array& x_inv_std = result.inv_std;
+
+    Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay)};
+    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
+
+    // TODO(hvy): Avoid AsType when IAdd supports mixed dtypes.
+    running_mean *= decay;
+    running_mean += (inv_decay * x_mean).AsType(running_mean.dtype(), false);
+    running_var *= decay;
+    running_var += (inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var).AsType(running_var.dtype(), false);
+
+    if (state.has_value()) {
+        state->reset(new GenericBatchNormState{std::move(x_mean), std::move(x_inv_std)});
+    }
+
+    return std::move(result.out);
+}
+
+std::array<Array, 3> GenericBatchNormBackwardOp::Call(
+        const Array& gout,
+        const Array& x,
+        const Array& gamma,
+        Scalar /*eps*/,
+        const Axes& axis,
+        Dtype beta_dtype,
+        nonstd::optional<std::shared_ptr<void>>& state) {
+    CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+
+    // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
+    CHAINERX_ASSERT(state.has_value());
+    auto state_ptr = reinterpret_cast<GenericBatchNormState*>(state->get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // x_mean and x_inv_std must have promoted dtypes.
+    const Array& x_mean = state_ptr->x_mean;
+    const Array& x_inv_std = state_ptr->x_inv_std;  // Note: x_inv_std_ has the information of eps.
+
+    Dtype interm_dtype = x_mean.dtype();
+
+    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
+    double inv_n = 1.0 / n;
+    // TODO(hvy): Avoid AsType.
+    Array gout_cast = gout.AsType(interm_dtype, false);
+    Array x_hat = (x.AsType(interm_dtype, false) - x_mean) * x_inv_std;
+    Array ggamma = (gout_cast * x_hat).Sum(axis, true);
+    Array gbeta = gout_cast.Sum(axis, true);
+    Array gx = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma + gbeta) * inv_n);
+
+    // TODO(hvy): Consider casting in the routine instead. Then we do not need to capture and pass around `beta_dtype`.
+    if (gx.dtype() != x.dtype()) {
+        gx = gx.AsType(x.dtype());
+    }
+    if (ggamma.dtype() != gamma.dtype()) {
+        ggamma = ggamma.AsType(gamma.dtype());
+    }
+    if (gbeta.dtype() != beta_dtype) {
+        gbeta = gbeta.AsType(beta_dtype);
+    }
+
+    return {std::move(gx), std::move(ggamma), std::move(gbeta)};
+}
+
+Array GenericFixedBatchNormForwardOp::Call(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype);
@@ -314,102 +394,15 @@ Array BatchNorm(
     return out;
 }
 
-namespace {
-
-struct GenericBatchNormState {
-    GenericBatchNormState(Array x_mean, Array x_inv_std) : x_mean{std::move(x_mean)}, x_inv_std{std::move(x_inv_std)} {}
-
-    Array x_mean;
-    Array x_inv_std;
-};
-
-}  // namespace
-
-Array GenericBatchNormForwardOp::Call(
-        const Array& x,
-        const Array& gamma,
-        const Array& beta,
-        const Array& running_mean,
-        const Array& running_var,
-        Scalar eps,
-        Scalar decay,
-        const Axes& axis,
-        nonstd::optional<std::shared_ptr<void>>& state) {
-    CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
-    CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
-    CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
-
-    CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(running_mean.dtype()) == DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(running_var.dtype()) == DtypeKind::kFloat);
-
-    // Compute the mean and variance of x with promoted dtype if the parameters have higher precisions.
-    Dtype interm_dtype = ResultType(x, gamma, beta);
-    const Array& x_cast = x.dtype() == interm_dtype ? x : x.AsType(interm_dtype);
-    Array x_mean = Mean(x_cast, axis, true);
-    Array x_var = Var(x_cast, axis, true);
-
-    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype);
-    Array& x_inv_std = result.inv_std;
-
-    Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay)};
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-
-    // TODO(hvy): Avoid AsType when IAdd supports mixed dtypes.
-    running_mean *= decay;
-    running_mean += (inv_decay * x_mean).AsType(running_mean.dtype(), false);
-    running_var *= decay;
-    running_var += (inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var).AsType(running_var.dtype(), false);
-
-    if (state.has_value()) {
-        state->reset(new GenericBatchNormState{std::move(x_mean), std::move(x_inv_std)});
+Array FixedBatchNorm(
+        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
+    PreprocessBatchNormResult result =
+            PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
+    {
+        NoBackpropModeScope scope{};
+        return x.device().backend().CallOp<FixedBatchNormForwardOp>(
+                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
     }
-
-    return std::move(result.out);
-}
-
-std::array<Array, 3> GenericBatchNormBackwardOp::Call(
-        const Array& gout,
-        const Array& x,
-        const Array& gamma,
-        Scalar /*eps*/,
-        const Axes& axis,
-        Dtype beta_dtype,
-        nonstd::optional<std::shared_ptr<void>>& state) {
-    CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
-
-    // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
-    CHAINERX_ASSERT(state.has_value());
-    auto state_ptr = reinterpret_cast<GenericBatchNormState*>(state->get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    // x_mean and x_inv_std must have promoted dtypes.
-    const Array& x_mean = state_ptr->x_mean;
-    const Array& x_inv_std = state_ptr->x_inv_std;  // Note: x_inv_std_ has the information of eps.
-
-    Dtype interm_dtype = x_mean.dtype();
-
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-    double inv_n = 1.0 / n;
-    // TODO(hvy): Avoid AsType.
-    Array gout_cast = gout.AsType(interm_dtype, false);
-    Array x_hat = (x.AsType(interm_dtype, false) - x_mean) * x_inv_std;
-    Array ggamma = (gout_cast * x_hat).Sum(axis, true);
-    Array gbeta = gout_cast.Sum(axis, true);
-    Array gx = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma + gbeta) * inv_n);
-
-    // TODO(hvy): Consider casting in the routine instead. Then we do not need to capture and pass around `beta_dtype`.
-    if (gx.dtype() != x.dtype()) {
-        gx = gx.AsType(x.dtype());
-    }
-    if (ggamma.dtype() != gamma.dtype()) {
-        ggamma = ggamma.AsType(gamma.dtype());
-    }
-    if (gbeta.dtype() != beta_dtype) {
-        gbeta = gbeta.AsType(beta_dtype);
-    }
-
-    return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
 }  // namespace chainerx
