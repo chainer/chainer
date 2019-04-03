@@ -87,7 +87,7 @@ class TestStandardize(testing.FunctionTestCase):
             self.check_backward_options.update(
                 {'atol': 5e-3, 'rtol': 1e-2, 'eps': self.eps})
             self.check_double_backward_options.update(
-                {'atol': 5e-3, 'rtol': 1e-2, 'eps': self.epsS})
+                {'atol': 5e-3, 'rtol': 1e-2, 'eps': self.eps})
 
     def generate_inputs(self):
         shape = self.ch_out, self.size
