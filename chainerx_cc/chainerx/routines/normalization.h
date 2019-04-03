@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <memory>
 
 #include <nonstd/optional.hpp>
@@ -19,7 +18,7 @@ public:
     static const char* name() { return "BatchNormForward"; }
 
     // Intermediate state values such as the mean and inverse std can be written to `state` for reuse in BatchNormBackwardOp.
-    virtual Array Call(
+    virtual void Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -28,6 +27,7 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
+            const Array& out,
             nonstd::optional<std::shared_ptr<void>>& state) = 0;
 };
 
@@ -35,19 +35,21 @@ class BatchNormBackwardOp : public Op {
 public:
     static const char* name() { return "BatchNormBackward"; }
 
-    virtual std::array<Array, 3> Call(
-            const Array& gout,
+    virtual void Call(
             const Array& x,
             const Array& gamma,
+            const Array& gout,
             Scalar eps,
             const Axes& axis,
-            Dtype beta_dtype,
+            const Array& gx,
+            const Array& ggamma,
+            const Array& gbeta,
             nonstd::optional<std::shared_ptr<void>>& state) = 0;
 };
 
 class GenericBatchNormForwardOp : public BatchNormForwardOp {
 public:
-    Array Call(
+    void Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -56,18 +58,21 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
+            const Array& out,
             nonstd::optional<std::shared_ptr<void>>& state) override;
 };
 
 class GenericBatchNormBackwardOp : public BatchNormBackwardOp {
 public:
-    std::array<Array, 3> Call(
-            const Array& gout,
+    void Call(
             const Array& x,
             const Array& gamma,
+            const Array& gout,
             Scalar eps,
             const Axes& axis,
-            Dtype beta_dtype,
+            const Array& gx,
+            const Array& ggamma,
+            const Array& gbeta,
             nonstd::optional<std::shared_ptr<void>>& state) override;
 };
 
@@ -75,14 +80,28 @@ class FixedBatchNormForwardOp : public Op {
 public:
     static const char* name() { return "FixedBatchNormForward"; }
 
-    virtual Array Call(
-            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) = 0;
+    virtual void Call(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& mean,
+            const Array& var,
+            Scalar eps,
+            const Axes& axis,
+            const Array& out) = 0;
 };
 
 class GenericFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
 public:
-    Array Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
-            override;
+    void Call(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& mean,
+            const Array& var,
+            Scalar eps,
+            const Axes& axis,
+            const Array& out) override;
 };
 
 // Computes the batch normalization along the given axis.

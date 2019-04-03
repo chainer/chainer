@@ -116,7 +116,7 @@ struct CudaBatchNormState {
 
 class CudaBatchNormForwardOp : public BatchNormForwardOp {
 public:
-    Array Call(
+    void Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -125,6 +125,7 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
+            const Array& out,
             nonstd::optional<std::shared_ptr<void>>& state) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
@@ -182,7 +183,6 @@ public:
         const Array& running_var_casted =
                 running_var.dtype() != gamma_beta_mean_var_dtype ? running_var.AsType(gamma_beta_mean_var_dtype) : running_var;
 
-        Array out = EmptyLike(x, device);
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
@@ -215,8 +215,6 @@ public:
         if (state.has_value()) {
             state->reset(new CudaBatchNormState{std::move(x_cont), std::move(x_mean), std::move(x_inv_std)});
         }
-
-        return out;
     }
 };
 
@@ -224,13 +222,15 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormForwardOp, CudaBatchNormForwardOp);
 
 class CudaBatchNormBackwardOp : public BatchNormBackwardOp {
 public:
-    std::array<Array, 3> Call(
-            const Array& gout,
+    void Call(
             const Array& x,
             const Array& gamma,
+            const Array& gout,
             Scalar eps,
             const Axes& axis,
-            Dtype beta_dtype,
+            const Array& gx,
+            const Array& ggamma,
+            const Array& gbeta,
             nonstd::optional<std::shared_ptr<void>>& state) override {
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state.has_value());
@@ -268,7 +268,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array gout_cont = internal::AsContiguous(gout);
-        Array gx = EmptyLike(x_cont, device);
+        Array gx_cont = EmptyLike(x_cont, device);
 
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
@@ -278,8 +278,9 @@ public:
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis, true);
 
         Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
-        Array gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
+        Array ggamma_casted_cont = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
+        Array gbeta_casted_cont = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
+
         CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_mean.dtype());
         CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_inv_std.dtype());
         CHAINERX_ASSERT(x_mean.IsContiguous());
@@ -297,23 +298,19 @@ public:
                 *x_desc,
                 internal::GetRawOffsetData(gout_cont),
                 *x_desc,
-                internal::GetRawOffsetData(gx),
+                internal::GetRawOffsetData(gx_cont),
                 *gamma_beta_mean_var_desc,
                 internal::GetRawOffsetData(gamma_casted_cont),
-                internal::GetRawOffsetData(ggamma),
-                internal::GetRawOffsetData(gbeta),
+                internal::GetRawOffsetData(ggamma_casted_cont),
+                internal::GetRawOffsetData(gbeta_casted_cont),
                 static_cast<double>(eps),
                 internal::GetRawOffsetData(x_mean),
                 internal::GetRawOffsetData(x_inv_std));
 
-        if (ggamma.dtype() != gamma.dtype()) {
-            ggamma = ggamma.AsType(gamma.dtype());
-        }
-        if (gbeta.dtype() != beta_dtype) {
-            gbeta = gbeta.AsType(beta_dtype);
-        }
-
-        return {std::move(gx), std::move(ggamma), std::move(gbeta)};
+        // TODO(hvy): Consider writing directly in the routines/ops above.
+        device.AsType(gx_cont, gx);
+        device.AsType(ggamma_casted_cont, ggamma);
+        device.AsType(gbeta_casted_cont, gbeta);
     }
 };
 
@@ -321,8 +318,15 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormBackwardOp, CudaBatchNormBackwardOp);
 
 class CudaFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
 public:
-    Array Call(const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
-            override {
+    void Call(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& mean,
+            const Array& var,
+            Scalar eps,
+            const Axes& axis,
+            const Array& out) override {
         if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
         }
@@ -361,8 +365,6 @@ public:
         Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
         Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
 
-        Array out = EmptyLike(x, x.device());
-
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardInference,
                 GetBatchNormMode(axis),
@@ -378,8 +380,6 @@ public:
                 internal::GetRawOffsetData(mean_casted_cont),
                 internal::GetRawOffsetData(var_casted_cont),
                 static_cast<double>(eps));
-
-        return out;
     }
 };
 

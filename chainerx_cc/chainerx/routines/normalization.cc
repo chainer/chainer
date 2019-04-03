@@ -107,12 +107,7 @@ Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_temp
     return Zeros(zeros_template.shape(), dtype, zeros_template.device());
 }
 
-struct ApplyBatchNormResult {
-    Array out;
-    Array inv_std;
-};
-
-ApplyBatchNormResult ApplyBatchNorm(
+Array ApplyBatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -120,6 +115,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         const Array& var,
         Scalar eps,
         const Axes& axis,
+        const Array& out,
         Dtype interm_dtype) {
     if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
@@ -130,6 +126,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         CHAINERX_ASSERT(mean.GetTotalSize() == reduced_total_size);
         CHAINERX_ASSERT(var.GetTotalSize() == reduced_total_size);
     }
+
     // TODO(hvy): Avoid AsType by passing dtype arguments to the following routines to minimize copies.
     const Array& x_cast = x.AsType(interm_dtype, false);
     const Array& gamma_cast = gamma.AsType(interm_dtype, false);
@@ -139,9 +136,11 @@ ApplyBatchNormResult ApplyBatchNorm(
 
     Array inv_std = Reciprocal(Sqrt(var_cast + eps));
 
-    Array out = (x_cast - mean_cast) * inv_std * gamma_cast + beta_cast;
+    Array out_cast = (x_cast - mean_cast) * inv_std * gamma_cast + beta_cast;
 
-    return {out.dtype() == x.dtype() ? std::move(out) : out.AsType(x.dtype()), std::move(inv_std)};
+    out_cast.device().AsType(out_cast, out);
+
+    return inv_std;
 }
 
 struct GenericBatchNormState {
@@ -153,7 +152,7 @@ struct GenericBatchNormState {
 
 }  // namespace
 
-Array GenericBatchNormForwardOp::Call(
+void GenericBatchNormForwardOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -162,6 +161,7 @@ Array GenericBatchNormForwardOp::Call(
         Scalar eps,
         Scalar decay,
         const Axes& axis,
+        const Array& out,
         nonstd::optional<std::shared_ptr<void>>& state) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
@@ -179,8 +179,7 @@ Array GenericBatchNormForwardOp::Call(
     Array x_mean = Mean(x_cast, axis, true);
     Array x_var = Var(x_cast, axis, true);
 
-    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype);
-    Array& x_inv_std = result.inv_std;
+    Array x_inv_std = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, out, interm_dtype);
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay)};
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
@@ -194,17 +193,17 @@ Array GenericBatchNormForwardOp::Call(
     if (state.has_value()) {
         state->reset(new GenericBatchNormState{std::move(x_mean), std::move(x_inv_std)});
     }
-
-    return std::move(result.out);
 }
 
-std::array<Array, 3> GenericBatchNormBackwardOp::Call(
-        const Array& gout,
+void GenericBatchNormBackwardOp::Call(
         const Array& x,
         const Array& gamma,
+        const Array& gout,
         Scalar /*eps*/,
         const Axes& axis,
-        Dtype beta_dtype,
+        const Array& gx,
+        const Array& ggamma,
+        const Array& gbeta,
         nonstd::optional<std::shared_ptr<void>>& state) {
     CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
@@ -222,29 +221,28 @@ std::array<Array, 3> GenericBatchNormBackwardOp::Call(
     // TODO(hvy): Avoid AsType.
     Array gout_cast = gout.AsType(interm_dtype, false);
     Array x_hat = (x.AsType(interm_dtype, false) - x_mean) * x_inv_std;
-    Array ggamma = (gout_cast * x_hat).Sum(axis, true);
-    Array gbeta = gout_cast.Sum(axis, true);
-    Array gx = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma + gbeta) * inv_n);
+    Array ggamma_cast = (gout_cast * x_hat).Sum(axis, true);
+    Array gbeta_cast = gout_cast.Sum(axis, true);
+    Array gx_cast = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma_cast + gbeta_cast) * inv_n);
 
-    // TODO(hvy): Consider casting in the routine instead. Then we do not need to capture and pass around `beta_dtype`.
-    if (gx.dtype() != x.dtype()) {
-        gx = gx.AsType(x.dtype());
-    }
-    if (ggamma.dtype() != gamma.dtype()) {
-        ggamma = ggamma.AsType(gamma.dtype());
-    }
-    if (gbeta.dtype() != beta_dtype) {
-        gbeta = gbeta.AsType(beta_dtype);
-    }
-
-    return {std::move(gx), std::move(ggamma), std::move(gbeta)};
+    // TODO(hvy): Consider writing directly in the routines/ops above.
+    Device& device = x.device();
+    device.AsType(gx_cast, gx);
+    device.AsType(ggamma_cast, ggamma);
+    device.AsType(gbeta_cast, gbeta);
 }
 
-Array GenericFixedBatchNormForwardOp::Call(
-        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
+void GenericFixedBatchNormForwardOp::Call(
+        const Array& x,
+        const Array& gamma,
+        const Array& beta,
+        const Array& mean,
+        const Array& var,
+        Scalar eps,
+        const Axes& axis,
+        const Array& out) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
-    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype);
-    return std::move(result.out);
+    ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis, out, interm_dtype);
 }
 
 Array BatchNorm(
@@ -268,7 +266,10 @@ Array BatchNorm(
     Device& device = x.device();
     Backend& backend = device.backend();
     nonstd::optional<std::shared_ptr<void>> state{nullptr};
-    Array out = backend.CallOp<BatchNormForwardOp>(
+
+    Array out = EmptyLike(x, x.device());
+
+    backend.CallOp<BatchNormForwardOp>(
             x.AsGradStopped(),
             gamma_reshaped.AsGradStopped(),
             beta_reshaped.AsGradStopped(),
@@ -277,9 +278,9 @@ Array BatchNorm(
             eps,
             decay,
             sorted_axis,
+            out,
             state);
 
-    CHAINERX_ASSERT(out.dtype() == x.dtype());
     internal::MakeViewForForwardBackwardOutput(out);
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
@@ -289,25 +290,26 @@ Array BatchNorm(
                    gamma_tok = bb.RetainInput(1),
                    eps,
                    sorted_axis,
+                   beta_shape = beta_reshaped.shape(),
                    beta_dtype = beta_reshaped.dtype()](BackwardContext& bctx) mutable {
             const Array& gout = *bctx.output_grad();
             const Array& x = bctx.GetRetainedInput(x_tok);
             const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
 
-            Array gx{};
-            Array ggamma{};
-            Array gbeta{};
+            Device& device = x.device();
+
+            Array gx = EmptyLike(x, device);
+            Array ggamma = EmptyLike(gamma_reshaped, device);
+            Array gbeta = Empty(beta_shape, beta_dtype, device);
             {
                 // Compute backward.
                 Device& device = gout.device();
                 Backend& backend = device.backend();
-                std::array<Array, 3> ginputs =
-                        backend.CallOp<BatchNormBackwardOp>(gout, x, gamma_reshaped, eps, sorted_axis, beta_dtype, state);
-                internal::MakeViewForForwardBackwardOutput(ginputs);
 
-                gx = std::move(ginputs[0]);
-                ggamma = std::move(ginputs[1]);
-                gbeta = std::move(ginputs[2]);
+                backend.CallOp<BatchNormBackwardOp>(x, gamma_reshaped, gout, eps, sorted_axis, gx, ggamma, gbeta, state);
+                internal::MakeViewForForwardBackwardOutput(gx);
+                internal::MakeViewForForwardBackwardOutput(ggamma);
+                internal::MakeViewForForwardBackwardOutput(gbeta);
             }
 
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
@@ -398,11 +400,14 @@ Array FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
     PreprocessBatchNormResult result =
             PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
+
+    Array out = EmptyLike(x, x.device());
     {
         NoBackpropModeScope scope{};
-        return x.device().backend().CallOp<FixedBatchNormForwardOp>(
-                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
+        x.device().backend().CallOp<FixedBatchNormForwardOp>(
+                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, out);
     }
+    return out;
 }
 
 }  // namespace chainerx
