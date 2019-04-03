@@ -64,6 +64,7 @@ class TestArgmax(op_utils.NumpyOpTest):
             b = a.argmax(axis)
         return b,
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('input,axis', _min_max_single_axis_params)
 @chainer.testing.parameterize_pytest('is_module', [True, False])

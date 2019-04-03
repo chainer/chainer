@@ -94,7 +94,7 @@ protected:
 
 CHAINERX_REGISTER_OP_CUDA(ArgMinOp, CudaArgMinOp);
 
-} // namespace
+}  // namespace
 
 namespace {
 
