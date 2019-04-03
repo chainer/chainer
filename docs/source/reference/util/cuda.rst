@@ -13,6 +13,8 @@ Utilities across backends
 
    chainer.backend.copyto
    chainer.backend.get_array_module
+   chainer.backend.get_device
+   chainer.backend.using_device
 
 CUDA
 ----
