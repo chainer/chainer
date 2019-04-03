@@ -1,5 +1,4 @@
 #include "chainerx/routines/math.h"
-#include "chainerx/routines/logic.h"
 
 #include <cstdint>
 #include <numeric>

@@ -2033,7 +2033,7 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
         'skip_double_backward_test': [True],
     })
 ))
-class TestMinimum(BinaryMathTestBase, op_utils.ChainerOpTest):
+class TestMinimum(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def generate_inputs(self):
         x1_dtype, x2_dtype = self.in_dtypes
