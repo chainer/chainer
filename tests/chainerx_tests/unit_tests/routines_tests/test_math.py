@@ -1731,6 +1731,7 @@ def test_max(is_module, xp, device, input, axis, dtype):
         return a.max(axis)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
@@ -1743,36 +1744,30 @@ def test_max(is_module, xp, device, input, axis, dtype):
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', _in_out_dtypes_arithmetic)
     ])
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
-class TestMinimum(op_utils.ChainerOpTest):
-
-    def setup(self, dtype):
-
-        x1_dtype, x2_dtype = self.in_dtypes
-
-        if (x1_dtype == 'float16' or x2_dtype == 'float16'):
-            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
-            self.check_double_backward_options.update(
-                {'rtol': 3e-3, 'atol': 3e-3})
+class TestMinimum(BinaryMathTestBase, op_utils.ChainerOpTest):
 
     def generate_inputs(self):
+        x1_dtype, x2_dtype = self.in_dtypes
         x1_shape = self.x1_shape
         x2_shape = self.x2_shape
-        x1_dtype = self.x1_dtype
-        x2_dtype = self.x2_dtype
-        x1 = numpy.random.uniform(-1, 1, x1_shape).astype(x1_dtype)
-        x2 = numpy.random.uniform(-1, 1, x2_shape).astype(x2_dtype)
+        x1 = array_utils.uniform(x1_shape, x1_dtype)
+        x2 = array_utils.uniform(x2_shape, x2_dtype)
         return x1, x2
 
-    def forward_chainerx(self, inputs):
-        x1, x2 = inputs
-        y = chainerx.minimum(x1, x2)
-        return y,
-
-    def forward_chainer(self, inputs):
-        x1, x2 = inputs
-        y = chainer.functions.minimum(x1, x2)
-        return y,
+    def func(self, xp, x1, x2):
+        return xp.minimum(x1, x2)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
