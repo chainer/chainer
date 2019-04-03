@@ -84,9 +84,10 @@ class TestStandardize(testing.FunctionTestCase):
                 -zero_scale, zero_scale, self.x.shape)
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-            self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+            self.check_backward_options.update(
+                {'atol': 5e-3, 'rtol': 1e-2, 'eps': self.eps})
             self.check_double_backward_options.update(
-                {'atol': 5e-3, 'rtol': 1e-2})
+                {'atol': 5e-3, 'rtol': 1e-2, 'eps': self.epsS})
 
     def generate_inputs(self):
         shape = self.ch_out, self.size
