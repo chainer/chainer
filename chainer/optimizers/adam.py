@@ -168,6 +168,9 @@ class AdamRule(optimizer.UpdateRule):
                 self.state['m'], itype=intel64.ideep.wgt_array)
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
+            if self.hyperparam.amsgrad:
+                self.state['vhat'] = intel64.ideep.array(
+                    self.state['vhat'], itype=intel64.ideep.wgt_array)
 
     def _check_eps(self, interm_dtype):
         # Checks that the eps does not underflow.
