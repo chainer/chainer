@@ -56,15 +56,14 @@ class Standardize(function_node.FunctionNode):
         else:
             std_noeps = xp.sqrt(var)
         std = std_noeps + self.eps
-        inv_std = 1. / std
-        x_hat = x_mu * inv_std
-        return x_mu, var, std_noeps, inv_std, x_hat
+        x_hat = x_mu / std
+        return x_mu, std_noeps, std, x_hat
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)
         x, = inputs
-        x_mu, var, std_noeps, inv_std, x_hat = self._compute(xp, x)
+        x_mu, std_noeps, std, x_hat = self._compute(xp, x)
         return x_hat,
 
     def backward(self, indexes, grad_outputs):
@@ -73,12 +72,12 @@ class Standardize(function_node.FunctionNode):
         gy, = grad_outputs
         axes = tuple(six.moves.range(1, len(x.shape)))
 
-        x_mu, var, std_noeps, inv_std, x_hat = self._compute(F, x)
+        x_mu, std_noeps, std, x_hat = self._compute(F, x)
 
-        g_x_mu_1 = gy * inv_std
+        g_x_mu_1 = gy / std
 
         g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
-        g_std = g_inv_std * (- 1. / var)
+        g_std = g_inv_std * (- 1. / std ** 2)
 
         # _standardize with eps has continuous backward. However,
         # the backward is not differentiable for the indices of zero vectors.
