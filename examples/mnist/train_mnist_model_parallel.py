@@ -95,7 +95,9 @@ def main():
     model = L.Classifier(ParallelMLP(args.unit, 10, args.gpu0, args.gpu1))
     chainer.backends.cuda.get_device_from_id(args.gpu0).use()
 
-    optimizer = chainer.optimizers.Adam()
+    # Here used a larger eps in case of FP16 mode, the default value is enough
+    # for FP32 mode.
+    optimizer = chainer.optimizers.Adam(eps=1e-6)
     optimizer.setup(model)
 
     train, test = chainer.datasets.get_mnist()

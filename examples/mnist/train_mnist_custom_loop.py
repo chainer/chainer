@@ -57,7 +57,9 @@ def main():
     device.use()
 
     # Setup an optimizer
-    optimizer = chainer.optimizers.Adam()
+    # Here used a larger eps in case of FP16 mode, the default value is enough
+    # for FP32 mode.
+    optimizer = chainer.optimizers.Adam(eps=1e-6)
     optimizer.setup(model)
 
     if args.resume:
