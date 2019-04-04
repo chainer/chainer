@@ -111,5 +111,32 @@ void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct AMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::MaxOrInf(); }
+    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(CudaType next, CudaType& accum) {
+        if (cuda::IsNan(next) || accum > next) {
+            accum = next;
+        }
+    }
+    __device__ CudaType MapOut(CudaType accum) { return accum; }
+};
+
+}  // namespace
+
+void CudaDevice::AMin(const Array& a, const Axes& axis, const Array& out) {
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Reduce<T, T>(a, axis, out, AMinImpl<T>{});
+    });
+}
+
 }  // namespace cuda
 }  // namespace chainerx

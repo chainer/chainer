@@ -208,6 +208,8 @@ Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainer
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
 
+Array Array::Min(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMin(*this, axis, keepdims); }
+
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
 Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }

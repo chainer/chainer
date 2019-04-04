@@ -91,5 +91,25 @@ void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     });
 }
 
+void NativeDevice::AMin(const Array& a, const Axes& axis, const Array& out) {
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            T Identity() { return NumericLimits<T>::MaxOrInf(); }
+            T MapIn(T in, int64_t /*index*/) { return in; }
+            void Reduce(T next, T& accum) {
+                if (chainerx::IsNan(next) || accum > next) {
+                    accum = next;
+                }
+            }
+            T MapOut(T accum) { return accum; }
+        };
+        Reduce<T, T>(a, axis, out, Impl{});
+    });
+}
+
 }  // namespace native
 }  // namespace chainerx

@@ -73,6 +73,7 @@ public:
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
+    void Amin(const Array& a, const Axes& axis, const Array& out) override;
 
     // copy.cc
 
