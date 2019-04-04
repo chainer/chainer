@@ -14,8 +14,8 @@ namespace native {
 namespace {
 
 class NativeEqualOp : public EqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -34,8 +34,8 @@ protected:
 CHAINERX_REGISTER_OP_NATIVE(EqualOp, NativeEqualOp);
 
 class NativeNotEqualOp : public NotEqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -54,8 +54,8 @@ protected:
 CHAINERX_REGISTER_OP_NATIVE(NotEqualOp, NativeNotEqualOp);
 
 class NativeGreaterOp : public GreaterOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -74,8 +74,8 @@ protected:
 CHAINERX_REGISTER_OP_NATIVE(GreaterOp, NativeGreaterOp);
 
 class NativeGreaterEqualOp : public GreaterEqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -94,8 +94,8 @@ protected:
 CHAINERX_REGISTER_OP_NATIVE(GreaterEqualOp, NativeGreaterEqualOp);
 
 class NativeLogicalNotOp : public LogicalNotOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         VisitDtype(x.dtype(), [&](auto pt) {
