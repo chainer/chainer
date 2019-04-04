@@ -102,6 +102,11 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         attributes must be copied to GPU, the link implementation must
         override :meth:`Link.to_device` to do so.
 
+        .. warning::
+
+            This method does not transfer the parameters if they are already on
+            GPU. Use ``to_device`` to perform inter-GPU transfer.
+
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
