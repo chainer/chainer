@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python3-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip3 install --no-cache-dir 'ideep4py<2.1' chainer==5.3.0
+RUN pip3 install --no-cache-dir 'ideep4py<2.1' chainer==5.4.0
