@@ -159,15 +159,13 @@ public:
         }
 
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
-        Dtype dtype = x.dtype();
-
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = internal::AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
-        // Let cuDNN decide the parameter dtype based on the input and batch normalization mode.
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
@@ -185,6 +183,8 @@ public:
 
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
+
+        Dtype dtype = x.dtype();
 
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardTraining,
@@ -223,7 +223,7 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormForwardOp, CudaBatchNormForwardOp);
 class CudaBatchNormBackwardOp : public BatchNormBackwardOp {
 public:
     void Call(
-            const Array& x,
+            const Array& /*x*/,
             const Array& gamma,
             const Array& gout,
             Scalar eps,
@@ -234,7 +234,6 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) override {
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state.has_value());
-
         auto state_ptr = reinterpret_cast<CudaBatchNormState*>(state->get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         const Array& x_cont = state_ptr->x_cont;
         const Array& x_mean = state_ptr->x_mean;
@@ -248,10 +247,10 @@ public:
             CHAINERX_ASSERT(internal::GetArrayBody(x_mean) != nullptr);
             CHAINERX_ASSERT(internal::GetArrayBody(x_inv_std) != nullptr);
 
-            CHAINERX_ASSERT(&x_cont.device() == &gamma.device());
-            CHAINERX_ASSERT(&x_cont.device() == &gout.device());
             CHAINERX_ASSERT(&x_cont.device() == &x_mean.device());
             CHAINERX_ASSERT(&x_cont.device() == &x_inv_std.device());
+            CHAINERX_ASSERT(&x_cont.device() == &gamma.device());
+            CHAINERX_ASSERT(&x_cont.device() == &gout.device());
 
             CHAINERX_ASSERT(x_cont.IsContiguous());
         }
@@ -260,15 +259,13 @@ public:
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
         }
 
-        CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
-        Dtype dtype = x_cont.dtype();
-
+        CudaDevice& device = dynamic_cast<CudaDevice&>(x_cont.device());
         CudaSetDeviceScope scope{device.index()};
 
         Array gout_cont = internal::AsContiguous(gout);
         Array gx_cont = EmptyLike(x_cont, device);
-
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
@@ -283,6 +280,8 @@ public:
         CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_inv_std.dtype());
         CHAINERX_ASSERT(x_mean.IsContiguous());
         CHAINERX_ASSERT(x_inv_std.IsContiguous());
+
+        Dtype dtype = x_cont.dtype();
 
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationBackward,
@@ -325,13 +324,6 @@ public:
             Scalar eps,
             const Axes& axis,
             const Array& out) override {
-        if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
-            throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
-        }
-
-        CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
-        CudaSetDeviceScope scope{device.index()};
-
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -351,8 +343,16 @@ public:
             CHAINERX_ASSERT(GetKind(var.dtype()) == DtypeKind::kFloat);
         }
 
+        if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
+            throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+        }
+
+        CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
+        CudaSetDeviceScope scope{device.index()};
+
         Array x_cont = internal::AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
@@ -363,11 +363,13 @@ public:
         Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
         Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
 
+        Dtype dtype = x_cont.dtype();
+
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardInference,
                 GetBatchNormMode(axis),
-                cuda_internal::GetCudnnCoefficientPtr<1>(x.dtype()),
-                cuda_internal::GetCudnnCoefficientPtr<0>(x.dtype()),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
                 *x_desc,
                 internal::GetRawOffsetData(x_cont),
                 *x_desc,

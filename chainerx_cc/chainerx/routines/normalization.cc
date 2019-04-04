@@ -260,25 +260,26 @@ Array BatchNorm(
     const Array& var_reshaped = result.var;
     const Axes& sorted_axis = result.sorted_axis;
 
-    // Compute forward.
     Device& device = x.device();
-    Backend& backend = device.backend();
+
+    // Compute forward.
+    Array out = EmptyLike(x, device);
+    // Create an empty state container that may be modified during forward. It will then be passed to the backward.
     nonstd::optional<std::shared_ptr<void>> state{nullptr};
-
-    Array out = EmptyLike(x, x.device());
-
-    backend.CallOp<BatchNormForwardOp>(
-            x.AsGradStopped(),
-            gamma_reshaped.AsGradStopped(),
-            beta_reshaped.AsGradStopped(),
-            mean_reshaped,
-            var_reshaped,
-            eps,
-            decay,
-            sorted_axis,
-            out,
-            state);
-
+    {
+        NoBackpropModeScope scope{};
+        device.backend().CallOp<BatchNormForwardOp>(
+                x.AsGradStopped(),
+                gamma_reshaped.AsGradStopped(),
+                beta_reshaped.AsGradStopped(),
+                mean_reshaped,
+                var_reshaped,
+                eps,
+                decay,
+                sorted_axis,
+                out,
+                state);
+    }
     internal::MakeViewForForwardBackwardOutput(out);
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
@@ -296,19 +297,17 @@ Array BatchNorm(
 
             Device& device = x.device();
 
+            // Compute backward.
             Array gx = EmptyLike(x, device);
             Array ggamma = EmptyLike(gamma_reshaped, device);
             Array gbeta = Empty(beta_shape, beta_dtype, device);
             {
-                // Compute backward.
-                Device& device = gout.device();
-                Backend& backend = device.backend();
-
-                backend.CallOp<BatchNormBackwardOp>(x, gamma_reshaped, gout, eps, sorted_axis, gx, ggamma, gbeta, state);
-                internal::MakeViewForForwardBackwardOutput(gx);
-                internal::MakeViewForForwardBackwardOutput(ggamma);
-                internal::MakeViewForForwardBackwardOutput(gbeta);
+                NoBackpropModeScope scope{};
+                device.backend().CallOp<BatchNormBackwardOp>(x, gamma_reshaped, gout, eps, sorted_axis, gx, ggamma, gbeta, state);
             }
+            internal::MakeViewForForwardBackwardOutput(gx);
+            internal::MakeViewForForwardBackwardOutput(ggamma);
+            internal::MakeViewForForwardBackwardOutput(gbeta);
 
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
