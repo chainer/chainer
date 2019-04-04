@@ -32,7 +32,7 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot using model '
                              'and state files in the specified directory')
     parser.add_argument('--unit', '-u', type=int, default=1000,
@@ -60,10 +60,17 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
-        serializers.load_npz('{}/mlp.model'.format(args.resume), model)
-        serializers.load_npz('{}/mlp.state'.format(args.resume), optimizer)
+        resume = args.resume
+        if os.path.exists(resume):
+            serializers.load_npz(os.path.join(resume, 'mlp.model'), model)
+            serializers.load_npz(os.path.join(resume, 'mlp.state'), optimizer)
+        else:
+            raise ValueError(
+                '`args.resume` ("{}") is specified,'
+                ' but it does not exist'.format(resume)
+            )
 
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
@@ -110,12 +117,13 @@ def main():
             sum_loss = 0
 
     # Save the model and the optimizer
-    if not os.path.exists(args.out):
-        os.makedirs(args.out)
+    out = args.out
+    if not os.path.isdir(out):
+        os.makedirs(out)
     print('save the model')
-    serializers.save_npz('{}/mlp.model'.format(args.out), model)
+    serializers.save_npz(os.path.join(out, 'mlp.model'), model)
     print('save the optimizer')
-    serializers.save_npz('{}/mlp.state'.format(args.out), optimizer)
+    serializers.save_npz(os.path.join(out, 'mlp.state'), optimizer)
 
 
 if __name__ == '__main__':
