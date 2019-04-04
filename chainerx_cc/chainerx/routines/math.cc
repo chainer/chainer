@@ -733,13 +733,13 @@ Array Tanh(const Array& x) {
     return out;
 }
 
-Array SinOp::Call(const Array& x) {
+Array Sin(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<SinOp>(x, out);
     }
 
     BackwardBuilder bb{"sin", x, out};
@@ -755,13 +755,13 @@ Array SinOp::Call(const Array& x) {
     return out;
 }
 
-Array CosOp::Call(const Array& x) {
+Array Cos(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<CosOp>(x, out);
     }
 
     BackwardBuilder bb{"cos", x, out};
@@ -777,13 +777,13 @@ Array CosOp::Call(const Array& x) {
     return out;
 }
 
-Array TanOp::Call(const Array& x) {
+Array Tan(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<TanOp>(x, out);
     }
 
     BackwardBuilder bb{"tan", x, out};
@@ -800,13 +800,13 @@ Array TanOp::Call(const Array& x) {
     return out;
 }
 
-Array ArcsinOp::Call(const Array& x) {
+Array Arcsin(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<ArcsinOp>(x, out);
     }
 
     BackwardBuilder bb{"arcsin", x, out};
@@ -822,13 +822,13 @@ Array ArcsinOp::Call(const Array& x) {
     return out;
 }
 
-Array ArccosOp::Call(const Array& x) {
+Array Arccos(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<ArccosOp>(x, out);
     }
 
     BackwardBuilder bb{"arccos", x, out};
@@ -844,13 +844,13 @@ Array ArccosOp::Call(const Array& x) {
     return out;
 }
 
-Array ArctanOp::Call(const Array& x) {
+Array Arctan(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<ArctanOp>(x, out);
     }
 
     BackwardBuilder bb{"arctan", x, out};
