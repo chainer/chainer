@@ -39,6 +39,7 @@ requirements = {
     'test': [
         'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
         'mock',
+        'packaging',
     ],
     'doctest': [
         'sphinx==1.8.2',
@@ -105,9 +106,17 @@ is necessary. Please uninstall the old ChainerMN in advance.
     print(msg)
     exit(1)
 
-here = os.path.abspath(os.path.dirname(__file__))
-# Get __version__ variable
-exec(open(os.path.join(here, 'chainer', '_version.py')).read())
+
+def get_version():
+    # Get __version__ variable
+    here = os.path.abspath(os.path.dirname(__file__))
+    sys.path.insert(0, os.path.join(here, 'chainer'))
+    import _version
+    sys.path.pop(0)
+    return _version.__version__
+
+
+__version__ = get_version()
 
 
 setup_kwargs = dict(
