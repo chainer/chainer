@@ -202,7 +202,11 @@ class AdamRule(optimizer.UpdateRule):
 
         if hp.amsgrad:
             vhat = self.state['vhat']
-            numpy.maximum(vhat, v, out=vhat)
+            # For iDeep
+            if isinstance(vhat, intel64.mdarray):
+                vhat = numpy.maximum(vhat, v)
+            else:
+                numpy.maximum(vhat, v, out=vhat)
         else:
             vhat = v
         vhat = vhat.astype(dtype, copy=False)
