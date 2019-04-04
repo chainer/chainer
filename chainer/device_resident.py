@@ -133,7 +133,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         device = chainer.backends.cuda.GpuDevice(cuda_device)
         visitor = _ToDeviceVisitor(
             device,
-            entry_method_info=('to_gpu', {'device': device}),
+            entry_method_info=('to_gpu', {'device': device.device}),
             skip_between_cupy_devices=sticky)
         self.__to_device(visitor)
         return self
@@ -143,7 +143,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
         visitor = _ToDeviceVisitor(
-            chainer.get_device(intel64),
+            chainer.get_device(intel64.Intel64Device()),
             entry_method_info=('to_intel64', {}))
         self.__to_device(visitor)
         return self

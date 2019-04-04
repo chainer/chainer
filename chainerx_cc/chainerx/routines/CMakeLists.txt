@@ -33,12 +33,6 @@ install(FILES
 if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_routines_test
       creation_test.cc
-      linalg_test.cc
-      logic_test.cc
-      math_test.cc
-      normalization_test.cc
-      pooling_test.cc
-      sorting_test.cc
       statistics_test.cc
       type_util_test.cc
   )
