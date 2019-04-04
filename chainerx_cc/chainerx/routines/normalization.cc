@@ -205,8 +205,6 @@ void GenericBatchNormBackwardOp::Call(
         const Array& ggamma,
         const Array& gbeta,
         nonstd::optional<std::shared_ptr<void>>& state) {
-    CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
-
     // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
     CHAINERX_ASSERT(state.has_value());
     auto state_ptr = reinterpret_cast<GenericBatchNormState*>(state->get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)

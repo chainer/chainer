@@ -241,8 +241,6 @@ public:
         const Array& x_inv_std = state_ptr->x_inv_std;
 
         if (CHAINERX_DEBUG) {
-            CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
-
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis, true);
             CHAINERX_ASSERT(reduced_shape == gamma.shape());
             CHAINERX_ASSERT(x_cont.shape() == gout.shape());
