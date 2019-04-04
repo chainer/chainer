@@ -7,14 +7,19 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
-Chainer v6
+
+Chainer v7
 ==========
 
 ``Variable`` Became a Subclass of ``collections.abc.Iterable``
 --------------------------------------------------------------
 
-Prior to Chainer v5, :class:`~chainer.Variable` did not implement :meth:`~chainer.Variable.__iter__`.
-In Chainer v6, ``issubclass(chainer.Variable, collections.abc.Iterable)`` (or ``issubclass(chainer.Variable, collections.Iterable)`` with Python 2) returns `True`.
+Prior to Chainer v6, :class:`~chainer.Variable` did not implement :meth:`~chainer.Variable.__iter__`.
+In Chainer v7, ``issubclass(chainer.Variable, collections.abc.Iterable)`` (or ``issubclass(chainer.Variable, collections.Iterable)`` with Python 2) returns `True`.
+
+
+Chainer v6
+==========
 
 CuPy Needs To Be Manually Updated
 ---------------------------------
