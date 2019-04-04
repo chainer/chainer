@@ -75,17 +75,5 @@ void NativeDevice::Tanh(const Array& x, const Array& out) {
     });
 }
 
-void NativeDevice::Ceil(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Ceil(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
-
 }  // namespace native
 }  // namespace chainerx

@@ -160,6 +160,16 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
-Array Ceil(const Array& x);
+class CeilOp : public Op {
+public:
+    static const char* name() { return "Ceil"; }
+
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Ceil(const Array& x) { return x.device().backend().CallOp<CeilOp>(x); }
 
 }  // namespace chainerx
