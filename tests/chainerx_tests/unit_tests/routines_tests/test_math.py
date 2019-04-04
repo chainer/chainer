@@ -2010,41 +2010,30 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x1_shape,x2_shape', [
-                ((3, 2), (3, 2)),
-                ((), ()),
-                ((3, 2), (3, 1)),
-                ((2,), (3, 2)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_dtypes_arithmetic)
-    ])
-    # Special values
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'is_module': [False],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
     })
+    # TODO(aksub99): Add tests for inf and NaN.
 ))
 class TestMinimum(BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    def generate_inputs(self):
-        x1_dtype, x2_dtype = self.in_dtypes
-        x1_shape = self.x1_shape
-        x2_shape = self.x2_shape
-        x1 = array_utils.uniform(x1_shape, x1_dtype)
-        x2 = array_utils.uniform(x2_shape, x2_dtype)
-        return x1, x2
-
-    def func(self, xp, x1, x2):
-        return xp.minimum(x1, x2)
+    def func(self, xp, a, b):
+        return xp.minimum(a, b)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
