@@ -1620,7 +1620,8 @@ def backward(outputs, grad_outputs=None, **kwargs):
     if grad_outputs is None:
         grad_outputs = []
         for y in outputs:
-            grad_var = y.node._pop_grad_var_if_available()
+            grad_var = y.grad_var
+            y.grad_var = None
             grad_outputs.append(grad_var)
             if grad_var is None:
                 warnings.warn(
