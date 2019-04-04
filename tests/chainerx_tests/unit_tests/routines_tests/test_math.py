@@ -1496,6 +1496,52 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSquaredDifference(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        return xp.square(xp.subtract(a, b))
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
         10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
