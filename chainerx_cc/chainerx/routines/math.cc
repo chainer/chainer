@@ -907,13 +907,15 @@ Array Arctan(const Array& x) {
     return out;
 }
 
-Array Floor(const Array& x) {
+Array FloorOp::Call(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
+
     {
         NoBackpropModeScope scope{};
-        x.device().Floor(x, out);
+        Impl(x, out);
     }
+
     return out;
 }
 
