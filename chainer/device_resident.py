@@ -15,8 +15,9 @@ from chainer import utils
 import chainerx
 
 
-def _warn_legacy_to_gpu(dst, arr, legacy):
-    # type: (backend.Device, backend.Device, tp.Optional[bool]) -> bool
+def _warn_to_gpu(dst, arr, legacy):
+    if not legacy:
+        return False
     if isinstance(dst, cuda.GpuDevice) and isinstance(arr, cuda.ndarray):
         src_id = arr.device.id
         dst_id = dst.device.id
@@ -24,28 +25,15 @@ def _warn_legacy_to_gpu(dst, arr, legacy):
             # The link is already on the requested device; nothing
             # to do.
             return True
-        elif legacy is None:
+        else:
             # Sticky option is omitted. As the default behavior is
             # planned to be changed, raise a warning.
             warnings.warn('''\
 You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
-`Link.to_gpu` in Chainer v6 and prior versions are "sticky" by default; \
-if the Link is already on GPU, `to_gpu` does nothing.
+`Link.to_gpu` does nothing if the Link is already on GPU.
 
-In Chainer v7, `sticky` option has been introduced to `Link.to_gpu` to \
-control this behavior.
-You can specify `sticky=False` option to `to_gpu` to perform inter-GPU \
-transfer.
-If you don't want to perform inter-GPU transfer, explicitly specify \
-`sticky=True` so that you can disable this warning.
-
-The default behavior is planned to be changed to `sticky=False` in the future \
-release (possibly in Chainer v8).
-'''.format(dst=dst_id, src=src_id), FutureWarning)
-            return True
-        elif legacy is True:
-            # Sticky mode is explicitly requested. Do not perform
-            # inter-GPU transfer.
+You can use `Link.to_device()` method to perform inter-GPU transfer.
+'''.format(dst=dst_id, src=src_id), RuntimeWarning)
             return True
     return False
 
@@ -99,14 +87,13 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         visitor = _ToDeviceVisitor(
             backend.CpuDevice(),
             entry_method_info=('to_cpu', {}),
-            skip_between_cupy_devices=True)
+        )
         self.__to_device(visitor)
         return self
 
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
-            sticky=None,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to GPU.
@@ -118,12 +105,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
-            sticky (bool): If ``False``, the link will be transferred to the
-                specified GPU device even if the Link is already on another
-                GPU. If ``True``, ``to_gpu`` does nothing if the Link is
-                already on GPU. If omitted, ``True`` is used as the default
-                in Chainer v5. Note that the default is planned to be changed
-                to ``False`` in the future release (possibly in Chainer v6)
 
         Returns: self
 
@@ -134,7 +115,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         visitor = _ToDeviceVisitor(
             device,
             entry_method_info=('to_gpu', {'device': device.device}),
-            skip_between_cupy_devices=sticky)
+            skip_between_cupy_devices=True)
         self.__to_device(visitor)
         return self
 
@@ -303,7 +284,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        skip = _warn_legacy_to_gpu(
+        skip = _warn_to_gpu(
             self._device, arr, legacy=self._skip_between_cupy_devices)
         if not skip:
             return self._device.send(arr)
@@ -311,7 +292,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        skip = _warn_legacy_to_gpu(
+        skip = _warn_to_gpu(
             self._device, param.array, legacy=self._skip_between_cupy_devices)
         if not skip:
             param.to_device(self._device)
