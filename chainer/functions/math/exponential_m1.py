@@ -13,7 +13,7 @@ class Expm1(function_node.FunctionNode):
         return 'expm1'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -30,5 +30,12 @@ class Expm1(function_node.FunctionNode):
 
 
 def expm1(x):
-    """Elementwise exponential minus one function."""
+    """Elementwise exponential minus one function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Expm1().apply((x,))[0]

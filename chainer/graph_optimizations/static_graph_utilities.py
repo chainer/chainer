@@ -7,7 +7,7 @@ def static_code(*dec_args, **dec_kwargs):
     """Decorator to mark a function for inclusion in the static schedule.
 
     This decorator is used to mark a function or method to be included
-    in a static schedule. The are multiple types of static schedules, such
+    in a static schedule. There are multiple types of static schedules, such
     as "forward pass schedule", "backward pass schedule", "double backward
     pass schedule" etc.. The type of schedule that the decorated function's
     code is added to will depend on the context in which this decorator
@@ -211,8 +211,8 @@ def static_forward_optimizations(func, inputs):
     schedule_function = chainer.config.schedule_func
     if not func._supports_static_optimizations:
         if schedule_function.verbosity_level >= 2:
-            print("Adding automatic static graph support to "
-                  "function: ", func)
+            print('Adding automatic static graph support to '
+                  'function: ', func)
 
         @static_code(func_name=str(func))
         def generic_static_forward(func, inputs):

@@ -14,7 +14,7 @@ class LGamma(function_node.FunctionNode):
         return 'lgamma'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -24,8 +24,8 @@ class LGamma(function_node.FunctionNode):
                 from scipy import special
                 _lgamma_cpu = special.gammaln
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of lgamma can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of lgamma can not be done.')
         self.retain_inputs((0,))
         return utils.force_array(_lgamma_cpu(x[0]), dtype=x[0].dtype),
 
@@ -47,8 +47,7 @@ def lgamma(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

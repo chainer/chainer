@@ -8,6 +8,8 @@ from chainer import variable
 import numpy
 
 from chainermn.functions.batch_normalization import \
+    get_communication_backend
+from chainermn.functions.batch_normalization import \
     MultiNodeBatchNormalizationFunction
 
 
@@ -38,37 +40,46 @@ class MultiNodeBatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
+        communication_backend (str): ``mpi``, ``nccl`` or ``auto``. It is used
+            to determine communication backend. If ``auto``, use the best
+            communication backend for each communicator.
     """
 
-    def __init__(self, size, comm, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    def __init__(self, size, comm, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+                 initial_gamma=None, initial_beta=None,
+                 communication_backend='auto'):
         chainer.utils.experimental(
             'chainermn.links.MultiNodeBatchNormalization')
 
         super(MultiNodeBatchNormalization, self).__init__()
+        self._highprec_dtype = chainer.get_dtype(
+            dtype, map_mixed16=numpy.float32)
         self.comm = comm
-        self.avg_mean = numpy.zeros(size, dtype=dtype)
+        self.avg_mean = numpy.zeros(size, dtype=self._highprec_dtype)
         self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(size, dtype=dtype)
+        self.avg_var = numpy.zeros(size, dtype=self._highprec_dtype)
         self.register_persistent('avg_var')
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
 
+        self._communication_backend = \
+            get_communication_backend(comm, communication_backend)
+
         with self.init_scope():
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
                 initial_gamma = initializers._get_initializer(initial_gamma)
-                initial_gamma.dtype = dtype
+                initial_gamma.dtype = self._highprec_dtype
                 self.gamma = variable.Parameter(initial_gamma, size)
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
                 initial_beta = initializers._get_initializer(initial_beta)
-                initial_beta.dtype = dtype
+                initial_beta.dtype = self._highprec_dtype
                 self.beta = variable.Parameter(initial_beta, size)
 
     def __call__(self, x, finetune=False):
@@ -77,13 +88,13 @@ class MultiNodeBatchNormalization(link.Link):
         else:
             with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype))
+                    self.avg_mean.shape, dtype=self._highprec_dtype))
         if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype))
+                    self.avg_mean.shape, dtype=self._highprec_dtype))
 
         if chainer.configuration.config.train:
             if finetune:
@@ -93,7 +104,9 @@ class MultiNodeBatchNormalization(link.Link):
                 decay = self.decay
 
             func = MultiNodeBatchNormalizationFunction(
-                self.comm, self.eps, self.avg_mean, self.avg_var, decay)
+                self.comm, self.eps, self.avg_mean, self.avg_var, decay,
+                communication_backend=self._communication_backend)
+
             ret = func(x, gamma, beta)
 
             self.avg_mean[:] = func.running_mean

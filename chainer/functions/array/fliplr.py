@@ -8,7 +8,7 @@ class FlipLR(function_node.FunctionNode):
     """Flip array in the left/right direction."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a',))
+        type_check._argname(in_types, ('a',))
         a_type = in_types[0]
 
         type_check.expect(
@@ -28,7 +28,7 @@ def fliplr(a):
     """Flip array in the left/right direction.
 
     Args:
-        xs (~chainer.Variable): Input variable.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

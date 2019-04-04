@@ -26,12 +26,12 @@ import models.resnet50 as resnet50
 # which was introduced in Python 3.4
 major, minor, _, _, _ = sys.version_info
 if major <= 2 or (major == 3 and minor < 4):
-    sys.stderr.write("Error: ImageNet example uses "
-                     "chainer.iterators.MultiprocessIterator, "
-                     "which works only with Python >= 3.4. \n"
-                     "For more details, see "
-                     "http://chainermn.readthedocs.io/en/master/"
-                     "tutorial/tips_faqs.html#using-multiprocessiterator\n")
+    sys.stderr.write('Error: ImageNet example uses '
+                     'chainer.iterators.MultiprocessIterator, '
+                     'which works only with Python >= 3.4. \n'
+                     'For more details, see '
+                     'http://chainermn.readthedocs.io/en/master/'
+                     'tutorial/tips_faqs.html#using-multiprocessiterator\n')
     exit(-1)
 
 
@@ -39,7 +39,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 
@@ -92,7 +92,7 @@ def main():
     # Check if GPU is available
     # (ImageNet example does not support CPU execution)
     if not chainer.cuda.available:
-        raise RuntimeError("ImageNet requires GPU support.")
+        raise RuntimeError('ImageNet requires GPU support.')
 
     archs = {
         'alex': alex.Alex,
@@ -131,6 +131,22 @@ def main():
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
+    # Start method of multiprocessing module need to be changed if we
+    # are using InfiniBand and MultiprocessIterator. This is because
+    # processes often crash when calling fork if they are using
+    # Infiniband.  (c.f.,
+    # https://www.open-mpi.org/faq/?category=tuning#fork-warning )
+    # Also, just setting the start method does not seem to be
+    # sufficient to actually launch the forkserver processes, so also
+    # start a dummy process.
+    # See also our document:
+    # https://chainermn.readthedocs.io/en/stable/tutorial/tips_faqs.html#using-multiprocessiterator
+    # This must be done *before* ``chainermn.create_communicator``!!!
+    multiprocessing.set_start_method('forkserver')
+    p = multiprocessing.Process()
+    p.start()
+    p.join()
+
     # Prepare ChainerMN communicator.
     comm = chainermn.create_communicator(args.communicator)
     device = comm.intra_rank
@@ -165,11 +181,9 @@ def main():
     train = chainermn.scatter_dataset(train, comm, shuffle=True)
     val = chainermn.scatter_dataset(val, comm)
 
-    # We need to change the start method of multiprocessing module if we are
-    # using InfiniBand and MultiprocessIterator. This is because processes
-    # often crash when calling fork if they are using Infiniband.
-    # (c.f., https://www.open-mpi.org/faq/?category=tuning#fork-warning )
-    multiprocessing.set_start_method('forkserver')
+    # A workaround for processes crash should be done before making
+    # communicator above, when using fork (e.g. MultiProcessIterator)
+    # along with Infiniband.
     train_iter = chainer.iterators.MultiprocessIterator(
         train, args.batchsize, n_processes=args.loaderjob)
     val_iter = chainer.iterators.MultiprocessIterator(
@@ -201,7 +215,7 @@ def main():
     # Some display and output extensions are necessary only for one worker.
     # (Otherwise, there would just be repeated outputs.)
     if comm.rank == 0:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport(trigger=log_interval))
         trainer.extend(extensions.observe_lr(), trigger=log_interval)
         trainer.extend(extensions.PrintReport([

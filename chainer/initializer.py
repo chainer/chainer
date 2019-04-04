@@ -1,4 +1,7 @@
-import numpy
+import typing as tp  # NOQA
+
+from chainer import types  # NOQA
+from chainer import utils
 
 
 class Initializer(object):
@@ -13,9 +16,12 @@ class Initializer(object):
     """
 
     def __init__(self, dtype=None):
-        self.dtype = dtype
+        # type: (tp.Optional[types.DTypeSpec]) -> None
+
+        self.dtype = dtype  # type: types.DTypeSpec
 
     def __call__(self, array):
+        # type: (types.NdArray) -> None
         """Initializes given array.
 
         This method destructively changes the value of array.
@@ -24,7 +30,7 @@ class Initializer(object):
         concrete derived classes.
 
         Args:
-            array (numpy.ndarray or cupy.ndarray):
+            array (:ref:`ndarray`):
                 An array to be initialized by this initializer.
 
         """
@@ -36,12 +42,14 @@ class Initializer(object):
 
 def get_fans(shape):
     if not isinstance(shape, tuple):
-        raise ValueError('shape must be tuple')
+        raise ValueError(
+            'shape must be tuple. Actual type: {}'.format(type(shape)))
 
     if len(shape) < 2:
-        raise ValueError('shape must be of length >= 2: shape={}', shape)
+        raise ValueError(
+            'shape must be of length >= 2. Actual shape: {}'.format(shape))
 
-    receptive_field_size = numpy.prod(shape[2:], dtype=numpy.int32)
+    receptive_field_size = utils.size_of_shape(shape[2:])
     fan_in = shape[1] * receptive_field_size
     fan_out = shape[0] * receptive_field_size
     return fan_in, fan_out

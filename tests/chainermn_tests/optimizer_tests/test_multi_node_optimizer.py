@@ -31,7 +31,7 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def setup_gpu(self, device=None):
-        self.comm = chainermn.create_communicator('hierarchical')
+        self.comm = chainermn.create_communicator('flat')
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = ExampleModel()
@@ -49,7 +49,8 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         self.setup_cpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
         self.optimizer.target.a.W.grad[:] = self.comm.rank
@@ -78,7 +79,8 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
         self.optimizer.target.a.W.grad[:] = self.comm.rank
@@ -125,7 +127,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def setup_gpu(self, device=None):
-        self.comm = chainermn.create_communicator('hierarchical')
+        self.comm = chainermn.create_communicator('flat')
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = DynamicExampleModel()
@@ -141,7 +143,8 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.setup_cpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
 
@@ -183,7 +186,8 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
 

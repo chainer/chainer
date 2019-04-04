@@ -5,11 +5,12 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU
+    _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_CLIPPED_RELU  # type: ignore
 
 
 class ClippedReLU(function_node.FunctionNode):
@@ -32,9 +33,13 @@ class ClippedReLU(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return chainerx.minimum(chainerx.maximum(0, x), self.cap),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
@@ -74,13 +79,14 @@ class ClippedReLUGrad2(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
         gy, = inputs
+        x = self.x
         return utils.force_array(
-            gy * (0 < self.x) * (self.x < self.cap), self.x.dtype),
+            gy * (0 < x) * (x < self.cap), x.dtype),
 
     def forward_gpu(self, inputs):
         gy, = inputs
@@ -104,7 +110,7 @@ class ClippedReLUGrad3(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -129,8 +135,7 @@ def clipped_relu(x, z=20.0):
     .. math:: \\text{ClippedReLU}(x, z) = \\min(\\max(0, x), z).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
         z (float): Clipping value. (default = 20.0)
 
@@ -154,4 +159,34 @@ def clipped_relu(x, z=20.0):
 
     """
     y, = ClippedReLU(z).apply((x,))
+    return y
+
+
+def relu6(x):
+    """Rectifier Unit function clipped at 6.
+
+    It computes
+
+    .. math:: \\text{ReLU6}(x) = \\min(\\max(0, x), 6).
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
+
+    Returns:
+        ~chainer.Variable: Output variable. A
+        :math:`(s_1, s_2, ..., s_n)`-shaped float array.
+
+    .. seealso:: :func:`chainer.functions.clipped_relu`
+
+    .. admonition:: Example
+
+        >>> x = np.array([-20, -2, 0, 2, 4, 10, 100]).astype(np.float32)
+        >>> x
+        array([-20.,  -2.,   0.,   2.,   4.,  10., 100.], dtype=float32)
+        >>> F.relu6(x)
+        variable([0., 0., 0., 2., 4., 6., 6.])
+
+    """
+    y, = ClippedReLU(6.0).apply((x,))
     return y

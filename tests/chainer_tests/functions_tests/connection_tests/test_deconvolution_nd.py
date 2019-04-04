@@ -10,6 +10,7 @@ from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import array
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.testing import parameterize
@@ -24,6 +25,7 @@ from chainer.utils import type_check
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
+    'b_dtype': [numpy.float32],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
     'autotune': [True, False],
@@ -34,6 +36,7 @@ from chainer.utils import type_check
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
+    'b_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'autotune': [False],
@@ -44,6 +47,7 @@ from chainer.utils import type_check
     'nobias': [True, False],
     'test_outsize': [True, False],
     'c_contiguous': [True, False],
+    'b_dtype': [numpy.float32],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
     'autotune': [False],
@@ -63,7 +67,7 @@ class TestDeconvolutionND(unittest.TestCase):
         W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
         W_shape = (in_channels, out_channels // self.groups) + ksize
         self.W = numpy.random.normal(0, W_scale, W_shape).astype(self.W_dtype)
-        self.b = numpy.random.uniform(-1, 1, out_channels).astype(self.x_dtype)
+        self.b = numpy.random.uniform(-1, 1, out_channels).astype(self.b_dtype)
         self.check_double_backward_options = {
             'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
 
@@ -82,12 +86,13 @@ class TestDeconvolutionND(unittest.TestCase):
         self.ggW = numpy.random.uniform(
             -1, 1, self.W.shape).astype(self.W.dtype)
         self.ggb = numpy.random.uniform(
-            -1, 1, self.b.shape).astype(self.x.dtype)
+            -1, 1, self.b.shape).astype(self.b.dtype)
 
         self.test_forward_options = {}
         self.check_backward_options = {
             'dtype': numpy.float64, 'atol': 3e-5, 'rtol': 3e-4}
-        if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
+        if (self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16
+                or self.b_dtype == numpy.float16):
             self.test_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
@@ -126,6 +131,9 @@ class TestDeconvolutionND(unittest.TestCase):
 
     def check_forward_consistency_regression(self, x_data, W_data, b_data,
                                              use_cudnn='always'):
+        if x_data.dtype != b_data.dtype:
+            raise unittest.SkipTest(
+                'F.deconvolution_2d does not support x.dtype != b.dtype')
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
@@ -162,21 +170,13 @@ class TestDeconvolutionND(unittest.TestCase):
                 cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.b),
                 use_cudnn='never')
 
-    def check_backward(self, x_data, W_data, b_data, y_grad,
-                       use_cudnn='never'):
+    def check_backward(self, *inputs, **kwargs):
+        use_cudnn, = chainer.utils.argument.parse_kwargs(
+            kwargs, ('use_cudnn', 'never'))
         if not self.c_contiguous:
-            xp = backend.get_array_module(x_data)
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            self.assertFalse(x_data.flags.c_contiguous)
-            self.assertFalse(W_data.flags.c_contiguous)
-            self.assertFalse(y_grad.flags.c_contiguous)
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=self.b.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                self.assertFalse(b_data.flags.c_contiguous)
+            inputs = array._as_noncontiguous_array(inputs)
+
+        x_data, W_data, b_data, y_grad = inputs
 
         args = (x_data, W_data)
         if b_data is not None:
@@ -212,34 +212,33 @@ class TestDeconvolutionND(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.W), b,
             cuda.to_gpu(self.gy), use_cudnn='never')
 
+    @attr.chainerx
+    @condition.retry(3)
+    def test_backward_chainerx_cpu(self):
+        self.check_backward(
+            backend.to_chx(self.x), backend.to_chx(self.W),
+            backend.to_chx(self.b), backend.to_chx(self.gy))
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_chainerx_gpu(self):
+        self.check_backward(
+            backend.to_chx(self.x).to_device('cuda'),
+            backend.to_chx(self.W).to_device('cuda'),
+            backend.to_chx(self.b).to_device('cuda'),
+            backend.to_chx(self.gy).to_device('cuda'))
+
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, use_cudnn='always'):
+        if not self.c_contiguous:
+            inputs = array._as_noncontiguous_array(inputs)
+            grad_outputs = array._as_noncontiguous_array(grad_outputs)
+            grad_grad_inputs = array._as_noncontiguous_array(grad_grad_inputs)
+
         x_data, W_data, b_data = inputs
         y_grad, = grad_outputs
         x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
-
-        if not self.c_contiguous:
-            xp = backend.get_array_module(x_data)
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            x_grad_grad = xp.asfortranarray(x_grad_grad)
-            W_grad_grad = xp.asfortranarray(W_grad_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            assert not x_grad_grad.flags.c_contiguous
-            assert not W_grad_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
-
-                ggb = xp.empty((len(b_data) * 2,), dtype=b_grad_grad.dtype)
-                ggb[::2] = b_grad_grad
-                b_grad_grad = ggb[::2]
-                assert not b_grad_grad.flags.c_contiguous
 
         args = (x_data, W_data)
         grad_grads = (x_grad_grad, W_grad_grad)
@@ -283,6 +282,31 @@ class TestDeconvolutionND(unittest.TestCase):
         inputs = [cuda.to_gpu(self.x), cuda.to_gpu(self.W), b]
         grad_outputs = cuda.to_gpu([self.gy])
         grad_grad_inputs = cuda.to_gpu([self.ggx, self.ggW, self.ggb])
+        self.check_double_backward(
+            inputs, grad_outputs, grad_grad_inputs, use_cudnn='never')
+
+    @attr.chainerx
+    @condition.retry(3)
+    def test_double_backward_chainerx_cpu(self):
+        inputs = [backend.to_chx(_) for _ in [self.x, self.W, self.b]]
+        grad_outputs = [backend.to_chx(_) for _ in [self.gy]]
+        grad_grad_inputs = [backend.to_chx(_) for _
+                            in [self.ggx, self.ggW, self.ggb]]
+
+        self.check_double_backward(
+            inputs, grad_outputs, grad_grad_inputs, use_cudnn='never')
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_chainerx_gpu(self):
+        inputs = [backend.to_chx(_).to_device('cuda')
+                  for _ in [self.x, self.W, self.b]]
+        grad_outputs = [backend.to_chx(_).to_device('cuda')
+                        for _ in [self.gy]]
+        grad_grad_inputs = [backend.to_chx(_).to_device('cuda')
+                            for _ in [self.ggx, self.ggW, self.ggb]]
+
         self.check_double_backward(
             inputs, grad_outputs, grad_grad_inputs, use_cudnn='never')
 

@@ -7,6 +7,7 @@ from chainer.functions.activation import log_softmax
 from chainer.functions.math import exponential
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
+from chainer.utils import cache
 
 
 class Categorical(distribution.Distribution):
@@ -19,12 +20,11 @@ class Categorical(distribution.Distribution):
         P(x = i; p) = p_i
 
     Args:
-        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
-        logit(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`\\log\\{p\\} + C`. Either `p` or `logit` (not both) must \
-        have a value.
+        p(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
+        logit(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing :math:`\\log\\{p\\} + C`. Either `p` or
+            `logit` (not both) must have a value.
 
     """
 
@@ -35,24 +35,23 @@ class Categorical(distribution.Distribution):
                 kwargs, ('logit', logit))
         if not (p is None) ^ (logit is None):
             raise ValueError(
-                "Either `p` or `logit` (not both) must have a value.")
+                'Either `p` or `logit` (not both) must have a value.')
+        self.__p = p
+        self.__logit = logit
 
-        with chainer.using_config('enable_backprop', True):
-            if p is None:
-                logit = chainer.as_variable(logit)
-                self.__log_p = log_softmax.log_softmax(logit, axis=-1)
-                self.__p = exponential.exp(self.__log_p)
-            else:
-                self.__p = chainer.as_variable(p)
-                self.__log_p = exponential.log(self.__p)
-
-    @property
+    @cache.cached_property
     def p(self):
-        return self.__p
+        if self.__p is not None:
+            return chainer.as_variable(self.__p)
+        else:
+            return exponential.exp(self.log_p)
 
-    @property
+    @cache.cached_property
     def log_p(self):
-        return self.__log_p
+        if self.__p is not None:
+            return exponential.log(self.__p)
+        else:
+            return log_softmax.log_softmax(self.__logit, axis=-1)
 
     @property
     def batch_shape(self):
@@ -62,7 +61,7 @@ class Categorical(distribution.Distribution):
     def event_shape(self):
         return ()
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return - sum_mod.sum(
             chainer.distributions.utils._modified_xlogx(self.p), axis=-1)
@@ -74,6 +73,10 @@ class Categorical(distribution.Distribution):
             return self.log_p[mg + [x.data.astype(numpy.int32)]]
         else:
             return self.log_p[mg + [x.astype(numpy.int32)]]
+
+    @property
+    def params(self):
+        return {'p': self.p}
 
     def sample_n(self, n):
         xp = backend.get_array_module(self.p)

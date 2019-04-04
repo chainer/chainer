@@ -21,7 +21,7 @@ class Pad(function_node.FunctionNode):
         # Depending on the arguments, pad_width and keywords, the input value
         # may be inappropriate. In that case, numpy.pad or cupy.pad will raise
         # errors, so that only check the size and the dtype in this function.
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -44,7 +44,7 @@ def pad(x, pad_width, mode, **keywords):
     """Pad an input variable.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input data.
         pad_width (int or array-like):
             Number of values padded to the edges of each axis.

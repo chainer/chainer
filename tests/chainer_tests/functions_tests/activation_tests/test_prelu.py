@@ -3,11 +3,9 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
@@ -16,6 +14,19 @@ from chainer.testing import attr
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @testing.fix_random()
+@chainer.testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestPReLU(unittest.TestCase):
 
     def setUp(self):
@@ -39,7 +50,8 @@ class TestPReLU(unittest.TestCase):
             self.check_double_backward_options.update(
                 {'atol': 5e-3, 'rtol': 5e-2})
 
-    def check_forward(self, x_data, W_data):
+    def test_forward(self, backend_config):
+        x_data, W_data = backend_config.get_array((self.x, self.W))
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         y = functions.prelu(x, W)
@@ -51,41 +63,26 @@ class TestPReLU(unittest.TestCase):
         masked *= self.W.reshape(shape)
         testing.assert_allclose(y_expect, y.data)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.W)
+    def test_backward(self, backend_config):
+        x_data, W_data, y_grad = (
+            backend_config.get_array((self.x, self.W, self.gy)))
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W))
+        with backend_config:
+            gradient_check.check_backward(
+                functions.prelu, (x_data, W_data), y_grad,
+                **self.check_backward_options)
 
-    def check_backward(self, x_data, W_data, y_grad):
-        gradient_check.check_backward(
-            functions.prelu, (x_data, W_data), y_grad,
-            **self.check_backward_options)
+    def test_double_backward(self, backend_config):
+        x_data, W_data = backend_config.get_array((self.x, self.W))
+        y_grad = backend_config.get_array(self.gy)
+        x_grad_grad, W_grad_grad = (
+            backend_config.get_array((self.ggx, self.ggW)))
 
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.W, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, W_data, y_grad, x_grad_grad,
-                              W_grad_grad):
-        gradient_check.check_double_backward(
-            functions.prelu, (x_data, W_data), y_grad,
-            (x_grad_grad, W_grad_grad),
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.W, self.gy, self.ggx, self.ggW)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                                   cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
-                                   cuda.to_gpu(self.ggW))
+        with backend_config:
+            gradient_check.check_double_backward(
+                functions.prelu, (x_data, W_data), y_grad,
+                (x_grad_grad, W_grad_grad),
+                **self.check_double_backward_options)
 
 
 testing.run_module(__name__, __file__)

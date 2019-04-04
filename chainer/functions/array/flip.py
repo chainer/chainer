@@ -20,7 +20,7 @@ class Flip(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
 
         type_check.expect(x_type.ndim > 0)
@@ -44,8 +44,7 @@ def flip(x, axis):
     """Flips an input variable in reverse order along the given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         axis (int): Axis along which the input variable is reversed.
 

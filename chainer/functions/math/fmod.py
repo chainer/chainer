@@ -12,7 +12,7 @@ class Fmod(function_node.FunctionNode):
         return 'fmod'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'divisor'))
+        type_check._argname(in_types, ('x', 'divisor'))
         type_check.expect(
             in_types[0].dtype == in_types[1].dtype,
             in_types[0].dtype.kind == 'f',
@@ -39,8 +39,8 @@ def fmod(x, divisor):
        y_i = x_i \\bmod \\mathrm{divisor}.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        divisor (~chainer.Variable): Input divisor.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        divisor (:class:`~chainer.Variable` or :ref:`ndarray`): Input divisor.
     Returns:
         ~chainer.Variable: Output variable.
     """

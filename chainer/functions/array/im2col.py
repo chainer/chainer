@@ -28,7 +28,7 @@ def _im2col(x, *args, **kwargs):
 
 class Im2Col(function_node.FunctionNode):
 
-    "Im2Col function."""
+    """Im2Col function."""
 
     def __init__(self, ksize, stride, pad, cover_all, dilate):
         self.kh, self.kw = _pair(ksize)
@@ -38,7 +38,7 @@ class Im2Col(function_node.FunctionNode):
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
@@ -63,7 +63,7 @@ class Im2Col(function_node.FunctionNode):
 
 class Im2ColGrad(function_node.FunctionNode):
 
-    "Im2Col gradient function."""
+    """Im2Col gradient function."""
 
     def __init__(self, ksize, stride, pad, cover_all, dilate, in_shape):
         self.kh, self.kw = _pair(ksize)
@@ -74,7 +74,7 @@ class Im2ColGrad(function_node.FunctionNode):
         self.in_shape = in_shape
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
 
         gy_type = in_types[0]
         type_check.expect(
@@ -140,7 +140,8 @@ def im2col(x, ksize, stride=1, pad=0, cover_all=False, dilate=1):
 
 
     Args:
-        x (~chainer.Variable): Input variable of shape :math:`(n, c, h, w)`.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c, h, w)`.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
         stride (int or pair of ints): Stride of filter applications.

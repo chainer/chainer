@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -21,7 +22,7 @@ class EmbedIDFunction(function_node.FunctionNode):
             x_type.ndim >= 1,
         )
         type_check.expect(
-            w_type.dtype == numpy.float32,
+            w_type.dtype.kind == 'f',
             w_type.ndim == 2
         )
 
@@ -74,6 +75,7 @@ class EmbedIDGrad(function_node.FunctionNode):
                     continue
                 gW[ix] += igy
         else:
+            utils.nondeterministic('atomicAdd')
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, S x, S n_out', 'raw T gW',
@@ -111,7 +113,7 @@ class EmbedIDGrad(function_node.FunctionNode):
 
         if self.ignore_label is not None:
             mask, zero, _ = xp.broadcast_arrays(
-                mask[..., None], xp.zeros((), 'f'), ggy.data)
+                mask[..., None], xp.zeros((), ggy.dtype), ggy.data)
             ggy = chainer.functions.where(mask, zero, ggy)
         return None, ggy
 
@@ -122,17 +124,15 @@ def embed_id(x, W, ignore_label=None):
     This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
     vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
-    float32 matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
+    float matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
     column is the ``x[i]``-th column of ``W``.
 
     This function is only differentiable on the input ``W``.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Batch vectors of IDs. Each element must be signed integer.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Distributed representation of each ID (a.k.a. word embeddings).
         ignore_label (:class:`int` or :class:`None`):
             If ``ignore_label`` is an int value, ``i``-th column of return

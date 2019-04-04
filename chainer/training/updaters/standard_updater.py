@@ -1,5 +1,7 @@
 import six
 
+from chainer import backend
+from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
@@ -44,7 +46,7 @@ class StandardUpdater(_updater.Updater):
             just before the parameters are to be updated.
         auto_new_epoch (bool): If ``True``,
             :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
-            automatically called when the ``is_new_poch`` attribute of the
+            automatically called when the ``is_new_epoch`` attribute of the
             main iterator is ``True``.
 
     Attributes:
@@ -65,6 +67,9 @@ class StandardUpdater(_updater.Updater):
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
                  device=None, loss_func=None, loss_scale=None,
                  auto_new_epoch=True):
+        if device is not None:
+            device = backend.get_device(device)
+
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
@@ -73,9 +78,14 @@ class StandardUpdater(_updater.Updater):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
 
-        if device is not None and device >= 0:
+        if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target.to_gpu(device)
+                if isinstance(device, cuda.GpuDevice):
+                    # Do not transfer between different cupy devices.
+                    # TODO(niboshi): Reconsider this behavior
+                    optimizer.target.to_gpu(device.device.id)
+                else:
+                    optimizer.target.to_device(device)
 
         self.converter = converter
         self.loss_func = loss_func
@@ -168,7 +178,7 @@ class StandardUpdater(_updater.Updater):
     def update_core(self):
         iterator = self._iterators['main']
         batch = iterator.next()
-        in_arrays = self.converter(batch, self.device)
+        in_arrays = convert._call_converter(self.converter, batch, self.device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target

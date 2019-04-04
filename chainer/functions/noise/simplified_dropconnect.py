@@ -35,7 +35,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-        type_check.argname((x_type, w_type), ('x', 'W'))
+        type_check._argname((x_type, w_type), ('x', 'W'))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -46,7 +46,7 @@ class SimplifiedDropconnect(function_node.FunctionNode):
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
-            type_check.argname((b_type,), ('b',))
+            type_check._argname((b_type,), ('b',))
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
@@ -157,19 +157,21 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
     before activation.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. Its first dimension ``n`` is assumed
             to be the *minibatch dimension*. The other dimensions are treated
             as concatenated one dimension whose size must be ``N``.
-        W (~chainer.Variable): Weight variable of shape ``(M, N)``.
-        b (~chainer.Variable): Bias variable (optional) of shape ``(M,)``.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape ``(M, N)``.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable (optional) of shape ``(M,)``.
         ratio (float):
             Dropconnect ratio.
         train (bool):
             If ``True``, executes simplified dropconnect.
             Otherwise, simplified dropconnect function works as a linear
             function.
-        mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
+        mask (None or :class:`~chainer.Variable` or :ref:`ndarray`):
             If ``None``, randomized dropconnect mask is generated.
             Otherwise, The mask must be ``(n, M, N)`` or ``(M, N)`` shaped
             array, and `use_batchwise_mask` is ignored.

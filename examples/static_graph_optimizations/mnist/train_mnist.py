@@ -64,7 +64,7 @@ class MLPSideEffect(chainer.Chain):
         # using the `@static_code` decorator.
         self.side_effect_counter += 1
         if self.side_effect_counter % 1000 == 0:
-            print("Side effect counter: ", self.side_effect_counter)
+            print('Side effect counter: ', self.side_effect_counter)
 
     @static_graph
     def __call__(self, x):
@@ -137,7 +137,7 @@ def main():
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)

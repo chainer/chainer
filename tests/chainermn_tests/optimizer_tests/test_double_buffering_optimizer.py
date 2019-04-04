@@ -22,7 +22,7 @@ class ExampleModel(chainer.Chain):
 class TestDoubleBufferingOptimizer(unittest.TestCase):
 
     def setup_gpu(self, device=None):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl')
         device = self.comm.intra_rank
@@ -43,7 +43,8 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
         self.optimizer.target.a.W.grad[:] = self.comm.rank
@@ -102,7 +103,7 @@ class DynamicExampleModel(chainer.Chain):
 class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
 
     def setup_gpu(self, device=None):
-        if nccl.get_version() < 2000:
+        if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl')
         device = self.comm.intra_rank
@@ -121,7 +122,8 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         self.setup_gpu()
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
-        self.optimizer.setup(self.target)
+        opt = self.optimizer.setup(self.target)
+        assert opt is self.optimizer
         self.optimizer.update()
         self.assertEqual(self.actual_optimizer.t, 0)
 

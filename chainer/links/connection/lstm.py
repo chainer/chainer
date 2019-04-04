@@ -1,16 +1,13 @@
-import functools
-import operator
-
-import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
+from chainer import utils
 from chainer import variable
 
 
@@ -46,11 +43,11 @@ class LSTMBase(link.Chain):
         forget_bias_init = initializers._get_initializer(self.forget_bias_init)
 
         for i in six.moves.range(0, 4 * self.state_size, self.state_size):
-            lateral_init(self.lateral.W.data[i:i + self.state_size, :])
-            upward_init(self.upward.W.data[i:i + self.state_size, :])
+            lateral_init(self.lateral.W.array[i:i + self.state_size, :])
+            upward_init(self.upward.W.array[i:i + self.state_size, :])
 
         a, i, f, o = lstm._extract_gates(
-            self.upward.b.data.reshape(1, 4 * self.state_size, 1))
+            self.upward.b.array.reshape(1, 4 * self.state_size, 1))
 
         bias_init(a)
         bias_init(i)
@@ -131,9 +128,9 @@ class StatelessLSTM(LSTMBase):
             output of LSTM units.
 
         """
-        if self.upward.W.data is None:
+        if self.upward.W.array is None:
             in_size = x.size // x.shape[0]
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -142,7 +139,7 @@ class StatelessLSTM(LSTMBase):
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
@@ -175,25 +172,21 @@ class LSTM(LSTMBase):
             omitted, parameter initialization will be deferred until the first
             forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
-        lateral_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        lateral_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the lateral connections.
             May be ``None`` to use default initialization.
-        upward_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        upward_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the upward connections.
             May be ``None`` to use default initialization.
-        bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
+        bias_init: A callable that takes :ref:`ndarray` and edits its value
             It is used for initialization of the biases of cell input,
             input gate and output gate.and gates of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the cell-input bias is initialized to zero.
-        forget_bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
-            It is used for initialization of the biases of the forget gate of
-            the upward connection.
+        forget_bias_init: A callable that takes :ref:`ndarray` and edits its
+            value. It is used for initialization of the biases of the forget
+            gate of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the forget bias is initialized to one.
@@ -244,21 +237,12 @@ class LSTM(LSTMBase):
             forget_bias_init)
         self.reset_state()
 
-    def to_cpu(self):
-        super(LSTM, self).to_cpu()
+    def device_resident_accept(self, visitor):
+        super(LSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            self.c.to_cpu()
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(LSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, c, h):
         """Sets the internal state.
@@ -272,16 +256,10 @@ class LSTM(LSTMBase):
         """
         assert isinstance(c, variable.Variable)
         assert isinstance(h, variable.Variable)
-        c_ = c
-        h_ = h
-        if self.xp == numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu(self._device_id)
-            h_.to_gpu(self._device_id)
-        self.c = c_
-        self.h = h_
+        c.to_device(self.device)
+        h.to_device(self.device)
+        self.c = c
+        self.h = h
 
     def reset_state(self):
         """Resets the internal state.
@@ -301,9 +279,9 @@ class LSTM(LSTMBase):
             ~chainer.Variable: Outputs of updated LSTM units.
 
         """
-        if self.upward.W.data is None:
-            with cuda.get_device_from_id(self._device_id):
-                in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+        if self.upward.W.array is None:
+            with chainer.using_device(self.device):
+                in_size = utils.size_of_shape(x.shape[1:])
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -325,15 +303,14 @@ class LSTM(LSTMBase):
             else:
                 lstm_in += self.lateral(self.h)
         if self.c is None:
-            xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype))
+                    self.xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:
             self.h = y
-        elif len(y.data) == 0:
+        elif len(y.array) == 0:
             self.h = h_rest
         else:
             self.h = concat.concat([y, h_rest], axis=0)

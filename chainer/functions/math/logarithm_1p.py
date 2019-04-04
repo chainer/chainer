@@ -13,7 +13,7 @@ class Log1p(function_node.FunctionNode):
         return 'log1p'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -30,5 +30,12 @@ class Log1p(function_node.FunctionNode):
 
 
 def log1p(x):
-    """Elementwise natural logarithm plus one function."""
+    """Elementwise natural logarithm plus one function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Log1p().apply((x,))[0]

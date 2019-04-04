@@ -1,12 +1,13 @@
 import unittest
 
+import numpy
+
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer import utils
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -26,15 +27,15 @@ class TestLaplace(testing.distribution_unittest):
         self.scipy_dist = stats.laplace
 
         self.test_targets = set([
-            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_prob",
-            "mean", "prob", "sample", "stddev", "support", "variance"])
+            'batch_shape', 'cdf', 'entropy', 'event_shape', 'icdf', 'log_prob',
+            'mean', 'prob', 'sample', 'stddev', 'support', 'variance'])
 
         loc = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
         scale = utils.force_array(numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
-        self.params = {"loc": loc, "scale": scale}
-        self.scipy_params = {"loc": loc, "scale": scale}
+        self.params = {'loc': loc, 'scale': scale}
+        self.scipy_params = {'loc': loc, 'scale': scale}
 
     def sample_for_test(self):
         smp = numpy.random.normal(

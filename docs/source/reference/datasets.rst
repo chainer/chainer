@@ -50,6 +50,8 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.converter
+
    chainer.dataset.concat_examples
    chainer.dataset.ConcatWithAsyncTransfer
    chainer.dataset.to_device
@@ -182,8 +184,8 @@ TextDataset
 
    chainer.datasets.TextDataset
 
-PickleDatase
-~~~~~~~~~~~~
+PickleDataset
+~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -202,6 +204,8 @@ Concrete Datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_kuzushiji_mnist
+   chainer.datasets.get_kuzushiji_mnist_labels
    chainer.datasets.get_fashion_mnist_labels
    chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10
@@ -209,3 +213,23 @@ Concrete Datasets
    chainer.datasets.get_ptb_words
    chainer.datasets.get_ptb_words_vocabulary
    chainer.datasets.get_svhn
+
+.. note::
+   ChainerCV supports implementations of datasets that are useful for computer
+   vision problems, which can be found in :mod:`chainercv.datasets`.
+   Here is a subset of data loaders supported by ChainerCV:
+
+   * Bounding Box Datasets
+      * :class:`chainercv.datasets.VOCBboxDataset`
+      * :class:`chainercv.datasets.COCOBboxDataset`
+   * Semantic Segmentation Datasets
+      * :class:`chainercv.datasets.ADE20KSemanticSegmentationDataset`
+      * :class:`chainercv.datasets.CamVidDataset`
+      * :class:`chainercv.datasets.CityscapesSemanticSegmentationDataset`
+      * :class:`chainercv.datasets.VOCSemanticSegmentationDataset`
+   * Instance Segmentation Datasets
+      * :class:`chainercv.datasets.COCOInstanceSegmentationDataset`
+      * :class:`chainercv.datasets.VOCInstanceSegmentationDataset`
+   * Classification Datasets
+      * :class:`chainercv.datasets.CUBLabelDataset`
+      * :class:`chainercv.datasets.OnlineProductsDataset`

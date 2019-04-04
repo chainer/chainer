@@ -28,7 +28,7 @@ class Prod(function_node.FunctionNode):
         self.keepdims = keepdims
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
@@ -94,8 +94,8 @@ def prod(x, axis=None, keepdims=False):
     """Product of array elements over a given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Elements to calculate the product.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Elements to calculate the product.
         axis (None, int, or tuple of int): Axis which a product is performed.
             The default (axis = None) is perform a product over all the
             dimensions of the input array.

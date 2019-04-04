@@ -19,7 +19,7 @@ class Rollaxis(function_node.FunctionNode):
         self.start = start
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
 
         if self.axis >= 0:
@@ -63,7 +63,7 @@ def rollaxis(x, axis, start=0):
     See :func:`chainer.functions.moveaxis`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         axis (int): The axis to roll backwards.
         start (int): The place to which the axis is moved.
 

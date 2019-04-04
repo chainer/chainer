@@ -97,12 +97,13 @@ class TestCheckpoint(unittest.TestCase):
 
         return updater, optimizer, train_iter, test_iter, model
 
+    @chainer.testing.attr.slow
     def test_mnist_simple(self, display_log=True):
         updater, optimizer, train_iter, _, model = self.setup_mnist_trainer()
 
-        path = tempfile.mkdtemp(dir='/tmp', prefix=__name__ + "-tmp-")
+        path = tempfile.mkdtemp(dir='/tmp', prefix=__name__ + '-tmp-')
         if display_log:
-            print("temporary file:", path)
+            print('temporary file:', path)
         checkpointer = create_multi_node_checkpointer(name=__name__,
                                                       comm=self.communicator,
                                                       path=path)

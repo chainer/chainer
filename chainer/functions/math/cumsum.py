@@ -14,7 +14,7 @@ class Cumsum(function_node.FunctionNode):
             raise TypeError('axis must be int or None')
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
@@ -46,8 +46,7 @@ def cumsum(x, axis=None):
     """Cumulative sum of array elements over a given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-           :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Elements to calculate the cumulative sum.
         axis (int or None):
             Axis along which the cumulative sum is taken.

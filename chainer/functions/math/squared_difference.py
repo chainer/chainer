@@ -8,7 +8,7 @@ class SquaredDifference(function_node.FunctionNode):
     """Squared difference of input variables."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -35,8 +35,10 @@ def squared_difference(x1, x2):
     """Squared difference of input variables.
 
     Args:
-        x1 (~chainer.Variable): Input variables to be compared.
-        x2 (~chainer.Variable): Input variables to be compared.
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
+        x2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variables to be compared.
 
     Returns:
         ~chainer.Variable: ``(x1 - x2) ** 2`` element-wise.
