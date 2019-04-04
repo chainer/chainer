@@ -1684,7 +1684,7 @@ class TestSigmoid(op_utils.NumpyOpTest):
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
-        'input': [float('inf'), -float('inf'), float('nan')],
+        'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })

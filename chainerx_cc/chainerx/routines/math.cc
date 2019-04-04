@@ -669,8 +669,7 @@ Array Sigmoid(const Array& x) {
     return Reciprocal(1 + Exp(-x_cast));
 }
 
-Array Relu(const Array& x)
-{
+Array Relu(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);   
