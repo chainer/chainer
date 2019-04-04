@@ -1631,7 +1631,9 @@ def backward(outputs, grad_outputs=None, **kwargs):
     else:
         if len(outputs) != len(grad_outputs):
             raise ValueError(
-                'TODO')
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
     outputs = [
         (y.node, gy) for y, gy in zip(outputs, grad_outputs) if gy is not None]
     with chainer.using_config('enable_backprop', enable_double_backprop):
