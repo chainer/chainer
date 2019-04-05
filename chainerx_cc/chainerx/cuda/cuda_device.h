@@ -231,7 +231,7 @@ private:
     std::shared_ptr<void> AllocatePinnedMemory(size_t bytesize);
 
     // Asynchronous transfer from host to this device, w.r.t. host, using temporary pinned memory.
-    // The current device must be set to this device, prior to calling this  function.
+    // The current device must be set to this device, prior to calling this function.
     void MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize);
 
     std::shared_ptr<MemoryPool> device_memory_pool_;
