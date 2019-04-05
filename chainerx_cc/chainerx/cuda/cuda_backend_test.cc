@@ -1,9 +1,7 @@
 #include "chainerx/cuda/cuda_backend.h"
 
-// NOLINTNEXTLINE(modernize-deprecated-headers): clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
-#include <stdlib.h>
-
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <cuda_runtime.h>
@@ -19,21 +17,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/testing/threading.h"
 #include "chainerx/testing/util.h"
-
-#ifdef _WIN32
-int setenv(const char* name, const char* value, int overwrite) {
-    if (!overwrite) {
-        size_t required_count = 0;
-        auto err = getenv_s(&required_count, nullptr, 0, name);
-        if (err != 0 || required_count != 0) {
-            return err;
-        }
-    }
-    return _putenv_s(name, value);
-}
-
-void unsetenv(const char* name) { _putenv_s(name, ""); }
-#endif  // _WIN32
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace cuda {
@@ -400,19 +384,13 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
 
 class EnvVarScope {
 public:
-    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)) {
-        const char* old_value = getenv(name_.c_str());
-        if (old_value != nullptr) {
-            old_value_ = std::string(old_value);
-        }
-        setenv(name_.c_str(), value.c_str(), 1);
-    }
+    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)), old_value_{GetEnv(name_)} { SetEnv(name_, value); }
 
     ~EnvVarScope() {
         if (old_value_) {
-            setenv(name_.c_str(), old_value_->c_str(), 1);
+            SetEnv(name_, *old_value_);
         } else {
-            unsetenv(name_.c_str());
+            UnsetEnv(name_);
         }
     }
 

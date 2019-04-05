@@ -1,8 +1,10 @@
+import warnings
+
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
 def create_communicator(
-        communicator_name='hierarchical', mpi_comm=None,
+        communicator_name='pure_nccl', mpi_comm=None,
         allreduce_grad_dtype=None, batched_copy=False):
     """Create a ChainerMN communicator.
 
@@ -30,6 +32,34 @@ def create_communicator(
     |naive          |OK |OK |        |Testing on CPU mode                   |
     +---------------+---+---+--------+--------------------------------------+
 
+    pure_nccl communicator supports multiple data types, FP32 and FP16,
+    in gradient exchange. The communication data type is determined based on
+    `chainer.global_config.dtype` and `allreduce_grad_dtype`.
+    When `allreduce_grad_dtype` is the default value `None`,
+    FP32 is used when `chainer.global_config.dtype` is `numpy.float32` and
+    FP16 otherwise.
+    `allreduce_grad_dtype` parameter,
+    which is either `numpy.float16` or `numpy.float32`,
+    overwrites the `chainer.global_config.dtype`.
+
+    The table blow summarizes the data type selection in gradient exchange.
+
+    +---------------------+--------------------------------------------+
+    |                     |              allreduce_grad_dtype          |
+    +---------------------+---------+------------------+---------------+
+    | global_config.dtype | None    |   numpy.float16  | numpy.float32 |
+    +=====================+=========+==================+===============+
+    | chainer.mixed16     | FP16    |   FP16           | FP32          |
+    +---------------------+---------+------------------+---------------+
+    | numpy.float16       | FP16    |   FP16           | FP32          |
+    +---------------------+---------+------------------+---------------+
+    | numpy.float32       | FP32    |   FP16           | FP32          |
+    +---------------------+---------+------------------+---------------+
+
+    Other communicator, including flat and hierarchical, support only
+    float32 communication, no matter what the model is. This is due to
+    MPI's limited support of float16.
+
     Args:
         communicator_name: The name of communicator (``naive``, ``flat``,
           ``hierarchical``, ``two_dimensional``, ``pure_nccl``, or
@@ -48,11 +78,11 @@ def create_communicator(
         try:
             import mpi4py.MPI
         except ImportError as e:
-            raise ImportError(str(e) + ": "
-                              "ChainerMN requires mpi4py for "
-                              "distributed training. "
-                              "Please read the Chainer official document "
-                              "and setup MPI and mpi4py.")
+            raise ImportError(str(e) + ': '
+                              'ChainerMN requires mpi4py for '
+                              'distributed training. '
+                              'Please read the Chainer official document '
+                              'and setup MPI and mpi4py.')
         mpi_comm = mpi4py.MPI.COMM_WORLD
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
@@ -77,14 +107,20 @@ def create_communicator(
     elif communicator_name == 'hierarchical':
         from chainermn.communicators.hierarchical_communicator \
             import HierarchicalCommunicator
+        warnings.warn('hierarchical communicator is deprecated.',
+                      DeprecationWarning)
         return HierarchicalCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'two_dimensional':
         from chainermn.communicators.two_dimensional_communicator \
             import TwoDimensionalCommunicator
+        warnings.warn('two_dimensional communicator is deprecated.',
+                      DeprecationWarning)
         return TwoDimensionalCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'single_node':
+        warnings.warn('single_node communicator is deprecated.',
+                      DeprecationWarning)
         from chainermn.communicators.single_node_communicator \
             import SingleNodeCommunicator
         return SingleNodeCommunicator(mpi_comm=mpi_comm)

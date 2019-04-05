@@ -13,7 +13,6 @@ class GroupNormalization(link.Link):
     Parameter initialization will be deferred until
     the first forward data pass at which time the size will be determined.
 
-
     Args:
         groups (int):
             The number of channel groups.
@@ -63,7 +62,7 @@ class GroupNormalization(link.Link):
         self.gamma.initialize(size)
         self.beta.initialize(size)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Apply group normalization to given input.
 
         Args:
@@ -78,8 +77,8 @@ class GroupNormalization(link.Link):
 
         """
         if self.gamma.array is None:
-            if x.ndim <= 2:
-                raise ValueError('Input dimension must be grater than 2, '
+            if x.ndim < 2:
+                raise ValueError('Input dimension must be at least 2, '
                                  'including batch size dimension '
                                  '(first dimension).')
             channels = x.shape[1]

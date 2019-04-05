@@ -175,10 +175,20 @@ A common problem is that the :command:`mpicc` used to build
 :mod:`mpi4py` and :command:`mpiexec` used to run the script are from
 different MPI installations.
 
-Finally, run :command:`nosetests` to check the single-node
+Finally, run :command:`pytest` to check the single-node
 configuration is ready.::
 
-  $ nosetests
+  $ git clone git@github.com:chainer/chainer.git
+  Cloning into 'chainer'...
+  remote: Enumerating objects: 7, done.
+  remote: Counting objects: 100% (7/7), done.
+  remote: Compressing objects: 100% (7/7), done.
+  remote: Total 168242 (delta 1), reused 2 (delta 0), pack-reused 168235
+  Receiving objects: 100% (168242/168242), 41.15 MiB | 1.65 MiB/s, done.
+  Resolving deltas: 100% (123696/123696), done.
+  Checking connectivity... done.
+  $ cd chainer/
+  $ pytest tests/chainermn_tests/
   ......S.S...S.S...S.S...S.S.........SS
   ----------------------------------------------------------------------
   Ran 38 tests in 63.083s

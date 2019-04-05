@@ -37,6 +37,21 @@ class CMakeBuild(build_ext.build_ext):
             self.build_extension(ext)
 
     def build_extension(self, ext):
+        # Decide the build type: release/debug
+        build_type = os.getenv('CHAINERX_BUILD_TYPE', None)
+        if build_type is not None:
+            # Use environment variable
+            pass
+        elif self.debug:
+            # Being built with `python setup.py build --debug`
+            build_type = 'Debug'
+        elif os.getenv('READTHEDOCS', None) == 'True':
+            # on ReadTheDocs
+            build_type = 'Debug'
+        else:
+            # default
+            build_type = 'Release'
+
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
@@ -44,21 +59,15 @@ class CMakeBuild(build_ext.build_ext):
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCHAINERX_BUILD_TEST=OFF',
+            '-DCMAKE_BUILD_TYPE=' + build_type,
         ]
 
-        if self.debug or os.getenv('READTHEDOCS', None) == 'True':
-            # Enable debug mode when `python setup.py build --debug` is used
-            # or on READTHEDOCS.
-            cfg = 'Debug'
-        else:
-            cfg = 'Release'
+        build_args = ['--config', build_type]
 
-        build_args = ['--config', cfg]
-
-        if platform.system() == "Windows":
+        if platform.system() == 'Windows':
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
-                    cfg.upper(), extdir)]
+                    build_type.upper(), extdir)]
 
             cmake_args += ['-G', 'Visual Studio 15 2017', '-T', 'llvm']
 
@@ -66,7 +75,6 @@ class CMakeBuild(build_ext.build_ext):
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
         else:
-            cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--']
             build_args += ext.build_targets
 
@@ -102,7 +110,7 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         'chainerx.testing',
     ]
     setup_kwargs['package_data'] = {
-        'chainerx': ['py.typed', "*.pyi"],
+        'chainerx': ['py.typed', '*.pyi'],
     }
 
     setup_kwargs.update(dict(

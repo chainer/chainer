@@ -21,16 +21,16 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
         in_ch = 12
         out_ch = 3
 
-        in_all = np.zeros((n_images, in_ch, w_in, w_in)).astype("i")
-        gt_all = np.zeros((n_images, out_ch, w_out, w_out)).astype("f")
-        gen_all = np.zeros((n_images, out_ch, w_out, w_out)).astype("f")
+        in_all = np.zeros((n_images, in_ch, w_in, w_in)).astype('i')
+        gt_all = np.zeros((n_images, out_ch, w_out, w_out)).astype('f')
+        gen_all = np.zeros((n_images, out_ch, w_out, w_out)).astype('f')
 
         for it in range(n_images):
             batch = updater.get_iterator('test').next()
             batchsize = len(batch)
 
-            x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype("f")
-            t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype("f")
+            x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype('f')
+            t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype('f')
 
             for i in range(batchsize):
                 x_in[i, :] = xp.asarray(batch[i][0])
@@ -64,15 +64,15 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
 
         x = np.asarray(np.clip(gen_all * 128 + 128,
                                0.0, 255.0), dtype=np.uint8)
-        save_image(x, "gen")
+        save_image(x, 'gen')
 
         x = np.ones((n_images, 3, w_in, w_in)).astype(np.uint8)*255
         x[:, 0, :, :] = 0
         for i in range(12):
             x[:, 0, :, :] += np.uint8(15*i*in_all[:, i, :, :])
-        save_image(x, "in", mode='HSV')
+        save_image(x, 'in', mode='HSV')
 
         x = np.asarray(np.clip(gt_all * 128+128, 0.0, 255.0), dtype=np.uint8)
-        save_image(x, "gt")
+        save_image(x, 'gt')
 
     return make_image

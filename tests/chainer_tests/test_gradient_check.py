@@ -801,7 +801,7 @@ class NewIdent(chainer.FunctionNode):
 ])
 class TestCheckDoubleBackward(unittest.TestCase):
 
-    def check_multiple_input_output(self, backend_config):
+    def test_multiple_input_output(self, backend_config):
         x1, x2, gy1, gy2, ggx1, ggx2 = [
             backend_config.get_array(numpy.ones((2, 3), 'f'))
             for _ in range(6)]
@@ -815,10 +815,7 @@ class TestCheckDoubleBackward(unittest.TestCase):
             f, (x1, x2), (gy1, gy2),
             (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
-    def test_multiple_input_output(self, backend_config):
-        self.check_multiple_input_output(backend_config)
-
-    def check_double_backward_with_params(self, backend_config):
+    def test_double_backward_with_params(self, backend_config):
         if backend_config.use_chainerx:
             raise unittest.SkipTest(
                 'ChainerX does not support params argument of '
@@ -834,9 +831,6 @@ class TestCheckDoubleBackward(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, param, ggparam, atol=1e-3, rtol=1e-3)
-
-    def test_double_backward_with_params(self, backend_config):
-        self.check_double_backward_with_params(backend_config)
 
 
 testing.run_module(__name__, __file__)

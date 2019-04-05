@@ -35,6 +35,27 @@ cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
     throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 1, 3 or 4 dimensions."};
 }
 
+// Helper function to update the running mean and running variance.
+void UpdateRunning(const Array& running, const Array& running_updated) {
+    CHAINERX_ASSERT(running.IsContiguous());
+    CHAINERX_ASSERT(running_updated.IsContiguous());
+    CHAINERX_ASSERT(&running.device() == &running_updated.device());
+    CHAINERX_ASSERT(
+            (running.dtype() == running_updated.dtype()) ==
+            (internal::GetRawOffsetData(running) == internal::GetRawOffsetData(running_updated)));
+
+    if (running.dtype() == running_updated.dtype()) {
+        // Assume that running already holds the updated values.
+        return;
+    }
+
+    // The running values must be written back.
+    const Array& running_casted_back = running_updated.AsType(running.dtype());
+    Device& device = running.device();
+    device.MemoryCopyFrom(
+            internal::GetRawOffsetData(running), internal::GetRawOffsetData(running_casted_back), running.GetNBytes(), device);
+}
+
 class CudnnBNTensorDescriptor {
 public:
     CudnnBNTensorDescriptor(const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
@@ -63,13 +84,12 @@ public:
         CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
 
         switch (cudnn_dtype) {
-            case CUDNN_DATA_DOUBLE:
-                return Dtype::kFloat64;
+            case CUDNN_DATA_HALF:
+                return Dtype::kFloat16;
             case CUDNN_DATA_FLOAT:
                 return Dtype::kFloat32;
-            // TODO(sonots): Support float16
-            // case CUDNN_DATA_HALF;
-            //     return Dtype::kFloat16;
+            case CUDNN_DATA_DOUBLE:
+                return Dtype::kFloat64;
             default:
                 throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
         }
@@ -116,10 +136,11 @@ public:
             CHAINERX_ASSERT(&x.device() == &running_mean().device());
             CHAINERX_ASSERT(&x.device() == &running_var().device());
 
-            CHAINERX_ASSERT(x.dtype() == gamma.dtype());
-            CHAINERX_ASSERT(x.dtype() == beta.dtype());
-            CHAINERX_ASSERT(x.dtype() == running_mean().dtype());
-            CHAINERX_ASSERT(x.dtype() == running_var().dtype());
+            CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
+            CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
+            CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
+            CHAINERX_ASSERT(GetKind(running_mean().dtype()) == DtypeKind::kFloat);
+            CHAINERX_ASSERT(GetKind(running_var().dtype()) == DtypeKind::kFloat);
         }
 
         Device& device = x.device();
@@ -131,6 +152,7 @@ public:
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
+        // Let cuDNN decide the parameter dtype based on the input and batch normalization mode.
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
@@ -139,8 +161,12 @@ public:
 
         CHAINERX_ASSERT(running_mean().IsContiguous());
         CHAINERX_ASSERT(running_var().IsContiguous());
-        Array running_mean_casted = running_mean().AsType(gamma_beta_mean_var_dtype, false);
-        Array running_var_casted = running_var().AsType(gamma_beta_mean_var_dtype, false);
+
+        // Convert parameter dtypes if they do not match the dtype expected by cuDNN.
+        const Array& running_mean_casted =
+                running_mean().dtype() != gamma_beta_mean_var_dtype ? running_mean().AsType(gamma_beta_mean_var_dtype) : running_mean();
+        const Array& running_var_casted =
+                running_var().dtype() != gamma_beta_mean_var_dtype ? running_var().AsType(gamma_beta_mean_var_dtype) : running_var();
 
         Array out = EmptyLike(x, device);
         Array x_mean = EmptyLike(gamma_casted_cont, device);
@@ -149,51 +175,30 @@ public:
         cudnn_handle_.Call(
                 cudnnBatchNormalizationForwardTraining,
                 mode,
-                cuda_internal::GetValuePtr<1>(dtype),
-                cuda_internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
                 *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
+                internal::GetRawOffsetData(x_cont),
                 *x_desc,
-                internal::GetRawOffsetData<void>(out),
+                internal::GetRawOffsetData(out),
                 *gamma_beta_mean_var_desc,
-                internal::GetRawOffsetData<void>(gamma_casted_cont),
-                internal::GetRawOffsetData<void>(beta_casted_cont),
+                internal::GetRawOffsetData(gamma_casted_cont),
+                internal::GetRawOffsetData(beta_casted_cont),
                 1.0 - static_cast<double>(decay()),
-                internal::GetRawOffsetData<void>(running_mean_casted),
-                internal::GetRawOffsetData<void>(running_var_casted),
+                internal::GetRawOffsetData(running_mean_casted),
+                internal::GetRawOffsetData(running_var_casted),
                 static_cast<double>(eps()),
-                internal::GetRawOffsetData<void>(x_mean),
-                internal::GetRawOffsetData<void>(x_inv_std));
+                internal::GetRawOffsetData(x_mean),
+                internal::GetRawOffsetData(x_inv_std));
 
         // When data type of parameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
         // running_var updated by batchNormalizationForwardTraining
         // must be explicitly written back to their original fp16 arrays.
-        //
-        // TODO(sonots): write tests after we supports fp16
-        if (dtype != gamma_beta_mean_var_dtype) {
-            CHAINERX_ASSERT(false);  // dead code
-            CHAINERX_ASSERT(running_mean().IsContiguous());
-            CHAINERX_ASSERT(running_mean_casted.IsContiguous());
-            CHAINERX_ASSERT(running_var().IsContiguous());
-            CHAINERX_ASSERT(running_var_casted.IsContiguous());
+        UpdateRunning(running_mean(), running_mean_casted);
+        UpdateRunning(running_var(), running_var_casted);
 
-            Array running_mean_casted_back = running_mean_casted.AsType(dtype, false);
-            Array running_var_casted_back = running_var_casted.AsType(dtype, false);
-
-            device.MemoryCopyFrom(
-                    internal::GetRawOffsetData<void>(running_mean()),
-                    internal::GetRawOffsetData<void>(running_mean_casted_back),
-                    running_mean().GetNBytes(),
-                    device);
-            device.MemoryCopyFrom(
-                    internal::GetRawOffsetData<void>(running_var()),
-                    internal::GetRawOffsetData<void>(running_var_casted_back),
-                    running_var().GetNBytes(),
-                    device);
-        }
-
-        SetForwardResults(std::move(x_cont), gamma, std::move(x_mean), std::move(x_inv_std));
+        SetForwardResults(std::move(x_cont), gamma, std::move(x_mean), std::move(x_inv_std), beta.dtype());
 
         return out;
     }
@@ -215,9 +220,6 @@ public:
             CHAINERX_ASSERT(&x_cont.device() == &gout.device());
             CHAINERX_ASSERT(&x_cont.device() == &x_mean.device());
             CHAINERX_ASSERT(&x_cont.device() == &x_inv_std.device());
-
-            CHAINERX_ASSERT(x_cont.dtype() == gamma.dtype());
-            CHAINERX_ASSERT(x_cont.dtype() == gout.dtype());
 
             CHAINERX_ASSERT(x_cont.IsContiguous());
         }
@@ -248,29 +250,29 @@ public:
         cudnn_handle_.Call(
                 cudnnBatchNormalizationBackward,
                 mode,
-                cuda_internal::GetValuePtr<1>(dtype),
-                cuda_internal::GetValuePtr<0>(dtype),
-                cuda_internal::GetValuePtr<1>(dtype),
-                cuda_internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
                 *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
+                internal::GetRawOffsetData(x_cont),
                 *x_desc,
-                internal::GetRawOffsetData<void>(gout_cont),
+                internal::GetRawOffsetData(gout_cont),
                 *x_desc,
-                internal::GetRawOffsetData<void>(gx),
+                internal::GetRawOffsetData(gx),
                 *gamma_beta_mean_var_desc,
-                internal::GetRawOffsetData<void>(gamma_casted_cont),
-                internal::GetRawOffsetData<void>(ggamma),
-                internal::GetRawOffsetData<void>(gbeta),
+                internal::GetRawOffsetData(gamma_casted_cont),
+                internal::GetRawOffsetData(ggamma),
+                internal::GetRawOffsetData(gbeta),
                 static_cast<double>(eps()),
-                internal::GetRawOffsetData<void>(x_mean),
-                internal::GetRawOffsetData<void>(x_inv_std));
+                internal::GetRawOffsetData(x_mean),
+                internal::GetRawOffsetData(x_inv_std));
 
-        // TODO(niboshi): Write test after fp16 is supported
-        if (gamma_beta_mean_var_dtype != dtype) {
-            CHAINERX_ASSERT(false);  // dead code
-            ggamma = ggamma.AsType(dtype, false);
-            gbeta = gbeta.AsType(dtype, false);
+        if (ggamma.dtype() != gamma.dtype()) {
+            ggamma = ggamma.AsType(gamma.dtype());
+        }
+        if (gbeta.dtype() != beta_dtype()) {
+            gbeta = gbeta.AsType(beta_dtype());
         }
 
         return {std::move(gx), std::move(ggamma), std::move(gbeta)};
@@ -307,10 +309,11 @@ Array CudaDevice::FixedBatchNorm(
         CHAINERX_ASSERT(&x.device() == &mean.device());
         CHAINERX_ASSERT(&x.device() == &var.device());
 
-        CHAINERX_ASSERT(x.dtype() == gamma.dtype());
-        CHAINERX_ASSERT(x.dtype() == beta.dtype());
-        CHAINERX_ASSERT(x.dtype() == mean.dtype());
-        CHAINERX_ASSERT(x.dtype() == var.dtype());
+        CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(mean.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(var.dtype()) == DtypeKind::kFloat);
     }
 
     Array x_cont = internal::AsContiguous(x);
@@ -330,17 +333,17 @@ Array CudaDevice::FixedBatchNorm(
     cudnn_handle_.Call(
             cudnnBatchNormalizationForwardInference,
             GetBatchNormMode(axis),
-            cuda_internal::GetValuePtr<1>(x.dtype()),
-            cuda_internal::GetValuePtr<0>(x.dtype()),
+            cuda_internal::GetCudnnCoefficientPtr<1>(x.dtype()),
+            cuda_internal::GetCudnnCoefficientPtr<0>(x.dtype()),
             *x_desc,
-            internal::GetRawOffsetData<void>(x_cont),
+            internal::GetRawOffsetData(x_cont),
             *x_desc,
-            internal::GetRawOffsetData<void>(out),
+            internal::GetRawOffsetData(out),
             *gamma_beta_mean_var_desc,
-            internal::GetRawOffsetData<void>(gamma_casted_cont),
-            internal::GetRawOffsetData<void>(beta_casted_cont),
-            internal::GetRawOffsetData<void>(mean_casted_cont),
-            internal::GetRawOffsetData<void>(var_casted_cont),
+            internal::GetRawOffsetData(gamma_casted_cont),
+            internal::GetRawOffsetData(beta_casted_cont),
+            internal::GetRawOffsetData(mean_casted_cont),
+            internal::GetRawOffsetData(var_casted_cont),
             static_cast<double>(eps));
 
     return out;

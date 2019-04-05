@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(chainerx CXX C)
 
 # CMake setup
-if(POLICY ${CMP0054})
-    cmake_policy(SET ${CMP0054} NEW)
+if(POLICY CMP0054)
+    cmake_policy(SET CMP0054 NEW)
 endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -44,9 +44,14 @@ else()
 endif()
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
 
-# defaults to cmake -DCMAKE_BUILD_TYPE=Release
+# Set CMAKE_BUILD_TYPE (defaults to Release).
+# CMake's specification is case-insensitive, but we only accept capitalized ones.
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+if(NOT ((CMAKE_BUILD_TYPE STREQUAL "Release") OR (CMAKE_BUILD_TYPE STREQUAL "Debug")))
+    message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 endif()
 
 # CUDA
@@ -66,7 +71,7 @@ if(${CHAINERX_BUILD_CUDA})
         include_directories(${CUDNN_INCLUDE_DIRS})
         if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
             list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
-        elseif(CMAKE_BUILD_TYPE MATCHES Release)
+        elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
@@ -153,8 +158,8 @@ endif()
 # pybind11
 if(${CHAINERX_BUILD_PYTHON})
     get_third_party(pybind11)
-    include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
-    add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/pybind11/include)
+    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/pybind11-build)
 endif()
 
 # gsl-lite
@@ -177,7 +182,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_BINARY_DIR}/googletest-build
+    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 

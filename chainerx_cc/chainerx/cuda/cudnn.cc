@@ -25,13 +25,16 @@ namespace {
 
 cudnnDataType_t GetCudnnDataType(Dtype dtype) {
     switch (dtype) {
+        case Dtype::kFloat16:
+            return CUDNN_DATA_HALF;
         case Dtype::kFloat32:
             return CUDNN_DATA_FLOAT;
         case Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
-        // TODO(sonots): Support float16 if it becomes avaialable
-        // case Dtype::kFloat16:
-        //    return CUDNN_DATA_HALF;
+        case Dtype::kInt8:
+            return CUDNN_DATA_INT8;
+        case Dtype::kInt32:
+            return CUDNN_DATA_INT32;
         default:
             throw DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
