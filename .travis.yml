@@ -5,6 +5,7 @@ cache:
   - ccache
 
 matrix:
+
   include:
     - name: "Python Static Check"
       dist: xenial
