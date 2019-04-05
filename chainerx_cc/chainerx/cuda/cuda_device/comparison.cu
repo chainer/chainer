@@ -25,8 +25,8 @@ struct EqualImpl {
 };
 
 class CudaEqualOp : public EqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -49,8 +49,8 @@ struct NotEqualImpl {
 };
 
 class CudaNotEqualOp : public NotEqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -73,8 +73,8 @@ struct GreaterImpl {
 };
 
 class CudaGreaterOp : public GreaterOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -97,8 +97,8 @@ struct GreaterEqualImpl {
 };
 
 class CudaGreaterEqualOp : public GreaterEqualOp {
-protected:
-    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
@@ -121,8 +121,8 @@ struct LogicalNotImpl {
 };
 
 class CudaLogicalNotOp : public LogicalNotOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
