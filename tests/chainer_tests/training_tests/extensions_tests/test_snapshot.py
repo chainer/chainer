@@ -31,6 +31,10 @@ class TestSnapshot(unittest.TestCase):
         with pytest.raises(TypeError):
             extensions.snapshot(savefun=savefun, writer=writer)
 
+        trainer = mock.MagicMock()
+        with pytest.raises(TypeError):
+            extensions.snapshot_object(trainer, savefun=savefun, writer=writer)
+
 
 class TestSnapshotSaveFile(unittest.TestCase):
 
@@ -44,7 +48,9 @@ class TestSnapshotSaveFile(unittest.TestCase):
             os.remove('myfile.dat')
 
     def test_save_file(self):
-        snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat')
+        w = extensions.snapshot_writers.SimpleWriter()
+        snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat',
+                                              writer=w)
         snapshot(self.trainer)
 
         self.assertTrue(os.path.exists('myfile.dat'))
