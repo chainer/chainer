@@ -27,7 +27,7 @@ struct CudaUnaryOp {
 
     CudaUnaryOp(T (*func)(T)) : func{func} {}
 
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = func(x); }
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = func(x); }
 };
 
 class CudaSinhOp : public SinhOp {
