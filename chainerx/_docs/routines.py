@@ -1069,6 +1069,18 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.relu,
+        """Rectified Linear Unit function.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\max (0, x)`.
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+""")
+
+    _docs.set_doc(
         chainerx.arcsin,
         """arcsin(x)
 Inverse sine, element-wise
