@@ -672,7 +672,7 @@ Array Sigmoid(const Array& x) {
 Array Relu(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Maximum(0, x_cast);   
+    return Maximum(0, x_cast);
 }
 
 Array Square(const Array& x) {
