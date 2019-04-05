@@ -322,6 +322,50 @@ Returns:
 """)
 
     _docs.set_doc(
+        chainerx.fromfile,
+        """fromfile(filename, dtype=float, count=-1, sep='', device=None)
+Returns a 1-D array from a file.
+
+Depending on the value of the separator, the file is parsed as
+a contiguous binary or separated text values.
+
+Args:
+    filename: The filename (path).
+    dtype: Data type of the returned array.
+    count (int): Number of items to read. -1 means all values in the file.
+    sep (str): The separator to use for text values, or '' for binary values.
+    device (~chainerx.Device): Device of the returned array.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: 1-D array of type `dtype`.
+
+.. seealso:: :func:`numpy.fromfile`
+""")
+
+    _docs.set_doc(
+        chainerx.fromstring,
+        """fromstring(data, dtype=float, count=-1, sep='', device=None)
+Returns a 1-D array from a string.
+
+Depending on the value of the separator, the string is parsed as
+a contiguous binary or separated text values.
+
+Args:
+    data: The string data.
+    dtype: Data type of the returned array.
+    count (int): Number of items to read. -1 means all values in the string.
+    sep (str): The separator to use for text values, or '' for binary values.
+    device (~chainerx.Device): Device of the returned array.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: 1-D array of type `dtype`.
+
+.. seealso:: :func:`numpy.fromstring`
+""")
+
+    _docs.set_doc(
         chainerx.arange,
         """arange([start=0, ]stop, [step=1, ]dtype=None, device=None)
 Returns an array with  evenly spaced values within a given interval.

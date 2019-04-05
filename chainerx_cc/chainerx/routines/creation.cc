@@ -244,8 +244,9 @@ std::istream& GetLine(std::istream& is, std::string& output, const std::string& 
         } else {
             // If the read didn't match, then find the largest valid value for
             // the index into the separator (where the last `separator_index`
-            // characters of output match the first `separator_index` characters
-            // of separator).
+            // characters of output match the just read character and the last
+            //  `separator_index - 1` characters of separator at its previously
+            // indexed position).
             bool match = false;
             for (int64_t i = static_cast<int64_t>(separator_index) - 1; i >= 0; i--) {
                 // Set the match to true and revert if no match is found.
