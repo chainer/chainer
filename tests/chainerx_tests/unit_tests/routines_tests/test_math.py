@@ -2010,7 +2010,6 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
             a.max(axis)
 
 
-<<<<<<< HEAD
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -2048,7 +2047,8 @@ def test_minimum_invalid_dtypes(device, dtypes):
     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
     with pytest.raises(chainerx.DtypeError):
         chainerx.minimum(a, b)
-=======
+
+
 _mean_var_params = \
     chainer.testing.product({
         'shape,axis': [
@@ -2104,22 +2104,14 @@ def apply_func(is_module, func, xp, device, input, axis, dtypes):
     if xp is numpy:
         a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
     return a
->>>>>>> refactor tests
 
 
 def compute_mean(is_module, xp, a, axis):
     return xp.mean(a, axis) if is_module else a.mean(axis)
 
-<<<<<<< HEAD
-        a = xp.array(a_np)
-        if xp is numpy:
-            a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
-        return xp.mean(a, axis)
-=======
 
 def compute_var(is_module, xp, a, axis):
     return xp.var(a, axis) if is_module else a.var(axis)
->>>>>>> refactor tests
 
 
 @chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
@@ -2148,84 +2140,6 @@ def compute_var(is_module, xp, a, axis):
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
 ])
-<<<<<<< HEAD
-@pytest.mark.parametrize('dtypes', _expected_dtypes_math_functions)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO: Remove strides_check=False
-def test_valid_mean(self, xp, device, input, axis, dtypes):
-    return self.apply_func(xp, device, input, axis, dtypes)
-
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(IndexError, ValueError, chainerx.DimensionError),
-    strides_check=False)
-@pytest.mark.parametrize('input,axis', [
-    # --- single axis
-    # input, axis
-    # invalid params
-    (numpy.ones((0,)), None),
-    (numpy.ones((2, 0, 3)), 1),
-    (numpy.ones((2, 0, 3)), None),
-    (numpy.ones((2, 3)), 2),
-    (numpy.ones((2, 3)), -3),
-    # --- multiple axes
-    # input, axis
-    # invalid params
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
-])
-@pytest.mark.parametrize('dtypes', _expected_dtypes_math_functions)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO: Remove strides_check=False
-def test_invalid_mean(self, xp, device, input, axis, dtypes):
-    return self.apply_func(xp, device, input, axis, dtypes)
-
-
-class TestVar(object):
-    def apply_func(self, xp, device, input, axis, dtypes):
-        in_dtype, out_dtype = dtypes
-        try:
-            a_np = input.astype(in_dtype)
-        except (ValueError, OverflowError):
-            return xp.zeros(())  # invalid combination of data and dtype
-
-        a = xp.array(a_np)
-        if xp is numpy:
-            a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
-        return xp.var(a, axis)
-
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize('input,axis', [
-    # --- single axis
-    # input, axis
-    # valid params
-    (numpy.asarray(0), None),
-    (numpy.asarray(-1), None),
-    (numpy.asarray(float('inf')), None),
-    (numpy.asarray(float('nan')), None),
-    (numpy.asarray(-float('inf')), None),
-    (numpy.asarray([4, 1, 4, 1]), None),
-    (numpy.asarray([4, 1, 4, 1]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
-    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
-    (numpy.asarray([[True, True, False, False],
-                    [True, False, True, False]]), 0),
-    (numpy.ones((2, 0, 3)), 2),
-    (numpy.ones((2, 3)), 1),
-    (numpy.ones((2, 3)), -2),
-    # --- multiple axes
-    # input, axis
-    # valid params
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
-])
-@pytest.mark.parametrize('dtypes', _expected_dtypes_math_functions)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO: Remove strides_check=False
-def test_valid_var(self, xp, device, input, axis, dtypes):
-    return self.apply_func(xp, device, input, axis, dtypes)
-=======
 @pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('func', [
@@ -2236,7 +2150,6 @@ def test_valid_var(self, xp, device, input, axis, dtypes):
 def test_valid_stats(is_module, func, xp, device, input, axis, dtypes):
     return apply_func(is_module, func, xp, device, input, axis, dtypes)
 
->>>>>>> refactor tests
 
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(IndexError, ValueError, chainerx.DimensionError),
@@ -2257,13 +2170,6 @@ def test_valid_stats(is_module, func, xp, device, input, axis, dtypes):
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
 ])
-<<<<<<< HEAD
-@pytest.mark.parametrize('dtypes', _expected_dtypes_math_functions)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO: Remove strides_check=False
-def test_invalid_var(self, xp, device, input, axis, dtypes):
-    return self.apply_func(xp, device, input, axis, dtypes)
-=======
 @pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('func', [
@@ -2273,4 +2179,3 @@ def test_invalid_var(self, xp, device, input, axis, dtypes):
 # TODO(kshitij12345): Remove strides_check=False
 def test_invalid_stats(is_module, func, xp, device, input, axis, dtypes):
     return apply_func(is_module, func, xp, device, input, axis, dtypes)
->>>>>>> refactor tests
