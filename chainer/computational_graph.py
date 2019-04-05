@@ -3,6 +3,8 @@ import heapq
 from chainer import function_node
 from chainer import variable
 
+
+_default = 'default'
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
@@ -82,20 +84,24 @@ class ComputationalGraph(object):
         changed from v1.23.0, so that it ouputs the richest representation of
         a graph as default, namely, styles are set and names of functions and
         variables are shown. To reproduce the same result as previous versions
-        (<= v1.22.0), please specify `variable_style={}`,
-        `function_style={}`, and `show_name=False` explicitly.
-
-        Specifying ``None`` to ``variable_style`` and ``function_style`` is
-        no longer supported in Chainer v5.
+        (<= v1.22.0), please specify `variable_style=None`,
+        `function_style=None`, and `show_name=False` explicitly.
 
     """  # NOQA
 
-    def __init__(self, nodes, edges, variable_style=None,
-                 function_style=None, rankdir='TB',
+    def __init__(self, nodes, edges, variable_style=_default,
+                 function_style=_default, rankdir='TB',
                  remove_variable=False, show_name=True):
+        # If `variable_style` and `function_style` is explicitly set to None,
+        # use legacy (Chainer v1.22.0) style for backward compatibility.
         if variable_style is None:
+            variable_style = {}
+        elif variable_style == _default:
             variable_style = dict(_var_style)
+
         if function_style is None:
+            function_style = {}
+        elif function_style == _default:
             function_style = dict(_func_style)
 
         self.nodes = nodes
@@ -200,10 +206,12 @@ def _skip_variable(nodes, edges):
 
 
 def build_computational_graph(
-        outputs, remove_split=True, variable_style=None,
-        function_style=None, rankdir='TB', remove_variable=False,
+        outputs, remove_split=True, variable_style=_default,
+        function_style=_default, rankdir='TB', remove_variable=False,
         show_name=True):
-    """Builds a graph of functions and variables backward-reachable from outputs.
+    """build_computational_graph(outputs, remove_split=True, variable_style=_var_style, function_style=_func_style, rankdir='TB', remove_variable=False, show_name=True)
+
+    Builds a graph of functions and variables backward-reachable from outputs.
 
     Args:
         outputs (:class:`~chainer.Variable`, \
@@ -258,13 +266,10 @@ def build_computational_graph(
         changed from v1.23.0, so that it ouputs the richest representation of
         a graph as default, namely, styles are set and names of functions and
         variables are shown. To reproduce the same result as previous versions
-        (<= v1.22.0), please specify `variable_style={}`,
-        `function_style={}`, and `show_name=False` explicitly.
+        (<= v1.22.0), please specify `variable_style=None`,
+        `function_style=None`, and `show_name=False` explicitly.
 
-        Specifying ``None`` to ``variable_style`` and ``function_style`` is
-        no longer supported in Chainer v5.
-
-    """
+    """  # NOQA
     if not remove_split:
         raise ValueError('remove_split=False is not supported anymore')
 

@@ -8,6 +8,7 @@ from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
+_default = 'default'
 _default_statistics = {
     'mean': lambda x: backend.get_array_module(x).mean(x),
     'std': lambda x: backend.get_array_module(x).std(x),
@@ -67,7 +68,7 @@ class ParameterStatistics(extension.Extension):
 
     default_statistics = _default_statistics
 
-    def __init__(self, links, statistics=None,
+    def __init__(self, links, statistics=_default,
                  report_params=True, report_grads=True, prefix=None,
                  trigger=(1, 'epoch'), skip_nan_params=False):
 
@@ -76,6 +77,8 @@ class ParameterStatistics(extension.Extension):
         self._links = links
 
         if statistics is None:
+            statistics = {}
+        elif statistics == _default:
             statistics = self.default_statistics
         self._statistics = dict(statistics)
 
