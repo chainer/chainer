@@ -1976,6 +1976,8 @@ _max_params = [
 ))
 class TestMax(UnaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def generate_inputs(self):
         in_dtype, = self.in_dtypes
         if hasattr(self, 'array'):
