@@ -185,14 +185,6 @@ def _populate_ndarray():
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
 
-    def _min(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.min(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.min = _min
-
     def _all(arr, *args, **kwargs):
         _, dev, arr = _from_chx(arr)
         with dev:
