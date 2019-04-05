@@ -56,10 +56,12 @@ class Forget(function_node.FunctionNode):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
 
+        output_tuples = []
         for out, grad_output in zip(outs, grad_outputs):
-            out.grad_var = grad_output
+            if grad_output is not None:
+                output_tuples.append((out.node, grad_output))
         # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
-        chainer.variable._backprop_to_all(outs, False, None)
+        chainer.variable._backprop_to_all(output_tuples, False, None)
 
         return tuple([inp.grad_var for inp in dummy_inputs])
 

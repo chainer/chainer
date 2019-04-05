@@ -31,6 +31,10 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
             return CUDNN_DATA_FLOAT;
         case Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
+        case Dtype::kInt8:
+            return CUDNN_DATA_INT8;
+        case Dtype::kInt32:
+            return CUDNN_DATA_INT32;
         default:
             throw DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
@@ -88,7 +92,7 @@ CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTens
 
 CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        cudnnDestroyTensorDescriptor(desc_);
     }
 }
 
@@ -110,7 +114,7 @@ CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilt
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
+        cudnnDestroyFilterDescriptor(desc_);
     }
 }
 
@@ -131,7 +135,7 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnn
 
 CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
+        cudnnDestroyConvolutionDescriptor(desc_);
     }
 }
 
@@ -184,7 +188,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePo
 
 CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
+        cudnnDestroyPoolingDescriptor(desc_);
     }
 }
 

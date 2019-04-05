@@ -71,8 +71,6 @@ public:
 
     // reduction.cc
 
-    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
-
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
 
@@ -82,21 +80,12 @@ public:
 
     void AsType(const Array& a, const Array& out) override;
 
-    // comparison.cc
-
-    void Equal(const Array& x1, const Array& x2, const Array& out) override;
-
-    void NotEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void Greater(const Array& x1, const Array& x2, const Array& out) override;
-
-    void GreaterEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void LogicalNot(const Array& x, const Array& out) override;
-
     // activation.cc
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+
+    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
 
@@ -111,16 +100,12 @@ public:
 
     // misc.cc
 
+    void Square(const Array& x, const Array& out) override;
+
     void Sqrt(const Array& x, const Array& out) override;
 
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
-
-    // indexing.cc
-
-    void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
-
-    void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
     // conv.cc
 
@@ -130,7 +115,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
+            bool cover_all,
+            Dtype out_dtype) override;
 
     Array ConvGradWeight(
             Dtype w_dtype,
@@ -147,7 +133,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size) override;
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype) override;
 
     // pool.cc
 

@@ -66,8 +66,6 @@ def test_assert_array_equal_fail(shape, dtype):
     (False, 0.0),
     (2.0, 2),
     (numpy.int32(2), 2.0),
-    (chainerx.Scalar(2), 2.0),
-    (chainerx.Scalar(2, chainerx.int64), numpy.float32(2)),
     (float('nan'), numpy.float32('nan')),
 ])
 def test_assert_array_equal_scalar(value1, value2):
@@ -153,8 +151,6 @@ def test_assert_allclose_fail(shape, dtype):
     (False, 0.0),
     (2.0, 2),
     (numpy.int32(2), 2.0),
-    (chainerx.Scalar(2), 2.0),
-    (chainerx.Scalar(2, chainerx.int64), numpy.float32(2)),
     (float('nan'), numpy.float32('nan')),
 ])
 def test_assert_allclose_scalar(value1, value2):

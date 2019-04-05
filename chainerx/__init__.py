@@ -33,7 +33,6 @@ if _available:
     from chainerx.creation.from_data import loadtxt  # NOQA
 
     from chainerx.activation import relu  # NOQA
-    from chainerx.activation import sigmoid  # NOQA
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
