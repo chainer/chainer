@@ -41,7 +41,7 @@ class Orthogonal(initializer.Initializer):
         scale (float): A constant to be multiplied by.
         dtype: Data type specifier.
         mode (str): Assertion on the initialized shape.
-            ``'auto'`` (default), ``'projection'`` (before v6),
+            ``'auto'`` (default), ``'projection'`` (before v7),
             ``'embedding'``, or ``'basis'``.
 
     Reference: Saxe et al., https://arxiv.org/abs/1312.6120
