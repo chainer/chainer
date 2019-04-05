@@ -202,7 +202,7 @@ class TestNpzDeserializer(unittest.TestCase):
         with pytest.raises(TypeError):
             self.deserializer('zi64', z)
 
-    def test_deserialize_float32_to_uint32(self):
+    def test_deserialize_float32_to_int(self):
         z = int(5)
         with pytest.raises(TypeError):
             self.deserializer('zf32', z)
