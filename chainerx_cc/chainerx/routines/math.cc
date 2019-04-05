@@ -907,15 +907,13 @@ Array Arctan(const Array& x) {
     return out;
 }
 
-Array FloorOp::Call(const Array& x) {
+Array Floor(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
-
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<FloorOp>(x, out);
     }
-
     return out;
 }
 

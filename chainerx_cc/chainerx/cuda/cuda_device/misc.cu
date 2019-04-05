@@ -101,8 +101,8 @@ struct FloorImpl {
 };
 
 class CudaFloorOp : public FloorOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
