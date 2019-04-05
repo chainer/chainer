@@ -178,6 +178,8 @@ class NpzDeserializer(serializer.Deserializer):
             value_type = type(value)
             dataset_arr = numpy.asarray(dataset)
             if (issubclass(dataset_arr.dtype.type, numpy.number)
+                    and not (issubclass(dataset_arr.dtype.type, numpy.integer)
+                             and value_type is int)
                     and not numpy.can_cast(
                         dataset_arr.dtype, value_type, casting='safe')):
                 raise TypeError(
