@@ -15,6 +15,7 @@ _dtype_mpi_type = {
     # see the definition of mpi4py.MPI._typedict (in mpi4py/MPI/typemap.pxi)
     numpy.dtype(numpy.int32): mpi4py.MPI._typedict['i'],
     numpy.dtype(numpy.int64): mpi4py.MPI._typedict['l'],
+    numpy.dtype(numpy.float16): mpi4py.MPI._typedict['f'],
     numpy.dtype(numpy.float32): mpi4py.MPI._typedict['f'],
     numpy.dtype(numpy.float64): mpi4py.MPI._typedict['d'],
 }
@@ -229,6 +230,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             data = [data]
 
         for array in data:
+            if numpy.float16 == array.dtype:
+                array = array.astype(numpy.float32)
+
             if chainer.backend.get_array_module(array) is not numpy:
                 chainer.cuda.Stream.null.synchronize()
                 array = (_memory_utility.get_device_memory_pointer(array),
@@ -269,28 +273,38 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         msgtype = self.mpi_comm.recv(source=source, tag=tag)
         xp = msgtype.get_array_module()
+        if numpy.float16 == msgtype.dtype:
+            comm_dtype = numpy.float32
+        else:
+            comm_dtype = msgtype.dtype
 
         if msgtype.is_tuple:
             msg = []
             for shape in msgtype.shapes:
                 buf = xp.empty(
-                    [chainer.utils.size_of_shape(shape)], dtype=msgtype.dtype)
+                    [chainer.utils.size_of_shape(shape)], dtype=comm_dtype)
                 rtype = _get_mpi_type(msgtype)
                 self.mpi_comm.Recv(
                     _memory_utility.array_to_buffer_object(buf, rtype),
                     source=source, tag=tag)
+
+                if numpy.float16 == msgtype.dtype:
+                    buf = buf.astype(numpy.float16)
                 msg.append(buf.reshape(shape))
             return tuple(msg)
 
         else:
             assert len(msgtype.shapes) == 1
             shape = msgtype.shapes[0]
-            buf = xp.empty(
-                [chainer.utils.size_of_shape(shape)], dtype=msgtype.dtype)
+            buf = xp.empty([chainer.utils.size_of_shape(shape)],
+                           dtype=comm_dtype)
             rtype = _get_mpi_type(msgtype)
             self.mpi_comm.Recv(
                 _memory_utility.array_to_buffer_object(buf, rtype),
                 source=source, tag=tag)
+
+            if numpy.float16 == msgtype.dtype:
+                buf = buf.astype(numpy.float16)
             return buf.reshape(shape)
 
     def bcast(self, x, root=0):
