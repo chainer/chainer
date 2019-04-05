@@ -118,12 +118,17 @@ class Normal(distribution.Distribution):
             - 0.5 * (x - self.loc) ** 2 / self.variance)
 
     def sample_n(self, n):
+        dtype = self.loc.dtype
+        shape = (n,)+self.loc.shape
         if self._is_gpu:
-            eps = cuda.cupy.random.standard_normal(
-                (n,)+self.loc.shape, dtype=self.loc.dtype)
+            if dtype == numpy.float16:
+                # cuRAND supports only FP32 and FP64
+                eps = cuda.cupy.random.standard_normal(
+                    shape, dtype=numpy.float32).astype(numpy.float16)
+            else:
+                eps = cuda.cupy.random.standard_normal(shape, dtype=dtype)
         else:
-            eps = numpy.random.standard_normal(
-                (n,)+self.loc.shape).astype(numpy.float32)
+            eps = numpy.random.standard_normal(shape).astype(dtype)
         return self.loc + self.scale * eps
 
     @cache.cached_property

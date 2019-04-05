@@ -56,6 +56,10 @@ class Chisquare(distribution.Distribution):
     def mean(self):
         return self.k
 
+    @property
+    def params(self):
+        return {'k': self.k}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.k)
         if xp is cuda.cupy:

@@ -81,6 +81,7 @@ Array Maximum(Scalar x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
@@ -105,8 +106,58 @@ Array IsInf(const Array& x);
 
 Array Tanh(const Array& x);
 
+class SinOp : public Op {
+public:
+    static const char* name() { return "Sin"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class CosOp : public Op {
+public:
+    static const char* name() { return "Cos"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class TanOp : public Op {
+public:
+    static const char* name() { return "Tan"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArcsinOp : public Op {
+public:
+    static const char* name() { return "Arcsin"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArccosOp : public Op {
+public:
+    static const char* name() { return "Arccos"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArctanOp : public Op {
+public:
+    static const char* name() { return "Arctan"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
+
+Array Tan(const Array& x);
+
+Array Arcsin(const Array& x);
+
+Array Arccos(const Array& x);
+
+Array Arctan(const Array& x);
 
 }  // namespace chainerx
