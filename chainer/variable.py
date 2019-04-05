@@ -1065,7 +1065,7 @@ class Variable(object):
         :class:`numpy.ndarray`.
         """
         intel64.check_ideep_available()
-        self.to_device(intel64)
+        self.to_device(intel64.Intel64Device())
 
     def to_chx(self):
         """Converts the array and gradient to ChainerX arrays without copy.
@@ -1768,7 +1768,7 @@ class Parameter(Variable):
         self.to_device(device)
 
     def to_intel64(self):
-        self.to_device(intel64)
+        self.to_device(intel64.Intel64Device())
 
     def to_chx(self):
         if not chainerx.is_available():
@@ -1801,8 +1801,8 @@ class Parameter(Variable):
             if backend_name == 'native':
                 self._initial_device = backend.CpuDevice()
             elif backend_name == 'cuda':
-                self._initial_device = chainer.get_device(
-                    (cuda.cupy, device.device.index))
+                self._initial_device = backend.GpuDevice.from_device_id(
+                    device.device.index)
 
         super(Parameter, self)._from_chx(allow_unchaining=True)
 

@@ -32,6 +32,7 @@ from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.device_resident import DeviceResident  # NOQA
 from chainer.distribution import cross_entropy  # NOQA
 from chainer.distribution import Distribution  # NOQA
 from chainer.distribution import kl_divergence  # NOQA
@@ -78,6 +79,13 @@ from chainer import _environment_check
 
 
 import chainerx
+
+
+# Introduce an alias that cannot be declared at the original place due to
+# circular imports.
+import chainer.utils.walker_alias
+chainer.utils.WalkerAlias = chainer.utils.walker_alias.WalkerAlias
+del chainer
 
 
 # Check environment conditions
