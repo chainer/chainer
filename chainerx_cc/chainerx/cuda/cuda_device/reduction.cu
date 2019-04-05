@@ -44,8 +44,8 @@ struct ArgMaxImpl {
 };
 
 class CudaArgMaxOp : public ArgMaxOp {
-protected:
-    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
