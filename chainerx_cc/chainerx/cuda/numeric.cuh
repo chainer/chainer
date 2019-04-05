@@ -23,6 +23,34 @@ __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
 template <typename T>
+__device__ inline T Sinh(T x) {
+    return std::sinh(x);
+}
+
+__device__ inline cuda::Float16 Sinh(cuda::Float16 x) { return cuda::Float16{std::sinh(static_cast<float>(x))}; }
+
+template <typename T>
+__device__ inline T Cosh(T x) {
+    return std::cosh(x);
+}
+
+__device__ inline cuda::Float16 Cosh(cuda::Float16 x) { return cuda::Float16{std::cosh(static_cast<float>(x))}; }
+
+template <typename T>
+__device__ inline T Arcsinh(T x) {
+    return std::asinh(x);
+}
+
+__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinh(static_cast<float>(x))}; }
+
+template <typename T>
+__device__ inline T Arccosh(T x) {
+    return std::acos(x);
+}
+
+__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acosh(static_cast<float>(x))}; }
+
+template <typename T>
 __device__ inline T Tanh(T x) {
     return std::tanh(x);
 }
