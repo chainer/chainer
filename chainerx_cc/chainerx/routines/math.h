@@ -106,6 +106,34 @@ Array IsInf(const Array& x);
 
 Array Tanh(const Array& x);
 
+class SinhOp : public Op {
+public:
+    static const char* name() { return "Sinh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class CoshOp : public Op {
+public:
+    static const char* name() { return "Cosh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArcsinhOp : public Op {
+public:
+    static const char* name() { return "Archsinh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArccoshOp : public Op {
+public:
+    static const char* name() { return "Arccosh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class SinOp : public Op {
 public:
     static const char* name() { return "Sin"; }
@@ -159,5 +187,13 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Sinh(const Array& x);
+
+Array Cosh(const Array& x);
+
+Array Arcsinh(const Array& x);
+
+Array Arccosh(const Array& x);
 
 }  // namespace chainerx
