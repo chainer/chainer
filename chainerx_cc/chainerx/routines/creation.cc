@@ -133,12 +133,47 @@ T ParseFloating(const std::string& value) {
     return parsed;
 }
 
+template <>
+float ParseFloating<float>(const std::string& value) {
+    return std::stof(value);
+}
+
+template <>
+double ParseFloating<double>(const std::string& value) {
+    return std::stod(value);
+}
+
 template <typename T>
 T ParseIntegral(const std::string& value) {
     std::istringstream iss(value);
     T parsed;
     if (!(iss >> parsed)) throw ChainerxError{"Can't parse the text element."};
     return parsed;
+}
+
+template <>
+int ParseIntegral<int>(const std::string& value) {
+    return std::stoi(value);
+}
+
+template <>
+uint8_t ParseIntegral<uint8_t>(const std::string& value) {
+    return static_cast<uint8_t>(std::stoi(value));
+}
+
+template <>
+int8_t ParseIntegral<int8_t>(const std::string& value) {
+    return static_cast<int8_t>(std::stoi(value));
+}
+
+template <>
+int16_t ParseIntegral<int16_t>(const std::string& value) {
+    return static_cast<int16_t>(std::stoi(value));
+}
+
+template <>
+int64_t ParseIntegral<int64_t>(const std::string& value) {
+    return std::stol(value);
 }
 
 template <typename T, typename R = T>
@@ -163,12 +198,15 @@ uint16_t ParseFromString<Float16, uint16_t>(const std::string& element) {
 }
 
 std::istream& GetLine(std::istream& is, std::string& output, const std::string& separator) {
+    if (separator.empty()) return is;
+    if (separator.size() == 1) return std::getline(is, output, separator[0]);
     output.erase();
 
     char c = '\0';
     size_t separator_index = 0;
     const size_t max_size = output.max_size();
-    while (separator_index < separator.size()) {
+    const size_t separator_size = separator.size();
+    while (separator_index < separator_size) {
         // Handle a bad read similar to std::getline which depends
         // on the state of the input stream. Also, if the maximum number
         // of characters is read into output, then set the failbit
@@ -200,8 +238,6 @@ std::istream& GetLine(std::istream& is, std::string& output, const std::string& 
             return is;
         }
 
-        output.push_back(c);
-
         // Advance the index into the separator if the character is a match.
         if (c == separator[separator_index]) {
             separator_index++;
@@ -213,17 +249,19 @@ std::istream& GetLine(std::istream& is, std::string& output, const std::string& 
             bool match = false;
             for (int64_t i = static_cast<int64_t>(separator_index) - 1; i >= 0; i--) {
                 // Set the match to true and revert if no match is found.
-                match = true;
-                int64_t output_size = static_cast<int64_t>(output.size());
-                for (int64_t j = i; j >= 0; j--) {
-                    if (separator[j] != output[output_size + i - j - 1]) {
-                        match = false;
-                        break;
+                match = c == separator[i];
+                if (match) {
+                    for (int64_t j = i - 1; j >= 0; j--) {
+                        if (separator[j] != separator[separator_index - i + j]) {
+                            match = false;
+                            break;
+                        }
                     }
                 }
 
                 if (match) {
                     // Set the index to the next unmatched separator character.
+                    output.insert(output.end(), separator.begin(), separator.begin() + (separator_size - i) + 1);
                     separator_index = i + 1;
                     break;
                 }
@@ -231,15 +269,13 @@ std::istream& GetLine(std::istream& is, std::string& output, const std::string& 
 
             if (!match) {
                 // Nothing matched so reset the index.
+                if (separator_index > 0) {
+                    output.insert(output.end(), separator.begin(), separator.begin() + separator_index);
+                }
+                output.push_back(c);
                 separator_index = 0;
             }
         }
-    }
-
-    // Erase the separator from the end of the output.
-    for (size_t i = 0; i < separator.size(); i++) {
-        if (output.empty()) break;
-        output.pop_back();
     }
 
     return is;
@@ -277,7 +313,7 @@ std::shared_ptr<void> ReadFromTextStream(std::istream& is, int64_t& count, const
 }
 
 template <>
-std::shared_ptr<void> ReadFromTextStream<Float16, Float16>(std::istream& is, int64_t& count, const std::string& separator) {
+std::shared_ptr<void> ReadFromTextStream<Float16>(std::istream& is, int64_t& count, const std::string& separator) {
     return ReadFromTextStream<Float16, uint16_t>(is, count, separator);
 }
 

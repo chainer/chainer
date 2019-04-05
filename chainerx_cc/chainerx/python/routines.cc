@@ -230,13 +230,34 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("offset") = 0,
           py::arg("device") = nullptr);
     m.def("fromstring",
-          [](const std::string& data, Dtype dtype, int64_t count, nonstd::optional<std::string> separator, Device& device) {
-              return MoveArrayBody(FromString(data, dtype, count, separator, device));
+          [](const std::string& data, py::handle dtype, int64_t count, py::handle separator, py::handle device) {
+              return MoveArrayBody(FromString(
+                      data,
+                      GetDtype(dtype),
+                      count,
+                      separator.is_none() ? nonstd::optional<std::string>{nonstd::nullopt}
+                                          : nonstd::optional<std::string>{py::cast<std::string>(separator)},
+                      GetDevice(device)));
           },
           py::arg("data"),
           py::arg("dtype") = "float32",
           py::arg("count") = -1,
-          py::arg("sep") = " ",
+          py::arg("sep") = "",
+          py::arg("device") = nullptr);
+    m.def("fromfile",
+          [](const std::string& filename, py::handle dtype, int64_t count, py::handle separator, py::handle device) {
+              return MoveArrayBody(FromString(
+                      filename,
+                      GetDtype(dtype),
+                      count,
+                      separator.is_none() ? nonstd::optional<std::string>{nonstd::nullopt}
+                                          : nonstd::optional<std::string>{py::cast<std::string>(separator)},
+                      GetDevice(device)));
+          },
+          py::arg("filename"),
+          py::arg("dtype") = "float32",
+          py::arg("count") = -1,
+          py::arg("sep") = "",
           py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
