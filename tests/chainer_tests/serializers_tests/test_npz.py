@@ -4,6 +4,7 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
@@ -194,19 +195,17 @@ class TestNpzDeserializer(unittest.TestCase):
     def test_deserialize_int64_to_int(self):
         z = int(5)
         ret = self.deserializer('zi64', z)
-        self.assertEqual(ret, -2**60)
+        assert ret == -2**60
 
     def test_deserialize_int64_to_uint32(self):
         z = numpy.uint32(5)
-        self.assertRaises(
-            TypeError,
-            lambda: self.deserializer('zi64', z))
+        with pytest.raises(TypeError):
+            self.deserializer('zi64', z)
 
     def test_deserialize_float32_to_uint32(self):
         z = int(5)
-        self.assertRaises(
-            TypeError,
-            lambda: self.deserializer('zf32', z))
+        with pytest.raises(TypeError):
+            self.deserializer('zf32', z)
 
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)
