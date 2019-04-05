@@ -534,6 +534,7 @@ class _CheckBackward(object):
             f.write('gradients (numeric):  {}\n'.format(gx_numeric))
             f.write('gradients (backward): {}\n'.format(gx_backward))
             f.write('\n')
+            f.write('x: numeric gradient, y: backward gradient')
             f.write(str(e))
             raise AssertionError(f.getvalue())
 
@@ -970,16 +971,29 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         y.backward(enable_double_backprop=True)
 
         gxs = []
-        for skip, x in six.moves.zip(first_order_no_grads, xs):
+        errors = []
+        for i, (skip, x) in enumerate(six.moves.zip(first_order_no_grads, xs)):
             if skip:
                 if x.grad is not None:
-                    raise RuntimeError(
-                        'gradient of int variable must be None')
+                    errors.append(
+                        '[{}]: Gradient was calculated while expected to not.'
+                        .format(i))
             else:
                 if x.grad is None:
                     gxs.append(None)
                 else:
                     gxs.append(x.grad_var)
+
+        if len(errors) > 0:
+            f = six.StringIO()
+            f.write('There are errors retrieving first-order gradients:\n')
+            f.write('Inputs: {}\n'.format(utils._format_array_props(xs)))
+            f.write('Skip: {}\n'.format(
+                ', '.join(str(skip) for skip in first_order_no_grads)))
+            f.write('Errors:\n')
+            for error in errors:
+                f.write('{}\n'.format(error))
+            raise RuntimeError(f.getvalue())
 
         return tuple(gxs + [p.grad_var for p in params])
 
@@ -1008,7 +1022,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
             f.write('{}\n'.format(ggp_))
         f.write('\n')
         f.write(str(e))
-        raise AssertionError(f.getvalue())
+        utils._raise_from(AssertionError, f.getvalue(), e)
 
 
 class _GradientSetter(FunctionNode):
