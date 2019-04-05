@@ -2071,8 +2071,8 @@ def test_min_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
             chainerx.min(a, axis)
         else:
             a.min(axis)
-            
-            
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
