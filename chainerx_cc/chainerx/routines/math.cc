@@ -907,15 +907,13 @@ Array Arctan(const Array& x) {
     return out;
 }
 
-Array CeilOp::Call(const Array& x) {
+Array Ceil(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
-
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<CeilOp>(x, out);
     }
-
     return out;
 }
 

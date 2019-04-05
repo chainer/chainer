@@ -148,6 +148,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class CeilOp : public Op {
+public:
+    static const char* name() { return "Ceil"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
@@ -160,16 +167,6 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
-class CeilOp : public Op {
-public:
-    static const char* name() { return "Ceil"; }
-
-    virtual Array Call(const Array& x);
-
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
-
-inline Array Ceil(const Array& x) { return x.device().backend().CallOp<CeilOp>(x); }
+Array Ceil(const Array& x);
 
 }  // namespace chainerx

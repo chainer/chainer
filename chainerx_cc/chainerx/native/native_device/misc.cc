@@ -60,8 +60,8 @@ void NativeDevice::IsInf(const Array& x, const Array& out) {
 }
 
 class NativeCeilOp : public CeilOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
