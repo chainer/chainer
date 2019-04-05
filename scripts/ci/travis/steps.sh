@@ -53,7 +53,7 @@ step_before_install_chainer_test() {
         brew update >/dev/null
         brew outdated pyenv || brew upgrade pyenv
 
-        PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
+        PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" CONFIGURE_OPTS="--with-openssl=$(brew --prefix openssl@1.1)" pyenv install -ks $PYTHON_VERSION
         pyenv global $PYTHON_VERSION
         python --version
 
