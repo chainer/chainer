@@ -27,6 +27,42 @@ inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
 template <typename T>
+inline T Sinh(T x) {
+    return std::sinh(x);
+}
+template <>
+inline chainerx::Float16 Sinh<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::sinh(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Cosh(T x) {
+    return std::cosh(x);
+}
+template <>
+inline chainerx::Float16 Cosh<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::cosh(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Arcsinh(T x) {
+    return std::asinh(x);
+}
+template <>
+inline chainerx::Float16 Arcsinh<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::asinh(static_cast<float>(x))};
+}
+
+template <typename T>
+inline T Arccosh(T x) {
+    return std::acosh(x);
+}
+template <>
+inline chainerx::Float16 Arccosh<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::acosh(static_cast<float>(x))};
+}
+
+template <typename T>
 inline T Tanh(T x) {
     return std::tanh(x);
 }
