@@ -125,4 +125,21 @@ inline chainerx::Float16 Sqrt<chainerx::Float16>(chainerx::Float16 x) {
     return Float16{std::sqrt(static_cast<float>(x))};
 }
 
+template <typename T>
+inline T Fabs(T x) {
+    return std::fabs(x);
+}
+template <>
+inline chainerx::Float16 Fabs<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::fabs(static_cast<float>(x))};
+}
+
+template <typename T> T Sign(T x) {
+    return IsNan(x) ? x : ((T{0} < x) - (x < T{0}));
+}
+template <>
+inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
+    return IsNan(x) ? x : Float16{(Float16{0} < x) - (x < Float16{0})};
+}
+
 }  // namespace chainerx
