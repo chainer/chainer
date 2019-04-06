@@ -133,6 +133,8 @@ Mathematical functions
    chainerx.tanh
    chainerx.square
    chainerx.clip
+   chainerx.fabs
+   chainerx.sign
 
 Random sampling
 ---------------
