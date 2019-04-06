@@ -205,3 +205,83 @@ class TestLogicalNot(op_utils.NumpyOpTest):
         a, = inputs
         b = xp.logical_not(a)
         return b,
+
+
+def compute_all(xp, a, axis, keepdims):
+    return xp.all(a, axis=axis, keepdims=keepdims)
+
+
+def compute_any(xp, a, axis, keepdims):
+    return xp.any(a, axis=axis, keepdims=keepdims)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('keepdims', [False, True])
+@pytest.mark.parametrize('shape,axis', [
+    ((), None),
+    ((), ()),
+    ((2,), None),
+    ((2,), ()),
+    ((2,), 0),
+    ((2,), (0,)),
+    ((2,), (-1,)),
+    ((2, 3), None),
+    ((2, 3), ()),
+    ((2, 3), 0),
+    ((2, 3), (0,)),
+    ((2, 3), (1,)),
+    ((2, 3), (-1,)),
+    ((2, 3), (-2,)),
+    ((2, 3), (0, 1)),
+    ((2, 3), (-2, -1)),
+    ((1, 3), None),  # Reduce over 1-dim axis
+    ((0, 3), None),  # Reduce over 0-dim axis
+    # Reduce over axes that are in the middle or apart
+    ((2, 3, 4), (1,)),
+    ((2, 3, 4), (0, 2)),
+    # Reduce over axes that are apart and/or unsorted
+    ((2, 3), (1, 0)),
+    ((2, 3, 4), (2, 0)),
+    ((2, 3, 4), (2, 0, 1)),
+    ((2, 3, 4), (-2, 2, 0)),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('func',[
+    compute_all,
+    compute_any
+])
+def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
+
+    # Hack for #6778
+    # TODO(kshitij12345) : Remove when fixed
+    if xp is chainerx and a.dtype == 'float16' and 'cuda' in str(a.device):
+        a = xp.logical_not(a.astype(bool, copy=True))
+
+    return func(xp, a, axis, keepdims)
+        
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('keepdims', [False, True])
+@pytest.mark.parametrize('shape,axis', [
+    ((), 1),
+    ((), (1,)),
+    ((2,), 2),
+    ((2,), (2,)),
+    ((2,), (-2,)),
+    ((2, 3,), (-3,)),
+    ((2, 3,), (-3, -4)),
+    ((2, 3,), (0, 0)),
+    ((2, 3,), (-1, -1)),
+    ((2, 3,), (0, 1, 1)),
+    ((2, 3,), (0, -2)),
+])
+@pytest.mark.parametrize('func',[
+    compute_all,
+    compute_any
+])
+def test_logical_reductions_invalid(func, is_module, xp, shape, 
+                                     axis, keepdims, dtype):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    func(xp, a, axis, keepdims)
