@@ -99,10 +99,9 @@ class BaseTest(object):
 
         u1, u2 = to_cpu(u1), to_cpu(u2)
         v1, v2 = to_cpu(v1), to_cpu(v2)
-        y1, y2 = to_cpu(y1), to_cpu(y2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        numpy.testing.assert_allclose(y1, y2, **self.allclose_options)
+        testing.assert_allclose(y1, y2, **self.allclose_options)
 
     def test_in_recomputing(self, backend_config):
         if not self.lazy_init:
@@ -163,10 +162,9 @@ class BaseTest(object):
 
         u1, u2 = to_cpu(u1), to_cpu(u2)
         v1, v2 = to_cpu(v1), to_cpu(v2)
-        y1, y2 = to_cpu(y1), to_cpu(y2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        numpy.testing.assert_allclose(y1, y2, **self.allclose_options)
+        testing.assert_allclose(y1, y2, **self.allclose_options)
 
     def test_u_not_updated_in_test(self, backend_config):
         if not self.lazy_init:
@@ -217,9 +215,9 @@ class BaseTest(object):
         layer1.to_device(backend_config.device)
         x = backend_config.get_array(self.x)
         with backend_config:
-            layer1(x).array
+            layer1(x)
             with chainer.using_config('train', False):
-                y1 = layer1(x).array
+                y1 = layer1(x)
         save_npz(filename, layer1)
 
         layer2 = self.layer.copy('copy')
@@ -235,7 +233,7 @@ class BaseTest(object):
         assert msg is None
 
         with chainer.using_config('train', False):
-            y2 = layer2(self.x.copy()).array
+            y2 = layer2(self.x.copy())
 
         # Test attributes are the same.
         orig_weight = to_cpu(getattr(layer1, hook1.weight_name).array)
@@ -244,7 +242,7 @@ class BaseTest(object):
             orig_weight, getattr(layer2, hook2.weight_name).array)
         numpy.testing.assert_array_equal(
             orig_vector, getattr(layer2, hook2.vector_name))
-        numpy.testing.assert_allclose(to_cpu(y1), y2, **self.allclose_options)
+        testing.assert_allclose(y1.array, y2.array, **self.allclose_options)
 
         shutil.rmtree(self._root)
 
