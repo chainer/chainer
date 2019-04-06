@@ -11,8 +11,7 @@ import chainer
 from chainer.backends._cpu import _to_cpu as to_cpu
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
 import chainer.links as L
-from chainer.serializers import load_npz
-from chainer.serializers import save_npz
+from chainer import serializers
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing.backend import BackendConfig
@@ -205,7 +204,6 @@ class BaseTest(object):
 
     def check_serialization(self, backend_config):
         root = tempfile.mkdtemp()
-        self._root = root
         filename = os.path.join(root, 'tmp.npz')
 
         layer1 = self.layer.copy('copy')
@@ -218,7 +216,7 @@ class BaseTest(object):
             layer1(x)
             with chainer.using_config('train', False):
                 y1 = layer1(x)
-        save_npz(filename, layer1)
+        serializers.save_npz(filename, layer1)
 
         layer2 = self.layer.copy('copy')
         hook2 = copy.deepcopy(self.hook)
@@ -227,7 +225,7 @@ class BaseTest(object):
         # Test loading is nice.
         msg = None
         try:
-            load_npz(filename, layer2)
+            serializers.load_npz(filename, layer2)
         except Exception as e:
             msg = e
         assert msg is None
@@ -244,7 +242,7 @@ class BaseTest(object):
             orig_vector, getattr(layer2, hook2.vector_name))
         testing.assert_allclose(y1.array, y2.array, **self.allclose_options)
 
-        shutil.rmtree(self._root)
+        shutil.rmtree(root)
 
     def test_serialization(self, backend_config):
         if not self.lazy_init:

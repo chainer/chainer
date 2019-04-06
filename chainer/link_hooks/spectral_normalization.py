@@ -2,7 +2,6 @@ import numpy
 
 import chainer
 from chainer import backend
-from chainer.backends import intel64
 from chainer import configuration
 import chainer.functions as F
 from chainer import link_hook
@@ -275,12 +274,10 @@ class SpectralNormalization(link_hook.LinkHook):
             self.v = v
             with chainer.using_device(link.device):
                 if configuration.config.train:
-                    if (link.xp is chainerx or
-                            isinstance(getattr(link, vector_name),
-                                       intel64.ideep.mdarray)):
+                    if link.xp is chainerx:
                         getattr(link, vector_name)[:] = u
                     else:
-                        link.xp.copyto(getattr(link, vector_name), u)
+                        backend.copyto(getattr(link, vector_name), u)
         return W
 
     def reshape_W(self, W):
