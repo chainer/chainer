@@ -479,6 +479,52 @@ Note:
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.all,
+        """all(x)
+Test whether all array elements along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which AND reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.all`
+""")
+
+    _docs.set_doc(
+        chainerx.any,
+        """any(x)
+Test whether any array element along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which OR reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.any`
+""")
+
+    _docs.set_doc(
         chainerx.logical_not,
         """logical_not(x)
 Returns an array of NOT x element-wise.
