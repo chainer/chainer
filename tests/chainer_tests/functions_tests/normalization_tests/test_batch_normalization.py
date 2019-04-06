@@ -1,40 +1,24 @@
 import unittest
 
 import numpy
+import pytest
 import six
 import warnings
 
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
-
-
-def _as_noncontiguous_array(array):
-    # TODO(niboshi): cupy + cudnn test fails in F.fixed_batch_normalization.
-    # Fix it and use testing.array._as_noncontiguous_array.
-    def as_noncontiguous_array(arr):
-        if arr is None:
-            return None
-        if isinstance(arr, (numpy.ndarray, cuda.ndarray)):
-            xp = chainer.backend.get_array_module(arr)
-            return xp.asfortranarray(arr)
-        return testing.array._as_noncontiguous_array(arr)
-
-    if isinstance(array, (list, tuple)):
-        return type(array)([as_noncontiguous_array(arr) for arr in array])
-    return as_noncontiguous_array(array)
 
 
 def _batch_normalization(
         inputs, running_mean=None, running_var=None, decay=None):
     x, gamma, beta, mean, var, eps, expander = inputs
     mean_expanded = mean[expander]
-    std = numpy.sqrt(var + eps)[expander]
-    y_expect = (gamma[expander] * (x - mean_expanded) / std + beta[expander])
+    std = numpy.sqrt(var + eps, dtype=x.dtype)[expander]
+    y_expect = gamma[expander] * (x - mean_expanded) / std + beta[expander]
 
     if running_mean is not None or running_var is not None:
         m = x.size // gamma.size
@@ -61,7 +45,6 @@ def _batch_normalization(
     testing.product({
         'dtype': [numpy.float32],
         'eps': [2e-5, 5e-1],
-        'c_contiguous': [True, False],
         'running_statistics': [True, False],
     }),
 ) + testing.product({
@@ -69,14 +52,12 @@ def _batch_normalization(
     'ndim': [1],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
     'running_statistics': [True, False],
 })))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # CPU tests
     testing.product({
-        'use_cuda': [False],
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
@@ -86,177 +67,96 @@ def _batch_normalization(
         'cudnn_fast_batch_normalization': [True, False],
     })
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
-class TestBatchNormalization(unittest.TestCase):
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    }))
+class TestBatchNormalization(testing.FunctionTestCase):
 
     def setUp(self):
-        dtype = self.dtype
+        self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+        self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
 
-        if not hasattr(self, 'axis'):
-            param_shape = self.param_shape
-            ndim = self.ndim
-            shape = (5,) + param_shape + (2,) * ndim
-        else:
-            aggr_axes = self.axis
-            if isinstance(self.axis, int):
-                aggr_axes = self.axis,
-            param_shape = tuple(
-                s
-                for i, s in enumerate(self.input_shape)
-                if i not in aggr_axes
-            )
-            shape = self.input_shape
-
-        gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
-        beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        x = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
+        self._prepare_shape_and_expander()
 
         if self.running_statistics:
             self.running_mean = numpy.random.uniform(
-                -1, 1, param_shape).astype(dtype)
+                -1, 1, self.param_shape).astype(self.dtype)
             self.running_var = numpy.random.uniform(
-                -1, 1, param_shape).astype(dtype)
+                -1, 1, self.param_shape).astype(self.dtype)
         else:
             self.running_mean = None
             self.running_var = None
 
+    def _prepare_shape_and_expander(self):
+        self.decay = 0.9
+        self.bn_options = {'decay': self.decay, 'eps': self.eps}
         if not hasattr(self, 'axis'):
-            head_ndim = gamma.ndim + 1
-            aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
-
-            self.expander = (None, Ellipsis) + (None,) * ndim
+            param_shape = self.param_shape
+            self.input_shape = (5,) + param_shape + (2,) * self.ndim
+            head_ndim = len(param_shape) + 1
+            self.aggr_axes = (0,) + tuple(
+                six.moves.range(head_ndim, len(self.input_shape)))
+            self.expander = (None, Ellipsis) + (None,) * self.ndim
         else:
+            self.bn_options['axis'] = self.axis
+            aggr_axes = self.axis
+            if isinstance(self.axis, int):
+                aggr_axes = (aggr_axes,)
+            self.aggr_axes = aggr_axes
+            self.param_shape = tuple(
+                s for i, s in enumerate(self.input_shape)
+                if i not in aggr_axes)
             self.expander = tuple(
                 None if i in aggr_axes else slice(None)
-                for i in range(x.ndim)
-            )
+                for i in range(len(self.input_shape)))
 
-        mean = x.mean(axis=aggr_axes)
-        var = x.var(axis=aggr_axes)
+    def generate_inputs(self):
+        input_shape = self.input_shape
+        param_shape = self.param_shape
+        gamma = numpy.random.uniform(.5, 1, param_shape).astype(self.dtype)
+        beta = numpy.random.uniform(-1, 1, param_shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, input_shape).astype(self.dtype)
+        self.mean = x.mean(axis=self.aggr_axes)
+        self.var = x.var(axis=self.aggr_axes)
+        return x, gamma, beta
 
-        self.decay = 0.9
-        self.mean = mean
-        self.var = var
+    def get_running_averages(self, device=None):
+        if not self.running_statistics:
+            return None, None
+        mean = self.running_mean.copy()
+        var = self.running_var.copy()
+        if device is None:
+            return mean, var
+        return device.send((mean, var))
 
-        self.inputs = [x, gamma, beta]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx, gggamma, ggbeta]
+    def forward(self, inputs, device):
+        x, gamma, beta = inputs
+        mean, var = self.get_running_averages(device)
+        y = functions.batch_normalization(
+            x, gamma, beta, running_mean=mean, running_var=var,
+            **self.bn_options)
+        if self.running_statistics:
+            return y, chainer.Variable(mean), chainer.Variable(var)
+        return y,
 
-        self.bn_options = {
-            'decay': self.decay,
-            'eps': self.eps,
-        }
-        if hasattr(self, 'axis'):
-            self.bn_options['axis'] = self.axis
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {
-            'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-
-    def forward_cpu(self, inputs, running_mean, running_var):
+    def forward_expected(self, inputs):
+        running_mean, running_var = self.get_running_averages()
         y_expect = _batch_normalization(
-            inputs + [self.mean, self.var, self.eps, self.expander],
+            inputs + (self.mean, self.var, self.eps, self.expander),
             running_mean, running_var, self.decay)
+        if self.running_statistics:
+            return y_expect, running_mean, running_var,
         return y_expect,
 
-    def check_forward(self, inputs, backend_config):
-        if self.running_statistics:
-            running_mean_expected = self.running_mean.copy()
-            running_var_expected = self.running_var.copy()
-        else:
-            running_mean_expected = None
-            running_var_expected = None
-
-        y_expected, = self.forward_cpu(
-            inputs, running_mean_expected, running_var_expected)
-
-        inputs = backend_config.get_array(inputs)
-        running_mean = backend_config.get_array(self.running_mean)
-        running_var = backend_config.get_array(self.running_var)
-
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-                running_mean = _as_noncontiguous_array(running_mean)
-                running_var = _as_noncontiguous_array(running_var)
-
-        with backend_config:
-            y = functions.batch_normalization(
-                *inputs, running_mean=running_mean,
-                running_var=running_var, **self.bn_options)
-        assert y.data.dtype == self.dtype
-
-        testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
-        if self.running_statistics:
-            testing.assert_allclose(
-                running_mean_expected, running_mean,
-                **self.check_forward_options)
-            testing.assert_allclose(
-                running_var_expected, running_var,
-                **self.check_forward_options)
-
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-                grad_outputs = _as_noncontiguous_array(grad_outputs)
-
-        def f(*inputs):
-            y = functions.batch_normalization(
-                *inputs, **self.bn_options)
-            return y,
-
-        with backend_config:
-            gradient_check.check_backward(
-                f, inputs, grad_outputs,
-                **self.check_backward_options)
-
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-                grad_outputs = _as_noncontiguous_array(grad_outputs)
-                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
-
-        def f(*inputs):
-            return functions.batch_normalization(
-                *inputs, **self.bn_options)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                f, inputs, grad_outputs, grad_grad_inputs,
-                **self.check_double_backward_options)
-
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
+    def before_test(self, test_name):
+        if 'backward' in test_name and self.running_statistics:
+            raise unittest.SkipTest()
 
 
 @testing.parameterize(*(testing.product({
@@ -264,18 +164,16 @@ class TestBatchNormalization(unittest.TestCase):
     'ndim': [0, 1, 2],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
-    'c_contiguous': [True, False],
 }) + testing.product({
     'param_shape': [(3,)],
     'ndim': [1],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'c_contiguous': [True, False],
 })))
 @backend.inject_backend_tests(
     None,
     # CPU tests
-    [{'use_cuda': False}]
+    [{}]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
@@ -283,13 +181,24 @@ class TestBatchNormalization(unittest.TestCase):
         'cudnn_fast_batch_normalization': [True, False],
     })
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
-class TestFixedBatchNormalization(unittest.TestCase):
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    }))
+class TestFixedBatchNormalization(testing.FunctionTestCase):
 
     def setUp(self):
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
+
+        self.decay = 0.0
+        self.expander = (None, Ellipsis) + (None,) * self.ndim
+
+    def generate_inputs(self):
         param_shape = self.param_shape
         dtype = self.dtype
         ndim = self.ndim
@@ -301,99 +210,15 @@ class TestFixedBatchNormalization(unittest.TestCase):
         mean = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         var = numpy.random.uniform(0.5, 1, param_shape).astype(dtype)
 
-        gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        ggmean = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        ggvar = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
+        return x, gamma, beta, mean, var
 
-        self.decay = 0.0
-        self.expander = (None, Ellipsis) + (None,) * ndim
+    def forward(self, inputs, device):
+        y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
+        return y,
 
-        self.inputs = [x, gamma, beta, mean, var]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx, gggamma, ggbeta, ggmean, ggvar]
-
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
-
-    def forward_cpu(self, inputs):
-        y_expect = _batch_normalization(inputs + [self.eps, self.expander])
+    def forward_expected(self, inputs):
+        y_expect = _batch_normalization(inputs + (self.eps, self.expander))
         return y_expect,
-
-    def check_forward(self, inputs, enable_backprop, backend_config):
-        y_expected, = self.forward_cpu(inputs)
-
-        inputs = backend_config.get_array(inputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-
-        with chainer.using_config('enable_backprop', enable_backprop):
-            with backend_config:
-                y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
-        assert y.data.dtype == self.dtype
-
-        testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
-
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, False, backend_config)
-
-    def test_forward_with_enable_backprop(self, backend_config):
-        self.check_forward(self.inputs, True, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-                grad_outputs = _as_noncontiguous_array(grad_outputs)
-
-        def f(*inputs):
-            y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
-            return y,
-
-        with backend_config:
-            gradient_check.check_backward(
-                f, inputs, grad_outputs,
-                **self.check_backward_options)
-
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-        if not self.c_contiguous:
-            with backend_config:
-                inputs = _as_noncontiguous_array(inputs)
-                grad_outputs = _as_noncontiguous_array(grad_outputs)
-                grad_grad_inputs = _as_noncontiguous_array(grad_grad_inputs)
-
-        def f(*inputs):
-            return functions.fixed_batch_normalization(*inputs, eps=self.eps)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                f, inputs, grad_outputs, grad_grad_inputs,
-                **self.check_double_backward_options)
-
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
 
 
 @testing.parameterize(*testing.product({
@@ -408,10 +233,10 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
     def setUp(self):
         ndim = 0
         param_shape = (3,)
-        self.gamma = cuda.cupy.random.uniform(.5, 1,
-                                              param_shape).astype(self.dtype)
-        self.beta = cuda.cupy.random.uniform(-1, 1,
-                                             param_shape).astype(self.dtype)
+        self.gamma = cuda.cupy.random.uniform(
+            .5, 1, param_shape).astype(self.dtype)
+        self.beta = cuda.cupy.random.uniform(
+            -1, 1, param_shape).astype(self.dtype)
         shape = (7,) + param_shape + (2,) * ndim
         self.x = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
@@ -434,7 +259,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                     'cupy.cudnn.batch_normalization_forward_training'
             ) as func:
                 self.forward()
-                self.assertEqual(func.called, self.expect)
+                assert func.called == self.expect
 
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
@@ -444,7 +269,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                     'cupy.cudnn.batch_normalization_backward'
             ) as func:
                 y.backward()
-                self.assertEqual(func.called, self.expect)
+                assert func.called == self.expect
 
 
 @attr.cudnn
@@ -466,7 +291,7 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
         eps = -0.1
         if chainer.backends.cuda.libcudnn.get_build_version() < 7500:
             eps = 2e-6
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             functions.batch_normalization(*self.args, eps=eps)
 
 
@@ -491,7 +316,7 @@ class TestFixedBatchNormalizationCudnnEps(unittest.TestCase):
         eps = -0.1
         if chainer.backends.cuda.libcudnn.get_build_version() < 7500:
             eps = 2e-6
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             functions.fixed_batch_normalization(*self.args, eps=eps)
 
 
