@@ -96,6 +96,8 @@ Logic functions
    chainerx.isinf
    chainerx.isnan
 
+   chainerx.logical_and
+   chainerx.logical_or
    chainerx.logical_not
 
    chainerx.greater
