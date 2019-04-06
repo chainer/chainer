@@ -10,8 +10,10 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/numeric.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace cuda {
@@ -53,6 +55,50 @@ void CudaDevice::Sqrt(const Array& x, const Array& out) {
         Elementwise<const T, T>(SqrtImpl<T>{}, x_cast, out);
     });
 }
+
+template <typename T>
+struct FabsImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Fabs(x); }
+};
+
+class CudaFabsOp : public FabsOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(FabsImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(FabsOp, CudaFabsOp);
+
+template <typename T>
+struct SignImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sign(x); }
+};
+
+class CudaSignOp : public SignOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(SignImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(SignOp, CudaSignOp);
 
 namespace {
 

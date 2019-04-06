@@ -92,5 +92,21 @@ __device__ inline T Sqrt(T x) {
 
 __device__ inline cuda::Float16 Sqrt(cuda::Float16 x) { return x.Sqrt(); }
 
+template <typename T>
+__device__ inline T Fabs(T x) {
+    return std::fabs(x);
+}
+
+__device__ inline cuda::Float16 Fabs(cuda::Float16 x) { return cuda::Float16{std::fabs(static_cast<float>(x))}; }
+
+template <typename T>
+__device__ inline T Sign(T x) {
+    return IsNan(x) ? x : ((T(0) < x) - (x < T(0)));
+}
+template <>
+__device__ inline cuda::Float16 Sign(cuda::Float16 x) {
+    return IsNan(x) ? x : cuda::Float16{(cuda::Float16{0} < x) - (x < cuda::Float16{0})};
+}
+
 }  // namespace cuda
 }  // namespace chainerx
