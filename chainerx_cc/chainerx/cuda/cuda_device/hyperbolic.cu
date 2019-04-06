@@ -21,7 +21,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-<<<<<<< HEAD
 template <typename CudaType, typename Op>
 struct UnaryOpImpl {
     Op op;
@@ -29,15 +28,6 @@ struct UnaryOpImpl {
     UnaryOpImpl(Op op) : op{op} {}
 
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = op(x); }
-=======
-template <typename T>
-struct CudaUnaryOp {
-    T (*func)(T);
-
-    CudaUnaryOp(T (*func)(T)) : func{func} {}
-
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = func(x); }
->>>>>>> add-a/sinh-a/cosh
 };
 
 class CudaSinhOp : public SinhOp {
@@ -50,13 +40,9 @@ public:
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-<<<<<<< HEAD
             auto op = cuda::Sinh<CudaType>{};
             auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
             Elementwise<const T, T>(functor, x_cast, out);
-=======
-            Elementwise<const T, T>(CudaUnaryOp<CudaType>{cuda::Sinh}, x_cast, out);
->>>>>>> add-a/sinh-a/cosh
         });
     }
 };
@@ -73,13 +59,9 @@ public:
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-<<<<<<< HEAD
             auto op = cuda::Cosh<CudaType>{};
             auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
             Elementwise<const T, T>(functor, x_cast, out);
-=======
-            Elementwise<const T, T>(CudaUnaryOp<CudaType>{cuda::Cosh}, x_cast, out);
->>>>>>> add-a/sinh-a/cosh
         });
     }
 };
@@ -96,13 +78,9 @@ public:
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-<<<<<<< HEAD
             auto op = cuda::Arcsinh<CudaType>{};
             auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
             Elementwise<const T, T>(functor, x_cast, out);
-=======
-            Elementwise<const T, T>(CudaUnaryOp<CudaType>{cuda::Arcsinh}, x_cast, out);
->>>>>>> add-a/sinh-a/cosh
         });
     }
 };
@@ -119,13 +97,9 @@ public:
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-<<<<<<< HEAD
             auto op = cuda::Arccosh<CudaType>{};
             auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
             Elementwise<const T, T>(functor, x_cast, out);
-=======
-            Elementwise<const T, T>(CudaUnaryOp<CudaType>{cuda::Arccosh}, x_cast, out);
->>>>>>> add-a/sinh-a/cosh
         });
     }
 };
