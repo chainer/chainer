@@ -19,6 +19,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
@@ -84,8 +85,6 @@ void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
 }
 
-namespace {
-
 template <typename In, typename Out>
 struct ProdImpl {
     using InCudaType = cuda_internal::DataType<In>;
@@ -96,21 +95,25 @@ struct ProdImpl {
     __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
 };
 
-}  // namespace
+class CudaProdOp : public ProdOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
 
-void CudaDevice::Prod(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
+        auto do_prod = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, ProdImpl<In, Out>{});
+        };
 
-    auto do_prod = [&a, &axis, &out](auto in_pt, auto out_pt) {
-        using In = typename decltype(in_pt)::type;
-        using Out = typename decltype(out_pt)::type;
-        Reduce<In, Out>(a, axis, out, ProdImpl<In, Out>{});
-    };
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
+    }
+};
 
-    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
-}
+CHAINERX_REGISTER_OP_CUDA(ProdOp, CudaProdOp);
 
 namespace {
 

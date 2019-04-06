@@ -12,6 +12,7 @@
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/sorting.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -71,25 +72,30 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
 }
 
-void NativeDevice::Prod(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
+class NativeProdOp: public ProdOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
 
-    auto do_prod = [&a, &axis, &out](auto in_pt, auto out_pt) {
-        using In = typename decltype(in_pt)::type;
-        using Out = typename decltype(out_pt)::type;
-        using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
-        struct Impl {
-            Accum Identity() { return Accum{1}; }
-            Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
-            void Reduce(Accum next, Accum& accum) { accum *= next; }
-            Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+        auto do_prod = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
+            struct Impl {
+                Accum Identity() { return Accum{1}; }
+                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+                void Reduce(Accum next, Accum& accum) { accum *= next; }
+                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+            };
+            Reduce<In, Out>(a, axis, out, Impl{});
         };
-        Reduce<In, Out>(a, axis, out, Impl{});
-    };
 
-    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
-}
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_prod](auto out_pt) { VisitDtype(a_dtype, do_prod, out_pt); });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(ProdOp, NativeProdOp);
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));

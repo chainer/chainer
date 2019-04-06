@@ -504,7 +504,7 @@ Array Prod(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Prod(a, sorted_axis, out);
+        a.device().backend().CallOp<ProdOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"prod", a, out};
@@ -518,9 +518,9 @@ Array Prod(const Array& a, const OptionalAxes& axis, bool keepdims) {
                 for (auto axis : sorted_axis) {
                     out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
                 }
-                bctx.input_grad() = (out / a * gout.Reshape(out_shape_broadcastable)).BroadcastTo(in_shape);
+                bctx.input_grad() = (out.Reshape(out_shape_broadcastable) * gout.Reshape(out_shape_broadcastable) / a) .BroadcastTo(in_shape);
             } else {
-                bctx.input_grad() = out / a * gout.BroadcastTo(in_shape);
+                bctx.input_grad() = (out / a) * gout.BroadcastTo(in_shape);
             }
         });
     }

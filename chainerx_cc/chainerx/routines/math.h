@@ -74,8 +74,6 @@ Array Reciprocal(const Array& x);
 
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
-Array Prod(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
-
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
@@ -151,6 +149,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class ProdOp : public Op {
+public:
+    static const char* name() { return "Prod"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
@@ -162,5 +167,7 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Prod(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 }  // namespace chainerx

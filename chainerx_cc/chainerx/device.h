@@ -147,9 +147,6 @@ public:
     // Otherwise, the behavior is undefined.
     virtual void Sum(const Array& a, const Axes& axis, const Array& out) = 0;
 
-    // Calculate the product of array elements.
-    virtual void Prod(const Array& a, const Axes& axis, const Array& out) = 0;
-
     // Calculates the maximum along specified axes.
     // See Sum() for the explanation of arguments.
     virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
