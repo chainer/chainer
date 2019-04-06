@@ -340,7 +340,7 @@ void InitChainerxLogic(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalAnd(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
-   m.def("logical_or",
+    m.def("logical_or",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalOr(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
