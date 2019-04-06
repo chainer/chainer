@@ -68,7 +68,6 @@ public:
             };
             Elementwise<const T, T>(Impl{}, x_cast, out);
         });
-
     }
 };
 

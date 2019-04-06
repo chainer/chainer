@@ -134,7 +134,8 @@ inline chainerx::Float16 Fabs<chainerx::Float16>(chainerx::Float16 x) {
     return Float16{std::fabs(static_cast<float>(x))};
 }
 
-template <typename T> T Sign(T x) {
+template <typename T>
+inline T Sign(T x) {
     return IsNan(x) ? x : ((T{0} < x) - (x < T{0}));
 }
 template <>
