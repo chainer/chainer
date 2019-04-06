@@ -907,6 +907,36 @@ Array Arctan(const Array& x) {
     return out;
 }
 
+Array Fabs(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<FabsOp>(x, out);
+    }
+
+    BackwardBuilder bb{"fabs", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Sign(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Sign(const Array& x) {
+    Array out = Empty(x.shape(), x.dtype(), x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<SignOp>(x, out);
+    }
+    return out;
+}
+
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {

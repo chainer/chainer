@@ -148,6 +148,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class FabsOp : public Op {
+public:
+    static const char* name() { return "Fabs"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class SignOp : public Op {
+public:
+    static const char* name() { return "Sign"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
@@ -159,5 +173,9 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Fabs(const Array& x);
+
+Array Sign(const Array& x);
 
 }  // namespace chainerx
