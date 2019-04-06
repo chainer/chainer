@@ -1360,7 +1360,7 @@ class TestReductions(UnaryMathTestBase, op_utils.NumpyOpTest):
                 {'rtol': 1e-2, 'atol': 1e-2})
 
     def func(self, xp, a):
-        self.test_func(self.is_module, xp, a, self.axis, self.keepdims)
+        return self.test_func(self.is_module, xp, a, self.axis, self.keepdims)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
