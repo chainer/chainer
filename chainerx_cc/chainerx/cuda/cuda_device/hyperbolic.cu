@@ -25,9 +25,9 @@ template <typename CudaType, typename Op>
 struct UnaryOpImpl {
     Op op;
 
-    UnaryOpImpl(Op op) : op{op} {}
+    explicit UnaryOpImpl(Op op) : op{op} {}
 
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = op(x); }
+    __device__ inline void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = op(x); }
 };
 
 class CudaSinhOp : public SinhOp {

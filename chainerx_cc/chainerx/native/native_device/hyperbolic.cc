@@ -20,9 +20,9 @@ template <typename T>
 struct NativeUnaryOp {
     T (*func)(T);
 
-    NativeUnaryOp(T (*func)(T)) : func{func} {}
+    explicit NativeUnaryOp(T (*func)(T)) : func{func} {}
 
-    void operator()(int64_t /*i*/, T x, T& out) { out = func(x); }
+    inline void operator()(int64_t /*i*/, T x, T& out) { out = func(x); }
 };
 
 class NativeSinhOp : public SinhOp {
