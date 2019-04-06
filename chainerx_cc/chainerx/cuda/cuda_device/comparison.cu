@@ -10,6 +10,7 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/routines/logic.h"
@@ -134,6 +135,85 @@ public:
 };
 
 CHAINERX_REGISTER_OP_CUDA(LogicalNotOp, CudaLogicalNotOp);
+
+template <typename In, typename Out>
+struct AllImpl {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{true}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = accum && next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+template <typename In>
+struct AllImpl<In, chainerx::Float16> {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<chainerx::Float16>;
+    __device__ OutCudaType Identity() { return OutCudaType{true}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = OutCudaType{accum && next}; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+class CudaAllOp : public AllOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        auto do_all = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, AllImpl<In, Out>{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_all](auto out_pt) { VisitDtype(a_dtype, do_all, out_pt); });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AllOp, CudaAllOp);
+
+template <typename In, typename Out>
+struct AnyImpl {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{false}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = accum || next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+template <typename In>
+struct AnyImpl<In, chainerx::Float16> {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<chainerx::Float16>;
+    __device__ OutCudaType Identity() { return OutCudaType{false}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = OutCudaType{accum || next}; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+class CudaAnyOp : public AnyOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+
+        auto do_any = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, AnyImpl<In, Out>{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_any](auto out_pt) { VisitDtype(a_dtype, do_any, out_pt); });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AnyOp, CudaAnyOp);
 
 }  // namespace
 }  // namespace cuda
