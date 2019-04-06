@@ -1,3 +1,7 @@
+import copy
+import os
+import shutil
+import tempfile
 import unittest
 
 import numpy
@@ -7,6 +11,8 @@ import chainer
 from chainer.backends._cpu import _to_cpu as to_cpu
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
 import chainer.links as L
+from chainer.serializers import load_npz
+from chainer.serializers import save_npz
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing.backend import BackendConfig
@@ -199,13 +205,61 @@ class BaseTest(object):
                 {'use_cuda': True, 'cuda_device': 1}).device
             self.check_multi_devices_forward(device_0, device_1)
 
+    def check_serialization(self, backend_config):
+        root = tempfile.mkdtemp()
+        self._root = root
+        filename = os.path.join(root, 'tmp.npz')
+
+        layer1 = self.layer.copy('copy')
+        hook1 = copy.deepcopy(self.hook)
+        layer1.add_hook(hook1)
+
+        layer1.to_device(backend_config.device)
+        x = backend_config.get_array(self.x)
+        with backend_config:
+            layer1(x).array
+            with chainer.using_config('train', False):
+                y1 = layer1(x).array
+        save_npz(filename, layer1)
+
+        layer2 = self.layer.copy('copy')
+        hook2 = copy.deepcopy(self.hook)
+        layer2.add_hook(hook2)
+
+        # Test loading is nice.
+        msg = None
+        try:
+            load_npz(filename, layer2)
+        except Exception as e:
+            msg = e
+        assert msg is None
+
+        with chainer.using_config('train', False):
+            y2 = layer2(self.x.copy()).array
+
+        # Test attributes are the same.
+        orig_weight = to_cpu(getattr(layer1, hook1.weight_name).array)
+        orig_vector = to_cpu(getattr(layer1, hook1.vector_name))
+        numpy.testing.assert_array_equal(
+            orig_weight, getattr(layer2, hook2.weight_name).array)
+        numpy.testing.assert_array_equal(
+            orig_vector, getattr(layer2, hook2.vector_name))
+        numpy.testing.assert_allclose(to_cpu(y1), y2, **self.allclose_options)
+
+        shutil.rmtree(self._root)
+
+    def test_serialization(self, backend_config):
+        if not self.lazy_init:
+            self.check_serialization(backend_config)
+
 
 _inject_backend_tests = testing.inject_backend_tests(
     ['test_weight_is_parameter', 'test_in_recomputing', 'test_deleted',
-     'test_u_updated_in_train', 'test_u_not_updated_in_test'],
+     'test_u_updated_in_train', 'test_u_not_updated_in_test',
+     'test_serialization'],
     # CPU tests
     testing.product({
-        'use_ideep': [True, False],
+        'use_ideep': ['always', 'never'],
     })
     # GPU tests
     + testing.product({
