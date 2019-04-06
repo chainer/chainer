@@ -246,7 +246,7 @@ def compute_any(xp, a, axis, keepdims):
     ((2, 3, 4), (-2, 2, 0)),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('func',[
+@pytest.mark.parametrize('func', [
     compute_all,
     compute_any
 ])
@@ -259,7 +259,7 @@ def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
         a = xp.logical_not(a.astype(bool, copy=True))
 
     return func(xp, a, axis, keepdims)
-        
+
 
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(chainerx.DimensionError, ValueError))
@@ -277,11 +277,11 @@ def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
     ((2, 3,), (0, 1, 1)),
     ((2, 3,), (0, -2)),
 ])
-@pytest.mark.parametrize('func',[
+@pytest.mark.parametrize('func', [
     compute_all,
     compute_any
 ])
-def test_logical_reductions_invalid(func, is_module, xp, shape, 
-                                     axis, keepdims, dtype):
+def test_logical_reductions_invalid(func, is_module, xp, shape,
+                                    axis, keepdims, dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype)
     func(xp, a, axis, keepdims)
