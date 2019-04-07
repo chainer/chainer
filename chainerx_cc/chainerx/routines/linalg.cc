@@ -96,4 +96,34 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+Array Trace(const Array& x, const int64_t offset, const int64_t axis1, const int64_t axis2, nonstd::optional<Dtype> dtype) {
+    if (x.ndim() < 2) throw DimensionError{"Trace requires at least 2 dimensions"};
+    if (axis1 < 0 || axis2 < 0 || axis1 >= x.ndim() || axis2 >= x.ndim()) throw ChainerxError{"Invalid axes detected"};
+
+    Dtype out_dtype = dtype.has_value() ? *dtype : x.dtype();
+    const Shape& x_shape = x.shape();
+    std::vector<int64_t> out_shape;
+    for (int i = 0; i < x.ndim(); i++) {
+        if (i != axis1 && i != axis2) out_shape.push_back(x_shape[i]);
+    }
+
+    Array out = Empty(Shape{out_shape}, out_dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<TraceOp>(x, offset, axis1, axis2, out);
+    }
+
+    BackwardBuilder bb{TraceOp::name(), x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([offset, axis1, axis2, dtype](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Trace(gout, offset, axis1, axis2, dtype);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx

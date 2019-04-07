@@ -307,6 +307,16 @@ void InitChainerxLinalg(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); },
           py::arg("a"),
           py::arg("b"));
+    m.def("trace",
+          [](const ArrayBodyPtr& a, int64_t offset, int64_t axis1, int64_t axis2, py::handle dtype) {
+              return MoveArrayBody(
+                      Trace(Array{a}, offset, axis1, axis2, dtype.is_none() ? nonstd::nullopt : nonstd::optional<Dtype>{GetDtype(dtype)}));
+          },
+          py::arg("a"),
+          py::arg("offset") = 0,
+          py::arg("axis1") = 0,
+          py::arg("axis2") = 1,
+          py::arg("dtype") = nullptr);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
