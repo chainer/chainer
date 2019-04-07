@@ -1893,7 +1893,7 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.arctan(a)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0.5),
