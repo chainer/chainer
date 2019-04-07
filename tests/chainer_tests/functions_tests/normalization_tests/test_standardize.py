@@ -73,15 +73,6 @@ class TestStandardize(testing.FunctionTestCase):
 
     def setUp(self):
         self.skip_double_backward_test = self.same in ('equal', 'near')
-        if self.same == 'equal':
-            # Make self.x have same values
-            self.x[...] = self.x[0]
-        elif self.same == 'near':
-            # Make self.x have slightly different values
-            self.x[...] = self.x[0]
-            zero_scale = 10. ** numpy.random.randint(-40, -3)
-            self.x += numpy.random.uniform(
-                -zero_scale, zero_scale, self.x.shape)
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
             self.check_backward_options.update(
@@ -91,7 +82,16 @@ class TestStandardize(testing.FunctionTestCase):
 
     def generate_inputs(self):
         shape = self.ch_out, self.size
-        x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        if self.same in ('equal', 'near'):
+            # Make self.x have same values
+            x = numpy.ones(shape, self.dtype)
+            x *= numpy.random.uniform(-1, 1)
+            if self.same == 'near':
+                # Make self.x have slightly different values
+                zero_scale = 10. ** numpy.random.randint(-40, -3)
+                x += numpy.random.uniform(-zero_scale, zero_scale, shape)
+        else:
+            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         return x,
 
     def forward(self, inputs, device):
