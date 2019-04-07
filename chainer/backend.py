@@ -36,6 +36,23 @@ def _contains_nan(x):
         return False
 
 
+def _contains_inf(x):
+    """Returns whether the input array has inf values.
+
+    Args:
+        x (numpy.ndarray or cupy.ndarray): Array to be checked.
+
+    Returns:
+        bool: True if the input has inf values.
+
+    """
+    if x.dtype.kind in ('f', 'c'):
+        with cuda.get_device_from_array(x):
+            return get_array_module(x).isinf(x).any()
+    else:
+        return False
+
+
 def copyto(dst, src):
     """Copies the elements of an ndarray to those of another one.
 

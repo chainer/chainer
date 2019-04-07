@@ -337,13 +337,14 @@ Use apply() method instead.\
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 
-        # NaN check of output values
+        # NaN and inf check of output values
         if is_debug:
-            if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            for name, fn in [('NaN', chainer.backend._contains_nan),
+                             ('Inf', chainer.backend._contains_inf)]:
+                if any(fn(out) for out in outputs):
+                    msg = ('{} is detected on forward computation of '
+                           '{}'.format(name, self.label))
+                    raise RuntimeError(msg)
 
         self._output_count = len(outputs)
 
