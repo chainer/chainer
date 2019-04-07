@@ -61,6 +61,21 @@ public:
     // Gets the native backend.
     native::NativeBackend& GetNativeBackend();
 
+    // Registers the backend.
+    template <typename BackendType>
+    Backend& CreateBackend(const std::string& backend_name) {
+        auto backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
+                new BackendType{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
+        backend->Initialize();
+
+        std::lock_guard<std::mutex> lock{mutex_};
+        auto pair = backends_.emplace(backend_name, std::move(backend));
+        if (!pair.second) {
+            ContextError{"Backend is already registered: ", backend_name};
+        }
+        return *pair.first->second;
+    }
+
     // Gets the device specified by the device ID.
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
