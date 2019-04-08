@@ -130,13 +130,13 @@ Configuration Keys
 
    Note that in spite of the configuration, optimizers will use iDeep if and only if the link is converted manually to iDeep (e.g., ``model.to_intel64()``).
 
-* ``lazy_grad_sum`` (default: ``False``)
+* ``lazy_grad_sum`` (default: ``True``)
    Flag to control the behavior of gradient accumulation.
 
    If it is ``True``, gradients are accumulated in batch for performance.
    Otherwise gradients are accumulated one by one.
 
-   You can change the default value to ``True`` by setting ``CHAINER_LAZY_GRAD_SUM`` environment variable to ``1``.
+   You can change the default value to ``False`` by setting ``CHAINER_LAZY_GRAD_SUM`` environment variable to ``0``.
 
 * ``use_cudnn_tensor_core`` (default: ``'auto'``)
    Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
@@ -305,7 +305,7 @@ Here are the environment variables Chainer uses.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
-|                                           | Set ``1`` to enable batch accumulation of gradients.                                                  |
+|                                           | Set ``0`` to disable batch accumulation of gradients.                                                 |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
