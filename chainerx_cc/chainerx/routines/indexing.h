@@ -35,7 +35,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 }  // namespace internal
 
 // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
-// The result is assigned in `out. Input arrays `a`, `indices`, and `b` are not altered.
+// Input arrays `a`, `indices`, and `b` are not altered.
 //
 // TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
 //
