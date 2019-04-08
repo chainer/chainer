@@ -116,11 +116,11 @@ public:
           beta_shape_{std::move(beta_shape)},
           beta_dtype_{beta_dtype} {}
 
-    const Array& x_cont() { return x_cont_; }
-    const Array& x_mean() { return x_mean_; }
-    const Array& x_inv_std() { return x_inv_std_; }
-    const Shape& beta_shape() { return beta_shape_; }
-    Dtype beta_dtype() { return beta_dtype_; }
+    const Array& x_cont() const { return x_cont_; }
+    const Array& x_mean() const { return x_mean_; }
+    const Array& x_inv_std() const { return x_inv_std_; }
+    const Shape& beta_shape() const { return beta_shape_; }
+    Dtype beta_dtype() const { return beta_dtype_; }
 
 private:
     Array x_cont_;
