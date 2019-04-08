@@ -13,11 +13,11 @@
 
 namespace chainerx {
 
-class BatchNormForwardOp : public Op {
+class BatchNormOp : public Op {
 public:
     static const char* name() { return "BatchNormForward"; }
 
-    // Intermediate state values such as the mean and inverse std can be written to `state` for reuse in BatchNormBackwardOp.
+    // Intermediate state values such as the mean and inverse std can be written to `state` for reuse in BatchNormGradOp.
     virtual void Call(
             const Array& x,
             const Array& gamma,
@@ -31,7 +31,7 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) = 0;
 };
 
-class BatchNormBackwardOp : public Op {
+class BatchNormGradOp : public Op {
 public:
     static const char* name() { return "BatchNormBackward"; }
 
@@ -47,7 +47,7 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) = 0;
 };
 
-class GenericBatchNormForwardOp : public BatchNormForwardOp {
+class GenericBatchNormOp : public BatchNormOp {
 public:
     void Call(
             const Array& x,
@@ -62,7 +62,7 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) override;
 };
 
-class GenericBatchNormBackwardOp : public BatchNormBackwardOp {
+class GenericBatchNormGradOp : public BatchNormGradOp {
 public:
     void Call(
             const Array& x,
@@ -76,7 +76,7 @@ public:
             nonstd::optional<std::shared_ptr<void>>& state) override;
 };
 
-class FixedBatchNormForwardOp : public Op {
+class FixedBatchNormOp : public Op {
 public:
     static const char* name() { return "FixedBatchNormForward"; }
 
@@ -91,7 +91,7 @@ public:
             const Array& out) = 0;
 };
 
-class GenericFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
+class GenericFixedBatchNormOp : public FixedBatchNormOp {
 public:
     void Call(
             const Array& x,

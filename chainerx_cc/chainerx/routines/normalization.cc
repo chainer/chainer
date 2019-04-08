@@ -152,7 +152,7 @@ struct GenericBatchNormState {
 
 }  // namespace
 
-void GenericBatchNormForwardOp::Call(
+void GenericBatchNormOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -195,7 +195,7 @@ void GenericBatchNormForwardOp::Call(
     }
 }
 
-void GenericBatchNormBackwardOp::Call(
+void GenericBatchNormGradOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& gout,
@@ -230,7 +230,7 @@ void GenericBatchNormBackwardOp::Call(
     device.AsType(gbeta_cast, gbeta);
 }
 
-void GenericFixedBatchNormForwardOp::Call(
+void GenericFixedBatchNormOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -268,7 +268,7 @@ Array BatchNorm(
     nonstd::optional<std::shared_ptr<void>> state{nullptr};
     {
         NoBackpropModeScope scope{};
-        device.backend().CallOp<BatchNormForwardOp>(
+        device.backend().CallOp<BatchNormOp>(
                 x.AsGradStopped(),
                 gamma_reshaped.AsGradStopped(),
                 beta_reshaped.AsGradStopped(),
@@ -303,7 +303,7 @@ Array BatchNorm(
             Array gbeta = Empty(beta_shape, beta_dtype, device);
             {
                 NoBackpropModeScope scope{};
-                device.backend().CallOp<BatchNormBackwardOp>(x, gamma_reshaped, gout, eps, sorted_axis, gx, ggamma, gbeta, state);
+                device.backend().CallOp<BatchNormGradOp>(x, gamma_reshaped, gout, eps, sorted_axis, gx, ggamma, gbeta, state);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
             internal::MakeViewForForwardBackwardOutput(ggamma);
@@ -401,7 +401,7 @@ Array FixedBatchNorm(
     Array out = EmptyLike(x, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<FixedBatchNormForwardOp>(
+        x.device().backend().CallOp<FixedBatchNormOp>(
                 x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, out);
     }
     return out;

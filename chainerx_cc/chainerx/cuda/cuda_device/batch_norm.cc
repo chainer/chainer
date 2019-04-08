@@ -114,7 +114,7 @@ struct CudaBatchNormState {
 
 }  // namespace
 
-class CudaBatchNormForwardOp : public BatchNormForwardOp {
+class CudaBatchNormOp : public BatchNormOp {
 public:
     void Call(
             const Array& x,
@@ -218,9 +218,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormForwardOp, CudaBatchNormForwardOp);
+CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
 
-class CudaBatchNormBackwardOp : public BatchNormBackwardOp {
+class CudaBatchNormGradOp : public BatchNormGradOp {
 public:
     void Call(
             const Array& /*x*/,
@@ -311,9 +311,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormBackwardOp, CudaBatchNormBackwardOp);
+CHAINERX_REGISTER_OP_CUDA(BatchNormGradOp, CudaBatchNormGradOp);
 
-class CudaFixedBatchNormForwardOp : public FixedBatchNormForwardOp {
+class CudaFixedBatchNormOp : public FixedBatchNormOp {
 public:
     void Call(
             const Array& x,
@@ -383,7 +383,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FixedBatchNormForwardOp, CudaFixedBatchNormForwardOp);
+CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
 
 }  // namespace cuda
 }  // namespace chainerx
