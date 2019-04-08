@@ -126,7 +126,7 @@ private:
     Dtype beta_dtype_;
 };
 
-std::tuple<Array, std::shared_ptr<BatchNormState>> ApplyGenericBatchNorm(
+std::tuple<Array, std::unique_ptr<BatchNormState>> ApplyGenericBatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -159,8 +159,8 @@ std::tuple<Array, std::shared_ptr<BatchNormState>> ApplyGenericBatchNorm(
     const Array& actual_out = out.has_value() ? *out : EmptyLike(x, x.device());
     out_cast.device().AsType(out_cast, actual_out);
 
-    std::shared_ptr<BatchNormState> state =
-            return_state ? std::make_shared<GenericBatchNormState>(std::move(mean_cast), std::move(inv_std), beta.shape(), beta.dtype())
+    std::unique_ptr<BatchNormState> state =
+            return_state ? std::make_unique<GenericBatchNormState>(std::move(mean_cast), std::move(inv_std), beta.shape(), beta.dtype())
                          : nullptr;
 
     return std::make_tuple(actual_out, std::move(state));
@@ -168,7 +168,7 @@ std::tuple<Array, std::shared_ptr<BatchNormState>> ApplyGenericBatchNorm(
 
 }  // namespace
 
-std::tuple<Array, std::shared_ptr<BatchNormState>> GenericBatchNormOp::Call(
+std::tuple<Array, std::unique_ptr<BatchNormState>> GenericBatchNormOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -193,7 +193,7 @@ std::tuple<Array, std::shared_ptr<BatchNormState>> GenericBatchNormOp::Call(
     const Array& x_cast = x.dtype() == interm_dtype ? x : x.AsType(interm_dtype);
     Array x_mean = Mean(x_cast, axis, true);
     Array x_var = Var(x_cast, axis, true);
-    std::tuple<Array, std::shared_ptr<BatchNormState>> result =
+    std::tuple<Array, std::unique_ptr<BatchNormState>> result =
             ApplyGenericBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype, return_state, out);
 
     // Update running values.
@@ -259,7 +259,7 @@ Array GenericFixedBatchNormOp::Call(
         const Axes& axis,
         const nonstd::optional<Array>& out) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
-    std::tuple<Array, std::shared_ptr<BatchNormState>> result =
+    std::tuple<Array, std::unique_ptr<BatchNormState>> result =
             ApplyGenericBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype, false, out);
     return out.has_value() ? *out : std::get<0>(result);
 }
@@ -288,7 +288,7 @@ Array BatchNorm(
     std::shared_ptr<BatchNormState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tuple<Array, std::shared_ptr<BatchNormState>> batch_norm_result = device.backend().CallOp<BatchNormOp>(
+        std::tuple<Array, std::unique_ptr<BatchNormState>> batch_norm_result = device.backend().CallOp<BatchNormOp>(
                 x.AsGradStopped(),
                 gamma_reshaped.AsGradStopped(),
                 beta_reshaped.AsGradStopped(),
@@ -299,7 +299,7 @@ Array BatchNorm(
                 sorted_axis,
                 true,
                 out);
-        state = std::get<1>(batch_norm_result);
+        state = std::move(std::get<1>(batch_norm_result));
     }
     CHAINERX_ASSERT(state != nullptr);
 
@@ -313,7 +313,7 @@ Array BatchNorm(
                    eps,
                    sorted_axis,
                    beta_shape = beta_reshaped.shape(),
-                   beta_dtype = beta_reshaped.dtype()](BackwardContext& bctx) mutable {
+                   beta_dtype = beta_reshaped.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& x = bctx.GetRetainedInput(x_tok);
             const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);

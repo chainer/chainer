@@ -28,7 +28,7 @@ public:
     static const char* name() { return "BatchNormForward"; }
 
     // The returned state should be a `nullptr` if `return_state` is `false`.
-    virtual std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
+    virtual std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -60,7 +60,7 @@ public:
 
 class GenericBatchNormOp : public BatchNormOp {
 public:
-    std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
+    std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,

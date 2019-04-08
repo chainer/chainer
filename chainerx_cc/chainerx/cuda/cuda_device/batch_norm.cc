@@ -134,7 +134,7 @@ private:
 
 class CudaBatchNormOp : public BatchNormOp {
 public:
-    std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
+    std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -232,8 +232,8 @@ public:
         UpdateRunning(running_mean, running_mean_casted);
         UpdateRunning(running_var, running_var_casted);
 
-        std::shared_ptr<BatchNormState> state =
-                return_state ? std::make_shared<CudaBatchNormState>(
+        std::unique_ptr<BatchNormState> state =
+                return_state ? std::make_unique<CudaBatchNormState>(
                                        std::move(x_cont), std::move(x_mean), std::move(x_inv_std), beta.shape(), beta.dtype())
                              : nullptr;
 
