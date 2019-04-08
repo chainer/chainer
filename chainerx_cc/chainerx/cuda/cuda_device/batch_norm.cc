@@ -185,9 +185,6 @@ public:
             CHAINERX_ASSERT(&x_cont.device() == &x_mean.device());
             CHAINERX_ASSERT(&x_cont.device() == &x_inv_std.device());
 
-            CHAINERX_ASSERT(x_cont.dtype() == gamma.dtype());
-            CHAINERX_ASSERT(x_cont.dtype() == gout.dtype());
-
             CHAINERX_ASSERT(x_cont.IsContiguous());
         }
 
@@ -276,10 +273,11 @@ Array CudaDevice::FixedBatchNorm(
         CHAINERX_ASSERT(&x.device() == &mean.device());
         CHAINERX_ASSERT(&x.device() == &var.device());
 
-        CHAINERX_ASSERT(x.dtype() == gamma.dtype());
-        CHAINERX_ASSERT(x.dtype() == beta.dtype());
-        CHAINERX_ASSERT(x.dtype() == mean.dtype());
-        CHAINERX_ASSERT(x.dtype() == var.dtype());
+        CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(mean.dtype()) == DtypeKind::kFloat);
+        CHAINERX_ASSERT(GetKind(var.dtype()) == DtypeKind::kFloat);
     }
 
     Array x_cont = internal::AsContiguous(x);

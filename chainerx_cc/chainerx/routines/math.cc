@@ -592,6 +592,42 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
 }  // namespace
 
+namespace {
+
+void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+    CheckEqual(x1.shape(), x2.shape());
+    Array mask = Greater(x1, x2);
+    Array not_mask = LogicalNot(mask);
+    {
+        NoBackpropModeScope scope{};
+        x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
+    }
+    {
+        BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([mask = std::move(mask)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = gout * mask;
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([not_mask = std::move(not_mask)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = gout * not_mask;
+            });
+        }
+        bb.Finalize();
+    }
+}
+
+}  // namespace
+
+namespace {
+
+void MinimumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x2, x1, out); }
+
+}  // namespace
+
 Array Maximum(const Array& x1, Scalar x2) {
     // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
@@ -605,6 +641,11 @@ Array Minimum(const Array& x1, Scalar x2) {
 }
 
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
+
+Array Minimum(const Array& x1, const Array& x2) {
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    return BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
+}
 
 Array Exp(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
@@ -739,7 +780,7 @@ Array Sin(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Sin(x, out);
+        x.device().backend().CallOp<SinOp>(x, out);
     }
 
     BackwardBuilder bb{"sin", x, out};
@@ -761,7 +802,7 @@ Array Cos(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Cos(x, out);
+        x.device().backend().CallOp<CosOp>(x, out);
     }
 
     BackwardBuilder bb{"cos", x, out};
@@ -783,7 +824,7 @@ Array Tan(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Tan(x, out);
+        x.device().backend().CallOp<TanOp>(x, out);
     }
 
     BackwardBuilder bb{"tan", x, out};
@@ -792,7 +833,7 @@ Array Tan(const Array& x) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             const Array& out = Cos(inp);
-            bctx.input_grad() = gout / (out * out);
+            bctx.input_grad() = gout / Square(out);
         });
     }
     bb.Finalize();
@@ -806,7 +847,7 @@ Array Arcsin(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arcsin(x, out);
+        x.device().backend().CallOp<ArcsinOp>(x, out);
     }
 
     BackwardBuilder bb{"arcsin", x, out};
@@ -814,7 +855,7 @@ Array Arcsin(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = gout / (Sqrt(1 - inp * inp));
+            bctx.input_grad() = gout / Sqrt(1 - Square(inp));
         });
     }
     bb.Finalize();
@@ -828,7 +869,7 @@ Array Arccos(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arccos(x, out);
+        x.device().backend().CallOp<ArccosOp>(x, out);
     }
 
     BackwardBuilder bb{"arccos", x, out};
@@ -836,7 +877,7 @@ Array Arccos(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = -gout / (Sqrt(1 - inp * inp));
+            bctx.input_grad() = -gout / Sqrt(1 - Square(inp));
         });
     }
     bb.Finalize();
@@ -850,7 +891,7 @@ Array Arctan(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Arctan(x, out);
+        x.device().backend().CallOp<ArctanOp>(x, out);
     }
 
     BackwardBuilder bb{"arctan", x, out};
@@ -858,7 +899,7 @@ Array Arctan(const Array& x) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
-            bctx.input_grad() = gout / (1 + inp * inp);
+            bctx.input_grad() = gout / (1 + Square(inp));
         });
     }
     bb.Finalize();

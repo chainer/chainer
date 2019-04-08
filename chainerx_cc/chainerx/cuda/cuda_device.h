@@ -118,39 +118,14 @@ public:
 
     void AsType(const Array& a, const Array& out) override;
 
-    // comparison.cu
-
-    void Equal(const Array& x1, const Array& x2, const Array& out) override;
-
-    void NotEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void Greater(const Array& x1, const Array& x2, const Array& out) override;
-
-    void GreaterEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void LogicalNot(const Array& x1, const Array& out) override;
-
     // activation.cu
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
     void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
-
-    void Sin(const Array& x, const Array& out) override;
-
-    void Cos(const Array& x, const Array& out) override;
-
-    // trigonometric.cu
-
-    void Tan(const Array& x, const Array& out) override;
-
-    void Arcsin(const Array& x, const Array& out) override;
-
-    void Arccos(const Array& x, const Array& out) override;
-
-    void Arctan(const Array& x, const Array& out) override;
 
     // dot.cc
 
@@ -169,12 +144,6 @@ public:
 
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
-
-    // indexing.cu
-
-    void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
-
-    void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
     // conv.cc
 

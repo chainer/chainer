@@ -117,8 +117,6 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
 }  // namespace internal
 
-namespace {
-
 // Adds elements of `b` indexed by `indices` into `a` and returns the result.
 // Used in backward pass of Take()
 //
@@ -135,7 +133,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().AddAt(a, indices, axis, b, out);
+        a.device().backend().CallOp<AddAtOp>(a, indices, axis, b, out);
     }
 
     {
@@ -152,8 +150,6 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     return out;
 }
-
-}  // namespace
 
 Array Take(const Array& a, const Array& indices, int8_t axis) {
     DtypeKind indices_kind = GetKind(indices.dtype());
@@ -173,7 +169,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().Take(a, indices, axis_norm, out);
+        a.device().backend().CallOp<TakeOp>(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};

@@ -57,7 +57,7 @@ class TestZoneout(unittest.TestCase):
             y = _zoneout(h_data, x_data, creator)
             return y,
         gh, gx, = gradient_check.numerical_grad(f, (h.data, x.data,),
-                                                (y.grad,))
+                                                (y_grad,))
         testing.assert_allclose(gh, h.grad, atol=1e-3)
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 

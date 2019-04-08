@@ -889,45 +889,79 @@ class TestIMulScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a *= scalar
 
 
-# TODO(imanishi): Support and test zero division and mixed dtypes.
-# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
-# TODO(imanishi): Support and test bool dtype.
-@chainerx.testing.numpy_chainerx_array_equal(float16_rtol=1e-3)
-@pytest.mark.parametrize('lhs,rhs', [
-    ([], []),
-    ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
-    ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
-    ([0, 1, 2, 3, 100, 101, 102, 103], 3),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], 3),
-    ([0, 1, 2, 3, 100, 101, 102, 103], -3),
-    ([-1, -2, -3, -4, -100, -101, -102, -103], -3),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], 1.2),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], 1.2),
-    ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], -1.2),
-    ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], -1.2),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_floordiv(xp, lhs, rhs, device, numeric_dtype, is_module):
-    if (numpy.array(lhs).dtype.kind == 'f' and
-            numpy.dtype(numeric_dtype).kind in ('i', 'u')):
-        return chainerx.testing.ignore()
-    if (((numpy.array(lhs) < 0).any() or (numpy.array(rhs) < 0).any()) and
-            numpy.dtype(numeric_dtype).kind == 'u'):
-        return chainerx.testing.ignore()
-    lhs = xp.array(lhs).astype(numeric_dtype)
-    if isinstance(rhs, (list, tuple)):
-        rhs = xp.array(rhs).astype(numeric_dtype)
+# TODO(imanishi): Support and test zero division
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*chainer.testing.product({
+    'lhs,rhs': [
+        ([], []),
+        ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
+        ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
+    ],
+    'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+    'is_module': [True, False],
+}))
+class TestFloorDiv(BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    if is_module:
-        return xp.floor_divide(lhs, rhs)
-    else:
-        return lhs // rhs
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        in_dtype1, in_dtype2 = self.in_dtypes
+        a = numpy.array(self.lhs).astype(in_dtype1)
+        b = numpy.array(self.rhs).astype(in_dtype2)
+        return a, b
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.floor_divide(a, b)
+        else:
+            return a // b
+
+
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test zero division
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*chainer.testing.product({
+    'array': [
+        ([]),
+        ([0, 1, 2, 3, 100, 101, 102, 103]),
+        ([-1, -2, -3, -4, -100, -101, -102, -103]),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4]),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4]),
+    ],
+    'scalar_value': [-3, 3, -1.2, 1.2],
+    'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+    'is_module': [True, False],
+}))
+class TestFloorDivScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+
+        # TODO(imanishi): Remove this.
+        if in_dtype == 'uint8' and self.scalar_value < 0:
+            self.skip_forward_test = True
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        a = numpy.array(self.array).astype(in_dtype)
+        return a,
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return xp.floor_divide(a, scalar)
+        else:
+            return a // scalar
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -1245,10 +1279,22 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
-# TODO(niboshi): Remove strides_check=False
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize('keepdims', [False, True])
-@pytest.mark.parametrize('shape,axis', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
+    (('bool_',), 'int64'),
+    (('int8',), 'int64'),
+    (('int16',), 'int64'),
+    (('int32',), 'int64'),
+    (('int64',), 'int64'),
+    (('float16',), 'float16'),
+    (('float32',), 'float32'),
+    (('float64',), 'float64'),
+
+    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
+    # Currently chainerx returns int64.
+    (('uint8',), 'int64'),
+])
+@chainer.testing.parameterize_pytest('shape,axis', [
     ((), None),
     ((), ()),
     ((2,), None),
@@ -1276,19 +1322,26 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     ((2, 3, 4), (2, 0, 1)),
     ((2, 3, 4), (-2, 2, 0)),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(is_module, xp, device, shape, axis, keepdims, dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        out = xp.sum(a, axis=axis, keepdims=keepdims)
-    else:
-        out = a.sum(axis=axis, keepdims=keepdims)
+@chainer.testing.parameterize_pytest('keepdims', [True, False])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
-    # Currently chainerx returns int64.
-    if xp is numpy and numpy.dtype(dtype).kind == 'u':
-        out = out.astype(numpy.int64)
-    return out
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        if self.is_module:
+            return xp.sum(a, axis=self.axis, keepdims=self.keepdims)
+        else:
+            return a.sum(axis=self.axis, keepdims=self.keepdims)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -1870,12 +1923,9 @@ def test_max_amax():
     assert chainerx.amax is chainerx.max
 
 
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(ValueError, chainerx.DimensionError), strides_check=False)
-@pytest.mark.parametrize('input,axis', [
+_max_params = [
     # --- single axis
     # input, axis
-    # valid params
     (numpy.asarray(0), None),
     (numpy.asarray(-1), None),
     (numpy.asarray(float('inf')), None),
@@ -1888,35 +1938,112 @@ def test_max_amax():
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
     (numpy.asarray([[True, True, False, False],
                     [True, False, True, False]]), 0),
-    (numpy.ones((2, 0, 3)), 2),
     (numpy.ones((2, 3)), 1),
     (numpy.ones((2, 3)), -2),
-    # invalid params
-    (numpy.ones((0,)), None),
-    (numpy.ones((2, 0, 3)), 1),
-    (numpy.ones((2, 0, 3)), None),
-    (numpy.ones((2, 3)), 2),
-    (numpy.ones((2, 3)), -3),
     # --- multiple axes
     # input, axis
-    # valid params
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
-    # invalid params
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape,axis': [
+            ((), None),
+            ((4,), None),
+            ((4,), 0),
+            ((4, 2), None),
+            ((4, 2), 0),
+            ((4, 2), 1),
+            ((4, 2), -2),
+            ((4, 3), (0, 1)),
+            ((4, 3), (-2, -1)),
+        ],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.all_dtypes)),
+        'is_module': [True, False],
+    }) +
+    chainer.testing.product({
+        'array,axis': _max_params,
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(1, chainerx.testing.all_dtypes)),
+        'is_module': [True, False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestMax(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        if hasattr(self, 'array'):
+            return self.array.astype(in_dtype),
+        return array_utils.uniform(self.shape, in_dtype),
+
+    def func(self, xp, a):
+        if self.is_module:
+            return xp.max(a, self.axis)
+        else:
+            return a.max(self.axis)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('array,axis', [
+    (numpy.ones((2, 3)), 2),
+    (numpy.ones((2, 3)), -3),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO(niboshi): Remove strides_check=False
-def test_max(is_module, xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
+@pytest.mark.parametrize('dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('is_module', [True, False])
+def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
+    a = chainerx.array(array).astype(dtype)
+    with pytest.raises(chainerx.DimensionError):
+        if is_module:
+            chainerx.max(a, axis)
+        else:
+            a.max(axis)
 
-    a = xp.array(a_np)
-    if is_module:
-        return xp.max(a, axis)
-    else:
-        return a.max(axis)
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # TODO(aksub99): Add tests for inf and NaN.
+))
+class TestMinimum(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        return xp.minimum(a, b)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_minimum_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (3, 2)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.minimum(a, b)

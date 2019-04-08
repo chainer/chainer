@@ -92,7 +92,7 @@ CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTens
 
 CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        cudnnDestroyTensorDescriptor(desc_);
     }
 }
 
@@ -132,7 +132,7 @@ CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilt
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
+        cudnnDestroyFilterDescriptor(desc_);
     }
 }
 
@@ -153,7 +153,7 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnn
 
 CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
+        cudnnDestroyConvolutionDescriptor(desc_);
     }
 }
 
@@ -206,7 +206,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePo
 
 CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
+        cudnnDestroyPoolingDescriptor(desc_);
     }
 }
 
