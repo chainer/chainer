@@ -9,6 +9,7 @@
 #endif  // CHAINERX_ENABLE_BLAS
 
 #include "chainerx/array.h"
+#include "chainerx/backend.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
@@ -113,7 +114,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
     }
 
     if (!is_out_contiguous) {
-        out.device().Copy(out_contiguous, out);
+        out.device().backend().CallOp<CopyOp>(out_contiguous, out);
     }
 }
 

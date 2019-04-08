@@ -9,6 +9,7 @@
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_runtime.h"
@@ -173,7 +174,7 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 
     if (!is_out_contiguous) {
-        Copy(out_contiguous, out);
+        backend().CallOp<CopyOp>(out_contiguous, out);
     }
 }
 
