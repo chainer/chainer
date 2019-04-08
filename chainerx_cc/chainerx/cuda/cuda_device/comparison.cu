@@ -136,24 +136,13 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(LogicalNotOp, CudaLogicalNotOp);
 
-template <typename In, typename Out>
+template <typename In>
 struct AllImpl {
     using InCudaType = cuda_internal::DataType<In>;
-    using OutCudaType = cuda_internal::DataType<Out>;
-    __device__ OutCudaType Identity() { return OutCudaType{true}; }
-    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
-    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = accum && next; }
-    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
-};
-
-template <typename In>
-struct AllImpl<In, chainerx::Float16> {
-    using InCudaType = cuda_internal::DataType<In>;
-    using OutCudaType = cuda_internal::DataType<chainerx::Float16>;
-    __device__ OutCudaType Identity() { return OutCudaType{true}; }
-    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
-    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = OutCudaType{accum && next}; }
-    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+    __device__ bool Identity() { return true; }
+    __device__ bool MapIn(InCudaType in, int64_t /*index*/) { return static_cast<bool>(in); }
+    __device__ void Reduce(bool next, bool& accum) { accum = accum && next; }
+    __device__ bool MapOut(bool accum) { return accum; }
 };
 
 class CudaAllOp : public AllOp {
@@ -163,36 +152,25 @@ public:
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
-        auto do_all = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_all = [&a_cast, &axis, &out](auto in_pt) {
             using In = typename decltype(in_pt)::type;
-            using Out = typename decltype(out_pt)::type;
-            Reduce<In, Out>(a, axis, out, AllImpl<In, Out>{});
+            Reduce<In, bool>(a_cast, axis, out, AllImpl<In>{});
         };
 
-        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_all](auto out_pt) { VisitDtype(a_dtype, do_all, out_pt); });
+        VisitDtype(out.dtype(), do_all);
     }
 };
 
 CHAINERX_REGISTER_OP_CUDA(AllOp, CudaAllOp);
 
-template <typename In, typename Out>
+template <typename In>
 struct AnyImpl {
     using InCudaType = cuda_internal::DataType<In>;
-    using OutCudaType = cuda_internal::DataType<Out>;
-    __device__ OutCudaType Identity() { return OutCudaType{false}; }
-    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
-    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = accum || next; }
-    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
-};
-
-template <typename In>
-struct AnyImpl<In, chainerx::Float16> {
-    using InCudaType = cuda_internal::DataType<In>;
-    using OutCudaType = cuda_internal::DataType<chainerx::Float16>;
-    __device__ OutCudaType Identity() { return OutCudaType{false}; }
-    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
-    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum = OutCudaType{accum || next}; }
-    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+    __device__ bool Identity() { return false; }
+    __device__ bool MapIn(InCudaType in, int64_t /*index*/) { return static_cast<bool>(in); }
+    __device__ void Reduce(bool next, bool& accum) { accum = accum || next; }
+    __device__ bool MapOut(bool accum) { return accum; }
 };
 
 class CudaAnyOp : public AnyOp {
@@ -202,14 +180,13 @@ public:
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
-
-        auto do_any = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_any = [&a_cast, &axis, &out](auto in_pt) {
             using In = typename decltype(in_pt)::type;
-            using Out = typename decltype(out_pt)::type;
-            Reduce<In, Out>(a, axis, out, AnyImpl<In, Out>{});
+            Reduce<In, bool>(a_cast, axis, out, AnyImpl<In>{});
         };
 
-        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_any](auto out_pt) { VisitDtype(a_dtype, do_any, out_pt); });
+        VisitDtype(out.dtype(), do_any);
     }
 };
 

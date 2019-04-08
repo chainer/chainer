@@ -116,21 +116,18 @@ public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
         a.device().CheckDevicesCompatible(a, out);
-
-        auto do_all = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_all = [&a_cast, &axis, &out](auto in_pt) {
             using In = typename decltype(in_pt)::type;
-            using Out = typename decltype(out_pt)::type;
-            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
             struct Impl {
-                Accum Identity() { return Accum{true}; }
-                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
-                void Reduce(Accum next, Accum& accum) { accum = accum && next; }
-                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+                bool Identity() { return true; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum && next; }
+                bool MapOut(bool accum) { return static_cast<bool>(accum); }
             };
-            Reduce<In, Out>(a, axis, out, Impl{});
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
-
-        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_all](auto out_pt) { VisitDtype(a_dtype, do_all, out_pt); });
+        VisitDtype(out.dtype(), do_all);
     }
 };
 
@@ -141,21 +138,19 @@ public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
         a.device().CheckDevicesCompatible(a, out);
-
-        auto do_any = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_any = [&a_cast, &axis, &out](auto in_pt) {
             using In = typename decltype(in_pt)::type;
-            using Out = typename decltype(out_pt)::type;
-            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
             struct Impl {
-                Accum Identity() { return Accum{false}; }
-                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
-                void Reduce(Accum next, Accum& accum) { accum = accum || next; }
-                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+                bool Identity() { return false; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum || next; }
+                bool MapOut(bool accum) { return static_cast<bool>(accum); }
             };
-            Reduce<In, Out>(a, axis, out, Impl{});
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
 
-        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_any](auto out_pt) { VisitDtype(a_dtype, do_any, out_pt); });
+        VisitDtype(out.dtype(), do_any);
     }
 };
 
