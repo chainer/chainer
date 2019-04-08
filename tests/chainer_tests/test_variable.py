@@ -507,6 +507,17 @@ class TestVariable(unittest.TestCase):
         assert ret[1].rank == old_rank
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
+    def test_unchain_split(self):
+        if not len(self.x.shape) > 0:
+            return
+        ret = get_variable(np, self.x)
+        ret.grad = np.zeros_like(ret.data)
+        y1, y2 = F.split_axis(ret, [5], axis=0)
+        y1.unchain()
+        z1, z2 = F.sum(y1), F.sum(y2)
+        z1.backward()
+        self.check_backward((ret,), (y1, y2,), (z2,), False)
+
     def check_set_none_to_creator(self, use_creator_node):
         ret = self.create_linear_chain(3, np)
         old_rank = ret[1].rank
