@@ -207,20 +207,11 @@ class TestLogicalNot(op_utils.NumpyOpTest):
         return b,
 
 
-# Hack for Issue #6778
-# TO-DO(kshitij12345): Remove when issue fixed
-def cast_if_float16(xp, a):
-    if a.dtype == 'float16':
-        return xp.logical_not(a.astype(bool, True))
-    else:
-        return a.astype(bool, True)
-
-
-def logical_and_lambda(xp, a, b):
+def logical_and(xp, a, b):
     return xp.logical_and(a, b)
 
 
-def logical_or_lambda(xp, a, b):
+def logical_or(xp, a, b):
     return xp.logical_and(a, b)
 
 
@@ -228,7 +219,7 @@ _binary_logical_params = \
     chainer.testing.product({
         'dtypes': _expected_all_dtypes_comparison,
         'func': [
-            logical_and_lambda, logical_or_lambda
+            logical_and, logical_or
         ],
         'inputs': [
             ([], []),
@@ -238,7 +229,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_numeric_dtypes_comparison,
         'func': [
-            logical_and_lambda, logical_or_lambda
+            logical_and, logical_or
         ],
         'inputs': [
             ([0], [0]),
@@ -261,7 +252,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_float_dtypes_comparison,
         'func': [
-            logical_and_lambda, logical_or_lambda
+            logical_and, logical_or
         ],
         'inputs': [
             ([0., numpy.nan], [0., 1.]),
@@ -296,14 +287,6 @@ class TestLogicalBinary(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, b = inputs
-
-        def on_cuda(a):
-            return 'cuda' in str(a.device)
-
-        if xp is chainerx and (on_cuda(a) or on_cuda(b)):
-            a = cast_if_float16(xp, a)
-            b = cast_if_float16(xp, b)
-
         y1 = self.func(xp, a, b)
         y2 = self.func(xp, b, a)
         return y1, y2

@@ -136,7 +136,7 @@ public:
 CHAINERX_REGISTER_OP_CUDA(LogicalNotOp, CudaLogicalNotOp);
 
 template <typename T>
-struct LogicAndImpl {
+struct LogicalAndImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 && x2; }
 };
@@ -152,7 +152,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, bool>(LogicAndImpl<T>{}, x1_cast, x2_cast, out);
+            Elementwise<const T, const T, bool>(LogicalAndImpl<T>{}, x1_cast, x2_cast, out);
         });
     }
 };
@@ -160,7 +160,7 @@ public:
 CHAINERX_REGISTER_OP_CUDA(LogicalAndOp, CudaLogicalAndOp);
 
 template <typename T>
-struct LogicOrImpl {
+struct LogicalOrImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 || x2; }
 };
@@ -176,7 +176,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, bool>(LogicOrImpl<T>{}, x1_cast, x2_cast, out);
+            Elementwise<const T, const T, bool>(LogicalOrImpl<T>{}, x1_cast, x2_cast, out);
         });
     }
 };
