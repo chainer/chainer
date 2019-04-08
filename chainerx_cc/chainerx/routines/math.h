@@ -176,6 +176,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class CeilOp : public Op {
+public:
+    static const char* name() { return "Ceil"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
@@ -195,5 +202,7 @@ Array Cosh(const Array& x);
 Array Arcsinh(const Array& x);
 
 Array Arccosh(const Array& x);
+
+Array Ceil(const Array& x);
 
 }  // namespace chainerx

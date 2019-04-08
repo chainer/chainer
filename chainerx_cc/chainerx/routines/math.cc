@@ -995,6 +995,16 @@ Array Arccosh(const Array& x) {
     return out;
 }
 
+Array Ceil(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<CeilOp>(x, out);
+    }
+    return out;
+}
+
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {

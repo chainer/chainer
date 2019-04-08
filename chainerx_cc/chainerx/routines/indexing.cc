@@ -177,6 +177,8 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
+            // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
+            // the output of `AddAt`.
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }

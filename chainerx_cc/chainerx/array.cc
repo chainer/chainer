@@ -42,6 +42,7 @@
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -207,6 +208,10 @@ Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*t
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
+
+Array Array::Mean(const OptionalAxes& axis, bool keepdims) const { return chainerx::Mean(*this, axis, keepdims); }
+
+Array Array::Var(const OptionalAxes& axis, bool keepdims) const { return chainerx::Var(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
