@@ -252,12 +252,6 @@ def compute_any(xp, a, axis, keepdims):
 ])
 def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype)
-
-    # Hack for #6778
-    # TODO(kshitij12345) : Remove when fixed
-    if xp is chainerx and a.dtype == 'float16' and 'cuda' in str(a.device):
-        a = xp.logical_not(a.astype(bool, copy=True))
-
     return func(xp, a, axis, keepdims)
 
 
