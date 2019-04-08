@@ -30,7 +30,7 @@ class UnaryMathTestBase(object):
 
         if in_dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
 
