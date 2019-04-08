@@ -211,7 +211,9 @@ def build_computational_graph(
         outputs, remove_split=True, variable_style=_default,
         function_style=_default, rankdir='TB', remove_variable=False,
         show_name=True):
-    """build_computational_graph(outputs, remove_split=True, variable_style=_var_style, function_style=_func_style, rankdir='TB', remove_variable=False, show_name=True)
+    """build_computational_graph(outputs, remove_split=True,
+variable_style=_var_style, function_style=_func_style, rankdir='TB', \
+remove_variable=False, show_name=True)
 
     Builds a graph of functions and variables backward-reachable from outputs.
 
@@ -271,7 +273,7 @@ def build_computational_graph(
         (<= v1.22.0), please specify `variable_style=None`,
         `function_style=None`, and `show_name=False` explicitly.
 
-    """  # NOQA
+    """
     if not remove_split:
         raise ValueError('remove_split=False is not supported anymore')
 
