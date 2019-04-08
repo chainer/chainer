@@ -1501,27 +1501,10 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
-    })
-    # Dtype combinations
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
-        'is_module': [False],
-    })
-    # is_module
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
-        'is_module': [True, False],
     })
     # Special values
     + chainer.testing.product({
@@ -1535,10 +1518,34 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
         'skip_double_backward_test': [True],
     })
 ))
-class TestSquaredDifference(BinaryMathTestBase, op_utils.NumpyOpTest):
+class TestSquaredDifference(op_utils.OpTest):
 
-    def func(self, xp, a, b):
-        return xp.square(xp.subtract(a, b))
+    def setup(self):
+        x1_dtype, x2_dtype = self.in_dtypes
+
+        if x1_dtype == 'float16' or x2_dtype == 'float16':
+            self.check_forward_options.update({'atol': 3e-3, 'rtol': 3e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        shape = self.shape
+        x1_dtype, x2_dtype = self.in_dtypes
+        x1 = array_utils.uniform(shape, x1_dtype)
+        x2 = array_utils.uniform(shape, x2_dtype)
+        return x1, x2
+
+    def forward_chainerx(self, inputs):
+        x1, x2 = inputs
+        y = chainerx.squared_difference(x1, x2)
+        return y,
+
+    def forward_expected(self, inputs):
+        x1, x2 = inputs
+        y = numpy.asarray(
+            numpy.square(numpy.subtract(x1, x2))).astype(x1.dtype)
+        return y,
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
