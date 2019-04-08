@@ -140,18 +140,21 @@ class WindowIterator(chainer.dataset.Iterator):
             serializer('_order', self._order)
 
 
+@chainer.dataset.converter()
 def convert(batch, device):
     center, contexts = batch
-    if device >= 0:
-        center = cuda.to_gpu(center)
-        contexts = cuda.to_gpu(contexts)
+    center = device.send(center)
+    contexts = device.send(contexts)
     return center, contexts
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', '-g', default=-1, type=int,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--unit', '-u', default=100, type=int,
                         help='number of units')
     parser.add_argument('--window', '-w', default=5, type=int,
@@ -174,13 +177,16 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        cuda.check_cuda_available()
+    device = chainer.get_device(args.device)
+    device.use()
 
-    print('GPU: {}'.format(args.gpu))
+    print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
     print('Window: {}'.format(args.window))
     print('Minibatch-size: {}'.format(args.batchsize))
@@ -227,8 +233,7 @@ def main():
     else:
         raise Exception('Unknown model type: {}'.format(args.model))
 
-    if args.gpu >= 0:
-        model.to_gpu()
+    model.to_device(device)
 
     # Set up an optimizer
     optimizer = O.Adam()
@@ -240,13 +245,13 @@ def main():
 
     # Set up an updater
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, converter=convert, device=args.gpu)
+        train_iter, optimizer, converter=convert, device=device)
 
     # Set up a trainer
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(
-        val_iter, model, converter=convert, device=args.gpu))
+        val_iter, model, converter=convert, device=device))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss']))
