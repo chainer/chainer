@@ -21,7 +21,9 @@ _default_statistics = {
 
 
 class ParameterStatistics(extension.Extension):
-    """__init__(self, links, statistics=_default_statistics, report_params=True, report_grads=True, prefix=None, trigger=(1, 'epoch'), skip_nan_params=False)
+    """__init__(self, links, statistics=_default_statistics, \
+report_params=True, report_grads=True, prefix=None, trigger=(1, 'epoch'), \
+skip_nan_params=False)
 
     Trainer extension to report parameter statistics.
 
@@ -58,7 +60,7 @@ class ParameterStatistics(extension.Extension):
             parameters including NaNs and a single NaN value is immediately
             reported instead. Otherwise, this extension will simply try to
             compute the statistics without performing any checks for NaNs.
-    """  # NOQA
+    """
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
 

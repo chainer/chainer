@@ -55,7 +55,9 @@ class DotNode(object):
 
 class ComputationalGraph(object):
 
-    """__init__(self, nodes, edges, variable_style=_var_style, function_style=_func_style, rankdir='TB', remove_variable=False, show_name=True)
+    """__init__(self, nodes, edges, variable_style=_var_style, \
+function_style=_func_style, rankdir='TB', remove_variable=False, \
+show_name=True)
 
     Class that represents computational graph.
 
@@ -87,7 +89,7 @@ class ComputationalGraph(object):
         (<= v1.22.0), please specify `variable_style=None`,
         `function_style=None`, and `show_name=False` explicitly.
 
-    """  # NOQA
+    """
 
     def __init__(self, nodes, edges, variable_style=_default,
                  function_style=_default, rankdir='TB',
