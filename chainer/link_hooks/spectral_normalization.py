@@ -251,6 +251,10 @@ class SpectralNormalization(link_hook.LinkHook):
                 link.gamma = variable.Parameter(s[0], ())
         self._initialized = True
 
+        # N.B.(crcrpar): Tentative adjustment for half precision.
+        if initialW.dtype == numpy.float16:
+            self.eps = 1e-6
+
     def normalize_weight(self, link):
         """Normalize target weight before every single forward computation."""
         weight_name, vector_name = self.weight_name, self.vector_name
