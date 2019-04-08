@@ -1219,6 +1219,52 @@ Note:
 .. seealso:: :func:`numpy.amax`
 """)
 
+    _docs.set_doc(
+        chainerx.mean,
+        """mean(a, axis=None, keepdims=False)
+Compute the arithmetic mean along the specified axis.
+
+Returns the average of the array elements. The average is taken over the
+flattened array by default, otherwise over the specified axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the mean of.
+    axis (None or int or tuple of ints): Along which axis or axes to compute
+    the mean. The flattened array is used by default.
+    keepdims (bool): If this is set to True, the axes which are reduced are
+    left in the result as dimensions with size one. With this option,
+    the result will broadcast correctly against the input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The mean of ``a``, along the axis or axes if
+    specified.
+
+.. seealso:: :func:`numpy.mean`
+""")
+
+    _docs.set_doc(
+        chainerx.var,
+        """var(a, axis=None, keepdims=False)
+Compute the arithmetic var along the specified axis.
+
+Returns the var of the array elements. The var is taken over the flattened
+array by default, otherwise over the specified axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the var of.
+    axis (None or int or tuple of ints): Along which axis or axes to compute
+    the var. The flattened array is used by default.
+    keepdims (bool): If this is set to True, the axes which are reduced are
+    left in the result as dimensions with size one. With this option,
+    the result will broadcast correctly against the input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The var of ``a``, along the axis or axes if
+    specified.
+
+.. seealso:: :func:`numpy.var`
+""")
+
 
 def _docs_connection():
     _docs.set_doc(
