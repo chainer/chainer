@@ -239,18 +239,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype) = 0;
 
-    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-
-    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) = 0;
-
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward(
             const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
         return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);

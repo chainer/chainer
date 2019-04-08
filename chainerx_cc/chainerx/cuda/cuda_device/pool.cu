@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <tuple>
 #include <utility>
+
+#include <nonstd/optional.hpp>
 
 #include <cudnn.h>
 
@@ -14,6 +17,7 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/data_type.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
@@ -77,194 +81,272 @@ __global__ void MaxPoolDoubleBackwardKernel(
     }
 }
 
-class PoolImpl {
+Array Pool(
+        cudnnPoolingMode_t cudnn_pooling_mode,
+        const Array& x,
+        StackVector<int64_t, kMaxNdim> kernel_size,
+        StackVector<int64_t, kMaxNdim> stride,
+        StackVector<int64_t, kMaxNdim> pad,
+        bool cover_all,
+        const nonstd::optional<Array>& out) {
+    CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(x.ndim() - 2));
+
+    // TODO(hvy): Implement and test the `out` argument.
+    if (out.has_value()) {
+        throw NotImplementedError{"Passing out as an argument is not yet supported."};
+    }
+
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
+    if (ndim != 2 && ndim != 3) {
+        throw DimensionError{"ChainerX cuDNN pooling supports only 2 and 3 spatial dimensions."};
+    }
+
+    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    Shape out_shape{x.shape()[0], x.shape()[1]};
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        CHAINERX_ASSERT(out_shape.back() > 0);
+    }
+
+    CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
+    Dtype dtype = x.dtype();
+
+    CudaSetDeviceScope scope{device.index()};
+
+    Array y = Empty(out_shape, dtype, device);
+    Array x_cont = AsContiguousArray(x);
+
+    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+    cuda_internal::CudnnTensorDescriptor y_desc{y};
+
+    cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    device_internals.cudnn_handle().Call(
+            cudnnPoolingForward,
+            *pool_desc,
+            cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+            *x_desc,
+            internal::GetRawOffsetData(x_cont),
+            cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
+            *y_desc,
+            internal::GetRawOffsetData(y));
+
+    return y;
+}
+
+Array PoolGrad(
+        cudnnPoolingMode_t cudnn_pooling_mode,
+        const Array& x,
+        const Array& y,
+        const Array& gout,
+        StackVector<int64_t, kMaxNdim> kernel_size,
+        StackVector<int64_t, kMaxNdim> stride,
+        StackVector<int64_t, kMaxNdim> pad,
+        const nonstd::optional<Array>& gx) {
+    CHAINERX_ASSERT(y.shape() == gout.shape());
+    CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(x.ndim() - 2));
+
+    // TODO(hvy): Implement and test the `gx` argument.
+    if (gx.has_value()) {
+        throw NotImplementedError{"Passing gx as an argument is not yet supported."};
+    }
+
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
+    if (ndim < 2) {
+        throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+    }
+
+    CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
+    Dtype dtype = x.dtype();
+
+    CudaSetDeviceScope scope{device.index()};
+
+    Array actual_gx = EmptyLike(x, device);
+    Array y_cont = AsContiguousArray(y);
+    Array gout_cont = AsContiguousArray(gout);
+    Array x_cont = AsContiguousArray(x);
+
+    cuda_internal::CudnnTensorDescriptor y_desc{y_cont};
+    cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont};
+    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+    cuda_internal::CudnnTensorDescriptor gx_desc{actual_gx};
+
+    cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    device_internals.cudnn_handle().Call(
+            cudnnPoolingBackward,
+            *pool_desc,
+            cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
+            *y_desc,
+            internal::GetRawOffsetData(y_cont),
+            *gout_desc,
+            internal::GetRawOffsetData(gout_cont),
+            *x_desc,
+            internal::GetRawOffsetData(x_cont),
+            cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
+            *gx_desc,
+            internal::GetRawOffsetData(actual_gx));
+
+    return actual_gx;
+}
+
+Array MaxPoolGradGrad(
+        const Array& x,
+        const Array& y,
+        const Array& ggx,
+        StackVector<int64_t, kMaxNdim> kernel_size,
+        StackVector<int64_t, kMaxNdim> stride,
+        StackVector<int64_t, kMaxNdim> pad,
+        const nonstd::optional<Array>& ggout) {
+    CHAINERX_ASSERT(x.shape() == ggx.shape());
+    CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(x.ndim() - 2));
+
+    // TODO(hvy): Implement and test the `ggout` argument.
+    if (ggout.has_value()) {
+        throw NotImplementedError{"Passing ggout as an argument is not yet supported."};
+    }
+
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
+    if (ndim < 2) {
+        throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+    }
+
+    CudaDevice& device = dynamic_cast<CudaDevice&>(ggx.device());
+    CudaSetDeviceScope scope{device.index()};
+
+    // TODO(hvy): Rename to `actual_ggout`.
+    Array ggy = EmptyLike(y, device);
+
+    VisitFloatingPointDtype(ggy.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        IndexableArray<const T> ggx_iarray{ggx};
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<const T> y_iarray{y};
+        IndexableArray<T> ggy_iarray{ggy};
+
+        Indexer<> x_indexer{x.shape()};
+        Indexer<> y_indexer{y.shape()};
+        Indexer<> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
+
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
+        int64_t total_size = y_indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
+                ggx_iarray,
+                x_iarray,
+                y_iarray,
+                ggy_iarray,
+                x_indexer,
+                y_indexer,
+                kernel_indexer,
+                CudaStackVector{stride},
+                CudaStackVector{pad});
+    });
+
+    return ggy;
+}
+
+// Pooling states are identical for most CUDA pooling ops.
+class CudaPoolStateBase {
 public:
-    PoolImpl(
-            cuda_internal::CudnnHandle& cudnn_handle,
+    CudaPoolStateBase(Array x, Array out) : x_{std::move(x)}, out_{std::move(out)} {}
+
+    const Array& x() const { return x_; }
+    const Array& out() const { return out_; }
+
+private:
+    Array x_{};
+    Array out_{};
+};
+
+class CudaMaxPoolGradState : public MaxPoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaMaxPoolOp : public MaxPoolOp {
+public:
+    std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
+            const Array& x,
             StackVector<int64_t, kMaxNdim> kernel_size,
             StackVector<int64_t, kMaxNdim> stride,
             StackVector<int64_t, kMaxNdim> pad,
             bool cover_all,
-            cudnnPoolingMode_t cudnn_pooling_mode)
-        : cudnn_handle_{cudnn_handle},
-          kernel_size_{std::move(kernel_size)},
-          stride_{std::move(stride)},
-          pad_{std::move(pad)},
-          cover_all_{cover_all},
-          cudnn_pooling_mode_{cudnn_pooling_mode} {}
+            bool return_state,
+            const nonstd::optional<Array>& out) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
-    Array Forward(const Array& x) {
-        int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
-        if (ndim != 2 && ndim != 3) {
-            throw DimensionError{"ChainerX cuDNN pooling supports only 2 and 3 spatial dimensions."};
-        }
-
-        CHAINERX_ASSERT(kernel_size_.size() == static_cast<size_t>(ndim));
-        CHAINERX_ASSERT(stride_.size() == static_cast<size_t>(ndim));
-        CHAINERX_ASSERT(pad_.size() == static_cast<size_t>(ndim));
-
-        // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
-        Shape out_shape{x.shape()[0], x.shape()[1]};
-        for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size_[i], stride_[i], pad_[i], cover_all_));
-            CHAINERX_ASSERT(out_shape.back() > 0);
-        }
-
-        Device& device = x.device();
-        Dtype dtype = x.dtype();
-
-        CudaSetDeviceScope scope{device.index()};
-
-        Array y = Empty(out_shape, dtype, device);
-        Array x_cont = AsContiguousArray(x);
-
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-        cuda_internal::CudnnTensorDescriptor y_desc{y};
-
-        cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
-
-        cudnn_handle_.Call(
-                cudnnPoolingForward,
-                *pool_desc,
-                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
-                *x_desc,
-                internal::GetRawOffsetData(x_cont),
-                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
-                *y_desc,
-                internal::GetRawOffsetData(y));
-
-        x_ = x;
-        y_ = y;
-
-        return y;
+        Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);
+        std::unique_ptr<MaxPoolGradState> state = return_state ? std::make_unique<CudaMaxPoolGradState>(x, actual_out) : nullptr;
+        return std::make_tuple(std::move(actual_out), std::move(state));
     }
-
-    Array Backward(const Array& gout) {
-        int8_t ndim = x_.ndim() - 2;  // Number of spacial dimensions
-        if (ndim < 2) {
-            throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
-        }
-
-        CHAINERX_ASSERT(kernel_size_.size() == static_cast<size_t>(ndim));
-        CHAINERX_ASSERT(stride_.size() == static_cast<size_t>(ndim));
-        CHAINERX_ASSERT(pad_.size() == static_cast<size_t>(ndim));
-        CHAINERX_ASSERT(gout.shape() == y_.shape());
-
-        Device& device = x_.device();
-        Dtype dtype = x_.dtype();
-
-        CudaSetDeviceScope scope{device.index()};
-
-        Array gx = EmptyLike(x_, device);
-        Array y_cont = AsContiguousArray(y_);
-        Array gout_cont = AsContiguousArray(gout);
-        Array x_cont = AsContiguousArray(x_);
-
-        cuda_internal::CudnnTensorDescriptor y_desc{y_cont};
-        cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont};
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-        cuda_internal::CudnnTensorDescriptor gx_desc{gx};
-
-        cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
-
-        cudnn_handle_.Call(
-                cudnnPoolingBackward,
-                *pool_desc,
-                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
-                *y_desc,
-                internal::GetRawOffsetData(y_cont),
-                *gout_desc,
-                internal::GetRawOffsetData(gout_cont),
-                *x_desc,
-                internal::GetRawOffsetData(x_cont),
-                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
-                *gx_desc,
-                internal::GetRawOffsetData(gx));
-
-        return gx;
-    }
-
-    Array DoubleBackward(const Array& ggx) {
-        Device& device = ggx.device();
-        CudaSetDeviceScope scope{device.index()};
-
-        Array ggy = EmptyLike(y_, device);
-
-        VisitFloatingPointDtype(ggy.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-
-            IndexableArray<const T> ggx_iarray{ggx};
-            IndexableArray<const T> x_iarray{x_};
-            IndexableArray<const T> y_iarray{y_};
-            IndexableArray<T> ggy_iarray{ggy};
-
-            Indexer<> x_indexer{x_.shape()};
-            Indexer<> y_indexer{y_.shape()};
-            Indexer<> kernel_indexer{Shape{kernel_size_.begin(), kernel_size_.end()}};
-
-            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
-            int64_t total_size = y_indexer.total_size();
-            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-            MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
-                    ggx_iarray,
-                    x_iarray,
-                    y_iarray,
-                    ggy_iarray,
-                    x_indexer,
-                    y_indexer,
-                    kernel_indexer,
-                    CudaStackVector{stride_},
-                    CudaStackVector{pad_});
-        });
-
-        return ggy;
-    }
-
-private:
-    cuda_internal::CudnnHandle& cudnn_handle_;
-    const StackVector<int64_t, kMaxNdim> kernel_size_;
-    const StackVector<int64_t, kMaxNdim> stride_;
-    const StackVector<int64_t, kMaxNdim> pad_;
-    bool cover_all_;
-    cudnnPoolingMode_t cudnn_pooling_mode_;
-    Array x_;
-    Array y_;
 };
 
-class CudaMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
+CHAINERX_REGISTER_OP_CUDA(MaxPoolOp, CudaMaxPoolOp);
+
+class CudaMaxPoolGradGradState : public MaxPoolGradGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaMaxPoolGradOp : public MaxPoolGradOp {
 public:
-    explicit CudaMaxPoolForwardBackward(
-            cuda_internal::CudnnHandle& cudnn_handle,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all)
-        : pool_impl_{cudnn_handle, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
+    std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
+            const Array& gout,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            const std::shared_ptr<MaxPoolGradState>& state,
+            bool return_state,
+            const nonstd::optional<Array>& gx) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
-    Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
+        CHAINERX_ASSERT(state != nullptr);
+        CudaMaxPoolGradState& cuda_state = dynamic_cast<CudaMaxPoolGradState&>(*state);
+        const Array& x = cuda_state.x();
+        const Array& out = cuda_state.out();
 
-    Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
-
-    Array DoubleBackward(const Array& ggx) override { return pool_impl_.DoubleBackward(ggx); }
-
-private:
-    PoolImpl pool_impl_;
+        Array actual_gx = PoolGrad(CUDNN_POOLING_MAX, x, out, gout, kernel_size, stride, pad, gx);
+        std::unique_ptr<MaxPoolGradGradState> grad_grad_state = return_state ? std::make_unique<CudaMaxPoolGradGradState>(x, out) : nullptr;
+        return std::make_tuple(std::move(actual_gx), std::move(grad_grad_state));
+    }
 };
 
-}  // namespace
+CHAINERX_REGISTER_OP_CUDA(MaxPoolGradOp, CudaMaxPoolGradOp);
 
-std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward(
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
-    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
-    return std::make_unique<CudaMaxPoolForwardBackward>(device_internals.cudnn_handle(), kernel_size, stride, pad, cover_all);
-}
+class CudaMaxPoolGradGradOp : public MaxPoolGradGradOp {
+public:
+    Array Call(
+            const Array& ggx,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            bool /*cover_all*/,
+            const std::shared_ptr<MaxPoolGradGradState>& state,
+            const nonstd::optional<Array>& ggout) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
-namespace {
+        CHAINERX_ASSERT(state != nullptr);
+        CudaMaxPoolGradGradState& cuda_state = dynamic_cast<CudaMaxPoolGradGradState&>(*state);
+        const Array& x = cuda_state.x();
+        const Array& out = cuda_state.out();
+
+        return MaxPoolGradGrad(x, out, ggx, kernel_size, stride, pad, ggout);
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(MaxPoolGradGradOp, CudaMaxPoolGradGradOp);
 
 cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     switch (pad_mode) {
@@ -277,34 +359,53 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     }
 }
 
-class CudaAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
-public:
-    explicit CudaAveragePoolForwardBackward(
-            cuda_internal::CudnnHandle& cudnn_handle,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode)
-        : pool_impl_{cudnn_handle, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
-
-    Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
-
-    Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
-
-private:
-    PoolImpl pool_impl_;
+class CudaAveragePoolGradState : public AveragePoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
 };
 
+class CudaAveragePoolOp : public AveragePoolOp {
+public:
+    std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
+            const Array& x,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            AveragePoolPadMode pad_mode,
+            bool return_state,
+            const nonstd::optional<Array>& out) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+
+        Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, out);
+        std::unique_ptr<AveragePoolGradState> state = return_state ? std::make_unique<CudaAveragePoolGradState>(x, actual_out) : nullptr;
+        return std::make_tuple(std::move(actual_out), std::move(state));
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AveragePoolOp, CudaAveragePoolOp);
+
+class CudaAveragePoolGradOp : public AveragePoolGradOp {
+public:
+    Array Call(
+            const Array& gout,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            AveragePoolPadMode pad_mode,
+            const std::shared_ptr<AveragePoolGradState>& state,
+            const nonstd::optional<Array>& gx) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+
+        CHAINERX_ASSERT(state != nullptr);
+        CudaAveragePoolGradState& cuda_state = dynamic_cast<CudaAveragePoolGradState&>(*state);
+        const Array& x = cuda_state.x();
+        const Array& out = cuda_state.out();
+
+        return PoolGrad(GetCudnnPoolingMode(pad_mode), x, out, gout, kernel_size, stride, pad, gx);
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AveragePoolGradOp, CudaAveragePoolGradOp);
+
 }  // namespace
-
-std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBackward(
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        AveragePoolPadMode pad_mode) {
-    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
-    return std::make_unique<CudaAveragePoolForwardBackward>(device_internals.cudnn_handle(), kernel_size, stride, pad, pad_mode);
-}
-
 }  // namespace cuda
 }  // namespace chainerx
