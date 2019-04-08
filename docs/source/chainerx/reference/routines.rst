@@ -134,6 +134,7 @@ Mathematical functions
    chainerx.floor
    chainerx.square
    chainerx.clip
+   chainerx.ceil
 
 Random sampling
 ---------------
@@ -162,6 +163,8 @@ Statistics
    :nosignatures:
 
    chainerx.amax
+   chainerx.mean
+   chainerx.var
 
 Connection
 ----------
