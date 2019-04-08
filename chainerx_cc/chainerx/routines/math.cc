@@ -659,6 +659,12 @@ void MinimumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreater
 
 }  // namespace
 
+namespace {
+
+void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x1, x2, out); }
+
+}  // namespace
+
 Array Maximum(const Array& x1, Scalar x2) {
     // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
@@ -667,7 +673,8 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Maximum(const Array& x1, const Array& x2) {
-    return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    return BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
 }
 
 Array Minimum(const Array& x1, Scalar x2) {
