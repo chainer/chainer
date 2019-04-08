@@ -1051,6 +1051,20 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.ceil,
+        """ceil(x)
+Return the ceiling of the input, element-wise..
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The ceiling of each element in array.
+
+.. seealso:: :data:`numpy.ceil`
+""")
+
+    _docs.set_doc(
         chainerx.tan,
         """tan(x)
 Tangent, element-wise
