@@ -284,7 +284,7 @@ Array BatchNorm(
     Device& device = x.device();
 
     // Compute forward.
-    Array out = EmptyLike(x, device);
+    Array out{};
     std::shared_ptr<BatchNormState> state{};
     {
         NoBackpropModeScope scope{};
@@ -299,6 +299,7 @@ Array BatchNorm(
                 sorted_axis,
                 true,
                 out);
+        out = std::move(std::get<0>(batch_norm_result));
         state = std::move(std::get<1>(batch_norm_result));
     }
     CHAINERX_ASSERT(state != nullptr);
@@ -321,12 +322,16 @@ Array BatchNorm(
             Device& device = x.device();
 
             // Compute backward.
-            Array gx = EmptyLike(x, device);
-            Array ggamma = EmptyLike(gamma_reshaped, device);
-            Array gbeta = Empty(beta_shape, beta_dtype, device);
+            Array gx{};
+            Array ggamma{};
+            Array gbeta{};
             {
                 NoBackpropModeScope scope{};
-                device.backend().CallOp<BatchNormGradOp>(x, gamma_reshaped, gout, eps, sorted_axis, state, gx, ggamma, gbeta);
+                std::array<Array, 3> batch_norm_grad_result = device.backend().CallOp<BatchNormGradOp>(
+                        x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
+                gx = std::move(batch_norm_grad_result[0]);
+                ggamma = std::move(batch_norm_grad_result[1]);
+                gbeta = std::move(batch_norm_grad_result[2]);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
             internal::MakeViewForForwardBackwardOutput(ggamma);
@@ -421,13 +426,11 @@ Array FixedBatchNorm(
     PreprocessBatchNormResult result =
             PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
 
-    Array out = EmptyLike(x, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<FixedBatchNormOp>(
-                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, out);
+        return x.device().backend().CallOp<FixedBatchNormOp>(
+                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, nonstd::nullopt);
     }
-    return out;
 }
 
 }  // namespace chainerx

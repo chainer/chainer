@@ -38,7 +38,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out = nonstd::nullopt) = 0;
+            const nonstd::optional<Array>& out) = 0;
 };
 
 class BatchNormGradOp : public Op {
@@ -53,9 +53,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormState>& state,
-            const nonstd::optional<Array>& gx = nonstd::nullopt,
-            const nonstd::optional<Array>& ggamma = nonstd::nullopt,
-            const nonstd::optional<Array>& gbeta = nonstd::nullopt) = 0;
+            const nonstd::optional<Array>& gx,
+            const nonstd::optional<Array>& ggamma,
+            const nonstd::optional<Array>& gbeta) = 0;
 };
 
 class GenericBatchNormOp : public BatchNormOp {
@@ -70,7 +70,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out = nonstd::nullopt) override;
+            const nonstd::optional<Array>& out) override;
 };
 
 class GenericBatchNormGradOp : public BatchNormGradOp {
@@ -82,9 +82,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormState>& state,
-            const nonstd::optional<Array>& gx = nonstd::nullopt,
-            const nonstd::optional<Array>& ggamma = nonstd::nullopt,
-            const nonstd::optional<Array>& gbeta = nonstd::nullopt) override;
+            const nonstd::optional<Array>& gx,
+            const nonstd::optional<Array>& ggamma,
+            const nonstd::optional<Array>& gbeta) override;
 };
 
 class FixedBatchNormOp : public Op {
@@ -99,7 +99,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out = nonstd::nullopt) = 0;
+            const nonstd::optional<Array>& out) = 0;
 };
 
 class GenericFixedBatchNormOp : public FixedBatchNormOp {
@@ -112,7 +112,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out = nonstd::nullopt) override;
+            const nonstd::optional<Array>& out) override;
 };
 
 // Computes the batch normalization along the given axis.
