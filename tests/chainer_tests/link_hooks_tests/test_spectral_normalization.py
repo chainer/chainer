@@ -1,20 +1,19 @@
 import copy
 import os
-import shutil
-import tempfile
 import unittest
 
 import numpy
 import pytest
 
 import chainer
-from chainer.backends._cpu import _to_cpu as to_cpu
+from chainer.backends import _cpu
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
 import chainer.links as L
 from chainer import serializers
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing.backend import BackendConfig
+from chainer import utils
 
 
 class TestExceptions(unittest.TestCase):
@@ -40,8 +39,6 @@ class TestExceptions(unittest.TestCase):
 
 
 class BaseTest(object):
-
-    allclose_options = {'atol': 1e-6, 'rtol': 1e-4}
 
     def test_add_sn_hook(self):
         layer, hook = self.layer, self.hook
@@ -96,11 +93,11 @@ class BaseTest(object):
         u2 = getattr(layer, hook.vector_name)
         v2 = hook.v
 
-        u1, u2 = to_cpu(u1), to_cpu(u2)
-        v1, v2 = to_cpu(v1), to_cpu(v2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
+        v1, v2 = _cpu._to_cpu(v1), _cpu._to_cpu(v2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        testing.assert_allclose(y1, y2, **self.allclose_options)
+        testing.assert_allclose(y1, y2)
 
     def test_in_recomputing(self, backend_config):
         if not self.lazy_init:
@@ -119,7 +116,7 @@ class BaseTest(object):
             layer.delete_hook(hook.name)
             assert not hasattr(layer, hook.vector_name)
             y3 = layer(x).array
-        y1, y2, y3 = to_cpu(y1), to_cpu(y2), to_cpu(y3)
+        y1, y2, y3 = _cpu._to_cpu(y1), _cpu._to_cpu(y2), _cpu._to_cpu(y3)
         assert not numpy.array_equal(y1, y3)
         assert not numpy.array_equal(y2, y3)
 
@@ -136,8 +133,8 @@ class BaseTest(object):
         u1 = getattr(layer, hook.vector_name).copy()
         y2 = layer(x).array
         u2 = getattr(layer, hook.vector_name)
-        y1, y2 = to_cpu(y1), to_cpu(y2)
-        u1, u2 = to_cpu(u1), to_cpu(u2)
+        y1, y2 = _cpu._to_cpu(y1), _cpu._to_cpu(y2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
         assert not numpy.array_equal(u1, u2)
         assert not numpy.array_equal(y1, y2)
 
@@ -159,11 +156,11 @@ class BaseTest(object):
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v.copy()
 
-        u1, u2 = to_cpu(u1), to_cpu(u2)
-        v1, v2 = to_cpu(v1), to_cpu(v2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
+        v1, v2 = _cpu._to_cpu(v1), _cpu._to_cpu(v2)
         numpy.testing.assert_array_equal(u1, u2)
         numpy.testing.assert_array_equal(v1, v2)
-        testing.assert_allclose(y1, y2, **self.allclose_options)
+        testing.assert_allclose(y1, y2)
 
     def test_u_not_updated_in_test(self, backend_config):
         if not self.lazy_init:
@@ -203,46 +200,45 @@ class BaseTest(object):
             self.check_multi_devices_forward(device_0, device_1)
 
     def check_serialization(self, backend_config):
-        root = tempfile.mkdtemp()
-        filename = os.path.join(root, 'tmp.npz')
+        with utils.tempdir() as root:
+            filename = os.path.join(root, 'tmp.npz')
 
-        layer1 = self.layer.copy('copy')
-        hook1 = copy.deepcopy(self.hook)
-        layer1.add_hook(hook1)
+            layer1 = self.layer.copy('copy')
+            hook1 = copy.deepcopy(self.hook)
+            layer1.add_hook(hook1)
 
-        layer1.to_device(backend_config.device)
-        x = backend_config.get_array(self.x)
-        with backend_config:
-            layer1(x)
+            layer1.to_device(backend_config.device)
+            x = backend_config.get_array(self.x)
+            with backend_config:
+                layer1(x)
+                with chainer.using_config('train', False):
+                    y1 = layer1(x)
+            serializers.save_npz(filename, layer1)
+
+            layer2 = self.layer.copy('copy')
+            hook2 = copy.deepcopy(self.hook)
+            layer2.add_hook(hook2)
+
+            # Test loading is nice.
+            msg = None
+            try:
+                serializers.load_npz(filename, layer2)
+            except Exception as e:
+                msg = e
+            assert msg is None
+
             with chainer.using_config('train', False):
-                y1 = layer1(x)
-        serializers.save_npz(filename, layer1)
+                y2 = layer2(self.x.copy())
 
-        layer2 = self.layer.copy('copy')
-        hook2 = copy.deepcopy(self.hook)
-        layer2.add_hook(hook2)
-
-        # Test loading is nice.
-        msg = None
-        try:
-            serializers.load_npz(filename, layer2)
-        except Exception as e:
-            msg = e
-        assert msg is None
-
-        with chainer.using_config('train', False):
-            y2 = layer2(self.x.copy())
-
-        # Test attributes are the same.
-        orig_weight = to_cpu(getattr(layer1, hook1.weight_name).array)
-        orig_vector = to_cpu(getattr(layer1, hook1.vector_name))
-        numpy.testing.assert_array_equal(
-            orig_weight, getattr(layer2, hook2.weight_name).array)
-        numpy.testing.assert_array_equal(
-            orig_vector, getattr(layer2, hook2.vector_name))
-        testing.assert_allclose(y1.array, y2.array, **self.allclose_options)
-
-        shutil.rmtree(root)
+            # Test attributes are the same.
+            orig_weight = _cpu._to_cpu(
+                getattr(layer1, hook1.weight_name).array)
+            orig_vector = _cpu._to_cpu(getattr(layer1, hook1.vector_name))
+            numpy.testing.assert_array_equal(
+                orig_weight, getattr(layer2, hook2.weight_name).array)
+            numpy.testing.assert_array_equal(
+                orig_vector, getattr(layer2, hook2.vector_name))
+            testing.assert_allclose(y1.array, y2.array)
 
     def test_serialization(self, backend_config):
         if not self.lazy_init:

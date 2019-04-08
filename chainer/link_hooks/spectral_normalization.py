@@ -275,6 +275,8 @@ class SpectralNormalization(link_hook.LinkHook):
             with chainer.using_device(link.device):
                 if configuration.config.train:
                     if link.xp is chainerx:
+                        # TODO(crcrpar): Remove this when
+                        # chainerx supports `copyto`.
                         getattr(link, vector_name)[:] = u
                     else:
                         backend.copyto(getattr(link, vector_name), u)
