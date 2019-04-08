@@ -489,6 +489,20 @@ class Link(device_resident.DeviceResident):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
 
+    def namedpersistent(self):
+        # type: () -> tp.Iterator[tp.Tuple[str, :ref:`ndarray`]]
+        """Returns a generator of all (path, persistent) pairs \
+under the hierarchy.
+
+        Returns:
+            A generator object that generates all (path, persistent) pairs.
+            The paths are relative from this link.
+
+        """
+        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        for name in sorted(self._persistent):
+            yield '/' + name, d[name]
+
     def links(self, skipself=False):
         # type: (bool) -> tp.Iterator['Link']
         """Returns a generator of all links under the hierarchy.
@@ -981,6 +995,16 @@ class Chain(Link):
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
+    def namedpersistent(self):
+        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
+        for ret in super(Chain, self).namedpersistent():
+            yield ret
+        d = self.__dict__
+        for name, in sorted(self._children):
+            prefix = '/' + name
+            for path, persistent in d[name].namedpersistent():
+                yield prefix + path, persistent
+
     def links(self, skipself=False):
         # type: (bool) -> tp.Iterator[Link]
 
@@ -1201,6 +1225,15 @@ class ChainList(Link, collections_abc.MutableSequence):
             prefix = '/%d' % idx
             for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
+
+    def namedpersistent(self):
+        # type: () -> tp.Iterator[tp.Tuple[str, :ref:`ndarray`]]
+        for ret in super(ChainList, self).namedpersistent():
+            yield ret
+        for idx, link in enumerate(self._children):
+            prefix = '/{}'.format(idx)
+            for path, persistent in link.namedpersistent():
+                yield prefix + path, persistent
 
     def links(self, skipself=False):
         # type: (bool) -> tp.Iterator[Link]
