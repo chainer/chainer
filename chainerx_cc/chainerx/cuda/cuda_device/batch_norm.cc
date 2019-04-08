@@ -1,8 +1,12 @@
 #include "chainerx/cuda/cuda_device.h"
 
+#include <array>
 #include <cstdint>
 #include <memory>
+#include <tuple>
 #include <utility>
+
+#include <nonstd/optional.hpp>
 
 #include <cudnn.h>
 
@@ -103,20 +107,34 @@ private:
     cudnnTensorDescriptor_t desc_{};
 };
 
-struct CudaBatchNormState {
-    CudaBatchNormState(Array x_cont, Array x_mean, Array x_inv_std)
-        : x_cont{std::move(x_cont)}, x_mean{std::move(x_mean)}, x_inv_std{std::move(x_inv_std)} {}
+struct CudaBatchNormState : public BatchNormState {
+public:
+    CudaBatchNormState(Array x_cont, Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
+        : x_cont_{std::move(x_cont)},
+          x_mean_{std::move(x_mean)},
+          x_inv_std_{std::move(x_inv_std)},
+          beta_shape_{std::move(beta_shape)},
+          beta_dtype_{beta_dtype} {}
 
-    Array x_cont;
-    Array x_mean;
-    Array x_inv_std;
+    const Array& x_cont() { return x_cont_; }
+    const Array& x_mean() { return x_mean_; }
+    const Array& x_inv_std() { return x_inv_std_; }
+    const Shape& beta_shape() { return beta_shape_; }
+    Dtype beta_dtype() { return beta_dtype_; }
+
+private:
+    Array x_cont_;
+    Array x_mean_;
+    Array x_inv_std_;
+    Shape beta_shape_;
+    Dtype beta_dtype_;
 };
 
 }  // namespace
 
 class CudaBatchNormOp : public BatchNormOp {
 public:
-    void Call(
+    std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -125,8 +143,8 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
-            const Array& out,
-            nonstd::optional<std::shared_ptr<void>>& state) override {
+            bool return_state,
+            const nonstd::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -186,6 +204,8 @@ public:
 
         Dtype dtype = x.dtype();
 
+        const Array& actual_out = out.has_value() ? *out : EmptyLike(x, x.device());
+
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardTraining,
                 mode,
@@ -194,7 +214,7 @@ public:
                 *x_desc,
                 internal::GetRawOffsetData(x_cont),
                 *x_desc,
-                internal::GetRawOffsetData(out),
+                internal::GetRawOffsetData(actual_out),
                 *gamma_beta_mean_var_desc,
                 internal::GetRawOffsetData(gamma_casted_cont),
                 internal::GetRawOffsetData(beta_casted_cont),
@@ -212,9 +232,12 @@ public:
         UpdateRunning(running_mean, running_mean_casted);
         UpdateRunning(running_var, running_var_casted);
 
-        if (state.has_value()) {
-            state->reset(new CudaBatchNormState{std::move(x_cont), std::move(x_mean), std::move(x_inv_std)});
-        }
+        std::shared_ptr<BatchNormState> state =
+                return_state ? std::make_shared<CudaBatchNormState>(
+                                       std::move(x_cont), std::move(x_mean), std::move(x_inv_std), beta.shape(), beta.dtype())
+                             : nullptr;
+
+        return std::make_tuple(actual_out, std::move(state));
     }
 };
 
@@ -222,22 +245,24 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
 
 class CudaBatchNormGradOp : public BatchNormGradOp {
 public:
-    void Call(
-            const Array& /*x*/,
+    std::array<Array, 3> Call(
+            const Array& x,
             const Array& gamma,
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const Array& gx,
-            const Array& ggamma,
-            const Array& gbeta,
-            nonstd::optional<std::shared_ptr<void>>& state) override {
+            const std::shared_ptr<BatchNormState>& state,
+            const nonstd::optional<Array>& gx,
+            const nonstd::optional<Array>& ggamma,
+            const nonstd::optional<Array>& gbeta) override {
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
-        CHAINERX_ASSERT(state.has_value());
-        auto state_ptr = reinterpret_cast<CudaBatchNormState*>(state->get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        const Array& x_cont = state_ptr->x_cont;
-        const Array& x_mean = state_ptr->x_mean;
-        const Array& x_inv_std = state_ptr->x_inv_std;
+        CHAINERX_ASSERT(state != nullptr);
+        auto cuda_state = dynamic_cast<CudaBatchNormState&>(*state);
+        const Array& x_cont = cuda_state.x_cont();
+        const Array& x_mean = cuda_state.x_mean();
+        const Array& x_inv_std = cuda_state.x_inv_std();
+        const Shape& beta_shape = cuda_state.beta_shape();
+        Dtype beta_dtype = cuda_state.beta_dtype();
 
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis, true);
@@ -304,10 +329,15 @@ public:
                 internal::GetRawOffsetData(x_mean),
                 internal::GetRawOffsetData(x_inv_std));
 
-        // TODO(hvy): Consider writing directly in the routines/ops above.
-        device.AsType(gx_cont, gx);
-        device.AsType(ggamma_casted_cont, ggamma);
-        device.AsType(gbeta_casted_cont, gbeta);
+        const Array& actual_gx = gx.has_value() ? *gx : EmptyLike(x, device);
+        const Array& actual_ggamma = ggamma.has_value() ? *ggamma : EmptyLike(gamma, device);
+        const Array& actual_gbeta = gbeta.has_value() ? *gbeta : Empty(beta_shape, beta_dtype, device);
+
+        device.AsType(gx_cont, actual_gx);
+        device.AsType(ggamma_casted_cont, actual_ggamma);
+        device.AsType(gbeta_casted_cont, actual_gbeta);
+
+        return {actual_gx, actual_ggamma, actual_gbeta};
     }
 };
 
@@ -315,7 +345,7 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormGradOp, CudaBatchNormGradOp);
 
 class CudaFixedBatchNormOp : public FixedBatchNormOp {
 public:
-    void Call(
+    Array Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -323,7 +353,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const Array& out) override {
+            const nonstd::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -365,6 +395,8 @@ public:
 
         Dtype dtype = x_cont.dtype();
 
+        Array actual_out = out.has_value() ? *out : EmptyLike(x, device);
+
         device.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardInference,
                 GetBatchNormMode(axis),
@@ -373,13 +405,15 @@ public:
                 *x_desc,
                 internal::GetRawOffsetData(x_cont),
                 *x_desc,
-                internal::GetRawOffsetData(out),
+                internal::GetRawOffsetData(actual_out),
                 *gamma_beta_mean_var_desc,
                 internal::GetRawOffsetData(gamma_casted_cont),
                 internal::GetRawOffsetData(beta_casted_cont),
                 internal::GetRawOffsetData(mean_casted_cont),
                 internal::GetRawOffsetData(var_casted_cont),
                 static_cast<double>(eps));
+
+        return actual_out;
     }
 };
 

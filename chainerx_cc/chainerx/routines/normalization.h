@@ -1,6 +1,8 @@
 #pragma once
 
+#include <array>
 #include <memory>
+#include <tuple>
 
 #include <nonstd/optional.hpp>
 
@@ -13,12 +15,20 @@
 
 namespace chainerx {
 
+// Intermediate results from `BatchNormOp::Call` can be stored in this construct and be reused in `BatchNormGradOp::Call`.
+// The objects to store may vary depending on backend so each backend should derive this class to define the actual set of intermediate
+// results.
+class BatchNormState {
+public:
+    virtual ~BatchNormState() = default;
+};
+
 class BatchNormOp : public Op {
 public:
     static const char* name() { return "BatchNormForward"; }
 
-    // Intermediate state values such as the mean and inverse std can be written to `state` for reuse in BatchNormGradOp.
-    virtual void Call(
+    // The returned state should be a `nullptr` if `return_state` is `false`.
+    virtual std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -27,29 +37,30 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
-            const Array& out,
-            nonstd::optional<std::shared_ptr<void>>& state) = 0;
+            bool return_state,
+            const nonstd::optional<Array>& out = nonstd::nullopt) = 0;
 };
 
 class BatchNormGradOp : public Op {
 public:
     static const char* name() { return "BatchNormBackward"; }
 
-    virtual void Call(
+    // Returns gx, ggamma, gbeta.
+    virtual std::array<Array, 3> Call(
             const Array& x,
             const Array& gamma,
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const Array& gx,
-            const Array& ggamma,
-            const Array& gbeta,
-            nonstd::optional<std::shared_ptr<void>>& state) = 0;
+            const std::shared_ptr<BatchNormState>& state,
+            const nonstd::optional<Array>& gx = nonstd::nullopt,
+            const nonstd::optional<Array>& ggamma = nonstd::nullopt,
+            const nonstd::optional<Array>& gbeta = nonstd::nullopt) = 0;
 };
 
 class GenericBatchNormOp : public BatchNormOp {
 public:
-    void Call(
+    std::tuple<Array, std::shared_ptr<BatchNormState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -58,29 +69,29 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis,
-            const Array& out,
-            nonstd::optional<std::shared_ptr<void>>& state) override;
+            bool return_state,
+            const nonstd::optional<Array>& out = nonstd::nullopt) override;
 };
 
 class GenericBatchNormGradOp : public BatchNormGradOp {
 public:
-    void Call(
+    std::array<Array, 3> Call(
             const Array& x,
             const Array& gamma,
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const Array& gx,
-            const Array& ggamma,
-            const Array& gbeta,
-            nonstd::optional<std::shared_ptr<void>>& state) override;
+            const std::shared_ptr<BatchNormState>& state,
+            const nonstd::optional<Array>& gx = nonstd::nullopt,
+            const nonstd::optional<Array>& ggamma = nonstd::nullopt,
+            const nonstd::optional<Array>& gbeta = nonstd::nullopt) override;
 };
 
 class FixedBatchNormOp : public Op {
 public:
     static const char* name() { return "FixedBatchNormForward"; }
 
-    virtual void Call(
+    virtual Array Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -88,12 +99,12 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const Array& out) = 0;
+            const nonstd::optional<Array>& out = nonstd::nullopt) = 0;
 };
 
 class GenericFixedBatchNormOp : public FixedBatchNormOp {
 public:
-    void Call(
+    Array Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -101,7 +112,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const Array& out) override;
+            const nonstd::optional<Array>& out = nonstd::nullopt) override;
 };
 
 // Computes the batch normalization along the given axis.
