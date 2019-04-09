@@ -1,15 +1,10 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer import cuda
 from chainer.functions import convolution_2d
 from chainer.functions import deformable_convolution_2d_sampler
 from chainer import utils
 
 from chainer import testing
-from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
@@ -21,57 +16,81 @@ from chainer.testing import attr
         (1, 2, 3, 4, 4, 5),
         (3, 3, 2, 2, 1, 1),
     ],
+    'dtype': [numpy.float32],
     'use_cudnn': ['always', 'never']
 }))
-class TestDeformableConvolution2DSamplerFunctionZeroOffset(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestDeformableConvolution2DSamplerFunctionZeroOffset(
+        testing.FunctionTestCase):
 
     def setUp(self):
-        in_channels = 3
-        out_channels = 2
-        batch_size = 2
-        h = 9
-        w = 9
+        self.skip_double_backward_test = True
+        self.in_channels = 3
+        self.out_channels = 2
+        self.batch_size = 2
+        self.h = 9
+        self.w = 9
 
-        kh, kw, sy, sx, ph, pw = self.params
+        self.kh, self.kw, self.sy, self.sx, self.ph, self.pw = self.params
 
-        self.stride = (sy, sx)
-        self.pad = (ph, pw)
+        self.stride = (self.sy, self.sx)
+        self.pad = (self.ph, self.pw)
 
-        self.W = numpy.random.normal(
-            size=(out_channels, in_channels, kh, kw)).astype(numpy.float32)
-        self.b = numpy.random.uniform(
-            size=(out_channels,)).astype(numpy.float32)
-
-        self.x = numpy.random.uniform(
-            size=(batch_size, in_channels, h, w)).astype(numpy.float32)
-
-        out_h = utils.conv.get_conv_outsize(h, kh, sy, ph)
-        out_w = utils.conv.get_conv_outsize(w, kw, sx, pw)
+        self.out_h = utils.conv.get_conv_outsize(
+            self.h, self.kh, self.sy, self.ph)
+        self.out_w = utils.conv.get_conv_outsize(
+            self.w, self.kw, self.sx, self.pw)
         self.offset = numpy.zeros(
-            (batch_size, 2 * kh * kw, out_h, out_w), dtype=numpy.float32)
+            (self.batch_size, 2 * self.kh * self.kw, self.out_h, self.out_w),
+            dtype=self.dtype)
 
-    def check_forward(self, x, offset, W, b, stride, pad):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            x = chainer.Variable(x)
-            offset = chainer.Variable(offset)
-            out = deformable_convolution_2d_sampler(
-                x, offset, W, b, stride, pad).data
-            expeceted = convolution_2d(
-                x, W, b, stride, pad).data
-        testing.assert_allclose(out, expeceted)
+        self.check_backward_options = {'atol': 0.1, 'rtol': 1}
 
-    def test_forward_cpu(self):
-        self.check_forward(
-            self.x, self.offset, self.W, self.b, self.stride, self.pad)
+    def generate_inputs(self):
+        W = numpy.random.normal(
+            size=(self.out_channels, self.in_channels, self.kh, self.kw)
+        ).astype(self.dtype)
+        b = numpy.random.uniform(
+            size=(self.out_channels,)).astype(self.dtype)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.x),
-            cuda.to_gpu(self.offset),
-            cuda.to_gpu(self.W),
-            cuda.to_gpu(self.b),
-            self.stride, self.pad)
+        x = numpy.random.uniform(
+            size=(self.batch_size, self.in_channels, self.h, self.w)
+        ).astype(self.dtype)
+
+        offset = numpy.zeros(
+            (self.batch_size, 2 * self.kh * self.kw, self.out_h, self.out_w)
+        ).astype(self.dtype)
+
+        return W, b, x, offset
+
+    def forward_expected(self, inputs):
+        W, b, x, _ = inputs
+        y = convolution_2d(
+            x, W, b, self.stride, self.pad)
+        return y.array,
+
+    def forward(self, inputs, devices):
+        W, b, x, offset = inputs
+        out = deformable_convolution_2d_sampler(
+            x, offset, W, b, self.stride, self.pad)
+        return out,
 
 
 @testing.parameterize(*testing.product({
@@ -83,65 +102,85 @@ class TestDeformableConvolution2DSamplerFunctionZeroOffset(unittest.TestCase):
         (1, 2, 3, 4, 4, 5),
         (3, 3, 2, 2, 1, 1),
     ],
+    'dtype': [numpy.float32],
     'use_cudnn': ['always', 'never']
 }))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
 class TestDeformableConvolution2DSamplerFunctionLeftBottomOffset(
-        unittest.TestCase):
+        testing.FunctionTestCase):
 
     def setUp(self):
-        in_channels = 3
-        out_channels = 2
-        batch_size = 2
-        h = 9
-        w = 9
+        self.skip_double_backward_test = True
+        self.in_channels = 3
+        self.out_channels = 2
+        self.batch_size = 2
+        self.h = 9
+        self.w = 9
+        self.kh, self.kw, self.sy, self.sx, self.ph, self.pw = self.params
 
-        kh, kw, sy, sx, ph, pw = self.params
+        self.stride = (self.sy, self.sx)
+        self.pad = (self.ph, self.pw)
 
-        self.stride = (sy, sx)
-        self.pad = (ph, pw)
+        self.pad = (
+            self.pad[0] + 1 * self.stride[0], self.pad[1] + 1 * self.stride[1])
 
-        self.W = numpy.random.normal(
-            size=(out_channels, in_channels, kh, kw)).astype(numpy.float32)
-        self.b = numpy.random.uniform(
-            size=(out_channels,)).astype(numpy.float32)
+        self.out_h = utils.conv.get_conv_outsize(
+            self.h, self.kh, self.sy, self.ph)
+        self.out_w = utils.conv.get_conv_outsize(
+            self.w, self.kw, self.sx, self.pw)
 
-        self.x = numpy.random.uniform(
-            size=(batch_size, in_channels, h, w)).astype(numpy.float32)
+        self.check_backward_options = {'atol': 1, 'rtol': 5e-1}
+        self.check_forward_options = {'atol': 10, 'rtol': 5e-1}
 
-        out_h = utils.conv.get_conv_outsize(h, kh, sy, ph)
-        out_w = utils.conv.get_conv_outsize(w, kw, sx, pw)
-        self.offset = numpy.zeros(
-            (batch_size, 2 * kh * kw, out_h, out_w), dtype=numpy.float32)
+    def generate_inputs(self):
+        W = numpy.random.normal(
+            size=(self.out_channels, self.in_channels, self.kh, self.kw)
+        ).astype(self.dtype)
+        b = numpy.random.uniform(
+            size=(self.out_channels,)).astype(self.dtype)
+        x = numpy.random.uniform(
+            size=(self.batch_size, self.in_channels, self.h, self.w)
+        ).astype(self.dtype)
 
-    def check_forward(self, x, offset, W, b, stride, pad):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            _, _, h, w = x.shape
-            _, _, kh, kw = W.shape
-            offset[:, :kh * kw] = -1 * stride[1]
-            offset[:, kh * kw:] = 1 * stride[0]
+        offset = numpy.zeros(
+            (self.batch_size, 2 * self.kh * self.kw, self.out_h, self.out_w),
+            dtype=self.dtype)
 
-            x = chainer.Variable(x)
-            offset = chainer.Variable(offset)
-            out = deformable_convolution_2d_sampler(
-                x, offset, W, b, stride, pad).data
-            pad = (pad[0] + 1 * stride[0], pad[1] + 1 * stride[1])
-            expeceted = convolution_2d(
-                x, W, b, stride, pad).data
-            expeceted = expeceted[:, :, 2:, :-2]
-        testing.assert_allclose(out, expeceted)
+        _, _, kh, kw = W.shape
+        offset[:, :kh * kw] = -1 * self.stride[1]
+        offset[:, kh * kw:] = 1 * self.stride[0]
 
-    def test_forward_cpu(self):
-        self.check_forward(
-            self.x, self.offset, self.W, self.b, self.stride, self.pad)
+        return W, b, x, offset
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.x),
-            cuda.to_gpu(self.offset),
-            cuda.to_gpu(self.W),
-            cuda.to_gpu(self.b),
-            self.stride, self.pad)
+    def forward_expected(self, inputs):
+        W, b, x, _ = inputs
+        expected = convolution_2d(
+            x, W, b, self.stride, self.pad).array
+        expected = expected[:, :, 2:, :-2]
+        return expected,
+
+    def forward(self, inputs, device):
+        W, b, x, offset = inputs
+        out = deformable_convolution_2d_sampler(
+            x, offset, W, b, self.stride, self.pad)
+        return out,
 
 
 testing.run_module(__name__, __file__)
