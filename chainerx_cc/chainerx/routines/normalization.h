@@ -24,7 +24,7 @@ public:
 
 class BatchNormOp : public Op {
 public:
-    static const char* name() { return "BatchNormForward"; }
+    static const char* name() { return "BatchNorm"; }
 
     // The returned state should be a `nullptr` if `return_state` is `false`.
     virtual std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
@@ -42,7 +42,7 @@ public:
 
 class BatchNormGradOp : public Op {
 public:
-    static const char* name() { return "BatchNormBackward"; }
+    static const char* name() { return "BatchNormGrad"; }
 
     // Returns gx, ggamma, gbeta.
     virtual std::tuple<Array, Array, Array> Call(
@@ -88,7 +88,7 @@ public:
 
 class FixedBatchNormOp : public Op {
 public:
-    static const char* name() { return "FixedBatchNormForward"; }
+    static const char* name() { return "FixedBatchNorm"; }
 
     virtual Array Call(
             const Array& x,
