@@ -23,6 +23,13 @@ __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
 template <typename T>
+__device__ inline T Ceil(T x) {
+    return std::ceil(x);
+}
+
+__device__ inline cuda::Float16 Ceil(cuda::Float16 x) { return cuda::Float16{std::ceil(static_cast<float>(x))}; }
+
+template <typename T>
 __device__ inline T Tanh(T x) {
     return std::tanh(x);
 }

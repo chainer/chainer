@@ -45,35 +45,35 @@ void CheckLogicDtypes(const Array& x1, const Array& x2) {
 
 }  // namespace
 
-Array EqualOp::Call(const Array& x1, const Array& x2) {
+Array Equal(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [this](const Array& x1, const Array& x2, Array& out) { Impl(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<EqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
-Array NotEqualOp::Call(const Array& x1, const Array& x2) {
+Array NotEqual(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [this](const Array& x1, const Array& x2, Array& out) { Impl(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<NotEqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
-Array GreaterOp::Call(const Array& x1, const Array& x2) {
+Array Greater(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [this](const Array& x1, const Array& x2, Array& out) { Impl(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<GreaterOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
-Array GreaterEqualOp::Call(const Array& x1, const Array& x2) {
+Array GreaterEqual(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [this](const Array& x1, const Array& x2, Array& out) { return Impl(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<GreaterEqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
-Array LogicalNotOp::Call(const Array& x) {
+Array LogicalNot(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        Impl(x, out);
+        x.device().backend().CallOp<LogicalNotOp>(x, out);
     }
     return out;
 }

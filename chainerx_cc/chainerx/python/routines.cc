@@ -27,6 +27,7 @@
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/routines/sorting.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
 
@@ -578,6 +579,10 @@ void InitChainerxMath(pybind11::module& m) {
     m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Maximum(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
     m.def("minimum", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Minimum(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
     m.def("minimum", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
+    m.def("minimum",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
@@ -612,6 +617,7 @@ void InitChainerxMath(pybind11::module& m) {
     m.def("arcsin", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arcsin(Array{x})); }, py::arg("x"));
     m.def("arccos", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arccos(Array{x})); }, py::arg("x"));
     m.def("arctan", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arctan(Array{x})); }, py::arg("x"));
+    m.def("ceil", [](const ArrayBodyPtr& x) { return MoveArrayBody(Ceil(Array{x})); }, py::arg("x"));
     m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
     m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
 }
@@ -639,6 +645,30 @@ void InitChainerxStatistics(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.attr("max") = m.attr("amax");
+    m.def("mean",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Mean(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("mean",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Mean(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    m.def("var",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Var(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("var",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Var(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
 }
 
 void InitChainerxConnection(pybind11::module& m) {

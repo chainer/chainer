@@ -84,9 +84,8 @@ public:
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
+    // TODO(hvy): Implement as an Op and remove this method.
     virtual void Fill(const Array& out, Scalar value) = 0;
-
-    virtual void Arange(Scalar start, Scalar step, const Array& out) = 0;
 
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
@@ -101,12 +100,8 @@ public:
     // See Sum() for the explanation of arguments.
     virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
 
-    // Copies the elements from one array to the other.
-    //
-    // The arrays must match in shape and dtype and need to reside on this device.
-    virtual void Copy(const Array& a, const Array& out) = 0;
-
     // Casts the elements from one array to the other dtype, and store into the other.
+    // TODO(hvy): Implement as an Op and remove this method.
     virtual void AsType(const Array& a, const Array& out) = 0;
 
     virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
@@ -133,6 +128,7 @@ public:
     //
     // Formally, it calculates: out = x1 > x2 ? pos : neg
     virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
+    virtual void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
 
@@ -151,20 +147,6 @@ public:
 
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;
-
-    // Creates the identity array.
-    // out must be a square 2-dim array.
-    virtual void Identity(const Array& out) = 0;
-
-    // Creates a 2-dimensional array with ones along the k-th diagonal and zeros elsewhere.
-    // out must be a square 2-dim array.
-    virtual void Eye(int64_t k, const Array& out) = 0;
-
-    virtual void Diagflat(const Array& v, int64_t k, const Array& out) = 0;
-
-    // Creates an evenly spaced 1-d array.
-    // `out.ndim()` must be 1 with at least 1 elements.
-    virtual void Linspace(double start, double stop, const Array& out) = 0;
 
     // Computes the n-dimensional convolution.
     //

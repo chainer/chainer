@@ -509,6 +509,9 @@ def batch_norm(
 def broadcast_to(array: ndarray, shape: tp.Tuple[int, ...]) -> ndarray: ...
 
 
+def ceil(x: ndarray) -> ndarray: ...
+
+
 def concatenate(arrays: tp.List[ndarray], axis: tp.Optional[int]=...) -> ndarray: ...
 
 

@@ -36,7 +36,8 @@ struct ArgMaxImpl {
     __device__ MaxAndArgMax Identity() { return {CudaType{}, -1}; }
     __device__ MaxAndArgMax MapIn(CudaType in, int64_t index) { return {in, index}; }
     __device__ void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
-        if (accum.argmax < 0 || accum.max < next.max) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
+        if (next.argmax != -1 && (accum.argmax == -1 || accum.max < next.max)) {
             accum = next;
         }
     }
@@ -44,8 +45,8 @@ struct ArgMaxImpl {
 };
 
 class CudaArgMaxOp : public ArgMaxOp {
-protected:
-    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};

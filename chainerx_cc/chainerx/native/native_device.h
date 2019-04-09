@@ -42,16 +42,6 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
-    void Arange(Scalar start, Scalar step, const Array& out) override;
-
-    void Identity(const Array& out) override;
-
-    void Eye(int64_t k, const Array& out) override;
-
-    void Diagflat(const Array& v, int64_t k, const Array& out) override;
-
-    void Linspace(double start, double stop, const Array& out) override;
-
     // arithmetic.cc
 
     void Add(const Array& x1, const Array& x2, const Array& out) override;
@@ -76,8 +66,6 @@ public:
 
     // copy.cc
 
-    void Copy(const Array& a, const Array& out) override;
-
     void AsType(const Array& a, const Array& out) override;
 
     // activation.cc
@@ -85,6 +73,7 @@ public:
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
     void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
 
