@@ -98,6 +98,8 @@ Array Sigmoid(const Array& x);
 
 Array Square(const Array& x);
 
+Array SquaredDifference(const Array& x1, const Array& x2);
+
 Array Sqrt(const Array& x);
 
 Array IsNan(const Array& x);
