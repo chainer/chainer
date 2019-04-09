@@ -123,7 +123,7 @@ public:
                 bool Identity() { return true; }
                 bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
                 void Reduce(bool next, bool& accum) { accum = accum && next; }
-                bool MapOut(bool accum) { return static_cast<bool>(accum); }
+                bool MapOut(bool accum) { return accum; }
             };
             Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
@@ -145,7 +145,7 @@ public:
                 bool Identity() { return false; }
                 bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
                 void Reduce(bool next, bool& accum) { accum = accum || next; }
-                bool MapOut(bool accum) { return static_cast<bool>(accum); }
+                bool MapOut(bool accum) { return accum; }
             };
             Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
