@@ -156,7 +156,7 @@ class NStepRNNBase(link.ChainList):
               ``ys[i]`` holds hidden states of the last layer corresponding
               to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
               uni-directional RNN and ``(L_i, 2N)`` for bi-directional RNN
-              where ``L_t`` is the length of a sequence for batch ``i``,
+              where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)
