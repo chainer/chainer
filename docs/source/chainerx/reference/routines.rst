@@ -133,6 +133,7 @@ Mathematical functions
    chainerx.arccos
    chainerx.arctan
    chainerx.tanh
+   chainerx.floor
    chainerx.square
    chainerx.clip
 
