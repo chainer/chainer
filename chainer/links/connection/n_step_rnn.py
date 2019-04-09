@@ -143,7 +143,7 @@ class NStepRNNBase(link.ChainList):
                 the hidden units.
             xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_i, I)``, where ``L_t`` is the
+                a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
                 length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
