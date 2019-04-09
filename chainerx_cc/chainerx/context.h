@@ -61,6 +61,18 @@ public:
     // Gets the native backend.
     native::NativeBackend& GetNativeBackend();
 
+    // Registers the backend.
+    template <typename BackendType>
+    Backend& CreateBackend(const std::string& backend_name) {
+        auto backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
+                new BackendType{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
+        auto pair = RegisterBackend(backend_name, std::move(backend));
+        if (!pair.second) {
+            ContextError{"Backend is already registered: ", backend_name};
+        }
+        return pair.first;
+    }
+
     // Gets the device specified by the device ID.
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
@@ -109,6 +121,11 @@ public:
     }
 
 private:
+    // If a backend associated with backend_name is already registered, returns a pair of the a reference to the backend already registered
+    // and true. Otherwise, registers the given backend and returns a pair of a reference to it and false
+    std::pair<Backend&, bool> RegisterBackend(
+            const std::string& backend_name, std::unique_ptr<Backend, context_detail::BackendDeleter> backend);
+
     // TODO(niboshi): Support multi-thread usage
     struct BackpropSetItem {
         BackpropSetItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}

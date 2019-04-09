@@ -485,8 +485,8 @@ class TestGpuDeviceFromArray(unittest.TestCase):
 
         device = backend.GpuDevice.from_array(arr)
         assert isinstance(device, backend.GpuDevice)
-        assert (device
-                == chainer.get_device((cuda.cupy, backend_config.cuda_device)))
+        assert device == backend.GpuDevice.from_device_id(
+            backend_config.cuda_device)
 
     def test_get_device_from_array(self, backend_config):
         with cuda.Device(backend_config.cuda_device):
@@ -541,7 +541,8 @@ class TestGpuDeviceFromDeviceId(unittest.TestCase):
     def test_from_device_id(self):
         device = backend.GpuDevice.from_device_id(self.device_id)
         assert isinstance(device, backend.GpuDevice)
-        assert device == chainer.get_device((cuda.cupy, self.device_id))
+        device_spec = '@cupy:{}'.format(self.device_id)
+        assert device == chainer.get_device(device_spec)
         assert device.device.id == int(self.device_id)
 
 
@@ -566,7 +567,7 @@ class TestGpuDeviceFromDeviceIdInvalid(unittest.TestCase):
 class TestGpuDeviceUse(unittest.TestCase):
 
     def test_use(self, backend_config):
-        device = chainer.get_device((cuda.cupy, backend_config.cuda_device))
+        device = backend.GpuDevice.from_device_id(backend_config.cuda_device)
         with cuda.Device(0):
             device.use()
             assert device.device == cuda.Device()

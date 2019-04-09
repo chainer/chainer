@@ -8,8 +8,10 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 namespace cuda {
@@ -21,18 +23,20 @@ struct CopyImpl {
     __device__ void operator()(int64_t /*i*/, CudaType a, CudaType& out) { out = a; }
 };
 
-}  // namespace
+class CudaCopyOp : public CopyOp {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(CopyImpl<T>{}, a, out);
+        });
+    }
+};
 
-void CudaDevice::Copy(const Array& a, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(CopyImpl<T>{}, a, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(CopyOp, CudaCopyOp);
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {

@@ -46,7 +46,9 @@ install(FILES
     numerical_gradient.h
     numeric.h
     numeric_limits.h
+    op.h
     op_node.h
+    op_registry.h
     optional_container_arg.h
     platform.h
     reduction_kernel_arg.h
@@ -144,7 +146,7 @@ endif()
 install(TARGETS chainerx DESTINATION lib)
 
 if(${CHAINERX_BUILD_TEST})
-    add_subdirectory(context_testdata)
+    add_subdirectory(backend_testdata)
     set(srcs
         array_body_leak_detection_test.cc
         array_device_test.cc
@@ -167,6 +169,7 @@ if(${CHAINERX_BUILD_TEST})
         numeric_limits_test.cc
         numerical_gradient_test.cc
         numeric_test.cc
+        op_registry_test.cc
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc

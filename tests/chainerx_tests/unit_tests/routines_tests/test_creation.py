@@ -1,5 +1,4 @@
 from io import StringIO
-import math
 import sys
 import tempfile
 
@@ -615,18 +614,6 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
 
 
 @pytest.mark.parametrize(
-    'value', [True, False, -2, 0, 1, 2, 2.5, float('inf'), float('nan')])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_full_with_scalar(shape, dtype, value, device):
-    scalar = chainerx.Scalar(value)
-    a = chainerx.full(shape, scalar)
-    if isinstance(value, float) and math.isnan(value):
-        assert all([math.isnan(el) for el in a._debug_flat_data])
-    else:
-        assert a._debug_flat_data == [scalar.tolist()] * a.size
-
-
-@pytest.mark.parametrize(
     'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_full_with_device(device):
     a = chainerx.full((2,), 1, 'float32', device)
@@ -973,6 +960,30 @@ def test_linspace(xp, start, stop, num, endpoint, range_type, dtype, device):
     start = range_type(start)
     stop = range_type(stop)
     return xp.linspace(start, stop, num, endpoint=endpoint, dtype=dtype)
+
+
+# Check only for closeness to numpy not the dtype
+# as the default float of numpy and chainerx may differ.
+@chainerx.testing.numpy_chainerx_allclose(dtype_check=False, float16_rtol=1e-7)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('start,stop', [
+    (0, 0),
+    (0, 1),
+    (1, 0),
+    (-1, 0),
+    (0, -1),
+    (1, -1),
+    (-13.3, 352.5),
+    (13.3, -352.5),
+])
+@pytest.mark.parametrize('num', [0, 1, 2, 257])
+@pytest.mark.parametrize('endpoint', [True, False])
+@pytest.mark.parametrize('range_type', [float, int])
+def test_linspace_default_dtype(xp, start, stop, num, endpoint,
+                                range_type, device):
+    start = range_type(start)
+    stop = range_type(stop)
+    return xp.linspace(start, stop, num, endpoint=endpoint)
 
 
 @chainerx.testing.numpy_chainerx_allclose()
