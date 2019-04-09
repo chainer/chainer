@@ -29,6 +29,10 @@ _expected_all_dtypes_comparison = _expected_numeric_dtypes_comparison + [
 ]
 
 
+def _make_in_dtypes(number_of_in_params, dtypes):
+    return [((dtype,) * number_of_in_params) for dtype in dtypes]
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # All dtypes
@@ -215,44 +219,64 @@ def compute_any(xp, a, axis, keepdims):
     return xp.any(a, axis=axis, keepdims=keepdims)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('keepdims', [False, True])
-@pytest.mark.parametrize('shape,axis', [
-    ((), None),
-    ((), ()),
-    ((2,), None),
-    ((2,), ()),
-    ((2,), 0),
-    ((2,), (0,)),
-    ((2,), (-1,)),
-    ((2, 3), None),
-    ((2, 3), ()),
-    ((2, 3), 0),
-    ((2, 3), (0,)),
-    ((2, 3), (1,)),
-    ((2, 3), (-1,)),
-    ((2, 3), (-2,)),
-    ((2, 3), (0, 1)),
-    ((2, 3), (-2, -1)),
-    ((1, 3), None),  # Reduce over 1-dim axis
-    ((0, 3), None),  # Reduce over 0-dim axis
-    # Reduce over axes that are in the middle or apart
-    ((2, 3, 4), (1,)),
-    ((2, 3, 4), (0, 2)),
-    # Reduce over axes that are apart and/or unsorted
-    ((2, 3), (1, 0)),
-    ((2, 3, 4), (2, 0)),
-    ((2, 3, 4), (2, 0, 1)),
-    ((2, 3, 4), (-2, 2, 0)),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('func', [
-    compute_all,
-    compute_any
-])
-def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    return func(xp, a, axis, keepdims)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape,axis': [
+            ((), None),
+            ((), ()),
+            ((2,), None),
+            ((2,), ()),
+            ((2,), 0),
+            ((2,), (0,)),
+            ((2,), (-1,)),
+            ((2, 3), None),
+            ((2, 3), ()),
+            ((2, 3), 0),
+            ((2, 3), (0,)),
+            ((2, 3), (1,)),
+            ((2, 3), (-1,)),
+            ((2, 3), (-2,)),
+            ((2, 3), (0, 1)),
+            ((2, 3), (-2, -1)),
+            ((1, 3), None),  # Reduce over 1-dim axis
+            ((0, 3), None),  # Reduce over 0-dim axis
+            # Reduce over axes that are in the middle or apart
+            ((2, 3, 4), (1,)),
+            ((2, 3, 4), (0, 2)),
+            # Reduce over axes that are apart and/or unsorted
+            ((2, 3), (1, 0)),
+            ((2, 3, 4), (2, 0)),
+            ((2, 3, 4), (2, 0, 1)),
+            ((2, 3, 4), (-2, 2, 0)),
+        ],
+        'keepdims': [True, False],
+        'in_dtypes':
+            _make_in_dtypes(1, chainerx.testing.numeric_dtypes),
+        'func': [compute_all, compute_any],
+        # With all zero,
+        # partially zero,
+        # all non-zero arrays
+        'probs': [0.0, 0.6, 1.0]
+    })
+))
+class TestLogicalReductions(op_utils.NumpyOpTest):
+
+    def setup(self):
+        self.skip_backward_test = True
+        self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        a = numpy.random.normal(0, 1, self.shape)
+        a = array_utils.dropout(a, self.probs).astype(in_dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        y = self.func(xp, a, self.axis, self.keepdims)
+        return y,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -271,11 +295,12 @@ def test_logical_reductions(func, xp, device, shape, axis, keepdims, dtype):
     ((2, 3,), (0, 1, 1)),
     ((2, 3,), (0, -2)),
 ])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('func', [
     compute_all,
     compute_any
 ])
 def test_logical_reductions_invalid(func, is_module, xp, shape,
-                                    axis, keepdims, dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
+                                    axis, keepdims, dtype, device):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype, device)
     func(xp, a, axis, keepdims)
