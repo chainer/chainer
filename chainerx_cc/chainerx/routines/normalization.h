@@ -17,9 +17,9 @@ namespace chainerx {
 // Intermediate results from `BatchNormOp::Call` can be stored in this construct and be reused in `BatchNormGradOp::Call`.
 // The objects to store may vary depending on backend so each backend should derive this class to define the actual set of intermediate
 // results.
-class BatchNormState {
+class BatchNormGradState {
 public:
-    virtual ~BatchNormState() = default;
+    virtual ~BatchNormGradState() = default;
 };
 
 class BatchNormOp : public Op {
@@ -27,7 +27,7 @@ public:
     static const char* name() { return "BatchNorm"; }
 
     // The returned state should be a `nullptr` if `return_state` is `false`.
-    virtual std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
+    virtual std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -51,7 +51,7 @@ public:
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const std::shared_ptr<BatchNormState>& state,
+            const std::shared_ptr<BatchNormGradState>& state,
             const nonstd::optional<Array>& gx,
             const nonstd::optional<Array>& ggamma,
             const nonstd::optional<Array>& gbeta) = 0;
@@ -59,7 +59,7 @@ public:
 
 class GenericBatchNormOp : public BatchNormOp {
 public:
-    std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
+    std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -80,7 +80,7 @@ public:
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const std::shared_ptr<BatchNormState>& state,
+            const std::shared_ptr<BatchNormGradState>& state,
             const nonstd::optional<Array>& gx,
             const nonstd::optional<Array>& ggamma,
             const nonstd::optional<Array>& gbeta) override;

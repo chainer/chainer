@@ -108,9 +108,9 @@ Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_temp
     return Zeros(zeros_template.shape(), dtype, zeros_template.device());
 }
 
-class GenericBatchNormState : public BatchNormState {
+class GenericBatchNormGradState : public BatchNormGradState {
 public:
-    GenericBatchNormState(Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
+    GenericBatchNormGradState(Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
         : x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_shape_{std::move(beta_shape)}, beta_dtype_{beta_dtype} {}
 
     const Array& x_mean() const { return x_mean_; }
@@ -125,7 +125,7 @@ private:
     Dtype beta_dtype_;
 };
 
-std::tuple<Array, std::unique_ptr<BatchNormState>> ApplyGenericBatchNorm(
+std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -158,8 +158,8 @@ std::tuple<Array, std::unique_ptr<BatchNormState>> ApplyGenericBatchNorm(
     const Array& actual_out = out.has_value() ? *out : EmptyLike(x, x.device());
     out_cast.device().AsType(out_cast, actual_out);
 
-    std::unique_ptr<BatchNormState> state =
-            return_state ? std::make_unique<GenericBatchNormState>(std::move(mean_cast), std::move(inv_std), beta.shape(), beta.dtype())
+    std::unique_ptr<BatchNormGradState> state =
+            return_state ? std::make_unique<GenericBatchNormGradState>(std::move(mean_cast), std::move(inv_std), beta.shape(), beta.dtype())
                          : nullptr;
 
     return std::make_tuple(actual_out, std::move(state));
@@ -167,7 +167,7 @@ std::tuple<Array, std::unique_ptr<BatchNormState>> ApplyGenericBatchNorm(
 
 }  // namespace
 
-std::tuple<Array, std::unique_ptr<BatchNormState>> GenericBatchNormOp::Call(
+std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -192,7 +192,7 @@ std::tuple<Array, std::unique_ptr<BatchNormState>> GenericBatchNormOp::Call(
     const Array& x_cast = x.dtype() == interm_dtype ? x : x.AsType(interm_dtype);
     Array x_mean = Mean(x_cast, axis, true);
     Array x_var = Var(x_cast, axis, true);
-    std::tuple<Array, std::unique_ptr<BatchNormState>> result =
+    std::tuple<Array, std::unique_ptr<BatchNormGradState>> result =
             ApplyGenericBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype, return_state, out);
 
     // Update running values.
@@ -213,13 +213,13 @@ std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
         const Array& gout,
         Scalar /*eps*/,
         const Axes& axis,
-        const std::shared_ptr<BatchNormState>& state,
+        const std::shared_ptr<BatchNormGradState>& state,
         const nonstd::optional<Array>& gx,
         const nonstd::optional<Array>& ggamma,
         const nonstd::optional<Array>& gbeta) {
     // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
     CHAINERX_ASSERT(state != nullptr);
-    auto generic_state = dynamic_cast<GenericBatchNormState&>(*state);
+    auto generic_state = dynamic_cast<GenericBatchNormGradState&>(*state);
     // x_mean and x_inv_std have promoted dtypes.
     const Array& x_mean = generic_state.x_mean();
     const Array& x_inv_std = generic_state.x_inv_std();  // Note: x_inv_std_ has the information of eps.
@@ -258,7 +258,7 @@ Array GenericFixedBatchNormOp::Call(
         const Axes& axis,
         const nonstd::optional<Array>& out) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
-    std::tuple<Array, std::unique_ptr<BatchNormState>> result =
+    std::tuple<Array, std::unique_ptr<BatchNormGradState>> result =
             ApplyGenericBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype, false, out);
     return out.has_value() ? *out : std::get<0>(result);
 }
@@ -284,7 +284,7 @@ Array BatchNorm(
 
     // Compute forward.
     Array out{};
-    std::shared_ptr<BatchNormState> state{};
+    std::shared_ptr<BatchNormGradState> state{};
     {
         NoBackpropModeScope scope{};
         std::tie(out, state) = device.backend().CallOp<BatchNormOp>(

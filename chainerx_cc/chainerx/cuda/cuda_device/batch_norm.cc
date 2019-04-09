@@ -70,9 +70,9 @@ cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
     return derive_desc;
 }
 
-struct CudaBatchNormState : public BatchNormState {
+struct CudaBatchNormGradState : public BatchNormGradState {
 public:
-    CudaBatchNormState(Array x_cont, Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
+    CudaBatchNormGradState(Array x_cont, Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
         : x_cont_{std::move(x_cont)},
           x_mean_{std::move(x_mean)},
           x_inv_std_{std::move(x_inv_std)},
@@ -97,7 +97,7 @@ private:
 
 class CudaBatchNormOp : public BatchNormOp {
 public:
-    std::tuple<Array, std::unique_ptr<BatchNormState>> Call(
+    std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -194,8 +194,8 @@ public:
         UpdateRunning(running_mean, running_mean_casted);
         UpdateRunning(running_var, running_var_casted);
 
-        std::unique_ptr<BatchNormState> state =
-                return_state ? std::make_unique<CudaBatchNormState>(
+        std::unique_ptr<BatchNormGradState> state =
+                return_state ? std::make_unique<CudaBatchNormGradState>(
                                        std::move(x_cont), std::move(x_mean), std::move(x_inv_std), beta.shape(), beta.dtype())
                              : nullptr;
 
@@ -213,13 +213,13 @@ public:
             const Array& gout,
             Scalar eps,
             const Axes& axis,
-            const std::shared_ptr<BatchNormState>& state,
+            const std::shared_ptr<BatchNormGradState>& state,
             const nonstd::optional<Array>& gx,
             const nonstd::optional<Array>& ggamma,
             const nonstd::optional<Array>& gbeta) override {
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state != nullptr);
-        auto cuda_state = dynamic_cast<CudaBatchNormState&>(*state);
+        auto cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
         const Array& x_cont = cuda_state.x_cont();
         const Array& x_mean = cuda_state.x_mean();
         const Array& x_inv_std = cuda_state.x_inv_std();
