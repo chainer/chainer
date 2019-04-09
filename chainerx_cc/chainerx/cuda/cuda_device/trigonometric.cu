@@ -21,15 +21,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename CudaType, typename Op>
-struct UnaryOpImpl {
-    Op op;
-
-    explicit UnaryOpImpl(Op op) : op{op} {}
-
-    __device__ inline void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = op(x); }
-};
-
 template <typename T>
 struct SinImpl {
     using CudaType = cuda_internal::DataType<T>;
@@ -162,6 +153,12 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(ArctanOp, CudaArctanOp);
 
+template <typename T>
+struct SinhImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sinh(x); }
+};
+
 class CudaSinhOp : public SinhOp {
 public:
     void Call(const Array& x, const Array& out) override {
@@ -171,15 +168,18 @@ public:
         const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            using CudaType = cuda_internal::DataType<T>;
-            auto op = cuda::Sinh<CudaType>{};
-            auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
-            Elementwise<const T, T>(functor, x_cast, out);
+            Elementwise<const T, T>(SinhImpl<T>{}, x_cast, out);
         });
     }
 };
 
 CHAINERX_REGISTER_OP_CUDA(SinhOp, CudaSinhOp);
+
+template <typename T>
+struct CoshImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Cosh(x); }
+};
 
 class CudaCoshOp : public CoshOp {
 public:
@@ -190,15 +190,18 @@ public:
         const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            using CudaType = cuda_internal::DataType<T>;
-            auto op = cuda::Cosh<CudaType>{};
-            auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
-            Elementwise<const T, T>(functor, x_cast, out);
+            Elementwise<const T, T>(CoshImpl<T>{}, x_cast, out);
         });
     }
 };
 
 CHAINERX_REGISTER_OP_CUDA(CoshOp, CudaCoshOp);
+
+template <typename T>
+struct ArcsinhImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Arcsinh(x); }
+};
 
 class CudaArcsinhOp : public ArcsinhOp {
 public:
@@ -209,15 +212,18 @@ public:
         const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            using CudaType = cuda_internal::DataType<T>;
-            auto op = cuda::Arcsinh<CudaType>{};
-            auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
-            Elementwise<const T, T>(functor, x_cast, out);
+            Elementwise<const T, T>(ArcsinhImpl<T>{}, x_cast, out);
         });
     }
 };
 
 CHAINERX_REGISTER_OP_CUDA(ArcsinhOp, CudaArcsinhOp);
+
+template <typename T>
+struct ArccoshImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Arccosh(x); }
+};
 
 class CudaArccoshOp : public ArccoshOp {
 public:
@@ -228,10 +234,7 @@ public:
         const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            using CudaType = cuda_internal::DataType<T>;
-            auto op = cuda::Arccosh<CudaType>{};
-            auto functor = UnaryOpImpl<CudaType, decltype(op)>{op};
-            Elementwise<const T, T>(functor, x_cast, out);
+            Elementwise<const T, T>(ArccoshImpl<T>{}, x_cast, out);
         });
     }
 };
