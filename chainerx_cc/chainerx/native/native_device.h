@@ -77,10 +77,6 @@ public:
 
     void Tanh(const Array& x, const Array& out) override;
 
-    // dot.cc
-
-    void Dot(const Array& a, const Array& b, const Array& out) override;
-
     // exp_log.cc
 
     void Exp(const Array& x, const Array& out) override;
