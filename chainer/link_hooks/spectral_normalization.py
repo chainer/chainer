@@ -8,7 +8,7 @@ from chainer import link_hook
 import chainer.links as L
 from chainer import variable
 import chainerx
-from chainerx._fallback_workarounds import _from_chx as from_chx_workaround
+from chainerx import _fallback_workarounds as fallback
 
 
 def l2normalize(xp, v, eps=1e-12):
@@ -239,7 +239,7 @@ class SpectralNormalization(link_hook.LinkHook):
             weight_matrix = self.reshape_W(initialW.array)
             # TODO(crcrpar): Remove this when chainerx supports SVD.
             if link.xp is chainerx:
-                xp, device, array = from_chx_workaround(weight_matrix)
+                xp, device, array = fallback._from_chx(weight_matrix)
                 if xp is numpy:
                     _, s, _ = numpy.linalg.svd(array)
                 else:
