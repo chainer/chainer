@@ -4,7 +4,7 @@ from chainer import function_node
 from chainer import variable
 
 
-_default = 'default'
+# Note: docstrings must be updated when changing these default values.
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
@@ -55,11 +55,7 @@ class DotNode(object):
 
 class ComputationalGraph(object):
 
-    """__init__(self, nodes, edges, variable_style=_var_style, \
-function_style=_func_style, rankdir='TB', remove_variable=False, \
-show_name=True)
-
-    Class that represents computational graph.
+    """Class that represents computational graph.
 
     .. note::
 
@@ -69,8 +65,12 @@ show_name=True)
         nodes (list): List of nodes. Each node is either
              :class:`VariableNode` object or :class:`FunctionNode` object.
         edges (list): List of edges. Each edge consists of pair of nodes.
-        variable_style (dict): Dot node style for variable.
-        function_style (dict): Dot node style for function.
+        variable_style (dict or `'default'`): Dot node style for variable.
+            If the special value ``'default'`` is specified, use the default
+            configuration.
+        function_style (dict or `default`): Dot node style for function.
+            If the special value ``'default'`` is specified, use the default
+            configuration.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
@@ -79,6 +79,13 @@ show_name=True)
             :class:`FunctionNode`\\ s are shown in the output.
         show_name (bool): If ``True``, the ``name`` attribute of each node is
             added to the label of the node. Default is ``True``.
+
+    .. note::
+
+       The default configuration for ``variable_style`` is
+       ``{'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}`` and
+       the default configuration for ``function_style`` is
+       ``{'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}``.
 
     .. note::
 
@@ -91,19 +98,19 @@ show_name=True)
 
     """
 
-    def __init__(self, nodes, edges, variable_style=_default,
-                 function_style=_default, rankdir='TB',
+    def __init__(self, nodes, edges, variable_style='default',
+                 function_style='default', rankdir='TB',
                  remove_variable=False, show_name=True):
         # If `variable_style` and `function_style` is explicitly set to None,
         # use legacy (Chainer v1.22.0) style for backward compatibility.
         if variable_style is None:
             variable_style = {}
-        elif variable_style == _default:
+        elif variable_style == 'default':
             variable_style = dict(_var_style)
 
         if function_style is None:
             function_style = {}
-        elif function_style == _default:
+        elif function_style == 'default':
             function_style = dict(_func_style)
 
         self.nodes = nodes
@@ -208,14 +215,10 @@ def _skip_variable(nodes, edges):
 
 
 def build_computational_graph(
-        outputs, remove_split=True, variable_style=_default,
-        function_style=_default, rankdir='TB', remove_variable=False,
+        outputs, remove_split=True, variable_style='default',
+        function_style='default', rankdir='TB', remove_variable=False,
         show_name=True):
-    """build_computational_graph(outputs, remove_split=True,
-variable_style=_var_style, function_style=_func_style, rankdir='TB', \
-remove_variable=False, show_name=True)
-
-    Builds a graph of functions and variables backward-reachable from outputs.
+    """Builds a graph of functions and variables backward-reachable from outputs.
 
     Args:
         outputs (:class:`~chainer.Variable`, \
@@ -227,9 +230,14 @@ remove_variable=False, show_name=True)
             :class:`~chainer.FunctionNode` object.
         remove_split(bool): It must be ``True``. This argument is left for
             backward compatibility.
-        variable_style(dict): Dot node style for variable.
-            Possible keys are 'shape', 'color', 'fillcolor', 'style', and etc.
-        function_style(dict): Dot node style for function.
+        variable_style(dict or 'default'): Dot node style for variable.
+            Possible keys are 'shape', 'color', 'fillcolor', 'style' etc.
+            If the special value ``'default'`` is specified, use the default
+            configuration.
+        function_style(dict or 'default'): Dot node style for function.
+            Possible keys are 'shape', 'color', 'fillcolor', 'style' etc.
+            If the special value ``'default'`` is specified, use the default
+            configuration.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
@@ -263,6 +271,13 @@ remove_variable=False, show_name=True)
             x ---> f ---> y
 
         See :class:`TestGraphBuilder` for details.
+
+    .. note::
+
+       The default configuration for ``variable_style`` is
+       ``{'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}`` and
+       the default configuration for ``function_style`` is
+       ``{'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}``.
 
     .. note::
 

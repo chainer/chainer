@@ -8,7 +8,6 @@ from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
-_default = 'default'
 _default_statistics = {
     'mean': lambda x: backend.get_array_module(x).mean(x),
     'std': lambda x: backend.get_array_module(x).std(x),
@@ -21,11 +20,7 @@ _default_statistics = {
 
 
 class ParameterStatistics(extension.Extension):
-    """__init__(self, links, statistics=_default_statistics, \
-report_params=True, report_grads=True, prefix=None, trigger=(1, 'epoch'), \
-skip_nan_params=False)
-
-    Trainer extension to report parameter statistics.
+    """Trainer extension to report parameter statistics.
 
     Statistics are collected and reported for a given :class:`~chainer.Link`
     or an iterable of :class:`~chainer.Link`\\ s. If a link contains child
@@ -46,9 +41,12 @@ skip_nan_params=False)
         links (~chainer.Link or iterable of ~chainer.Link): Link(s) containing
             the parameters to observe. The link is expected to have a ``name``
             attribute which is used as a part of the report key.
-        statistics (dict): Dictionary with function name to function mappings.
+        statistics (dict or 'default'): Dictionary with function name to
+            function mappings.
             The name is a string and is used as a part of the report key. The
             function is responsible for generating the statistics.
+            If the special value ``'default'`` is specified, use the default
+            statistics functions.
         report_params (bool): If ``True``, report statistics for parameter
             values such as weights and biases.
         report_grads (bool): If ``True``, report statistics for parameter
@@ -60,6 +58,19 @@ skip_nan_params=False)
             parameters including NaNs and a single NaN value is immediately
             reported instead. Otherwise, this extension will simply try to
             compute the statistics without performing any checks for NaNs.
+
+    .. note::
+
+       The default statistic functions are as follows:
+
+       * ``'mean'`` (``xp.mean(x)``)
+       * ``'std'`` (``xp.std(x)``)
+       * ``'min'`` (``xp.min(x)``)
+       * ``'max'`` (``xp.max(x)``)
+       * ``'zeros'`` (``xp.count_nonzero(x == 0)``)
+       * ``'percentile'`` (``xp.percentile(x, \
+(0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))``)
+
     """
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
@@ -70,7 +81,7 @@ skip_nan_params=False)
 
     default_statistics = _default_statistics
 
-    def __init__(self, links, statistics=_default,
+    def __init__(self, links, statistics='default',
                  report_params=True, report_grads=True, prefix=None,
                  trigger=(1, 'epoch'), skip_nan_params=False):
 
@@ -80,7 +91,7 @@ skip_nan_params=False)
 
         if statistics is None:
             statistics = {}
-        elif statistics == _default:
+        elif statistics == 'default':
             statistics = self.default_statistics
         self._statistics = dict(statistics)
 
