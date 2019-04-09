@@ -1,7 +1,6 @@
 #include "chainerx/routines/normalization.h"
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
 #include <memory>
 #include <tuple>
@@ -208,7 +207,7 @@ std::tuple<Array, std::unique_ptr<BatchNormState>> GenericBatchNormOp::Call(
     return result;
 }
 
-std::array<Array, 3> GenericBatchNormGradOp::Call(
+std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
         const Array& x,
         const Array& gamma,
         const Array& gout,
@@ -246,7 +245,7 @@ std::array<Array, 3> GenericBatchNormGradOp::Call(
     device.AsType(ggamma_cast, actual_ggamma);
     device.AsType(gbeta_cast, actual_gbeta);
 
-    return {actual_gx, actual_ggamma, actual_gbeta};
+    return std::make_tuple(actual_gx, actual_ggamma, actual_gbeta);
 }
 
 Array GenericFixedBatchNormOp::Call(
@@ -288,7 +287,7 @@ Array BatchNorm(
     std::shared_ptr<BatchNormState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tuple<Array, std::unique_ptr<BatchNormState>> batch_norm_result = device.backend().CallOp<BatchNormOp>(
+        std::tie(out, state) = device.backend().CallOp<BatchNormOp>(
                 x.AsGradStopped(),
                 gamma_reshaped.AsGradStopped(),
                 beta_reshaped.AsGradStopped(),
@@ -298,9 +297,7 @@ Array BatchNorm(
                 decay,
                 sorted_axis,
                 true,
-                out);
-        out = std::move(std::get<0>(batch_norm_result));
-        state = std::move(std::get<1>(batch_norm_result));
+                nonstd::nullopt);
     }
     CHAINERX_ASSERT(state != nullptr);
 
@@ -327,11 +324,8 @@ Array BatchNorm(
             Array gbeta{};
             {
                 NoBackpropModeScope scope{};
-                std::array<Array, 3> batch_norm_grad_result = device.backend().CallOp<BatchNormGradOp>(
+                std::tie(gx, ggamma, gbeta) = device.backend().CallOp<BatchNormGradOp>(
                         x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
-                gx = std::move(batch_norm_grad_result[0]);
-                ggamma = std::move(batch_norm_grad_result[1]);
-                gbeta = std::move(batch_norm_grad_result[2]);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
             internal::MakeViewForForwardBackwardOutput(ggamma);

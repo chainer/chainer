@@ -1,6 +1,5 @@
 #include "chainerx/cuda/cuda_device.h"
 
-#include <array>
 #include <cstdint>
 #include <memory>
 #include <tuple>
@@ -245,7 +244,7 @@ CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
 
 class CudaBatchNormGradOp : public BatchNormGradOp {
 public:
-    std::array<Array, 3> Call(
+    std::tuple<Array, Array, Array> Call(
             const Array& x,
             const Array& gamma,
             const Array& gout,
@@ -337,7 +336,7 @@ public:
         device.AsType(ggamma_casted_cont, actual_ggamma);
         device.AsType(gbeta_casted_cont, actual_gbeta);
 
-        return {actual_gx, actual_ggamma, actual_gbeta};
+        return std::make_tuple(actual_gx, actual_ggamma, actual_gbeta);
     }
 };
 

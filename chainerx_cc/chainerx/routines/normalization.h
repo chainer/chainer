@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <memory>
 #include <tuple>
 
@@ -46,7 +45,7 @@ public:
     static const char* name() { return "BatchNormBackward"; }
 
     // Returns gx, ggamma, gbeta.
-    virtual std::array<Array, 3> Call(
+    virtual std::tuple<Array, Array, Array> Call(
             const Array& x,
             const Array& gamma,
             const Array& gout,
@@ -75,7 +74,7 @@ public:
 
 class GenericBatchNormGradOp : public BatchNormGradOp {
 public:
-    std::array<Array, 3> Call(
+    std::tuple<Array, Array, Array> Call(
             const Array& x,
             const Array& gamma,
             const Array& gout,
