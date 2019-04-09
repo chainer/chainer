@@ -65,6 +65,9 @@ class ChainerxDevice(_backend.Device):
         return '<{} {}>'.format(
             self.__class__.__name__, self.device.name)
 
+    def __str__(self):
+        return self.device.name
+
     def create_context(self):
         # Returns a context that sets the default device.
         return chainerx.using_device(self.device)
