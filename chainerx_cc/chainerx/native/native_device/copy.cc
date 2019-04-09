@@ -6,20 +6,31 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
+#include "chainerx/native/op_regist.h"
+#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 namespace native {
+namespace {
 
-void NativeDevice::Copy(const Array& a, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T a, T& out) { out = a; }
-        };
-        Elementwise<const T, T>(Impl{}, a, out);
-    });
-}
+class NativeCopyOp : public CopyOp {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T a, T& out) { out = a; }
+            };
+            Elementwise<const T, T>(Impl{}, a, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(CopyOp, NativeCopyOp);
+
+}  // namespace
 
 void NativeDevice::AsType(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);

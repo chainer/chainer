@@ -1,5 +1,3 @@
-import chainer
-from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
@@ -198,18 +196,10 @@ class StatefulGRU(GRUBase):
         self.state_size = out_size
         self.reset_state()
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        super(StatefulGRU, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def device_resident_accept(self, visitor):
+        super(StatefulGRU, self).device_resident_accept(visitor)
         if self.h is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.h, cuda.ndarray)):
-                self.h.to_device(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, h):
         assert isinstance(h, variable.Variable)
@@ -252,16 +242,16 @@ class GRU(StatefulGRU):
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.forward must be 1. "
-               "But %d is given. " % n_args)
+        msg = ('Invalid argument. The length of GRU.forward must be 1. '
+               'But %d is given. ' % n_args)
 
         if n_args == 0 or n_args >= 3:
             raise ValueError(msg)
         elif n_args == 2:
-            msg += ("In Chainer v2, chainer.links.GRU is changed "
-                    "from stateless to stateful. "
-                    "One possiblity is you assume GRU to be stateless. "
-                    "Use chainer.links.StatelessGRU instead.")
+            msg += ('In Chainer v2, chainer.links.GRU is changed '
+                    'from stateless to stateful. '
+                    'One possiblity is you assume GRU to be stateless. '
+                    'Use chainer.links.StatelessGRU instead.')
             raise ValueError(msg)
 
         return super(GRU, self).forward(args[0])

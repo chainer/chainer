@@ -86,4 +86,40 @@ class TestClippedReLUCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called, self.expect)
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    [
+        # CPU tests
+        {},
+        # GPU tests
+        {'use_cuda': True, 'use_cudnn': 'never'},
+        {'use_cuda': True, 'use_cudnn': 'always'},
+        # ChainerX tests
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
+class TestReLU6(testing.FunctionTestCase):
+
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
+
+    def forward(self, inputs, device):
+        x, = inputs
+        y = functions.relu6(x)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        y = utils.force_array(x.clip(0, 6.0))
+        return y,
+
+
 testing.run_module(__name__, __file__)

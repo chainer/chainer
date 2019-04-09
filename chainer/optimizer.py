@@ -1,7 +1,9 @@
+from __future__ import absolute_import
 import collections
 import copy
 import warnings
 
+import math
 import numpy
 import six
 
@@ -148,7 +150,8 @@ class UpdateRule(object):
         if not callable(hook):
             raise TypeError('hook function must be callable')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', 'pre')
 
@@ -278,11 +281,7 @@ class UpdateRule(object):
         """
         grad_array = param.grad
         backend_name = param.array.device.backend.name
-        if backend_name == 'native':
-            update_core = self.update_core_cpu
-        elif backend_name == 'cuda':
-            update_core = self.update_core_gpu
-        else:
+        if backend_name not in ('native', 'cuda'):
             raise RuntimeError(
                 'Default implementation of Optimizer.update_core_chainerx is '
                 'only provided for native or cuda backends (actual: {}). '
@@ -294,7 +293,7 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                fallback_arr = backend.from_chainerx(st)
+                fallback_arr = backend.from_chx(st)
                 self.state[state_name] = fallback_arr
                 chainerx_state_arrays[state_name] = (st, fallback_arr)
 
@@ -303,7 +302,7 @@ class UpdateRule(object):
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chainerx(
+            param._chainerx_fallback_array = backend.from_chx(
                 param.array)
 
         temp_param = variable.Variable._init_unchecked(
@@ -311,10 +310,10 @@ class UpdateRule(object):
 
         if grad_array is not None:
             temp_param._set_grad_without_check(
-                backend.from_chainerx(grad_array))
+                backend.from_chx(grad_array))
 
         # Update
-        update_core(temp_param)
+        self.update_core(temp_param)
 
         # Restore state arrays
         for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
@@ -323,7 +322,7 @@ class UpdateRule(object):
                 # The optimizer altered the reference of the state, instead of
                 # updating it in-place. We need to convert the new state back
                 # to ChainerX.
-                arr = backend.to_chainerx(cur_arr)
+                arr = backend.to_chx(cur_arr)
             self.state[state_name] = arr
 
     def init_state(self, param):
@@ -407,7 +406,7 @@ class UpdateRule(object):
           3. copys the data of fp32 parameter variable to the data of original
              parameter variable, converting its data type from fp32 to fp16.
 
-        See meth:`update` for details.
+        See :meth:`update` for details.
         """
         self._use_fp32_update = flag
 
@@ -456,6 +455,8 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    _loss_scale_max = 65504  # max representable value with fp16
+    _loss_scaling_is_dynamic = False
     use_auto_new_epoch = False
 
     def setup(self, link):
@@ -581,12 +582,14 @@ class Optimizer(object):
         if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', None)
             if timing not in ('pre', 'post'):
-                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
-                              "defaulting timing to 'pre'.")
+                warnings.warn(
+                    'Hook timing attribute not in (\'pre\', \'post\'), '
+                    'defaulting timing to \'pre\'.')
                 timing = 'pre'
 
         if name is None:
@@ -614,7 +617,7 @@ class Optimizer(object):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -652,9 +655,62 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def loss_scaling(self, interval=1000, scale=None):
+        """Configures the loss scaling algorithm.
+
+        Args:
+            interval (int): Number of iterations until scaling factor gets
+                doubled. This is effective when "dynamic" loss scaling is used.
+            scale (float): Loss scaling factor. If ``None``, "dynamic" loss
+                scaling is used, otherwise "static" loss scaling is used.
+        """
+        if scale is None:
+            self._loss_scaling_is_dynamic = True
+            if interval < 1:
+                raise ValueError('interval must be greater than or equal to 1.'
+                                 ' Actual: {}'.format(interval))
+            self._loss_scale = 1.0
+            self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
+            self._loss_scaling_isnan_ever = False
+        else:
+            if scale <= 0:
+                raise ValueError('loss_scale must be a positive number. '
+                                 'Actual: {}'.format(scale))
+            self._loss_scale = scale
+
     def set_loss_scale(self, loss_scale):
         """Sets loss scaling factor."""
-        self._loss_scale = loss_scale
+        self.loss_scaling(scale=loss_scale)
+
+    def check_nan_in_grads(self):
+        """Checks if there is NaN in grads when dynamic loss scaling used."""
+        self._loss_scaling_isnan = False
+        if not self._loss_scaling_is_dynamic:
+            return
+        for name, param in self.target.namedparams():
+            xp = param.device.xp
+            if not xp.all(xp.isfinite(param.grad)):
+                self._loss_scaling_isnan = True
+                self._loss_scaling_isnan_ever = True
+                warnings.warn(
+                    'Non finite number found in param.grad of {}'
+                    ' (iteration: {}, loss_scale: {})'
+                    ''.format(name, self.t, self._loss_scale))
+
+    def is_safe_to_update(self):
+        return not self._loss_scaling_isnan
+
+    def update_loss_scale(self):
+        if not self._loss_scaling_is_dynamic:
+            return
+        if self._loss_scaling_isnan:
+            multiplier = 0.5
+        elif self._loss_scaling_isnan_ever:
+            multiplier = self._loss_scaling_multiplier
+        else:
+            multiplier = 2.0
+        self._loss_scale = max(1, min(self._loss_scale_max,
+                                      self._loss_scale * multiplier))
 
 
 class GradientMethod(Optimizer):
@@ -715,7 +771,7 @@ class GradientMethod(Optimizer):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -750,16 +806,18 @@ class GradientMethod(Optimizer):
             del loss
 
         self.reallocate_cleared_grads()
-
+        self.check_nan_in_grads()
         self.call_hooks('pre')
 
         self.t += 1
-        for param in self.target.params():
-            param.update()
+        if self.is_safe_to_update():
+            for param in self.target.params():
+                param.update()
 
         self.reallocate_cleared_grads()
 
         self.call_hooks('post')
+        self.update_loss_scale()
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
@@ -800,7 +858,7 @@ class GradientMethod(Optimizer):
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32."""
         self._use_fp32_update = flag
-        link = getattr(self, "target", None)
+        link = getattr(self, 'target', None)
         if link is not None:
             for param in link.params():
                 param.update_rule.use_fp32_update()

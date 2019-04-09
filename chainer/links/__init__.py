@@ -58,6 +58,7 @@ from chainer.links.model.vision.vgg import VGG16Layers  # NOQA
 from chainer.links.model.vision.vgg import VGG19Layers  # NOQA
 from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
 from chainer.links.normalization.batch_renormalization import BatchRenormalization  # NOQA
+from chainer.links.normalization.decorrelated_batch_normalization import DecorrelatedBatchNormalization  # NOQA
 from chainer.links.normalization.group_normalization import GroupNormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA

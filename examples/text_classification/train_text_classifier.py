@@ -25,6 +25,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=300,
                         help='Number of units')
     parser.add_argument('--layer', '-l', type=int, default=1,
@@ -107,6 +109,9 @@ def main():
     # Take a best snapshot
     record_trigger = training.triggers.MaxValueTrigger(
         'validation/main/accuracy', (1, 'epoch'))
+    trainer.extend(
+        extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
+        trigger=record_trigger)
     trainer.extend(extensions.snapshot_object(
         model, 'best_model.npz'),
         trigger=record_trigger)
@@ -135,6 +140,8 @@ def main():
     with open(os.path.join(args.out, 'args.json'), 'w') as f:
         json.dump(args.__dict__, f)
 
+    if args.resume is not None:
+        chainer.serializers.load_npz(args.resume, trainer)
     # Run the training
     trainer.run()
 

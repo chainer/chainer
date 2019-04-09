@@ -3,9 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
@@ -37,41 +35,40 @@ def _maxout(x, pool_size, axis):
     ]
 ))
 @testing.fix_random()
-class TestNonparameterizedMaxout(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestNonparameterizedMaxout(testing.FunctionTestCase):
+    dodge_nondifferentiable = True
 
-    def setUp(self):
+    def generate_inputs(self):
         x_size = numpy.prod(self.x_shape)
-        self.x = numpy.random.permutation(
-            numpy.arange(x_size)).reshape(self.x_shape).astype(self.dtype)
+        x = numpy.random.permutation(numpy.arange(x_size))\
+            .reshape(self.x_shape).astype(self.dtype)
+        return x,
 
-        self.y = _maxout(self.x, self.pool_size, self.axis)
-        self.gy = numpy.random.uniform(
-            -1, 1, self.y.shape).astype(self.dtype)
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.maxout(x, self.pool_size, self.axis),
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.maxout(x, self.pool_size, self.axis)
-        self.assertEqual(y.data.dtype, self.dtype)
-        testing.assert_allclose(self.y, y.data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            lambda x: functions.maxout(x, self.pool_size, self.axis),
-            x_data, y_grad, dtype=numpy.float64)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def forward_expected(self, inputs):
+        x, = inputs
+        return _maxout(x, self.pool_size, self.axis),
 
 
 @testing.parameterize(

@@ -44,20 +44,20 @@ class DaliPipelineTrain(pipeline.Pipeline):
                                      random_shuffle=random_shuffle,
                                      initial_fill=initial_fill)
         self.decode = ops.HostDecoder()
-        self.resize = ops.Resize(device="gpu", resize_x=256, resize_y=256)
+        self.resize = ops.Resize(device='gpu', resize_x=256, resize_y=256)
         # self.hue = ops.Hue(device="gpu")
         # self.bright = ops.Brightness(device="gpu")
         # self.cntrst = ops.Contrast(device="gpu")
         # self.rotate = ops.Rotate(device="gpu")
         # self.jitter = ops.Jitter(device="gpu")
-        random_area = (crop_size[0] / 256) * (crop_size[1] / 256)
+        random_area = (crop_size[0] / 256.0) * (crop_size[1] / 256.0)
         random_area = _pair(random_area)
         random_aspect_ratio = _pair(1.0)
         self.rrcrop = ops.RandomResizedCrop(
-            device="gpu", size=crop_size, random_area=random_area,
+            device='gpu', size=crop_size, random_area=random_area,
             random_aspect_ratio=random_aspect_ratio)
         self.cmnorm = ops.CropMirrorNormalize(
-            device="gpu", crop=list(crop_size), mean=mean, std=std)
+            device='gpu', crop=list(crop_size), mean=mean, std=std)
         self.coin = ops.CoinFlip(probability=0.5)
 
     def define_graph(self):
@@ -98,9 +98,9 @@ class DaliPipelineVal(pipeline.Pipeline):
                                      random_shuffle=random_shuffle,
                                      initial_fill=initial_fill)
         self.decode = ops.HostDecoder()
-        self.resize = ops.Resize(device="gpu", resize_x=256, resize_y=256)
+        self.resize = ops.Resize(device='gpu', resize_x=256, resize_y=256)
         self.cmnorm = ops.CropMirrorNormalize(
-            device="gpu", crop=list(crop_size), mean=mean, std=std)
+            device='gpu', crop=list(crop_size), mean=mean, std=std)
 
     def define_graph(self):
         jpegs, labels = self.loader()
@@ -146,7 +146,7 @@ class DaliConverter(object):
                 # copy data from DALI array to CuPy array
                 x.copy_to_external(ctypes.c_void_p(x_cupy.data.ptr))
                 cuda.cupy.cuda.runtime.deviceSynchronize()
-                x = x_cupy
+                x = x_cupy.astype(chainer.get_dtype())
                 if self.perturbation is not None:
                     x = x - self.perturbation
                 if device is not None and device < 0:
@@ -177,7 +177,7 @@ def dali_converter(inputs, device=None):
             # copy data from DALI array to CuPy array
             x.copy_to_external(ctypes.c_void_p(x_cupy.data.ptr))
             cuda.cupy.cuda.runtime.deviceSynchronize()
-            x = x_cupy
+            x = x_cupy.astype(chainer.get_dtype())
             if device is not None and device < 0:
                 x = cuda.to_cpu(x)
         else:

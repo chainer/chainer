@@ -428,7 +428,7 @@ Use apply() method instead.\
                     if device is None:
                         device = x.device
                 else:
-                    fallback_data = backend.from_chainerx(data)
+                    fallback_data = backend.from_chx(data)
                     if device is None:
                         device = backend.ChainerxDevice(data.device)
 
@@ -446,7 +446,7 @@ Use apply() method instead.\
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chainerx(outputs)
+        chainerx_out_data = backend.to_chx(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -978,14 +978,26 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     if not isinstance(inputs, (tuple, list)):
         raise TypeError(
             'inputs must be a tuple or a list, not {}.'.format(type(inputs)))
-    if not (grad_outputs is None or isinstance(grad_outputs, (tuple, list))):
-        raise TypeError(
-            'grad_outputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_outputs)))
-    if not (grad_inputs is None or isinstance(grad_inputs, (tuple, list))):
-        raise TypeError(
-            'grad_inputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_inputs)))
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (tuple, list)):
+            raise TypeError(
+                'grad_outputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_outputs)))
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
+    if grad_inputs is not None:
+        if not isinstance(grad_inputs, (tuple, list)):
+            raise TypeError(
+                'grad_inputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_inputs)))
+        if len(inputs) != len(grad_inputs):
+            raise ValueError(
+                'grad_inputs must be of the same length as inputs.\n'
+                'len(inputs) = {}, len(grad_inputs) = {}'
+                .format(len(inputs), len(grad_inputs)))
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.
@@ -1197,7 +1209,7 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
-            return True, tuple(backend.to_chainerx(arrays))
+            return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
 
@@ -1257,7 +1269,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
         if isinstance(value, chainerx.ndarray):
             fallback_arr = fallback_array_cache.get(name)
             if fallback_arr is None:
-                fallback_arr = backend.from_chainerx(value)
+                fallback_arr = backend.from_chx(value)
                 fallback_array_cache[name] = fallback_arr
             return fallback_arr
         return value
@@ -1266,7 +1278,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
     def setattr(self, name, value):
         if isinstance(value, fallback_device.xp.ndarray):
             fallback_array_cache[name] = value
-            sup.__setattr__(name, backend.to_chainerx(value))
+            sup.__setattr__(name, backend.to_chx(value))
             return
         sup.__setattr__(name, value)
 

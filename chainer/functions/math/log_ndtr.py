@@ -2,8 +2,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
-from chainer.functions.math import exponential
-from chainer.functions.math import ndtr
+from chainer.functions.math import erfcx
 from chainer import utils
 from chainer.utils import type_check
 
@@ -28,8 +27,8 @@ class LogNdtr(function_node.FunctionNode):
                 from scipy import special
                 _log_ndtr_cpu = special.log_ndtr
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of log_ndtr can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of log_ndtr can not be done.')
 
         self.retain_inputs((0,))
         return utils.force_array(_log_ndtr_cpu(x[0]), dtype=x[0].dtype),
@@ -50,8 +49,7 @@ class LogNdtr(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         x = self.get_retained_inputs()[0]
-        return (2 * numpy.pi) ** -0.5 * exponential.exp(-0.5 * x ** 2) \
-            / ndtr.ndtr(x) * gy[0],
+        return (2 / numpy.pi) ** 0.5 / erfcx.erfcx(- x / 2 ** 0.5) * gy[0],
 
 
 def log_ndtr(x):

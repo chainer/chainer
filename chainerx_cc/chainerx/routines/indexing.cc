@@ -117,8 +117,6 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
 }  // namespace internal
 
-namespace {
-
 // Adds elements of `b` indexed by `indices` into `a` and returns the result.
 // Used in backward pass of Take()
 //
@@ -135,7 +133,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().AddAt(a, indices, axis, b, out);
+        a.device().backend().CallOp<AddAtOp>(a, indices, axis, b, out);
     }
 
     {
@@ -153,14 +151,10 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     return out;
 }
 
-}  // namespace
-
 Array Take(const Array& a, const Array& indices, int8_t axis) {
-    // TODO(niboshi): Support other dtypes by casting
-    if (indices.dtype() != Dtype::kInt64) {
-        throw DtypeError(
-                std::string{"Only "} + GetDtypeName(Dtype::kInt64) + " is supported as indices, but given " +
-                GetDtypeName(indices.dtype()));
+    DtypeKind indices_kind = GetKind(indices.dtype());
+    if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
+        throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
     }
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
@@ -175,7 +169,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().Take(a, indices, axis_norm, out);
+        a.device().backend().CallOp<TakeOp>(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};
@@ -183,6 +177,8 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
+            // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
+            // the output of `AddAt`.
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }

@@ -102,6 +102,7 @@ class Linear(link.Link):
 
         if out_size is None:
             in_size, out_size = None, in_size
+        self.in_size = in_size
         self.out_size = out_size
 
         with self.init_scope():
@@ -122,6 +123,16 @@ class Linear(link.Link):
         # type: (int) -> None
 
         self.W.initialize((self.out_size, in_size))  # type: ignore
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('in_size', self.in_size),
+            ('out_size', self.out_size),
+            ('nobias', self.b is None),
+        ]
+        for spec in specs:
+            yield spec
 
     def forward(self, x, n_batch_axes=1):
         # type: (variable.Variable, int) -> variable.Variable

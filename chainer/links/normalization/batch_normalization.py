@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer import configuration
 from chainer import functions
@@ -78,10 +80,14 @@ class BatchNormalization(link.Link):
        :func:`~chainer.functions.fixed_batch_normalization`
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
-        avg_mean (:ref:`ndarray`): Population mean.
-        avg_var (:ref:`ndarray`): Population variance.
+        gamma (~chainer.Variable): Scaling parameter. In mixed16 mode, it is
+            initialized as float32 variable.
+        beta (~chainer.Variable): Shifting parameter. In mixed16 mode, it is
+            initialized as float32 variable.
+        avg_mean (:ref:`ndarray`): Population mean. In mixed16 mode, it is
+            initialized as float32 array.
+        avg_var (:ref:`ndarray`): Population variance. In mixed16 mode, it is
+            initialized as float32 array.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
@@ -196,6 +202,7 @@ class BatchNormalization(link.Link):
             raise RuntimeError('size or axis is required')
         self._initial_avg_mean = initial_avg_mean
         self._initial_avg_var = initial_avg_var
+
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
@@ -203,7 +210,8 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-        self._dtype = chainer.get_dtype(dtype)
+        self._highprec_dtype = chainer.get_dtype(
+            dtype, map_mixed16=numpy.float32)
 
         with self.init_scope():
             if use_gamma:
@@ -211,13 +219,13 @@ class BatchNormalization(link.Link):
                     initial_gamma = 1
                 gamma_initializer = \
                     initializers._get_initializer(initial_gamma)
-                gamma_initializer.dtype = self._dtype
+                gamma_initializer.dtype = self._highprec_dtype
                 self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
                 beta_initializer = initializers._get_initializer(initial_beta)
-                beta_initializer.dtype = self._dtype
+                beta_initializer.dtype = self._highprec_dtype
                 self.beta = variable.Parameter(beta_initializer)
 
         if size is not None:
@@ -240,7 +248,21 @@ class BatchNormalization(link.Link):
             initializer = default_value
         initializer = initializers._get_initializer(initializer)
         return initializers.generate_array(
-            initializer, size, self.xp, dtype=self._dtype)
+            initializer, size, self.xp, dtype=self._highprec_dtype,
+            device=self.device)
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('size', self.avg_mean.shape[0]),
+            ('decay', self.decay),
+            ('eps', self.eps),
+            ('dtype', self.avg_mean.dtype),
+            ('use_gamma', hasattr(self, 'gamma')),
+            ('use_beta', hasattr(self, 'beta')),
+        ]
+        for spec in specs:
+            yield spec
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
@@ -276,13 +298,13 @@ class BatchNormalization(link.Link):
         if gamma is None:
             with chainer.using_device(self.device):
                 gamma = self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._highprec_dtype)
 
         beta = self.beta
         if beta is None:
             with chainer.using_device(self.device):
                 beta = self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._highprec_dtype)
 
         if configuration.config.train:
             if finetune:

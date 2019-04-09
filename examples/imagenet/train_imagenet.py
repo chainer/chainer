@@ -10,7 +10,6 @@ ImageDataLayer).
 """
 import argparse
 import random
-import re
 
 import numpy as np
 
@@ -71,23 +70,6 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         return image, label
 
 
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(np)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.backend.get_device(args.device)
-
-
 def main():
     archs = {
         'alex': alex.Alex,
@@ -140,11 +122,12 @@ def main():
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     # Set the dtype if supplied.
     if args.dtype is not None:
@@ -169,6 +152,9 @@ def main():
     if args.dali:
         if not dali_util._dali_available:
             raise RuntimeError('DALI seems not available on your system.')
+        if not isinstance(device, chainer.backend.cuda.GpuDevice):
+            raise RuntimeError('Using DALI requires GPU device. Please '
+                               'specify it with --device option.')
         num_threads = args.loaderjob
         if num_threads is None or num_threads <= 0:
             num_threads = 1
@@ -177,10 +163,10 @@ def main():
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
-            num_threads, args.gpu, True, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
-            num_threads, args.gpu, False, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
@@ -213,7 +199,7 @@ def main():
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
     # TODO(sonots): Temporarily disabled for chainerx. Fix it.
-    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
+    if device.xp is not chainerx:
         trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
