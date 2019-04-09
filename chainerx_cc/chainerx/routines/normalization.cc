@@ -110,18 +110,16 @@ Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_temp
 
 class GenericBatchNormGradState : public BatchNormGradState {
 public:
-    GenericBatchNormGradState(Array x_mean, Array x_inv_std, Shape beta_shape, Dtype beta_dtype)
-        : x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_shape_{std::move(beta_shape)}, beta_dtype_{beta_dtype} {}
+    GenericBatchNormGradState(Array x_mean, Array x_inv_std, Dtype beta_dtype)
+        : x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
 
     const Array& x_mean() const { return x_mean_; }
     const Array& x_inv_std() const { return x_inv_std_; }
-    const Shape& beta_shape() const { return beta_shape_; }
     Dtype beta_dtype() const { return beta_dtype_; }
 
 private:
     Array x_mean_;
     Array x_inv_std_;
-    Shape beta_shape_;
     Dtype beta_dtype_;
 };
 
@@ -145,6 +143,11 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
         CHAINERX_ASSERT(mean.GetTotalSize() == reduced_total_size);
         CHAINERX_ASSERT(var.GetTotalSize() == reduced_total_size);
     }
+    // TODO(hvy): Implement and test the `out` argument.
+    if (out.has_value()) {
+        throw NotImplementedError{"Passing out as an argument is not yet supported."};
+    }
+
     // TODO(hvy): Avoid `AsType` by passing dtype arguments to the following routines to minimize copies.
     const Array& x_cast = x.AsType(interm_dtype, false);
     const Array& gamma_cast = gamma.AsType(interm_dtype, false);
@@ -154,13 +157,10 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
 
     Array inv_std = Reciprocal(Sqrt(var_cast + eps));
     Array out_cast = (x_cast - mean_cast) * inv_std * gamma_cast + beta_cast;
-
-    const Array& actual_out = out.has_value() ? *out : EmptyLike(x, x.device());
-    out_cast.device().AsType(out_cast, actual_out);
+    const Array& actual_out = out_cast.dtype() == x.dtype() ? out_cast : out_cast.AsType(x.dtype());
 
     std::unique_ptr<BatchNormGradState> state =
-            return_state ? std::make_unique<GenericBatchNormGradState>(std::move(mean_cast), std::move(inv_std), beta.shape(), beta.dtype())
-                         : nullptr;
+            return_state ? std::make_unique<GenericBatchNormGradState>(std::move(mean_cast), std::move(inv_std), beta.dtype()) : nullptr;
 
     return std::make_tuple(actual_out, std::move(state));
 }
@@ -214,13 +214,25 @@ std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
         const nonstd::optional<Array>& gx,
         const nonstd::optional<Array>& ggamma,
         const nonstd::optional<Array>& gbeta) {
+    // TODO(hvy): Implement and test the `gx` argument.
+    if (gx.has_value()) {
+        throw NotImplementedError{"Passing gx as an argument is not yet supported."};
+    }
+    // TODO(hvy): Implement and test the `ggamma` argument.
+    if (ggamma.has_value()) {
+        throw NotImplementedError{"Passing ggamma as an argument is not yet supported."};
+    }
+    // TODO(hvy): Implement and test the `gbeta` argument.
+    if (gbeta.has_value()) {
+        throw NotImplementedError{"Passing gbeta as an argument is not yet supported."};
+    }
+
     // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
     CHAINERX_ASSERT(state != nullptr);
     auto generic_state = dynamic_cast<GenericBatchNormGradState&>(*state);
     // x_mean and x_inv_std have promoted dtypes.
     const Array& x_mean = generic_state.x_mean();
     const Array& x_inv_std = generic_state.x_inv_std();  // Note: x_inv_std_ has the information of eps.
-    Shape beta_shape = generic_state.beta_shape();
     Dtype beta_dtype = generic_state.beta_dtype();
 
     // TODO(hvy): Avoid `AsType`.
@@ -229,20 +241,21 @@ std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
     double inv_n = 1.0 / n;
     Array gout_cast = gout.AsType(interm_dtype, false);
     Array x_hat = (x.AsType(interm_dtype, false) - x_mean) * x_inv_std;
-    Array ggamma_cast = (gout_cast * x_hat).Sum(axis, true);
-    Array gbeta_cast = gout_cast.Sum(axis, true);
-    Array gx_cast = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * ggamma_cast + gbeta_cast) * inv_n);
+    Array actual_ggamma = (gout_cast * x_hat).Sum(axis, true);
+    Array actual_gbeta = gout_cast.Sum(axis, true);
+    Array actual_gx = (gamma.AsType(interm_dtype, false) * x_inv_std) * (gout_cast - (x_hat * actual_ggamma + actual_gbeta) * inv_n);
 
-    Device& device = x.device();
-    const Array& actual_gx = gx.has_value() ? *gx : EmptyLike(x, device);
-    const Array& actual_ggamma = ggamma.has_value() ? *ggamma : EmptyLike(gamma, device);
-    const Array& actual_gbeta = gbeta.has_value() ? *gbeta : Empty(beta_shape, beta_dtype, device);
+    if (actual_gx.dtype() != x.dtype()) {
+        actual_gx = actual_gx.AsType(x.dtype());
+    }
+    if (actual_ggamma.dtype() != gamma.dtype()) {
+        actual_ggamma = actual_ggamma.AsType(gamma.dtype());
+    }
+    if (actual_gbeta.dtype() != beta_dtype) {
+        actual_gbeta = actual_gbeta.AsType(beta_dtype);
+    }
 
-    device.AsType(gx_cast, actual_gx);
-    device.AsType(ggamma_cast, actual_ggamma);
-    device.AsType(gbeta_cast, actual_gbeta);
-
-    return std::make_tuple(actual_gx, actual_ggamma, actual_gbeta);
+    return std::make_tuple(std::move(actual_gx), std::move(actual_ggamma), std::move(actual_gbeta));
 }
 
 Array GenericFixedBatchNormOp::Call(
