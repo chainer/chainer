@@ -30,7 +30,7 @@ class UnaryMathTestBase(object):
 
         if in_dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
 
@@ -1409,6 +1409,8 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
 ))
 class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def func_scalar(self, xp, a, scalar):
         if self.is_scalar_rhs:
             return xp.minimum(a, scalar)
@@ -1455,6 +1457,8 @@ class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
     })
 ))
 class TestMaximumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
 
     def func_scalar(self, xp, a, scalar):
         if self.is_scalar_rhs:
@@ -2114,6 +2118,8 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
     # TODO(aksub99): Add tests for inf and NaN.
 ))
 class TestMinimum(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
 
     def func(self, xp, a, b):
         return xp.minimum(a, b)
