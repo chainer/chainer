@@ -587,6 +587,9 @@ def fixed_batch_norm(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def floor(x: ndarray) -> ndarray: ...
+
+
 def frombuffer(
         buffer: tp.Any,
         dtype: tp.Optional[tp.Any]=...,

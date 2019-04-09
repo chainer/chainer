@@ -1909,10 +1909,14 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
     numpy.full((1, 1), 1.99),
 ])
 @pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
-def test_ceil(xp, device, input, dtypes):
+@pytest.mark.parametrize('func', [
+    lambda xp, a: xp.ceil(a),
+    lambda xp, a: xp.floor(a)
+])
+def test_rounding_routines(func, xp, device, input, dtypes):
     (in_dtype, ), out_dtype = dtypes
     a = xp.array(input.astype(in_dtype))
-    a = xp.ceil(a)
+    a = func(xp, a)
     a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
     return a
 
