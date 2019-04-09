@@ -490,7 +490,7 @@ class Link(device_resident.DeviceResident):
                 yield '/' + name, d[name]
 
     def namedpersistent(self):
-        # type: () -> tp.Iterator[tp.Tuple[str, :ref:`ndarray`]]
+        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
         """Returns a generator of all (path, persistent) pairs \
 under the hierarchy.
 
@@ -499,7 +499,7 @@ under the hierarchy.
             The paths are relative from this link.
 
         """
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        d = self.__dict__
         for name in sorted(self._persistent):
             yield '/' + name, d[name]
 
@@ -1227,7 +1227,7 @@ class ChainList(Link, collections_abc.MutableSequence):
                 yield prefix + path, param
 
     def namedpersistent(self):
-        # type: () -> tp.Iterator[tp.Tuple[str, :ref:`ndarray`]]
+        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
         for ret in super(ChainList, self).namedpersistent():
             yield ret
         for idx, link in enumerate(self._children):
