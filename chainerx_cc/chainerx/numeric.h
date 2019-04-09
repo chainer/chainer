@@ -36,6 +36,15 @@ inline chainerx::Float16 Ceil<chainerx::Float16>(chainerx::Float16 x) {
 }
 
 template <typename T>
+inline T Floor(T x) {
+    return std::floor(x);
+}
+template <>
+inline chainerx::Float16 Floor<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::floor(static_cast<float>(x))};
+}
+
+template <typename T>
 inline T Sinh(T x) {
     return std::sinh(x);
 }

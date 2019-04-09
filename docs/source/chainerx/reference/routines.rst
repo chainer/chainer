@@ -138,6 +138,7 @@ Mathematical functions
    chainerx.square
    chainerx.clip
    chainerx.ceil
+   chainerx.floor
 
 Random sampling
 ---------------

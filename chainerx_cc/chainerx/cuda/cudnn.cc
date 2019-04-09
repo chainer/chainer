@@ -110,6 +110,24 @@ CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDesc
     }
 }
 
+Dtype CudnnTensorDescriptor::GetDtype() const {
+    cudnnDataType_t cudnn_dtype{};
+    int ndim{};
+
+    CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
+
+    switch (cudnn_dtype) {
+        case CUDNN_DATA_HALF:
+            return Dtype::kFloat16;
+        case CUDNN_DATA_FLOAT:
+            return Dtype::kFloat32;
+        case CUDNN_DATA_DOUBLE:
+            return Dtype::kFloat64;
+        default:
+            throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
+    }
+}
+
 CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
