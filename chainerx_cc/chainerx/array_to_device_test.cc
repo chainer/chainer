@@ -227,7 +227,7 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     CHAINERX_REQUIRE_DEVICE("native", 3);
     testing::ContextSession context_session;
-    native::NativeBackend backend{context_session.context()};
+    Backend& backend = context_session.context().CreateBackend<native::NativeBackend>("native_test_backend");
 
     Device& dev0 = backend.GetDevice(0);
     Device& dev1 = backend.GetDevice(1);
