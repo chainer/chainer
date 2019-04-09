@@ -645,6 +645,12 @@ void InitChainerxMath(pybind11::module& m) {
           [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Softmax(Array{x}, Axes{axis})); },
           py::arg("x"),
           py::arg("axis"));
+    m.def("softmax",
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
+          },
+          py::arg("x"),
+          py::arg("axis") = nullptr);
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, py::arg("x"));
     m.def("squared_difference",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredDifference(Array{x1}, Array{x2})); },
