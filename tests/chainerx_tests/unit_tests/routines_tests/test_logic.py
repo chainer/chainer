@@ -212,7 +212,7 @@ def logical_and(xp, a, b):
 
 
 def logical_or(xp, a, b):
-    return xp.logical_and(a, b)
+    return xp.logical_or(a, b)
 
 
 _binary_logical_params = \
