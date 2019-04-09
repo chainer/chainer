@@ -1000,7 +1000,7 @@ class Chain(Link):
         for ret in super(Chain, self).namedpersistent():
             yield ret
         d = self.__dict__
-        for name, in sorted(self._children):
+        for name in sorted(self._children):
             prefix = '/' + name
             for path, persistent in d[name].namedpersistent():
                 yield prefix + path, persistent

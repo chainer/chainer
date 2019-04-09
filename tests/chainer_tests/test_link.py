@@ -431,6 +431,12 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertEqual([(name, id(p)) for name, p in namedparams],
                          [('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
+    def test_namedpersistent(self):
+        namedpersistent = list(self.link.namedpersistent())
+        assert (
+            [(name, id(p)) for name, p in namedpersistent] ==
+            [('/p', id(self.link.p))]), namedpersistent
+
     def test_links(self):
         links = list(self.link.links())
         self.assertIs(links[0], self.link)
@@ -1115,6 +1121,42 @@ Chain(
         self.assertEqual([(name, id(p)) for name, p in namedparams],
                          [('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x))])
+
+    def test_namedpersistent(self):
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l2.add_persistent(
+            'l2_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter()
+        l3.add_persistent(
+            'l3_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+
+        c1 = chainer.Chain()
+        with c1.init_scope():
+            c1.l1 = l1
+        c1.add_link('l2', l2)
+        c1.add_persistent(
+            'c1_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+
+        c2 = chainer.Chain()
+        with c2.init_scope():
+            c2.c1 = c1
+            c2.l3 = l3
+        c2.add_persistent(
+            'c2_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+        namedpersistent = list(c2.namedpersistent())
+        assert (
+            [(name, id(p)) for name, p in namedpersistent] ==
+            [('/c2_a', id(c2.c2_a)), ('/c1/c1_a', id(c2.c1.c1_a)),
+             ('/c1/l2/l2_a', id(c2.c1.l2.l2_a)), ('/l3/l3_a', id(c2.l3.l3_a))])
 
     def test_links(self):
         links = list(self.c2.links())
