@@ -566,37 +566,6 @@ Dtype GetMathResultDtype(Dtype dtype) {
 
 namespace {
 
-Array IfLessElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg) {
-    Array out = EmptyLike(x1, x1.device());
-    {
-        NoBackpropModeScope scope{};
-        x1.device().IfLessElseAAAA(x1, x2, pos, neg, out);
-    }
-
-    {
-        BackwardBuilder bb{"if_less_else", {pos, neg}, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfLessElse(x1, x2, ZerosLike(gout, gout.device()), gout);
-            });
-        }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x1, x2 = x2.AsGradStopped()](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = IfLessElse(x1, x2, ZerosLike(gout, gout.device()), gout);
-            });
-        }
-        bb.Finalize();
-
-        return out;
-    }
-}
-
-}  // namespace
-
-namespace {
-
 // Calculates: x1 > x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
