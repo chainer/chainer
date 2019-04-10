@@ -61,7 +61,7 @@ public:
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
 
-    explicit DeviceInternals(int index) : cublas_handle_{index}, cudnn_handle_{index} {}
+    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
 
     cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
