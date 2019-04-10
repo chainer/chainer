@@ -87,7 +87,7 @@ py::array MakeNumpyArrayFromArray(const py::module& m, const ArrayBodyPtr& self,
 }
 
 py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
-    Array array = Array{py::cast<ArrayBodyPtr>(self)};
+    Array array{py::cast<ArrayBodyPtr>(self)};
     const Device& device = array.device();
     // TODO(okapies): rejects if array's device is not compatible with cupy
 
