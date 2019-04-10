@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 
 try:
@@ -73,6 +74,8 @@ if device.xp is chainer.backends.cuda.cupy:
     chainer.global_config.autotune = True
 
 # Datasets
+if not os.path.isdir(args.dataset):
+    raise RuntimeError('Dataset directory not found: {}'.format(args.dataset))
 paths = sorted([
     str(path) for path in pathlib.Path(args.dataset).glob('wav48/*/*.wav')])
 preprocess = Preprocess(
