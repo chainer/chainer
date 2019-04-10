@@ -78,4 +78,16 @@ Array LogicalNot(const Array& x) {
     return out;
 }
 
+Array LogicalAnd(const Array& x1, const Array& x2) {
+    CheckLogicDtypes(x1, x2);
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<LogicalAndOp>(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array LogicalOr(const Array& x1, const Array& x2) {
+    CheckLogicDtypes(x1, x2);
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<LogicalOrOp>(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
 }  // namespace chainerx
