@@ -20,7 +20,7 @@ def _skip_if(cond, reason):
     return decorator
 
 
-@testing.parameterize(testing.product([
+@testing.parameterize(*testing.product([
     [
         {'ch_out': 1},
         {'ch_out': 5},
