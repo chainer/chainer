@@ -344,7 +344,7 @@ def compute_any(xp, a, axis, keepdims):
             ((2, 3, 4), (-2, 2, 0)),
         ],
         'keepdims': [True, False],
-        'dtype':
+        'in_dtype':
             _make_in_dtypes(1, chainerx.testing.all_dtypes),
         'func': [compute_all, compute_any],
         # With all zero,
@@ -360,7 +360,7 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
-        in_dtype, = self.dtype
+        in_dtype, = self.in_dtype
         a = numpy.random.normal(0, 1, self.shape)
         a = dropout(a, self.probs).astype(in_dtype)
         return a,
