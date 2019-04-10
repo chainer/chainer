@@ -2058,6 +2058,8 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
 ))
 class TestMaximum(BinaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def func(self, xp, a, b):
         return xp.maximum(a, b)
 
