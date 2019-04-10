@@ -775,6 +775,8 @@ Array Square(const Array& x) {
     return out;
 }
 
+Array SquaredDifference(const Array& x1, const Array& x2) { return Square(Subtract(x1, x2)); }
+
 Array Sqrt(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
@@ -949,6 +951,26 @@ Array Arctan(const Array& x) {
     }
     bb.Finalize();
 
+    return out;
+}
+
+Array Ceil(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<CeilOp>(x, out);
+    }
+    return out;
+}
+
+Array Floor(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<FloorOp>(x, out);
+    }
     return out;
 }
 

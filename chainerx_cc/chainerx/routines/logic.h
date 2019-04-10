@@ -42,6 +42,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class LogicalAndOp : public Op {
+public:
+    static const char* name() { return "LogicalAnd"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class LogicalOrOp : public Op {
+public:
+    static const char* name() { return "LogicalOr"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
 // Returns an elementwise equality array.
 //
 // Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
@@ -74,5 +88,9 @@ inline Array LessEqual(const Array& x1, const Array& x2) { return GreaterEqual(x
 
 // Returns an elementwise logical negation of an array.
 Array LogicalNot(const Array& x);
+
+Array LogicalAnd(const Array& x1, const Array& x2);
+
+Array LogicalOr(const Array& x1, const Array& x2);
 
 }  // namespace chainerx
