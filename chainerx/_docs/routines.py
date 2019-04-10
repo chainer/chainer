@@ -1015,6 +1015,25 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.square,
+        """square(x)
+Returns the element-wise square of the input.
+
+Args:
+    x (~chainerx.ndarray or scalar): Input data
+
+Returns:
+    ~chainerx.ndarray: Returned array: :math:`y = x * x`.
+    A scalar is returned if ``x`` is a scalar.
+
+Note:
+    During backpropagation, this function propagates the gradient
+    of the output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.square`
+""")
+
+    _docs.set_doc(
         chainerx.sqrt,
         """sqrt(x)
 Non-negative square-root, element-wise
