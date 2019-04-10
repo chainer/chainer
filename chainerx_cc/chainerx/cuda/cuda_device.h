@@ -104,18 +104,10 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-    // fill.cu
-
-    void Fill(const Array& out, Scalar value) override;
-
     // reduction.cu
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
-
-    // copy.cu
-
-    void AsType(const Array& a, const Array& out) override;
 
     // activation.cu
 

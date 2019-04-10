@@ -24,6 +24,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/misc.h"
 
 namespace chainerx {
 namespace cuda {
@@ -115,7 +116,7 @@ public:
             // TODO(imanishi): Use cublasHgemm
             Array out_float32 = Empty(out.shape(), Dtype::kFloat32, device);
             device.backend().CallOp<DotOp>(a.AsType(Dtype::kFloat32), b.AsType(Dtype::kFloat32), out_float32);
-            device.AsType(out_float32, out);
+            device.backend().CallOp<AsTypeOp>(out_float32, out);
             return;
         }
 
