@@ -34,16 +34,16 @@ struct Gemm;
 template <>
 struct Gemm<float> {
     template <typename... Args>
-    void operator()(Args&&... args) const {
-        CheckCublasError(cublasSgemm(std::forward<Args>(args)...));
+    cublasStatus_t operator()(Args&&... args) const {
+        return cublasSgemm(std::forward<Args>(args)...);
     }
 };
 
 template <>
 struct Gemm<double> {
     template <typename... Args>
-    void operator()(Args&&... args) const {
-        CheckCublasError(cublasDgemm(std::forward<Args>(args)...));
+    cublasStatus_t operator()(Args&&... args) const {
+        return cublasDgemm(std::forward<Args>(args)...);
     }
 };
 
@@ -146,10 +146,8 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
 
-        // TODO: Use CublasHandle::Call
-        std::lock_guard<std::mutex> lock{device_internals.cublas_handle_mutex()};
-        Gemm<T>{}(
-                device_internals.cublas_handle(),
+        device_internals.cublas_handle().Call(
+                Gemm<T>{},
                 b_cast_layout.trans,
                 a_cast_layout.trans,
                 n,

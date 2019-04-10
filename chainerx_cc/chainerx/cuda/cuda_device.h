@@ -14,8 +14,10 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
+#include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/routines/pooling.h"
@@ -57,14 +59,9 @@ public:
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
 
-    ~DeviceInternals();
+    explicit DeviceInternals(int index) : index_{index}, cublas_handle_{index}, cudnn_handle_{index} {}
 
-    explicit DeviceInternals(int index) : index_{index}, cudnn_handle_{index} {}
-
-    std::mutex& cublas_handle_mutex() { return cublas_handle_mutex_; }
-
-    // TODO: Define CublasHandle class.
-    cublasHandle_t cublas_handle();  // not thread-safe
+    cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
@@ -73,9 +70,7 @@ public:
 private:
     int index_;
 
-    std::mutex cublas_handle_mutex_;
-
-    cublasHandle_t cublas_handle_{};
+    cuda_internal::CublasHandle cublas_handle_;
 
     cuda_internal::CudnnHandle cudnn_handle_;
 
