@@ -887,7 +887,7 @@ class TestUnchainSplit(unittest.TestCase):
 
         assert numpy.all(chainer.grad([y], [h0])[0].array == dy_dh0)
         assert numpy.all(chainer.grad([z], [h1])[0].array == dz_dh1)
-        assert chainer.grad([y], [x])[0] is None
+        assert chainer.grad([y], [x])[0] is dy_dx
         assert numpy.all(chainer.grad([z], [x])[0].array == dz_dx)
         assert numpy.all(chainer.grad([w], [x])[0].array == dw_dx)
 
