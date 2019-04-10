@@ -86,6 +86,7 @@ py::array MakeNumpyArrayFromArray(const py::module& m, const ArrayBodyPtr& self,
     return py::array{dtype, shape, strides, ptr, py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
+// TODO(okapies): this is a workaround for improving performance
 py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     Array array{py::cast<ArrayBodyPtr>(self)};
     Device& device = array.device();
@@ -96,7 +97,8 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const Strides& strides = array.strides();
 
     const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
-    const auto data_size = GetDataSize(shape, strides, array.GetItemSize());
+    const auto range = GetDataRange(shape, strides, array.GetItemSize());
+    const auto data_size = std::get<1>(range) - std::get<0>(range);
     const auto device_index = device.index();
 
     // Convert object to CuPy array using cupy.ndarray()
@@ -162,7 +164,7 @@ void InitChainerxArray(pybind11::module& m) {
           [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
           py::arg("array"),
           py::arg("copy") = true);
-    m.def("to_cupy", [m](py::handle array) { return MakeCupyArrayFromArray(m, array); }, py::arg("array"));
+    m.def("_to_cupy", [m](py::handle array) { return MakeCupyArrayFromArray(m, array); }, py::arg("array"));
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
@@ -491,7 +493,8 @@ void InitChainerxArray(pybind11::module& m) {
         return reinterpret_cast<intptr_t>(self->data().get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     });
     c.def_property_readonly("data_size", [](const ArrayBodyPtr& self) -> int64_t {
-        return GetDataSize(self->shape(), self->strides(), self->GetItemSize());
+        auto range = GetDataRange(self->shape(), self->strides(), self->GetItemSize());
+        return std::get<1>(range) - std::get<0>(range);
     });
     // TODO(niboshi): Remove this in favor of data_ptr.
     c.def_property_readonly(

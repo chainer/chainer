@@ -102,7 +102,4 @@ void CheckEqual(const Strides& lhs, const Strides& rhs);
 // This forumula always holds: lower <= 0 < item_size <= upper
 std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size);
 
-// A simplified version of GetDataRange which just returns (upper - lower).
-int64_t GetDataSize(const Shape& shape, const Strides& strides, size_t item_size);
-
 }  // namespace chainerx
