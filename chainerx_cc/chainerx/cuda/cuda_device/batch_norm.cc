@@ -165,7 +165,9 @@ public:
 
         Dtype dtype = x.dtype();
 
-        device.cudnn_handle().Call(
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+        device_internals.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardTraining,
                 mode,
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
@@ -277,7 +279,9 @@ public:
 
         Dtype dtype = x_cont.dtype();
 
-        device.cudnn_handle().Call(
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+        device_internals.cudnn_handle().Call(
                 cudnnBatchNormalizationBackward,
                 mode,
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
@@ -369,7 +373,9 @@ public:
 
         Array actual_out = EmptyLike(x, device);
 
-        device.cudnn_handle().Call(
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+        device_internals.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardInference,
                 GetBatchNormMode(axis),
                 cuda_internal::GetCudnnCoefficientPtr<1>(dtype),

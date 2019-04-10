@@ -116,5 +116,27 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(CeilOp, CudaCeilOp);
 
+template <typename T>
+struct FloorImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Floor(x); }
+};
+
+class CudaFloorOp : public FloorOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(FloorImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(FloorOp, CudaFloorOp);
+
 }  // namespace cuda
 }  // namespace chainerx

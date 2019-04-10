@@ -496,6 +496,42 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.logical_and,
+        """logical_and(x1, x2)
+Returns an array of x1 AND x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_and`
+    """)
+
+    _docs.set_doc(
+        chainerx.logical_or,
+        """logical_or(x1, x2)
+Returns an array of x1 OR x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_or`
+    """)
+
+    _docs.set_doc(
         chainerx.greater,
         """greater(x1, x2)
 Returns an array of (x1 > x2) element-wise.
@@ -1134,6 +1170,17 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.arctan`
+""")
+
+    _docs.set_doc(
+        chainerx.floor,
+        """floor(x)
+Return the floor of the input, element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The floor of each element in array.
+.. seealso:: :data:`numpy.floor`
 """)
 
     _docs.set_doc(

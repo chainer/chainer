@@ -184,7 +184,10 @@ def _populate_ndarray():
                 'supported for arrays that are connected to a graph.')
 
         xp, dev, self = _from_chx(self)
-        _, _, key = _from_chx(key)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key)
         _, _, value = _from_chx(value)
 
         with dev:
