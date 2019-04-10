@@ -20,13 +20,7 @@ def _skip_if(cond, reason):
     return decorator
 
 
-def _is_good_param(param):
-    # Check if 'nonzero' param is valid and meaningful. On the latter point,
-    # x should contain at least a zero if 'nonzeros' param is given.
-    return param['same'] == 'no'
-
-
-@testing.parameterize(*filter(_is_good_param, testing.product([
+@testing.parameterize(testing.product([
     [
         {'ch_out': 1},
         {'ch_out': 5},
@@ -50,7 +44,7 @@ def _is_good_param(param):
         {'eps': 1e-1, 'same': 'equal'},
         {'eps': 1e-1, 'same': 'near'},
     ],
-])))
+]))
 @testing.backend.inject_backend_tests(
     None,
     # CPU tests
