@@ -2045,6 +2045,14 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
         'input_rhs': ['random'],
         'is_module': [False],
     })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
     # is_module
     + chainer.testing.product({
         'shape': [(2, 3)],
