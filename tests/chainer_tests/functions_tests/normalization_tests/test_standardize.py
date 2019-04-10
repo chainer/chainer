@@ -98,7 +98,7 @@ class TestStandardize(testing.FunctionTestCase):
         x_mu = x - mu
         var = numpy.mean(numpy.square(x_mu), axis=1, keepdims=True)
         std = numpy.sqrt(var, dtype=x.dtype) + self.eps
-        inv_std = 1. / std
+        inv_std = numpy.reciprocal(std)
         return x_mu * inv_std,
 
 

@@ -56,7 +56,8 @@ class Standardize(function_node.FunctionNode):
         else:
             std_noeps = xp.sqrt(var)
         std = std_noeps + self.eps
-        x_hat = x_mu / std
+        inv_std = xp.reciprocal(std)
+        x_hat = x_mu * inv_std
         return x_mu, std_noeps, std, x_hat
 
     def forward(self, inputs):
