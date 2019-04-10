@@ -49,13 +49,4 @@ DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
 DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 
-template <typename T>
-inline T Square(T x) {
-    return x * x;
-}
-template <>
-inline chainerx::Float16 Square<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{static_cast<float>(x) * static_cast<float>(x)};
-}
-
 }  // namespace chainerx

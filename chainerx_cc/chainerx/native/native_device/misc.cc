@@ -19,7 +19,7 @@ void NativeDevice::Square(const Array& x, const Array& out) {
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Square(x); }
+            void operator()(int64_t /*i*/, T x, T& out) { out = x * x; }
         };
         Elementwise<const T, T>(Impl{}, x, out);
     });
