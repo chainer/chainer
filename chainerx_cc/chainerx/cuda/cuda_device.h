@@ -14,8 +14,10 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
+#include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/routines/pooling.h"
@@ -24,6 +26,9 @@
 
 namespace chainerx {
 namespace cuda {
+
+class CudaDevice;
+
 namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
@@ -47,14 +52,37 @@ private:
     std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
 };
 
+class DeviceInternals {
+public:
+    DeviceInternals(const DeviceInternals&) = delete;
+    DeviceInternals(DeviceInternals&&) = delete;
+    DeviceInternals& operator=(const DeviceInternals&) = delete;
+    DeviceInternals& operator=(DeviceInternals&&) = delete;
+
+    explicit DeviceInternals(int index) : index_{index}, cublas_handle_{index}, cudnn_handle_{index} {}
+
+    cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
+
+    cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
+
+    cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
+
+private:
+    int index_;
+
+    cuda_internal::CublasHandle cublas_handle_;
+
+    cuda_internal::CudnnHandle cudnn_handle_;
+
+    cuda_internal::CudaConv cuda_conv_{};
+};
+
+DeviceInternals& GetDeviceInternals(CudaDevice& device);
+
 }  // namespace cuda_internal
 
 class CudaDevice : public Device {
 public:
-    ~CudaDevice() override;
-
-    cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
-
     const std::shared_ptr<MemoryPool>& device_memory_pool() { return device_memory_pool_; }
 
     void Synchronize() override;
@@ -190,14 +218,14 @@ protected:
         : Device{backend, index},
           device_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
           pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
-          cudnn_handle_{index} {}
+          device_internals_{index} {}
 
 private:
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
 
-    friend class cuda_internal::CudaConvTest;  // for unit-tests
+    friend cuda_internal::DeviceInternals& cuda_internal::GetDeviceInternals(CudaDevice& device);
 
-    cublasHandle_t cublas_handle();  // not thread-safe
+    friend class cuda_internal::CudaConvTest;  // for unit-tests
 
     // Allocates pinned memory.
     // The pinned memory is used internally by the CUDA device for asynchronous memory transfer, i.e. cudaMemcpyAsync.
@@ -213,14 +241,9 @@ private:
     std::shared_ptr<MemoryPool> pinned_memory_pool_;
 
     // Memory keeper.
+    cuda_internal::DeviceInternals device_internals_;
+
     cuda_internal::MemoryKeeper memory_keeper_{};
-
-    std::mutex cublas_handle_mutex_;
-    cublasHandle_t cublas_handle_{};
-
-    cuda_internal::CudnnHandle cudnn_handle_;
-
-    cuda_internal::CudaConv cuda_conv_{};
 };
 
 }  // namespace cuda

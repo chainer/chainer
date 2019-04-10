@@ -250,7 +250,8 @@ private:
 
 std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward(
         const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle(), running_mean, running_var, eps, decay, axis);
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
+    return std::make_unique<CudaBatchNormForwardBackward>(device_internals.cudnn_handle(), running_mean, running_var, eps, decay, axis);
 }
 
 Array CudaDevice::FixedBatchNorm(
@@ -294,7 +295,9 @@ Array CudaDevice::FixedBatchNorm(
 
     Array out = EmptyLike(x, x.device());
 
-    cudnn_handle_.Call(
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
+
+    device_internals.cudnn_handle().Call(
             cudnnBatchNormalizationForwardInference,
             GetBatchNormMode(axis),
             cuda_internal::GetCudnnCoefficientPtr<1>(x.dtype()),

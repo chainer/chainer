@@ -260,7 +260,8 @@ std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, cover_all);
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
+    return std::make_unique<CudaMaxPoolForwardBackward>(device_internals.cudnn_handle(), kernel_size, stride, pad, cover_all);
 }
 
 namespace {
@@ -301,7 +302,8 @@ std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBac
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
-    return std::make_unique<CudaAveragePoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, pad_mode);
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
+    return std::make_unique<CudaAveragePoolForwardBackward>(device_internals.cudnn_handle(), kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace cuda
