@@ -144,9 +144,12 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
                 &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(b_cast_config)));
         CudaType* out_ptr = &cuda_internal::StorageToDataType<T>(*static_cast<StorageType*>(internal::GetRawOffsetData(out_contiguous)));
 
-        std::lock_guard<std::mutex> lock{cublas_handle_mutex_};
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(*this);
+
+        // TODO: Use CublasHandle::Call
+        std::lock_guard<std::mutex> lock{device_internals.cublas_handle_mutex()};
         Gemm<T>{}(
-                cublas_handle(),
+                device_internals.cublas_handle(),
                 b_cast_layout.trans,
                 a_cast_layout.trans,
                 n,

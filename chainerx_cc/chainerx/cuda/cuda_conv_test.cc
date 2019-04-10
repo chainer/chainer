@@ -25,7 +25,10 @@ public:
     static size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.fwd_algo_cache_map_.size(); }
     static size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_data_algo_cache_map_.size(); }
     static size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_filter_algo_cache_map_.size(); }
-    static CudaConv& GetCudaConv(CudaDevice& cuda_device) { return cuda_device.cuda_conv_; }
+    static CudaConv& GetCudaConv(CudaDevice& cuda_device) {
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(cuda_device);
+        return device_internals.cuda_conv();
+    }
 };
 
 }  // namespace cuda_internal
