@@ -340,10 +340,6 @@ Array BatchNorm(
                 std::tie(gx, ggamma, gbeta) = device.backend().CallOp<BatchNormGradOp>(
                         x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
             }
-            internal::MakeViewForForwardBackwardOutput(gx);
-            internal::MakeViewForForwardBackwardOutput(ggamma);
-            internal::MakeViewForForwardBackwardOutput(gbeta);
-
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(gbeta)->nodes().empty());
