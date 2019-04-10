@@ -28,10 +28,6 @@ class TestExceptions(unittest.TestCase):
             with WeightStandardization():
                 self.layer(self.x)
 
-    def test_invalid_shaped_weight(self):
-        with pytest.raises(ValueError):
-            L.Linear(10, 0).add_hook(WeightStandardization())
-
 
 class BaseTest(object):
 
