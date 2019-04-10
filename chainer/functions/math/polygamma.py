@@ -30,8 +30,8 @@ class PolyGamma(function_node.FunctionNode):
                 from scipy import special
                 _polygamma_cpu = special.polygamma
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of polygamma can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of polygamma can not be done.')
         self.retain_inputs((0, 1))
         return utils.force_array(_polygamma_cpu(n, x), dtype=x.dtype),
 

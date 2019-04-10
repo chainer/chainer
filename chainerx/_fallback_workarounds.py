@@ -57,7 +57,7 @@ def _from_cupy(array):
         array)
 
 
-def _from_chainerx(array, check_backprop=True):
+def _from_chx(array, check_backprop=True):
     # Converts chainerx.ndarray to numpy/cupy.ndarray.
     # Objects with other types are kept intact.
     # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
@@ -82,7 +82,7 @@ def _from_chainerx(array, check_backprop=True):
         'backends.')
 
 
-def _to_chainerx(array):
+def _to_chx(array):
     # Converts numpy/cupy.ndarray to chainerx.ndarray.
     # Objects with other types are kept intact.
     if isinstance(array, numpy.ndarray):
@@ -95,10 +95,10 @@ def _to_chainerx(array):
 def _populate_module_functions():
 
     def _isfinite(arr):
-        xp, dev, arr = _from_chainerx(arr)
+        xp, dev, arr = _from_chx(arr)
         with dev:
             ret = xp.isfinite(arr)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     chainerx.isfinite = _isfinite
 
@@ -106,11 +106,11 @@ def _populate_module_functions():
         assert len(arrs) > 0
         arrs2 = []
         for a in arrs:
-            xp, dev, a2 = _from_chainerx(a)
+            xp, dev, a2 = _from_chx(a)
             arrs2.append(a2)
         with dev:
             ret = xp.hstack(arrs2)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     chainerx.hstack = _hstack
 
@@ -118,13 +118,21 @@ def _populate_module_functions():
         assert len(arrs) > 0
         arrs2 = []
         for a in arrs:
-            xp, dev, a2 = _from_chainerx(a)
+            xp, dev, a2 = _from_chx(a)
             arrs2.append(a2)
         with dev:
             ret = xp.vstack(arrs2)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     chainerx.vstack = _vstack
+
+    def _sign(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.sign(arr)
+        return _to_chx(ret)
+
+    chainerx.sign = _sign
 
 
 def _populate_ndarray():
@@ -141,8 +149,8 @@ def _populate_ndarray():
 
         is_backprop_required = arr.is_backprop_required()
 
-        xp, dev, arr = _from_chainerx(arr, check_backprop=False)
-        _, _, key = _from_chainerx(key, check_backprop=False)
+        xp, dev, arr = _from_chx(arr, check_backprop=False)
+        _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -156,7 +164,7 @@ def _populate_ndarray():
                 'ChainerX getitem fallback for advanced indexing is not '
                 'supported for arrays that are connected to a graph.')
 
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     # __setitem__ with advanced indexing
     def __setitem__(self, key, value):
@@ -165,9 +173,12 @@ def _populate_ndarray():
                 'ChainerX setitem fallback for advanced indexing is not '
                 'supported for arrays that are connected to a graph.')
 
-        xp, dev, self = _from_chainerx(self)
-        _, _, key = _from_chainerx(key)
-        _, _, value = _from_chainerx(value)
+        xp, dev, self = _from_chx(self)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key)
+        _, _, value = _from_chx(value)
 
         with dev:
             self[key] = value
@@ -176,26 +187,26 @@ def _populate_ndarray():
     ndarray.__getitem__ = __getitem__
 
     def _min(arr, *args, **kwargs):
-        _, dev, arr = _from_chainerx(arr)
+        _, dev, arr = _from_chx(arr)
         with dev:
             ret = arr.min(*args, **kwargs)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     ndarray.min = _min
 
     def _all(arr, *args, **kwargs):
-        _, dev, arr = _from_chainerx(arr)
+        _, dev, arr = _from_chx(arr)
         with dev:
             ret = arr.all(*args, **kwargs)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     ndarray.all = _all
 
     def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chainerx(arr)
+        _, dev, arr = _from_chx(arr)
         with dev:
             ret = arr.any(*args, **kwargs)
-        return _to_chainerx(ret)
+        return _to_chx(ret)
 
     ndarray.any = _any
 

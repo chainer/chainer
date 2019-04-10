@@ -42,7 +42,7 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().ArgMax(a, sorted_axis, out);
+        a.device().backend().CallOp<ArgMaxOp>(a, sorted_axis, out);
     }
     return out;
 }

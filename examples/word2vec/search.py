@@ -1,11 +1,20 @@
 #!/usr/bin/env python
+import argparse
+import os
+
 import numpy
 import six
 
 n_result = 5  # number of search result to show
 
 
-with open('word2vec.model', 'r') as f:
+parser = argparse.ArgumentParser()
+parser.add_argument('--result', default='result',
+                    help='Directory of a training result')
+args = parser.parse_args()
+
+
+with open(os.path.join(args.result, 'word2vec.model'), 'r') as f:
     ss = f.readline().split()
     n_vocab, n_units = int(ss[0]), int(ss[1])
     word2index = {}

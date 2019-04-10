@@ -9,6 +9,7 @@
 #include <ostream>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -41,6 +42,7 @@
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -206,6 +208,10 @@ Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*t
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
+
+Array Array::Mean(const OptionalAxes& axis, bool keepdims) const { return chainerx::Mean(*this, axis, keepdims); }
+
+Array Array::Var(const OptionalAxes& axis, bool keepdims) const { return chainerx::Var(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
@@ -385,6 +391,10 @@ template const Array& Array::RequireGradImpl<const Array>(const Array& array, co
 template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<BackpropId>& backprop_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
+
+Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
+Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
+Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 
 namespace {
 

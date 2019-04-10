@@ -18,13 +18,16 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=1000,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--dataset', '-i', default='',
                         help='Directory of image files.  Default is cifar-10.')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--n_hidden', '-n', type=int, default=100,
                         help='Number of hidden units (z)')
@@ -34,9 +37,16 @@ def main():
                         help='Interval of snapshot')
     parser.add_argument('--display_interval', type=int, default=100,
                         help='Interval of displaying log to console')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    device = chainer.get_device(args.device)
+    device.use()
+
+    print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# n_hidden: {}'.format(args.n_hidden))
     print('# epoch: {}'.format(args.epoch))
@@ -46,11 +56,8 @@ def main():
     gen = Generator(n_hidden=args.n_hidden)
     dis = Discriminator()
 
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        gen.to_gpu()  # Copy the model to the GPU
-        dis.to_gpu()
+    gen.to_device(device)  # Copy the model to the device
+    dis.to_device(device)
 
     # Setup an optimizer
     def make_optimizer(model, alpha=0.0002, beta1=0.5):
@@ -83,7 +90,7 @@ def main():
         iterator=train_iter,
         optimizer={
             'gen': opt_gen, 'dis': opt_dis},
-        device=args.gpu)
+        device=device)
 
     # Setup a trainer
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
@@ -108,7 +115,7 @@ def main():
             10, 10, args.seed, args.out),
         trigger=snapshot_interval)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 

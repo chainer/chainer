@@ -91,14 +91,14 @@ class TestHinge(unittest.TestCase):
     @attr.chainerx
     def test_forward_chainerx_native(self):
         self.check_forward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.t))
+            backend.to_chx(self.x), backend.to_chx(self.t))
 
     @attr.gpu
     @attr.chainerx
     def test_forward_chainerx_cuda(self):
         self.check_forward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.t)))
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.t)))
 
     def check_backward(self, x_data, t_data):
         def f(x, t):
@@ -128,15 +128,15 @@ class TestHinge(unittest.TestCase):
     @attr.chainerx
     def test_backward_chainerx_native(self):
         self.check_backward_chainerx(
-            backend.to_chainerx(self.x),
-            backend.to_chainerx(self.t))
+            backend.to_chx(self.x),
+            backend.to_chx(self.t))
 
     @attr.gpu
     @attr.chainerx
     def test_backward_chainerx_cuda(self):
         self.check_backward_chainerx(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.t)))
+            backend.to_chx(cuda.to_gpu(self.x)),
+            backend.to_chx(cuda.to_gpu(self.t)))
 
 
 class TestHingeInvalidOption(unittest.TestCase):

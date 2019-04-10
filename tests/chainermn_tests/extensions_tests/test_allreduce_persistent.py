@@ -42,7 +42,7 @@ class TestAllreducePersistent(unittest.TestCase):
 
     @chainer.testing.attr.gpu
     def test_allreduce_persistent_gpu(self):
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('flat')
         device = comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
 

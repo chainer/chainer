@@ -135,6 +135,10 @@ public:
     // Otherwise, all the elements are searched at once.
     Array Max(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    Array Mean(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    Array Var(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 
@@ -270,9 +274,9 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
-inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
-inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
-inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
+Array operator+(Scalar lhs, const Array& rhs);
+Array operator-(Scalar lhs, const Array& rhs);
+Array operator*(Scalar lhs, const Array& rhs);
 // TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
 
 namespace internal {

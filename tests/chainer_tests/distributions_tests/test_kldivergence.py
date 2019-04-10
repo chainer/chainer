@@ -40,64 +40,64 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_bernoulli_dist(self, is_gpu=False):
         p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
-        params = self.encode_params({"p": p}, is_gpu)
+        params = self.encode_params({'p': p}, is_gpu)
         return distributions.Bernoulli(**params)
 
     def make_beta_dist(self, is_gpu=False):
         a = numpy.random.uniform(0.5, 10, self.shape).astype(numpy.float32)
         b = numpy.random.uniform(0.5, 10, self.shape).astype(numpy.float32)
-        params = self.encode_params({"a": a, "b": b}, is_gpu)
+        params = self.encode_params({'a': a, 'b': b}, is_gpu)
         return distributions.Beta(**params)
 
     def make_categorical_dist(self, is_gpu=False):
         p = numpy.random.normal(size=self.shape+(3,)).astype(numpy.float32)
         p = numpy.exp(p)
         p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
-        params = self.encode_params({"p": p}, is_gpu)
+        params = self.encode_params({'p': p}, is_gpu)
         return distributions.Categorical(**params)
 
     def make_dirichlet_dist(self, is_gpu=False):
         alpha = numpy.random.uniform(
             0.5, 10, self.shape + (3,)).astype(numpy.float32)
-        params = self.encode_params({"alpha": alpha}, is_gpu)
+        params = self.encode_params({'alpha': alpha}, is_gpu)
         return distributions.Dirichlet(**params)
 
     def make_exponential_dist(self, is_gpu=False):
         lam = numpy.exp(
             numpy.random.uniform(0, 0.5, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"lam": lam}, is_gpu)
+        params = self.encode_params({'lam': lam}, is_gpu)
         return distributions.Exponential(**params)
 
     def make_gamma_dist(self, is_gpu=False):
         k = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
         theta = numpy.random.uniform(0, 2, self.shape).astype(numpy.float32)
-        params = self.encode_params({"k": k, "theta": theta}, is_gpu)
+        params = self.encode_params({'k': k, 'theta': theta}, is_gpu)
         return distributions.Gamma(**params)
 
     def make_geometric_dist(self, is_gpu=False):
         p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
-        params = self.encode_params({"p": p}, is_gpu)
+        params = self.encode_params({'p': p}, is_gpu)
         return distributions.Geometric(**params)
 
     def make_gumbel_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(0, 1, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        params = self.encode_params({'loc': loc, 'scale': scale}, is_gpu)
         return distributions.Gumbel(**params)
 
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        params = self.encode_params({'loc': loc, 'scale': scale}, is_gpu)
         return distributions.Laplace(**params)
 
     def make_log_normal_dist(self, is_gpu=False):
         mu = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         sigma = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"mu": mu, "sigma": sigma}, is_gpu)
+        params = self.encode_params({'mu': mu, 'sigma': sigma}, is_gpu)
         return distributions.LogNormal(**params)
 
     def make_normal_dist(self, is_gpu=False, use_log_scale=False):
@@ -106,11 +106,11 @@ class TestKLDivergence(unittest.TestCase):
             log_scale = numpy.random.uniform(
                 -1, 1, self.shape).astype(numpy.float32)
             params = self.encode_params(
-                {"loc": loc, "log_scale": log_scale}, is_gpu)
+                {'loc': loc, 'log_scale': log_scale}, is_gpu)
         else:
             scale = numpy.exp(
                 numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-            params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+            params = self.encode_params({'loc': loc, 'scale': scale}, is_gpu)
         return distributions.Normal(**params)
 
     def make_multivariatenormal_dist(self, is_gpu=False):
@@ -121,14 +121,14 @@ class TestKLDivergence(unittest.TestCase):
         cov = numpy.vstack(cov).reshape(self.shape + (3, 3))
         scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
         params = self.encode_params(
-            {"loc": loc, "scale_tril": scale_tril}, is_gpu)
+            {'loc': loc, 'scale_tril': scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
     def make_one_hot_categorical_dist(self, is_gpu=False):
         p = numpy.random.normal(size=self.shape+(3,)).astype(numpy.float32)
         p = numpy.exp(p)
         p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
-        params = self.encode_params({"p": p}, is_gpu)
+        params = self.encode_params({'p': p}, is_gpu)
         return distributions.OneHotCategorical(**params)
 
     def make_pareto_dist(self, is_gpu=False):
@@ -136,12 +136,12 @@ class TestKLDivergence(unittest.TestCase):
             0.5, 1, self.shape)).astype(numpy.float32)
         alpha = numpy.exp(numpy.random.uniform(
             1, 2, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
+        params = self.encode_params({'scale': scale, 'alpha': alpha}, is_gpu)
         return distributions.Pareto(**params)
 
     def make_poisson_dist(self, is_gpu=False):
         lam = numpy.random.uniform(5, 10, self.shape).astype(numpy.float32)
-        params = self.encode_params({"lam": lam}, is_gpu)
+        params = self.encode_params({'lam': lam}, is_gpu)
         return distributions.Poisson(**params)
 
     def make_uniform_dist(self, is_gpu=False, low=None, high=None,
@@ -153,7 +153,7 @@ class TestKLDivergence(unittest.TestCase):
             if scale is None:
                 scale = numpy.random.uniform(
                     1, 5, self.shape).astype(numpy.float32)
-            params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+            params = self.encode_params({'loc': loc, 'scale': scale}, is_gpu)
         else:
             if low is None:
                 low = numpy.random.uniform(
@@ -161,7 +161,7 @@ class TestKLDivergence(unittest.TestCase):
             if high is None:
                 high = numpy.random.uniform(
                     low + 1, low + 6, self.shape).astype(numpy.float32)
-            params = self.encode_params({"low": low, "high": high}, is_gpu)
+            params = self.encode_params({'low': low, 'high': high}, is_gpu)
         return distributions.Uniform(**params)
 
     def test_bernoulli_bernoulli_cpu(self):

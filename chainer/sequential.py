@@ -1,8 +1,6 @@
 import copy
-import functools
 import inspect
 
-from chainer import function
 from chainer import link as _link
 
 
@@ -84,11 +82,13 @@ class Sequential(_link.ChainList):
         You can check the structure of your model briefly using ``print``
         as following:
 
-        >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
-        0       Linear  W(10, 10)       b(10,)
-        1       relu
-        2       Linear  W(10, 10)       b(10,)
-        3       sigmoid
+        >>> print(model_C)  # doctest: +ELLIPSIS
+        Sequential(
+          (0): Linear(in_size=10, out_size=10, nobias=False),
+          (1): <function relu at 0x...>,
+          (2): Linear(in_size=10, out_size=10, nobias=False),
+          (3): <function sigmoid at 0x...>,
+        )
 
         .. note::
 
@@ -205,6 +205,9 @@ class Sequential(_link.ChainList):
             The output of the final layer in the given layers.
 
         """
+        if len(self._layers) == 0:
+            raise RuntimeError('Sequential does not have any layer.')
+
         for layer in self._layers:
             if isinstance(x, tuple):
                 x = layer(*x)
@@ -230,40 +233,24 @@ class Sequential(_link.ChainList):
         return super(Sequential, self).__reduce__()
 
     def __str__(self):
-        ret = ''
-        for i, layer in enumerate(self):
-            if isinstance(layer, Sequential):
-                name = layer.__class__.__name__
-                name += '\twhich has {} layers'.format(len(layer))
-            elif isinstance(layer, _link.Chain):
-                name = layer.__class__.__name__
-                name += '\tThe structure behind a Chain is determined at '
-                name += 'runtime.'
-            elif isinstance(layer, _link.ChainList):
-                name = layer.__class__.__name__
-                name += '\tThe structure behind a ChainList is determined at '
-                name += 'runtime.'
-            elif isinstance(layer, _link.Link):
-                name = layer.__class__.__name__
-                param_info = '\t'
-                for param in sorted(layer.params(), key=lambda p: p.name):
-                    param_info += param.name
-                    if param._data[0] is not None:
-                        param_info += str(param._data[0].shape)
-                    else:
-                        param_info += '(None)'
-                    param_info += '\t'
-                name = name + param_info
-            elif isinstance(layer, function.Function):
-                name = layer.__class__.__name__
-            elif isinstance(layer, functools.partial):
-                name = repr(layer)
-            elif layer.__name__ == '<lambda>':
-                name = inspect.getsource(layer).strip()
+        reps = []
+        for index, layer in enumerate(self):
+            # Explore better representation by if-block.
+            if getattr(layer, '__name__', None) == '<lambda>':
+                rep = inspect.getsource(layer).strip().rstrip(',')
             else:
-                name = layer.__name__
-            ret += '{}\t{}\n'.format(i, name)
-        return ret
+                rep = str(layer)
+            # Add indentation to each line.
+            rep = '({index}): {rep},'.format(index=index, rep=rep)
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no layers.
+            reps = '\n' + reps
+
+        return '{cls}({layers})'.format(
+            cls=self.__class__.__name__, layers=reps,
+        )
 
     def append(self, layer):
         self.insert(len(self), layer)

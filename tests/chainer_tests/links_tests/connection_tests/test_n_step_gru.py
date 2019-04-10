@@ -44,7 +44,7 @@ class TestNStepGRU(unittest.TestCase):
 
         for layer in self.rnn:
             for p in layer.params():
-                p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
+                p.array[...] = numpy.random.uniform(-1, 1, p.shape)
         self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
@@ -55,11 +55,11 @@ class TestNStepGRU(unittest.TestCase):
         xs = [chainer.Variable(x) for x in xs_data]
         hy, ys = self.rnn(h, xs)
 
-        self.assertEqual(hy.data.shape, h_data.shape)
-        self.assertEqual(len(xs), len(ys))
+        assert hy.shape == h_data.shape
+        assert len(xs) == len(ys)
         for x, y in zip(xs, ys):
-            self.assertEqual(len(x.data), len(y.data))
-            self.assertEqual(y.data.shape[1], self.out_size)
+            assert len(x) == len(y)
+            assert y.shape[1] == self.out_size
 
         self.rnn.to_cpu()
 
@@ -70,22 +70,25 @@ class TestNStepGRU(unittest.TestCase):
                 hs = []
                 for x in seq:
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
-                                p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
-                                p.b0.data + p.b3.data)
-                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T) +
-                                            p.b5.data) + p.b2.data)
+                    z = sigmoid(
+                        x.dot(p.w1.array.T) + h_prev.dot(p.w4.array.T) +
+                        p.b1.array + p.b4.array)
+                    r = sigmoid(
+                        x.dot(p.w0.array.T) + h_prev.dot(p.w3.array.T) +
+                        p.b0.array + p.b3.array)
+                    h_bar = numpy.tanh(
+                        x.dot(p.w2.array.T) +
+                        r * ((h_prev).dot(p.w5.array.T) + p.b5.array) +
+                        p.b2.array)
                     e_h = (1 - z) * h_bar + z * h_prev
 
                     h_prev = e_h
                     hs.append(e_h)
 
                 seq = hs
-                testing.assert_allclose(hy.data[layer, batch], h_prev)
+                testing.assert_allclose(hy.array[layer, batch], h_prev)
 
-            for y, ey in zip(ys[batch].data, seq):
+            for y, ey in zip(ys[batch].array, seq):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu_train(self):
@@ -114,6 +117,38 @@ class TestNStepGRU(unittest.TestCase):
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
 
+    def check_multi_gpu_forward(self, train=True):
+        # See chainer/chainer#6262
+        # NStepGRU w/ cudnn & dropout should work on not current device
+        msg = None
+        rnn = self.rnn.copy('copy')
+        rnn.dropout = .5
+        with cuda.get_device_from_id(1):
+            if self.hidden_none:
+                h = None
+            else:
+                h = cuda.to_gpu(self.h)
+            xs = [cuda.to_gpu(x) for x in self.xs]
+            rnn = rnn.to_gpu()
+        with cuda.get_device_from_id(0),\
+                chainer.using_config('train', train),\
+                chainer.using_config('use_cudnn', 'always'):
+            try:
+                rnn(h, xs)
+            except Exception as e:
+                msg = e
+        assert msg is None
+
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def test_multi_gpu_forward_training(self):
+        self.check_multi_gpu_forward(True)
+
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def test_multi_gpu_forward_test(self):
+        self.check_multi_gpu_forward(False)
+
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
 
@@ -135,10 +170,10 @@ class TestNStepGRU(unittest.TestCase):
         if self.hidden_none:
             in_data = xs_data
         else:
-            in_data = [h_data, ] + xs_data
+            in_data = [h_data] + xs_data
         gradient_check.check_backward(
             fun, tuple(in_data),
-            tuple([gh_data, ] + gys_data),
+            tuple([gh_data] + gys_data),
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
@@ -155,7 +190,7 @@ class TestNStepGRU(unittest.TestCase):
                 [cuda.to_gpu(gy) for gy in self.gys])
 
     def test_n_cells(self):
-        self.assertEqual(self.rnn.n_cells, 1)
+        assert self.rnn.n_cells == 1
 
 
 @testing.parameterize(*testing.product({
@@ -188,7 +223,7 @@ class TestNStepBiGRU(unittest.TestCase):
 
         for layer in self.rnn:
             for p in layer.params():
-                p.data[...] = numpy.random.uniform(-1, 1, p.data.shape)
+                p.array[...] = numpy.random.uniform(-1, 1, p.shape)
         self.rnn.cleargrads()
 
     def check_forward(self, h_data, xs_data):
@@ -199,11 +234,11 @@ class TestNStepBiGRU(unittest.TestCase):
         xs = [chainer.Variable(x) for x in xs_data]
         hy, ys = self.rnn(h, xs)
 
-        self.assertEqual(hy.data.shape, h_data.shape)
-        self.assertEqual(len(xs), len(ys))
+        assert hy.shape == h_data.shape
+        assert len(xs) == len(ys)
         for x, y in zip(xs, ys):
-            self.assertEqual(len(x.data), len(y.data))
-            self.assertEqual(y.data.shape[1], self.out_size * 2)
+            assert len(x) == len(y)
+            assert y.shape[1] == self.out_size * 2
 
         self.rnn.to_cpu()
 
@@ -217,19 +252,21 @@ class TestNStepBiGRU(unittest.TestCase):
                 hs_f = []
                 for x in seq:
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
-                                p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
-                                p.b0.data + p.b3.data)
-                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T) +
-                                            p.b5.data) + p.b2.data)
+                    z = sigmoid(
+                        x.dot(p.w1.array.T) + h_prev.dot(p.w4.array.T) +
+                        p.b1.array + p.b4.array)
+                    r = sigmoid(
+                        x.dot(p.w0.array.T) + h_prev.dot(p.w3.array.T) +
+                        p.b0.array + p.b3.array)
+                    h_bar = numpy.tanh(x.dot(p.w2.array.T) +
+                                       r * ((h_prev).dot(p.w5.array.T) +
+                                            p.b5.array) + p.b2.array)
                     e_h = (1 - z) * h_bar + z * h_prev
 
                     h_prev = e_h
                     hs_f.append(e_h)
 
-                testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
+                testing.assert_allclose(hy.array[layer_idx, batch], h_prev)
 
                 # backward
                 di = 1
@@ -239,23 +276,25 @@ class TestNStepBiGRU(unittest.TestCase):
                 hs_b = []
                 for x in reversed(seq):
                     # GRU
-                    z = sigmoid(x.dot(p.w1.data.T) + h_prev.dot(p.w4.data.T) +
-                                p.b1.data + p.b4.data)
-                    r = sigmoid(x.dot(p.w0.data.T) + h_prev.dot(p.w3.data.T) +
-                                p.b0.data + p.b3.data)
-                    h_bar = numpy.tanh(x.dot(p.w2.data.T) +
-                                       r * ((h_prev).dot(p.w5.data.T) +
-                                            p.b5.data) + p.b2.data)
+                    z = sigmoid(
+                        x.dot(p.w1.array.T) + h_prev.dot(p.w4.array.T) +
+                        p.b1.array + p.b4.array)
+                    r = sigmoid(
+                        x.dot(p.w0.array.T) + h_prev.dot(p.w3.array.T) +
+                        p.b0.array + p.b3.array)
+                    h_bar = numpy.tanh(x.dot(p.w2.array.T) +
+                                       r * ((h_prev).dot(p.w5.array.T) +
+                                            p.b5.array) + p.b2.array)
                     e_h = (1 - z) * h_bar + z * h_prev
                     h_prev = e_h
                     hs_b.append(e_h)
-                testing.assert_allclose(hy.data[layer_idx, batch], h_prev)
+                testing.assert_allclose(hy.array[layer_idx, batch], h_prev)
 
                 hs_b.reverse()
                 seq = [numpy.concatenate([hfi, hbi], axis=0) for (hfi, hbi)
                        in zip(hs_f, hs_b)]
 
-            for y, ey in zip(ys[batch].data, seq):
+            for y, ey in zip(ys[batch].array, seq):
                 testing.assert_allclose(y, ey)
 
     def test_forward_cpu_train(self):
@@ -284,6 +323,38 @@ class TestNStepBiGRU(unittest.TestCase):
                 cuda.to_gpu(self.h),
                 [cuda.to_gpu(x) for x in self.xs])
 
+    def check_multi_gpu_forward(self, train=True):
+        # See chainer/chainer#6262
+        # NStepBiGRU w/ cudnn and dropout should work on not current device
+        msg = None
+        rnn = self.rnn.copy('copy')
+        rnn.dropout = .5
+        with cuda.get_device_from_id(1):
+            if self.hidden_none:
+                h = None
+            else:
+                h = cuda.to_gpu(self.h)
+            xs = [cuda.to_gpu(x) for x in self.xs]
+            rnn = rnn.to_gpu()
+        with cuda.get_device_from_id(0),\
+                chainer.using_config('train', train),\
+                chainer.using_config('use_cudnn', 'always'):
+            try:
+                rnn(h, xs)
+            except Exception as e:
+                msg = e
+        assert msg is None
+
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def test_multi_gpu_forward_training(self):
+        self.check_multi_gpu_forward(True)
+
+    @attr.cudnn
+    @attr.multi_gpu(2)
+    def test_multi_gpu_forward_test(self):
+        self.check_multi_gpu_forward(False)
+
     def check_backward(
             self, h_data, xs_data, gh_data, gys_data):
 
@@ -305,10 +376,10 @@ class TestNStepBiGRU(unittest.TestCase):
         if self.hidden_none:
             in_data = xs_data
         else:
-            in_data = [h_data, ] + xs_data
+            in_data = [h_data] + xs_data
         gradient_check.check_backward(
             fun, tuple(in_data),
-            tuple([gh_data, ] + gys_data),
+            tuple([gh_data] + gys_data),
             tuple(params), eps=1e-2, rtol=1e-3, atol=1e-3)
 
     def test_backward_cpu(self):
@@ -326,7 +397,7 @@ class TestNStepBiGRU(unittest.TestCase):
                 [cuda.to_gpu(gy) for gy in self.gys])
 
     def test_n_cells(self):
-        self.assertEqual(self.rnn.n_cells, 1)
+        assert self.rnn.n_cells == 1
 
 
 testing.run_module(__name__, __file__)

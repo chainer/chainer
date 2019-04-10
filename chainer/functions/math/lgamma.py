@@ -24,8 +24,8 @@ class LGamma(function_node.FunctionNode):
                 from scipy import special
                 _lgamma_cpu = special.gammaln
             except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of lgamma can not be done.")
+                raise ImportError('SciPy is not available. Forward computation'
+                                  ' of lgamma can not be done.')
         self.retain_inputs((0,))
         return utils.force_array(_lgamma_cpu(x[0]), dtype=x[0].dtype),
 

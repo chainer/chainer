@@ -5,13 +5,10 @@ import numpy
 from operator import mul
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import conv
 
 
@@ -20,127 +17,154 @@ from chainer.utils import conv
     'dilate': [1, 2],
     'groups': [1, 2],
     'cover_all': [True, False],
-    'c_contiguous': [True],
+    'contiguous': ['C'],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
+    'b_dtype': [numpy.float32],
     'autotune': [True, False],
+    'nobias': [True, False],
 }) + testing.product({
     'dims': [(4,)],
     'dilate': [1],
     'groups': [1],
     'cover_all': [False],
-    'c_contiguous': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'b_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'autotune': [False],
+    'nobias': [True, False],
 })))
-class TestConvolutionND(unittest.TestCase):
+@testing.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward',
+     'test_consistency_forward', 'test_consistency_regression_forward'],
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
+class TestConvolutionND(testing.FunctionTestCase):
 
     def setUp(self):
-        N = 2
-        in_channels = 4
-        out_channels = 2
-        ndim = len(self.dims)
-        ksize = (2,) * ndim
-        self.stride = (1,) * ndim
-        self.pad = (1,) * ndim
-        self.dilate = (self.dilate,) * ndim
+        self.N = 2
+        self.in_channels = 4
+        self.out_channels = 2
+        self.ndim = len(self.dims)
+        self.ksize = (2,) * self.ndim
+        self.stride = (1,) * self.ndim
+        self.pad = (1,) * self.ndim
+        self.dilate = (self.dilate,) * self.ndim
 
-        W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
-        W_shape = (out_channels, in_channels // self.groups) + ksize
-        self.W = numpy.random.normal(0, W_scale, W_shape).astype(self.W_dtype)
-        self.b = numpy.random.uniform(-1, 1, out_channels).astype(self.x_dtype)
-
-        x_shape = (N, in_channels) + self.dims
-        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.x_dtype)
-        gy_shape = (N, out_channels) + tuple(
+        self.x_shape = (self.N, self.in_channels) + self.dims
+        self.W_shape = (
+            self.out_channels, self.in_channels // self.groups) + self.ksize
+        self.W_scale = numpy.sqrt(
+            1. / functools.reduce(mul, self.ksize, self.in_channels))
+        self.gy_shape = (self.N, self.out_channels) + tuple(
             conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all, d=di)
             for (d, k, s, p, di)
-            in zip(self.dims, ksize, self.stride, self.pad, self.dilate))
-        self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.x_dtype)
+            in zip(self.dims, self.ksize, self.stride, self.pad, self.dilate))
 
-        self.check_forward_options = {}
-        self.check_backward_options = {
-            'dtype': numpy.float64, 'atol': 3e-5, 'rtol': 3e-4}
+        self.check_backward_options.update({'atol': 5e-5, 'rtol': 5e-4})
+        self.check_double_backward_options.update(
+            {'atol': 5e-4, 'rtol': 5e-3})
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+            self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+            self.check_backward_options.update({
+                'atol': 2 ** -4, 'rtol': 2 ** -4})
+            self.check_double_backward_options.update({
+                'atol': 2 ** -4, 'rtol': 2 ** -4})
 
-        self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
-            self.x_dtype)
-        self.ggW = numpy.random.uniform(-1, 1, self.W.shape).astype(
-            self.W_dtype)
-        self.ggb = numpy.random.uniform(-1, 1, self.b.shape).astype(
-            self.x_dtype)
+    def before_test(self, test_name):
+        self.backend_config.autotune = self.autotune
 
-    def check_forward_consistency(
-            self, transfer_func, nobias=False, use_cudnn='never'):
-        x_cpu = chainer.Variable(self.x)
-        W_cpu = chainer.Variable(self.W)
-        b_cpu = None if nobias else chainer.Variable(self.b)
+    def generate_inputs(self):
+        W = numpy.random.normal(
+            0, self.W_scale, self.W_shape).astype(self.W_dtype)
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.x_dtype)
+        if self.nobias:
+            return x, W
+        else:
+            b = numpy.random.uniform(
+                -1, 1, self.out_channels).astype(self.x_dtype)
+            return x, W, b
+
+    def forward_expected(self, inputs):
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        y_expected = F.convolution_nd(
+            x, W, b, stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all, dilate=self.dilate,
+            groups=self.groups)
+        return y_expected.array,
+
+    def forward(self, inputs, device):
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        y = F.convolution_nd(
+            x, W, b, stride=self.stride, pad=self.pad,
+            cover_all=self.cover_all, dilate=self.dilate,
+            groups=self.groups)
+        return y,
+
+    def check_forward_consistency(self, backend_config):
+        inputs = self.generate_inputs()
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        x_cpu = chainer.Variable(x)
+        W_cpu = chainer.Variable(W)
+        b_cpu = None if b is None else chainer.Variable(b)
         y_cpu = F.convolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
             cover_all=self.cover_all, dilate=self.dilate,
             groups=self.groups)
 
-        x_gpu = chainer.Variable(transfer_func(self.x))
-        W_gpu = chainer.Variable(transfer_func(self.W))
-        b_gpu = None if nobias else chainer.Variable(transfer_func(self.b))
-        with chainer.using_config('use_cudnn', use_cudnn):
-            with chainer.using_config('autotune', self.autotune):
-                y_gpu = F.convolution_nd(
-                    x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all, dilate=self.dilate,
-                    groups=self.groups)
+        x = backend_config.get_array(x)
+        W = backend_config.get_array(W)
+        if self.nobias:
+            b = None
+        else:
+            b = backend_config.get_array(b)
+        with backend_config:
+            y_gpu = F.convolution_nd(
+                x, W, b, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         testing.assert_allclose(
-            y_cpu.data, y_gpu.data, **self.check_forward_options)
+            y_cpu.array, y_gpu.array, **self.check_forward_options)
 
-    @attr.chainerx
-    def test_forward_chainerx_native(self):
-        self.check_forward_consistency(backend.to_chainerx, nobias=False)
+    def test_consistency_forward(self, backend_config):
+        if backend_config.use_cuda or backend_config.use_chainerx:
+            self.check_forward_consistency(backend_config)
 
-    @attr.chainerx
-    def test_forward_chainerx_native_nobias(self):
-        self.check_forward_consistency(backend.to_chainerx, nobias=True)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_forward_chainerx_cuda(self):
-        self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_forward_chainerx_cuda_nobias(self):
-        self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True)
-
-    @attr.cudnn
-    def test_forward_consistency(self):
-        self.check_forward_consistency(
-            cuda.to_gpu, nobias=False, use_cudnn='always')
-
-    @attr.cudnn
-    def test_forward_consistency_nobias(self):
-        self.check_forward_consistency(
-            cuda.to_gpu, nobias=True, use_cudnn='always')
-
-    @attr.gpu
-    def test_forward_consistency_im2col(self):
-        self.check_forward_consistency(
-            cuda.to_gpu, nobias=False, use_cudnn='never')
-
-    @attr.gpu
-    def test_forward_consistency_im2col_nobias(self):
-        self.check_forward_consistency(
-            cuda.to_gpu, nobias=True, use_cudnn='never')
-
-    def check_forward_consistency_regression(self, nobias=False):
-        x = chainer.Variable(self.x)
-        W = chainer.Variable(self.W)
-        b = None if nobias else chainer.Variable(self.b)
+    def check_forward_consistency_regression(self, backend_config):
+        inputs = self.generate_inputs()
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        x = chainer.Variable(backend_config.get_array(x))
+        W = chainer.Variable(backend_config.get_array(W))
+        if b is not None:
+            b = chainer.Variable(backend_config.get_array(b))
 
         with chainer.using_config('use_cudnn', 'never'):
             y_nd = F.convolution_nd(
@@ -153,212 +177,12 @@ class TestConvolutionND(unittest.TestCase):
                 groups=self.groups)
 
         testing.assert_allclose(
-            y_nd.data, y_2d.data, **self.check_forward_options)
+            y_nd.array, y_2d.array, **self.check_forward_options)
 
-    def test_forward_consistency_regression(self):
+    def test_consistency_regression_forward(self, backend_config):
         # Regression test to convolution_2d.
         if len(self.dims) == 2:
-            self.check_forward_consistency_regression(nobias=False)
-
-    def test_forward_consistency_regression_nobias(self):
-        # Regression test to convolution_2d.
-        if len(self.dims) == 2:
-            self.check_forward_consistency_regression(nobias=True)
-
-    def check_backward(self, x_data, W_data, b_data, y_grad,
-                       use_cudnn='never'):
-        if not self.c_contiguous:
-            x_data, W_data, b_data, y_grad = (
-                testing.array._as_noncontiguous_array(
-                    (x_data, W_data, b_data, y_grad)))
-
-        args = (x_data, W_data)
-        if b_data is not None:
-            args += (b_data,)
-
-        def f(*args):
-            return F.convolution_nd(
-                *args, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        with chainer.using_config('use_cudnn', use_cudnn):
-            with chainer.using_config('autotune', self.autotune):
-                gradient_check.check_backward(
-                    f, args, y_grad, **self.check_backward_options)
-
-    @attr.chainerx
-    def test_backward_chainerx_native(self):
-        self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
-            backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
-
-    @attr.chainerx
-    def test_backward_chainerx_native_nobias(self):
-        self.check_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
-            backend.to_chainerx(self.gy))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_backward_chainerx_cuda(self):
-        self.check_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            backend.to_chainerx(cuda.to_gpu(self.b)),
-            backend.to_chainerx(cuda.to_gpu(self.gy)))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_backward_chainerx_cuda_nobias(self):
-        self.check_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            None,
-            backend.to_chainerx(cuda.to_gpu(self.gy)))
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.W, self.b, self.gy)
-
-    @condition.retry(3)
-    def test_backward_cpu_nobias(self):
-        self.check_backward(self.x, self.W, None, self.gy)
-
-    @attr.cudnn
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy),
-                            use_cudnn='always')
-
-    @attr.cudnn
-    @condition.retry(3)
-    def test_backward_gpu_nobias(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            None, cuda.to_gpu(self.gy),
-                            use_cudnn='always')
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_im2col(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy),
-                            use_cudnn='never')
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_im2col_nobias(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-                            None, cuda.to_gpu(self.gy),
-                            use_cudnn='never')
-
-    def check_double_backward(self, x_data, W_data, b_data, y_grad,
-                              x_grad_grad, W_grad_grad, b_grad_grad,
-                              use_cudnn='always'):
-        if not self.c_contiguous:
-            (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
-                b_grad_grad) = testing.array._as_noncontiguous_array(
-                    (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
-                     b_grad_grad))
-
-        args = (x_data, W_data)
-        grad_grads = (x_grad_grad, W_grad_grad)
-        if b_data is not None:
-            args += (b_data,)
-            grad_grads += (b_grad_grad,)
-
-        def f(*args):
-            return F.convolution_nd(
-                *args, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        with chainer.using_config('use_cudnn', use_cudnn):
-            with chainer.using_config('autotune', self.autotune):
-                gradient_check.check_double_backward(
-                    f, args, y_grad, grad_grads,
-                    dtype='d', atol=5e-3, rtol=5e-2)
-
-    @attr.chainerx
-    def test_double_backward_chainerx_native(self):
-        self.check_double_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
-            backend.to_chainerx(self.b), backend.to_chainerx(self.gy),
-            backend.to_chainerx(self.ggx), backend.to_chainerx(self.ggW),
-            backend.to_chainerx(self.ggb))
-
-    @attr.chainerx
-    def test_double_backward_chainerx_native_nobias(self):
-        self.check_double_backward(
-            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
-            backend.to_chainerx(self.gy), backend.to_chainerx(self.ggx),
-            backend.to_chainerx(self.ggW), None)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_double_backward_chainerx_cuda(self):
-        self.check_double_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            backend.to_chainerx(cuda.to_gpu(self.b)),
-            backend.to_chainerx(cuda.to_gpu(self.gy)),
-            backend.to_chainerx(cuda.to_gpu(self.ggx)),
-            backend.to_chainerx(cuda.to_gpu(self.ggW)),
-            backend.to_chainerx(cuda.to_gpu(self.ggb)))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_double_backward_chainerx_cuda_nobias(self):
-        self.check_double_backward(
-            backend.to_chainerx(cuda.to_gpu(self.x)),
-            backend.to_chainerx(cuda.to_gpu(self.W)),
-            None,
-            backend.to_chainerx(cuda.to_gpu(self.gy)),
-            backend.to_chainerx(cuda.to_gpu(self.ggx)),
-            backend.to_chainerx(cuda.to_gpu(self.ggW)),
-            None)
-
-    @condition.retry(3)
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.W, self.b, self.gy,
-                                   self.ggx, self.ggW, self.ggb,
-                                   use_cudnn='always')
-
-    @condition.retry(3)
-    def test_double_backward_cpu_nobias(self):
-        self.check_double_backward(self.x, self.W, None, self.gy,
-                                   self.ggx, self.ggW, None,
-                                   use_cudnn='always')
-
-    def check_double_backward_gpu(self, bias=True, im2col=False):
-        use_cudnn = 'never' if im2col else 'always'
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.W),
-            cuda.to_gpu(self.b) if bias else None,
-            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggW),
-            cuda.to_gpu(self.ggb) if bias else None,
-            use_cudnn=use_cudnn)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu(self):
-        self.check_double_backward_gpu()
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_nobias(self):
-        self.check_double_backward_gpu(bias=False)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_im2col(self):
-        self.check_double_backward_gpu(im2col=True)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_im2col_nobias(self):
-        self.check_double_backward_gpu(bias=False, im2col=True)
+            self.check_forward_consistency_regression(backend_config)
 
 
 @testing.parameterize(*testing.product({

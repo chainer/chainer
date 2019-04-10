@@ -1,6 +1,5 @@
 import chainer
 import chainer.training.extension
-import numpy as np
 
 
 def _namedpersistents(model):
@@ -37,28 +36,12 @@ class AllreducePersistent(chainer.training.extension.Extension):
     priority = chainer.training.extension.PRIORITY_WRITER + 1
 
     def __init__(self, model, comm):
-        if hasattr(comm, 'mpi_comm'):
-            comm = comm.mpi_comm
-        else:
-            # TODO(kuenishi): wrap this speciall allreduce with
-            # CommunicatorBase interface
-            raise ValueError(
-                'allreduce_persistent is only in MPI-based communicator.')
-
         self.model = model
         self.comm = comm
 
     def __call__(self, trainer=None):
-        # We need to delay MPI4py import. Please also note that _memory_utility
-        # module also imports MPI4py.
-        from chainermn.communicators._memory_utility \
-            import array_to_buffer_object
-        import mpi4py.MPI
-
         for _, param in sorted(_namedpersistents(self.model)):
-            if hasattr(param, 'dtype') and param.dtype == np.float32:
-                buf = array_to_buffer_object(param)
-                self.comm.Allreduce(mpi4py.MPI.IN_PLACE, buf)
-                param /= self.comm.size
+            if hasattr(param, 'dtype'):
+                self.comm.multi_node_mean(None, param)
             else:
                 pass  # Integer persistent variables are ignored

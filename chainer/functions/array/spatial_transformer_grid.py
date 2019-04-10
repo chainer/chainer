@@ -138,7 +138,7 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
             y_i^t \\\\
             1 \\end{matrix}\\right)
 
-    Notatition: here is a notation for dimensionalities.
+    Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`h_O` and :math:`w_O` are the height and the width of the output
@@ -163,9 +163,9 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
     """
     if kwargs:
         argument.check_unexpected_kwargs(
-            kwargs, use_cudnn="The argument \"use_cudnn\" is not "
-            "supported anymore. "
-            "Use chainer.using_config('use_cudnn', value) "
-            "context where value can be `always`, `never`, or `auto`.")
+            kwargs, use_cudnn='The argument "use_cudnn" is not '
+            'supported anymore. '
+            'Use chainer.using_config(\'use_cudnn\', value) '
+            'context where value can be `always`, `never`, or `auto`.')
         argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerGrid(output_shape)(theta)
