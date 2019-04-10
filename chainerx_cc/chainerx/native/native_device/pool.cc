@@ -134,7 +134,7 @@ namespace {
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 Array GetPadModeIgnorePoolingWidths(
@@ -226,7 +226,7 @@ public:
                 Device& device = x.device();
                 device.Sum(col, kernel_axes, out);
                 width_ignore_ = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
-                device.Divide(out, width_ignore_, out);
+                device.backend().CallOp<DivideOp>(out, width_ignore_, out);
                 break;
             }
             default:

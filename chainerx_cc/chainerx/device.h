@@ -154,21 +154,6 @@ public:
     // TODO(hvy): Implement as an Op and remove this method.
     virtual void AsType(const Array& a, const Array& out) = 0;
 
-    virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void AddAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Subtract(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void SubtractAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void FloorDivide(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Divide(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void DivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //
     // Formally, it calculates: out = x1 < x2 ? pos : neg
