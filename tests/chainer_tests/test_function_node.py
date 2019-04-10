@@ -869,6 +869,29 @@ class TestGradValueCheck(unittest.TestCase):
             chainer.grad([y], [x], [None], [None, None])
 
 
+class TestUnchainSplit(unittest.TestCase):
+
+    def test_unchain_split(self):
+        x = chainer.Variable(numpy.arange(4).astype('f').reshape(2, 2))
+        h0, h1 = chainer.functions.split_axis(x, [1], axis=0)
+        y = chainer.functions.sum(h0)
+        z = chainer.functions.sum(h1)
+        w = y + z
+        h0.unchain()
+
+        dy_dh0 = numpy.array([[1., 1.]])
+        dz_dh1 = numpy.array([[1., 1.]])
+        dy_dx = None
+        dz_dx = numpy.array([[0., 0.], [1., 1.]])
+        dw_dx = numpy.array([[0., 0.], [1., 1.]])
+
+        assert numpy.all(chainer.grad([y], [h0])[0].array == dy_dh0)
+        assert numpy.all(chainer.grad([z], [h1])[0].array == dz_dh1)
+        assert chainer.grad([y], [x])[0] is None
+        assert numpy.all(chainer.grad([z], [x])[0].array == dz_dx)
+        assert numpy.all(chainer.grad([w], [x])[0].array == dw_dx)
+
+
 class GradTestBase(object):
 
     shape = 3,
