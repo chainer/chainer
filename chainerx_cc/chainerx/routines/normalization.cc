@@ -178,6 +178,9 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormOp::Call(
         const Axes& axis,
         bool return_state,
         const nonstd::optional<Array>& out) {
+    CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+    CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
+    CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
     CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
@@ -298,7 +301,16 @@ Array BatchNorm(
     {
         NoBackpropModeScope scope{};
         std::tie(out, state) = device.backend().CallOp<BatchNormOp>(
-                x, gamma_reshaped, beta_reshaped, mean_reshaped, var_reshaped, eps, decay, sorted_axis, true, nonstd::nullopt);
+                x.AsGradStopped(),
+                gamma_reshaped.AsGradStopped(),
+                beta_reshaped.AsGradStopped(),
+                mean_reshaped,
+                var_reshaped,
+                eps,
+                decay,
+                sorted_axis,
+                true,
+                nonstd::nullopt);
     }
     CHAINERX_ASSERT(state != nullptr);
 
