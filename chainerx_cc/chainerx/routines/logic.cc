@@ -90,4 +90,24 @@ Array LogicalOr(const Array& x1, const Array& x2) {
     return BroadcastComparison(func, x1, x2);
 }
 
+Array All(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), Dtype::kBool, sorted_axis, keepdims, a.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AllOp>(a, sorted_axis, out);
+    }
+    return out;
+}
+
+Array Any(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), Dtype::kBool, sorted_axis, keepdims, a.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AnyOp>(a, sorted_axis, out);
+    }
+    return out;
+}
+
 }  // namespace chainerx
