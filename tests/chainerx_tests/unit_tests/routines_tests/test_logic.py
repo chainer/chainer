@@ -33,6 +33,13 @@ def _make_in_dtypes(number_of_in_params, dtypes):
     return [((dtype,) * number_of_in_params) for dtype in dtypes]
 
 
+def dropout(a, prob=0.5):
+    a = a * numpy.random.binomial(1, prob, a.shape)
+    # shape -> () crashes without
+    # below line.
+    return numpy.array(a)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # All dtypes
@@ -252,8 +259,8 @@ def compute_any(xp, a, axis, keepdims):
             ((2, 3, 4), (-2, 2, 0)),
         ],
         'keepdims': [True, False],
-        'in_dtypes':
-            _make_in_dtypes(1, chainerx.testing.numeric_dtypes),
+        'dtype':
+            _make_in_dtypes(1, chainerx.testing.all_dtypes),
         'func': [compute_all, compute_any],
         # With all zero,
         # partially zero,
@@ -268,7 +275,7 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
-        in_dtype, = self.in_dtypes
+        in_dtype, = self.dtype
         a = numpy.random.normal(0, 1, self.shape)
         a = array_utils.dropout(a, self.probs).astype(in_dtype)
         return a,

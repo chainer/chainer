@@ -112,13 +112,6 @@ def create_dummy_ndarray(
     return a
 
 
-def dropout(a, prob=0.5):
-    a = a * numpy.random.binomial(1, prob, a.shape)
-    # shape -> () crashes without
-    # below line.
-    return numpy.array(a)
-
-
 def check_device(a, device=None):
     if device is None:
         device = chainerx.get_default_device()
