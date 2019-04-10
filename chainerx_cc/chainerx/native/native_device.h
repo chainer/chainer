@@ -42,23 +42,6 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
-    // arithmetic.cc
-
-    void Add(const Array& x1, const Array& x2, const Array& out) override;
-    void AddAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Subtract(const Array& x1, const Array& x2, const Array& out) override;
-    void SubtractAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Multiply(const Array& x1, const Array& x2, const Array& out) override;
-    void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void FloorDivide(const Array& x1, const Array& x2, const Array& out) override;
-    void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Divide(const Array& x1, const Array& x2, const Array& out) override;
-    void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
     // reduction.cc
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
@@ -76,10 +59,6 @@ public:
     void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
-
-    // dot.cc
-
-    void Dot(const Array& a, const Array& b, const Array& out) override;
 
     // exp_log.cc
 

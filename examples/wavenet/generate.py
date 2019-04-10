@@ -12,9 +12,10 @@ from utils import MuLaw
 from utils import Preprocess
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input', '-i', help='input file')
+parser.add_argument('--input', '-i', required=True, help='input file')
 parser.add_argument('--output', '-o', default='result.wav', help='output file')
-parser.add_argument('--model', '-m', help='snapshot of trained model')
+parser.add_argument('--model', '-m', required=True,
+                    help='snapshot of trained model')
 parser.add_argument('--n_loop', type=int, default=4,
                     help='Number of residual blocks')
 parser.add_argument('--n_layer', type=int, default=10,

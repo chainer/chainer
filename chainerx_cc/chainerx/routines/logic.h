@@ -42,6 +42,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class LogicalAndOp : public Op {
+public:
+    static const char* name() { return "LogicalAnd"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class LogicalOrOp : public Op {
+public:
+    static const char* name() { return "LogicalOr"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
 class AllOp : public Op {
 public:
     static const char* name() { return "All"; }
@@ -88,6 +102,10 @@ inline Array LessEqual(const Array& x1, const Array& x2) { return GreaterEqual(x
 
 // Returns an elementwise logical negation of an array.
 Array LogicalNot(const Array& x);
+
+Array LogicalAnd(const Array& x1, const Array& x2);
+
+Array LogicalOr(const Array& x1, const Array& x2);
 
 Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
