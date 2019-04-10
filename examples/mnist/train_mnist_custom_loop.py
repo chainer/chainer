@@ -9,9 +9,6 @@ applies an optimizer to update the model.
 
 import argparse
 import os
-import re
-
-import numpy
 
 import chainer
 from chainer import configuration
@@ -20,23 +17,6 @@ import chainer.links as L
 from chainer import serializers
 
 import train_mnist
-
-
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.get_device(args.device)
 
 
 def main():
@@ -52,17 +32,18 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot using model '
                              'and state files in the specified directory')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -79,10 +60,17 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
-        serializers.load_npz('{}/mlp.model'.format(args.resume), model)
-        serializers.load_npz('{}/mlp.state'.format(args.resume), optimizer)
+        resume = args.resume
+        if os.path.exists(resume):
+            serializers.load_npz(os.path.join(resume, 'mlp.model'), model)
+            serializers.load_npz(os.path.join(resume, 'mlp.state'), optimizer)
+        else:
+            raise ValueError(
+                '`args.resume` ("{}") is specified,'
+                ' but it does not exist'.format(resume)
+            )
 
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
@@ -129,12 +117,13 @@ def main():
             sum_loss = 0
 
     # Save the model and the optimizer
-    if not os.path.exists(args.out):
-        os.makedirs(args.out)
+    out = args.out
+    if not os.path.isdir(out):
+        os.makedirs(out)
     print('save the model')
-    serializers.save_npz('{}/mlp.model'.format(args.out), model)
+    serializers.save_npz(os.path.join(out, 'mlp.model'), model)
     print('save the optimizer')
-    serializers.save_npz('{}/mlp.state'.format(args.out), optimizer)
+    serializers.save_npz(os.path.join(out, 'mlp.state'), optimizer)
 
 
 if __name__ == '__main__':

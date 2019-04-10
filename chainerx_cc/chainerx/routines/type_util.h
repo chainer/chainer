@@ -10,6 +10,24 @@
 #include "chainerx/scalar.h"
 
 namespace chainerx {
+namespace internal {
+
+// Returns the default dtype.
+inline Dtype GetDefaultDtype(DtypeKind kind) {
+    switch (kind) {
+        case DtypeKind::kBool:
+            return Dtype::kBool;
+        case DtypeKind::kInt:
+            return Dtype::kInt32;
+        case DtypeKind::kFloat:
+            return Dtype::kFloat32;
+        default:
+            CHAINERX_NEVER_REACH();
+    }
+}
+
+}  // namespace internal
+
 namespace type_util_detail {
 
 class ResultTypeResolver {
@@ -31,9 +49,6 @@ public:
 private:
     nonstd::optional<Dtype> array_max_dtype_;
     nonstd::optional<Dtype> scalar_max_dtype_;
-
-    // Returns the minimal dtype which can be safely casted from both dtypes.
-    static Dtype PromoteType(Dtype dt1, Dtype dt2);
 
     void AddArgsImpl() {
         // nop
@@ -59,7 +74,7 @@ private:
 
 inline Dtype ResultType(const Array& arg) { return arg.dtype(); }
 
-inline Dtype ResultType(Scalar arg) { return arg.dtype(); }
+inline Dtype ResultType(Scalar arg) { return internal::GetDefaultDtype(arg.kind()); }
 
 template <typename Arg, typename... Args>
 Dtype ResultType(Arg arg, Args... args) {
