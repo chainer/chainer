@@ -87,8 +87,6 @@ private:
     Dtype beta_dtype_;
 };
 
-}  // namespace
-
 class CudaBatchNormOp : public BatchNormOp {
 public:
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
@@ -397,5 +395,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
 
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx
