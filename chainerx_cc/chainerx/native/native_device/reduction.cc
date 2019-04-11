@@ -50,8 +50,6 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(ArgMaxOp, NativeArgMaxOp);
 
-}  // namespace
-
 class NativeSumOp : public SumOp {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
@@ -102,5 +100,6 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(AMaxOp, NativeAMaxOp);
 
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

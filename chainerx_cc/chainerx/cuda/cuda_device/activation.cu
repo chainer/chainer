@@ -20,7 +20,6 @@
 
 namespace chainerx {
 namespace cuda {
-
 namespace {
 
 template <typename In, typename Out>
@@ -31,8 +30,6 @@ struct IfLessElseASSAImpl {
     CudaTypeIn x2;
     CudaTypeOut pos;
 };
-
-}  // namespace
 
 class CudaIfLessElseASSAOp : public IfLessElseASSAOp {
 public:
@@ -58,8 +55,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(IfLessElseASSAOp, CudaIfLessElseASSAOp);
 
-namespace {
-
 template <typename In, typename Out>
 struct IfGreaterElseASSAImpl {
     using CudaTypeIn = cuda_internal::DataType<In>;
@@ -68,20 +63,6 @@ struct IfGreaterElseASSAImpl {
     CudaTypeIn x2;
     CudaTypeOut pos;
 };
-
-}  // namespace
-
-namespace {
-
-template <typename T>
-struct IfGreaterElseAAAAImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType pos, CudaType neg, CudaType& out) {
-        out = x1 > x2 ? pos : neg;
-    }
-};
-
-}  // namespace
 
 class CudaIfGreaterElseASSAOp : public IfGreaterElseASSAOp {
 public:
@@ -107,6 +88,14 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(IfGreaterElseASSAOp, CudaIfGreaterElseASSAOp);
 
+template <typename T>
+struct IfGreaterElseAAAAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType pos, CudaType neg, CudaType& out) {
+        out = x1 > x2 ? pos : neg;
+    }
+};
+
 class CudaIfGreaterElseAAAAOp : public IfGreaterElseAAAAOp {
 public:
     void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override {
@@ -123,15 +112,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(IfGreaterElseAAAAOp, CudaIfGreaterElseAAAAOp);
 
-namespace {
-
 template <typename T>
 struct TanhImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Tanh(x); }
 };
-
-}  // namespace
 
 class CudaTanhOp : public TanhOp {
 public:
@@ -149,5 +134,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(TanhOp, CudaTanhOp);
 
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx

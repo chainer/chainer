@@ -15,6 +15,7 @@
 
 namespace chainerx {
 namespace native {
+namespace {
 
 class NativeIfLessElseASSAOp : public IfLessElseASSAOp {
 public:
@@ -97,5 +98,6 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(TanhOp, NativeTanhOp);
 
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

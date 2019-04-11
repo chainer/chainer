@@ -13,6 +13,7 @@
 
 namespace chainerx {
 namespace native {
+namespace {
 
 class NativeSquareOp : public SquareOp {
 public:
@@ -115,5 +116,6 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(FloorOp, NativeFloorOp);
 
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

@@ -25,8 +25,6 @@ struct SquareImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = x * x; }
 };
 
-}  // namespace
-
 class CudaSquareOp : public SquareOp {
 public:
     void Call(const Array& x, const Array& out) override {
@@ -42,15 +40,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(SquareOp, CudaSquareOp);
 
-namespace {
-
 template <typename T>
 struct SqrtImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sqrt(x); }
 };
-
-}  // namespace
 
 class CudaSqrtOp : public SqrtOp {
 public:
@@ -68,15 +62,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(SqrtOp, CudaSqrtOp);
 
-namespace {
-
 template <typename T>
 struct IsNanImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }
 };
-
-}  // namespace
 
 class CudaIsNanOp : public IsNanOp {
 public:
@@ -93,15 +83,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(IsNanOp, CudaIsNanOp);
 
-namespace {
-
 template <typename T>
 struct IsInfImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsInf(x); }
 };
-
-}  // namespace
 
 class CudaIsInfOp : public IsInfOp {
 public:
@@ -162,5 +148,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(FloorOp, CudaFloorOp);
 
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx

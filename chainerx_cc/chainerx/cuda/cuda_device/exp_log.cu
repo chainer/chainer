@@ -25,8 +25,6 @@ struct ExpImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
 };
 
-}  // namespace
-
 class CudaExpOp : public ExpOp {
 public:
     void Call(const Array& x, const Array& out) override {
@@ -43,15 +41,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(ExpOp, CudaExpOp);
 
-namespace {
-
 template <typename T>
 struct LogImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
 };
-
-}  // namespace
 
 class CudaLogOp : public LogOp {
 public:
@@ -69,5 +63,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(LogOp, CudaLogOp);
 
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx

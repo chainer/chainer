@@ -70,8 +70,6 @@ struct SumImpl {
     __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
 };
 
-}  // namespace
-
 class CudaSumOp : public SumOp {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
@@ -92,8 +90,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(SumOp, CudaSumOp);
 
-namespace {
-
 template <typename T>
 struct AMaxImpl {
     using CudaType = cuda_internal::DataType<T>;
@@ -106,8 +102,6 @@ struct AMaxImpl {
     }
     __device__ CudaType MapOut(CudaType accum) { return accum; }
 };
-
-}  // namespace
 
 class CudaAMaxOp : public AMaxOp {
 public:
@@ -125,5 +119,6 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(AMaxOp, CudaAMaxOp);
 
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx

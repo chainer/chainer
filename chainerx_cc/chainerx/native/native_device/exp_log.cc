@@ -12,6 +12,7 @@
 
 namespace chainerx {
 namespace native {
+namespace {
 
 class NativeExpOp : public ExpOp {
 public:
@@ -47,5 +48,6 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(LogOp, NativeLogOp);
 
+}  // namespace
 }  // namespace native
 }  // namespace chainerx
