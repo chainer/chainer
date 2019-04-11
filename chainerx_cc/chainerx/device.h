@@ -120,18 +120,6 @@ public:
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;
 
-    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-
-    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) = 0;
-
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
