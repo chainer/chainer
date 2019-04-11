@@ -62,7 +62,7 @@ class Standardize(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = backend.get_array_module(x)
-        x_mu, std_noeps, std, x_hat = self._compute(xp, x)
+        x_mu, std_noeps, std, x_hat, axes = self._compute(xp, x)
         return x_hat,
 
     def backward(self, indexes, grad_outputs):
