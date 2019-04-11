@@ -19,6 +19,7 @@
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -138,7 +139,7 @@ public:
             }
 
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-            device.Fill(out, T{0});
+            device.backend().CallOp<FillOp>(out, T{0});
 
             IndexableArray<const T, 1> v_iarray{v};
             IndexableArray<T, 2> out_iarray{out};
@@ -196,16 +197,20 @@ struct FillImpl {
     CudaType value;
 };
 
+class CudaFillOp : public FillOp {
+public:
+    void Call(const Array& out, Scalar value) override {
+        CudaSetDeviceScope scope{out.device().index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<T>(FillImpl<T>{static_cast<CudaType>(value)}, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(FillOp, CudaFillOp);
+
 }  // namespace
-
-void CudaDevice::Fill(const Array& out, Scalar value) {
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        using CudaType = cuda_internal::DataType<T>;
-        Elementwise<T>(FillImpl<T>{static_cast<CudaType>(value)}, out);
-    });
-}
-
 }  // namespace cuda
 }  // namespace chainerx

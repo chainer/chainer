@@ -62,10 +62,11 @@ public:
     native::NativeBackend& GetNativeBackend();
 
     // Registers the backend.
-    template <typename BackendType>
-    Backend& CreateBackend(const std::string& backend_name) {
+    template <typename BackendType, typename... Args>
+    Backend& CreateBackend(const std::string& backend_name, Args&&... args) {
         auto backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
-                new BackendType{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
+                new BackendType{*this, std::forward<Args>(args)...},
+                context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
         auto pair = RegisterBackend(backend_name, std::move(backend));
         if (!pair.second) {
             ContextError{"Backend is already registered: ", backend_name};

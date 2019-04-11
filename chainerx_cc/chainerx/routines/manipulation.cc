@@ -24,6 +24,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -444,11 +445,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            if (in_dtype == out_dtype) {
-                device.backend().CallOp<CopyOp>(array, sliced_out);
-            } else {
-                device.AsType(array, sliced_out);
-            }
+            device.backend().CallOp<AsTypeOp>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }

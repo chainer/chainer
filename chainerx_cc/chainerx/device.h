@@ -84,9 +84,6 @@ public:
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void Fill(const Array& out, Scalar value) = 0;
-
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that
@@ -99,10 +96,6 @@ public:
     // Calculates the maximum along specified axes.
     // See Sum() for the explanation of arguments.
     virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
-
-    // Casts the elements from one array to the other dtype, and store into the other.
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void AsType(const Array& a, const Array& out) = 0;
 
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //
