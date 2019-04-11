@@ -58,7 +58,7 @@ class Independent(distribution.Distribution):
     def event_shape(self):
         return self.__event_shape
 
-    @property
+    @cache.cached_property
     def covariance(self):
         """ The covariance of the distribution based on the original
         i.i.d. distribution.
