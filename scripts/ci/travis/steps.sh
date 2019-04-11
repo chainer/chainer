@@ -143,12 +143,23 @@ step_chainer_tests() {
         mark="$mark and not theano"
     fi
 
-    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    log_file="$(mktemp)"
+    pytest \
+        --result-log "$log_file" \
+        -m "$mark" \
+        "$REPO_DIR"/tests/chainer_tests || ret=$?
+    cat "$log_file" | grep "^F"
+    return $ret
 }
 
 
 step_chainerx_python_tests() {
-    pytest "$REPO_DIR"/tests/chainerx_tests
+    log_file="$(mktemp)"
+    pytest \
+        --result-log "$log_file" \
+        "$REPO_DIR"/tests/chainerx_tests || ret=$?
+    cat "$log_file" | grep "^F"
+    return $ret
 }
 
 
