@@ -1,4 +1,5 @@
-from chainer.backends import cuda
+import chainer
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -8,23 +9,21 @@ class Copy(function_node.FunctionNode):
     """Copies the input variable onto the specified device."""
 
     def __init__(self, out_device):
-        self.out_device = out_device
+        self.out_device = chainer.get_device(out_device)
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
 
     def forward(self, inputs):
         x, = inputs
-        self._in_device = cuda.get_device_from_array(x).id
-        if int(self.out_device) == -1:
-            return cuda.to_cpu(x),
-        else:
-            return cuda.to_gpu(x, self.out_device),
+        self._in_device = backend.get_device_from_array(x)
+        return self.out_device.send(x),
 
     def backward(self, indexes, grad_outputs):
         return Copy(self._in_device).apply(grad_outputs)
 
 
+# TODO(niboshi): Update docstring
 def copy(x, dst):
     """Copies the input variable onto the specified device.
 
