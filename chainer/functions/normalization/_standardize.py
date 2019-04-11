@@ -86,8 +86,7 @@ class Standardize(function_node.FunctionNode):
         g_x_mu_2 = g_var * x_mu
 
         g_x_1 = (g_x_mu_1 - g_x_mu_2) / (std ** 2)
-        g_mu, = _SetItemZero(mask).apply((
-            F.mean(g_x_1[mask], axis=axes, keepdims=True),))
+        g_mu = F.mean(g_x_1, axis=axes, keepdims=True)
 
         g_x = g_x_1 - g_mu
 
