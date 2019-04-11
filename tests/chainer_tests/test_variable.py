@@ -2848,6 +2848,47 @@ class TestBackward(unittest.TestCase):
                 pass
 
 
+# see also test_function_node.TestGradTypeCheck
+class TestBackwardTypeCheck(unittest.TestCase):
+
+    def _rand(self):
+        return np.random.uniform(-1, 1, (2, 3)).astype(np.float32)
+
+    def test_type_check(self):
+        x = chainer.Variable(self._rand())
+        y = x * x
+        y.grad = self._rand()
+        gy = chainer.Variable(self._rand())
+
+        with self.assertRaises(TypeError):
+            chainer.backward(y)
+        with self.assertRaises(TypeError):
+            chainer.backward([y], gy)
+
+        chainer.backward([y])
+        chainer.backward([y], [gy])
+
+
+# see also test_function_node.TestGradValueCheck
+class TestBackwardValueCheck(unittest.TestCase):
+
+    def test_length_check(self):
+        x = chainer.Variable(np.array(3, np.float32))
+        y = chainer.functions.identity(x)
+        gy = chainer.Variable(np.array(7, np.float32))
+
+        with self.assertRaises(ValueError):
+            chainer.backward([y], [])
+        with self.assertRaises(ValueError):
+            chainer.backward([y], [gy, gy])
+        with self.assertRaises(ValueError):
+            chainer.backward([], [gy])
+        with self.assertRaises(ValueError):
+            chainer.backward([y, y], [gy])
+
+        chainer.backward([y], [gy])
+
+
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'dtype': [np.float16, np.float32, np.float64],
