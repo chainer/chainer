@@ -43,39 +43,39 @@ struct CudaStackVector {
     int64_t data[kMaxNdim];
 };
 
-// Uses the previously computed y to find the indices for which the upstream gradients should be propagated.
+// Uses the previously computed out to find the indices for which the upstream gradients should be propagated.
 // It is faster than looking for the argmax again since we only have to do a single comparison.
 // TODO(hvy): Make the spatial dimensionality a template parameter to allow unrolling the loops.
 template <typename T>
 __global__ void MaxPoolDoubleBackwardKernel(
         IndexableArray<const T> ggx_iarray,
         IndexableArray<const T> x_iarray,
-        IndexableArray<const T> y_iarray,
-        IndexableArray<T> ggy_iarray,
+        IndexableArray<const T> out_iarray,
+        IndexableArray<T> ggout_iarray,
         Indexer<> x_indexer,
-        Indexer<> y_indexer,
+        Indexer<> out_indexer,
         Indexer<> kernel_indexer,
         CudaStackVector stride,
         CudaStackVector pad) {
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
-    for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
-        it_x.index()[0] = it_y.index()[0];  // batch.
-        it_x.index()[1] = it_y.index()[1];  // channel.
+    for (auto it_out = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_out; ++it_out) {
+        it_x.index()[0] = it_out.index()[0];  // batch.
+        it_x.index()[1] = it_out.index()[1];  // channel.
 
-        cuda_internal::StorageType<T> y = y_iarray[it_y];
+        cuda_internal::StorageType<T> out = out_iarray[it_out];
 
         // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
         for (it_kernel.Restart(); it_kernel.raw_index() >= 0; --it_kernel) {
             for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
-                int64_t idx = it_y.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
+                int64_t idx = it_out.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
                 idx = min(idx, x_indexer.shape()[i] - 1);
                 it_x.index()[i] = idx;
             }
-            if (y == x_iarray[it_x]) {
-                ggy_iarray[it_y] = ggx_iarray[it_x];
+            if (out == x_iarray[it_x]) {
+                ggout_iarray[it_out] = ggx_iarray[it_x];
             }
         }
     }
@@ -115,11 +115,11 @@ Array Pool(
 
     CudaSetDeviceScope scope{device.index()};
 
-    Array y = Empty(out_shape, dtype, device);
+    Array actual_out = Empty(out_shape, dtype, device);
     Array x_cont = AsContiguousArray(x);
 
     cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-    cuda_internal::CudnnTensorDescriptor y_desc{y};
+    cuda_internal::CudnnTensorDescriptor out_desc{actual_out};
 
     cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
@@ -132,22 +132,22 @@ Array Pool(
             *x_desc,
             internal::GetRawOffsetData(x_cont),
             cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
-            *y_desc,
-            internal::GetRawOffsetData(y));
+            *out_desc,
+            internal::GetRawOffsetData(actual_out));
 
-    return y;
+    return actual_out;
 }
 
 Array PoolGrad(
         cudnnPoolingMode_t cudnn_pooling_mode,
         const Array& x,
-        const Array& y,
+        const Array& out,
         const Array& gout,
         StackVector<int64_t, kMaxNdim> kernel_size,
         StackVector<int64_t, kMaxNdim> stride,
         StackVector<int64_t, kMaxNdim> pad,
         const nonstd::optional<Array>& gx) {
-    CHAINERX_ASSERT(y.shape() == gout.shape());
+    CHAINERX_ASSERT(out.shape() == gout.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(x.ndim() - 2));
@@ -168,11 +168,11 @@ Array PoolGrad(
     CudaSetDeviceScope scope{device.index()};
 
     Array actual_gx = EmptyLike(x, device);
-    Array y_cont = AsContiguousArray(y);
+    Array out_cont = AsContiguousArray(out);
     Array gout_cont = AsContiguousArray(gout);
     Array x_cont = AsContiguousArray(x);
 
-    cuda_internal::CudnnTensorDescriptor y_desc{y_cont};
+    cuda_internal::CudnnTensorDescriptor out_desc{out_cont};
     cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont};
     cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
     cuda_internal::CudnnTensorDescriptor gx_desc{actual_gx};
@@ -185,8 +185,8 @@ Array PoolGrad(
             cudnnPoolingBackward,
             *pool_desc,
             cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
-            *y_desc,
-            internal::GetRawOffsetData(y_cont),
+            *out_desc,
+            internal::GetRawOffsetData(out_cont),
             *gout_desc,
             internal::GetRawOffsetData(gout_cont),
             *x_desc,
@@ -200,7 +200,7 @@ Array PoolGrad(
 
 Array MaxPoolGradGrad(
         const Array& x,
-        const Array& y,
+        const Array& out,
         const Array& ggx,
         StackVector<int64_t, kMaxNdim> kernel_size,
         StackVector<int64_t, kMaxNdim> stride,
@@ -224,39 +224,38 @@ Array MaxPoolGradGrad(
     CudaDevice& device = dynamic_cast<CudaDevice&>(ggx.device());
     CudaSetDeviceScope scope{device.index()};
 
-    // TODO(hvy): Rename to `actual_ggout`.
-    Array ggy = EmptyLike(y, device);
+    Array actual_ggout = EmptyLike(out, device);
 
-    VisitFloatingPointDtype(ggy.dtype(), [&](auto pt) {
+    VisitFloatingPointDtype(actual_ggout.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
         IndexableArray<const T> ggx_iarray{ggx};
         IndexableArray<const T> x_iarray{x};
-        IndexableArray<const T> y_iarray{y};
-        IndexableArray<T> ggy_iarray{ggy};
+        IndexableArray<const T> out_iarray{out};
+        IndexableArray<T> ggout_iarray{actual_ggout};
 
         Indexer<> x_indexer{x.shape()};
-        Indexer<> y_indexer{y.shape()};
+        Indexer<> out_indexer{out.shape()};
         Indexer<> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
 
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
-        int64_t total_size = y_indexer.total_size();
+        int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
         MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
                 ggx_iarray,
                 x_iarray,
-                y_iarray,
-                ggy_iarray,
+                out_iarray,
+                ggout_iarray,
                 x_indexer,
-                y_indexer,
+                out_indexer,
                 kernel_indexer,
                 CudaStackVector{stride},
                 CudaStackVector{pad});
     });
 
-    return ggy;
+    return actual_ggout;
 }
 
 // Pooling states are identical for most CUDA pooling ops.
