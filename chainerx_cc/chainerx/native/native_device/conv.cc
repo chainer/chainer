@@ -81,7 +81,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvOp, NativeConvOp);
+CHAINERX_NATIVE_REGISTER_OP(ConvOp, NativeConvOp);
 
 class NativeConvGradWeightOp : public ConvGradWeightOp {
 public:
@@ -120,7 +120,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvGradWeightOp, NativeConvGradWeightOp);
+CHAINERX_NATIVE_REGISTER_OP(ConvGradWeightOp, NativeConvGradWeightOp);
 
 class NativeConvTransposeOp : public ConvTransposeOp {
 public:
@@ -158,7 +158,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvTransposeOp, NativeConvTransposeOp);
+CHAINERX_NATIVE_REGISTER_OP(ConvTransposeOp, NativeConvTransposeOp);
 
 }  // namespace
 }  // namespace native

@@ -278,7 +278,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolOp, CudaMaxPoolOp);
+CHAINERX_CUDA_REGISTER_OP(MaxPoolOp, CudaMaxPoolOp);
 
 class CudaMaxPoolGradOp : public MaxPoolGradOp {
 public:
@@ -305,7 +305,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradOp, CudaMaxPoolGradOp);
+CHAINERX_CUDA_REGISTER_OP(MaxPoolGradOp, CudaMaxPoolGradOp);
 
 class CudaMaxPoolGradGradOp : public MaxPoolGradGradOp {
 public:
@@ -328,7 +328,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradGradOp, CudaMaxPoolGradGradOp);
+CHAINERX_CUDA_REGISTER_OP(MaxPoolGradGradOp, CudaMaxPoolGradGradOp);
 
 cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     switch (pad_mode) {
@@ -361,7 +361,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolOp, CudaAveragePoolOp);
+CHAINERX_CUDA_REGISTER_OP(AveragePoolOp, CudaAveragePoolOp);
 
 class CudaAveragePoolGradOp : public AveragePoolGradOp {
 public:
@@ -384,7 +384,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolGradOp, CudaAveragePoolGradOp);
+CHAINERX_CUDA_REGISTER_OP(AveragePoolGradOp, CudaAveragePoolGradOp);
 
 }  // namespace
 }  // namespace cuda

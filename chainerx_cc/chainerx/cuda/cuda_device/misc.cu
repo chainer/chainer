@@ -38,7 +38,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SquareOp, CudaSquareOp);
+CHAINERX_CUDA_REGISTER_OP(SquareOp, CudaSquareOp);
 
 template <typename T>
 struct SqrtImpl {
@@ -60,7 +60,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SqrtOp, CudaSqrtOp);
+CHAINERX_CUDA_REGISTER_OP(SqrtOp, CudaSqrtOp);
 
 template <typename T>
 struct IsNanImpl {
@@ -81,7 +81,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IsNanOp, CudaIsNanOp);
+CHAINERX_CUDA_REGISTER_OP(IsNanOp, CudaIsNanOp);
 
 template <typename T>
 struct IsInfImpl {
@@ -102,7 +102,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IsInfOp, CudaIsInfOp);
+CHAINERX_CUDA_REGISTER_OP(IsInfOp, CudaIsInfOp);
 
 template <typename T>
 struct CeilImpl {
@@ -124,7 +124,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(CeilOp, CudaCeilOp);
+CHAINERX_CUDA_REGISTER_OP(CeilOp, CudaCeilOp);
 
 template <typename T>
 struct FloorImpl {
@@ -146,7 +146,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FloorOp, CudaFloorOp);
+CHAINERX_CUDA_REGISTER_OP(FloorOp, CudaFloorOp);
 
 }  // namespace
 }  // namespace cuda

@@ -86,7 +86,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolOp, NativeMaxPoolOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolOp, NativeMaxPoolOp);
 
 class NativeMaxPoolGradOp : public MaxPoolGradOp {
 public:
@@ -142,7 +142,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolGradOp, NativeMaxPoolGradOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradOp, NativeMaxPoolGradOp);
 
 class NativeMaxPoolGradGradOp : public MaxPoolGradGradOp {
 public:
@@ -176,7 +176,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
@@ -297,7 +297,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AveragePoolOp, NativeAveragePoolOp);
+CHAINERX_NATIVE_REGISTER_OP(AveragePoolOp, NativeAveragePoolOp);
 
 class NativeAveragePoolGradOp : public AveragePoolGradOp {
 public:
@@ -347,7 +347,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AveragePoolGradOp, NativeAveragePoolGradOp);
+CHAINERX_NATIVE_REGISTER_OP(AveragePoolGradOp, NativeAveragePoolGradOp);
 
 }  // namespace
 }  // namespace native

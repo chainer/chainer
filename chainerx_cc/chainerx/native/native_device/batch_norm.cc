@@ -4,9 +4,9 @@
 namespace chainerx {
 namespace native {
 
-CHAINERX_REGISTER_OP_NATIVE(BatchNormOp, GenericBatchNormOp);
-CHAINERX_REGISTER_OP_NATIVE(BatchNormGradOp, GenericBatchNormGradOp);
-CHAINERX_REGISTER_OP_NATIVE(FixedBatchNormOp, GenericFixedBatchNormOp);
+CHAINERX_NATIVE_REGISTER_OP(BatchNormOp, GenericBatchNormOp);
+CHAINERX_NATIVE_REGISTER_OP(BatchNormGradOp, GenericBatchNormGradOp);
+CHAINERX_NATIVE_REGISTER_OP(FixedBatchNormOp, GenericFixedBatchNormOp);
 
 }  // namespace native
 }  // namespace chainerx
