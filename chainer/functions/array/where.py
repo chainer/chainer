@@ -17,7 +17,9 @@ class Where(function_node.FunctionNode):
         type_check._argname(in_types, ('x', 'y'))
         x_type, y_type = in_types
         condition = type_check._make_variable_from_array(
-            self.condition, 'condition')
+            # allow scalar `condition`
+            chainer.utils.force_array(self.condition),
+            'condition')
 
         type_check.expect(
             condition.dtype == numpy.bool_,
