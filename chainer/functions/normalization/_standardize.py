@@ -5,6 +5,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -51,18 +52,18 @@ class Standardize(function_node.FunctionNode):
         x_mu = x - mu
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=axes, keepdims=True)
-        if xp in (numpy, cuda.cupy):
-            std_noeps = xp.sqrt(var, dtype=x.dtype)
-        else:
+        if xp is chainer.functions:
             std_noeps = xp.sqrt(var)
-        std = std_noeps + self.eps
-        x_hat = x_mu / std
+        else:
+            std_noeps = xp.sqrt(var, dtype=x.dtype)
+        std = std_noeps + x.dtype.type(self.eps)
+        x_hat = utils.force_array(x_mu / std)
         return x_mu, std_noeps, std, x_hat
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        xp = backend.get_array_module(*inputs)
         x, = inputs
+        xp = backend.get_array_module(x)
         x_mu, std_noeps, std, x_hat = self._compute(xp, x)
         return x_hat,
 
