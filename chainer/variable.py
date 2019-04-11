@@ -1596,6 +1596,16 @@ def backward(outputs, grad_outputs=None, **kwargs):
         if not isinstance(v, Variable):
             raise TypeError(
                 'each output must be a Variable, not {}'.format(type(v)))
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (tuple, list)):
+            raise TypeError(
+                'grad_outputs must be None, a tuple, or a list, not {}.'
+                .format(type(grad_outputs)))
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
 
     is_chainerx = [v._has_chainerx_array for v in outputs]
 
@@ -1630,19 +1640,13 @@ def backward(outputs, grad_outputs=None, **kwargs):
         grad_outputs = []
         for y in outputs:
             grad_var = y.grad_var
-            y.grad_var = None
-            grad_outputs.append(grad_var)
             if grad_var is None:
                 warnings.warn(
                     'outputs contains a Variable without grad, or '
                     'duplicate outputs. Note that'
                     'chainer.backward does not have default grad.')
-    else:
-        if len(outputs) != len(grad_outputs):
-            raise ValueError(
-                'grad_outputs must be of the same length as outputs.\n'
-                'len(outputs) = {}, len(grad_outputs) = {}'
-                .format(len(outputs), len(grad_outputs)))
+            y.grad_var = None
+            grad_outputs.append(grad_var)
     outputs = [
         (y.node, gy) for y, gy in zip(outputs, grad_outputs) if gy is not None]
     with chainer.using_config('enable_backprop', enable_double_backprop):
