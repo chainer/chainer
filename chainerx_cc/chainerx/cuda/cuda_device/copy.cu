@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 
 #include "chainerx/array.h"
+#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
@@ -18,26 +19,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct CopyImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType a, CudaType& out) { out = a; }
-};
-
-class CudaCopyOp : public CopyOp {
-public:
-    void Call(const Array& a, const Array& out) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(CopyImpl<T>{}, a, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(CopyOp, CudaCopyOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_UNARY_OP(Copy, { out = x; });
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {

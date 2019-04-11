@@ -11,6 +11,7 @@
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/numeric.h"
@@ -21,27 +22,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct SinImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sin(x); }
-};
-
-class CudaSinOp : public SinOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(SinImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(SinOp, CudaSinOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sin, { out = cuda::Sin(x); });
 
 template <typename T>
 struct CosImpl {
