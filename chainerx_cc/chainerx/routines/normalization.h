@@ -2,12 +2,14 @@
 
 #include <memory>
 #include <tuple>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/constant.h"
+#include "chainerx/dtype.h"
 #include "chainerx/op.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
@@ -55,6 +57,21 @@ public:
             const nonstd::optional<Array>& gx,
             const nonstd::optional<Array>& ggamma,
             const nonstd::optional<Array>& gbeta) = 0;
+};
+
+class GenericBatchNormGradState : public BatchNormGradState {
+public:
+    GenericBatchNormGradState(Array x_mean, Array x_inv_std, Dtype beta_dtype)
+        : x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
+
+    const Array& x_mean() const { return x_mean_; }
+    const Array& x_inv_std() const { return x_inv_std_; }
+    Dtype beta_dtype() const { return beta_dtype_; }
+
+private:
+    Array x_mean_;
+    Array x_inv_std_;
+    Dtype beta_dtype_;
 };
 
 class GenericBatchNormOp : public BatchNormOp {

@@ -108,21 +108,6 @@ Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_temp
     return Zeros(zeros_template.shape(), dtype, zeros_template.device());
 }
 
-class GenericBatchNormGradState : public BatchNormGradState {
-public:
-    GenericBatchNormGradState(Array x_mean, Array x_inv_std, Dtype beta_dtype)
-        : x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
-
-    const Array& x_mean() const { return x_mean_; }
-    const Array& x_inv_std() const { return x_inv_std_; }
-    Dtype beta_dtype() const { return beta_dtype_; }
-
-private:
-    Array x_mean_;
-    Array x_inv_std_;
-    Dtype beta_dtype_;
-};
-
 std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
         const Array& x,
         const Array& gamma,
