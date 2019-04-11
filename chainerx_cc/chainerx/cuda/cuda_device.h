@@ -20,6 +20,8 @@
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
@@ -80,6 +82,23 @@ private:
 DeviceInternals& GetDeviceInternals(CudaDevice& device);
 
 }  // namespace cuda_internal
+
+struct CudaBatchNormGradState : public BatchNormGradState {
+public:
+    CudaBatchNormGradState(Array x_cont, Array x_mean, Array x_inv_std, Dtype beta_dtype)
+        : x_cont_{std::move(x_cont)}, x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
+
+    const Array& x_cont() const { return x_cont_; }
+    const Array& x_mean() const { return x_mean_; }
+    const Array& x_inv_std() const { return x_inv_std_; }
+    Dtype beta_dtype() const { return beta_dtype_; }
+
+private:
+    Array x_cont_;
+    Array x_mean_;
+    Array x_inv_std_;
+    Dtype beta_dtype_;
+};
 
 class CudaDevice : public Device {
 public:
