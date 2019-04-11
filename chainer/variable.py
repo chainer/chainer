@@ -1597,22 +1597,31 @@ def backward(outputs, grad_outputs=None, **kwargs):
             raise TypeError(
                 'each output must be a Variable, not {}'.format(type(v)))
 
-    if any(v._has_chainerx_array for v in outputs):
-        if grad_outputs is None:
-            raise NotImplementedError('TODO')
+    is_chainerx = [v._has_chainerx_array for v in outputs]
 
-        if not outputs:
-            return
-        outputs = chainer.functions.identity(*outputs)
-        if not isinstance(outputs, tuple):
-            outputs = outputs,
+    if any(is_chainerx):
+        # Then `outputs` is not empty
+        if not all(is_chainerx):
+            raise ValueError('cannot mix chainerx and other backends')
 
+        if grad_outputs:
+            for y, gy in zip(outputs, grad_outputs):
+                if y.grad_var is not None:
+                    raise ValueError(
+                        'cannot use chainerx.backward because y.grad_var will '
+                        'be overwritten.'
+                    )
+                y.grad_var = gy
+
+        # See also the ChainerX case of Variable.backward
         arrs = []
-        for y, gy in zip(outputs, grad_outputs):
-            y.grad_var = gy
+        for y in outputs:
             arr = y._data[0]
             assert isinstance(arr, chainerx.ndarray)
-            arrs.append(arr)
+            if y.grad_var is not None:
+                # TODO(kataoka): The check is required because
+                # chainerx.backward sets default grads.
+                arrs.append(arr)
         chainerx.backward(
             arrs, enable_double_backprop=enable_double_backprop)
         return
