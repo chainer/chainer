@@ -6,6 +6,18 @@
 .. autoclass:: {{ objname }}
 
    ..
+      Attributes
+
+{% block attributes %} {% if attributes %}
+
+   .. rubric:: Attributes
+
+{% for item in attributes %}
+   .. autoattribute:: {{ item }}
+{%- endfor %}
+{% endif %} {% endblock %}
+
+   ..
       Methods
 
 {% block methods %}
@@ -49,15 +61,3 @@
 {%- endfor %}
 
 {% endblock %}
-
-   ..
-      Attributes
-
-{% block attributes %} {% if attributes %}
-
-   .. rubric:: Attributes
-
-{% for item in attributes %}
-   .. autoattribute:: {{ item }}
-{%- endfor %}
-{% endif %} {% endblock %}
