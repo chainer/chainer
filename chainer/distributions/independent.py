@@ -60,8 +60,10 @@ class Independent(distribution.Distribution):
 
     @property
     def covariance(self):
-        '''Returns the covariance of the distribution based on the original
-        i.i.d. distribution. By definition, the covariance of the new
+        """ The covariance of the distribution based on the original
+        i.i.d. distribution.
+
+        By definition, the covariance of the new
         distribution becomes block diagonal matrix. Let
         :math:`\\Sigma_{\\mathbf{x}}` be the covariance matrix of the original
         random variable :math:`\\mathbf{x} \\in \\mathbb{R}^d`, and
@@ -80,7 +82,7 @@ class Independent(distribution.Distribution):
 
         Note that this relationship holds only if the covariance matrix of the
         original distribution is given analytically.
-        '''
+        """
         num_repeat = array.size_of_shape(
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
         dim = array.size_of_shape(self.distribution.event_shape)
@@ -107,7 +109,9 @@ class Independent(distribution.Distribution):
         return self._reduce(prod.prod, self.distribution.cdf(x))
 
     def icdf(self, x):
-        '''Cumulative distribution function for multivariate variable is not
+        """The inverse cumulative distribution function for multivariate variable.
+
+        Cumulative distribution function for multivariate variable is not
         invertible. This function always raises :class:`RuntimeError`.
 
         Args:
@@ -116,7 +120,7 @@ class Independent(distribution.Distribution):
 
         Raises:
             :class:`RuntimeError`
-        '''
+        """
 
         raise RuntimeError(
             'Cumulative distribution function for multivariate variable '
