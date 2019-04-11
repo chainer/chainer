@@ -14,20 +14,14 @@ std::string Scalar::ToString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, Scalar value) {
-    switch (value.dtype()) {
-        case Dtype::kBool:
+    switch (value.kind()) {
+        case DtypeKind::kBool:
             os << (static_cast<bool>(value) ? "True" : "False");
             break;
-        case Dtype::kInt8:
-        case Dtype::kInt16:
-        case Dtype::kInt32:
-        case Dtype::kInt64:
-        case Dtype::kUInt8:
+        case DtypeKind::kInt:
             os << static_cast<int64_t>(value);
             break;
-        case Dtype::kFloat16:
-        case Dtype::kFloat32:
-        case Dtype::kFloat64:
+        case DtypeKind::kFloat:
             os << static_cast<double>(value);
             break;
         default:

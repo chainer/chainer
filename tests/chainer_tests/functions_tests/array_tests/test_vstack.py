@@ -1,12 +1,10 @@
 import unittest
 
 import numpy
+import pytest
 import six
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
@@ -29,67 +27,47 @@ from chainer.utils import type_check
         {'dtype': numpy.float64},
     ]
 ))
-class TestVstack(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestVstack(testing.FunctionTestCase):
 
-    def setUp(self):
-        self.xs = [
-            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-            for i in six.moves.range(self.xs_length)
-        ]
-        self.gy = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
-        self.ggxs = [
-            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-            for i in six.moves.range(self.xs_length)
-        ]
+    def setup(self):
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
-    def check_forward(self, xs_data):
-        xs = [chainer.Variable(x) for x in xs_data]
-        y = functions.vstack(xs)
+    def generate_inputs(self):
+        xs = tuple(
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            for _ in six.moves.range(self.xs_length)
+        )
+        return xs
 
-        expect = numpy.vstack(self.xs)
-        testing.assert_allclose(y.data, expect)
+    def forward_expected(self, inputs):
+        x = list(inputs)
+        y_expect = numpy.vstack(x)
+        return y_expect,
 
-    def test_forward_cpu(self):
-        self.check_forward(self.xs)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward([cuda.to_gpu(x) for x in self.xs])
-
-    def check_backward(self, xs_data, y_grad):
-        def func(*xs):
-            return functions.vstack(xs)
-
-        gradient_check.check_backward(
-            func, xs_data, y_grad, eps=2.0 ** -2, dtype='d')
-
-    def test_backward_cpu(self):
-        self.check_backward(self.xs, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, xs_data, y_grad, xs_grad_grad):
-        def func(*xs):
-            return functions.vstack(xs)
-
-        gradient_check.check_double_backward(
-            func, xs_data, y_grad, xs_grad_grad, eps=2.0 ** -2, dtype='d',
-            **self.check_double_backward_options)
-
-    def test_doble_backward_cpu(self):
-        self.check_double_backward(self.xs, self.gy, self.ggxs)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy),
-            [cuda.to_gpu(ggx) for ggx in self.ggxs])
+    def forward(self, inputs, device):
+        x = list(inputs)
+        y = functions.vstack(x)
+        return y,
 
 
 @testing.parameterize(
@@ -115,7 +93,7 @@ class TestVstackTypeCheck(unittest.TestCase):
             # Check if it throws nothing
             functions.vstack(self.xs)
         else:
-            with self.assertRaises(type_check.InvalidType):
+            with pytest.raises(type_check.InvalidType):
                 functions.vstack(self.xs)
 
     def test_value_check_cpu(self):

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import collections
 import contextlib
 import copy
@@ -10,13 +11,12 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
-from chainer.backends import intel64
+from chainer import device_resident
 from chainer import initializers
 from chainer import link_hook
 from chainer import types  # NOQA
 from chainer.utils import collections_abc
 from chainer import variable
-import chainerx
 
 
 def _is_shape(value):
@@ -47,7 +47,7 @@ def _ensure_shape_dtype(value):
         return value  # type: ignore
 
 
-class Link(object):
+class Link(device_resident.DeviceResident):
 
     """Building block of model definitions.
 
@@ -146,9 +146,10 @@ class Link(object):
     def __init__(self, **params):
         # type: (**tp.Any) -> None
 
+        super(Link, self).__init__()
+
         self._params = set()  # type: tp.Set[str]
         self._persistent = set()  # type: tp.Set[str]
-        self._device = backend.CpuDevice()  # type: backend.Device
         self._within_init_scope = False  # type: bool
         self.name = None  # type: tp.Optional[str]
 
@@ -162,6 +163,14 @@ class Link(object):
     def __check_init_done(self):
         if not self.__init_done:
             raise RuntimeError('Link.__init__() has not been called.')
+
+    def __str__(self):
+        specs = ', '.join(
+            '{}={}'.format(k, v) for k, v in self.printable_specs
+        )
+        return '{cls}({specs})'.format(
+            cls=self.__class__.__name__, specs=specs,
+        )
 
     @property
     def local_link_hooks(self):
@@ -185,29 +194,29 @@ class Link(object):
                 else len(self._local_link_hooks))
 
     @property
-    def device(self):
-        return self._device
-
-    @property
     def _device_id(self):
         warnings.warn(
             'Link._device_id is left only for backward compatibility and '
             'likely to be removed. Use Link.device instead.',
             DeprecationWarning)
-        if self._device.xp is cuda.cupy:
-            return self._device.device.id
+        device = self.device
+        if device.xp is cuda.cupy:
+            return device.device.id
         return None
 
     @property
-    def xp(self):
-        # type: () -> types.Xp
-        """Array module for this link.
+    def printable_specs(self):
+        """Generator of printable specs of this link.
 
-        Depending on which of CPU/GPU this link is on, this property returns
-        :mod:`numpy` or :mod:`cupy`.
-
+        Yields:
+            specs (tuple of str and object):
+                Basically, it returns the arguments (pair of keyword and value)
+                that are passed to the :meth:`__init__`. This pair of key and
+                value is used for representing this class or subclass with
+                :meth:`__str__`.
         """
-        return self._device.xp
+        if 0:
+            yield
 
     @property
     def within_init_scope(self):
@@ -298,7 +307,6 @@ class Link(object):
 
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
-            value.to_device(self._device)
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
@@ -321,11 +329,13 @@ class Link(object):
             shape (int or tuple of ints): Shape of the parameter array. If it
                 is omitted, the parameter variable is left uninitialized.
             dtype: Data type of the parameter array.
-            initializer: If it is not ``None``, the data is initialized with
-                the given initializer. If it is an array, the data is directly
-                initialized by it. If it is callable, it is used as a weight
-                initializer. Note that in these cases, ``dtype`` argument is
-                ignored.
+            initializer (:ref:`initializer <initializer>`): If it is not
+                ``None``, the data is initialized with the given initializer.
+                If it is an array, the data is directly initialized by it. If
+                it is callable, it is used as a weight initializer. Note that
+                in these cases, ``dtype`` argument is ignored. It can also be
+                a scalar, in which case the data array will be filled by this
+                scalar. Note that float32 is used in this case.
 
         """
         if name in self.__dict__:
@@ -433,130 +443,16 @@ class Link(object):
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
-    def to_cpu(self):
-        # type: () -> 'Link'
-        """Copies parameter variables and persistent values to CPU.
-
-        This method does not handle non-registered attributes. If some of such
-        attributes must be copied to CPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
-
-        Returns: self
-
-        """
-        return self.to_device(backend.CpuDevice())
-
-    def to_gpu(self, device=None):
-        # type: (tp.Optional[types.CudaDeviceSpec]) -> 'Link'
-        """Copies parameter variables and persistent values to GPU.
-
-        This method does not handle non-registered attributes. If some of such
-        attributes must be copied to GPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
-
-        Args:
-            device: Target device specifier. If omitted, the current device is
-                used.
-
-        Returns: self
-
-        """
-        cuda.check_cuda_available()
-        return self._to_device(
-            cuda._get_device_or_current(device),
-            skip_between_cupy_devices=True)
-
-    def to_intel64(self):
-        # type: () -> 'Link'
-        """Copies parameter variables and persistent values to CPU."""
-        intel64.check_ideep_available()
-        return self.to_device(intel64)
-
-    def to_chx(self):
-        """Converts parameter variables and persistent values to ChainerX \
-without any copy.
-
-        This method does not handle non-registered attributes. If some of such
-        attributes must be copied to ChainerX, the link implementation must
-        override this method to do so.
-
-        Returns: self
-        """  # NOQA
-        if not chainerx.is_available():
-            raise RuntimeError('ChainerX is not available.')
-
-        xp = self._device.xp
-        if xp is chainerx:
-            return self
-
+    def device_resident_accept(self, visitor):
+        super(Link, self).device_resident_accept(visitor)
         d = self.__dict__
         for name in self._params:
-            d[name].to_chx()
+            x = d[name]
+            visitor.visit_variable(x)
         for name in self._persistent:
-            if not numpy.isscalar(d[name]):
-                d[name] = backend.to_chx(d[name])
-
-        self._device = (
-            backend.ChainerxDevice.from_fallback_device(self._device))
-
-        return self
-
-    def from_chx(self):
-        """Converts parameter variables and persistent values from ChainerX \
-to NumPy/CuPy devices without any copy."""
-        d = self.__dict__
-        for name in self._params:
-            d[name].from_chx()
-        for name in self._persistent:
-            if not numpy.isscalar(d[name]):
-                d[name] = backend.from_chx(d[name])
-
-        if isinstance(self._device, backend.ChainerxDevice):
-            self._device = self._device.fallback_device
-
-        return self
-
-    def to_device(self, device):
-        # type: (types.DeviceSpec) -> 'Link'
-        """Copies parameter variables and persistent values to the specified \
-device.
-
-        This method does not handle non-registered attributes. If some of such
-        attributes must be copied to the device, the link implementation must
-        override this method to do so.
-
-        Args:
-            device: Target device specifier. See
-                :func:`~chainer.get_device` for available values.
-
-        Returns: self
-
-        """  # NOQA
-        return self._to_device(device, skip_between_cupy_devices=False)
-
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # type: (types.DeviceSpec, bool) -> 'Link'
-
-        # `skip_between_cupy_devices` argument is a workaround
-        # for `Link.to_gpu` which does not transfer cupy parameters to
-        # a different CUDA device.
-        backend_device = chainer.get_device(device)
-
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
-        for name in self._params:
-            if not (skip_between_cupy_devices
-                    and backend_device.xp is cuda.cupy
-                    and d[name].device.xp is cuda.cupy):
-                d[name].to_device(backend_device)
-        for name in self._persistent:
-            if not numpy.isscalar(d[name]):
-                if not (skip_between_cupy_devices
-                        and backend_device.xp is cuda.cupy
-                        and isinstance(d[name], cuda.ndarray)):
-                    d[name] = backend_device.send(d[name])
-
-        self._device = backend_device
-        return self
+            x = d[name]
+            if isinstance(x, chainer.get_array_types()):
+                d[name] = visitor.visit_array(x)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
@@ -988,6 +884,23 @@ class Chain(Link):
         for name, link in six.iteritems(links):
             self.add_link(name, link)
 
+    def __str__(self):
+        reps = []
+        for child in self.children():
+            rep = '({name}): {rep},'.format(
+                name=child.name, rep=str(child),
+            )
+            # Add indentation to each line.
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no children.
+            reps = '\n' + reps
+
+        return '{cls}({children})'.format(
+            cls=self.__class__.__name__, children=reps,
+        )
+
     def __getitem__(self, name):
         # type: (str) -> tp.Any
         """Equivalent to getattr."""
@@ -1041,39 +954,11 @@ class Chain(Link):
             d[name] = copied
         return ret  # type: ignore
 
-    def to_chx(self):
-        # type: () -> 'Chain'
-
-        super(Chain, self).to_chx()
+    def device_resident_accept(self, visitor):
+        super(Chain, self).device_resident_accept(visitor)
         d = self.__dict__
         for name in self._children:
-            d[name].to_chx()
-        return self
-
-    def from_chx(self):
-        # type: () -> 'Chain'
-
-        super(Chain, self).from_chx()
-        d = self.__dict__
-        for name in self._children:
-            d[name].from_chx()
-        return self
-
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # type: (types.DeviceSpec, bool) -> 'Chain'
-
-        # Overrides Link._to_device
-
-        backend_device = chainer.get_device(device)
-        super(Chain, self)._to_device(
-            backend_device,
-            skip_between_cupy_devices=skip_between_cupy_devices)
-        d = self.__dict__
-        for name in self._children:
-            d[name]._to_device(
-                backend_device,
-                skip_between_cupy_devices=skip_between_cupy_devices)
-        return self
+            d[name].device_resident_accept(visitor)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
@@ -1182,6 +1067,23 @@ class ChainList(Link, collections_abc.MutableSequence):
         for link in links:
             self.add_link(link)
 
+    def __str__(self):
+        reps = []
+        for index, child in enumerate(self._children):
+            rep = '({index}): {rep},'.format(
+                index=index, rep=str(child),
+            )
+            # Add indentation to each line.
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no children.
+            reps = '\n' + reps
+
+        return '{cls}({children})'.format(
+            cls=self.__class__.__name__, children=reps,
+        )
+
     def __setattr__(self, name, value):
         # type: (str, tp.Any) -> None
 
@@ -1276,27 +1178,10 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret  # type: ignore
 
-    def to_chx(self):
-        # type: () -> 'ChainList'
-
-        super(ChainList, self).to_chx()
+    def device_resident_accept(self, visitor):
+        super(ChainList, self).device_resident_accept(visitor)
         for link in self._children:
-            link.to_chx()
-        return self
-
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # type: (types.DeviceSpec, bool) -> 'ChainList'
-
-        # Overrides Link._to_device
-
-        device_obj = chainer.get_device(device)
-        super(ChainList, self)._to_device(
-            device_obj, skip_between_cupy_devices=skip_between_cupy_devices)
-        for link in self._children:
-            link._to_device(
-                device_obj,
-                skip_between_cupy_devices=skip_between_cupy_devices)
-        return self
+            link.device_resident_accept(visitor)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]

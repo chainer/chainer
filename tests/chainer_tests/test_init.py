@@ -1,5 +1,7 @@
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import testing
@@ -48,6 +50,34 @@ class TestUseCuDNN(unittest.TestCase):
         with chainer.using_config('use_cudnn', 'always'):
             self.assertFalse(chainer.should_use_cudnn(
                 '>=auto', cuda.cuda.cudnn.getVersion() + 1))
+
+
+class TestDtype(unittest.TestCase):
+
+    def test_numpy_dtypes(self):
+        for dtype in (numpy.float16, numpy.float32, numpy.float64):
+            with chainer.using_config('dtype', dtype):
+                self.assertEqual(chainer.get_dtype(), numpy.dtype(dtype))
+
+    def test_specified_dtype(self):
+        with chainer.using_config('dtype', numpy.float64):
+            dtype = numpy.float16
+            self.assertEqual(chainer.get_dtype(dtype), numpy.dtype(dtype))
+
+    def test_mixed16_dtype(self):
+        with chainer.using_config('dtype', chainer.mixed16):
+            self.assertEqual(chainer.get_dtype(),
+                             numpy.dtype(numpy.float16))
+            self.assertEqual(chainer.get_dtype(map_mixed16=numpy.float32),
+                             numpy.dtype(numpy.float32))
+
+    def test_specified_mixed16_dtype(self):
+        with chainer.using_config('dtype', numpy.float64):
+            self.assertEqual(chainer.get_dtype(chainer.mixed16),
+                             numpy.dtype(numpy.float16))
+            self.assertEqual(
+                chainer.get_dtype(chainer.mixed16, map_mixed16=numpy.float32),
+                numpy.dtype(numpy.float32))
 
 
 testing.run_module(__name__, __file__)

@@ -10,6 +10,76 @@
 
 namespace chainerx {
 
+class AddOp : public Op {
+public:
+    static const char* name() { return "Add"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class AddASOp : public Op {
+public:
+    static const char* name() { return "AddAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class SubtractOp : public Op {
+public:
+    static const char* name() { return "Subtract"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class SubtractASOp : public Op {
+public:
+    static const char* name() { return "SubtractAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class MultiplyOp : public Op {
+public:
+    static const char* name() { return "Multiply"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class MultiplyASOp : public Op {
+public:
+    static const char* name() { return "MultiplyAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class FloorDivideOp : public Op {
+public:
+    static const char* name() { return "FloorDivide"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class FloorDivideASOp : public Op {
+public:
+    static const char* name() { return "FloorDivideAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class DivideOp : public Op {
+public:
+    static const char* name() { return "Divide"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class DivideASOp : public Op {
+public:
+    static const char* name() { return "DivideAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
 Array Negative(const Array& x);
 
 namespace internal {
@@ -47,7 +117,8 @@ Array Multiply(Scalar x1, const Array& x2);
 
 namespace internal {
 
-// TODO(imanishi) Support IFloorDivide
+void IFloorDivide(const Array& x1, const Array& x2);
+void IFloorDivide(const Array& x1, Scalar x2);
 void ITrueDivide(const Array& x1, const Array& x2);
 void ITrueDivide(const Array& x1, Scalar x2);
 
@@ -56,11 +127,14 @@ void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
+Array FloorDivide(const Array& x1, const Array& x2);
+Array FloorDivide(const Array& x1, Scalar x2);
+Array FloorDivide(Scalar x1, const Array& x2);
+
 Array Divide(const Array& x1, const Array& x2);
 Array Divide(const Array& x1, Scalar x2);
 Array Divide(Scalar x1, const Array& x2);
 
-// TODO(imanishi) Support FloorDivide
 Array TrueDivide(const Array& x1, const Array& x2);
 Array TrueDivide(const Array& x1, Scalar x2);
 Array TrueDivide(Scalar x1, const Array& x2);
@@ -74,6 +148,10 @@ Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keep
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
 
+Array Minimum(const Array& x1, Scalar x2);
+Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
+
 Array Exp(const Array& x);
 Array Log(const Array& x);
 
@@ -85,6 +163,12 @@ Array LogSumExp(const Array& x, const OptionalAxes& axis = nonstd::nullopt, bool
 // If no axes are specified, the softmax is applied on the second axis.
 Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
+Array Sigmoid(const Array& x);
+
+Array Square(const Array& x);
+
+Array SquaredDifference(const Array& x1, const Array& x2);
+
 Array Sqrt(const Array& x);
 
 Array IsNan(const Array& x);
@@ -92,5 +176,77 @@ Array IsNan(const Array& x);
 Array IsInf(const Array& x);
 
 Array Tanh(const Array& x);
+
+class SinOp : public Op {
+public:
+    static const char* name() { return "Sin"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class CosOp : public Op {
+public:
+    static const char* name() { return "Cos"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class TanOp : public Op {
+public:
+    static const char* name() { return "Tan"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArcsinOp : public Op {
+public:
+    static const char* name() { return "Arcsin"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArccosOp : public Op {
+public:
+    static const char* name() { return "Arccos"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArctanOp : public Op {
+public:
+    static const char* name() { return "Arctan"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class CeilOp : public Op {
+public:
+    static const char* name() { return "Ceil"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class FloorOp : public Op {
+public:
+    static const char* name() { return "Floor"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+Array Sin(const Array& x);
+
+Array Cos(const Array& x);
+
+Array Tan(const Array& x);
+
+Array Arcsin(const Array& x);
+
+Array Arccos(const Array& x);
+
+Array Arctan(const Array& x);
+
+Array Ceil(const Array& x);
+
+Array Floor(const Array& x);
 
 }  // namespace chainerx
