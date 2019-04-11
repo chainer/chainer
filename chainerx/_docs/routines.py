@@ -479,6 +479,52 @@ Note:
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.all,
+        """all(x)
+Test whether all array elements along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which AND reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.all`
+""")
+
+    _docs.set_doc(
+        chainerx.any,
+        """any(x)
+Test whether any array element along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which OR reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.any`
+""")
+
+    _docs.set_doc(
         chainerx.logical_not,
         """logical_not(x)
 Returns an array of NOT x element-wise.
@@ -494,6 +540,42 @@ Note:
 
 .. seealso:: :data:`numpy.logical_not`
 """)
+
+    _docs.set_doc(
+        chainerx.logical_and,
+        """logical_and(x1, x2)
+Returns an array of x1 AND x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_and`
+    """)
+
+    _docs.set_doc(
+        chainerx.logical_or,
+        """logical_or(x1, x2)
+Returns an array of x1 OR x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_or`
+    """)
 
     _docs.set_doc(
         chainerx.greater,
@@ -976,6 +1058,25 @@ Returns:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
+""")
+
+    _docs.set_doc(
+        chainerx.square,
+        """square(x)
+Returns the element-wise square of the input.
+
+Args:
+    x (~chainerx.ndarray or scalar): Input data
+
+Returns:
+    ~chainerx.ndarray: Returned array: :math:`y = x * x`.
+    A scalar is returned if ``x`` is a scalar.
+
+Note:
+    During backpropagation, this function propagates the gradient
+    of the output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.square`
 """)
 
     _docs.set_doc(

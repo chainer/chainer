@@ -1,14 +1,39 @@
 #include "chainerx/cuda/cublas.h"
 
 #include <cublas_v2.h>
+#include <cuda_runtime.h>
 
 #include <string>
 
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
 namespace cuda {
+namespace cuda_internal {
+
+CublasHandle::~CublasHandle() {
+    if (handle_ != nullptr) {
+        // NOTE: CudaSetDeviceScope is not available because it may throw
+        int orig_index{0};
+        cudaGetDevice(&orig_index);
+        cudaSetDevice(device_index_);
+        cublasDestroy(handle_);
+        cudaSetDevice(orig_index);
+    }
+}
+
+cublasHandle_t CublasHandle::handle() {
+    if (handle_ == nullptr) {
+        CudaSetDeviceScope scope{device_index_};
+        CheckCublasError(cublasCreate(&handle_));
+    }
+    return handle_;
+}
+
+}  // namespace cuda_internal
+
 namespace {
 
 std::string BuildErrorMessage(cublasStatus_t error) {

@@ -93,9 +93,14 @@ Logic functions
    :toctree: generated/
    :nosignatures:
 
+   chainerx.all
+   chainerx.any
+
    chainerx.isinf
    chainerx.isnan
 
+   chainerx.logical_and
+   chainerx.logical_or
    chainerx.logical_not
 
    chainerx.greater

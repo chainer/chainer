@@ -336,7 +336,39 @@ void InitChainerxLogic(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LessEqual(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("logical_and",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalAnd(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("logical_or",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalOr(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("logical_not", [](const ArrayBodyPtr& x) { return MoveArrayBody(LogicalNot(Array{x})); }, py::arg("x"));
+    m.def("all",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(All(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("all",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(All(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    m.def("any",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Any(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("any",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Any(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
 }
 
 void InitChainerxManipulation(pybind11::module& m) {
