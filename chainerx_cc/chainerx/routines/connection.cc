@@ -338,10 +338,10 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 
     {
         NoBackpropModeScope scope{};
-        x.device().Dot(x_matrix, w.Transpose(), out_matrix);
+        x.device().backend().CallOp<DotOp>(x_matrix, w.Transpose(), out_matrix);
 
         if (has_bias) {
-            x.device().Add(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
+            x.device().backend().CallOp<AddOp>(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
         }
     }
 

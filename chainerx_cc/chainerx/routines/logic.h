@@ -56,6 +56,20 @@ public:
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
+class AllOp : public Op {
+public:
+    static const char* name() { return "All"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
+class AnyOp : public Op {
+public:
+    static const char* name() { return "Any"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
 // Returns an elementwise equality array.
 //
 // Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
@@ -92,5 +106,9 @@ Array LogicalNot(const Array& x);
 Array LogicalAnd(const Array& x1, const Array& x2);
 
 Array LogicalOr(const Array& x1, const Array& x2);
+
+Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+
+Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 }  // namespace chainerx

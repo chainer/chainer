@@ -116,12 +116,14 @@ void CheckInplaceArithmeticDtypes(const Array& x1, Scalar x2, bool is_multiply =
     CheckInplaceArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), is_multiply);
 }
 
+}  // namespace
+
 void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
         NoBackpropModeScope scope{};
-        x1.device().Add(x1, x2, out);
+        x1.device().backend().CallOp<AddOp>(x1, x2, out);
     }
 
     {
@@ -145,7 +147,7 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().AddAS(x1, x2, out);
+        x1.device().backend().CallOp<AddASOp>(x1, x2, out);
     }
 
     BackwardBuilder bb{"add_scalar", x1, out};
@@ -154,8 +156,6 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     }
     bb.Finalize();
 }
-
-}  // namespace
 
 namespace internal {
 
@@ -177,14 +177,12 @@ Array Add(const Array& x1, Scalar x2) { return Binary(&AddASImpl, x1, x2, GetAri
 
 Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
 
-namespace {
-
 void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
         NoBackpropModeScope scope{};
-        x1.device().Subtract(x1, x2, out);
+        x1.device().backend().CallOp<SubtractOp>(x1, x2, out);
     }
 
     {
@@ -208,7 +206,7 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().SubtractAS(x1, x2, out);
+        x1.device().backend().CallOp<SubtractASOp>(x1, x2, out);
     }
 
     BackwardBuilder bb{"subtract_scalar", x1, out};
@@ -218,13 +216,11 @@ void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     bb.Finalize();
 }
 
-}  // namespace
-
 namespace internal {
 
 void ISubtract(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(&SubtractImpl, x1, x2);
+    BroadcastBinaryInPlace(SubtractImpl, x1, x2);
 }
 
 void ISubtract(const Array& x1, Scalar x2) {
@@ -248,14 +244,12 @@ Array Subtract(Scalar x1, const Array& x2) {
     return Add(-x2, x1);
 }
 
-namespace {
-
 void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
         NoBackpropModeScope scope{};
-        x1.device().Multiply(x1, x2, out);
+        x1.device().backend().CallOp<MultiplyOp>(x1, x2, out);
     }
 
     {
@@ -281,7 +275,7 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().MultiplyAS(x1, x2, out);
+        x1.device().backend().CallOp<MultiplyASOp>(x1, x2, out);
     }
 
     BackwardBuilder bb{"multiply_scalar", x1, out};
@@ -290,8 +284,6 @@ void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     }
     bb.Finalize();
 }
-
-}  // namespace
 
 namespace internal {
 
@@ -313,26 +305,44 @@ Array Multiply(const Array& x1, Scalar x2) { return Binary(&MultiplyASImpl, x1, 
 
 Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
-namespace {
-
 void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     NoBackpropModeScope scope{};
-    x1.device().FloorDivide(x1, x2, out);
+    x1.device().backend().CallOp<FloorDivideOp>(x1, x2, out);
 }
 
 void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     NoBackpropModeScope scope{};
-    x1.device().FloorDivideAS(x1, x2, out);
+    x1.device().backend().CallOp<FloorDivideASOp>(x1, x2, out);
 }
+
+namespace internal {
+
+void IFloorDivide(const Array& x1, const Array& x2) {
+    CheckInplaceArithmeticDtypes(x1, x2);
+    BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2);
+}
+
+void IFloorDivide(const Array& x1, Scalar x2) {
+    CheckInplaceArithmeticDtypes(x1, x2);
+    BinaryInPlace(&FloorDivideASImpl, x1, x2);
+}
+
+}  // namespace internal
+
+Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array FloorDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
         NoBackpropModeScope scope{};
-        x1.device().Divide(x1, x2, out);
+        x1.device().backend().CallOp<DivideOp>(x1, x2, out);
     }
 
     {
@@ -359,7 +369,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().DivideAS(x1, x2, out);
+        x1.device().backend().CallOp<DivideASOp>(x1, x2, out);
     }
 
     BackwardBuilder bb{"divide_scalar", x1, out};
@@ -369,19 +379,7 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     bb.Finalize();
 }
 
-}  // namespace
-
 namespace internal {
-
-void IFloorDivide(const Array& x1, const Array& x2) {
-    CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2);
-}
-
-void IFloorDivide(const Array& x1, Scalar x2) {
-    CheckInplaceArithmeticDtypes(x1, x2);
-    BinaryInPlace(&FloorDivideASImpl, x1, x2);
-}
 
 void ITrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
@@ -404,12 +402,6 @@ void IDivide(const Array& x1, const Array& x2) { ITrueDivide(x1, x2); }
 void IDivide(const Array& x1, Scalar x2) { ITrueDivide(x1, x2); }
 
 }  // namespace internal
-
-Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
-
-Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
-
-Array FloorDivide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 Array TrueDivide(const Array& x1, const Array& x2) {
     Dtype dtype = GetArithmeticResultDtype(x1, x2);

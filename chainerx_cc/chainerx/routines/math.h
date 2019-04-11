@@ -10,6 +10,76 @@
 
 namespace chainerx {
 
+class AddOp : public Op {
+public:
+    static const char* name() { return "Add"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class AddASOp : public Op {
+public:
+    static const char* name() { return "AddAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class SubtractOp : public Op {
+public:
+    static const char* name() { return "Subtract"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class SubtractASOp : public Op {
+public:
+    static const char* name() { return "SubtractAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class MultiplyOp : public Op {
+public:
+    static const char* name() { return "Multiply"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class MultiplyASOp : public Op {
+public:
+    static const char* name() { return "MultiplyAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class FloorDivideOp : public Op {
+public:
+    static const char* name() { return "FloorDivide"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class FloorDivideASOp : public Op {
+public:
+    static const char* name() { return "FloorDivideAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class DivideOp : public Op {
+public:
+    static const char* name() { return "Divide"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class DivideASOp : public Op {
+public:
+    static const char* name() { return "DivideAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
 Array Negative(const Array& x);
 
 namespace internal {
@@ -57,14 +127,13 @@ void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
-Array Divide(const Array& x1, const Array& x2);
-Array Divide(const Array& x1, Scalar x2);
-Array Divide(Scalar x1, const Array& x2);
-
-// TODO(imanishi): Support bool
 Array FloorDivide(const Array& x1, const Array& x2);
 Array FloorDivide(const Array& x1, Scalar x2);
 Array FloorDivide(Scalar x1, const Array& x2);
+
+Array Divide(const Array& x1, const Array& x2);
+Array Divide(const Array& x1, Scalar x2);
+Array Divide(Scalar x1, const Array& x2);
 
 Array TrueDivide(const Array& x1, const Array& x2);
 Array TrueDivide(const Array& x1, Scalar x2);

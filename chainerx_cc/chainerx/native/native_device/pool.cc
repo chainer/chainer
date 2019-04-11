@@ -225,7 +225,7 @@ private:
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 Array GetPadModeIgnorePoolingWidths(
@@ -322,10 +322,11 @@ public:
                 Mean(col, kernel_axes, actual_out);
                 break;
             case AveragePoolPadMode::kIgnore: {
+                Device& device = x.device();
                 device.Sum(col, kernel_axes, actual_out);
                 width_ignore =
                         GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(actual_out.shape());
-                device.Divide(actual_out, *width_ignore, actual_out);
+                device.backend().CallOp<DivideOp>(actual_out, *width_ignore, actual_out);
                 break;
             }
             default:

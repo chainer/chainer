@@ -35,56 +35,6 @@ public:
     virtual Array Backward(const Array& gout) = 0;
 };
 
-class BatchNormForwardBackward {
-public:
-    virtual ~BatchNormForwardBackward() = default;
-    virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
-    virtual std::array<Array, 3> Backward(const Array& gout) = 0;
-};
-
-class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
-public:
-    GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis);
-
-    Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
-    std::array<Array, 3> Backward(const Array& gout) override;
-
-protected:
-    void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std, Dtype beta_dtype);
-
-    const Array& running_mean() { return running_mean_; }
-    const Array& running_var() { return running_var_; }
-    Scalar eps() { return eps_; }
-    Scalar decay() { return decay_; }
-    const Axes& axis() { return axis_; }
-
-    // Forward results.
-    const Array& x() { return *x_; }
-    const Array& gamma() { return *gamma_; }
-    const Array& x_mean() { return *x_mean_; }
-    const Array& x_inv_std() { return *x_inv_std_; }
-    Dtype beta_dtype() {
-        if (!beta_dtype_.has_value()) {
-            throw ChainerxError{"Beta dtype must first be set with a call to SetForwardResults."};
-        }
-        return *beta_dtype_;
-    }
-
-private:
-    const Array& running_mean_;
-    const Array& running_var_;
-    Scalar eps_;
-    Scalar decay_;
-    Axes axis_;
-
-    // TODO(niboshi): Fix header dependency order and hold arrays directly.
-    std::shared_ptr<Array> x_;
-    std::shared_ptr<Array> gamma_;
-    std::shared_ptr<Array> x_mean_;
-    std::shared_ptr<Array> x_inv_std_;
-    nonstd::optional<Dtype> beta_dtype_;
-};
-
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
 class Device {
@@ -154,21 +104,6 @@ public:
     // TODO(hvy): Implement as an Op and remove this method.
     virtual void AsType(const Array& a, const Array& out) = 0;
 
-    virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void AddAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Subtract(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void SubtractAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void FloorDivide(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
-    virtual void Divide(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void DivideAS(const Array& x1, Scalar x2, const Array& out) = 0;
-
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //
     // Formally, it calculates: out = x1 < x2 ? pos : neg
@@ -181,12 +116,6 @@ public:
     virtual void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 
     virtual void Tanh(const Array& x, const Array& out) = 0;
-
-    // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
-    // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
-    // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
-    // Otherwise, the behavior is undefined.
-    virtual void Dot(const Array& a, const Array& b, const Array& out) = 0;
 
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
@@ -238,14 +167,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype) = 0;
-
-    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward(
-            const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-        return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);
-    }
-
-    virtual Array FixedBatchNorm(
-            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis);
 
     virtual void Synchronize() = 0;
 
