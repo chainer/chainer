@@ -121,35 +121,6 @@ public:
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
 
-    // conv.cc
-
-    Array Conv(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            Dtype out_dtype) override;
-
-    Array ConvGradWeight(
-            Dtype w_dtype,
-            const Shape& w_shape,
-            const Array& x,
-            const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
-
-    Array ConvTranspose(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
-            Dtype out_dtype) override;
-
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 
