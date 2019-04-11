@@ -221,7 +221,7 @@ Array MaxPoolGradGrad(
         throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
     }
 
-    CudaDevice& device = dynamic_cast<CudaDevice&>(ggx.device());
+    Device& device = ggx.device();
     CudaSetDeviceScope scope{device.index()};
 
     Array actual_ggout = EmptyLike(out, device);
@@ -258,23 +258,6 @@ Array MaxPoolGradGrad(
     return actual_ggout;
 }
 
-// Pooling states are identical for most CUDA pooling ops.
-class CudaPoolStateBase {
-public:
-    CudaPoolStateBase(Array x, Array out) : x_{std::move(x)}, out_{std::move(out)} {}
-
-    const Array& x() const { return x_; }
-    const Array& out() const { return out_; }
-
-private:
-    Array x_{};
-    Array out_{};
-};
-
-class CudaMaxPoolGradState : public MaxPoolGradState, public CudaPoolStateBase {
-    using CudaPoolStateBase::CudaPoolStateBase;
-};
-
 class CudaMaxPoolOp : public MaxPoolOp {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
@@ -288,16 +271,14 @@ public:
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);
+
         std::unique_ptr<MaxPoolGradState> state = return_state ? std::make_unique<CudaMaxPoolGradState>(x, actual_out) : nullptr;
+
         return std::make_tuple(std::move(actual_out), std::move(state));
     }
 };
 
 CHAINERX_REGISTER_OP_CUDA(MaxPoolOp, CudaMaxPoolOp);
-
-class CudaMaxPoolGradGradState : public MaxPoolGradGradState, public CudaPoolStateBase {
-    using CudaPoolStateBase::CudaPoolStateBase;
-};
 
 class CudaMaxPoolGradOp : public MaxPoolGradOp {
 public:
@@ -317,7 +298,9 @@ public:
         const Array& out = cuda_state.out();
 
         Array actual_gx = PoolGrad(CUDNN_POOLING_MAX, x, out, gout, kernel_size, stride, pad, gx);
+
         std::unique_ptr<MaxPoolGradGradState> grad_grad_state = return_state ? std::make_unique<CudaMaxPoolGradGradState>(x, out) : nullptr;
+
         return std::make_tuple(std::move(actual_gx), std::move(grad_grad_state));
     }
 };
@@ -358,10 +341,6 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     }
 }
 
-class CudaAveragePoolGradState : public AveragePoolGradState, public CudaPoolStateBase {
-    using CudaPoolStateBase::CudaPoolStateBase;
-};
-
 class CudaAveragePoolOp : public AveragePoolOp {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
@@ -375,7 +354,9 @@ public:
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, out);
+
         std::unique_ptr<AveragePoolGradState> state = return_state ? std::make_unique<CudaAveragePoolGradState>(x, actual_out) : nullptr;
+
         return std::make_tuple(std::move(actual_out), std::move(state));
     }
 };

@@ -81,6 +81,31 @@ DeviceInternals& GetDeviceInternals(CudaDevice& device);
 
 }  // namespace cuda_internal
 
+// Pooling states are identical for most CUDA pooling ops so we define a common base class.
+class CudaPoolStateBase {
+public:
+    CudaPoolStateBase(Array x, Array out) : x_{std::move(x)}, out_{std::move(out)} {}
+
+    const Array& x() const { return x_; }
+    const Array& out() const { return out_; }
+
+private:
+    Array x_{};
+    Array out_{};
+};
+
+class CudaMaxPoolGradState : public MaxPoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaMaxPoolGradGradState : public MaxPoolGradGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaAveragePoolGradState : public AveragePoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
 class CudaDevice : public Device {
 public:
     const std::shared_ptr<MemoryPool>& device_memory_pool() { return device_memory_pool_; }

@@ -17,6 +17,7 @@
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/im2col.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
@@ -54,20 +55,6 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-class NativeMaxPoolGradState : public MaxPoolGradState {
-public:
-    NativeMaxPoolGradState(Array x, Array col, Axes axes) : x_{std::move(x)}, col_{std::move(col)}, axes_{std::move(axes)} {}
-
-    const Array& x() const { return x_; }
-    const Array& col() const { return col_; }
-    const Axes& axes() const { return axes_; }
-
-private:
-    Array x_{};
-    Array col_{};
-    Axes axes_{};
-};
-
 class NativeMaxPoolOp : public MaxPoolOp {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
@@ -101,20 +88,6 @@ public:
 };
 
 CHAINERX_REGISTER_OP_NATIVE(MaxPoolOp, NativeMaxPoolOp);
-
-class NativeMaxPoolGradGradState : public MaxPoolGradGradState {
-public:
-    NativeMaxPoolGradGradState(Array indices, Array offset, Dtype x_dtype)
-        : indices_{std::move(indices)}, offset_{std::move(offset)}, x_dtype_{x_dtype} {}
-    const Array& indices() const { return indices_; }
-    const Array& offset() const { return offset_; }
-    Dtype x_dtype() const { return x_dtype_; }
-
-private:
-    Array indices_{};
-    Array offset_{};
-    Dtype x_dtype_{};
-};
 
 class NativeMaxPoolGradOp : public MaxPoolGradOp {
 public:
@@ -205,21 +178,6 @@ public:
 };
 
 CHAINERX_REGISTER_OP_NATIVE(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
-
-class NativeAveragePoolGradState : public AveragePoolGradState {
-public:
-    NativeAveragePoolGradState(Array x, Shape gcol_shape, nonstd::optional<Array> width_ignore)
-        : x_{std::move(x)}, gcol_shape_{std::move(gcol_shape)}, width_ignore_{std::move(width_ignore)} {}
-
-    const Array& x() const { return x_; }
-    const Shape& gcol_shape() const { return gcol_shape_; }
-    const nonstd::optional<Array>& width_ignore() const { return width_ignore_; }
-
-private:
-    Array x_;
-    Shape gcol_shape_;
-    nonstd::optional<Array> width_ignore_;
-};
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
