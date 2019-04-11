@@ -12,7 +12,6 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/backend_util.h"
-#include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/op_regist.h"
