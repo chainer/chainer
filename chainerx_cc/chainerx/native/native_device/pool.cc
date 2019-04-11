@@ -17,7 +17,6 @@
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/im2col.h"
-#include "chainerx/native/native_device.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
