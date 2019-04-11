@@ -1,8 +1,6 @@
-import numpy
 import six
 
 from chainer import backend
-from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer import utils
@@ -47,7 +45,7 @@ class Standardize(function_node.FunctionNode):
 
     def _compute(self, xp, x):
         # xp: numpy, cupy, or chainer.functions
-        axes = tuple(six.moves.range(1, len(x.shape)))
+        axes = tuple(six.moves.range(1, x.ndim))
         mu = xp.mean(x, axis=axes, keepdims=True)
         x_mu = x - mu
         squ_x_mu = xp.square(x_mu)
@@ -58,7 +56,7 @@ class Standardize(function_node.FunctionNode):
             std_noeps = xp.sqrt(var, dtype=x.dtype)
         std = std_noeps + x.dtype.type(self.eps)
         x_hat = utils.force_array(x_mu / std)
-        return x_mu, std_noeps, std, x_hat
+        return x_mu, std_noeps, std, x_hat, axes
 
     def forward(self, inputs):
         self.retain_inputs((0,))
@@ -71,32 +69,27 @@ class Standardize(function_node.FunctionNode):
         F = chainer.functions
         x, = self.get_retained_inputs()
         gy, = grad_outputs
-        axes = tuple(six.moves.range(1, x.ndim))
 
-        x_mu, std_noeps, std, x_hat = self._compute(F, x)
+        x_mu, std_noeps, std, x_hat, axes = self._compute(F, x)
 
-        g_x_mu_1 = gy / std
+        g_x_mu_1 = std * gy
 
-        g_inv_std = F.sum(gy * x_mu, axis=axes, keepdims=True)
-        g_std = g_inv_std * (- 1. / std ** 2)
+        g_std = F.mean((x_mu * gy), axis=axes, keepdims=True)
 
         # _standardize with eps has continuous backward. However,
         # the backward is not differentiable for the indices of zero vectors.
         # To avoid nan in double backward, do not compute outside of mask.
         mask = std_noeps.array != 0
         g_var, = _SetItemZero(mask).apply((
-            g_std[mask] * 0.5 / std_noeps[mask],))
+            g_std[mask] / std_noeps[mask],))
 
-        n_units = x.size / x.shape[0]
-        g_squ_x_mu = g_var * (1. / n_units)
-        g_x_mu_2 = g_squ_x_mu * 2 * x_mu
+        g_x_mu_2 = g_var * x_mu
 
-        g_x_1 = g_x_mu_1 + g_x_mu_2
-        g_mu = F.sum(g_x_1, axis=axes, keepdims=True) * (- 1.)
+        g_x_1 = (g_x_mu_1 - g_x_mu_2) / (std ** 2)
+        g_mu, = _SetItemZero(mask).apply((
+            F.mean(g_x_1[mask], axis=axes, keepdims=True),))
 
-        g_x_2 = g_mu * (1. / n_units)
-
-        g_x = g_x_1 + g_x_2
+        g_x = g_x_1 - g_mu
 
         return g_x,
 

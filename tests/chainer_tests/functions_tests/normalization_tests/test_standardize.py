@@ -5,6 +5,7 @@ import numpy
 
 from chainer.functions.normalization._standardize import _standardize
 from chainer import testing
+from chainer import utils
 
 
 def _skip_if(cond, reason):
@@ -98,9 +99,8 @@ class TestStandardize(testing.FunctionTestCase):
         mu = numpy.mean(x, axis=1, keepdims=True)
         x_mu = x - mu
         var = numpy.mean(numpy.square(x_mu), axis=1, keepdims=True)
-        std = numpy.sqrt(var, dtype=x.dtype) + self.eps
-        inv_std = 1. / std
-        return x_mu * inv_std,
+        std = numpy.sqrt(var, dtype=x.dtype) + x.dtype.type(self.eps)
+        return utils.force_array(x_mu / std),
 
 
 testing.run_module(__name__, __file__)
