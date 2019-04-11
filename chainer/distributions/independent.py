@@ -176,8 +176,7 @@ class Independent(distribution.Distribution):
         return self.distribution.xp
 
     def _reduce(self, op, stat):
-        range_ = tuple(
-            (-1 - numpy.arange(self.reinterpreted_batch_ndims)).tolist())
+        range_ = tuple(range(-self.reinterpreted_batch_ndims, 0))
         return op(stat, axis=range_)
 
     def _get_default_reinterpreted_batch_ndims(self, distribution):
