@@ -14,7 +14,7 @@ class Where(function_node.FunctionNode):
         self.condition = condition
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x', 'y'))
         x_type, y_type = in_types
         condition = type_check._make_variable_from_array(
             self.condition, 'condition')
