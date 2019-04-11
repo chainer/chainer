@@ -452,7 +452,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Sum(a, sorted_axis, out);
+        a.device().backend().CallOp<SumOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"sum", a, out};
@@ -488,7 +488,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().AMax(a, sorted_axis, out);
+        a.device().backend().CallOp<AMaxOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"amax", a, out};
@@ -532,7 +532,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfLessElseASSAOp>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_less_else", neg, out};
@@ -567,7 +567,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseASSA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfGreaterElseASSAOp>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_greater_else", neg, out};
@@ -592,7 +592,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     Array not_mask = LogicalNot(mask);
     {
         NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfGreaterElseAAAAOp>(x1, x2, pos, neg, out);
     }
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
@@ -645,7 +645,7 @@ Array Exp(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Exp(x, out);
+        x.device().backend().CallOp<ExpOp>(x, out);
     }
 
     BackwardBuilder bb{"exp", x, out};
@@ -666,7 +666,7 @@ Array Log(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Log(x, out);
+        x.device().backend().CallOp<LogOp>(x, out);
     }
 
     BackwardBuilder bb{"log", x, out};
@@ -707,7 +707,7 @@ Array Square(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Square(x, out);
+        x.device().backend().CallOp<SquareOp>(x, out);
     }
 
     BackwardBuilder bb{"square", x, out};
@@ -730,7 +730,7 @@ Array Sqrt(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Sqrt(x, out);
+        x.device().backend().CallOp<SqrtOp>(x, out);
     }
 
     BackwardBuilder bb{"sqrt", x, out};
@@ -752,7 +752,7 @@ Array Tanh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Tanh(x, out);
+        x.device().backend().CallOp<TanhOp>(x, out);
     }
 
     BackwardBuilder bb{"tanh", x, out};
@@ -925,7 +925,7 @@ Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().IsNan(x, out);
+        x.device().backend().CallOp<IsNanOp>(x, out);
     }
     return out;
 }
@@ -934,7 +934,7 @@ Array IsInf(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().IsInf(x, out);
+        x.device().backend().CallOp<IsInfOp>(x, out);
     }
     return out;
 }

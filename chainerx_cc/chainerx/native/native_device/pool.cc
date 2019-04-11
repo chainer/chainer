@@ -133,7 +133,7 @@ namespace {
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
-    device.Sum(a, axis, out);
+    device.backend().CallOp<SumOp>(a, axis, out);
     device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
@@ -224,7 +224,7 @@ public:
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
-                device.Sum(col, kernel_axes, out);
+                device.backend().CallOp<SumOp>(col, kernel_axes, out);
                 width_ignore_ = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
                 device.backend().CallOp<DivideOp>(out, width_ignore_, out);
                 break;

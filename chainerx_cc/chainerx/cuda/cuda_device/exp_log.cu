@@ -10,8 +10,10 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/numeric.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace cuda {
@@ -25,15 +27,21 @@ struct ExpImpl {
 
 }  // namespace
 
-void CudaDevice::Exp(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CudaSetDeviceScope scope{index()};
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
-    });
-}
+class CudaExpOp : public ExpOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(ExpOp, CudaExpOp);
 
 namespace {
 
@@ -45,15 +53,21 @@ struct LogImpl {
 
 }  // namespace
 
-void CudaDevice::Log(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CudaSetDeviceScope scope{index()};
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
-    });
-}
+class CudaLogOp : public LogOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(LogOp, CudaLogOp);
 
 }  // namespace cuda
 }  // namespace chainerx
