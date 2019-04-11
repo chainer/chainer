@@ -16,7 +16,8 @@ class Where(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         x_type, y_type = in_types
-        condition = self.condition
+        condition = type_check._make_variable_from_array(
+            self.condition, 'condition')
 
         type_check.expect(
             condition.dtype == numpy.bool_,
