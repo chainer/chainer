@@ -1671,7 +1671,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
-        assert chainerx.abs == chainerx.absolute
+        assert chainerx.abs is chainerx.absolute
         return xp.abs(a)
 
 
