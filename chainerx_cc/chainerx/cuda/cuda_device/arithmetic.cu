@@ -6,6 +6,7 @@
 
 #include "chainerx/arithmetic_ops.h"
 #include "chainerx/array.h"
+#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
@@ -20,29 +21,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct AddImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Add(x1, x2); }
-};
-
-class CudaAddOp : public AddOp {
-public:
-    // TODO(sonots): support stream
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, T>(AddImpl<T>{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(AddOp, CudaAddOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Add, { out = ArithmeticOps<CudaType>::Add(x1, x2); });
 
 template <typename T>
 struct AddASImpl {
@@ -68,28 +47,7 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(AddASOp, CudaAddASOp);
 
-template <typename T>
-struct SubtractImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }
-};
-
-class CudaSubtractOp : public SubtractOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(SubtractOp, CudaSubtractOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(Subtract, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct SubtractASImpl {
@@ -115,29 +73,8 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(SubtractASOp, CudaSubtractASOp);
 
-template <typename T>
-struct MultiplyImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Multiply(x1, x2); }
-};
-
 // TODO(sonots): support stream
-class CudaMultiplyOp : public MultiplyOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(MultiplyOp, CudaMultiplyOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Multiply, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
 
 template <typename T>
 struct MultiplyASImpl {
@@ -181,28 +118,7 @@ __device__ cuda::Float16 FloorDivide(cuda::Float16 x, cuda::Float16 y) {
     return cuda::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-template <typename T>
-struct FloorDivideImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = cuda::FloorDivide(x1, x2); }
-};
-
-class CudaFloorDivideOp : public FloorDivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, T>(FloorDivideImpl<T>{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(FloorDivideOp, CudaFloorDivideOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivide, { out = cuda::FloorDivide(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct FloorDivideASImpl {
@@ -228,28 +144,7 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(FloorDivideASOp, CudaFloorDivideASOp);
 
-template <typename T>
-struct DivideImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = ArithmeticOps<CudaType>::Divide(x1, x2); }
-};
-
-class CudaDivideOp : public DivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, const T, T>(DivideImpl<T>{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(DivideOp, CudaDivideOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Divide, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
 
 template <typename T>
 struct DivideASImpl {
