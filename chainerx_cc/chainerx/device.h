@@ -84,9 +84,6 @@ public:
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void Fill(const Array& out, Scalar value) = 0;
-
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that
@@ -99,10 +96,6 @@ public:
     // Calculates the maximum along specified axes.
     // See Sum() for the explanation of arguments.
     virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
-
-    // Casts the elements from one array to the other dtype, and store into the other.
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void AsType(const Array& a, const Array& out) = 0;
 
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //
@@ -126,59 +119,6 @@ public:
 
     virtual void IsNan(const Array& x, const Array& out) = 0;
     virtual void IsInf(const Array& x, const Array& out) = 0;
-
-    // Computes the n-dimensional convolution.
-    //
-    // x: (batch_size, in_channels, in_1, in_2, ..., in_n)
-    // w: (out_channels, in_channels, k_1, k_2, ..., k_n)
-    // b: (out_channels)
-    //
-    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-    virtual Array Conv(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            Dtype out_dtype) = 0;
-
-    virtual Array ConvGradWeight(
-            Dtype w_dtype,
-            const Shape& w_shape,
-            const Array& x,
-            const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-
-    // Computes the n-dimensional transposed convolution.
-    //
-    // x: (batch_size, in_channels, in_1, in_2, ..., in_n)
-    // w: (in_channels, out_channels, k_1, k_2, ..., k_n)
-    // b: (out_channels)
-    //
-    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-    virtual Array ConvTranspose(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
-            Dtype out_dtype) = 0;
-
-    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-
-    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) = 0;
 
     virtual void Synchronize() = 0;
 
