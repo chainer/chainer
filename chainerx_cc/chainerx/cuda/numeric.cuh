@@ -50,19 +50,30 @@ __device__ inline T Cosh(T x) {
 
 __device__ inline cuda::Float16 Cosh(cuda::Float16 x) { return cuda::Float16{std::cosh(static_cast<float>(x))}; }
 
+// TODO(kshitij12345) : Figure out asinh and acosh compilation issue and remove the hack.
 template <typename T>
 __device__ inline T Arcsinh(T x) {
-    return std::asinh(x);
+    return std::isinf(x) ? x : std::log(x + std::sqrt(x * x + T(1)));
 }
 
-__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinh(static_cast<float>(x))}; }
+__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) {
+    if (x.IsInf()) {
+        return x;
+    }
+    auto x_cast = static_cast<float>(x);
+    return cuda::Float16{std::log(x_cast + std::sqrt(x_cast * x_cast + 1.f))};
+}
 
+// TODO(kshitij12345) : Figure out asinh and acosh compilation issue and remove the hack.
 template <typename T>
 __device__ inline T Arccosh(T x) {
-    return std::acosh(x);
+    return std::log(x + std::sqrt(x * x - T(1)));
 }
 
-__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acosh(static_cast<float>(x))}; }
+__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) {
+    auto x_cast = static_cast<float>(x);
+    return cuda::Float16{std::log(x_cast + std::sqrt(x_cast * x_cast - 1.f))};
+}
 
 template <typename T>
 __device__ inline T Tanh(T x) {
