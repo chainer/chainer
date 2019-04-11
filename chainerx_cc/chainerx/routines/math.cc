@@ -588,8 +588,6 @@ namespace {
 
 void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
-    Array mask = Greater(x1, x2);
-    Array not_mask = LogicalNot(mask);
     {
         NoBackpropModeScope scope{};
         x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
@@ -597,15 +595,19 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([mask = std::move(mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array mask = Greater(x1, x2);
+            bt.Define([mask = std::move(mask), pos_dtype = pos.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * mask;
+                bctx.input_grad() = gout.AsType(pos_dtype, false) * mask;
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([not_mask = std::move(not_mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array not_mask = Less(x1, x2);
+            bt.Define([not_mask = std::move(not_mask), neg_dtype = neg.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * not_mask;
+                bctx.input_grad() = gout.AsType(neg_dtype, false) * not_mask;
             });
         }
         bb.Finalize();
