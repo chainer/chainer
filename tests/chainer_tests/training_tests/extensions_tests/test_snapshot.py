@@ -1,5 +1,8 @@
+import itertools
 import os
+import random
 import unittest
+import glob
 
 import mock
 import pytest
@@ -7,6 +10,9 @@ import pytest
 from chainer import testing
 from chainer import training
 from chainer.training import extensions
+from chainer.training.extensions._snapshot import _find_snapshot_files
+from chainer.training.extensions import find_latest_snapshot
+from chainer.training.extensions import find_stale_snapshots
 
 
 class TestSnapshot(unittest.TestCase):
@@ -95,6 +101,117 @@ class TestSnapshotOnError(unittest.TestCase):
             self.trainer.run()
 
         self.assertTrue(os.path.exists(self.filename))
+
+
+@pytest.mark.parametrize('fmt', ['snapshot_iter_{}',
+                                 'snapshot_iter_{}.npz',
+                                 '{}_snapshot_man_suffix.npz'])
+def test_find_snapshot_files(fmt):
+    files = [fmt.format(i) for i in range(1, 100)]
+    noise = ['dummy-foobar-iter{}'.format(i) for i in range(10, 304)]
+    noise2 = ['tmpsnapshot_iter_{}'.format(i) for i in range(10, 304)]
+    path = 'dummy'
+
+    def lister(path):
+        length = len(noise2) + len(noise) + len(files)
+        chained = itertools.chain(noise, files, noise2)
+        return random.sample(list(chained), length)
+
+    snapshot_files = _find_snapshot_files(fmt, path, lister=lister)
+
+    ans = [([i], fmt.format(i)) for i in range(1, 100)]
+    assert len(snapshot_files) == 99
+    for lhs, rhs in zip(ans, snapshot_files):
+        assert lhs == rhs
+
+
+@pytest.mark.parametrize('fmt', ['snapshot_iter_{}_{}',
+                                 'snapshot_iter_{}_{}.npz',
+                                 '{}_snapshot_man_{}-suffix.npz',
+                                 'snapshot_iter_{}.{}'])
+def test_find_snapshot_files2(fmt):
+    files = [fmt.format(i*10, j*10) for i, j
+             in itertools.product(range(0, 10), range(0, 10))]
+    noise = ['tmpsnapshot_iter_{}.{}'.format(i, j)
+             for i, j in zip(range(10, 304), range(10, 200))]
+    noise2 = ['snapshot_iter_{}'.format(i) for i in range(10, 304)]
+    path = 'dummy'
+
+    def lister(path):
+        length = len(noise2) + len(noise) + len(files)
+        chained = itertools.chain(noise, files, noise2)
+        return random.sample(list(chained), length)
+
+    snapshot_files = _find_snapshot_files(fmt, path, lister=lister)
+
+    ans = [([i*10, j*10], fmt.format(i*10, j*10))
+           for i, j in itertools.product(range(0, 10), range(0, 10))]
+    assert len(snapshot_files) == 100
+    for lhs, rhs in zip(ans, snapshot_files):
+        assert lhs == rhs
+
+
+def test_find_latest_snapshot():
+    fmt = 'snapshot_iter_{}'
+    files = [fmt.format(i) for i in range(1, 100)]
+    path = 'dummy'
+
+    def lister(path):
+        return files
+
+    assert 'snapshot_iter_99' == find_latest_snapshot(fmt, path, lister=lister)
+
+
+@pytest.mark.parametrize('length,retain', [(100, 30), (10, 30), (1, 1000),
+                                           (1000, 1), (1, 1), (1, 3), (2, 3)])
+def test_find_stale_snapshot(length, retain):
+    fmt = 'snapshot_iter_{}'
+    files = random.sample([fmt.format(i) for i in range(0, length)], length)
+    path = 'dummy'
+
+    def lister(path):
+        return files
+
+    stale = list(find_stale_snapshots(fmt, path, retain, lister=lister))
+    assert max(length-retain, 0) == len(list(stale))
+
+    stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
+    for lhs, rhs in zip(stales, stale):
+        lhs == rhs
+
+
+def test_remove_stale_snapshots():
+    fmt = 'snapshot_iter_{.updater.iteration}'
+    retain = 3
+    snapshot = extensions.snapshot(filename=fmt, num_retain=retain,
+                                   autoload=False)
+
+    trainer = testing.get_trainer_with_mock_updater()
+    trainer.out = '.'
+    trainer.extend(snapshot, trigger=(1, 'iteration'))
+    trainer.run()
+    assert 10 == trainer.updater.iteration
+    assert trainer._done
+
+    pattern = os.path.join(trainer.out, "snapshot_iter_*")
+    found = [path for path in glob.glob(pattern)]
+    assert retain == len(found)
+    found.sort()
+
+    for lhs, rhs in zip(['snapshot_iter_{}'.format(i) for i in range(8, 10)],
+                        found):
+        lhs == rhs
+
+    trainer2 = testing.get_trainer_with_mock_updater()
+    trainer2.out = '.'
+    assert not trainer2._done
+    snapshot2 = extensions.snapshot(filename=fmt, autoload=True)
+    # Just making sure no error occurs
+    snapshot2.initialize(trainer2)
+
+    # Cleanup
+    for file in found:
+        os.remove(file)
 
 
 testing.run_module(__name__, __file__)
