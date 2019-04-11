@@ -2809,7 +2809,45 @@ class TestAsVariable(unittest.TestCase):
 
 class TestBackward(unittest.TestCase):
 
-    def test_multiple_output(self):
+    def test_no_output(self):
+        chainer.backward([])
+        chainer.backward([], [])
+
+    def check_multiple_output_1arg(self, xp):
+        x = chainer.Variable(xp.array([1, 2], np.float32))
+        h = x * 2
+        y0 = h * 3
+        y1 = h * 4
+        y0.grad = xp.array([1, 10], np.float32)
+        y1.grad = xp.array([100, 1000], np.float32)
+        chainer.backward([y0, y1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+
+    def check_multiple_output_2args(self, xp):
+        x = chainer.Variable(xp.array([1, 2], np.float32))
+        h = x * 2
+        y0 = h * 3
+        y1 = h * 4
+        gy0 = chainer.Variable(xp.array([1, 10], np.float32))
+        gy1 = chainer.Variable(xp.array([100, 1000], np.float32))
+        chainer.backward([y0, y1], [gy0, gy1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+
+    def test_multiple_output_cpu(self):
+        self.check_multiple_output_1arg(np)
+        self.check_multiple_output_2args(np)
+
+    @attr.gpu
+    def test_multiple_output_gpu(self):
+        self.check_multiple_output_1arg(cuda.cupy)
+        self.check_multiple_output_2args(cuda.cupy)
+
+    @attr.chainerx
+    def test_multiple_output_chainerx(self):
+        self.check_multiple_output_1arg(chainerx)
+        self.check_multiple_output_2args(chainerx)
+
+    def test_multiple_output_call_count(self):
         x = chainer.Variable(np.array([1, 2], np.float32))
 
         f = chainer.FunctionNode()
@@ -2827,25 +2865,23 @@ class TestBackward(unittest.TestCase):
         testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
         assert f.backward.call_count == 1
 
-    def test_warn_default_grad_multiple(self):
-        x = chainer.Variable(np.array(1, np.float32))
-        h = x * 2
-        y0 = h * 3
-        y1 = h * 4
-        with testing.assert_warns(UserWarning):
-            try:
-                chainer.backward([y0, y1])
-            except Exception:
-                pass
-
-    def test_warn_default_grad_nonscalar(self):
-        x = chainer.Variable(np.array([1], np.float32))
+    def test_warn_no_grad(self):
+        x = chainer.Variable(np.array(4, np.float32))
+        x.grad = np.array(3, np.float32)
         y = x * 2
-        with testing.assert_warns(UserWarning):
-            try:
-                chainer.backward([y])
-            except Exception:
-                pass
+        with testing.assert_warns(RuntimeWarning):
+            chainer.backward([y])
+        testing.assert_allclose(x.grad, np.array(3, np.float32))
+        assert y.grad is None
+
+    def test_duplicate_outputs(self):
+        x = chainer.Variable(np.array(0, np.float32))
+        y = chainer.functions.identity(x)
+        y.grad = np.array(3, np.float32)
+        with testing.assert_warns(RuntimeWarning):
+            chainer.backward([y, y])
+        # 6 might be expected, but y.grad is used only once
+        testing.assert_allclose(x.grad, np.array(3, np.float32))
 
 
 # see also test_function_node.TestGradTypeCheck
