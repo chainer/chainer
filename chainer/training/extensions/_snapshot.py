@@ -4,7 +4,7 @@ from chainer.training.extensions import snapshot_writers
 from chainer.utils import argument
 
 
-def snapshot_object(target, filename, **kwargs):
+def snapshot_object(target, filename, savefun=None, **kwargs):
     """snapshot_object(target, filename, savefun=None, \
 *, condition=None, writer=None, snapshot_on_error=False)
 
@@ -54,7 +54,8 @@ def snapshot_object(target, filename, **kwargs):
         - :meth:`chainer.training.extensions.snapshot`
     """
 
-    return snapshot(target=target, filename=filename, **kwargs)
+    return snapshot(target=target, filename=filename, savefun=savefun,
+                    **kwargs)
 
 
 def snapshot(savefun=None,
