@@ -135,6 +135,7 @@ Mathematical functions
    chainerx.tanh
    chainerx.square
    chainerx.clip
+   chainerx.ceil
 
 Random sampling
 ---------------
