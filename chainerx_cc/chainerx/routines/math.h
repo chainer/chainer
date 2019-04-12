@@ -128,9 +128,37 @@ public:
     virtual void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 };
 
+class SinhOp : public Op {
+public:
+    static const char* name() { return "Sinh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class CoshOp : public Op {
+public:
+    static const char* name() { return "Cosh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class TanhOp : public Op {
 public:
     static const char* name() { return "Tanh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArcsinhOp : public Op {
+public:
+    static const char* name() { return "Archsinh"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class ArccoshOp : public Op {
+public:
+    static const char* name() { return "Arccosh"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };
@@ -341,6 +369,14 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Sinh(const Array& x);
+
+Array Cosh(const Array& x);
+
+Array Arcsinh(const Array& x);
+
+Array Arccosh(const Array& x);
 
 Array Ceil(const Array& x);
 

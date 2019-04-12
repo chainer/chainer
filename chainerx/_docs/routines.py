@@ -1098,6 +1098,42 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.sinh,
+        """sinh(x)
+Hyperbolic Sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\sinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.sinh`
+""")
+
+    _docs.set_doc(
+        chainerx.cosh,
+        """cosh(x)
+Hyperbolic Cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\cosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.cosh`
+""")
+
+    _docs.set_doc(
         chainerx.tanh,
         """tanh(x)
 Hyperbolic tangent, element-wise
@@ -1235,6 +1271,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.arctan`
+""")
+
+    _docs.set_doc(
+        chainerx.arcsinh,
+        """arcsinh(x)
+Inverse hyperbolic sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arcsinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arcsinh`
+""")
+
+    _docs.set_doc(
+        chainerx.arccosh,
+        """arccosh(x)
+Inverse hypberbolic inverse cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arccosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arccosh`
 """)
 
     _docs.set_doc(
