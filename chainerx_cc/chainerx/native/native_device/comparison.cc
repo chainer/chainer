@@ -7,6 +7,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
+#include "chainerx/native/reduce.h"
 #include "chainerx/routines/logic.h"
 
 namespace chainerx {
@@ -149,6 +150,51 @@ public:
 };
 
 CHAINERX_REGISTER_OP_NATIVE(LogicalOrOp, NativeLogicalOrOp);
+
+class NativeAllOp : public AllOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_all = [&a_cast, &axis, &out](auto in_pt) {
+            using In = typename decltype(in_pt)::type;
+            struct Impl {
+                bool Identity() { return true; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum && next; }
+                bool MapOut(bool accum) { return accum; }
+            };
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
+        };
+        VisitDtype(out.dtype(), do_all);
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(AllOp, NativeAllOp);
+
+class NativeAnyOp : public AnyOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_any = [&a_cast, &axis, &out](auto in_pt) {
+            using In = typename decltype(in_pt)::type;
+            struct Impl {
+                bool Identity() { return false; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum || next; }
+                bool MapOut(bool accum) { return accum; }
+            };
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
+        };
+
+        VisitDtype(out.dtype(), do_any);
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(AnyOp, NativeAnyOp);
 
 }  // namespace
 }  // namespace native

@@ -107,7 +107,7 @@ def get_device(device_spec):
 
               * A string starts with ``'@cupy:'``.
                 (ex. ``'@cupy:0'``)
-              * A :class:`chainer.backends.cuda.Device` object.
+              * A :class:`cupy.cuda.Device` object.
 
             * NumPy
 
@@ -180,8 +180,7 @@ def using_device(device_spec):
 
 
 def get_array_module(*args):
-    """Gets an appropriate one from :mod:`numpy`, :mod:`cupy`, or
-    :mod:`chainerx`.
+    """Gets an appropriate NumPy-compatible module to process arguments
 
     This function will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
@@ -191,7 +190,7 @@ def get_array_module(*args):
             used.
 
     Returns:
-        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
+        module: :mod:`numpy`, :mod:`cupy`, or :mod:`chainerx` is returned based
         on the types of the arguments.
 
     """

@@ -153,6 +153,94 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(ArctanOp, CudaArctanOp);
 
+template <typename T>
+struct SinhImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sinh(x); }
+};
+
+class CudaSinhOp : public SinhOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(SinhImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(SinhOp, CudaSinhOp);
+
+template <typename T>
+struct CoshImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Cosh(x); }
+};
+
+class CudaCoshOp : public CoshOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(CoshImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(CoshOp, CudaCoshOp);
+
+template <typename T>
+struct ArcsinhImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Arcsinh(x); }
+};
+
+class CudaArcsinhOp : public ArcsinhOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(ArcsinhImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(ArcsinhOp, CudaArcsinhOp);
+
+template <typename T>
+struct ArccoshImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Arccosh(x); }
+};
+
+class CudaArccoshOp : public ArccoshOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(ArccoshImpl<T>{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(ArccoshOp, CudaArccoshOp);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

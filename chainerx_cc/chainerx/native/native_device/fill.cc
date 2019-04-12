@@ -12,6 +12,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -142,18 +143,22 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(LinspaceOp, NativeLinspaceOp);
 
+class NativeFillOp : public FillOp {
+public:
+    void Call(const Array& out, Scalar value) override {
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T& out) { out = value; }
+                T value;
+            };
+            Elementwise<T>(Impl{static_cast<T>(value)}, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(FillOp, NativeFillOp);
+
 }  // namespace
-
-void NativeDevice::Fill(const Array& out, Scalar value) {
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T& out) { out = value; }
-            T value;
-        };
-        Elementwise<T>(Impl{static_cast<T>(value)}, out);
-    });
-}
-
 }  // namespace native
 }  // namespace chainerx

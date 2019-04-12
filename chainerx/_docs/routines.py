@@ -479,6 +479,52 @@ Note:
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.all,
+        """all(x)
+Test whether all array elements along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which AND reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.all`
+""")
+
+    _docs.set_doc(
+        chainerx.any,
+        """any(x)
+Test whether any array element along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which OR reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.any`
+""")
+
+    _docs.set_doc(
         chainerx.logical_not,
         """logical_not(x)
 Returns an array of NOT x element-wise.
@@ -1052,6 +1098,42 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.sinh,
+        """sinh(x)
+Hyperbolic Sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\sinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.sinh`
+""")
+
+    _docs.set_doc(
+        chainerx.cosh,
+        """cosh(x)
+Hyperbolic Cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\cosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.cosh`
+""")
+
+    _docs.set_doc(
         chainerx.tanh,
         """tanh(x)
 Hyperbolic tangent, element-wise
@@ -1138,6 +1220,18 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.relu,
+        """Rectified Linear Unit function.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\max (0, x)`.
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+""")
+
+    _docs.set_doc(
         chainerx.arcsin,
         """arcsin(x)
 Inverse sine, element-wise
@@ -1189,6 +1283,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.arctan`
+""")
+
+    _docs.set_doc(
+        chainerx.arcsinh,
+        """arcsinh(x)
+Inverse hyperbolic sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arcsinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arcsinh`
+""")
+
+    _docs.set_doc(
+        chainerx.arccosh,
+        """arccosh(x)
+Inverse hypberbolic inverse cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arccosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arccosh`
 """)
 
     _docs.set_doc(
