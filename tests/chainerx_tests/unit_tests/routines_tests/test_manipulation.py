@@ -670,3 +670,22 @@ class TestHVStack(op_utils.NumpyOpTest):
     def forward_xp(self, inputs, xp):
         y = self.func(xp, inputs)
         return y,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape', [
+    [(2, 1), (1, 2)],
+    [(1, 1, 1), (2, 3, 4)],
+    [(2, 1, 4), (1, 4, 5)],
+    [(1, 1, 2), (3, 5, 8)]
+])
+@pytest.mark.parametrize('func', [
+    lambda xp, input: xp.hstack(input),
+    lambda xp, input: xp.vstack(input),
+])
+def test_hvstack_invalid(func, xp, shape):
+    inputs = _make_inputs(shape, ['float32'] * len(shape))
+    inputs = list(map(xp.array, inputs))
+    return func(xp, inputs)
