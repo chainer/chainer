@@ -25,7 +25,7 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().Sum(a, sorted_axis, out);
+        a.device().backend().CallOp<SumOp>(a, sorted_axis, out);
         a.device().backend().CallOp<DivideASOp>(out, n, out);
     }
 
