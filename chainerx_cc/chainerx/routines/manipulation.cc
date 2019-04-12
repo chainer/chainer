@@ -696,7 +696,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
 }
 
 Array HStack(const std::vector<Array>& arrays) {
-    if (arrays[0].ndim() <= 1) {
+    if (arrays.front().ndim() <= 1) {
         return Concatenate(arrays, 0);
     }
     return Concatenate(arrays, 1);
