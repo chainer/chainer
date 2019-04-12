@@ -26,6 +26,16 @@ inline bool IsInf(chainerx::Float16 value) { return value.IsInf(); }
 inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
+template <typename T>
+inline T Sign(T x) {
+    return IsNan(x) ? x : static_cast<T>((T{0} < x) - (x < T{0}));
+}
+
+template <>
+inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
+    return IsNan(x) ? x : Float16{(Float16{0} < x) - (x < Float16{0})};
+}
+
 #define DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)                    \
     template <typename T>                                                   \
     inline T name(T x) {                                                    \
@@ -52,23 +62,6 @@ DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
 DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
-
-template <typename T>
-inline T Fabs(T x) {
-    return std::fabs(x);
-}
-template <>
-inline chainerx::Float16 Fabs<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::fabs(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Sign(T x) {
-    return IsNan(x) ? x : ((T{0} < x) - (x < T{0}));
-}
-template <>
-inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
-    return IsNan(x) ? x : Float16{(Float16{0} < x) - (x < Float16{0})};
-}
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 }  // namespace chainerx

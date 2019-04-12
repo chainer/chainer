@@ -34,6 +34,15 @@ __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
+template <typename T>
+__device__ inline T Sign(T x) {
+    return IsNan(x) ? x : static_cast<T>((T{0} < x) - (x < T{0}));
+}
+template <>
+__device__ inline cuda::Float16 Sign(cuda::Float16 x) {
+    return IsNan(x) ? x : cuda::Float16{(cuda::Float16{0} < x) - (x < cuda::Float16{0})};
+}
+
 #define DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                              \
     __device__ inline T name(T x) {                    \
@@ -55,22 +64,7 @@ DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
-
-template <typename T>
-__device__ inline T Fabs(T x) {
-    return std::fabs(x);
-}
-
-__device__ inline cuda::Float16 Fabs(cuda::Float16 x) { return cuda::Float16{std::fabs(static_cast<float>(x))}; }
-
-template <typename T>
-__device__ inline T Sign(T x) {
-    return IsNan(x) ? x : ((T(0) < x) - (x < T(0)));
-}
-template <>
-__device__ inline cuda::Float16 Sign(cuda::Float16 x) {
-    return IsNan(x) ? x : cuda::Float16{(cuda::Float16{0} < x) - (x < cuda::Float16{0})};
-}
+DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 }  // namespace cuda
 }  // namespace chainerx
