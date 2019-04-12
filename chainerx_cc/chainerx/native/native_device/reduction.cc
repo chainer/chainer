@@ -124,7 +124,7 @@ public:
 };
 
 CHAINERX_REGISTER_OP_NATIVE(AMinOp, NativeAMinOp);
-  
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
