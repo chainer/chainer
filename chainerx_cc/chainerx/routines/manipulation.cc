@@ -695,4 +695,34 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
+Array HStack(const std::vector<Array>& arrays) {
+    if (arrays[0].ndim() <= 1) {
+        return Concatenate(arrays, 0);
+    }
+    return Concatenate(arrays, 1);
+}
+
+Array VStack(const std::vector<Array>& arrays) {
+    auto atleast_2d = [](const Array& x) {
+        Array out;
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1});
+                break;
+            case 1:
+                out = x.Reshape({1, x.GetTotalSize()});
+                break;
+            default:
+                out = x.Copy();
+                break;
+        }
+        return out;
+    };
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), atleast_2d);
+
+    return Concatenate(reshaped_arrays, 0);
+}
+
 }  // namespace chainerx
