@@ -405,4 +405,5 @@ class TestInvalidType(unittest.TestCase):
         self.assertEqual(exc.expect, new.expect)
         self.assertEqual(exc.actual, new.actual)
 
+
 testing.run_module(__name__, __file__)
