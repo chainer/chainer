@@ -346,6 +346,8 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sigmoid(const Array& x);
 
+Array Relu(const Array& x);
+
 Array Square(const Array& x);
 
 Array SquaredDifference(const Array& x1, const Array& x2);
