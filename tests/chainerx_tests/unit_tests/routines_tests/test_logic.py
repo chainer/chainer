@@ -205,3 +205,88 @@ class TestLogicalNot(op_utils.NumpyOpTest):
         a, = inputs
         b = xp.logical_not(a)
         return b,
+
+
+def logical_and(xp, a, b):
+    return xp.logical_and(a, b)
+
+
+def logical_or(xp, a, b):
+    return xp.logical_or(a, b)
+
+
+_binary_logical_params = \
+    chainer.testing.product({
+        'dtypes': _expected_all_dtypes_comparison,
+        'func': [
+            logical_and, logical_or
+        ],
+        'inputs': [
+            ([], []),
+            ([True], [True]),
+            ([True], [False]),
+        ]
+    }) + chainer.testing.product({
+        'dtypes': _expected_numeric_dtypes_comparison,
+        'func': [
+            logical_and, logical_or
+        ],
+        'inputs': [
+            ([0], [0]),
+            ([0], [-0]),
+            ([0], [1]),
+            ([0, 1, 2], [0, 1, 2]),
+            ([1, 1, 2], [0, 1, 2]),
+            ([0, 1, 2], [1, 2, 3]),
+            ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
+            ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
+            ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
+            (0, [0]),
+            (1, [0]),
+            ([], [0]),
+            ([0], [[0, 1, 2], [3, 4, 5]]),
+            ([[0], [1]], [0, 1, 2]),
+            ([0.2], [0.2]),
+            ([0.2], [-0.3]),
+        ],
+    }) + chainer.testing.product({
+        'dtypes': _expected_float_dtypes_comparison,
+        'func': [
+            logical_and, logical_or
+        ],
+        'inputs': [
+            ([0., numpy.nan], [0., 1.]),
+            ([0., numpy.nan], [0., numpy.nan]),
+            ([0., numpy.inf], [0., 1.]),
+            ([0., -numpy.inf], [0., 1.]),
+            ([numpy.inf, 1.], [numpy.inf, 1.]),
+            ([-numpy.inf, 1.], [-numpy.inf, 1.]),
+            ([numpy.inf, 1.], [-numpy.inf, 1.]),
+            ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
+        ]
+    })
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    _binary_logical_params
+))
+# Ignore warnings from numpy for NaN comparisons.
+@pytest.mark.filterwarnings('ignore:invalid value encountered in ')
+class TestLogicalBinary(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a_object, b_object = self.inputs
+        a_dtype, b_dtype = self.dtypes
+        a = numpy.array(a_object, a_dtype)
+        b = numpy.array(b_object, b_dtype)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        y1 = self.func(xp, a, b)
+        y2 = self.func(xp, b, a)
+        return y1, y2
