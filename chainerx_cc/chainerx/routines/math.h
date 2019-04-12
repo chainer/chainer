@@ -102,7 +102,7 @@ public:
 
     virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
 };
-  
+
 // Calculates the minimum along specified axes.
 // See Sum() for the explanation of arguments.
 class AMinOp : public Op {
