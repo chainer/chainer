@@ -516,6 +516,8 @@ class TestVariable(unittest.TestCase):
         y1.unchain()
         z1, z2 = F.sum(y1), F.sum(y2)
         w = z1 + z2
+        for var in [y1, y2, z1, z2, w]:
+            var.grad = np.zeros_like(var.data)
         self.check_backward((ret, y1), (y2, z1, z2), (w,), False)
 
     def check_set_none_to_creator(self, use_creator_node):
