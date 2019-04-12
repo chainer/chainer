@@ -66,6 +66,8 @@ Array manipulation routines
    chainerx.ascontiguousarray
    chainerx.concatenate
    chainerx.stack
+   chainerx.hstack
+   chainerx.vstack
    chainerx.split
 
 Indexing routines

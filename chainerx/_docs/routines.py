@@ -813,6 +813,42 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.hstack,
+        """stack(arrays)
+Stack arrays in sequence horizontally (column wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.hstack`
+""")
+
+    _docs.set_doc(
+        chainerx.vstack,
+        """stack(arrays)
+Stack arrays in sequence vertically (row wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
         chainerx.split,
         """split(ary, indices_or_sections, axis=0)
 Splits an array into multiple sub arrays along a given axis.
