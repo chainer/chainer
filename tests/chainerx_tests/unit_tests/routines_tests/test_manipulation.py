@@ -643,3 +643,30 @@ class TestSplit(op_utils.NumpyOpTest):
 def test_split_invalid(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.split(a, indices_or_sections, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shapes', [
+    [(1,)],
+    [(0,), (0,)],
+    [(0, 0,), (0, 0,)],
+    [(1, 0,), (1, 0,)],
+    [(3, 4, 5), (3, 4, 5), (3, 4, 5)],
+    [(2, 3, 2), (2, 3, 2), (2, 3, 2)],
+    [(1, 0, 1), (1, 0, 1), (1, 0, 1)],
+    [(2, 0, 0), (2, 0, 0), (2, 0, 0)],
+    [(1, 0, 1, 0), (1, 0, 1, 0), (1, 0, 1, 0)],
+    [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
+])
+@chainer.testing.parameterize_pytest('func', [
+    lambda xp, input: xp.hstack(input),
+    lambda xp, input: xp.vstack(input),
+])
+class TestHVStack(op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        return _make_inputs(self.shapes, ['float32'] * len(self.shapes))
+
+    def forward_xp(self, inputs, xp):
+        y = self.func(xp, inputs)
+        return y,
