@@ -135,7 +135,7 @@ MulAdd is simple and can be implemented as follows:
    w.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
    w.backward()
 
-As per the warning above, the :meth:`~Function.forward_cpu` method returns a tuple of single element.
+As per the warning above, the :meth:`~FunctionNode.forward_cpu` method returns a tuple of single element.
 Note that all arrays appearing in ``forward_cpu`` are :class:`numpy.ndarray`.
 The forward function is straightforward; it unpacks the input tuple, computes the output, and packs it into a tuple.
 The backward function is a bit more complicated.

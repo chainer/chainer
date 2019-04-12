@@ -20,7 +20,8 @@ except AttributeError:
 
 
 class TimerHook(link_hook.LinkHook):
-    """Link hook for measuring elapsed time of :meth:`~chainer.Link.forward`.
+    """Link hook for measuring elapsed time of
+    :meth:`Link.forward() <chainer.Link.forward>`.
 
     Example:
         Code example::

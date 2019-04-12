@@ -35,7 +35,7 @@ You can override this method to check the condition on types and shapes of argum
    def check_type_forward(self, in_types):
      ...
 
-``in_types`` is an instance of :class:`~utils.type_check.TypeInfoTuple`, which is a sub-class of ``tuple``.
+``in_types`` is an instance of :class:`~utils.type_check.TypeInfoTuple`, which is a sub-class of :class:`tuple`.
 To get type information about the first argument, use ``in_types[0]``.
 If the function gets multiple arguments, we recommend to use new variables for readability:
 
@@ -79,7 +79,7 @@ Detail of type information
 You can access three information of ``x_type``.
 
 * ``.shape`` is a tuple of ints. Each value is size of each dimension.
-* ``.ndim`` is :class:`~chainer.int` value representing the number of dimensions. Note that ``ndim == len(shape)``
+* ``.ndim`` is :class:`int` value representing the number of dimensions. Note that ``ndim == len(shape)``
 * ``.dtype`` is ``numpy.dtype`` representing data type of the value.
 
 You can check all members.

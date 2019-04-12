@@ -116,7 +116,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its ``predictor`` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` operator,
 
     1. :meth:`~chainer.links.Classifier.forward` of the model is invoked. The data is then given to ``predictor`` to obtain the output ``y``.
-    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:``lossfun`` argument in the constructor of :class:`~chainer.links.Classifier`.
+    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by ``lossfun`` argument in the constructor of :class:`~chainer.links.Classifier`.
     3. The loss is returned as a :class:`~chainer.Variable`.
 
     In :class:`~chainer.links.Classifier`, the ``lossfun`` is set to
