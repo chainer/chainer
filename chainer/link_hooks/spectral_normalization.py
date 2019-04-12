@@ -11,7 +11,7 @@ import chainerx
 from chainerx import _fallback_workarounds as fallback
 
 
-def l2normalize(xp, v, eps=1e-12):
+def l2normalize(xp, v, eps):
     """Normalize a vector by its L2 norm.
 
     Args:
@@ -34,7 +34,7 @@ def l2normalize(xp, v, eps=1e-12):
 
 
 def update_approximate_vectors(
-        weight_matrix, u, n_power_iteration=1, eps=1e-12):
+        weight_matrix, u, n_power_iteration, eps):
     """Update the first left and right singular vectors.
 
     This function updates the first left singular vector `u` and
@@ -108,7 +108,9 @@ class SpectralNormalization(link_hook.LinkHook):
         n_power_iteration (int): Number of power iteration.
             The default value is 1.
         eps (float): Numerical stability in norm calculation.
-            The default value is 1e-12.
+            The default value is 1e-6 for the compatibility with
+            mixed precision training. The value used in the author's
+            implementation is 1e-12.
         use_gamma (bool): If ``True``, weight scaling parameter gamma which is
             initialized by initial weight's max singular value is introduced.
         factor (float, None): Scaling parameter to divide maximum singular
@@ -154,7 +156,7 @@ class SpectralNormalization(link_hook.LinkHook):
 
     name = 'SpectralNormalization'
 
-    def __init__(self, n_power_iteration=1, eps=1e-12, use_gamma=False,
+    def __init__(self, n_power_iteration=1, eps=1e-6, use_gamma=False,
                  factor=None, weight_name='W', name=None):
         assert n_power_iteration > 0
         self.n_power_iteration = n_power_iteration
@@ -250,10 +252,6 @@ class SpectralNormalization(link_hook.LinkHook):
             with link.init_scope():
                 link.gamma = variable.Parameter(s[0], ())
         self._initialized = True
-
-        # N.B.(crcrpar): Tentative adjustment for half precision.
-        if initialW.dtype == numpy.float16:
-            self.eps = 1e-6
 
     def normalize_weight(self, link):
         """Normalize target weight before every single forward computation."""
