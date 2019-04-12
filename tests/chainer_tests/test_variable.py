@@ -423,7 +423,7 @@ class TestVariable(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @pytest.mark.xfail(strict=True)
+    @unittest.expectedFailure
     @attr.chainerx
     def test_backward_chainerx(self):
         ret = self.create_linear_chain(2, chainerx)
@@ -2813,7 +2813,7 @@ class TestBackward(unittest.TestCase):
         chainer.backward([])
         chainer.backward([], [])
 
-    def check_multiple_output_1arg(self, xp):
+    def check_multiple_output_1arg(self, xp, skip_retain_grad_test=False):
         x = chainer.Variable(xp.array([1, 2], np.float32))
         h = x * 2
         y0 = h * 3
@@ -2822,8 +2822,12 @@ class TestBackward(unittest.TestCase):
         y1.grad = xp.array([100, 1000], np.float32)
         chainer.backward([y0, y1])
         testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        if skip_retain_grad_test:
+            return
+        assert y0.grad is None
+        assert y1.grad is None
 
-    def check_multiple_output_2args(self, xp):
+    def check_multiple_output_2args(self, xp, skip_retain_grad_test=False):
         x = chainer.Variable(xp.array([1, 2], np.float32))
         h = x * 2
         y0 = h * 3
@@ -2832,6 +2836,10 @@ class TestBackward(unittest.TestCase):
         gy1 = chainer.Variable(xp.array([100, 1000], np.float32))
         chainer.backward([y0, y1], [gy0, gy1])
         testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        if skip_retain_grad_test:
+            return
+        assert y0.grad is None
+        assert y1.grad is None
 
     def test_multiple_output_cpu(self):
         self.check_multiple_output_1arg(np)
@@ -2843,8 +2851,24 @@ class TestBackward(unittest.TestCase):
         self.check_multiple_output_2args(cuda.cupy)
 
     @attr.chainerx
-    def test_multiple_output_chainerx(self):
+    def test_multiple_output_chainerx_partially_ok(self):
+        self.check_multiple_output_1arg(
+            chainerx, skip_retain_grad_test=True)
+        self.check_multiple_output_2args(
+            chainerx, skip_retain_grad_test=True)
+
+    # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
+    # behaves like retain_grad=True
+    @unittest.expectedFailure
+    @attr.chainerx
+    def test_multiple_output_1arg_chainerx(self):
         self.check_multiple_output_1arg(chainerx)
+
+    # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
+    # behaves like retain_grad=True
+    @unittest.expectedFailure
+    @attr.chainerx
+    def test_multiple_output_2args_chainerx(self):
         self.check_multiple_output_2args(chainerx)
 
     def test_multiple_output_call_count(self):
