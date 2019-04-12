@@ -26,13 +26,12 @@ def _warn_to_gpu(dst, arr, legacy):
             # to do.
             return True
         else:
-            # Sticky option is omitted. As the default behavior is
-            # planned to be changed, raise a warning.
             warnings.warn('''\
-You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
-`Link.to_gpu` does nothing if the Link is already on GPU.
+You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
+GPU-{src}.
+`DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
 
-You can use `Link.to_device()` method to perform inter-GPU transfer.
+You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
 '''.format(dst=dst_id, src=src_id), RuntimeWarning)
             return True
     return False
