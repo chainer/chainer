@@ -118,7 +118,7 @@ public:
 };
 
 CHAINERX_REGISTER_OP_CUDA(AMaxOp, CudaAMaxOp);
-  
+
 template <typename T>
 struct AMinImpl {
     using CudaType = cuda_internal::DataType<T>;
