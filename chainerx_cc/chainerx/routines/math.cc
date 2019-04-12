@@ -533,7 +533,7 @@ Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().AMin(a, sorted_axis, out);
+        a.device().backend().CallOp<AMinOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"amin", a, out};
