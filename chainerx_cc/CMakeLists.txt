@@ -35,7 +35,7 @@ option(CHAINERX_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT
 
 # Allow to specify *one* --generate-code option of the nvcc command.
 # Supposed usage is to avoid slowness of PTX JIT compilation on development.
-set(CHAINERX_NVCC_GENERATE_CODE "$ENV{CHAINERX_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
+set(CHAINERX_NVCC_GENERATE_CODE "$ENV{CHAINERX_NVCC_GENERATE_CODE}" CACHE STRING "nvcc -G --generate-code option")
 
 if(DEFINED ENV{CHAINERX_ENABLE_BLAS})
     set(DEFAULT_CHAINERX_ENABLE_BLAS $ENV{CHAINERX_ENABLE_BLAS})
