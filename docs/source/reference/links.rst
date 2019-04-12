@@ -53,6 +53,8 @@ Learnable connections
    chainer.links.NStepRNNReLU
    chainer.links.NStepRNNTanh
    chainer.links.Parameter
+   chainer.links.RandWire
+   chainer.links.RandWireWS
    chainer.links.Scale
    chainer.links.StatefulGRU
    chainer.links.StatelessGRU

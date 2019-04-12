@@ -41,6 +41,8 @@ from chainer.links.connection.n_step_rnn import NStepRNNReLU  # NOQA
 from chainer.links.connection.n_step_rnn import NStepRNNTanh  # NOQA
 from chainer.links.connection.parameter import Parameter  # NOQA
 from chainer.links.connection.peephole import StatefulPeepholeLSTM  # NOQA
+from chainer.links.connection.randwire import RandWire  # NOQA
+from chainer.links.connection.randwire import RandWireWS  # NOQA
 from chainer.links.connection.scale import Scale  # NOQA
 from chainer.links.connection.tree_lstm import ChildSumTreeLSTM  # NOQA
 from chainer.links.connection.tree_lstm import NaryTreeLSTM  # NOQA
