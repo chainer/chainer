@@ -26,103 +26,31 @@ inline bool IsInf(chainerx::Float16 value) { return value.IsInf(); }
 inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
-template <typename T>
-inline T Tanh(T x) {
-    return std::tanh(x);
-}
-template <>
-inline chainerx::Float16 Tanh<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::tanh(static_cast<float>(x))};
-}
+#define DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)                    \
+    template <typename T>                                                   \
+    inline T name(T x) {                                                    \
+        return func(x);                                                     \
+    }                                                                       \
+    template <>                                                             \
+    inline chainerx::Float16 name<chainerx::Float16>(chainerx::Float16 x) { \
+        return chainerx::Float16{func(static_cast<float>(x))};              \
+    }
 
-template <typename T>
-inline T Sin(T x) {
-    return std::sin(x);
-}
-template <>
-inline chainerx::Float16 Sin<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::sin(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Cos(T x) {
-    return std::cos(x);
-}
-template <>
-inline chainerx::Float16 Cos<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::cos(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Tan(T x) {
-    return std::tan(x);
-}
-template <>
-inline chainerx::Float16 Tan<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::tan(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arcsin(T x) {
-    return std::asin(x);
-}
-template <>
-inline chainerx::Float16 Arcsin<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::asin(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arccos(T x) {
-    return std::acos(x);
-}
-template <>
-inline chainerx::Float16 Arccos<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::acos(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arctan(T x) {
-    return std::atan(x);
-}
-template <>
-inline chainerx::Float16 Arctan<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::atan(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Exp(T x) {
-    return std::exp(x);
-}
-template <>
-inline chainerx::Float16 Exp<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::exp(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Log(T x) {
-    return std::log(x);
-}
-template <>
-inline chainerx::Float16 Log<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::log(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Square(T x) {
-    return x * x;
-}
-template <>
-inline chainerx::Float16 Square<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{static_cast<float>(x) * static_cast<float>(x)};
-}
-
-template <typename T>
-inline T Sqrt(T x) {
-    return std::sqrt(x);
-}
-template <>
-inline chainerx::Float16 Sqrt<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::sqrt(static_cast<float>(x))};
-}
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arcsinh, std::asinh)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arccosh, std::acosh)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
+DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 
 }  // namespace chainerx

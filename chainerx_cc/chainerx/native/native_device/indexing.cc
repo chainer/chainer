@@ -18,8 +18,8 @@ namespace native {
 namespace {
 
 class NativeTakeOp : public TakeOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, out);
 
@@ -84,8 +84,8 @@ protected:
 CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
 
 class NativeAddAtOp : public AddAtOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, b);

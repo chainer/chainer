@@ -8,8 +8,11 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/misc.h"
 
 namespace chainerx {
 namespace cuda {
@@ -21,18 +24,20 @@ struct CopyImpl {
     __device__ void operator()(int64_t /*i*/, CudaType a, CudaType& out) { out = a; }
 };
 
-}  // namespace
+class CudaCopyOp : public CopyOp {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, T>(CopyImpl<T>{}, a, out);
+        });
+    }
+};
 
-void CudaDevice::Copy(const Array& a, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(CopyImpl<T>{}, a, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(CopyOp, CudaCopyOp);
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
@@ -41,18 +46,23 @@ struct AsTypeImpl {
     __device__ void operator()(int64_t /*i*/, InCudaType a, OutCudaType& out) { out = static_cast<OutCudaType>(a); }
 };
 
+class CudaAsTypeOp : public AsTypeOp {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        auto do_astype = [&](auto in_pt, auto out_pt) {
+            using InT = typename decltype(in_pt)::type;
+            using OutT = typename decltype(out_pt)::type;
+            Elementwise<const InT, OutT>(AsTypeImpl<InT, OutT>{}, a, out);
+        };
+        VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AsTypeOp, CudaAsTypeOp);
+
 }  // namespace
-
-void CudaDevice::AsType(const Array& a, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    auto do_astype = [&](auto in_pt, auto out_pt) {
-        using InT = typename decltype(in_pt)::type;
-        using OutT = typename decltype(out_pt)::type;
-        Elementwise<const InT, OutT>(AsTypeImpl<InT, OutT>{}, a, out);
-    };
-    VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
-}
-
 }  // namespace cuda
 }  // namespace chainerx

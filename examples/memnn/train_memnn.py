@@ -11,6 +11,9 @@ import memnn
 
 
 def train(train_data_path, test_data_path, args):
+    device = chainer.get_device(args.device)
+    device.use()
+
     vocab = collections.defaultdict(lambda: len(vocab))
     vocab['<unk>'] = 0
 
@@ -28,9 +31,7 @@ def train(train_data_path, test_data_path, args):
     model = chainer.links.Classifier(network, label_key='answer')
     opt = chainer.optimizers.Adam()
 
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     opt.setup(model)
 
@@ -38,8 +39,7 @@ def train(train_data_path, test_data_path, args):
         train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(
         test_data, args.batchsize, repeat=False, shuffle=False)
-    updater = chainer.training.StandardUpdater(
-        train_iter, opt, device=args.gpu)
+    updater = chainer.training.StandardUpdater(train_iter, opt, device=device)
     trainer = chainer.training.Trainer(updater, (args.epoch, 'epoch'))
 
     @chainer.training.make_extension()
@@ -47,7 +47,7 @@ def train(train_data_path, test_data_path, args):
         network.fix_ignore_label()
 
     trainer.extend(fix_ignore_label)
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
@@ -74,8 +74,11 @@ def main():
                         help='Number of images in each mini batch')
     parser.add_argument('--epoch', '-e', type=int, default=100,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--unit', '-u', type=int, default=20,
                         help='Number of units')
     parser.add_argument('--hop', '-H', type=int, default=3,
@@ -86,6 +89,10 @@ def main():
                         choices=['bow', 'pe'], default='bow',
                         help='Sentence representation. '
                         'Select from BoW ("bow") or position encoding ("pe")')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     train(args.TRAIN_DATA, args.TEST_DATA, args)
