@@ -49,7 +49,7 @@ public:
 };
 
 CHAINERX_REGISTER_OP_NATIVE(ArgMaxOp, NativeArgMaxOp);
- 
+
 }  // namespace
 
 namespace {
