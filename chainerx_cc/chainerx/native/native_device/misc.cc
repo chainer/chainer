@@ -13,29 +13,7 @@
 
 namespace chainerx {
 namespace native {
-
-void NativeDevice::Square(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Square(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x, out);
-    });
-}
-
-void NativeDevice::Sqrt(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sqrt(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
+namespace {
 
 class NativeFabsOp : public FabsOp {
 public:
@@ -73,27 +51,107 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(SignOp, NativeSignOp);
 
-void NativeDevice::IsNan(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    VisitDtype(x.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsNan(x); }
-        };
-        Elementwise<const T, bool>(Impl{}, x, out);
-    });
-}
+class NativeSquareOp : public SquareOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = x * x; }
+            };
+            Elementwise<const T, T>(Impl{}, x, out);
+        });
+    }
+};
 
-void NativeDevice::IsInf(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    VisitDtype(x.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsInf(x); }
-        };
-        Elementwise<const T, bool>(Impl{}, x, out);
-    });
-}
+CHAINERX_REGISTER_OP_NATIVE(SquareOp, NativeSquareOp);
 
+class NativeSqrtOp : public SqrtOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sqrt(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(SqrtOp, NativeSqrtOp);
+
+class NativeIsNanOp : public IsNanOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsNan(x); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(IsNanOp, NativeIsNanOp);
+
+class NativeIsInfOp : public IsInfOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsInf(x); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(IsInfOp, NativeIsInfOp);
+
+class NativeCeilOp : public CeilOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Ceil(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(CeilOp, NativeCeilOp);
+
+class NativeFloorOp : public FloorOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Floor(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(FloorOp, NativeFloorOp);
+
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

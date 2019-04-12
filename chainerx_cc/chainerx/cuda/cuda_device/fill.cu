@@ -12,10 +12,14 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
+#include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -31,38 +35,20 @@ struct ArangeImpl {
     CudaType step;
 };
 
-}  // namespace
-
-void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        using CudaType = cuda_internal::DataType<T>;
-        Elementwise<T>(ArangeImpl<T>{static_cast<CudaType>(start), static_cast<CudaType>(step)}, out);
-    });
-}
-
-namespace {
-
-template <typename T>
-struct FillImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType& out) { out = value; }
-    CudaType value;
+class CudaArangeOp : public ArangeOp {
+public:
+    void Call(Scalar start, Scalar step, const Array& out) override {
+        Device& device = out.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<T>(ArangeImpl<T>{static_cast<CudaType>(start), static_cast<CudaType>(step)}, out);
+        });
+    }
 };
 
-}  // namespace
-
-void CudaDevice::Fill(const Array& out, Scalar value) {
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        using CudaType = cuda_internal::DataType<T>;
-        Elementwise<T>(FillImpl<T>{static_cast<CudaType>(value)}, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(ArangeOp, CudaArangeOp);
 
 template <typename T>
 struct IdentityImpl {
@@ -72,20 +58,22 @@ struct IdentityImpl {
     int64_t n_plus_one;
 };
 
-}  // namespace
+class CudaIdentityOp : public IdentityOp {
+public:
+    void Call(const Array& out) override {
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(out.shape()[0] == out.shape()[1]);
 
-void CudaDevice::Identity(const Array& out) {
-    CHAINERX_ASSERT(out.ndim() == 2);
-    CHAINERX_ASSERT(out.shape()[0] == out.shape()[1]);
+        Device& device = out.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<T>(IdentityImpl<T>{out.shape()[0]}, out);
+        });
+    }
+};
 
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<T>(IdentityImpl<T>{out.shape()[0]}, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(IdentityOp, CudaIdentityOp);
 
 template <typename T>
 struct EyeImpl {
@@ -99,17 +87,19 @@ struct EyeImpl {
     int64_t step;
 };
 
-}  // namespace
+class CudaEyeOp : public EyeOp {
+public:
+    void Call(int64_t k, const Array& out) override {
+        Device& device = out.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [k, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<T>(EyeImpl<T>{out.shape()[1], k}, out);
+        });
+    }
+};
 
-void CudaDevice::Eye(int64_t k, const Array& out) {
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [k, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<T>(EyeImpl<T>{out.shape()[1], k}, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(EyeOp, CudaEyeOp);
 
 template <typename T>
 __global__ void SetVecInMat(
@@ -127,46 +117,48 @@ __global__ void SetVecInMat(
     }
 }
 
-}  // namespace
+class CudaDiagflatOp : public DiagflatOp {
+public:
+    void Call(const Array& v, int64_t k, const Array& out) override {
+        CHAINERX_ASSERT(v.ndim() == 1);
+        CHAINERX_ASSERT(out.ndim() == 2);
 
-void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
-    CHAINERX_ASSERT(v.ndim() == 1);
-    CHAINERX_ASSERT(out.ndim() == 2);
+        Device& device = v.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
 
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
+            // Start indices for the 2-D array axes with applied offset k.
+            int64_t row_start{0};
+            int64_t col_start{0};
 
-        // Start indices for the 2-D array axes with applied offset k.
-        int64_t row_start{0};
-        int64_t col_start{0};
+            if (k >= 0) {
+                col_start += k;
+            } else {
+                row_start -= k;
+            }
 
-        if (k >= 0) {
-            col_start += k;
-        } else {
-            row_start -= k;
-        }
+            // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
+            device.backend().CallOp<FillOp>(out, T{0});
 
-        // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-        Fill(out, T{0});
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<2> out_indexer{out.shape()};
 
-        IndexableArray<const T, 1> v_iarray{v};
-        IndexableArray<T, 2> out_iarray{out};
-        Indexer<1> v_indexer{v.shape()};
-        Indexer<2> out_indexer{out.shape()};
+            // TODO(niboshi): Calculate kMaxBlockSize per device
+            std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
+            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
+            int64_t total_size = out_indexer.total_size();
+            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        // TODO(niboshi): Calculate kMaxBlockSize per device
-        std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
-        int64_t total_size = out_indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+            SetVecInMat<<<grid_size, block_size>>>(v_iarray, out_iarray, v_indexer, out_indexer, row_start, col_start);
+        });
+    }
+};
 
-        SetVecInMat<<<grid_size, block_size>>>(v_iarray, out_iarray, v_indexer, out_indexer, row_start, col_start);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(DiagflatOp, CudaDiagflatOp);
 
 template <typename T>
 struct LinspaceImpl {
@@ -180,19 +172,45 @@ struct LinspaceImpl {
     double stop;
 };
 
+class CudaLinspaceOp : public LinspaceOp {
+public:
+    void Call(double start, double stop, const Array& out) override {
+        CHAINERX_ASSERT(out.ndim() == 1);
+        CHAINERX_ASSERT(out.shape()[0] > 0);
+
+        Device& device = out.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            int64_t n = out.shape()[0];
+            Elementwise<T>(LinspaceImpl<T>{n, start, stop}, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(LinspaceOp, CudaLinspaceOp);
+
+template <typename T>
+struct FillImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType& out) { out = value; }
+    CudaType value;
+};
+
+class CudaFillOp : public FillOp {
+public:
+    void Call(const Array& out, Scalar value) override {
+        CudaSetDeviceScope scope{out.device().index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<T>(FillImpl<T>{static_cast<CudaType>(value)}, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(FillOp, CudaFillOp);
+
 }  // namespace
-
-void CudaDevice::Linspace(double start, double stop, const Array& out) {
-    CHAINERX_ASSERT(out.ndim() == 1);
-    CHAINERX_ASSERT(out.shape()[0] > 0);
-
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        int64_t n = out.shape()[0];
-        Elementwise<T>(LinspaceImpl<T>{n, start, stop}, out);
-    });
-}
-
 }  // namespace cuda
 }  // namespace chainerx
