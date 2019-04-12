@@ -38,6 +38,7 @@ template <typename T>
 __device__ inline T Sign(T x) {
     return IsNan(x) ? x : static_cast<T>((T{0} < x) - (x < T{0}));
 }
+
 template <>
 __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
     return IsNan(x) ? x : cuda::Float16{(cuda::Float16{0} < x) - (x < cuda::Float16{0})};

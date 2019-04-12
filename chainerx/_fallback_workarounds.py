@@ -136,6 +136,7 @@ def _populate_module_functions():
 
     chainerx.vstack = _vstack
 
+
 def _populate_ndarray():
     ndarray = chainerx.ndarray
 
