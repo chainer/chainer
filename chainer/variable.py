@@ -1610,28 +1610,44 @@ def backward(outputs, grad_outputs=None, **kwargs):
     is_chainerx = [v._has_chainerx_array for v in outputs]
 
     if any(is_chainerx):
-        # Then `outputs` is not empty
         if not all(is_chainerx):
+            # The restriction is required as soon as the workarounds below
+            # are removed.
             raise ValueError('cannot mix chainerx and other backends')
 
-        if grad_outputs:
-            for y, gy in zip(outputs, grad_outputs):
-                if y.grad_var is not None:
-                    raise ValueError(
-                        'cannot use chainerx.backward because y.grad_var will '
-                        'be overwritten.'
-                    )
-                y.grad_var = gy
+        # Cannot use chainerx.backward directly, because it does not follow
+        # retain_grad=False
+        # TODO(kataoka): Fix chainerx.backward and remove this workaround
+        if grad_outputs is None:
+            grad_outputs = []
+            for y in outputs:
+                grad_outputs.append(y.grad_var)
+                y.grad_var = None
+
+        # The check is required because chainerx.backward sets default grads.
+        # TODO(kataoka): Fix chainerx.backward and remove this workaround
+        indices = [i for i, gy in enumerate(grad_outputs) if gy is not None]
+        outputs = [outputs[i] for i in indices]
+        grad_outputs = [grad_outputs[i] for i in indices]
+
+        # Use new variables to start backprop
+        # TODO(kataoka): Implement chainerx.backward(output, grad_outputs)
+        # and remove this workaround.
+        outputs = chainer.functions.identity(*outputs)
+        if not isinstance(outputs, tuple):
+            outputs = outputs,
+        grad_outputs = chainer.functions.identity(*grad_outputs)
+        if not isinstance(grad_outputs, tuple):
+            grad_outputs = grad_outputs,
+        for y, gy in zip(outputs, grad_outputs):
+            y.grad_var = gy
 
         # See also the ChainerX case of Variable.backward
         arrs = []
         for y in outputs:
             arr = y._data[0]
             assert isinstance(arr, chainerx.ndarray)
-            if y.grad_var is not None:
-                # TODO(kataoka): The check is required because
-                # chainerx.backward sets default grads.
-                arrs.append(arr)
+            arrs.append(arr)
         chainerx.backward(
             arrs, enable_double_backprop=enable_double_backprop)
         return
