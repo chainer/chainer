@@ -15,7 +15,7 @@ from chainer import utils
 import chainerx
 
 
-def _warn_to_gpu(dst, arr, legacy):
+def _warn_to_gpu(arr, dst, legacy):
     if not legacy:
         return False
     if isinstance(dst, cuda.GpuDevice) and isinstance(arr, cuda.ndarray):
@@ -289,7 +289,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
         skip = _warn_to_gpu(
-            self._device, arr, legacy=self._skip_between_cupy_devices)
+            arr, self._device, legacy=self._skip_between_cupy_devices)
         if not skip:
             return self._device.send(arr)
         return arr
@@ -297,7 +297,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         skip = _warn_to_gpu(
-            self._device, param.array, legacy=self._skip_between_cupy_devices)
+            param.array, self._device, legacy=self._skip_between_cupy_devices)
         if not skip:
             param.to_device(self._device)
 
