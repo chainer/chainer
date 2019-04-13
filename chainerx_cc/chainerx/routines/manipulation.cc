@@ -713,7 +713,7 @@ Array VStack(const std::vector<Array>& arrays) {
                 out = x.Reshape({1, x.GetTotalSize()});
                 break;
             default:
-                out = x.Copy();
+                out = x;
                 break;
         }
         return out;
