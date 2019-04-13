@@ -657,6 +657,7 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
     [(2, 0, 0), (2, 0, 0), (2, 0, 0)],
     [(1, 0, 1, 0), (1, 0, 1, 0), (1, 0, 1, 0)],
     [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
+    [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
 ])
 @chainer.testing.parameterize_pytest('func', [
     lambda xp, input: xp.hstack(input),
