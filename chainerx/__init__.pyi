@@ -776,6 +776,9 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
+
+
 def take(a: ndarray, indices: ndarray, axis: tp.Optional[int]) -> ndarray: ...
 
 
