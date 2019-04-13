@@ -202,7 +202,7 @@ class Independent(distribution.Distribution):
 
 @distribution.register_kl(Independent, Independent)
 def _kl_independent_independent(dist1, dist2):
-    '''Batched KL divergence :math:`\\mathrm{KL}(\\mathrm{dist1} ||
+    """Batched KL divergence :math:`\\mathrm{KL}(\\mathrm{dist1} ||
     \\mathrm{dist2})` for Independent distributions.
 
     We can leverage the fact that
@@ -225,7 +225,7 @@ def _kl_independent_independent(dist1, dist2):
     Raises:
         :class:`ValueError`: If the event space for ``dist1`` and ``dist2``,
             or their underlying distributions don't match.
-    '''
+    """
 
     p = dist1.distribution
     q = dist2.distribution
