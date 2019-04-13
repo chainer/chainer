@@ -82,6 +82,9 @@ class Independent(distribution.Distribution):
 
         Note that this relationship holds only if the covariance matrix of the
         original distribution is given analytically.
+
+        Returns:
+            ~chainer.Variable: The covariance of the distribution.
         """
         num_repeat = array.size_of_shape(
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
