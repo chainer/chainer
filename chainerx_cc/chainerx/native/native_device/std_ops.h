@@ -1,5 +1,7 @@
 #pragma once
 
+#include "chainerx/native/op_regist.h"
+
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, visit_dtype)    \
     class Native##func##Op : public func##Op {                                          \
     public:                                                                             \
@@ -10,7 +12,10 @@
             visit_dtype(out.dtype(), [&](auto pt) {                                     \
                 using T = typename decltype(pt)::type;                                  \
                 struct Impl {                                                           \
-                    void operator()(int64_t /*i*/, T x, T& out) func_def                \
+                    void operator()(int64_t i, T x, T& out) {                           \
+                        (void)i;                                                        \
+                        func_def                                                        \
+                    }                                                                   \
                 };                                                                      \
                 Elementwise<const T, T>(Impl{}, x_cast, out);                           \
             });                                                                         \
@@ -36,7 +41,10 @@
             visit_dtype(out.dtype(), [&](auto pt) {                                         \
                 using T = typename decltype(pt)::type;                                      \
                 struct Impl {                                                               \
-                    void operator()(int64_t /*i*/, T x1, T x2, T& out) func_def             \
+                    void operator()(int64_t i, T x1, T x2, T& out) {                        \
+                        (void)i;                                                            \
+                        func_def                                                            \
+                    }                                                                       \
                 };                                                                          \
                 Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);            \
             });                                                                             \
