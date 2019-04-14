@@ -66,6 +66,14 @@ class Evaluator(extension.Extension):
             object is passed at each call.
         eval_func: Evaluation function called at each iteration. The target
             link to evaluate as a callable is used by default.
+        progress_bar: Boolean flag to show a progress bar while training,
+            which is similar to `chainer.training.extensions.ProgressBar`.
+            (default: `False`)
+
+    .. warning::
+
+        The argument `progress_bar=False/True` is experimental.
+        The interface can change in the future.
 
     Attributes:
         converter: Converter function.
