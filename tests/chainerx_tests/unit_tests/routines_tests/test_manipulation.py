@@ -646,27 +646,67 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shapes', [
-    [(1,)],
-    [(0,), (0,)],
-    [(0, 0,), (0, 0,)],
-    [(1, 0,), (1, 0,)],
-    [(3, 4, 5), (3, 4, 5), (3, 4, 5)],
-    [(2, 3, 2), (2, 3, 2), (2, 3, 2)],
-    [(1, 0, 1), (1, 0, 1), (1, 0, 1)],
-    [(2, 0, 0), (2, 0, 0), (2, 0, 0)],
-    [(1, 0, 1, 0), (1, 0, 1, 0), (1, 0, 1, 0)],
-    [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
-    [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
-])
-@chainer.testing.parameterize_pytest('func', [
-    lambda xp, input: xp.hstack(input),
-    lambda xp, input: xp.vstack(input),
-])
-class TestHVStack(op_utils.NumpyOpTest):
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'shapes': [
+        (1,),
+        (1, 1),
+        (1, 1, 1),
+        (2, 2, 2, 2),
+    ],
+        'dtype': chainerx.testing.dtypes.float_dtypes
+    })
+))
+class TestAtleast2d(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
 
     def generate_inputs(self):
-        return _make_inputs(self.shapes, ['float32'] * len(self.shapes))
+        a = numpy.random.uniform(0, 1, self.shapes).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, input, xp):
+        x, = input
+        y = xp.atleast_2d(x)
+        return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'shapes': [
+        [(1,)],
+        [(0,), (0,)],
+        [(0, 0,), (0, 0,)],
+        [(1, 0,), (1, 0,)],
+        [(3, 4, 5), (3, 4, 5), (3, 4, 5)],
+        [(2, 3, 2), (2, 3, 2), (2, 3, 2)],
+        [(1, 0, 1), (1, 0, 1), (1, 0, 1)],
+        [(2, 0, 0), (2, 0, 0), (2, 0, 0)],
+        [(1, 0, 1, 0), (1, 0, 1, 0), (1, 0, 1, 0)],
+        [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
+        [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
+    ], 'func': [
+        lambda xp, input: xp.hstack(input),
+        lambda xp, input: xp.vstack(input),
+    ],
+        'dtype': chainerx.testing.dtypes.float_dtypes
+    })
+))
+class TestHVStack(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return _make_inputs(self.shapes, [self.dtype] * len(self.shapes))
 
     def forward_xp(self, inputs, xp):
         y = self.func(xp, inputs)
