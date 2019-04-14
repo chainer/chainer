@@ -15,6 +15,7 @@ from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
 from chainer.training.extensions import util
+from chainer.utils import argument
 
 
 class Evaluator(extension.Extension):
@@ -89,8 +90,9 @@ class Evaluator(extension.Extension):
     name = None
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
-                 device=None, eval_hook=None, eval_func=None,
-                 progress_bar=False):
+                 device=None, eval_hook=None, eval_func=None, **kwargs):
+        progress_bar = argument.parse_kwargs(kwargs, ('progress_bar', False))
+
         if device is not None:
             device = backend._get_device_compat(device)
 
