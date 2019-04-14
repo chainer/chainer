@@ -695,6 +695,39 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
+Array Atleast2D(const Array& x) {
+    Array out;
+    Shape shape = x.shape();
+    Strides strides = x.strides();
+    switch (x.ndim()) {
+        case 0:
+            out = x.Reshape({1, 1});
+            break;
+        case 1:
+            shape.insert(shape.begin(), 1);
+            strides.insert(strides.begin(), 0);
+            out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            break;
+        default:
+            out = x.MakeView();
+            break;
+    }
+
+    BackwardBuilder bb{"atleast_2d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = std::move(x.shape()), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 1) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array HStack(const std::vector<Array>& arrays) {
     if (arrays.front().ndim() <= 1) {
         return Concatenate(arrays, 0);
@@ -703,24 +736,8 @@ Array HStack(const std::vector<Array>& arrays) {
 }
 
 Array VStack(const std::vector<Array>& arrays) {
-    auto atleast_2d = [](const Array& x) {
-        Array out;
-        switch (x.ndim()) {
-            case 0:
-                out = x.Reshape({1, 1});
-                break;
-            case 1:
-                out = x.Reshape({1, x.GetTotalSize()});
-                break;
-            default:
-                out = x;
-                break;
-        }
-        return out;
-    };
-
     std::vector<Array> reshaped_arrays(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), atleast_2d);
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), Atleast2D);
 
     return Concatenate(reshaped_arrays, 0);
 }

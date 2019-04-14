@@ -442,6 +442,9 @@ void InitChainerxManipulation(pybind11::module& m) {
           },
           py::arg("arrays"),
           py::arg("axis") = 0);
+    m.def("atleast_2d",
+          [](const ArrayBodyPtr& a) { return MoveArrayBody(Atleast2D(Array{a})); },
+          py::arg("a"));
     m.def("hstack",
           [](py::sequence arrays) {
               std::vector<Array> xs;
