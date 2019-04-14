@@ -1656,7 +1656,6 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
-        'is_module': [False],
     })
     # Special values
     + chainer.testing.product({
@@ -1665,7 +1664,6 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
         'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'is_module': [False],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
@@ -2076,16 +2074,13 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
-        'is_module': [False],
     })
-    # is_module
+    # Dtype combinations
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
-        'is_module': [True, False],
     })
     # TODO(aksub99): Add tests for inf and NaN.
 ))

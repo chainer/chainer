@@ -24,11 +24,11 @@ namespace {
 
 template <typename In, typename Out>
 struct IfLessElseASSAImpl {
-    using CudaTypeIn = cuda_internal::DataType<In>;
-    using CudaTypeOut = cuda_internal::DataType<Out>;
-    __device__ void operator()(int64_t /*i*/, CudaTypeIn x1, CudaTypeOut neg, CudaTypeOut& out) { out = x1 < x2 ? pos : neg; }
-    CudaTypeIn x2;
-    CudaTypeOut pos;
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ void operator()(int64_t /*i*/, InCudaType x1, OutCudaType neg, OutCudaType& out) { out = x1 < x2 ? pos : neg; }
+    InCudaType x2;
+    OutCudaType pos;
 };
 
 class CudaIfLessElseASSAOp : public IfLessElseASSAOp {
@@ -42,12 +42,12 @@ public:
         CudaSetDeviceScope scope{device.index()};
         VisitDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            using CudaTypeIn = cuda_internal::DataType<In>;
+            using InCudaType = cuda_internal::DataType<In>;
             VisitDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
-                using CudaTypeOut = cuda_internal::DataType<Out>;
+                using OutCudaType = cuda_internal::DataType<Out>;
                 Elementwise<const In, const Out, Out>(
-                        IfLessElseASSAImpl<In, Out>{static_cast<CudaTypeIn>(x2), static_cast<CudaTypeOut>(pos)}, x1_cast, neg_cast, out);
+                        IfLessElseASSAImpl<In, Out>{static_cast<InCudaType>(x2), static_cast<OutCudaType>(pos)}, x1_cast, neg_cast, out);
             });
         });
     }
@@ -57,11 +57,11 @@ CHAINERX_REGISTER_OP_CUDA(IfLessElseASSAOp, CudaIfLessElseASSAOp);
 
 template <typename In, typename Out>
 struct IfGreaterElseASSAImpl {
-    using CudaTypeIn = cuda_internal::DataType<In>;
-    using CudaTypeOut = cuda_internal::DataType<Out>;
-    __device__ void operator()(int64_t /*i*/, CudaTypeIn x1, CudaTypeOut neg, CudaTypeOut& out) { out = x1 > x2 ? pos : neg; }
-    CudaTypeIn x2;
-    CudaTypeOut pos;
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ void operator()(int64_t /*i*/, InCudaType x1, OutCudaType neg, OutCudaType& out) { out = x1 > x2 ? pos : neg; }
+    InCudaType x2;
+    OutCudaType pos;
 };
 
 class CudaIfGreaterElseASSAOp : public IfGreaterElseASSAOp {
@@ -75,12 +75,12 @@ public:
         CudaSetDeviceScope scope{device.index()};
         VisitDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            using CudaTypeIn = cuda_internal::DataType<In>;
+            using InCudaType = cuda_internal::DataType<In>;
             VisitDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
-                using CudaTypeOut = cuda_internal::DataType<Out>;
+                using OutCudaType = cuda_internal::DataType<Out>;
                 Elementwise<const In, const Out, Out>(
-                        IfGreaterElseASSAImpl<In, Out>{static_cast<CudaTypeIn>(x2), static_cast<CudaTypeOut>(pos)}, x1_cast, neg_cast, out);
+                        IfGreaterElseASSAImpl<In, Out>{static_cast<InCudaType>(x2), static_cast<OutCudaType>(pos)}, x1_cast, neg_cast, out);
             });
         });
     }
@@ -88,10 +88,11 @@ public:
 
 CHAINERX_REGISTER_OP_CUDA(IfGreaterElseASSAOp, CudaIfGreaterElseASSAOp);
 
-template <typename T>
+template <typename In, typename Out>
 struct IfGreaterElseAAAAImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType pos, CudaType neg, CudaType& out) {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ void operator()(int64_t /*i*/, InCudaType x1, InCudaType x2, OutCudaType pos, OutCudaType neg, OutCudaType& out) {
         out = x1 > x2 ? pos : neg;
     }
 };
@@ -101,11 +102,19 @@ public:
     void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, x2, pos, neg, out);
+        Dtype x_dtype = ResultType(x1, x2);
+        const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
+        const Array& x2_cast = x2.dtype() == x_dtype ? x2 : x2.AsType(x_dtype);
+        const Array& pos_cast = pos.dtype() == out.dtype() ? pos : pos.AsType(out.dtype());
+        const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            using CudaType = cuda_internal::DataType<T>;
-            Elementwise<const T, const T, const T, const T, T>(IfGreaterElseAAAAImpl<T>{}, x1, x2, pos, neg, out);
+        VisitDtype(x_dtype, [&](auto x_pt) {
+            using In = typename decltype(x_pt)::type;
+            VisitDtype(out.dtype(), [&](auto pt) {
+                using Out = typename decltype(pt)::type;
+                Elementwise<const In, const In, const Out, const Out, Out>(
+                        IfGreaterElseAAAAImpl<In, Out>{}, x1_cast, x2_cast, pos_cast, neg_cast, out);
+            });
         });
     }
 };
