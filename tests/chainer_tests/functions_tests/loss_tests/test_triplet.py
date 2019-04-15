@@ -24,7 +24,7 @@ class TestTriplet(unittest.TestCase):
         # Sample differentiable inputs
         eps = 1e-3
         if self.dtype == numpy.float16:
-            eps *= 10
+            eps = 1e-2
 
         x_shape = (self.batchsize, self.input_dim)
 
