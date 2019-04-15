@@ -123,7 +123,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AMinOp, NativeAMinOp);
+CHAINERX_NATIVE_REGISTER_OP(AMinOp, NativeAMinOp);
 
 }  // namespace
 }  // namespace native

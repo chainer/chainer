@@ -146,7 +146,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AMinOp, CudaAMinOp);
+CHAINERX_CUDA_REGISTER_OP(AMinOp, CudaAMinOp);
 
 }  // namespace
 }  // namespace cuda
