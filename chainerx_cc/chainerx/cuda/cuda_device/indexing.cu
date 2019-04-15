@@ -245,7 +245,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(TakeOp, CudaTakeOp);
+CHAINERX_CUDA_REGISTER_OP(TakeOp, CudaTakeOp);
 
 class CudaAddAtOp : public AddAtOp {
 public:
@@ -265,7 +265,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AddAtOp, CudaAddAtOp);
+CHAINERX_CUDA_REGISTER_OP(AddAtOp, CudaAddAtOp);
 
 }  // namespace
 }  // namespace cuda

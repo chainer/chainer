@@ -33,7 +33,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddOp, NativeAddOp);
+CHAINERX_NATIVE_REGISTER_OP(AddOp, NativeAddOp);
 
 class NativeAddASOp : public AddASOp {
 public:
@@ -52,7 +52,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddASOp, NativeAddASOp);
+CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
 
 class NativeSubtractOp : public SubtractOp {
 public:
@@ -71,7 +71,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SubtractOp, NativeSubtractOp);
+CHAINERX_NATIVE_REGISTER_OP(SubtractOp, NativeSubtractOp);
 
 class NativeSubtractASOp : public SubtractASOp {
 public:
@@ -90,7 +90,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SubtractASOp, NativeSubtractASOp);
+CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
 
 class NativeMultiplyOp : public MultiplyOp {
 public:
@@ -109,7 +109,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MultiplyOp, NativeMultiplyOp);
+CHAINERX_NATIVE_REGISTER_OP(MultiplyOp, NativeMultiplyOp);
 
 class NativeMultiplyASOp : public MultiplyASOp {
 public:
@@ -128,7 +128,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MultiplyASOp, NativeMultiplyASOp);
+CHAINERX_NATIVE_REGISTER_OP(MultiplyASOp, NativeMultiplyASOp);
 
 int32_t FloorDivide(int32_t x, int32_t y) {
     auto div = std::div(x, y);
@@ -170,7 +170,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FloorDivideOp, NativeFloorDivideOp);
+CHAINERX_NATIVE_REGISTER_OP(FloorDivideOp, NativeFloorDivideOp);
 
 class NativeFloorDivideASOp : public FloorDivideASOp {
 public:
@@ -189,7 +189,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FloorDivideASOp, NativeFloorDivideASOp);
+CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
 
 class NativeDivideOp : public DivideOp {
 public:
@@ -208,7 +208,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DivideOp, NativeDivideOp);
+CHAINERX_NATIVE_REGISTER_OP(DivideOp, NativeDivideOp);
 
 class NativeDivideASOp : public DivideASOp {
 public:
@@ -227,7 +227,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DivideASOp, NativeDivideASOp);
+CHAINERX_NATIVE_REGISTER_OP(DivideASOp, NativeDivideASOp);
 
 }  // namespace
 }  // namespace native

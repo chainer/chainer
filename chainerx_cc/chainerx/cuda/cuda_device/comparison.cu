@@ -41,7 +41,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(EqualOp, CudaEqualOp);
+CHAINERX_CUDA_REGISTER_OP(EqualOp, CudaEqualOp);
 
 template <typename T>
 struct NotEqualImpl {
@@ -65,7 +65,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(NotEqualOp, CudaNotEqualOp);
+CHAINERX_CUDA_REGISTER_OP(NotEqualOp, CudaNotEqualOp);
 
 template <typename T>
 struct GreaterImpl {
@@ -89,7 +89,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(GreaterOp, CudaGreaterOp);
+CHAINERX_CUDA_REGISTER_OP(GreaterOp, CudaGreaterOp);
 
 template <typename T>
 struct GreaterEqualImpl {
@@ -113,7 +113,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(GreaterEqualOp, CudaGreaterEqualOp);
+CHAINERX_CUDA_REGISTER_OP(GreaterEqualOp, CudaGreaterEqualOp);
 
 template <typename T>
 struct LogicalNotImpl {
@@ -134,7 +134,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LogicalNotOp, CudaLogicalNotOp);
+CHAINERX_CUDA_REGISTER_OP(LogicalNotOp, CudaLogicalNotOp);
 
 template <typename T>
 struct LogicalAndImpl {
@@ -158,7 +158,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LogicalAndOp, CudaLogicalAndOp);
+CHAINERX_CUDA_REGISTER_OP(LogicalAndOp, CudaLogicalAndOp);
 
 template <typename T>
 struct LogicalOrImpl {
@@ -182,7 +182,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LogicalOrOp, CudaLogicalOrOp);
+CHAINERX_CUDA_REGISTER_OP(LogicalOrOp, CudaLogicalOrOp);
 
 template <typename In>
 struct AllImpl {
@@ -210,7 +210,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AllOp, CudaAllOp);
+CHAINERX_CUDA_REGISTER_OP(AllOp, CudaAllOp);
 
 template <typename In>
 struct AnyImpl {
@@ -238,7 +238,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AnyOp, CudaAnyOp);
+CHAINERX_CUDA_REGISTER_OP(AnyOp, CudaAnyOp);
 
 }  // namespace
 }  // namespace cuda

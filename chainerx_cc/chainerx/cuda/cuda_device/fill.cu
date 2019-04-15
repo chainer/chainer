@@ -48,7 +48,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArangeOp, CudaArangeOp);
+CHAINERX_CUDA_REGISTER_OP(ArangeOp, CudaArangeOp);
 
 template <typename T>
 struct IdentityImpl {
@@ -73,7 +73,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IdentityOp, CudaIdentityOp);
+CHAINERX_CUDA_REGISTER_OP(IdentityOp, CudaIdentityOp);
 
 template <typename T>
 struct EyeImpl {
@@ -99,7 +99,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(EyeOp, CudaEyeOp);
+CHAINERX_CUDA_REGISTER_OP(EyeOp, CudaEyeOp);
 
 template <typename T>
 __global__ void SetVecInMat(
@@ -158,7 +158,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DiagflatOp, CudaDiagflatOp);
+CHAINERX_CUDA_REGISTER_OP(DiagflatOp, CudaDiagflatOp);
 
 template <typename T>
 struct LinspaceImpl {
@@ -188,7 +188,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LinspaceOp, CudaLinspaceOp);
+CHAINERX_CUDA_REGISTER_OP(LinspaceOp, CudaLinspaceOp);
 
 template <typename T>
 struct FillImpl {
@@ -209,7 +209,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FillOp, CudaFillOp);
+CHAINERX_CUDA_REGISTER_OP(FillOp, CudaFillOp);
 
 }  // namespace
 }  // namespace cuda

@@ -29,7 +29,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SquareOp, NativeSquareOp);
+CHAINERX_NATIVE_REGISTER_OP(SquareOp, NativeSquareOp);
 
 class NativeSqrtOp : public SqrtOp {
 public:
@@ -46,7 +46,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SqrtOp, NativeSqrtOp);
+CHAINERX_NATIVE_REGISTER_OP(SqrtOp, NativeSqrtOp);
 
 class NativeIsNanOp : public IsNanOp {
 public:
@@ -62,7 +62,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IsNanOp, NativeIsNanOp);
+CHAINERX_NATIVE_REGISTER_OP(IsNanOp, NativeIsNanOp);
 
 class NativeIsInfOp : public IsInfOp {
 public:
@@ -78,7 +78,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IsInfOp, NativeIsInfOp);
+CHAINERX_NATIVE_REGISTER_OP(IsInfOp, NativeIsInfOp);
 
 class NativeCeilOp : public CeilOp {
 public:
@@ -96,7 +96,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CeilOp, NativeCeilOp);
+CHAINERX_NATIVE_REGISTER_OP(CeilOp, NativeCeilOp);
 
 class NativeFloorOp : public FloorOp {
 public:
@@ -114,7 +114,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FloorOp, NativeFloorOp);
+CHAINERX_NATIVE_REGISTER_OP(FloorOp, NativeFloorOp);
 
 }  // namespace
 }  // namespace native

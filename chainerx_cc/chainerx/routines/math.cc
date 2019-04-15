@@ -521,6 +521,51 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     return out;
 }
 
+Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError{"cannot compute the minimum along zero-sized axis"};
+        }
+    }
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AMinOp>(a, sorted_axis, out);
+    }
+
+    BackwardBuilder bb{"amin", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        // a and out are used only for restoring the mask. We don't need graph nodes.
+        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+            Array reshaped_gout{};
+            Array reshaped_out{};
+            if (keepdims) {
+                reshaped_gout = gout;
+                reshaped_out = out;
+            } else {
+                // Add broadcastable dimensions to out and gout
+                // for each one that was reduced in the forward operation
+                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+                reshaped_gout = gout.Reshape(shape);
+                reshaped_out = out.Reshape(shape);
+            }
+
+            // Compute the gradient
+            // TODO(sonots): Use `where` if it becomes available.
+            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
+            bctx.input_grad() = reshaped_gout * cond;
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
 namespace {
 
 // Calculates: x1 < x2 ? pos : neg
@@ -588,8 +633,6 @@ namespace {
 
 void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
-    Array mask = Greater(x1, x2);
-    Array not_mask = LogicalNot(mask);
     {
         NoBackpropModeScope scope{};
         x1.device().backend().CallOp<IfGreaterElseAAAAOp>(x1, x2, pos, neg, out);
@@ -597,15 +640,19 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([mask = std::move(mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array mask = Greater(x1, x2);
+            bt.Define([mask = std::move(mask), pos_dtype = pos.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * mask;
+                bctx.input_grad() = gout.AsType(pos_dtype, false) * mask;
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([not_mask = std::move(not_mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array not_mask = Less(x1, x2);
+            bt.Define([not_mask = std::move(not_mask), neg_dtype = neg.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * not_mask;
+                bctx.input_grad() = gout.AsType(neg_dtype, false) * not_mask;
             });
         }
         bb.Finalize();

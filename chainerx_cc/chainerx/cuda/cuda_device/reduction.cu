@@ -58,7 +58,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArgMaxOp, CudaArgMaxOp);
+CHAINERX_CUDA_REGISTER_OP(ArgMaxOp, CudaArgMaxOp);
 
 template <typename In, typename Out>
 struct SumImpl {
@@ -88,7 +88,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SumOp, CudaSumOp);
+CHAINERX_CUDA_REGISTER_OP(SumOp, CudaSumOp);
 
 template <typename T>
 struct AMaxImpl {
@@ -117,7 +117,36 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AMaxOp, CudaAMaxOp);
+CHAINERX_CUDA_REGISTER_OP(AMaxOp, CudaAMaxOp);
+
+template <typename T>
+struct AMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::MaxOrInf(); }
+    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(CudaType next, CudaType& accum) {
+        if (cuda::IsNan(next) || accum > next) {
+            accum = next;
+        }
+    }
+    __device__ CudaType MapOut(CudaType accum) { return accum; }
+};
+
+class CudaAMinOp : public AMinOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, T>(a, axis, out, AMinImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AMinOp, CudaAMinOp);
 
 }  // namespace
 }  // namespace cuda

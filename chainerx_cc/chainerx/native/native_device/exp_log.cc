@@ -29,7 +29,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ExpOp, NativeExpOp);
+CHAINERX_NATIVE_REGISTER_OP(ExpOp, NativeExpOp);
 
 class NativeLogOp : public LogOp {
 public:
@@ -46,7 +46,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogOp, NativeLogOp);
+CHAINERX_NATIVE_REGISTER_OP(LogOp, NativeLogOp);
 
 }  // namespace
 }  // namespace native

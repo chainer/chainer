@@ -42,7 +42,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AddOp, CudaAddOp);
+CHAINERX_CUDA_REGISTER_OP(AddOp, CudaAddOp);
 
 template <typename T>
 struct AddASImpl {
@@ -66,7 +66,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AddASOp, CudaAddASOp);
+CHAINERX_CUDA_REGISTER_OP(AddASOp, CudaAddASOp);
 
 template <typename T>
 struct SubtractImpl {
@@ -89,7 +89,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SubtractOp, CudaSubtractOp);
+CHAINERX_CUDA_REGISTER_OP(SubtractOp, CudaSubtractOp);
 
 template <typename T>
 struct SubtractASImpl {
@@ -113,7 +113,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SubtractASOp, CudaSubtractASOp);
+CHAINERX_CUDA_REGISTER_OP(SubtractASOp, CudaSubtractASOp);
 
 template <typename T>
 struct MultiplyImpl {
@@ -137,7 +137,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MultiplyOp, CudaMultiplyOp);
+CHAINERX_CUDA_REGISTER_OP(MultiplyOp, CudaMultiplyOp);
 
 template <typename T>
 struct MultiplyASImpl {
@@ -161,7 +161,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MultiplyASOp, CudaMultiplyASOp);
+CHAINERX_CUDA_REGISTER_OP(MultiplyASOp, CudaMultiplyASOp);
 
 // CUDA does not have std::div.
 __device__ int8_t FloorDivide(int8_t x, int8_t y) { return x / y - ((y >= 0 ? x % y : -(x % y)) < 0 ? 1 : 0); }
@@ -202,7 +202,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FloorDivideOp, CudaFloorDivideOp);
+CHAINERX_CUDA_REGISTER_OP(FloorDivideOp, CudaFloorDivideOp);
 
 template <typename T>
 struct FloorDivideASImpl {
@@ -226,7 +226,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FloorDivideASOp, CudaFloorDivideASOp);
+CHAINERX_CUDA_REGISTER_OP(FloorDivideASOp, CudaFloorDivideASOp);
 
 template <typename T>
 struct DivideImpl {
@@ -249,7 +249,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DivideOp, CudaDivideOp);
+CHAINERX_CUDA_REGISTER_OP(DivideOp, CudaDivideOp);
 
 template <typename T>
 struct DivideASImpl {
@@ -273,7 +273,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DivideASOp, CudaDivideASOp);
+CHAINERX_CUDA_REGISTER_OP(DivideASOp, CudaDivideASOp);
 
 }  // namespace
 }  // namespace cuda

@@ -29,7 +29,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CopyOp, NativeCopyOp);
+CHAINERX_NATIVE_REGISTER_OP(CopyOp, NativeCopyOp);
 
 class NativeAsTypeOp : public AsTypeOp {
 public:
@@ -47,7 +47,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AsTypeOp, NativeAsTypeOp);
+CHAINERX_NATIVE_REGISTER_OP(AsTypeOp, NativeAsTypeOp);
 
 }  // namespace
 }  // namespace native
