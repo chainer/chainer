@@ -1134,7 +1134,8 @@ def _check_variable_types(vars, device, func_name, test_error_cls):
             '{}() must return a tuple of Variables of arrays supported by '
             'device {}.\n'
             'Actual: {}'.format(
-                func_name, device, ', '.join(type(a.array) for a in vars)))
+                func_name, device,
+                ', '.join(str(type(a.array)) for a in vars)))
 
 
 def _check_arrays_equal(
