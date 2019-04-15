@@ -695,19 +695,19 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
-Array Atleast2D(const Array& x) {
+Array AtLeast2D(const Array& x) {
     Array out;
-    Shape shape = x.shape();
-    Strides strides = x.strides();
     switch (x.ndim()) {
         case 0:
             out = x.Reshape({1, 1});
             break;
-        case 1:
+        case 1: {
+            Shape shape = x.shape();
+            Strides strides = x.strides();
             shape.insert(shape.begin(), 1);
             strides.insert(strides.begin(), 0);
             out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
-            break;
+        }break;
         default:
             out = x.MakeView();
             break;

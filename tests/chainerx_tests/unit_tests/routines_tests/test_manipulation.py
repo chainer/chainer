@@ -653,10 +653,10 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
         (1, 1, 1),
         (2, 2, 2, 2),
     ],
-        'dtype': chainerx.testing.dtypes.float_dtypes
+        'dtype': chainerx.testing.dtypes.all_dtypes
     })
 ))
-class TestAtleast2d(op_utils.NumpyOpTest):
+class TestAtLeast2d(op_utils.NumpyOpTest):
 
     dtypes = None
 
@@ -693,7 +693,7 @@ class TestAtleast2d(op_utils.NumpyOpTest):
         lambda xp, input: xp.hstack(input),
         lambda xp, input: xp.vstack(input),
     ],
-        'dtype': chainerx.testing.dtypes.float_dtypes
+        'dtype': chainerx.testing.dtypes.all_dtypes
     })
 ))
 class TestHVStack(op_utils.NumpyOpTest):
@@ -728,5 +728,5 @@ class TestHVStack(op_utils.NumpyOpTest):
 ])
 def test_hvstack_invalid(func, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
-    inputs = list(map(xp.array, inputs))
+    inputs = [xp.array(a) for a in inputs]
     return func(xp, inputs)

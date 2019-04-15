@@ -49,7 +49,7 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis = 0);
 // Returns a set of arrays resulting from splitting the given array at the indices along the specified axis.
 std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis = 0);
 
-Array Atleast2D(const Array& x);
+Array AtLeast2D(const Array& x);
 
 // Returns a joined array along horizontal axis.
 Array HStack(const std::vector<Array>& arrays);
