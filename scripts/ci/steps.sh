@@ -203,16 +203,16 @@ step_python_test_chainerx() {
 
 
 step_python_test_chainer() {
-    # source activate testenv
+    source activate testenv
 
-    # # Some chainer tests generate files under current directory.
-    # local temp_dir="$(mktemp -d)"
-    # pushd "$temp_dir"
+    # Some chainer tests generate files under current directory.
+    local temp_dir="$(mktemp -d)"
+    pushd "$temp_dir"
 
-    # pytest \
-    #     --showlocals \
-    #     -m 'not slow and not ideep' \
-    #     "$REPO_DIR"/tests/chainer_tests
+    pytest \
+        --showlocals \
+        -m 'not slow and not ideep' \
+        "$REPO_DIR"/tests/chainer_tests
 
-    # popd
+    popd
 }
