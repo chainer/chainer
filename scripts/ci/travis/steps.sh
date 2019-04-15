@@ -141,7 +141,7 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routine_tests/test_manipulation.py
+    pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
 }
 
 
