@@ -10,37 +10,37 @@ namespace python_internal {
 
 namespace py = pybind11;
 
-inline py::handle& numpy_module() {
+inline py::handle GetCachedNumpyModule() {
     static py::handle ret = py::module::import("numpy");
     return ret;
 }
 
-inline py::handle& numpy_array() {
+inline py::handle GetCachedNumpyArray() {
     static py::handle ret = py::module::import("numpy").attr("array");
     return ret;
 }
 
-inline py::handle& numpy_integer() {
+inline py::handle GetCachedNumpyInteger() {
     static py::handle ret = py::module::import("numpy").attr("integer");
     return ret;
 }
 
-inline py::handle& cupy_module() {
+inline py::handle GetCachedCupyModule() {
     static py::handle ret = py::module::import("cupy");
     return ret;
 }
 
-inline py::handle& cupy_ndarray() {
+inline py::handle GetCachedCupyNdarray() {
     static py::handle ret = py::module::import("cupy").attr("ndarray");
     return ret;
 }
 
-inline py::handle& cupy_cuda_memory_MemoryPointer() {
+inline py::handle GetCachedCupyMemoryPointer() {
     static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("MemoryPointer");
     return ret;
 }
 
-inline py::handle& cupy_cuda_memory_UnownedMemory() {
+inline py::handle GetCachedCupyUnownedMemory() {
     static py::handle ret = py::module::import("cupy").attr("cuda").attr("memory").attr("UnownedMemory");
     return ret;
 }

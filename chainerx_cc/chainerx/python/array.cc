@@ -40,7 +40,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
-#include "chainerx/python/pymodule.h"
+#include "chainerx/python/py_cached_objects.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/strides.h"
 
@@ -104,11 +104,11 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const auto device_index = device.index();
 
     // Convert object to CuPy array using cupy.ndarray()
-    auto& memory_pointer = cupy_cuda_memory_MemoryPointer();
-    auto& unowned_memory = cupy_cuda_memory_UnownedMemory();
+    auto memory_pointer = GetCachedCupyMemoryPointer();
+    auto unowned_memory = GetCachedCupyUnownedMemory();
     py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), 0);
 
-    auto& ndarray = cupy_ndarray();
+    auto ndarray = GetCachedCupyNdarray();
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
 }
 
@@ -142,7 +142,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 
     // Convert object to NumPy array using numpy.array()
     // TODO(sonots): Remove dependency on numpy
-    auto& array_func = numpy_array();
+    auto array_func = GetCachedNumpyArray();
     py::object dtype_name = py::none();
     if (dtype.has_value()) {
         dtype_name = py::str{GetDtypeName(*dtype)};

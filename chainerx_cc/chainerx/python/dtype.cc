@@ -9,7 +9,7 @@
 
 #include "chainerx/macro.h"
 #include "chainerx/python/common.h"
-#include "chainerx/python/pymodule.h"
+#include "chainerx/python/py_cached_objects.h"
 
 namespace chainerx {
 namespace python {
@@ -112,7 +112,7 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From NumPy dtype class
-    auto& numpy = numpy_module();
+    auto numpy = GetCachedNumpyModule();
     if (handle.is(numpy.attr("bool_"))) {
         return Dtype::kBool;
     }
