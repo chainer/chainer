@@ -737,7 +737,7 @@ Array HStack(const std::vector<Array>& arrays) {
 
 Array VStack(const std::vector<Array>& arrays) {
     std::vector<Array> reshaped_arrays(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), Atleast2D);
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
 
     return Concatenate(reshaped_arrays, 0);
 }
