@@ -74,7 +74,7 @@ struct ArgMinImpl {
     __device__ MinAndArgMin Identity() { return {CudaType{}, -1}; }
     __device__ MinAndArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
     __device__ void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
-        if (accum.argmin < 0 || accum.min > next.min) {
+        if (next.argmin != -1 && (accum.argmin == -1 || accum.min > next.min)) {
             accum = next;
         }
     }
