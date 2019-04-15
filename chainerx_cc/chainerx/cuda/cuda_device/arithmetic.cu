@@ -6,7 +6,6 @@
 
 #include "chainerx/arithmetic_ops.h"
 #include "chainerx/array.h"
-#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"

@@ -5,10 +5,10 @@
 #include <cuda_runtime.h>
 
 #include "chainerx/array.h"
-#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/routines/creation.h"

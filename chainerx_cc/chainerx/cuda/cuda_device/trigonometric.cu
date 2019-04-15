@@ -6,7 +6,6 @@
 #include <cuda_runtime.h>
 
 #include "chainerx/array.h"
-#include "chainerx/cuda/cuda_device/std_ops.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
@@ -33,6 +32,14 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsin, { out = cuda::Arcsin(x); }
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccos, { out = cuda::Arccos(x); });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arctan, { out = cuda::Arctan(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sinh, { out = cuda::Sinh(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cosh, { out = cuda::Cosh(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsinh, { out = cuda::Arcsinh(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccosh, { out = cuda::Arccosh(x); });
 
 }  // namespace
 }  // namespace cuda

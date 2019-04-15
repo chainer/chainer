@@ -6,7 +6,6 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/native_device/std_ops.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/misc.h"

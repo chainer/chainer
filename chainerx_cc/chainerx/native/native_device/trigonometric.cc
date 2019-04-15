@@ -7,7 +7,6 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/native_device/std_ops.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/numeric.h"
 #include "chainerx/routines/math.h"
@@ -28,6 +27,14 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsin, { out = chainerx::Arcsin
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccos, { out = chainerx::Arccos(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arctan, { out = chainerx::Arctan(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sinh, { out = chainerx::Sinh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cosh, { out = chainerx::Cosh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsinh, { out = chainerx::Arcsinh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccosh, { out = chainerx::Arccosh(x); });
 
 }  // namespace
 }  // namespace native
