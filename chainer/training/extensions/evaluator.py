@@ -20,7 +20,10 @@ from chainer.utils import argument
 
 class Evaluator(extension.Extension):
 
-    """Trainer extension to evaluate models on a validation set.
+    """__init__(self, iterator, target, converter=convert.concat_examples, \
+device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
+
+    Trainer extension to evaluate models on a validation set.
 
     This extension evaluates the current models by a given evaluation function.
     It creates a :class:`~chainer.Reporter` object to store values observed in
