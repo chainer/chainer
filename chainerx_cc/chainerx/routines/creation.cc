@@ -19,6 +19,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -217,7 +218,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().AsType(a, out);
+        a.device().backend().CallOp<AsTypeOp>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {

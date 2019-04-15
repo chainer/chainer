@@ -480,7 +480,7 @@ dilate=1, groups=1)
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
-    end of spatial locations, an addtional stride will be applied to the end
+    end of spatial locations, an additional stride will be applied to the end
     part of spatial locations. In this case, the output size :math:`(h_O, w_O)`
     is determined by the following equations:
 

@@ -479,6 +479,52 @@ Note:
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.all,
+        """all(x)
+Test whether all array elements along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which AND reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.all`
+""")
+
+    _docs.set_doc(
+        chainerx.any,
+        """any(x)
+Test whether any array element along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which OR reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.any`
+""")
+
+    _docs.set_doc(
         chainerx.logical_not,
         """logical_not(x)
 Returns an array of NOT x element-wise.
@@ -1015,6 +1061,25 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.square,
+        """square(x)
+Returns the element-wise square of the input.
+
+Args:
+    x (~chainerx.ndarray or scalar): Input data
+
+Returns:
+    ~chainerx.ndarray: Returned array: :math:`y = x * x`.
+    A scalar is returned if ``x`` is a scalar.
+
+Note:
+    During backpropagation, this function propagates the gradient
+    of the output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.square`
+""")
+
+    _docs.set_doc(
         chainerx.sqrt,
         """sqrt(x)
 Non-negative square-root, element-wise
@@ -1030,6 +1095,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.sqrt`
+""")
+
+    _docs.set_doc(
+        chainerx.sinh,
+        """sinh(x)
+Hyperbolic Sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\sinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.sinh`
+""")
+
+    _docs.set_doc(
+        chainerx.cosh,
+        """cosh(x)
+Hyperbolic Cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\cosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.cosh`
 """)
 
     _docs.set_doc(
@@ -1119,6 +1220,18 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.relu,
+        """Rectified Linear Unit function.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\max (0, x)`.
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+""")
+
+    _docs.set_doc(
         chainerx.arcsin,
         """arcsin(x)
 Inverse sine, element-wise
@@ -1170,6 +1283,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.arctan`
+""")
+
+    _docs.set_doc(
+        chainerx.arcsinh,
+        """arcsinh(x)
+Inverse hyperbolic sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arcsinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arcsinh`
+""")
+
+    _docs.set_doc(
+        chainerx.arccosh,
+        """arccosh(x)
+Inverse hypberbolic inverse cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arccosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arccosh`
 """)
 
     _docs.set_doc(
@@ -1264,6 +1413,33 @@ Note:
     output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.amax`
+""")
+
+    _docs.set_doc(
+        chainerx.amin,
+        """amin(a, axis=None, keepdims=False)
+Returns the minimum of an array or the minimum along an axis.
+
+Note:
+    When at least one element is NaN, the corresponding min value will be NaN.
+
+Args:
+    a (~chainerx.ndarray): Array to take the minimum.
+    axis (None or int or tuple of ints): Along which axis to take the minimum.
+        The flattened array is used by default.
+        If this is a tuple of ints, the minimum is selected over multiple
+        axes, instead of a single axis or all the axes.
+    keepdims (bool): If ``True``, the axis is remained as an axis of size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: The minimum of ``a``, along the axis if
+    specified.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.amin`
 """)
 
     _docs.set_doc(

@@ -40,6 +40,7 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
@@ -209,6 +210,8 @@ Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainer
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
 
+Array Array::Min(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMin(*this, axis, keepdims); }
+
 Array Array::Mean(const OptionalAxes& axis, bool keepdims) const { return chainerx::Mean(*this, axis, keepdims); }
 
 Array Array::Var(const OptionalAxes& axis, bool keepdims) const { return chainerx::Var(*this, axis, keepdims); }
@@ -310,7 +313,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().AsType(*this, out);
+    device().backend().CallOp<AsTypeOp>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
@@ -326,7 +329,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const {
     internal::CheckNoUnsafeInplace(*this, {});
-    device().Fill(*this, value);
+    device().backend().CallOp<FillOp>(*this, value);
 }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
