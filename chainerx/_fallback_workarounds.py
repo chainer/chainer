@@ -40,7 +40,7 @@ def _from_numpy(array):
 def _to_cupy(array):
     assert cupy is not None
     # Convert to cupy.ndarray on the same device as source array
-    return chainerx.to_cupy(array)
+    return chainerx._to_cupy(array)
 
 
 def _from_cupy(array):
