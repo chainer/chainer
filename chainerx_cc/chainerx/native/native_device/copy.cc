@@ -33,7 +33,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AsTypeOp, NativeAsTypeOp);
+CHAINERX_NATIVE_REGISTER_OP(AsTypeOp, NativeAsTypeOp);
 
 }  // namespace
 }  // namespace native

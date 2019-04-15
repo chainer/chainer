@@ -86,7 +86,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolOp, NativeMaxPoolOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolOp, NativeMaxPoolOp);
 
 class NativeMaxPoolGradOp : public MaxPoolGradOp {
 public:
@@ -142,7 +142,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolGradOp, NativeMaxPoolGradOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradOp, NativeMaxPoolGradOp);
 
 class NativeMaxPoolGradGradOp : public MaxPoolGradGradOp {
 public:
@@ -176,12 +176,12 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
+CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
-    device.Sum(a, axis, out);
+    device.backend().CallOp<SumOp>(a, axis, out);
     device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
@@ -280,7 +280,7 @@ public:
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
-                device.Sum(col, kernel_axes, actual_out);
+                device.backend().CallOp<SumOp>(col, kernel_axes, actual_out);
                 width_ignore =
                         GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(actual_out.shape());
                 device.backend().CallOp<DivideOp>(actual_out, *width_ignore, actual_out);
@@ -297,7 +297,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AveragePoolOp, NativeAveragePoolOp);
+CHAINERX_NATIVE_REGISTER_OP(AveragePoolOp, NativeAveragePoolOp);
 
 class NativeAveragePoolGradOp : public AveragePoolGradOp {
 public:
@@ -347,7 +347,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AveragePoolGradOp, NativeAveragePoolGradOp);
+CHAINERX_NATIVE_REGISTER_OP(AveragePoolGradOp, NativeAveragePoolGradOp);
 
 }  // namespace
 }  // namespace native

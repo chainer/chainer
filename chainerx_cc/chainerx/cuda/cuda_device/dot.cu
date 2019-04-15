@@ -9,6 +9,7 @@
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/axes.h"
 #include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
@@ -24,6 +25,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 
 namespace chainerx {
@@ -108,7 +110,7 @@ public:
             // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
             const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
             const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
-            device.Sum(a_cast.Reshape({k}) * b_cast.Reshape({k}), {0}, out.Reshape({}));
+            device.backend().CallOp<SumOp>(a_cast.Reshape({k}) * b_cast.Reshape({k}), Axes{0}, out.Reshape({}));
             return;
         }
 
@@ -187,7 +189,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DotOp, CudaDotOp);
+CHAINERX_CUDA_REGISTER_OP(DotOp, CudaDotOp);
 
 }  // namespace cuda
 }  // namespace chainerx

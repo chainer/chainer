@@ -1,7 +1,5 @@
 #pragma once
 
-#include "chainerx/native/op_regist.h"
-
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, visit_dtype)    \
     class Native##func##Op : public func##Op {                                          \
     public:                                                                             \
@@ -22,7 +20,7 @@
         }                                                                               \
     };                                                                                  \
                                                                                         \
-    CHAINERX_REGISTER_OP_NATIVE(func##Op, Native##func##Op);
+    CHAINERX_NATIVE_REGISTER_OP(func##Op, Native##func##Op);
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(func, func_def) \
     CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, VisitFloatingPointDtype)
@@ -51,7 +49,7 @@
         }                                                                                   \
     };                                                                                      \
                                                                                             \
-    CHAINERX_REGISTER_OP_NATIVE(func##Op, Native##func##Op);
+    CHAINERX_NATIVE_REGISTER_OP(func##Op, Native##func##Op);
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_OP(func, func_def) \
     CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(func, func_def, VisitFloatingPointDtype)

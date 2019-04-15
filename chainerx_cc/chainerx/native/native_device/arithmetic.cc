@@ -36,7 +36,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddASOp, NativeAddASOp);
+CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(Subtract, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
 
@@ -57,7 +57,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SubtractASOp, NativeSubtractASOp);
+CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(Multiply, { out = ArithmeticOps<T>::Multiply(x1, x2); });
 
@@ -78,7 +78,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(MultiplyASOp, NativeMultiplyASOp);
+CHAINERX_NATIVE_REGISTER_OP(MultiplyASOp, NativeMultiplyASOp);
 
 int32_t FloorDivide(int32_t x, int32_t y) {
     auto div = std::div(x, y);
@@ -122,7 +122,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FloorDivideASOp, NativeFloorDivideASOp);
+CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(Divide, { out = ArithmeticOps<T>::Divide(x1, x2); });
 
@@ -143,7 +143,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DivideASOp, NativeDivideASOp);
+CHAINERX_NATIVE_REGISTER_OP(DivideASOp, NativeDivideASOp);
 
 }  // namespace
 }  // namespace native

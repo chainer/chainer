@@ -9,7 +9,6 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
-#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/routines/creation.h"
@@ -43,7 +42,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AsTypeOp, CudaAsTypeOp);
+CHAINERX_CUDA_REGISTER_OP(AsTypeOp, CudaAsTypeOp);
 
 }  // namespace
 }  // namespace cuda

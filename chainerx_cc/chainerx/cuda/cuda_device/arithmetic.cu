@@ -45,7 +45,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AddASOp, CudaAddASOp);
+CHAINERX_CUDA_REGISTER_OP(AddASOp, CudaAddASOp);
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(Subtract, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
 
@@ -71,7 +71,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SubtractASOp, CudaSubtractASOp);
+CHAINERX_CUDA_REGISTER_OP(SubtractASOp, CudaSubtractASOp);
 
 // TODO(sonots): support stream
 CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Multiply, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
@@ -98,7 +98,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MultiplyASOp, CudaMultiplyASOp);
+CHAINERX_CUDA_REGISTER_OP(MultiplyASOp, CudaMultiplyASOp);
 
 // CUDA does not have std::div.
 __device__ int8_t FloorDivide(int8_t x, int8_t y) { return x / y - ((y >= 0 ? x % y : -(x % y)) < 0 ? 1 : 0); }
@@ -142,7 +142,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FloorDivideASOp, CudaFloorDivideASOp);
+CHAINERX_CUDA_REGISTER_OP(FloorDivideASOp, CudaFloorDivideASOp);
 
 CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Divide, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
 
@@ -168,7 +168,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DivideASOp, CudaDivideASOp);
+CHAINERX_CUDA_REGISTER_OP(DivideASOp, CudaDivideASOp);
 
 }  // namespace
 }  // namespace cuda

@@ -452,7 +452,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Sum(a, sorted_axis, out);
+        a.device().backend().CallOp<SumOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"sum", a, out};
@@ -488,10 +488,55 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().AMax(a, sorted_axis, out);
+        a.device().backend().CallOp<AMaxOp>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"amax", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        // a and out are used only for restoring the mask. We don't need graph nodes.
+        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+            Array reshaped_gout{};
+            Array reshaped_out{};
+            if (keepdims) {
+                reshaped_gout = gout;
+                reshaped_out = out;
+            } else {
+                // Add broadcastable dimensions to out and gout
+                // for each one that was reduced in the forward operation
+                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+                reshaped_gout = gout.Reshape(shape);
+                reshaped_out = out.Reshape(shape);
+            }
+
+            // Compute the gradient
+            // TODO(sonots): Use `where` if it becomes available.
+            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
+            bctx.input_grad() = reshaped_gout * cond;
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
+Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError{"cannot compute the minimum along zero-sized axis"};
+        }
+    }
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AMinOp>(a, sorted_axis, out);
+    }
+
+    BackwardBuilder bb{"amin", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         // a and out are used only for restoring the mask. We don't need graph nodes.
         bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
@@ -532,7 +577,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfLessElseASSAOp>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_less_else", neg, out};
@@ -567,7 +612,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseASSA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfGreaterElseASSAOp>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_greater_else", neg, out};
@@ -588,24 +633,26 @@ namespace {
 
 void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
-    Array mask = Greater(x1, x2);
-    Array not_mask = LogicalNot(mask);
     {
         NoBackpropModeScope scope{};
-        x1.device().IfGreaterElseAAAA(x1, x2, pos, neg, out);
+        x1.device().backend().CallOp<IfGreaterElseAAAAOp>(x1, x2, pos, neg, out);
     }
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([mask = std::move(mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array mask = Greater(x1, x2);
+            bt.Define([mask = std::move(mask), pos_dtype = pos.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * mask;
+                bctx.input_grad() = gout.AsType(pos_dtype, false) * mask;
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([not_mask = std::move(not_mask)](BackwardContext& bctx) {
+            // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
+            Array not_mask = Less(x1, x2);
+            bt.Define([not_mask = std::move(not_mask), neg_dtype = neg.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = gout * not_mask;
+                bctx.input_grad() = gout.AsType(neg_dtype, false) * not_mask;
             });
         }
         bb.Finalize();
@@ -645,7 +692,7 @@ Array Exp(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Exp(x, out);
+        x.device().backend().CallOp<ExpOp>(x, out);
     }
 
     BackwardBuilder bb{"exp", x, out};
@@ -666,7 +713,7 @@ Array Log(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Log(x, out);
+        x.device().backend().CallOp<LogOp>(x, out);
     }
 
     BackwardBuilder bb{"log", x, out};
@@ -702,12 +749,18 @@ Array Sigmoid(const Array& x) {
     return Reciprocal(1 + Exp(-x_cast));
 }
 
+Array Relu(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Maximum(0, x_cast);
+}
+
 Array Square(const Array& x) {
     Array out = EmptyLike(x, x.device());
 
     {
         NoBackpropModeScope scope{};
-        x.device().Square(x, out);
+        x.device().backend().CallOp<SquareOp>(x, out);
     }
 
     BackwardBuilder bb{"square", x, out};
@@ -730,7 +783,7 @@ Array Sqrt(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Sqrt(x, out);
+        x.device().backend().CallOp<SqrtOp>(x, out);
     }
 
     BackwardBuilder bb{"sqrt", x, out};
@@ -752,7 +805,7 @@ Array Tanh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().Tanh(x, out);
+        x.device().backend().CallOp<TanhOp>(x, out);
     }
 
     BackwardBuilder bb{"tanh", x, out};
@@ -901,6 +954,94 @@ Array Arctan(const Array& x) {
     return out;
 }
 
+Array Sinh(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<SinhOp>(x, out);
+    }
+
+    BackwardBuilder bb{"sinh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Cosh(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Cosh(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<CoshOp>(x, out);
+    }
+
+    BackwardBuilder bb{"cosh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Sinh(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arcsinh(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<ArcsinhOp>(x, out);
+    }
+
+    BackwardBuilder bb{"arcsinh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout / Sqrt(1 + Square(inp));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Arccosh(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<ArccoshOp>(x, out);
+    }
+
+    BackwardBuilder bb{"arccosh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout / Sqrt(Square(inp) - 1);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Ceil(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
@@ -925,7 +1066,7 @@ Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().IsNan(x, out);
+        x.device().backend().CallOp<IsNanOp>(x, out);
     }
     return out;
 }
@@ -934,7 +1075,7 @@ Array IsInf(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().IsInf(x, out);
+        x.device().backend().CallOp<IsInfOp>(x, out);
     }
     return out;
 }
