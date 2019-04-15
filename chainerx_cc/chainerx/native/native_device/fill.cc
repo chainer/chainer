@@ -35,7 +35,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArangeOp, NativeArangeOp);
+CHAINERX_NATIVE_REGISTER_OP(ArangeOp, NativeArangeOp);
 
 class NativeIdentityOp : public IdentityOp {
 public:
@@ -55,7 +55,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IdentityOp, NativeIdentityOp);
+CHAINERX_NATIVE_REGISTER_OP(IdentityOp, NativeIdentityOp);
 
 class NativeEyeOp : public EyeOp {
 public:
@@ -74,7 +74,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(EyeOp, NativeEyeOp);
+CHAINERX_NATIVE_REGISTER_OP(EyeOp, NativeEyeOp);
 
 class NativeDiagflatOp : public DiagflatOp {
 public:
@@ -115,7 +115,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DiagflatOp, NativeDiagflatOp);
+CHAINERX_NATIVE_REGISTER_OP(DiagflatOp, NativeDiagflatOp);
 
 class NativeLinspaceOp : public LinspaceOp {
 public:
@@ -141,7 +141,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LinspaceOp, NativeLinspaceOp);
+CHAINERX_NATIVE_REGISTER_OP(LinspaceOp, NativeLinspaceOp);
 
 class NativeFillOp : public FillOp {
 public:
@@ -157,7 +157,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FillOp, NativeFillOp);
+CHAINERX_NATIVE_REGISTER_OP(FillOp, NativeFillOp);
 
 }  // namespace
 }  // namespace native

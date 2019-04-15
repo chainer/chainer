@@ -223,7 +223,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DotOp, NativeDotOp);
+CHAINERX_NATIVE_REGISTER_OP(DotOp, NativeDotOp);
 
 }  // namespace native
 }  // namespace chainerx

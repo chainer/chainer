@@ -37,7 +37,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(CopyOp, CudaCopyOp);
+CHAINERX_CUDA_REGISTER_OP(CopyOp, CudaCopyOp);
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
@@ -61,7 +61,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AsTypeOp, CudaAsTypeOp);
+CHAINERX_CUDA_REGISTER_OP(AsTypeOp, CudaAsTypeOp);
 
 }  // namespace
 }  // namespace cuda

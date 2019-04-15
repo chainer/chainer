@@ -81,7 +81,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
+CHAINERX_NATIVE_REGISTER_OP(TakeOp, NativeTakeOp);
 
 class NativeAddAtOp : public AddAtOp {
 public:
@@ -155,7 +155,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddAtOp, NativeAddAtOp);
+CHAINERX_NATIVE_REGISTER_OP(AddAtOp, NativeAddAtOp);
 
 }  // namespace
 }  // namespace native

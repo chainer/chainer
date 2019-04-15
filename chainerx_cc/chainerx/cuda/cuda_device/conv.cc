@@ -39,7 +39,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvOp, CudaConvOp);
+CHAINERX_CUDA_REGISTER_OP(ConvOp, CudaConvOp);
 
 class CudaConvTransposeOp : public ConvTransposeOp {
 public:
@@ -62,7 +62,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvTransposeOp, CudaConvTransposeOp);
+CHAINERX_CUDA_REGISTER_OP(ConvTransposeOp, CudaConvTransposeOp);
 
 class CudaConvGradWeightOp : public ConvGradWeightOp {
 public:
@@ -85,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvGradWeightOp, CudaConvGradWeightOp);
+CHAINERX_CUDA_REGISTER_OP(ConvGradWeightOp, CudaConvGradWeightOp);
 
 }  // namespace
 }  // namespace cuda

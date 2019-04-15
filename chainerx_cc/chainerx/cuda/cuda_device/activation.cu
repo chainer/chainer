@@ -53,7 +53,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IfLessElseASSAOp, CudaIfLessElseASSAOp);
+CHAINERX_CUDA_REGISTER_OP(IfLessElseASSAOp, CudaIfLessElseASSAOp);
 
 template <typename In, typename Out>
 struct IfGreaterElseASSAImpl {
@@ -86,7 +86,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IfGreaterElseASSAOp, CudaIfGreaterElseASSAOp);
+CHAINERX_CUDA_REGISTER_OP(IfGreaterElseASSAOp, CudaIfGreaterElseASSAOp);
 
 template <typename In, typename Out>
 struct IfGreaterElseAAAAImpl {
@@ -119,7 +119,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IfGreaterElseAAAAOp, CudaIfGreaterElseAAAAOp);
+CHAINERX_CUDA_REGISTER_OP(IfGreaterElseAAAAOp, CudaIfGreaterElseAAAAOp);
 
 template <typename T>
 struct TanhImpl {
@@ -141,7 +141,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(TanhOp, CudaTanhOp);
+CHAINERX_CUDA_REGISTER_OP(TanhOp, CudaTanhOp);
 
 }  // namespace
 }  // namespace cuda
