@@ -178,6 +178,15 @@ class NpzDeserializer(serializer.Deserializer):
             value_type = type(value)
             dataset_arr = numpy.asarray(dataset)
             if (issubclass(dataset_arr.dtype.type, numpy.number)
+                    and not (issubclass(dataset_arr.dtype.type, numpy.integer)
+                             and value_type in six.integer_types)
+                    # Casting a `numpy.integer` scalar by `int()` case above is
+                    # safe as `int()` gives unlimited precision integer (it's
+                    # also true for `long()`/`int()` on Python 2). For such a
+                    # case, the check below may be too strict. For example,
+                    # `numpy.can_cast(numpy.int64, int)`, which checks cast-
+                    # ability to `dtype(int)`, gives `False` on a platform
+                    # whose `dtype(int)` is `numpy.int32` like Windows/x64.
                     and not numpy.can_cast(
                         dataset_arr.dtype, value_type, casting='safe')):
                 raise TypeError(

@@ -440,6 +440,12 @@ class ndarray:
 def add(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def all(x: ndarray) -> ndarray: ...
+
+
+def any(x: ndarray) -> ndarray: ...
+
+
 def amax(a: ndarray,
          axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
          keepdims: bool=...) -> ndarray: ...
@@ -507,6 +513,9 @@ def batch_norm(
 
 
 def broadcast_to(array: ndarray, shape: tp.Tuple[int, ...]) -> ndarray: ...
+
+
+def ceil(x: ndarray) -> ndarray: ...
 
 
 def concatenate(arrays: tp.List[ndarray], axis: tp.Optional[int]=...) -> ndarray: ...
@@ -584,6 +593,9 @@ def fixed_batch_norm(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def floor(x: ndarray) -> ndarray: ...
+
+
 def frombuffer(
         buffer: tp.Any,
         dtype: tp.Optional[tp.Any]=...,
@@ -656,6 +668,12 @@ def log_softmax(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def logical_and(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
+def logical_or(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
 def logical_not(x: ndarray) -> ndarray: ...
 
 
@@ -722,6 +740,9 @@ def split(
 
 
 def square(x: ndarray) -> ndarray: ...
+
+
+def squared_difference(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def sqrt(x: ndarray) -> ndarray: ...

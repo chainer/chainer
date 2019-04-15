@@ -42,41 +42,12 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
-    void Arange(Scalar start, Scalar step, const Array& out) override;
-
-    void Identity(const Array& out) override;
-
-    void Eye(int64_t k, const Array& out) override;
-
-    void Diagflat(const Array& v, int64_t k, const Array& out) override;
-
-    void Linspace(double start, double stop, const Array& out) override;
-
-    // arithmetic.cc
-
-    void Add(const Array& x1, const Array& x2, const Array& out) override;
-    void AddAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Subtract(const Array& x1, const Array& x2, const Array& out) override;
-    void SubtractAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Multiply(const Array& x1, const Array& x2, const Array& out) override;
-    void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void FloorDivide(const Array& x1, const Array& x2, const Array& out) override;
-    void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
-    void Divide(const Array& x1, const Array& x2, const Array& out) override;
-    void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
-
     // reduction.cc
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
 
     // copy.cc
-
-    void Copy(const Array& a, const Array& out) override;
 
     void AsType(const Array& a, const Array& out) override;
 
@@ -85,12 +56,9 @@ public:
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
     void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
-
-    // dot.cc
-
-    void Dot(const Array& a, const Array& b, const Array& out) override;
 
     // exp_log.cc
 
@@ -105,35 +73,6 @@ public:
 
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
-
-    // conv.cc
-
-    Array Conv(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            Dtype out_dtype) override;
-
-    Array ConvGradWeight(
-            Dtype w_dtype,
-            const Shape& w_shape,
-            const Array& x,
-            const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
-
-    Array ConvTranspose(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
-            Dtype out_dtype) override;
 
     // pool.cc
 

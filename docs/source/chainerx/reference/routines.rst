@@ -93,9 +93,14 @@ Logic functions
    :toctree: generated/
    :nosignatures:
 
+   chainerx.all
+   chainerx.any
+
    chainerx.isinf
    chainerx.isnan
 
+   chainerx.logical_and
+   chainerx.logical_or
    chainerx.logical_not
 
    chainerx.greater
@@ -131,8 +136,10 @@ Mathematical functions
    chainerx.arccos
    chainerx.arctan
    chainerx.tanh
+   chainerx.floor
    chainerx.square
    chainerx.clip
+   chainerx.ceil
 
 Random sampling
 ---------------
@@ -161,6 +168,8 @@ Statistics
    :nosignatures:
 
    chainerx.amax
+   chainerx.mean
+   chainerx.var
 
 Connection
 ----------

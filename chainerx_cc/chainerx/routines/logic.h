@@ -7,65 +7,88 @@
 
 namespace chainerx {
 
-// Returns an elementwise equality array.
-//
-// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
 class EqualOp : public Op {
 public:
     static const char* name() { return "Equal"; }
 
-    virtual Array Call(const Array& x1, const Array& x2);
-
-protected:
-    virtual void Impl(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-inline Array Equal(const Array& x1, const Array& x2) { return x1.device().backend().CallOp<EqualOp>(x1, x2); }
-
-// Returns an elementwise non-equality array.
-//
-// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
 class NotEqualOp : public Op {
 public:
     static const char* name() { return "NotEqual"; }
 
-    virtual Array Call(const Array& x1, const Array& x2);
-
-protected:
-    virtual void Impl(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-inline Array NotEqual(const Array& x1, const Array& x2) { return x1.device().backend().CallOp<NotEqualOp>(x1, x2); }
-
-// Returns an elementwise `x1` > `x2` array.
-//
-// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
 class GreaterOp : public Op {
 public:
     static const char* name() { return "Greater"; }
 
-    virtual Array Call(const Array& x1, const Array& x2);
-
-protected:
-    virtual void Impl(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-inline Array Greater(const Array& x1, const Array& x2) { return x1.device().backend().CallOp<GreaterOp>(x1, x2); }
-
-// Returns an elementwise `x1` >= `x2` array.
-//
-// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
 class GreaterEqualOp : public Op {
 public:
     static const char* name() { return "GreaterEqual"; }
 
-    virtual Array Call(const Array& x1, const Array& x2);
-
-protected:
-    virtual void Impl(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-inline Array GreaterEqual(const Array& x1, const Array& x2) { return x1.device().backend().CallOp<GreaterEqualOp>(x1, x2); }
+class LogicalNotOp : public Op {
+public:
+    static const char* name() { return "LogicalNot"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class LogicalAndOp : public Op {
+public:
+    static const char* name() { return "LogicalAnd"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class LogicalOrOp : public Op {
+public:
+    static const char* name() { return "LogicalOr"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class AllOp : public Op {
+public:
+    static const char* name() { return "All"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
+class AnyOp : public Op {
+public:
+    static const char* name() { return "Any"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
+// Returns an elementwise equality array.
+//
+// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
+Array Equal(const Array& x1, const Array& x2);
+
+// Returns an elementwise non-equality array.
+//
+// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
+Array NotEqual(const Array& x1, const Array& x2);
+
+// Returns an elementwise `x1` > `x2` array.
+//
+// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
+Array Greater(const Array& x1, const Array& x2);
+
+// Returns an elementwise `x1` >= `x2` array.
+//
+// Dtype casting is not supported: if x1 and x2 have different types, DtypeError is thrown.
+Array GreaterEqual(const Array& x1, const Array& x2);
 
 // Returns an elementwise `x1` < `x2` array.
 //
@@ -78,16 +101,14 @@ inline Array Less(const Array& x1, const Array& x2) { return Greater(x2, x1); }
 inline Array LessEqual(const Array& x1, const Array& x2) { return GreaterEqual(x2, x1); }
 
 // Returns an elementwise logical negation of an array.
-class LogicalNotOp : public Op {
-public:
-    static const char* name() { return "LogicalNot"; }
+Array LogicalNot(const Array& x);
 
-    virtual Array Call(const Array& x);
+Array LogicalAnd(const Array& x1, const Array& x2);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+Array LogicalOr(const Array& x1, const Array& x2);
 
-inline Array LogicalNot(const Array& x) { return x.device().backend().CallOp<LogicalNotOp>(x); }
+Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+
+Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 }  // namespace chainerx
