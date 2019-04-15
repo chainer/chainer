@@ -431,13 +431,9 @@ To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.o
 
   $ pip install sphinx sphinx_rtd_theme
 
-Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
-In order to generate the html files, Chainer must be installed in develop mode. If Chainer has not been installed in develop mode, then ``make html`` will yield an error that the reference sources cannot
-be read.
+Docstrings (documentation comments in the source code) are collected from the installed Chainer module. If you have edited docstrings in checked-out source files and want to see those changes reflected in the generated html, Chainer must be installed in develop mode to see those changes reflected in the generated documentation.
 
-If you have edited docstrings and want to see those changes reflected in the generated html, it is necessary to reinstall Chainer in develop mode again to see the changes reflected.
-
-In either case, install in develop mode from the the top of the source directory::
+To install Chainer in develop mode, from the the top of the source directory run::
 
   $ pip install -e .
 
