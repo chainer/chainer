@@ -1160,7 +1160,8 @@ Args:
     x (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`f(x) = (1 + \\exp(-x))^{-1}`
+    :class:`~chainerx.ndarray`: Returned array:
+    :math:`f(x) = (1 + \\exp(-x))^{-1}`.
 
 Note:
     During backpropagation, this function propagates the gradient of the
