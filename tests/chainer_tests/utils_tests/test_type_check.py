@@ -399,7 +399,7 @@ class TestSameTypes(unittest.TestCase):
 
 class TestInvalidType(unittest.TestCase):
     def test_pickle(self):
-        exc = T.InvalidType('foo', 'bar')
+        exc = T.InvalidType('foo', 'bar', 'baz')
         new = pickle.loads(pickle.dumps(exc))
         self.assertEqual(exc.args, new.args)
         self.assertEqual(exc.expect, new.expect)
