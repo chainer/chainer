@@ -21,25 +21,25 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sin, { out = cuda::Sin(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(SinOp, { out = cuda::Sin(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cos, { out = cuda::Cos(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(CosOp, { out = cuda::Cos(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Tan, { out = cuda::Tan(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(TanOp, { out = cuda::Tan(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsin, { out = cuda::Arcsin(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArcsinOp, { out = cuda::Arcsin(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccos, { out = cuda::Arccos(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArccosOp, { out = cuda::Arccos(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arctan, { out = cuda::Arctan(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArctanOp, { out = cuda::Arctan(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sinh, { out = cuda::Sinh(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(SinhOp, { out = cuda::Sinh(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cosh, { out = cuda::Cosh(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(CoshOp, { out = cuda::Cosh(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsinh, { out = cuda::Arcsinh(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArcsinhOp, { out = cuda::Arcsinh(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccosh, { out = cuda::Arccosh(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArccoshOp, { out = cuda::Arccosh(x); });
 
 }  // namespace
 }  // namespace cuda

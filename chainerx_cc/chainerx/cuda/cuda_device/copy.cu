@@ -18,7 +18,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-CHAINERX_CUDA_REGISTER_ELTWISE_UNARY_OP(Copy, { out = x; });
+CHAINERX_CUDA_REGISTER_ELTWISE_UNARY_OP(CopyOp, { out = x; });
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {

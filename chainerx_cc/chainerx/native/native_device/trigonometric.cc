@@ -16,25 +16,25 @@ namespace chainerx {
 namespace native {
 namespace {
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sin, { out = chainerx::Sin(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(SinOp, { out = chainerx::Sin(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cos, { out = chainerx::Cos(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(CosOp, { out = chainerx::Cos(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Tan, { out = chainerx::Tan(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(TanOp, { out = chainerx::Tan(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsin, { out = chainerx::Arcsin(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArcsinOp, { out = chainerx::Arcsin(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccos, { out = chainerx::Arccos(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArccosOp, { out = chainerx::Arccos(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arctan, { out = chainerx::Arctan(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArctanOp, { out = chainerx::Arctan(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Sinh, { out = chainerx::Sinh(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(SinhOp, { out = chainerx::Sinh(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Cosh, { out = chainerx::Cosh(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(CoshOp, { out = chainerx::Cosh(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arcsinh, { out = chainerx::Arcsinh(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArcsinhOp, { out = chainerx::Arcsinh(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(Arccosh, { out = chainerx::Arccosh(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(ArccoshOp, { out = chainerx::Arccosh(x); });
 
 }  // namespace
 }  // namespace native

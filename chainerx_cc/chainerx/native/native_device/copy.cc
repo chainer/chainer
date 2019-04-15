@@ -14,7 +14,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(Copy, { out = x; });
+CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(CopyOp, { out = x; });
 
 class NativeAsTypeOp : public AsTypeOp {
 public:

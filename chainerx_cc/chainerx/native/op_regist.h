@@ -8,8 +8,8 @@
     static chainerx::internal::OpRegistrar<chainerx::native::NativeBackend, key_op_cls, op_cls> \
             s_native_backend_op_##op_cls{};  // NOLINT(cert-err58-cpp)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, visit_dtype)    \
-    class Native##func##Op : public func##Op {                                          \
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, visit_dtype)  \
+    class Native##op_name : public op_name {                                            \
     public:                                                                             \
         void Call(const Array& x, const Array& out) override {                          \
             Device& device = x.device();                                                \
@@ -20,7 +20,7 @@
                 struct Impl {                                                           \
                     void operator()(int64_t i, T x, T& out) {                           \
                         (void)i;                                                        \
-                        func_def                                                        \
+                        op_body                                                         \
                     }                                                                   \
                 };                                                                      \
                 Elementwise<const T, T>(Impl{}, x_cast, out);                           \
@@ -28,16 +28,16 @@
         }                                                                               \
     };                                                                                  \
                                                                                         \
-    CHAINERX_NATIVE_REGISTER_OP(func##Op, Native##func##Op);
+    CHAINERX_NATIVE_REGISTER_OP(op_name, Native##op_name);
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(func, func_def) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, VisitFloatingPointDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(op_name, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, VisitFloatingPointDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(func, func_def) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(func, func_def, VisitDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(op_name, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, VisitDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(func, func_def, visit_dtype)       \
-    class Native##func##Op : public func##Op {                                              \
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, visit_dtype)     \
+    class Native##op_name : public op_name {                                                \
     public:                                                                                 \
         void Call(const Array& x1, const Array& x2, const Array& out) override {            \
             Device& device = x1.device();                                                   \
@@ -49,7 +49,7 @@
                 struct Impl {                                                               \
                     void operator()(int64_t i, T x1, T x2, T& out) {                        \
                         (void)i;                                                            \
-                        func_def                                                            \
+                        op_body                                                             \
                     }                                                                       \
                 };                                                                          \
                 Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);            \
@@ -57,10 +57,10 @@
         }                                                                                   \
     };                                                                                      \
                                                                                             \
-    CHAINERX_NATIVE_REGISTER_OP(func##Op, Native##func##Op);
+    CHAINERX_NATIVE_REGISTER_OP(op_name, Native##op_name);
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_OP(func, func_def) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(func, func_def, VisitFloatingPointDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_OP(op_name, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, VisitFloatingPointDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(func, func_def) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(func, func_def, VisitDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(op_name, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, VisitDtype)

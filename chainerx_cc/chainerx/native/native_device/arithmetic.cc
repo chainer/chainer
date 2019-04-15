@@ -16,7 +16,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(Add, { out = ArithmeticOps<T>::Add(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(AddOp, { out = ArithmeticOps<T>::Add(x1, x2); });
 
 class NativeAddASOp : public AddASOp {
 public:
@@ -37,7 +37,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(Subtract, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(SubtractOp, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
 
 class NativeSubtractASOp : public SubtractASOp {
 public:
@@ -58,7 +58,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(Multiply, { out = ArithmeticOps<T>::Multiply(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(MultiplyOp, { out = ArithmeticOps<T>::Multiply(x1, x2); });
 
 class NativeMultiplyASOp : public MultiplyASOp {
 public:
@@ -102,7 +102,7 @@ chainerx::Float16 FloorDivide(chainerx::Float16 x, chainerx::Float16 y) {
     return chainerx::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivide, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivideOp, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
 
 class NativeFloorDivideASOp : public FloorDivideASOp {
 public:
@@ -123,7 +123,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(Divide, { out = ArithmeticOps<T>::Divide(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(DivideOp, { out = ArithmeticOps<T>::Divide(x1, x2); });
 
 class NativeDivideASOp : public DivideASOp {
 public:

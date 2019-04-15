@@ -20,7 +20,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Add, { out = ArithmeticOps<CudaType>::Add(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(AddOp, { out = ArithmeticOps<CudaType>::Add(x1, x2); });
 
 template <typename T>
 struct AddASImpl {
@@ -46,7 +46,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_OP(AddASOp, CudaAddASOp);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(Subtract, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(SubtractOp, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct SubtractASImpl {
@@ -73,7 +73,7 @@ public:
 CHAINERX_CUDA_REGISTER_OP(SubtractASOp, CudaSubtractASOp);
 
 // TODO(sonots): support stream
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Multiply, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(MultiplyOp, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
 
 template <typename T>
 struct MultiplyASImpl {
@@ -117,7 +117,7 @@ __device__ cuda::Float16 FloorDivide(cuda::Float16 x, cuda::Float16 y) {
     return cuda::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivide, { out = cuda::FloorDivide(x1, x2); }, VisitNumericDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivideOp, { out = cuda::FloorDivide(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct FloorDivideASImpl {
@@ -143,7 +143,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_OP(FloorDivideASOp, CudaFloorDivideASOp);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(Divide, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(DivideOp, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
 
 template <typename T>
 struct DivideASImpl {
