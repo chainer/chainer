@@ -136,27 +136,27 @@ step_chainer_install_from_sdist() {
 
 
 step_chainer_tests() {
-    local mark="not slow and not gpu and not cudnn and not ideep"
+    # local mark="not slow and not gpu and not cudnn and not ideep"
 
-    # On Windows theano fails to import
-    if [[ $TRAVIS_OS_NAME == "windows" ]]; then
-        mark="$mark and not theano"
-    fi
+    # # On Windows theano fails to import
+    # if [[ $TRAVIS_OS_NAME == "windows" ]]; then
+    #     mark="$mark and not theano"
+    # fi
 
-    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    # pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 
 step_chainerx_python_tests() {
-    pytest "$REPO_DIR"/tests/chainerx_tests
+    pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routine_tests/test_manipulation.py
 }
 
 
 step_chainermn_tests() {
-    for NP in 1 2; do
-        OMP_NUM_THREADS=1 \
-            mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' "$REPO_DIR"/tests/chainermn_tests
-    done
+    # for NP in 1 2; do
+    #     OMP_NUM_THREADS=1 \
+    #         mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' "$REPO_DIR"/tests/chainermn_tests
+    # done
 }
 
 

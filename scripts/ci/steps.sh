@@ -192,7 +192,7 @@ step_python_test_chainerx() {
 
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
-    pytest \
+    pytest -v \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
@@ -203,16 +203,16 @@ step_python_test_chainerx() {
 
 
 step_python_test_chainer() {
-    source activate testenv
+    # source activate testenv
 
-    # Some chainer tests generate files under current directory.
-    local temp_dir="$(mktemp -d)"
-    pushd "$temp_dir"
+    # # Some chainer tests generate files under current directory.
+    # local temp_dir="$(mktemp -d)"
+    # pushd "$temp_dir"
 
-    pytest \
-        --showlocals \
-        -m 'not slow and not ideep' \
-        "$REPO_DIR"/tests/chainer_tests
+    # pytest \
+    #     --showlocals \
+    #     -m 'not slow and not ideep' \
+    #     "$REPO_DIR"/tests/chainer_tests
 
-    popd
+    # popd
 }
