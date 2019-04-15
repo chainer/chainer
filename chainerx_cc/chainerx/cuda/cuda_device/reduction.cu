@@ -19,6 +19,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
@@ -57,7 +58,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArgMaxOp, CudaArgMaxOp);
+CHAINERX_CUDA_REGISTER_OP(ArgMaxOp, CudaArgMaxOp);
 
 template <typename In, typename Out>
 struct SumImpl {
@@ -69,23 +70,25 @@ struct SumImpl {
     __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
 };
 
-}  // namespace
+class CudaSumOp : public SumOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
 
-void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
+        auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, SumImpl<In, Out>{});
+        };
 
-    auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
-        using In = typename decltype(in_pt)::type;
-        using Out = typename decltype(out_pt)::type;
-        Reduce<In, Out>(a, axis, out, SumImpl<In, Out>{});
-    };
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
+    }
+};
 
-    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
-}
-
-namespace {
+CHAINERX_CUDA_REGISTER_OP(SumOp, CudaSumOp);
 
 template <typename T>
 struct AMaxImpl {
@@ -100,17 +103,51 @@ struct AMaxImpl {
     __device__ CudaType MapOut(CudaType accum) { return accum; }
 };
 
+class CudaAMaxOp : public AMaxOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, T>(a, axis, out, AMaxImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_OP(AMaxOp, CudaAMaxOp);
+
+template <typename T>
+struct AMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::MaxOrInf(); }
+    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(CudaType next, CudaType& accum) {
+        if (cuda::IsNan(next) || accum > next) {
+            accum = next;
+        }
+    }
+    __device__ CudaType MapOut(CudaType accum) { return accum; }
+};
+
+class CudaAMinOp : public AMinOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, T>(a, axis, out, AMinImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(AMinOp, CudaAMinOp);
+
 }  // namespace
-
-void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Reduce<T, T>(a, axis, out, AMaxImpl<T>{});
-    });
-}
-
 }  // namespace cuda
 }  // namespace chainerx

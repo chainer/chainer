@@ -32,7 +32,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SinOp, NativeSinOp);
+CHAINERX_NATIVE_REGISTER_OP(SinOp, NativeSinOp);
 
 class NativeCosOp : public CosOp {
 public:
@@ -50,7 +50,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CosOp, NativeCosOp);
+CHAINERX_NATIVE_REGISTER_OP(CosOp, NativeCosOp);
 
 class NativeTanOp : public TanOp {
 public:
@@ -68,7 +68,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TanOp, NativeTanOp);
+CHAINERX_NATIVE_REGISTER_OP(TanOp, NativeTanOp);
 
 class NativeArcsinOp : public ArcsinOp {
 public:
@@ -86,7 +86,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArcsinOp, NativeArcsinOp);
+CHAINERX_NATIVE_REGISTER_OP(ArcsinOp, NativeArcsinOp);
 
 class NativeArccosOp : public ArccosOp {
 public:
@@ -104,7 +104,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArccosOp, NativeArccosOp);
+CHAINERX_NATIVE_REGISTER_OP(ArccosOp, NativeArccosOp);
 
 class NativeArctanOp : public ArctanOp {
 public:
@@ -122,7 +122,79 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArctanOp, NativeArctanOp);
+CHAINERX_NATIVE_REGISTER_OP(ArctanOp, NativeArctanOp);
+
+class NativeSinhOp : public SinhOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sinh(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_OP(SinhOp, NativeSinhOp);
+
+class NativeCoshOp : public CoshOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Cosh(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_OP(CoshOp, NativeCoshOp);
+
+class NativeArcsinhOp : public ArcsinhOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Arcsinh(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_OP(ArcsinhOp, NativeArcsinhOp);
+
+class NativeArccoshOp : public ArccoshOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Arccosh(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_OP(ArccoshOp, NativeArccoshOp);
 
 }  // namespace
 }  // namespace native
