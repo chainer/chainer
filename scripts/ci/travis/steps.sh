@@ -141,7 +141,9 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
+    sudo apt-get install -y gdb  # install gdb
+    # pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
+    gdb -return-child-result -batch -ex r -ex bt --args python -m pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
 }
 
 
