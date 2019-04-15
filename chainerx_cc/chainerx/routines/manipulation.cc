@@ -695,26 +695,18 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
-Array Swapaxes(const Array& ary, int8_t axis1, int8_t axis2) {
-    Shape shape = ary.shape();
-    Strides strides = ary.strides();
+Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
+    Shape shape = a.shape();
+    Strides strides = a.strides();
 
-    // for negative axis.
-    axis1 = axis1 >= 0 ? axis1 : ary.ndim() + axis1;
-    axis2 = axis2 >= 0 ? axis2 : ary.ndim() + axis2;
-
-    if (axis1 >= ary.ndim() || axis1 < 0) {
-        throw DimensionError("axis1 is out-of-bounds for given ndarray.");
-    }
-    if (axis2 >= ary.ndim() || axis2 < 0) {
-        throw DimensionError("axis2 is out-of-bounds for given ndarray.");
-    }
+    axis1 = internal::NormalizeAxis(axis1, a.ndim());
+    axis2 = internal::NormalizeAxis(axis2, a.ndim());
 
     std::iter_swap(shape.begin() + axis1, shape.begin() + axis2);
     std::iter_swap(strides.begin() + axis1, strides.begin() + axis2);
-    Array out = internal::MakeArray(shape, strides, ary.dtype(), ary.device(), ary.data(), ary.offset());
+    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    BackwardBuilder bb{"swapaxes", ary, out};
+    BackwardBuilder bb{"swapaxes", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([axis1, axis2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();

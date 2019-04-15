@@ -656,6 +656,7 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
     ((1, 2, 4, 2, 1), 0, 0),
     ((1, 3, 3, 1), -1, -4),
 ])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestSwapaxes(op_utils.NumpyOpTest):
 
     def setup(self, dtype):
@@ -671,7 +672,10 @@ class TestSwapaxes(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        b = xp.swapaxes(a, self.axis1, self.axis2)
+        if self.is_module:
+            b = xp.swapaxes(a, self.axis1, self.axis2)
+        else:
+            b = a.swapaxes(self.axis1, self.axis2)
         return b,
 
 

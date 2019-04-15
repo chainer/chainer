@@ -839,11 +839,11 @@ Note:
 
     _docs.set_doc(
         chainerx.swapaxes,
-        """swapaxes(ary, axis1, axis2)
+        """swapaxes(a, axis1, axis2)
 Interchange two axes of an array.
 
 Args:
-    ary (~chainerx.ndarray): Array to swapaxes.
+    a (~chainerx.ndarray): Array to swapaxes.
     axis1 (int): First Axis
     axis2 (int): Second Axis
 
@@ -851,9 +851,9 @@ Returns:
     ~chainerx.ndarray: Swaped array.
 
 Note:
-    * Output array is a view of Input array.
+    * Output array is a view of the input array.
     * During backpropagation, this function propagates the gradients of the
-      output arrays to the input array ``ary``.
+      output arrays to the input array ``a``.
 
 
 .. seealso:: :func:`numpy.swapaxes`
