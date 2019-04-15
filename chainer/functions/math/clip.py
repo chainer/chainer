@@ -13,8 +13,8 @@ class Clip(function_node.FunctionNode):
         # x_min must be less than x_max.
         if x_min >= x_max:
             raise ValueError('x_min must be less than x_max.')
-        self.x_min = x_min
-        self.x_max = x_max
+        self.x_min = float(x_min)
+        self.x_max = float(x_max)
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
