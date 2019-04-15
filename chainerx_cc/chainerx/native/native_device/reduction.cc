@@ -48,7 +48,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArgMaxOp, NativeArgMaxOp);
+CHAINERX_NATIVE_REGISTER_OP(ArgMaxOp, NativeArgMaxOp);
 
 class NativeSumOp : public SumOp {
 public:
@@ -73,7 +73,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SumOp, NativeSumOp);
+CHAINERX_NATIVE_REGISTER_OP(SumOp, NativeSumOp);
 
 class NativeAMaxOp : public AMaxOp {
 public:
@@ -98,7 +98,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AMaxOp, NativeAMaxOp);
+CHAINERX_NATIVE_REGISTER_OP(AMaxOp, NativeAMaxOp);
 
 class NativeAMinOp : public AMinOp {
 public:
@@ -123,7 +123,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AMinOp, NativeAMinOp);
+CHAINERX_NATIVE_REGISTER_OP(AMinOp, NativeAMinOp);
 
 }  // namespace
 }  // namespace native

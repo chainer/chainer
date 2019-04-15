@@ -32,7 +32,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SinOp, NativeSinOp);
+CHAINERX_NATIVE_REGISTER_OP(SinOp, NativeSinOp);
 
 class NativeCosOp : public CosOp {
 public:
@@ -50,7 +50,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CosOp, NativeCosOp);
+CHAINERX_NATIVE_REGISTER_OP(CosOp, NativeCosOp);
 
 class NativeTanOp : public TanOp {
 public:
@@ -68,7 +68,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TanOp, NativeTanOp);
+CHAINERX_NATIVE_REGISTER_OP(TanOp, NativeTanOp);
 
 class NativeArcsinOp : public ArcsinOp {
 public:
@@ -86,7 +86,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArcsinOp, NativeArcsinOp);
+CHAINERX_NATIVE_REGISTER_OP(ArcsinOp, NativeArcsinOp);
 
 class NativeArccosOp : public ArccosOp {
 public:
@@ -104,7 +104,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArccosOp, NativeArccosOp);
+CHAINERX_NATIVE_REGISTER_OP(ArccosOp, NativeArccosOp);
 
 class NativeArctanOp : public ArctanOp {
 public:
@@ -122,7 +122,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArctanOp, NativeArctanOp);
+CHAINERX_NATIVE_REGISTER_OP(ArctanOp, NativeArctanOp);
 
 class NativeSinhOp : public SinhOp {
 public:
@@ -140,7 +140,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SinhOp, NativeSinhOp);
+CHAINERX_NATIVE_REGISTER_OP(SinhOp, NativeSinhOp);
 
 class NativeCoshOp : public CoshOp {
 public:
@@ -158,7 +158,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CoshOp, NativeCoshOp);
+CHAINERX_NATIVE_REGISTER_OP(CoshOp, NativeCoshOp);
 
 class NativeArcsinhOp : public ArcsinhOp {
 public:
@@ -176,7 +176,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArcsinhOp, NativeArcsinhOp);
+CHAINERX_NATIVE_REGISTER_OP(ArcsinhOp, NativeArcsinhOp);
 
 class NativeArccoshOp : public ArccoshOp {
 public:
@@ -194,7 +194,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArccoshOp, NativeArccoshOp);
+CHAINERX_NATIVE_REGISTER_OP(ArccoshOp, NativeArccoshOp);
 
 }  // namespace
 }  // namespace native

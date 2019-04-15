@@ -58,7 +58,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArgMaxOp, CudaArgMaxOp);
+CHAINERX_CUDA_REGISTER_OP(ArgMaxOp, CudaArgMaxOp);
 
 template <typename In, typename Out>
 struct SumImpl {
@@ -88,7 +88,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SumOp, CudaSumOp);
+CHAINERX_CUDA_REGISTER_OP(SumOp, CudaSumOp);
 
 template <typename T>
 struct AMaxImpl {
@@ -117,7 +117,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AMaxOp, CudaAMaxOp);
+CHAINERX_CUDA_REGISTER_OP(AMaxOp, CudaAMaxOp);
 
 template <typename T>
 struct AMinImpl {
@@ -146,7 +146,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AMinOp, CudaAMinOp);
+CHAINERX_CUDA_REGISTER_OP(AMinOp, CudaAMinOp);
 
 }  // namespace
 }  // namespace cuda

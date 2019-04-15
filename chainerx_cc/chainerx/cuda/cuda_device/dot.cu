@@ -189,7 +189,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DotOp, CudaDotOp);
+CHAINERX_CUDA_REGISTER_OP(DotOp, CudaDotOp);
 
 }  // namespace cuda
 }  // namespace chainerx

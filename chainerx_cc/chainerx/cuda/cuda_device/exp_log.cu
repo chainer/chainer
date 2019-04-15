@@ -39,7 +39,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ExpOp, CudaExpOp);
+CHAINERX_CUDA_REGISTER_OP(ExpOp, CudaExpOp);
 
 template <typename T>
 struct LogImpl {
@@ -61,7 +61,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LogOp, CudaLogOp);
+CHAINERX_CUDA_REGISTER_OP(LogOp, CudaLogOp);
 
 }  // namespace
 }  // namespace cuda

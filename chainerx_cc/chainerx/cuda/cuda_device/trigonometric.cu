@@ -41,7 +41,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SinOp, CudaSinOp);
+CHAINERX_CUDA_REGISTER_OP(SinOp, CudaSinOp);
 
 template <typename T>
 struct CosImpl {
@@ -63,7 +63,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(CosOp, CudaCosOp);
+CHAINERX_CUDA_REGISTER_OP(CosOp, CudaCosOp);
 
 template <typename T>
 struct TanImpl {
@@ -85,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(TanOp, CudaTanOp);
+CHAINERX_CUDA_REGISTER_OP(TanOp, CudaTanOp);
 
 template <typename T>
 struct ArcsinImpl {
@@ -107,7 +107,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArcsinOp, CudaArcsinOp);
+CHAINERX_CUDA_REGISTER_OP(ArcsinOp, CudaArcsinOp);
 
 template <typename T>
 struct ArccosImpl {
@@ -129,7 +129,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArccosOp, CudaArccosOp);
+CHAINERX_CUDA_REGISTER_OP(ArccosOp, CudaArccosOp);
 
 template <typename T>
 struct ArctanImpl {
@@ -151,7 +151,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArctanOp, CudaArctanOp);
+CHAINERX_CUDA_REGISTER_OP(ArctanOp, CudaArctanOp);
 
 template <typename T>
 struct SinhImpl {
@@ -173,7 +173,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SinhOp, CudaSinhOp);
+CHAINERX_CUDA_REGISTER_OP(SinhOp, CudaSinhOp);
 
 template <typename T>
 struct CoshImpl {
@@ -195,7 +195,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(CoshOp, CudaCoshOp);
+CHAINERX_CUDA_REGISTER_OP(CoshOp, CudaCoshOp);
 
 template <typename T>
 struct ArcsinhImpl {
@@ -217,7 +217,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArcsinhOp, CudaArcsinhOp);
+CHAINERX_CUDA_REGISTER_OP(ArcsinhOp, CudaArcsinhOp);
 
 template <typename T>
 struct ArccoshImpl {
@@ -239,7 +239,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArccoshOp, CudaArccoshOp);
+CHAINERX_CUDA_REGISTER_OP(ArccoshOp, CudaArccoshOp);
 
 }  // namespace
 }  // namespace cuda

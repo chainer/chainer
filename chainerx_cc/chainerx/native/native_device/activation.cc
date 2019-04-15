@@ -39,7 +39,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IfLessElseASSAOp, NativeIfLessElseASSAOp);
+CHAINERX_NATIVE_REGISTER_OP(IfLessElseASSAOp, NativeIfLessElseASSAOp);
 
 class NativeIfGreaterElseASSAOp : public IfGreaterElseASSAOp {
 public:
@@ -63,7 +63,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IfGreaterElseASSAOp, NativeIfGreaterElseASSAOp);
+CHAINERX_NATIVE_REGISTER_OP(IfGreaterElseASSAOp, NativeIfGreaterElseASSAOp);
 
 class NativeIfGreaterElseAAAAOp : public IfGreaterElseAAAAOp {
 public:
@@ -87,7 +87,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IfGreaterElseAAAAOp, NativeIfGreaterElseAAAAOp);
+CHAINERX_NATIVE_REGISTER_OP(IfGreaterElseAAAAOp, NativeIfGreaterElseAAAAOp);
 
 class NativeTanhOp : public TanhOp {
 public:
@@ -104,7 +104,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TanhOp, NativeTanhOp);
+CHAINERX_NATIVE_REGISTER_OP(TanhOp, NativeTanhOp);
 
 }  // namespace
 }  // namespace native

@@ -183,7 +183,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
+CHAINERX_CUDA_REGISTER_OP(BatchNormOp, CudaBatchNormOp);
 
 class CudaBatchNormGradOp : public BatchNormGradOp {
 public:
@@ -294,7 +294,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormGradOp, CudaBatchNormGradOp);
+CHAINERX_CUDA_REGISTER_OP(BatchNormGradOp, CudaBatchNormGradOp);
 
 class CudaFixedBatchNormOp : public FixedBatchNormOp {
 public:
@@ -376,7 +376,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
+CHAINERX_CUDA_REGISTER_OP(FixedBatchNormOp, CudaFixedBatchNormOp);
 
 }  // namespace
 }  // namespace cuda

@@ -32,7 +32,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(EqualOp, NativeEqualOp);
+CHAINERX_NATIVE_REGISTER_OP(EqualOp, NativeEqualOp);
 
 class NativeNotEqualOp : public NotEqualOp {
 public:
@@ -52,7 +52,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(NotEqualOp, NativeNotEqualOp);
+CHAINERX_NATIVE_REGISTER_OP(NotEqualOp, NativeNotEqualOp);
 
 class NativeGreaterOp : public GreaterOp {
 public:
@@ -72,7 +72,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(GreaterOp, NativeGreaterOp);
+CHAINERX_NATIVE_REGISTER_OP(GreaterOp, NativeGreaterOp);
 
 class NativeGreaterEqualOp : public GreaterEqualOp {
 public:
@@ -92,7 +92,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(GreaterEqualOp, NativeGreaterEqualOp);
+CHAINERX_NATIVE_REGISTER_OP(GreaterEqualOp, NativeGreaterEqualOp);
 
 class NativeLogicalNotOp : public LogicalNotOp {
 public:
@@ -109,7 +109,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalNotOp, NativeLogicalNotOp);
+CHAINERX_NATIVE_REGISTER_OP(LogicalNotOp, NativeLogicalNotOp);
 
 class NativeLogicalAndOp : public LogicalAndOp {
 public:
@@ -129,7 +129,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalAndOp, NativeLogicalAndOp);
+CHAINERX_NATIVE_REGISTER_OP(LogicalAndOp, NativeLogicalAndOp);
 
 class NativeLogicalOrOp : public LogicalOrOp {
 public:
@@ -149,7 +149,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalOrOp, NativeLogicalOrOp);
+CHAINERX_NATIVE_REGISTER_OP(LogicalOrOp, NativeLogicalOrOp);
 
 class NativeAllOp : public AllOp {
 public:
@@ -171,7 +171,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AllOp, NativeAllOp);
+CHAINERX_NATIVE_REGISTER_OP(AllOp, NativeAllOp);
 
 class NativeAnyOp : public AnyOp {
 public:
@@ -194,7 +194,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AnyOp, NativeAnyOp);
+CHAINERX_NATIVE_REGISTER_OP(AnyOp, NativeAnyOp);
 
 }  // namespace
 }  // namespace native
