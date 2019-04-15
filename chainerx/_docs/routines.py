@@ -1416,6 +1416,33 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.amin,
+        """amin(a, axis=None, keepdims=False)
+Returns the minimum of an array or the minimum along an axis.
+
+Note:
+    When at least one element is NaN, the corresponding min value will be NaN.
+
+Args:
+    a (~chainerx.ndarray): Array to take the minimum.
+    axis (None or int or tuple of ints): Along which axis to take the minimum.
+        The flattened array is used by default.
+        If this is a tuple of ints, the minimum is selected over multiple
+        axes, instead of a single axis or all the axes.
+    keepdims (bool): If ``True``, the axis is remained as an axis of size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: The minimum of ``a``, along the axis if
+    specified.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.amin`
+""")
+
+    _docs.set_doc(
         chainerx.mean,
         """mean(a, axis=None, keepdims=False)
 Compute the arithmetic mean along the specified axis.

@@ -103,6 +103,15 @@ public:
     virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
 };
 
+// Calculates the minimum along specified axes.
+// See Sum() for the explanation of arguments.
+class AMinOp : public Op {
+public:
+    static const char* name() { return "AMin"; }
+
+    virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
+};
+
 // Compares x1 and x2 and assign either pos or neg according to the result.
 // Formally, it calculates: out = x1 < x2 ? pos : neg
 class IfLessElseASSAOp : public Op {
@@ -325,6 +334,7 @@ Array Reciprocal(const Array& x);
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array AMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);

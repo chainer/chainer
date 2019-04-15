@@ -687,6 +687,19 @@ void InitChainerxStatistics(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.attr("max") = m.attr("amax");
+    m.def("amin",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(AMin(Array{a}, Axes{axis}, keepdims)); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("amin",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(AMin(Array{a}, ToAxes(axis), keepdims));
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    m.attr("min") = m.attr("amin");
     m.def("mean",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Mean(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),

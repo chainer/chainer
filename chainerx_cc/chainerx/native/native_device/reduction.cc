@@ -100,6 +100,31 @@ public:
 
 CHAINERX_REGISTER_OP_NATIVE(AMaxOp, NativeAMaxOp);
 
+class NativeAMinOp : public AMinOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T Identity() { return NumericLimits<T>::MaxOrInf(); }
+                T MapIn(T in, int64_t /*index*/) { return in; }
+                void Reduce(T next, T& accum) {
+                    if (chainerx::IsNan(next) || accum > next) {
+                        accum = next;
+                    }
+                }
+                T MapOut(T accum) { return accum; }
+            };
+            Reduce<T, T>(a, axis, out, Impl{});
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(AMinOp, NativeAMinOp);
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
