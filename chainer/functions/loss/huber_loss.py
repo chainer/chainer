@@ -30,15 +30,16 @@ class HuberLoss(function_node.FunctionNode):
         xp = backend.get_array_module(*inputs)
         x0, x1 = inputs
         dtype = x0.dtype
-        diff = utils.force_array(x0 - x1, dtype)
+        linear_part = utils.force_array(x0 - x1, dtype)
         delta = dtype.type(self.delta)
 
-        xp.abs(diff, out=diff)
-        y = utils.force_array(xp.square(diff), dtype)
-        diff -= delta
-        xp.maximum(diff, 0, dtype=dtype, out=diff)
-        xp.square(diff, out=diff)
-        y -= diff
+        xp.abs(linear_part, out=linear_part)
+        square_part = utils.force_array(xp.square(linear_part), dtype)
+        linear_part *= 2 * delta
+        linear_part -= delta * delta
+        xp.maximum(linear_part, delta * delta, out=linear_part)
+        xp.minimum(square_part, linear_part, out=square_part)
+        y = square_part
         y *= 0.5
 
         if self.reduce == 'sum_along_second_axis':
