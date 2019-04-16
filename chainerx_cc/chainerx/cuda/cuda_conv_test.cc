@@ -9,6 +9,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/device_id.h"
+#include "chainerx/kernels/connection.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"

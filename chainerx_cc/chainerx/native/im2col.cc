@@ -14,6 +14,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"

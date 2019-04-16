@@ -1,3 +1,4 @@
+add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
 add_subdirectory(testing)

@@ -18,6 +18,7 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"

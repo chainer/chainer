@@ -18,6 +18,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 

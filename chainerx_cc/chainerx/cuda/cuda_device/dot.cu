@@ -22,6 +22,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"

@@ -8,8 +8,8 @@
 #include "chainerx/cuda/op_regist.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/connection.h"
 #include "chainerx/native/op_regist.h"
-#include "chainerx/routines/connection.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
 

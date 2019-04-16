@@ -11,6 +11,7 @@
 #include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/misc.h"
 
