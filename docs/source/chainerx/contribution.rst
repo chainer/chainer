@@ -119,7 +119,7 @@ From the root of the project, build the Python package in ``Debug`` mode, and bu
     $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
     $ mkdir -p build
     $ cd build
-    $ cmake -DCMAKE_BUILD_TYPE=Debug -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE=1 ../chainerx_cc
+    $ cmake ../chainerx_cc -DCMAKE_BUILD_TYPE=Debug -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE=1
     $ make
 
 Run both the Python and the C++ test suite:
