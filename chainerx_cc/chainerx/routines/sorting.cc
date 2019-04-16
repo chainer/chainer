@@ -9,6 +9,7 @@
 #include "chainerx/backprop_mode.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/sorting.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
