@@ -9,18 +9,22 @@ import numpy as np
 import chainer
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 import net
 
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: VAE')
-    parser.add_argument('--initmodel', '-m', default='',
+    parser.add_argument('--initmodel', '-m', type=str,
                         help='Initialize the model from given file')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the optimization from snapshot')
-    parser.add_argument('--gpu', '-g', default=-1, type=int,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='results',
                         help='Directory to output the result')
     parser.add_argument('--epoch', '-e', default=100, type=int,
@@ -41,9 +45,16 @@ def main():
                         help='learning minibatch size')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    device = chainer.get_device(args.device)
+    device.use()
+
+    print('Device: {}'.format(device))
     print('# dim z: {}'.format(args.dim_z))
     print('# Minibatch-size: {}'.format(args.batch_size))
     print('# epoch: {}'.format(args.epoch))
@@ -56,15 +67,14 @@ def main():
     prior = net.make_prior(args.dim_z)
     avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
                                     beta=args.beta, k=args.k)
-    if args.gpu >= 0:
-        avg_elbo_loss.to_gpu(args.gpu)
+    avg_elbo_loss.to_device(device)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(avg_elbo_loss)
 
     # Initialize
-    if args.initmodel:
+    if args.initmodel is not None:
         chainer.serializers.load_npz(args.initmodel, avg_elbo_loss)
 
     # Load the MNIST dataset
@@ -86,13 +96,14 @@ def main():
     # Set up an updater. StandardUpdater can explicitly specify a loss function
     # used in the training with 'loss_func' option
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer,
-        device=args.gpu, loss_func=avg_elbo_loss)
+        train_iter, optimizer, device=device, loss_func=avg_elbo_loss)
 
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.Evaluator(
-        test_iter, avg_elbo_loss, device=args.gpu))
-    trainer.extend(extensions.DumpGraph('main/loss'))
+        test_iter, avg_elbo_loss, device=device))
+    # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
@@ -100,7 +111,7 @@ def main():
          'main/reconstr', 'main/kl_penalty', 'elapsed_time']))
     trainer.extend(extensions.ProgressBar())
 
-    if args.resume:
+    if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training

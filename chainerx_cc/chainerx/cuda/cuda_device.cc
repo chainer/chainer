@@ -57,26 +57,9 @@ void MemoryKeeper::Collect() {
     }
 }
 
+DeviceInternals& GetDeviceInternals(CudaDevice& device) { return device.device_internals_; }
+
 }  // namespace cuda_internal
-
-CudaDevice::~CudaDevice() {
-    if (cublas_handle_ != nullptr) {
-        // NOTE: CudaSetDeviceScope is not available because it may throw
-        int orig_index{0};
-        cudaGetDevice(&orig_index);
-        cudaSetDevice(index());
-        cublasDestroy(cublas_handle_);
-        cudaSetDevice(orig_index);
-    }
-}
-
-cublasHandle_t CudaDevice::cublas_handle() {
-    if (cublas_handle_ == nullptr) {
-        CudaSetDeviceScope scope{index()};
-        CheckCublasError(cublasCreate(&cublas_handle_));
-    }
-    return cublas_handle_;
-}
 
 void CudaDevice::Synchronize() {
     CudaSetDeviceScope scope{index()};

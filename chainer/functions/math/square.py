@@ -33,8 +33,24 @@ def square(x):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 
     Returns:
         ~chainer.Variable: Output variable.
+        A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
+
+    .. admonition:: Example
+
+        >>> x = np.arange(6).reshape(2,3).astype(np.float32)
+        >>> x
+        array([[0., 1., 2.],
+               [3., 4., 5.]], dtype=float32)
+        >>> y = F.square(x)
+        >>> y.shape
+        (2, 3)
+        >>> y.array
+        array([[ 0.,  1.,  4.],
+               [ 9., 16., 25.]], dtype=float32)
+
     """
     return Square().apply((x,))[0]
