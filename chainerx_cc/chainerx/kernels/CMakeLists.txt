@@ -9,6 +9,5 @@ install(FILES
     normalization.h
     pooling.h
     sorting.h
-    statistics.h
     DESTINATION include/chainerx/kernels
     )
