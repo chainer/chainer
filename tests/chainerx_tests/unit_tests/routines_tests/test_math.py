@@ -1879,7 +1879,6 @@ class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.abs(a)
 
 
-
     # Special shapes
 _inverse_trig_hyper_params = \
     chainer.testing.product({
