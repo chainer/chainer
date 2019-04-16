@@ -60,8 +60,7 @@ class Independent(distribution.Distribution):
 
     @cache.cached_property
     def covariance(self):
-        """ The covariance of the distribution based on the original
-        i.i.d. distribution.
+        """ The covariance of the independent distribution.
 
         By definition, the covariance of the new
         distribution becomes block diagonal matrix. Let
@@ -202,8 +201,7 @@ class Independent(distribution.Distribution):
 
 @distribution.register_kl(Independent, Independent)
 def _kl_independent_independent(dist1, dist2):
-    """Batched KL divergence :math:`\\mathrm{KL}(\\mathrm{dist1} ||
-    \\mathrm{dist2})` for Independent distributions.
+    """Computes Kullback-Leibler divergence for independent distributions.
 
     We can leverage the fact that
     .. math::
