@@ -313,7 +313,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().backend().CallOp<AsTypeOp>(*this, out);
+    device().backend().CallKernel<AsTypeKernel>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
@@ -329,7 +329,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const {
     internal::CheckNoUnsafeInplace(*this, {});
-    device().backend().CallOp<FillOp>(*this, value);
+    device().backend().CallKernel<FillKernel>(*this, value);
 }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {

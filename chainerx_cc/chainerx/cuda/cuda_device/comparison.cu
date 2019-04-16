@@ -9,7 +9,7 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -26,7 +26,7 @@ struct EqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 == x2; }
 };
 
-class CudaEqualOp : public EqualOp {
+class CudaEqualKernel : public EqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -42,7 +42,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(EqualOp, CudaEqualOp);
+CHAINERX_CUDA_REGISTER_KERNEL(EqualKernel, CudaEqualKernel);
 
 template <typename T>
 struct NotEqualImpl {
@@ -50,7 +50,7 @@ struct NotEqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 != x2; }
 };
 
-class CudaNotEqualOp : public NotEqualOp {
+class CudaNotEqualKernel : public NotEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -66,7 +66,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(NotEqualOp, CudaNotEqualOp);
+CHAINERX_CUDA_REGISTER_KERNEL(NotEqualKernel, CudaNotEqualKernel);
 
 template <typename T>
 struct GreaterImpl {
@@ -74,7 +74,7 @@ struct GreaterImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 > x2; }
 };
 
-class CudaGreaterOp : public GreaterOp {
+class CudaGreaterKernel : public GreaterKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -90,7 +90,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(GreaterOp, CudaGreaterOp);
+CHAINERX_CUDA_REGISTER_KERNEL(GreaterKernel, CudaGreaterKernel);
 
 template <typename T>
 struct GreaterEqualImpl {
@@ -98,7 +98,7 @@ struct GreaterEqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 >= x2; }
 };
 
-class CudaGreaterEqualOp : public GreaterEqualOp {
+class CudaGreaterEqualKernel : public GreaterEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -114,7 +114,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(GreaterEqualOp, CudaGreaterEqualOp);
+CHAINERX_CUDA_REGISTER_KERNEL(GreaterEqualKernel, CudaGreaterEqualKernel);
 
 template <typename T>
 struct LogicalNotImpl {
@@ -122,7 +122,7 @@ struct LogicalNotImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !x; }
 };
 
-class CudaLogicalNotOp : public LogicalNotOp {
+class CudaLogicalNotKernel : public LogicalNotKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -135,7 +135,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(LogicalNotOp, CudaLogicalNotOp);
+CHAINERX_CUDA_REGISTER_KERNEL(LogicalNotKernel, CudaLogicalNotKernel);
 
 template <typename T>
 struct LogicalAndImpl {
@@ -143,7 +143,7 @@ struct LogicalAndImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 && x2; }
 };
 
-class CudaLogicalAndOp : public LogicalAndOp {
+class CudaLogicalAndKernel : public LogicalAndKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -159,7 +159,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(LogicalAndOp, CudaLogicalAndOp);
+CHAINERX_CUDA_REGISTER_KERNEL(LogicalAndKernel, CudaLogicalAndKernel);
 
 template <typename T>
 struct LogicalOrImpl {
@@ -167,7 +167,7 @@ struct LogicalOrImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 || x2; }
 };
 
-class CudaLogicalOrOp : public LogicalOrOp {
+class CudaLogicalOrKernel : public LogicalOrKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -183,7 +183,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(LogicalOrOp, CudaLogicalOrOp);
+CHAINERX_CUDA_REGISTER_KERNEL(LogicalOrKernel, CudaLogicalOrKernel);
 
 template <typename In>
 struct AllImpl {
@@ -194,7 +194,7 @@ struct AllImpl {
     __device__ bool MapOut(bool accum) { return accum; }
 };
 
-class CudaAllOp : public AllOp {
+class CudaAllKernel : public AllKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
@@ -211,7 +211,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(AllOp, CudaAllOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AllKernel, CudaAllKernel);
 
 template <typename In>
 struct AnyImpl {
@@ -222,7 +222,7 @@ struct AnyImpl {
     __device__ bool MapOut(bool accum) { return accum; }
 };
 
-class CudaAnyOp : public AnyOp {
+class CudaAnyKernel : public AnyKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
@@ -239,7 +239,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(AnyOp, CudaAnyOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AnyKernel, CudaAnyKernel);
 
 }  // namespace
 }  // namespace cuda

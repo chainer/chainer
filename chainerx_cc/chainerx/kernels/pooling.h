@@ -8,7 +8,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
-#include "chainerx/op.h"
+#include "chainerx/kernel.h"
 #include "chainerx/stack_vector.h"
 
 namespace chainerx {
@@ -18,7 +18,7 @@ public:
     virtual ~MaxPoolGradState() = default;
 };
 
-class MaxPoolOp : public Op {
+class MaxPoolKernel : public Kernel {
 public:
     static const char* name() { return "MaxPool"; }
 
@@ -37,7 +37,7 @@ public:
     virtual ~MaxPoolGradGradState() = default;
 };
 
-class MaxPoolGradOp : public Op {
+class MaxPoolGradKernel : public Kernel {
 public:
     static const char* name() { return "MaxPoolGrad"; }
 
@@ -51,7 +51,7 @@ public:
             const nonstd::optional<Array>& gx) = 0;
 };
 
-class MaxPoolGradGradOp : public Op {
+class MaxPoolGradGradKernel : public Kernel {
 public:
     static const char* name() { return "MaxPoolGradGrad"; }
 
@@ -70,7 +70,7 @@ public:
     virtual ~AveragePoolGradState() = default;
 };
 
-class AveragePoolOp : public Op {
+class AveragePoolKernel : public Kernel {
 public:
     static const char* name() { return "AveragePool"; }
 
@@ -84,7 +84,7 @@ public:
             const nonstd::optional<Array>& out) = 0;
 };
 
-class AveragePoolGradOp : public Op {
+class AveragePoolGradKernel : public Kernel {
 public:
     static const char* name() { return "AveragePoolGrad"; }
 

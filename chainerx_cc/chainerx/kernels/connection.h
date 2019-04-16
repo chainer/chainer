@@ -6,7 +6,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
-#include "chainerx/op.h"
+#include "chainerx/kernel.h"
 #include "chainerx/stack_vector.h"
 
 namespace chainerx {
@@ -18,7 +18,7 @@ namespace chainerx {
 // b: (out_channels)
 //
 // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-class ConvOp : public Op {
+class ConvKernel : public Kernel {
 public:
     static const char* name() { return "Conv"; }
 
@@ -40,7 +40,7 @@ public:
 // b: (out_channels)
 //
 // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-class ConvTransposeOp : public Op {
+class ConvTransposeKernel : public Kernel {
 public:
     static const char* name() { return "ConvTranspose"; }
 
@@ -55,7 +55,7 @@ public:
             const nonstd::optional<Array>& out) = 0;
 };
 
-class ConvGradWeightOp : public Op {
+class ConvGradWeightKernel : public Kernel {
 public:
     static const char* name() { return "ConvGradWeight"; }
 

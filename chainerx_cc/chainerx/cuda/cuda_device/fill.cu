@@ -12,7 +12,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
@@ -36,7 +36,7 @@ struct ArangeImpl {
     CudaType step;
 };
 
-class CudaArangeOp : public ArangeOp {
+class CudaArangeKernel : public ArangeKernel {
 public:
     void Call(Scalar start, Scalar step, const Array& out) override {
         Device& device = out.device();
@@ -49,7 +49,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(ArangeOp, CudaArangeOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ArangeKernel, CudaArangeKernel);
 
 template <typename T>
 struct IdentityImpl {
@@ -59,7 +59,7 @@ struct IdentityImpl {
     int64_t n_plus_one;
 };
 
-class CudaIdentityOp : public IdentityOp {
+class CudaIdentityKernel : public IdentityKernel {
 public:
     void Call(const Array& out) override {
         CHAINERX_ASSERT(out.ndim() == 2);
@@ -74,7 +74,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(IdentityOp, CudaIdentityOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IdentityKernel, CudaIdentityKernel);
 
 template <typename T>
 struct EyeImpl {
@@ -88,7 +88,7 @@ struct EyeImpl {
     int64_t step;
 };
 
-class CudaEyeOp : public EyeOp {
+class CudaEyeKernel : public EyeKernel {
 public:
     void Call(int64_t k, const Array& out) override {
         Device& device = out.device();
@@ -100,7 +100,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(EyeOp, CudaEyeOp);
+CHAINERX_CUDA_REGISTER_KERNEL(EyeKernel, CudaEyeKernel);
 
 template <typename T>
 __global__ void SetVecInMat(
@@ -118,7 +118,7 @@ __global__ void SetVecInMat(
     }
 }
 
-class CudaDiagflatOp : public DiagflatOp {
+class CudaDiagflatKernel : public DiagflatKernel {
 public:
     void Call(const Array& v, int64_t k, const Array& out) override {
         CHAINERX_ASSERT(v.ndim() == 1);
@@ -140,7 +140,7 @@ public:
             }
 
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-            device.backend().CallOp<FillOp>(out, T{0});
+            device.backend().CallKernel<FillKernel>(out, T{0});
 
             IndexableArray<const T, 1> v_iarray{v};
             IndexableArray<T, 2> out_iarray{out};
@@ -159,7 +159,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(DiagflatOp, CudaDiagflatOp);
+CHAINERX_CUDA_REGISTER_KERNEL(DiagflatKernel, CudaDiagflatKernel);
 
 template <typename T>
 struct LinspaceImpl {
@@ -173,7 +173,7 @@ struct LinspaceImpl {
     double stop;
 };
 
-class CudaLinspaceOp : public LinspaceOp {
+class CudaLinspaceKernel : public LinspaceKernel {
 public:
     void Call(double start, double stop, const Array& out) override {
         CHAINERX_ASSERT(out.ndim() == 1);
@@ -189,7 +189,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(LinspaceOp, CudaLinspaceOp);
+CHAINERX_CUDA_REGISTER_KERNEL(LinspaceKernel, CudaLinspaceKernel);
 
 template <typename T>
 struct FillImpl {
@@ -198,7 +198,7 @@ struct FillImpl {
     CudaType value;
 };
 
-class CudaFillOp : public FillOp {
+class CudaFillKernel : public FillKernel {
 public:
     void Call(const Array& out, Scalar value) override {
         CudaSetDeviceScope scope{out.device().index()};
@@ -210,7 +210,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(FillOp, CudaFillOp);
+CHAINERX_CUDA_REGISTER_KERNEL(FillKernel, CudaFillKernel);
 
 }  // namespace
 }  // namespace cuda

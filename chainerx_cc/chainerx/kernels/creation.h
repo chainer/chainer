@@ -3,19 +3,19 @@
 #include <cstdint>
 
 #include "chainerx/array.h"
-#include "chainerx/op.h"
+#include "chainerx/kernel.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
 
-class ArangeOp : public Op {
+class ArangeKernel : public Kernel {
 public:
     static const char* name() { return "Arange"; }
 
     virtual void Call(Scalar start, Scalar step, const Array& out) = 0;
 };
 
-class CopyOp : public Op {
+class CopyKernel : public Kernel {
 public:
     static const char* name() { return "Copy"; }
 
@@ -25,7 +25,7 @@ public:
     virtual void Call(const Array& a, const Array& out) = 0;
 };
 
-class IdentityOp : public Op {
+class IdentityKernel : public Kernel {
 public:
     static const char* name() { return "Identity"; }
 
@@ -34,7 +34,7 @@ public:
     virtual void Call(const Array& out) = 0;
 };
 
-class EyeOp : public Op {
+class EyeKernel : public Kernel {
 public:
     static const char* name() { return "Eye"; }
 
@@ -43,14 +43,14 @@ public:
     virtual void Call(int64_t k, const Array& out) = 0;
 };
 
-class DiagflatOp : public Op {
+class DiagflatKernel : public Kernel {
 public:
     static const char* name() { return "Diagflat"; }
 
     virtual void Call(const Array& v, int64_t k, const Array& out) = 0;
 };
 
-class LinspaceOp : public Op {
+class LinspaceKernel : public Kernel {
 public:
     static const char* name() { return "Linspace"; }
 

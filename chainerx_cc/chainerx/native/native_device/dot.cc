@@ -18,7 +18,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
@@ -117,7 +117,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
     }
 
     if (!is_out_contiguous) {
-        out.device().backend().CallOp<CopyOp>(out_contiguous, out);
+        out.device().backend().CallKernel<CopyKernel>(out_contiguous, out);
     }
 }
 
@@ -141,7 +141,7 @@ double MultiplyAdd(double x, double y, double z) { return std::fma(x, y, z); }
 
 }  // namespace
 
-class NativeDotOp : public DotOp {
+class NativeDotKernel : public DotKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
         Device& device = a.device();
@@ -224,7 +224,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(DotOp, NativeDotOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DotKernel, NativeDotKernel);
 
 }  // namespace native
 }  // namespace chainerx

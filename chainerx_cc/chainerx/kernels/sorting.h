@@ -2,11 +2,11 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
-#include "chainerx/op.h"
+#include "chainerx/kernel.h"
 
 namespace chainerx {
 
-class ArgMaxOp : public Op {
+class ArgMaxKernel : public Kernel {
 public:
     static const char* name() { return "ArgMax"; }
 

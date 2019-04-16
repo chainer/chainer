@@ -9,12 +9,12 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/dtype.h"
-#include "chainerx/op.h"
+#include "chainerx/kernel.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
 
-// Intermediate results from `BatchNormOp::Call` can be stored in this construct and be reused in `BatchNormGradOp::Call`.
+// Intermediate results from `BatchNormKernel::Call` can be stored in this construct and be reused in `BatchNormGradKernel::Call`.
 // The objects to store may vary depending on backend so each backend should derive this class to define the actual set of intermediate
 // results.
 class BatchNormGradState {
@@ -22,7 +22,7 @@ public:
     virtual ~BatchNormGradState() = default;
 };
 
-class BatchNormOp : public Op {
+class BatchNormKernel : public Kernel {
 public:
     static const char* name() { return "BatchNorm"; }
 
@@ -40,7 +40,7 @@ public:
             const nonstd::optional<Array>& out) = 0;
 };
 
-class BatchNormGradOp : public Op {
+class BatchNormGradKernel : public Kernel {
 public:
     static const char* name() { return "BatchNormGrad"; }
 
@@ -72,7 +72,7 @@ private:
     Dtype beta_dtype_;
 };
 
-class GenericBatchNormOp : public BatchNormOp {
+class GenericBatchNormKernel : public BatchNormKernel {
 public:
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
@@ -87,7 +87,7 @@ public:
             const nonstd::optional<Array>& out) override;
 };
 
-class GenericBatchNormGradOp : public BatchNormGradOp {
+class GenericBatchNormGradKernel : public BatchNormGradKernel {
 public:
     std::tuple<Array, Array, Array> Call(
             const Array& x,
@@ -101,7 +101,7 @@ public:
             const nonstd::optional<Array>& gbeta) override;
 };
 
-class FixedBatchNormOp : public Op {
+class FixedBatchNormKernel : public Kernel {
 public:
     static const char* name() { return "FixedBatchNorm"; }
 
@@ -116,7 +116,7 @@ public:
             const nonstd::optional<Array>& out) = 0;
 };
 
-class GenericFixedBatchNormOp : public FixedBatchNormOp {
+class GenericFixedBatchNormKernel : public FixedBatchNormKernel {
 public:
     Array Call(
             const Array& x,

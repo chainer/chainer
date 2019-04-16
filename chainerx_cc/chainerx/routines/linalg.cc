@@ -73,7 +73,7 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     Array out_matrix = Empty({m, n}, real_out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<DotOp>(a_matrix, b_matrix, out_matrix);
+        a.device().backend().CallKernel<DotKernel>(a_matrix, b_matrix, out_matrix);
     }
 
     {
