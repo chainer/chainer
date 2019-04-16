@@ -23,9 +23,9 @@
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
 #include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 

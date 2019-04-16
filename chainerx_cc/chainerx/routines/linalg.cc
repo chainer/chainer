@@ -17,6 +17,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"

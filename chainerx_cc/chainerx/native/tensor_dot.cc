@@ -9,9 +9,9 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

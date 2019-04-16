@@ -13,7 +13,7 @@
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/device.h"
-#include "chainerx/routines/linalg.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
