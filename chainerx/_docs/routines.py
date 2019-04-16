@@ -1136,7 +1136,7 @@ Note:
     _docs.set_doc(
         chainerx.tanh,
         """tanh(x)
-Hyperbolic tangent, element-wise
+Element-wise hyperbolic tangent function.
 
 Args:
     x (~chainerx.ndarray): Input array.
@@ -1149,6 +1149,25 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.tanh`
+""")
+
+    _docs.set_doc(
+        chainerx.sigmoid,
+        """sigmoid(x)
+Element-wise sigmoid logistic function.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array:
+    :math:`f(x) = (1 + \\exp(-x))^{-1}`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :func:`chainer.functions.sigmoid`
 """)
 
     _docs.set_doc(
@@ -1531,7 +1550,7 @@ following equations:
 
 If ``cover_all`` option is ``True``, the filter will cover the all
 spatial locations. So, if the last stride of filter does not cover the
-end of spatial locations, an addtional stride will be applied to the end
+end of spatial locations, an additional stride will be applied to the end
 part of spatial locations. In this case, the output size is determined by
 the following equations:
 
