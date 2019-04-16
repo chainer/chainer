@@ -17,6 +17,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/normalization.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"

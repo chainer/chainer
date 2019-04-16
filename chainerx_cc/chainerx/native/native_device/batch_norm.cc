@@ -1,5 +1,5 @@
+#include "chainerx/kernels/normalization.h"
 #include "chainerx/native/op_regist.h"
-#include "chainerx/routines/normalization.h"
 
 namespace chainerx {
 namespace native {
