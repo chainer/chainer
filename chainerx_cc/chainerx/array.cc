@@ -216,6 +216,10 @@ Array Array::Mean(const OptionalAxes& axis, bool keepdims) const { return chaine
 
 Array Array::Var(const OptionalAxes& axis, bool keepdims) const { return chainerx::Var(*this, axis, keepdims); }
 
+Array Array::All(const OptionalAxes& axis, bool keepdims) const { return chainerx::All(*this, axis, keepdims); }
+
+Array Array::Any(const OptionalAxes& axis, bool keepdims) const { return chainerx::Any(*this, axis, keepdims); }
+
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
 Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
