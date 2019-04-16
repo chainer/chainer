@@ -195,7 +195,7 @@ class VariableStatisticsPlot(extension.Extension):
         )
         if filename is None:
             filename = file_name
-        del file_name
+        del file_name  # avoid accidental use
 
         self._vars = _unpack_variables(targets)
         if len(self._vars) == 0:
