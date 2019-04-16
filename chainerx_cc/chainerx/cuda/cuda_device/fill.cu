@@ -18,9 +18,9 @@
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 

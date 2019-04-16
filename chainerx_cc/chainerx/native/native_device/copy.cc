@@ -6,10 +6,10 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/misc.h"
 
 namespace chainerx {
 namespace native {
