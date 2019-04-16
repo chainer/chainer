@@ -13,6 +13,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"

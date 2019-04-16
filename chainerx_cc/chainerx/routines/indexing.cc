@@ -17,6 +17,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"

@@ -7,6 +7,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
