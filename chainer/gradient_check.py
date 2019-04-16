@@ -474,6 +474,14 @@ class _CheckBackward(object):
         # determined.
         xs_backward, ys, params_backward = (
             self._forward_for_backward_gradients())
+
+        # Check output finiteness
+        if not all([
+                y is None or self.device.xp.isfinite(y.array).all()
+                for y in ys]):
+            raise ValueError(
+                'Target function returned non-finite output in forward '
+                'computation. Gradients cannot be calculated.')
         # Keep output arrays to save computation in numerical gradients
         y0_data = tuple([None if y is None else y.array for y in ys])
 
