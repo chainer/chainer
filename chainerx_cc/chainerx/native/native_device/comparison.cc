@@ -5,6 +5,7 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/native/reduce.h"

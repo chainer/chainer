@@ -13,6 +13,7 @@
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/routines/logic.h"
 
 namespace chainerx {

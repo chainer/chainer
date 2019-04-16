@@ -4,6 +4,7 @@
 #include "chainerx/backprop_mode.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
