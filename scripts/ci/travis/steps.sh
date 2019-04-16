@@ -155,7 +155,7 @@ step_chainerx_python_tests() {
 step_chainermn_tests() {
     for NP in 1 2; do
         OMP_NUM_THREADS=1 \
-            mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' "$REPO_DIR"/tests/chainermn_tests
+            mpiexec -n ${NP} pytest -s -m 'not gpu and not slow' "$REPO_DIR"/tests/chainermn_tests
     done
 }
 
