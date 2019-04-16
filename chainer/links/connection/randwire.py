@@ -80,7 +80,7 @@ def DAG(graph):
     return parents
 
 
-class RandWire(chainer.ChainList):
+class RandWire(link.ChainList):
     """A random wired neural network module.
 
     See: `Exploring Randomly Wired Neural Networks for Image Recognition\

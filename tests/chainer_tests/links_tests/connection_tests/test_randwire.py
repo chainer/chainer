@@ -25,7 +25,7 @@ class TestRandWireWS(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (10, self.out_channels, 5, 5)
         ).astype(numpy.float32)
-        self.l = links.RandWireWS(_n, _k, _p, link)
+        self.l = links.RandWireWS(self._n, self._k, self._p, self.link)
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
