@@ -1,3 +1,5 @@
+import unittest
+
 import chainer
 import numpy
 import pytest
@@ -21,8 +23,11 @@ class IgnoreNumpyFloatingPointError(object):
 
 class UnaryMathTestBase(object):
 
+    input = None
+
     def setup(self):
         in_dtype, = self.in_dtypes
+        in_kind = numpy.dtype(in_dtype).kind
 
         if numpy.dtype(in_dtype).kind != 'f':
             self.skip_backward_test = True
@@ -33,6 +38,14 @@ class UnaryMathTestBase(object):
             self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
+
+        input = self.input
+        if (in_kind == 'u'
+                and isinstance(input, (int, float))
+                and input < 0):
+            raise unittest.SkipTest(
+                'Combination of uint dtype and negative input cannot be '
+                'tested')
 
     def generate_inputs(self):
         in_dtype, = self.in_dtypes
@@ -1699,16 +1712,33 @@ class TestSquaredDifference(op_utils.OpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0.), numpy.asarray(-1.), numpy.asarray(1.), numpy.asarray(
-        10.), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2.), numpy.full((0,), 2.), numpy.full((2, 3), 2.)
-])
+@chainer.testing.parameterize(*(
+    # Differentiable
+    chainer.testing.product({
+        'input': [
+            numpy.asarray(0.),
+            numpy.asarray(-1.),
+            numpy.asarray(1.),
+            numpy.asarray(10.),
+            numpy.full((), 2.),
+            numpy.full((0,), 2.),
+            numpy.full((2, 3), 2.)
+        ]})
+    +
+    # Nondifferentiable
+    chainer.testing.product({
+        'input': [
+            numpy.asarray(float('inf')),
+            numpy.asarray(float('nan')),
+        ],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
 @pytest.mark.parametrize('contiguous', [None, 'C'])
 class TestSigmoid(op_utils.NumpyOpTest):
 
-    def setup(self, input, contiguous, float_dtype):
-        self.input = input
+    def setup(self, contiguous, float_dtype):
         self.dtype = float_dtype
         self.contiguous = contiguous
         self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
@@ -1780,7 +1810,7 @@ class TestSqrt(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.sqrt(a)
 
 
-_trignometric_hyperpolic_params = \
+_trigonometric_hyperbolic_params = \
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
@@ -1797,7 +1827,7 @@ _trignometric_hyperpolic_params = \
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestSinh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1807,7 +1837,7 @@ class TestSinh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestCosh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1817,7 +1847,7 @@ class TestCosh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1827,7 +1857,7 @@ class TestTanh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1837,7 +1867,7 @@ class TestSin(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1847,7 +1877,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _trigonometric_hyperbolic_params
 ))
 class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1855,24 +1885,53 @@ class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.tan(a)
 
 
-_inverse_trig_hyper_params = \
-    chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
-        'input': [-0.75, 0, 0.75],
-        'contiguous': [None, 'C'],
-    }) + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
-        'input': [1, -1, float('inf'), -float('inf'), float('nan')],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
-    })
+def _make_inverse_trig_params(name):
+    # Makes test parameters for inverse trigonometric functions
+
+    inverse_trig_differentiable_inputs = {
+        'arcsin': [-0.9, 0, 0.9],
+        'arccos': [-0.9, 0, 0.9],
+        'arctan': [-3, -0.2, 0, 0.2, 3],
+        'arcsinh': [-3, -0.2, 0, 0.2, 3],
+        'arccosh': [1.2, 3],
+        'arctanh': [-0.9, 0, 0.9],
+    }
+
+    inverse_trig_nondifferentiable_inputs = {
+        'arcsin': [-3, -1, 1, 3],
+        'arccos': [-3, -1, 1, 3],
+        'arctan': [],
+        'arcsinh': [],
+        'arccosh': [-3, 0, 0.2, 1],
+        'arctanh': [-3, -1, 1, 3],
+    }
+
+    nonfinite_numbers = [float('inf'), -float('inf'), float('nan')]
+
+    return (
+        # Various shapes and differentiable inputs
+        chainer.testing.product({
+            'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+            'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+            'input': inverse_trig_differentiable_inputs[name],
+            'contiguous': [None, 'C'],
+        })
+        +
+        # Nondifferentiable inputs
+        chainer.testing.product({
+            'shape': [(2, 3)],
+            'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+            'input': (
+                inverse_trig_nondifferentiable_inputs[name]
+                + nonfinite_numbers),
+            'skip_backward_test': [True],
+            'skip_double_backward_test': [True],
+        }))
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _inverse_trig_hyper_params
+    _make_inverse_trig_params('arcsinh')
 ))
 class TestArcsinh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1882,7 +1941,7 @@ class TestArcsinh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _inverse_trig_hyper_params
+    _make_inverse_trig_params('arccosh')
 ))
 class TestArccosh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1892,7 +1951,7 @@ class TestArccosh(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _inverse_trig_hyper_params
+    _make_inverse_trig_params('arcsin')
 ))
 class TestArcsin(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1902,7 +1961,7 @@ class TestArcsin(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _inverse_trig_hyper_params
+    _make_inverse_trig_params('arccos')
 ))
 class TestArccos(UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -1912,7 +1971,7 @@ class TestArccos(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    _trignometric_hyperpolic_params
+    _make_inverse_trig_params('arctan')
 ))
 class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
