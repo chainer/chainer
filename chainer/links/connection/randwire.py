@@ -1,4 +1,3 @@
-import chainer
 from chainer import function_node
 from chainer import functions
 from chainer import link
@@ -38,8 +37,8 @@ def WattsStrogatz(n, k, p):
 
     Args:
         n (int): # of nodes in a random graph.
-        k (int): # of connected nodes of each nodes in initial. `k` should be an
-            even integer.
+        k (int): # of connected nodes of each nodes in initial. `k` should be
+            an even integer.
         p (int): The probability of rewiring.
     """
     # Generate initial edges
@@ -87,9 +86,9 @@ class RandWire(link.ChainList):
           <https://arxiv.org/abs/1904.01569>`_
 
     Args:
-        DAG (list of list): A DAG denotes wired neural network. Each list in DAG
-            has IDs of parents of the node. DAG[0] denotes extra-input node and
-            DAG[-1] denotes extra-output node.
+        DAG (list of list): A DAG denotes wired neural network. Each list in
+            DAG has IDs of parents of the node. DAG[0] denotes extra-input node
+            and DAG[-1] denotes extra-output node.
         link (~chainer.Link): A link module in each node.
         aggregator (function or ~chainer.Function): A function module used to
             aggregate multiple nodes. If `weighted == True`, aggregator will be
