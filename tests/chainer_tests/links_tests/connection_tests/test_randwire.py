@@ -16,7 +16,7 @@ class TestRandWireWS(unittest.TestCase):
     _n = 16
     _k = 4
     _p = 0.75
-    link = links.Convolution2D(out_channels)
+    link = links.Convolution2D(None, out_channels)
 
     def setUp(self):
         self.x = numpy.random.uniform(
