@@ -3,7 +3,6 @@ import six
 from chainer import backend
 from chainer import function_node
 import chainer.functions
-from chainer import utils
 from chainer.utils import type_check
 
 
@@ -31,7 +30,7 @@ class Standardize(function_node.FunctionNode):
     """Standardization for `Weight standardization
         <https://arxiv.org/abs/1903.10520>`_"""
 
-    def __init__(self, eps=1e-5):
+    def __init__(self, eps=1e-6):
         self.eps = eps
 
     def check_type_forward(self, in_types):
@@ -55,7 +54,7 @@ class Standardize(function_node.FunctionNode):
         else:
             std_noeps = xp.sqrt(var, dtype=x.dtype)
         std = std_noeps + x.dtype.type(self.eps)
-        x_hat = utils.force_array(x_mu / std)
+        x_hat = x_mu / std
         return x_mu, std_noeps, std, x_hat, axes
 
     def forward(self, inputs):
@@ -71,29 +70,23 @@ class Standardize(function_node.FunctionNode):
         gy, = grad_outputs
 
         x_mu, std_noeps, std, x_hat, axes = self._compute(F, x)
-
         g_x_mu_1 = std * gy
-
         g_std = F.mean((x_mu * gy), axis=axes, keepdims=True)
 
         # _standardize with eps has continuous backward. However,
         # the backward is not differentiable for the indices of zero vectors.
         # To avoid nan in double backward, do not compute outside of mask.
         mask = std_noeps.array != 0
-        g_var, = _SetItemZero(mask).apply((
-            g_std[mask] / std_noeps[mask],))
+        g_var, = _SetItemZero(mask).apply((g_std[mask] / std_noeps[mask],))
 
         g_x_mu_2 = g_var * x_mu
-
         g_x_1 = (g_x_mu_1 - g_x_mu_2) / (std ** 2)
         g_mu = F.mean(g_x_1, axis=axes, keepdims=True)
 
-        g_x = g_x_1 - g_mu
-
-        return g_x,
+        return g_x_1 - g_mu,
 
 
-def _standardize(x, eps=1e-5):
+def _standardize(x, eps=1e-6):
     """Standardize for `Weight standardization
     <https://arxiv.org/abs/1903.10520>`_.
 

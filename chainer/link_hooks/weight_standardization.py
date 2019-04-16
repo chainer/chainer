@@ -34,7 +34,7 @@ class WeightStandardization(link_hook.LinkHook):
 
     name = 'WeightStandardization'
 
-    def __init__(self, eps=1e-5, weight_name='W', name=None):
+    def __init__(self, eps=1e-6, weight_name='W', name=None):
         self.eps = eps
         self.weight_name = weight_name
         self._initialized = False

@@ -68,13 +68,9 @@ class TestStandardize(testing.FunctionTestCase):
 
     def setUp(self):
         self.skip_double_backward_test = self.same in ('equal', 'near')
-        self.check_backward_options.update({'eps': self.eps})
-        self.check_double_backward_options.update({'eps': self.eps})
-        if self.dtype == numpy.float16:
-            self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-            self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-            self.check_double_backward_options.update(
-                {'atol': 5e-3, 'rtol': 1e-2})
+        self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+        self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+        self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
 
     def generate_inputs(self):
         shape = self.ch_out, self.size
@@ -100,7 +96,7 @@ class TestStandardize(testing.FunctionTestCase):
         x_mu = x - mu
         var = numpy.mean(numpy.square(x_mu), axis=1, keepdims=True)
         std = numpy.sqrt(var, dtype=x.dtype) + x.dtype.type(self.eps)
-        return utils.force_array(x_mu / std),
+        return utils.force_array(x_mu / std, dtype=self.dtype),
 
 
 testing.run_module(__name__, __file__)
