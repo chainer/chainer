@@ -7,6 +7,7 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/routines/math.h"

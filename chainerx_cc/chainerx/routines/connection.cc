@@ -19,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/kernels/linalg.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/op_registry.h"
 #include "chainerx/routines/creation.h"

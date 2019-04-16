@@ -6,6 +6,7 @@
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/op_regist.h"
 #include "chainerx/native/reduce.h"

@@ -4,7 +4,6 @@ install(FILES
     indexing.h
     linalg.h
     logic.h
-    manipulation.h
     math.h
     misc.h
     normalization.h
