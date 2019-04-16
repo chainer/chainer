@@ -8,36 +8,36 @@
     static chainerx::internal::OpRegistrar<chainerx::native::NativeBackend, key_op_cls, op_cls> \
             s_native_backend_op_##op_cls{};  // NOLINT(cert-err58-cpp)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, visit_dtype)  \
-    class Native##op_name : public op_name {                                            \
-    public:                                                                             \
-        void Call(const Array& x, const Array& out) override {                          \
-            Device& device = x.device();                                                \
-            device.CheckDevicesCompatible(x, out);                                      \
-            const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype()); \
-            visit_dtype(out.dtype(), [&](auto pt) {                                     \
-                using T = typename decltype(pt)::type;                                  \
-                struct Impl {                                                           \
-                    void operator()(int64_t i, T x, T& out) {                           \
-                        (void)i;                                                        \
-                        op_body                                                         \
-                    }                                                                   \
-                };                                                                      \
-                Elementwise<const T, T>(Impl{}, x_cast, out);                           \
-            });                                                                         \
-        }                                                                               \
-    };                                                                                  \
-                                                                                        \
-    CHAINERX_NATIVE_REGISTER_OP(op_name, Native##op_name);
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(key_op_cls, op_body, visit_dtype) \
+    class Native##key_op_cls : public key_op_cls {                                        \
+    public:                                                                               \
+        void Call(const Array& x, const Array& out) override {                            \
+            Device& device = x.device();                                                  \
+            device.CheckDevicesCompatible(x, out);                                        \
+            const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());   \
+            visit_dtype(out.dtype(), [&](auto pt) {                                       \
+                using T = typename decltype(pt)::type;                                    \
+                struct Impl {                                                             \
+                    void operator()(int64_t i, T x, T& out) {                             \
+                        (void)i;                                                          \
+                        op_body                                                           \
+                    }                                                                     \
+                };                                                                        \
+                Elementwise<const T, T>(Impl{}, x_cast, out);                             \
+            });                                                                           \
+        }                                                                                 \
+    };                                                                                    \
+                                                                                          \
+    CHAINERX_NATIVE_REGISTER_OP(key_op_cls, Native##key_op_cls);
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(op_name, op_body) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, VisitFloatingPointDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_OP(key_op_cls, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(key_op_cls, op_body, VisitFloatingPointDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(op_name, op_body) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(op_name, op_body, VisitDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(key_op_cls, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_OP(key_op_cls, op_body, VisitDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, visit_dtype)     \
-    class Native##op_name : public op_name {                                                \
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(key_op_cls, op_body, visit_dtype)  \
+    class Native##key_op_cls : public key_op_cls {                                          \
     public:                                                                                 \
         void Call(const Array& x1, const Array& x2, const Array& out) override {            \
             Device& device = x1.device();                                                   \
@@ -57,10 +57,10 @@
         }                                                                                   \
     };                                                                                      \
                                                                                             \
-    CHAINERX_NATIVE_REGISTER_OP(op_name, Native##op_name);
+    CHAINERX_NATIVE_REGISTER_OP(key_op_cls, Native##key_op_cls);
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_OP(op_name, op_body) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, VisitFloatingPointDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_OP(key_op_cls, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(key_op_cls, op_body, VisitFloatingPointDtype)
 
-#define CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(op_name, op_body) \
-    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(op_name, op_body, VisitDtype)
+#define CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(key_op_cls, op_body) \
+    CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(key_op_cls, op_body, VisitDtype)
