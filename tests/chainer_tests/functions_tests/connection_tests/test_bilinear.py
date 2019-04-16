@@ -6,7 +6,6 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
@@ -18,135 +17,95 @@ def _uniform(*shape):
 @testing.parameterize(*testing.product({
     'in_shapes': [((2,), (4,)), ((2, 1), (4, 2))],
     'out_size': [3],
-    'batch_size': [2]
+    'batch_size': [2],
+    'test_partial': [True, False],
 }))
-class TestBilinearFunction(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': ['never', 'always']},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestBilinearFunction(testing.FunctionTestCase):
 
     def setUp(self):
-        e1_shape = (self.batch_size,) + self.in_shapes[0]
-        e2_shape = (self.batch_size,) + self.in_shapes[1]
-        e1_size = numpy.prod(self.in_shapes[0])
-        e2_size = numpy.prod(self.in_shapes[1])
-
-        self.e1 = _uniform(*e1_shape)
-        self.e2 = _uniform(*e2_shape)
-        self.W = _uniform(e1_size, e2_size, self.out_size)
-        self.V1 = _uniform(e1_size, self.out_size)
-        self.V2 = _uniform(e2_size, self.out_size)
-        self.b = _uniform(self.out_size)
-
-        self.gy = _uniform(self.batch_size, self.out_size)
-
-        self.gge1 = _uniform(*self.e1.shape)
-        self.gge2 = _uniform(*self.e2.shape)
-        self.ggW = _uniform(*self.W.shape)
-        self.ggV1 = _uniform(*self.V1.shape)
-        self.ggV2 = _uniform(*self.V2.shape)
-        self.ggb = _uniform(*self.b.shape)
+        self.e1_shape = (self.batch_size,) + self.in_shapes[0]
+        self.e2_shape = (self.batch_size,) + self.in_shapes[1]
+        self.e1_size = numpy.prod(self.in_shapes[0])
+        self.e2_size = numpy.prod(self.in_shapes[1])
 
         self.check_backward_options = {
-            'atol': 1e-5, 'rtol': 1e-4, 'dtype': numpy.float64}
+            'atol': 1e-5, 'rtol': 1e-4}
         self.check_double_backward_options = {
-            'atol': 1e-4, 'rtol': 1e-3, 'dtype': numpy.float64}
+            'atol': 1e-4, 'rtol': 1e-3}
 
-    def check_forward(self, e1_data, e2_data, W_data, V1_data, V2_data,
-                      b_data):
-        e1 = chainer.Variable(e1_data)
-        e2 = chainer.Variable(e2_data)
-        W = chainer.Variable(W_data)
+    def generate_inputs(self):
+        e1 = _uniform(*self.e1_shape)
+        e2 = _uniform(*self.e2_shape)
+        W = _uniform(self.e1_size, self.e2_size, self.out_size)
+        if self.test_partial:
+            return e1, e2, W
+        else:
+            V1 = _uniform(self.e1_size, self.out_size)
+            V2 = _uniform(self.e2_size, self.out_size)
+            b = _uniform(self.out_size)
 
-        e1_data = e1_data.reshape(e1_data.shape[0], -1)
-        e2_data = e2_data.reshape(e2_data.shape[0], -1)
+        return e1, e2, W, V1, V2, b
+
+    def forward_expected(self, inputs):
+        if self.test_partial:
+            e1, e2, W = inputs
+            V1 = None
+            V2 = None
+            b = None
+        else:
+            e1, e2, W, V1, V2, b = inputs
+
+        e1 = e1.reshape(e1.shape[0], -1)
+        e2 = e2.reshape(e2.shape[0], -1)
         xp = backend.get_array_module(e1)
-        y_expect = xp.einsum('ij,ik,jkl->il', e1_data, e2_data, W_data)
+        y_expect = xp.einsum('ij,ik,jkl->il', e1, e2, W)
+        flags = V1 is None, V2 is None, b is None
+        if any(flags):
+            if not all(flags):
+                raise ValueError(
+                    'Test either all or none of the optional parameters.')
+        else:
+            y_expect += e1.dot(V1)
+            y_expect += e2.dot(V2)
+            y_expect += b
+        return y_expect,
 
-        flags = V1_data is None, V2_data is None, b_data is None
+    def forward(self, inputs, device):
+        if self.test_partial:
+            e1, e2, W = inputs
+            V1 = None
+            V2 = None
+            b = None
+        else:
+            e1, e2, W, V1, V2, b = inputs
+        flags = V1 is None, V2 is None, b is None
         if any(flags):
             if not all(flags):
                 raise ValueError(
                     'Test either all or none of the optional parameters.')
             y = functions.bilinear(e1, e2, W)
         else:
-            V1 = chainer.Variable(V1_data)
-            V2 = chainer.Variable(V2_data)
-            b = chainer.Variable(b_data)
             y = functions.bilinear(e1, e2, W, V1, V2, b)
-
-            y_expect = xp.einsum('ij,ik,jkl->il', e1_data, e2_data, W_data)
-            y_expect += e1_data.dot(V1_data)
-            y_expect += e2_data.dot(V2_data)
-            y_expect += b_data
-
-        testing.assert_allclose(y_expect, cuda.to_cpu(y.data))
-        assert y.data.dtype == e1_data.dtype
-
-    def test_forward_cpu(self):
-        self.check_forward(self.e1, self.e2, self.W, self.V1, self.V2, self.b)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W),
-            cuda.to_gpu(self.V1), cuda.to_gpu(self.V2), cuda.to_gpu(self.b))
-
-    def test_partial_backward_cpu(self):
-        gradient_check.check_backward(
-            functions.bilinear, (self.e1, self.e2, self.W), self.gy,
-            **self.check_backward_options)
-
-    @attr.gpu
-    def test_partial_backward_gpu(self):
-        gradient_check.check_backward(
-            functions.bilinear,
-            (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W)),
-            cuda.to_gpu(self.gy), **self.check_backward_options)
-
-    def test_full_backward_cpu(self):
-        gradient_check.check_backward(
-            functions.bilinear,
-            (self.e1, self.e2, self.W, self.V1, self.V2, self.b), self.gy,
-            **self.check_backward_options)
-
-    @attr.gpu
-    def test_full_backward_gpu(self):
-        gradient_check.check_backward(
-            functions.bilinear,
-            (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W),
-             cuda.to_gpu(self.V1), cuda.to_gpu(self.V2), cuda.to_gpu(self.b)),
-            cuda.to_gpu(self.gy), **self.check_backward_options)
-
-    def test_partial_double_backward_cpu(self):
-        gradient_check.check_double_backward(
-            functions.bilinear, (self.e1, self.e2, self.W), self.gy,
-            (self.gge1, self.gge2, self.ggW), **self.check_backward_options)
-
-    @attr.gpu
-    def test_partial_double_backward_gpu(self):
-        gradient_check.check_double_backward(
-            functions.bilinear,
-            (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W)),
-            cuda.to_gpu(self.gy),
-            (cuda.to_gpu(self.gge1), cuda.to_gpu(self.gge2),
-             cuda.to_gpu(self.ggW)), **self.check_backward_options)
-
-    def test_full_double_backward_cpu(self):
-        gradient_check.check_double_backward(
-            functions.bilinear,
-            (self.e1, self.e2, self.W, self.V1, self.V2, self.b),
-            self.gy,
-            (self.gge1, self.gge2, self.ggW, self.ggV1, self.ggV2, self.ggb),
-            **self.check_double_backward_options)
-
-    @attr.gpu
-    def test_full_double_backward_gpu(self):
-        gradient_check.check_double_backward(
-            functions.bilinear,
-            (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W),
-             cuda.to_gpu(self.V1), cuda.to_gpu(self.V2), cuda.to_gpu(self.b)),
-            cuda.to_gpu(self.gy),
-            (cuda.to_gpu(self.gge1), cuda.to_gpu(self.gge2),
-             cuda.to_gpu(self.ggW), cuda.to_gpu(self.V1), cuda.to_gpu(self.V2),
-             cuda.to_gpu(self.ggb)), **self.check_double_backward_options)
+        return y,
 
 
 @attr.slow
