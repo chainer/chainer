@@ -5,9 +5,10 @@ This code implements skip-gram model and continuous-bow model.
 """
 import argparse
 import collections
+import os
+import six
 
 import numpy as np
-import six
 
 import chainer
 from chainer.backends import cuda
@@ -136,8 +137,8 @@ class WindowIterator(chainer.dataset.Iterator):
                                            self.current_position)
         self.epoch = serializer('epoch', self.epoch)
         self.is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
-        if self._order is not None:
-            serializer('_order', self._order)
+        if self.order is not None:
+            serializer('order', self.order)
 
 
 @chainer.dataset.converter()
@@ -175,6 +176,10 @@ def main():
                         'no approximation)')
     parser.add_argument('--out', default='result',
                         help='Directory to output the result')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Resume the training from snapshot')
+    parser.add_argument('--snapshot-interval', type=int,
+                        help='Interval of snapshots')
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
     group = parser.add_argument_group('deprecated arguments')
@@ -185,6 +190,10 @@ def main():
 
     device = chainer.get_device(args.device)
     device.use()
+
+    if args.snapshot_interval is None:
+        args.snapshot_interval = args.epoch
+    args.snapshot_interval = min(args.snapshot_interval, args.epoch)
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -256,10 +265,17 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss']))
     trainer.extend(extensions.ProgressBar())
+
+    trainer.extend(
+        extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
+        trigger=(args.snapshot_interval, 'epoch'))
+
+    if args.resume is not None:
+        chainer.serializers.load_npz(args.resume, trainer)
     trainer.run()
 
     # Save the word2vec model
-    with open('word2vec.model', 'w') as f:
+    with open(os.path.join(args.out, 'word2vec.model'), 'w') as f:
         f.write('%d %d\n' % (len(index2word), args.unit))
         w = cuda.to_cpu(model.embed.W.array)
         for i, wi in enumerate(w):
