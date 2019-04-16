@@ -18,6 +18,8 @@ add_library(chainerx_native STATIC
     native_device/conv.cc
     native_device/copy.cc
     native_device/comparison.cc
+    native_device/diagonal.cc
+    native_device/diagonalflat.cc
     native_device/dot.cc
     native_device/exp_log.cc
     native_device/fill.cc
@@ -26,7 +28,6 @@ add_library(chainerx_native STATIC
     native_device/misc.cc
     native_device/pool.cc
     native_device/reduction.cc
-    native_device/trace.cc
     native_device/trigonometric.cc
     native_backend.cc
     col2im.cc

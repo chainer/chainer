@@ -51,7 +51,7 @@ __global__ void ElementwiseKernelWithIndex(Op op, Indexer<Ndim> indexer, Indexab
 }
 
 template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
-void LaunchElementwiseKernelWithIndex(Op&& op, const Shape& shape, const Axes& keep, const Arrays&... args) {
+void LaunchElementwiseKernelWithIndex(Op&& op, const Shape& shape, const Arrays&... args) {
     // TODO(niboshi): Calculate kMaxBlockSize per device
     std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
 
@@ -61,8 +61,7 @@ void LaunchElementwiseKernelWithIndex(Op&& op, const Shape& shape, const Axes& k
     int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-    ElementwiseKernelWithIndex<Ndim, Op, Ts...><<<grid_size, block_size>>>(
-            op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
+    ElementwiseKernelWithIndex<Ndim, Op, Ts...><<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
 }
 
 }  // namespace elementwise_detail
@@ -98,30 +97,29 @@ void Elementwise(Op&& op, const Arrays&... args) {
 template <typename... Ts, typename... Arrays, typename Op>
 void ElementwiseWithIndex(Op&& op, const Arrays&... args) {
     static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
+    static_assert(sizeof...(Arrays) > 0, "At least one data type must be specified. ");
 
-    std::tuple<Shape, Axes> squashed_result = SquashShape(args...);
-    const Shape& squashed = std::get<0>(squashed_result);
-    const Axes& keep = std::get<1>(squashed_result);
+    Shape shapes[] = {args.shape()...};
 
 #ifdef NDEBUG  // Optimize only in Release build to save time on development
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
-    switch (squashed.ndim()) {
+    switch (shapes[0].ndim()) {
         case 1:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<1, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<1, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             return;
         case 2:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<2, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<2, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             return;
         case 3:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<3, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<3, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             return;
         case 4:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<4, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             return;
     }
 #endif  // NDEBUG
 
-    elementwise_detail::LaunchElementwiseKernelWithIndex<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+    elementwise_detail::LaunchElementwiseKernelWithIndex<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
 }
 
 }  // namespace cuda

@@ -258,6 +258,15 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("v"),
           py::arg("k") = 0,
           py::arg("device") = nullptr);
+    m.def("diagonalflat",
+          [](const ArrayBodyPtr& a, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta) {
+              return MoveArrayBody(Diagonalflat(Array{a}, offset, axis1, axis2, delta));
+          },
+          py::arg("a"),
+          py::arg("offset") = 0,
+          py::arg("axis1") = 0,
+          py::arg("axis2") = 1,
+          py::arg("delta") = 0);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
               return MoveArrayBody(Linspace(
@@ -299,6 +308,14 @@ void InitChainerxIndexing(pybind11::module& m) {
           py::arg("a"),
           py::arg("indices"),
           py::arg("axis"));
+    m.def("diagonal",
+          [](const ArrayBodyPtr& a, int64_t offset, int64_t axis1, int64_t axis2) {
+              return MoveArrayBody(Diagonal(Array{a}, offset, axis1, axis2));
+          },
+          py::arg("a"),
+          py::arg("offset") = 0,
+          py::arg("axis1") = 0,
+          py::arg("axis2") = 1);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {

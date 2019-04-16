@@ -185,4 +185,41 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     return out;
 }
 
+Array Diagonal(const Array& x, int64_t offset, int64_t axis1, int64_t axis2) {
+    if (x.ndim() < 2) throw DimensionError{"Diagonal requires at least 2 dimensions"};
+    if (axis1 < 0 || axis2 < 0 || axis1 >= x.ndim() || axis2 >= x.ndim()) throw ChainerxError{"Invalid axes detected"};
+    if (axis1 == axis2) throw ChainerxError{"Axes must be different"};
+
+    int64_t start_axis1 = (offset < 0) ? -offset : 0;
+    int64_t start_axis2 = (offset > 0) ? offset : 0;
+
+    const Shape& x_shape = x.shape();
+    int64_t num_elements = std::min(x_shape[axis1] - start_axis1, x_shape[axis2] - start_axis2);
+
+    std::vector<int64_t> out_shape;
+    for (int i = 0; i < x.ndim(); i++) {
+        if (i != axis1 && i != axis2) out_shape.push_back(x_shape[i]);
+    }
+    out_shape.push_back(num_elements);
+
+    Array out = Empty(Shape{out_shape}, x.dtype(), x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        out.device().backend().CallOp<DiagonalOp>(x, offset, axis1, axis2, out);
+    }
+
+    BackwardBuilder bb{"diagonal", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        int64_t delta = out_shape[axis2] - out_shape[axis1];
+        bt.Define([offset, axis1, axis2, delta](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Diagonalflat(gout, offset, axis1, axis2, delta);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx

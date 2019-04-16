@@ -29,6 +29,8 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/conv.cc
     cuda_device/copy.cu
     cuda_device/comparison.cu
+    cuda_device/diagonal.cu
+    cuda_device/diagonalflat.cu
     cuda_device/dot.cu
     cuda_device/exp_log.cu
     cuda_device/fill.cu
@@ -37,7 +39,6 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/misc.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
-    cuda_device/trace.cu
     cuda_device/trigonometric.cu
     cuda_backend.cc
     cuda_runtime.cc

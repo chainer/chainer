@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -18,6 +19,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -306,6 +308,62 @@ Array Diag(const Array& v, int64_t k, Device& device) {
 Array Diagflat(const Array& v, int64_t k, Device& device) {
     // TODO(hvy): Use Ravel or Flatten when implemented instead of Reshape.
     return Diag(v.Reshape({v.GetTotalSize()}), k, device);
+}
+
+Array Diagonalflat(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta) {
+    if (x.ndim() < 1) throw DimensionError{"Input must be 1D or greater"};
+    if (axis1 < 0 || axis2 < 0 || axis1 >= (x.ndim() + 1) || axis2 >= (x.ndim() + 1)) throw ChainerxError{"Invalid axes detected"};
+    if (axis1 == axis2) throw ChainerxError{"Axes must be different"};
+
+    const Shape& x_shape = x.shape();
+    const int64_t num_elements = x_shape[x_shape.size() - 1];
+    int64_t num_rows = 0, num_cols = 0;
+    if (offset >= 0) {
+        if (delta >= 0) {
+            num_rows = num_elements + offset + delta;
+            num_cols = num_elements;
+        } else {
+            num_rows = num_elements + offset;
+            num_cols = num_elements - delta;
+        }
+    } else {
+        if (delta >= 0) {
+            num_rows = num_elements + delta;
+            num_cols = num_elements - offset;
+        } else {
+            num_rows = num_elements;
+            num_cols = num_elements - offset - delta;
+        }
+    }
+
+    std::vector<int64_t> out_shape;
+    out_shape.resize(x.ndim() + 1);
+    out_shape[axis1] = num_rows;
+    out_shape[axis2] = num_cols;
+    int64_t x_shape_index = 0;
+    for (int64_t i = 0; i < (x.ndim() + 1); i++) {
+        if (i != axis1 && i != axis2) {
+            out_shape[i] = x_shape[x_shape_index++];
+        }
+    }
+
+    Array out = Empty(Shape{out_shape}, x.dtype(), x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallOp<DiagonalflatOp>(x, offset, axis1, axis2, delta, out);
+    }
+
+    BackwardBuilder bb{"diagonalflat", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([offset, axis1, axis2, delta](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Diagonal(gout, offset, axis1, axis2);
+        });
+    }
+    bb.Finalize();
+
+    return out;
 }
 
 // Creates a 1-d array with evenly spaced numbers.

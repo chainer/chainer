@@ -16,6 +16,13 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+class DiagonalflatOp : public Op {
+public:
+    static const char* name() { return "Diagonalflat"; }
+    virtual void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta, Array& out) = 0;
+};
+
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.
@@ -110,6 +117,9 @@ Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
 // TODO(niboshi): Remove device argument and use v.device(). Also fix tests
 Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+
+// Delta is (num_columns - num_rows).
+Array Diagonalflat(const Array& x, int64_t offset = 0, int64_t axis1 = 0, int64_t axis2 = 1, int64_t delta = 0);
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(

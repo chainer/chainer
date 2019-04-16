@@ -38,9 +38,8 @@ void ElementwiseKernelWithIndex(Op op, const Indexer<Ndim>& indexer, const Index
 }
 
 template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
-void LaunchElementwiseKernelWithIndex(Op&& op, const Shape& shape, const Axes& keep, const Arrays&... args) {
-    ElementwiseKernelWithIndex<Ndim, Op, Ts...>(
-            op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
+void LaunchElementwiseKernelWithIndex(Op&& op, const Shape& shape, const Arrays&... args) {
+    ElementwiseKernelWithIndex<Ndim, Op, Ts...>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
 }
 
 }  // namespace elementwise_detail
@@ -76,27 +75,26 @@ void Elementwise(Op&& op, const Arrays&... args) {
 template <typename... Ts, typename... Arrays, typename Op>
 void ElementwiseWithIndex(Op&& op, const Arrays&... args) {
     static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
+    static_assert(sizeof...(Arrays) > 0, "At least one data type must be specified. ");
 
-    std::tuple<Shape, Axes> squashed_result = SquashShape(args...);
-    const Shape& squashed = std::get<0>(squashed_result);
-    const Axes& keep = std::get<1>(squashed_result);
+    Shape shapes[] = {args.shape()...};
 
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
-    switch (squashed.ndim()) {
+    switch (shapes[0].ndim()) {
         case 1:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<1, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<1, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             break;
         case 2:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<2, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<2, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             break;
         case 3:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<3, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<3, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             break;
         case 4:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<4, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             break;
         default:
-            elementwise_detail::LaunchElementwiseKernelWithIndex<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
+            elementwise_detail::LaunchElementwiseKernelWithIndex<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), shapes[0], args...);
             break;
     }
 }

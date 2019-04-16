@@ -27,6 +27,12 @@ public:
     virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 };
 
+class DiagonalOp : public Op {
+public:
+    static const char* name() { return "Diagonal"; }
+    virtual void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, Array& out) = 0;
+};
+
 namespace internal {
 
 // Returns a view selected with the indices.
@@ -54,5 +60,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b);
 // TODO(niboshi): Support axis=None behavior in NumPy.
 
 Array Take(const Array& a, const Array& indices, int8_t axis);
+
+Array Diagonal(const Array& x, const int64_t offset = 0, const int64_t axis1 = 0, const int64_t axis2 = 1);
 
 }  // namespace chainerx
