@@ -17,11 +17,13 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -113,7 +115,7 @@ __global__ void AddAtKernel(
 }
 
 template <typename TIndex>
-void TakeImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t axis, const Array& out) {
+void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& out) {
     static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     CHAINERX_ASSERT(
             (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
@@ -165,7 +167,7 @@ void TakeImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t a
 }
 
 template <typename TIndex>
-void AddAtImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
     // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
 
@@ -225,35 +227,46 @@ void AddAtImpl(CudaDevice& device, const Array& a, const Array& indices, int8_t 
     });
 }
 
+class CudaTakeOp : public TakeOp {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
+        device.CheckDevicesCompatible(a, indices, out);
+
+        CudaSetDeviceScope scope{device.index()};
+
+        if (indices.dtype() == Dtype::kInt64) {
+            TakeImpl<int64_t>(device, a, indices, axis, out);
+        } else {
+            const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
+            TakeImpl<int32_t>(device, a, indices_cast, axis, out);
+        }
+    }
+};
+
+CHAINERX_CUDA_REGISTER_OP(TakeOp, CudaTakeOp);
+
+class CudaAddAtOp : public AddAtOp {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
+        device.CheckDevicesCompatible(a, indices, out);
+
+        CudaSetDeviceScope scope{device.index()};
+
+        if (indices.dtype() == Dtype::kInt64) {
+            AddAtImpl<int64_t>(device, a, indices, axis, b, out);
+        } else {
+            const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
+            AddAtImpl<int32_t>(device, a, indices_cast, axis, b, out);
+        }
+    }
+};
+
+CHAINERX_CUDA_REGISTER_OP(AddAtOp, CudaAddAtOp);
+
 }  // namespace
-
-void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
-    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
-    CheckDevicesCompatible(a, indices, out);
-
-    CudaSetDeviceScope scope{index()};
-
-    if (indices.dtype() == Dtype::kInt64) {
-        TakeImpl<int64_t>(*this, a, indices, axis, out);
-    } else {
-        const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
-        TakeImpl<int32_t>(*this, a, indices_cast, axis, out);
-    }
-}
-
-void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
-    CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
-    CheckDevicesCompatible(a, indices, out);
-
-    CudaSetDeviceScope scope{index()};
-
-    if (indices.dtype() == Dtype::kInt64) {
-        AddAtImpl<int64_t>(*this, a, indices, axis, b, out);
-    } else {
-        const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
-        AddAtImpl<int32_t>(*this, a, indices_cast, axis, b, out);
-    }
-}
-
 }  // namespace cuda
 }  // namespace chainerx

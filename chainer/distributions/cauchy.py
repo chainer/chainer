@@ -80,6 +80,10 @@ class Cauchy(distribution.Distribution):
         xp = cuda.get_array_module(self.loc)
         return chainer.as_variable(xp.full_like(self.loc.data, xp.nan))
 
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.loc)
         if xp is cuda.cupy:
