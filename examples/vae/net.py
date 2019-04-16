@@ -42,9 +42,9 @@ class AvgELBOLoss(chainer.Chain):
         p_x = self.decoder(z)
         p_z = self.prior()
 
-        reconstr = F.mean(F.sum(p_x.log_prob(
-            F.broadcast_to(x[None, :], (self.k,) + x.shape)), axis=-1))
-        kl_penalty = F.mean(F.sum(chainer.kl_divergence(q_z, p_z), axis=-1))
+        reconstr = F.mean(p_x.log_prob(
+            F.broadcast_to(x[None, :], (self.k,) + x.shape)))
+        kl_penalty = F.mean(chainer.kl_divergence(q_z, p_z))
         loss = - (reconstr - self.beta * kl_penalty)
         reporter.report({'loss': loss}, self)
         reporter.report({'reconstr': reconstr}, self)
@@ -65,7 +65,7 @@ class Encoder(chainer.Chain):
         h = F.tanh(self.linear(x))
         mu = self.mu(h)
         ln_sigma = self.ln_sigma(h)  # log(sigma)
-        return D.Normal(loc=mu, log_scale=ln_sigma)
+        return D.Independent(D.Normal(loc=mu, log_scale=ln_sigma))
 
 
 class Decoder(chainer.Chain):
@@ -81,7 +81,9 @@ class Decoder(chainer.Chain):
         n_batch_axes = 1 if inference else 2
         h = F.tanh(self.linear(z, n_batch_axes=n_batch_axes))
         h = self.output(h, n_batch_axes=n_batch_axes)
-        return D.Bernoulli(logit=h, binary_check=self.binary_check)
+        return D.Independent(
+            D.Bernoulli(logit=h, binary_check=self.binary_check),
+            reinterpreted_batch_ndims=1)
 
 
 class Prior(chainer.Link):
@@ -89,13 +91,15 @@ class Prior(chainer.Link):
     def __init__(self, n_latent):
         super(Prior, self).__init__()
 
-        self.loc = np.zeros(n_latent, np.float32)
-        self.scale = np.ones(n_latent, np.float32)
+        dtype = chainer.get_dtype()
+        self.loc = np.zeros(n_latent, dtype)
+        self.scale = np.ones(n_latent, dtype)
         self.register_persistent('loc')
         self.register_persistent('scale')
 
     def forward(self):
-        return D.Normal(self.loc, scale=self.scale)
+        return D.Independent(
+            D.Normal(self.loc, scale=self.scale), reinterpreted_batch_ndims=1)
 
 
 def make_encoder(n_in, n_latent, n_h):

@@ -118,7 +118,7 @@ class TestPeephole(unittest.TestCase):
         def f():
             c, y = _peephole(self.link, c_data, h_data, x_data)
             return y,
-        gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
+        gx, = gradient_check.numerical_grad(f, (x.data,), (y_grad,))
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 
     def test_backward_cpu(self):

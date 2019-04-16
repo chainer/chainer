@@ -47,45 +47,65 @@ void CheckLogicDtypes(const Array& x1, const Array& x2) {
 
 Array Equal(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Equal(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<EqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array NotEqual(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().NotEqual(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<NotEqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array Greater(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallOp<GreaterOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array GreaterEqual(const Array& x1, const Array& x2) {
     CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x1, x2, out); };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<GreaterEqualOp>(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
-Array Less(const Array& x1, const Array& x2) {
-    CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x2, x1, out); };
-    return BroadcastComparison(func, x1, x2);
-}
-
-Array LessEqual(const Array& x1, const Array& x2) {
-    CheckLogicDtypes(x1, x2);
-    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x2, x1, out); };
-    return BroadcastComparison(func, x1, x2);
-}
-
-Array LogicalNot(const Array& x1) {
-    Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
+Array LogicalNot(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x1.device().LogicalNot(x1, out);
+        x.device().backend().CallOp<LogicalNotOp>(x, out);
+    }
+    return out;
+}
+
+Array LogicalAnd(const Array& x1, const Array& x2) {
+    CheckLogicDtypes(x1, x2);
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<LogicalAndOp>(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array LogicalOr(const Array& x1, const Array& x2) {
+    CheckLogicDtypes(x1, x2);
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().backend().CallOp<LogicalOrOp>(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array All(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), Dtype::kBool, sorted_axis, keepdims, a.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AllOp>(a, sorted_axis, out);
+    }
+    return out;
+}
+
+Array Any(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), Dtype::kBool, sorted_axis, keepdims, a.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallOp<AnyOp>(a, sorted_axis, out);
     }
     return out;
 }

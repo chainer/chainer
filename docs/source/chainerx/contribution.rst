@@ -112,14 +112,14 @@ Test coverage
 -------------
 
 We use `gcov <https://gcc.gnu.org/onlinedocs/gcc/Gcov.html>`_ to the measure C++ code coverage.
-Build the Python package in ``Debug`` mode, and build C++ test suite as:
+From the root of the project, build the Python package in ``Debug`` mode, and build C++ test suite as:
 
 .. code-block:: console
 
     $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
     $ mkdir -p build
     $ cd build
-    $ cmake -DCMAKE_BUILD_TYPE=Debug -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE ..
+    $ cmake -DCMAKE_BUILD_TYPE=Debug -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE ../chainerx_cc
     $ make
 
 Run both the Python and the C++ test suite:

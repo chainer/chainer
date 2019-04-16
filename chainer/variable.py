@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import collections
 import copy
 import heapq
@@ -1065,7 +1066,7 @@ class Variable(object):
         :class:`numpy.ndarray`.
         """
         intel64.check_ideep_available()
-        self.to_device(intel64)
+        self.to_device(intel64.Intel64Device())
 
     def to_chx(self):
         """Converts the array and gradient to ChainerX arrays without copy.
@@ -1421,8 +1422,15 @@ class Variable(object):
             if loss_scale is not None:
                 self.grad *= loss_scale
 
+        node = self.node
+        grad_var = self.grad_var
+        self.grad_var = None
+
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            _backprop_to_all([self], retain_grad, loss_scale)
+            # TODO(kataoka): The following line should not pass grad_var = None
+            # to _backprop_to_all, but it is working because grad_var is
+            # immediately popped away as None = _backprop_utils._reduce([None])
+            _backprop_to_all([(node, grad_var)], retain_grad, loss_scale)
 
     def item(self):
         """Converts the variable with one element to a Python scalar.
@@ -1560,6 +1568,15 @@ class Variable(object):
 
 
 def _backprop_to_all(outputs, retain_grad, loss_scale):
+    """Backprop to all input variables
+
+    Args:
+        outputs (list of tuple): each tuple is (y_node, y_grad_var).
+            y_grad_var should not be None.
+        retain_grad (bool): see docstring of Variable.backward
+        loss_scale (float): see docstring of Variable.backward
+
+    """
     OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
 
     cand_funcs = []
@@ -1571,21 +1588,13 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
             seen_set.add(cand)
 
-    grads = _backprop_utils.GradTable(load_if_new=True)
+    grads = _backprop_utils.GradTable(accumulate_grad_inputs=True)
 
-    root_nodes = set()
     leaf_nodes = set()
 
-    for y_var in outputs:
-        # TODO(sonots): Implement for ChainerX
-        if y_var.xp is chainerx:
-            raise NotImplementedError()
+    for y, gy in outputs:
+        grads.accumulate(y, gy)
 
-        y = y_var.node
-        root_nodes.add(y)
-        grads[y] = y_var.grad_var
-
-        y._check_old_style_gradient()
         func = y.creator_node
         if func is None:  # leaf
             leaf_nodes.add(y)
@@ -1605,7 +1614,10 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             i for i, x in enumerate(inputs) if x.requires_grad
         ])
         outputs = [y() for y in func.outputs]  # access via weak ref
-        out_grad = tuple([grads.pop(y) for y in outputs])
+        out_grad = tuple([grads.pop(y)
+                          if y is not None and y.creator_node is not None
+                          else None
+                          for y in outputs])
         if not target_input_indexes:
             continue
 
@@ -1632,8 +1644,6 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
-                    # to reduce memory usage
-                    x._set_grad_var_if_available(None)
 
             _backprop_utils.backprop_step(
                 func, target_input_indexes, out_grad, in_grad, is_debug)
@@ -1642,11 +1652,14 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
                 hook.backward_postprocess(
                     func, tuple(in_data), tuple(out_grad_array))
 
-        for y, gy in six.moves.zip(outputs, out_grad):
-            if y is not None and y not in root_nodes:
-                y._set_grad_var_if_available(
-                    gy if retain_grad else None)
-        del gy, out_grad  # to reduce memory usage
+        if retain_grad:
+            # The gradients of the outputs of `func` are final. Store them if
+            # retain_grad=True.
+            for y, gy in six.moves.zip(outputs, out_grad):
+                if y is not None:
+                    y._set_grad_var_if_available(gy)
+            del gy  # to reduce memory usage
+        del out_grad  # to reduce memory usage
 
         for x, gx in in_grad.items():
             if not gx:  # gradient == None
@@ -1768,7 +1781,7 @@ class Parameter(Variable):
         self.to_device(device)
 
     def to_intel64(self):
-        self.to_device(intel64)
+        self.to_device(intel64.Intel64Device())
 
     def to_chx(self):
         if not chainerx.is_available():
@@ -1801,8 +1814,8 @@ class Parameter(Variable):
             if backend_name == 'native':
                 self._initial_device = backend.CpuDevice()
             elif backend_name == 'cuda':
-                self._initial_device = chainer.get_device(
-                    (cuda.cupy, device.device.index))
+                self._initial_device = backend.GpuDevice.from_device_id(
+                    device.device.index)
 
         super(Parameter, self)._from_chx(allow_unchaining=True)
 

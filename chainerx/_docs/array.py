@@ -271,6 +271,14 @@ Returns the maximum along a given axis.
 See :func:`chainerx.amax` for the full documentation.
 """)
 
+    _docs.set_doc(
+        ndarray.min,
+        """min(axis=None, keepdims=False)
+Returns the minimum along a given axis.
+
+See :func:`chainerx.amin` for the full documentation.
+""")
+
     # TODO(beam2d): Write about backprop_id argument.
     _docs.set_doc(
         ndarray.require_grad,

@@ -49,14 +49,16 @@ const void* GetCudnnCoefficientPtr(Dtype dtype) {
 
 class CudnnTensorDescriptor {
 public:
+    CudnnTensorDescriptor();
     explicit CudnnTensorDescriptor(const Array& arr);
     ~CudnnTensorDescriptor();
 
     cudnnTensorDescriptor_t descriptor() const { return desc_; }
     cudnnTensorDescriptor_t operator*() const { return desc_; }
 
+    Dtype GetDtype() const;
+
 private:
-    CudnnTensorDescriptor();
     cudnnTensorDescriptor_t desc_{};
 };
 

@@ -135,6 +135,15 @@ public:
     // Otherwise, all the elements are searched at once.
     Array Max(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    // Returns the minimum value of the array.
+    // If `axis` is set, the minimum value is chosen along the specified axes.
+    // Otherwise, all the elements are searched at once.
+    Array Min(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    Array Mean(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    Array Var(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 
