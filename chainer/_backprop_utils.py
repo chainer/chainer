@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import traceback
 
 import six
@@ -212,11 +213,11 @@ def backprop_step(
 
 
 def _get_columns():
-    try:
-        get_terminal_size = shutil.get_terminal_size
-    except AttributeError:
-        return os.getenv('COLUMNS', 80)
-    return get_terminal_size()[0]
+    # Returns the terminal column width.
+    if sys.version_info >= (3, 3):
+        cols, rows = shutil.get_terminal_size()
+        return cols
+    return int(os.getenv('COLUMNS', 80))
 
 
 def _reraise_with_stack(func, e):
