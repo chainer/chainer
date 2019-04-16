@@ -16,24 +16,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeAddOp : public AddOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Add(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(AddOp, NativeAddOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(AddOp, { out = ArithmeticOps<T>::Add(x1, x2); });
 
 class NativeAddASOp : public AddASOp {
 public:
@@ -54,24 +37,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
 
-class NativeSubtractOp : public SubtractOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(SubtractOp, NativeSubtractOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(SubtractOp, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
 
 class NativeSubtractASOp : public SubtractASOp {
 public:
@@ -92,24 +58,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
 
-class NativeMultiplyOp : public MultiplyOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Multiply(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(MultiplyOp, NativeMultiplyOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(MultiplyOp, { out = ArithmeticOps<T>::Multiply(x1, x2); });
 
 class NativeMultiplyASOp : public MultiplyASOp {
 public:
@@ -153,24 +102,7 @@ chainerx::Float16 FloorDivide(chainerx::Float16 x, chainerx::Float16 y) {
     return chainerx::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-class NativeFloorDivideOp : public FloorDivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = native::FloorDivide(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(FloorDivideOp, NativeFloorDivideOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivideOp, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
 
 class NativeFloorDivideASOp : public FloorDivideASOp {
 public:
@@ -191,24 +123,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
 
-class NativeDivideOp : public DivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Divide(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(DivideOp, NativeDivideOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(DivideOp, { out = ArithmeticOps<T>::Divide(x1, x2); });
 
 class NativeDivideASOp : public DivideASOp {
 public:

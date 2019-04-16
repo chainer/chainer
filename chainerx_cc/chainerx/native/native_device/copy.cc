@@ -14,22 +14,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeCopyOp : public CopyOp {
-public:
-    void Call(const Array& a, const Array& out) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T a, T& out) { out = a; }
-            };
-            Elementwise<const T, T>(Impl{}, a, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_OP(CopyOp, NativeCopyOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_OP(CopyOp, { out = x; });
 
 class NativeAsTypeOp : public AsTypeOp {
 public:

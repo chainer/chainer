@@ -18,26 +18,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct CopyImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType a, CudaType& out) { out = a; }
-};
-
-class CudaCopyOp : public CopyOp {
-public:
-    void Call(const Array& a, const Array& out) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(CopyImpl<T>{}, a, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_OP(CopyOp, CudaCopyOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_UNARY_OP(CopyOp, { out = x; });
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
