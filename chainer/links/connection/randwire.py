@@ -29,7 +29,7 @@ class WeightedSum(function_node.FunctionNode):
 
 
 def weighted_sum(xs, w):
-    y, = WeightedSum().apply((w) + tuple(xs))
+    y, = WeightedSum().apply((w,) + tuple(xs))
     return y
 
 
