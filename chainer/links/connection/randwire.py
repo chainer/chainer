@@ -10,6 +10,7 @@ import six
 
 class WeightedSum(function_node.FunctionNode):
     """Weighted sum of given links."""
+
     def forward(self, inputs):
         self.retain_inputs(six.moves.range(len(inputs)))
         w = inputs[0]
@@ -95,6 +96,7 @@ class RandWire(link.ChainList):
             ignored.
         weighted (bool): Weighted sum or not, in aggregation.
     """
+
     def __init__(self, DAG, link, aggregator=sum, weighted=True,
                  *args, **kwargs):
         super(RandWire, self).__init__()
