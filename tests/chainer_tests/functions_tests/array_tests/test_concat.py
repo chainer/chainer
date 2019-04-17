@@ -3,11 +3,24 @@ import unittest
 import numpy
 
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import backend
 
 
+@backend.inject_backend_tests(
+    None,
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + [{'use_cuda': True}]
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 @testing.parameterize(*testing.product_dict(
     [
         {'shape': (2, 7, 3), 'axis': 1,
@@ -47,74 +60,22 @@ from chainer.testing import backend
         {'dtype': numpy.float64},
     ],
 ))
-@backend.inject_backend_tests(
-    ['test_forward', 'test_backward'],
-    # CPU tests
-    testing.product({
-        'use_cuda': [False],
-        'use_ideep': ['never', 'always'],
-    })
-    # GPU tests
-    + [{'use_cuda': True}]
-    # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ])
-class TestConcat(unittest.TestCase):
+class TestConcat(testing.FunctionTestCase):
 
-    def setUp(self):
+    def generate_inputs(self):
         shape = self.shape
         dtype = self.dtype
+        y = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        xs = tuple([y[s] for s in self.slices])
+        return xs
 
-        y = numpy.arange(numpy.prod(shape), dtype=dtype).reshape(shape)
-        xs = [y[s] for s in self.slices]
+    def forward(self, inputs, device):
+        y = functions.concat(inputs, self.axis)
+        return y,
 
-        self.y_expected = y
-        self.inputs = xs
-        self.grad_outputs = [
-            numpy.random.uniform(-1, 1, y.shape).astype(self.dtype)
-        ]
-        self.check_backward_options = {
-            'dtype': numpy.float64,
-            'atol': 1e-4, 'rtol': 1e-4,
-        }
-
-    def _forward(self, *inputs):
-        return functions.concat(inputs, self.axis)
-
-    def check_forward(self, inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        inputs = backend_config.get_array(inputs)
-
-        with backend_config:
-            y = self._forward(*inputs)
-
-        assert y.data.dtype == self.dtype
-        testing.assert_allclose(self.y_expected, y.data, atol=0, rtol=0)
-        assert isinstance(y.data.shape, tuple)
-
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-
-        with backend_config:
-            gradient_check.check_backward(
-                self._forward, inputs, grad_outputs,
-                **self.check_backward_options)
-
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
+    def forward_expected(self, inputs):
+        y = numpy.concatenate(inputs, self.axis)
+        return y,
 
 
 class TestConcatInvalidAxisType(unittest.TestCase):

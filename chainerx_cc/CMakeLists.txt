@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(chainerx CXX C)
 
 # CMake setup
-if(POLICY ${CMP0054})
-    cmake_policy(SET ${CMP0054} NEW)
+if(POLICY CMP0054)
+    cmake_policy(SET CMP0054 NEW)
 endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -44,13 +44,23 @@ else()
 endif()
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
 
-# defaults to cmake -DCMAKE_BUILD_TYPE=Release
+# Set CMAKE_BUILD_TYPE (defaults to Release).
+# CMake's specification is case-insensitive, but we only accept capitalized ones.
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+if(NOT ((CMAKE_BUILD_TYPE STREQUAL "Release") OR (CMAKE_BUILD_TYPE STREQUAL "Debug")))
+    message(FATAL_ERROR "Invalid CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 endif()
 
 # CUDA
 if(${CHAINERX_BUILD_CUDA})
+    if(MSVC)
+        option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
+        set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+    endif()
+
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
         # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
@@ -61,12 +71,17 @@ if(${CHAINERX_BUILD_CUDA})
         include_directories(${CUDNN_INCLUDE_DIRS})
         if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
             list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
-        elseif(CMAKE_BUILD_TYPE MATCHES Release)
+        elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
         endif()
+
+        if(MSVC)
+            list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+        endif()
+
     endif()
 endif()
 
@@ -85,8 +100,12 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -fPIC -pthread")
+    if(MSVC)
+        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    else()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -fPIC -pthread")
+    endif()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")  # cmake -DCMAKE_BUILD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
     if (${CUDA_FOUND})
@@ -101,7 +120,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
 
     # cmake -DCHAINERX_WARNINGS_AS_ERRORS=ON|OFF
     if (CHAINERX_WARNINGS_AS_ERRORS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+        if (MSVC)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+        endif()
     endif()
 
     # cmake -DCHAINERX_ENABLE_THREAD_SANITIZER=ON|OFF
@@ -112,7 +135,7 @@ endif()
 
 # Compiler-specific workarounds
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$")
+if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$" AND NOT MSVC)
     EXECUTE_PROCESS(COMMAND ${CMAKE_CXX_COMPILER} --version OUTPUT_VARIABLE clang_full_version_string)
     string(REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+).*" "\\1" CLANG_VERSION_STRING ${clang_full_version_string})
 
@@ -135,8 +158,8 @@ endif()
 # pybind11
 if(${CHAINERX_BUILD_PYTHON})
     get_third_party(pybind11)
-    include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
-    add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/pybind11/include)
+    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/pybind11-build)
 endif()
 
 # gsl-lite
@@ -159,9 +182,15 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_BINARY_DIR}/googletest-build
+    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
+
+# TODO(durswd): Remove it. It is hack for MSVC+LLVM
+if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang" AND MSVC)
+    target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+endif()
+
 if(${CHAINERX_BUILD_TEST})
     enable_testing()
 endif()

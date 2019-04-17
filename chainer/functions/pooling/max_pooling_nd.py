@@ -136,7 +136,7 @@ class MaxPoolingNDGrad(function_node.FunctionNode):
 
     def forward_gpu(self, gy):
         if self._used_cudnn:
-            x, = self.mpoolnd._cudnn_inputs
+            x = self.mpoolnd.get_retained_inputs()[0].array
             return self.mpoolnd.backward_gpu((x,), gy)
 
         n, c = self._in_shape[:2]
@@ -193,7 +193,7 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x, = self.mpoolnd._cudnn_inputs
+            x = self.mpoolnd.get_retained_inputs()[0].array
             return self._forward_gpu_compute_indexes_again((x, inputs[0]))
         x, = inputs
         self._in_shape = x.shape
@@ -279,8 +279,8 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
             When ``return_indices`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            pooling indices (`ndarray`). Pooling indices will be on the same
-            device as the input.
+            pooling indices (:ref:`ndarray`). Pooling indices will be on the
+            same device as the input.
 
     """
     ndim = len(x.shape[2:])

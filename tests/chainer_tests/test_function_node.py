@@ -86,7 +86,7 @@ class TestFunctionNode(unittest.TestCase):
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup(chainer.get_device((cuda.cupy, 0)))
+        self._setup(backend.GpuDevice.from_device_id(0))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_chainerx(self, device_name='native:0'):
@@ -361,7 +361,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def check_mix_xp(self, xp):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
-        x2 = backend.to_chainerx(xp_x2)
+        x2 = backend.to_chx(xp_x2)
         y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
 
         assert isinstance(y.array, chainerx.ndarray)
@@ -677,6 +677,41 @@ class TestNoBackpropMode(unittest.TestCase):
             y = self.x + 1
         self.assertTrue(y.creator_node is not None)
 
+    @attr.chainerx
+    def test_backprop_mode_affects_chainerx(self):
+        # chainer.{no,force}_backprop_mode should affect chainerx's
+        # counterpart.
+
+        assert chainerx.is_backprop_required()
+
+        # nobp
+        with chainer.no_backprop_mode():
+            assert not chainerx.is_backprop_required()
+
+            # nobp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # nobp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
+
+        # forcebp
+        with chainer.force_backprop_mode():
+            assert chainerx.is_backprop_required()
+
+            # forcebp > forcebp
+            with chainer.force_backprop_mode():
+                assert chainerx.is_backprop_required()
+
+            # forcebp > nobp
+            with chainer.no_backprop_mode():
+                assert not chainerx.is_backprop_required()
+
+        assert chainerx.is_backprop_required()
+
 
 class MyThread(threading.Thread):
 
@@ -713,19 +748,31 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
         return grad_outputs
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_cuda': True},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    ])
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def check_function_node_retain(self, xp):
-        inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
-                  chainer.Variable(xp.array([-1], dtype=numpy.float32),
-                                   requires_grad=False)]
+    def test_retain(self, backend_config):
+        xp = backend_config.xp
+        input_arrs = backend_config.get_array([
+            numpy.array([2], dtype=numpy.float32),
+            numpy.array([-1], dtype=numpy.float32)])
+        inputs = [
+            chainer.Variable(input_arrs[0]),
+            chainer.Variable(input_arrs[1], requires_grad=False)]
         input_arrays = [x.array for x in inputs]
         if xp is not chainerx:
             input_nodes = [x.node for x in inputs]
 
         f = FunctionNodeWithRetaining([1], [0, 1])
         outputs = f.apply(inputs)
-        outputs[0].grad = xp.array([1], dtype=numpy.float32)
+        outputs[0].grad = backend_config.get_array(
+            numpy.array([1], dtype=numpy.float32))
         outputs[0].backward()
         output_arrays = [y.array for y in outputs]
 
@@ -744,16 +791,39 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         xp.testing.assert_array_equal(
             f.retained_backward_outputs[1].array, output_arrays[1])
 
-    def test_retain_cpu(self):
-        self.check_function_node_retain(numpy)
+    def check_no_retain(self, backend_config, skip_call):
+        # This test ensures get_retained_{in,out}puts returns () if no
+        # input/output is retained.
+        # skip_call: If False, retain_{in,out}puts() is not called.
 
-    @attr.gpu
-    def test_retain_gpu(self):
-        self.check_function_node_retain(cuda.cupy)
+        class MyFunc(chainer.FunctionNode):
+            backward_called = 0
 
-    @attr.chainerx
-    def test_retain_chainerx(self):
-        self.check_function_node_retain(chainerx)
+            def forward(self, inputs):
+                x, = inputs
+                if not skip_call:
+                    self.retain_outputs(())
+                    self.retain_inputs(())
+                return x * 3,
+
+            def backward(self, input_indices, grad_outputs):
+                self.backward_called += 1
+                assert self.get_retained_outputs() == ()
+                assert self.get_retained_inputs() == ()
+                gy, = grad_outputs
+                return gy * 3,
+
+        x_arr = backend_config.get_array(numpy.array([1, 2], numpy.float32))
+        x = chainer.Variable(x_arr, requires_grad=True)
+        func = MyFunc()
+        y, = func.apply((x,))
+        y.grad = backend_config.get_array(numpy.array([1, 1], numpy.float32))
+        y.backward()
+        assert func.backward_called == 1
+
+    def test_no_retain(self, backend_config):
+        self.check_no_retain(backend_config, False)
+        self.check_no_retain(backend_config, True)
 
 
 def _get_value(x):
@@ -781,6 +851,22 @@ class TestGradTypeCheck(unittest.TestCase):
             chainer.grad([y], [x], gx, [gy])
         with self.assertRaises(TypeError):
             chainer.grad([y], [x], [gx], gy)
+
+
+class TestGradValueCheck(unittest.TestCase):
+
+    def test_length_check(self):
+        x = chainer.Variable(numpy.array(3, numpy.float32))
+        y = chainer.functions.identity(x)
+
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None, None], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [None, None])
 
 
 class GradTestBase(object):
@@ -1051,6 +1137,29 @@ class TestGradDelRetainedOutput2(unittest.TestCase):
         xp.testing.assert_allclose(
             gx_.array,
             gx.array * x_grad_grad)
+
+
+class TestUnchainSplitGrad(unittest.TestCase):
+
+    def test_unchain_split(self):
+        x = chainer.Variable(numpy.arange(4).astype('f').reshape(2, 2))
+        h0, h1 = chainer.functions.split_axis(x, [1], axis=0)
+        y = chainer.functions.sum(h0)
+        z = chainer.functions.sum(h1)
+        w = y + z
+        h0.unchain()
+
+        dy_dh0 = numpy.array([[1., 1.]])
+        dz_dh1 = numpy.array([[1., 1.]])
+        dy_dx = None
+        dz_dx = numpy.array([[0., 0.], [1., 1.]])
+        dw_dx = numpy.array([[0., 0.], [1., 1.]])
+
+        testing.assert_allclose(chainer.grad([y], [h0])[0].array, dy_dh0)
+        testing.assert_allclose(chainer.grad([z], [h1])[0].array, dz_dh1)
+        assert chainer.grad([y], [x])[0] is dy_dx
+        testing.assert_allclose(chainer.grad([z], [x])[0].array, dz_dx)
+        testing.assert_allclose(chainer.grad([w], [x])[0].array, dw_dx)
 
 
 class TestGradV3Compat1(unittest.TestCase):

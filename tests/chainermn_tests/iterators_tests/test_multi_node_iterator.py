@@ -60,7 +60,7 @@ class TestMultiNodeIterator(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.N = 100
         if self.paired_dataset:
@@ -188,11 +188,11 @@ class TestMultiNodeIteratorDataType(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
     def test_invalid_type(self):
         self.N = 10
-        self.dataset = ["test"]*self.N
+        self.dataset = ['test']*self.N
 
         bs = 1
         iterator = chainermn.iterators.create_multi_node_iterator(

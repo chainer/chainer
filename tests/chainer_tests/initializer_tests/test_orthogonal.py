@@ -101,20 +101,18 @@ class OrthogonalBase(unittest.TestCase):
 
         ab = 0.5 * (self.dim_in - 1)
 
-        beta_cdf = stats.beta(
-            ab, ab, loc=-expected_scale, scale=2*expected_scale).cdf
-
-        def abs_beta_cdf(x):
-            return numpy.fmax(0, 2 * beta_cdf(x) - 1)
-
         for samples in sampless:
             if self.dim_in == 1:
                 numpy.testing.assert_allclose(abs(samples), expected_scale)
                 _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
             else:
                 _, p = stats.kstest(
-                    numpy.abs(samples),
-                    abs_beta_cdf
+                    samples,
+                    stats.beta(
+                        ab, ab,
+                        loc=-expected_scale,
+                        scale=2*expected_scale
+                    ).cdf
                 )
             assert p >= alpha
 
@@ -133,14 +131,14 @@ class OrthogonalBase(unittest.TestCase):
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow_cpu(self):
-        self.check_initializer_statistics(numpy, 100000)
+        self.check_initializer_statistics(numpy, 10000)
 
     @attr.slow
     @attr.gpu
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow_gpu(self):
-        self.check_initializer_statistics(cuda.cupy, 100000)
+        self.check_initializer_statistics(cuda.cupy, 10000)
 
 
 class TestEmpty(unittest.TestCase):

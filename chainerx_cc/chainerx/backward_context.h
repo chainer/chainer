@@ -35,6 +35,8 @@ public:
     // Initialize with a temporary grad without value.
     explicit GradRef(nonstd::nullopt_t);
 
+    explicit GradRef(nonstd::optional<Array>* grad);
+
     GradRef(const GradRef&) = delete;
     GradRef(GradRef&&) = default;
     GradRef& operator=(const GradRef&) = delete;

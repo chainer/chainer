@@ -31,8 +31,9 @@ class Erfc(function_node.FunctionNode):
                 _erfc_cpu = special.erfc
             except ImportError:
                 warnings.warn(
-                    "SciPy is not available. Forward computation of erfc in"
-                    " CPU can be slow without SciPy.")
+                    'SciPy is not available. Forward computation of erfc in'
+                    ' CPU can be slow without SciPy.',
+                    chainer.warnings.PerformanceWarning)
                 _erfc_cpu = numpy.vectorize(math.erfc)
         self.retain_inputs((0,))
         return utils.force_array(_erfc_cpu(x[0]), dtype=x[0].dtype),
@@ -58,8 +59,7 @@ def erfc(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

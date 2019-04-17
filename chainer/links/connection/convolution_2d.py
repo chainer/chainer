@@ -7,7 +7,8 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, \
+nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -19,7 +20,7 @@ class Convolution2D(link.Link):
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
     Convolution links can use a feature of cuDNN called autotuning, which
-    selects the most efficient CNN algorithm for images of fixed-size, 
+    selects the most efficient CNN algorithm for images of fixed-size,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
@@ -65,7 +66,8 @@ class Convolution2D(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(1, 3, 10, 10)
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(
+        ...     1, 3, 10, 10)
 
         1. Give the first three arguments explicitly:
 
@@ -102,7 +104,7 @@ class Convolution2D(link.Link):
             >>> y.shape
             (1, 7, 6, 6)
 
-    """  # NOQA
+    """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
@@ -110,9 +112,9 @@ class Convolution2D(link.Link):
 
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) "
-            "context where value is either `True` or `False`.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) '
+            'context where value is either `True` or `False`.')
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -121,6 +123,7 @@ class Convolution2D(link.Link):
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
 
@@ -137,6 +140,21 @@ class Convolution2D(link.Link):
                     initial_bias = 0
                 bias_initializer = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(bias_initializer, out_channels)
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('in_channels', self.in_channels),
+            ('out_channels', self.out_channels),
+            ('ksize', self.ksize),
+            ('stride', self.stride),
+            ('pad', self.pad),
+            ('nobias', self.b is None),
+            ('dilate', self.dilate),
+            ('groups', self.groups),
+        ]
+        for spec in specs:
+            yield spec
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)

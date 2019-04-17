@@ -31,8 +31,9 @@ class Erf(function_node.FunctionNode):
                 _erf_cpu = special.erf
             except ImportError:
                 warnings.warn(
-                    "SciPy is not available. Forward computation of erf in CPU"
-                    " can be slow without SciPy.")
+                    'SciPy is not available. Forward computation of erf in CPU'
+                    ' can be slow without SciPy.',
+                    chainer.warnings.PerformanceWarning)
                 _erf_cpu = numpy.vectorize(math.erf)
         self.retain_inputs((0,))
         return utils.force_array(_erf_cpu(x[0]), dtype=x[0].dtype),
@@ -58,8 +59,7 @@ def erf(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

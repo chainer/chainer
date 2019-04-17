@@ -36,17 +36,10 @@ class StatefulMGU(MGUBase):
         self._state_size = out_size
         self.reset_state()
 
-    def to_cpu(self):
-        super(StatefulMGU, self).to_cpu()
+    def device_resident_accept(self, visitor):
+        super(StatefulMGU, self).device_resident_accept(visitor)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulMGU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)

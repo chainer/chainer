@@ -9,6 +9,7 @@
 
 #include "chainerx/macro.h"
 #include "chainerx/python/common.h"
+#include "chainerx/python/py_cached_objects.h"
 
 namespace chainerx {
 namespace python {
@@ -67,6 +68,8 @@ Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype) {
             break;
         case 'f':
             switch (npdtype.itemsize()) {
+                case 2:
+                    return Dtype::kFloat16;
                 case 4:
                     return Dtype::kFloat32;
                 case 8:
@@ -109,29 +112,32 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From NumPy dtype class
-    auto numpy_module = py::module::import("numpy");
-    if (handle.is(numpy_module.attr("bool_"))) {
+    auto numpy = GetCachedNumpyModule();
+    if (handle.is(numpy.attr("bool_"))) {
         return Dtype::kBool;
     }
-    if (handle.is(numpy_module.attr("int8"))) {
+    if (handle.is(numpy.attr("int8"))) {
         return Dtype::kInt8;
     }
-    if (handle.is(numpy_module.attr("int16"))) {
+    if (handle.is(numpy.attr("int16"))) {
         return Dtype::kInt16;
     }
-    if (handle.is(numpy_module.attr("int32"))) {
+    if (handle.is(numpy.attr("int32"))) {
         return Dtype::kInt32;
     }
-    if (handle.is(numpy_module.attr("int64"))) {
+    if (handle.is(numpy.attr("int64"))) {
         return Dtype::kInt64;
     }
-    if (handle.is(numpy_module.attr("uint8"))) {
+    if (handle.is(numpy.attr("uint8"))) {
         return Dtype::kUInt8;
     }
-    if (handle.is(numpy_module.attr("float32"))) {
+    if (handle.is(numpy.attr("float16"))) {
+        return Dtype::kFloat16;
+    }
+    if (handle.is(numpy.attr("float32"))) {
         return Dtype::kFloat32;
     }
-    if (handle.is(numpy_module.attr("float64"))) {
+    if (handle.is(numpy.attr("float64"))) {
         return Dtype::kFloat64;
     }
 
@@ -152,6 +158,8 @@ py::object GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
             return m.attr("_int64");
         case Dtype::kUInt8:
             return m.attr("_uint8");
+        case Dtype::kFloat16:
+            return m.attr("_float16");
         case Dtype::kFloat32:
             return m.attr("_float32");
         case Dtype::kFloat64:
@@ -170,6 +178,7 @@ void InitChainerxDtype(py::module& m) {
     m.attr("_int32") = py::dtype{"int32"};
     m.attr("_int64") = py::dtype{"int64"};
     m.attr("_uint8") = py::dtype{"uint8"};
+    m.attr("_float16") = py::dtype{"float16"};
     m.attr("_float32") = py::dtype{"float32"};
     m.attr("_float64") = py::dtype{"float64"};
 }

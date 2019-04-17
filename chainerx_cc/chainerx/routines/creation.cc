@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/backend.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
@@ -17,7 +18,10 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -96,7 +100,9 @@ Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
     return array;
 }
 
-Array Full(const Shape& shape, Scalar fill_value, Device& device) { return Full(shape, fill_value, fill_value.dtype(), device); }
+Array Full(const Shape& shape, Scalar fill_value, Device& device) {
+    return Full(shape, fill_value, internal::GetDefaultDtype(fill_value.kind()), device);
+}
 
 Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 0, dtype, device); }
 
@@ -104,7 +110,7 @@ Array Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape,
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device) {
     // TODO(hvy): Simplify comparison if Scalar::operator== supports dtype conversion.
-    if (step == Scalar{0, step.dtype()}) {
+    if (static_cast<double>(step) == 0.0) {
         throw ChainerxError("Cannot create an arange array with 0 step size.");
     }
 
@@ -122,25 +128,25 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
     }
 
     Array out = Empty({size}, dtype, device);
-    device.Arange(start, step, out);
+    device.backend().CallKernel<ArangeKernel>(start, step, out);
     return out;
 }
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Device& device) {
     // TODO(hvy): Type promote instead of using the dtype of step.
-    return Arange(start, stop, step, step.dtype(), device);
+    return Arange(start, stop, step, internal::GetDefaultDtype(step.kind()), device);
 }
 
 Array Arange(Scalar start, Scalar stop, Dtype dtype, Device& device) { return Arange(start, stop, 1, dtype, device); }
 
 Array Arange(Scalar start, Scalar stop, Device& device) {
     // TODO(hvy): Type promote dtype instead of using the dtype of stop.
-    return Arange(start, stop, 1, stop.dtype(), device);
+    return Arange(start, stop, 1, internal::GetDefaultDtype(stop.kind()), device);
 }
 
 Array Arange(Scalar stop, Dtype dtype, Device& device) { return Arange(0, stop, 1, dtype, device); }
 
-Array Arange(Scalar stop, Device& device) { return Arange(0, stop, 1, stop.dtype(), device); }
+Array Arange(Scalar stop, Device& device) { return Arange(0, stop, 1, internal::GetDefaultDtype(stop.kind()), device); }
 
 Array EmptyLike(const Array& a, Device& device) { return Empty(a.shape(), a.dtype(), device); }
 
@@ -154,7 +160,7 @@ Array Copy(const Array& a) {
     Array out = EmptyLike(a, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Copy(a, out);
+        a.device().backend().CallKernel<CopyKernel>(a, out);
     }
 
     BackwardBuilder bb{"copy", a, out};
@@ -176,7 +182,7 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     Array out = Empty(Shape{n, n}, dtype, device);
     {
         NoBackpropModeScope scope{};
-        device.Identity(out);
+        device.backend().CallKernel<IdentityKernel>(out);
     }
     return out;
 }
@@ -198,7 +204,7 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     Array out = Empty({n, m.value()}, dtype.value(), device);
     {
         NoBackpropModeScope scope{};
-        device.Eye(k.value(), out);
+        device.backend().CallKernel<EyeKernel>(k.value(), out);
     }
     return out;
 }
@@ -213,7 +219,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().AsType(a, out);
+        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
@@ -263,7 +269,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         out = Empty(Shape{n, n}, v.dtype(), device);
         {
             NoBackpropModeScope scope{};
-            device.Diagflat(v, k, out);
+            device.backend().CallKernel<DiagflatKernel>(v, k, out);
         }
     } else if (ndim == 2) {
         // Return the diagonal as a 1D array.
@@ -314,8 +320,10 @@ Array Linspace(
         Device& device) {
     static const int64_t kDefaultNum = 50;
 
-    // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.
-    Dtype dtype_a = dtype.value_or(start.dtype());
+    // Always default to float type.
+    // Similar behavior to numpy
+    // Ref: https://github.com/numpy/numpy/issues/8597
+    Dtype dtype_a = dtype.value_or(internal::GetDefaultDtype(chainerx::DtypeKind::kFloat));
     int64_t num_a = num.value_or(kDefaultNum);
 
     if (num_a < 0) {
@@ -331,7 +339,7 @@ Array Linspace(
         }
         {
             NoBackpropModeScope scope{};
-            device.Linspace(start_value, stop_value, out);
+            device.backend().CallKernel<LinspaceKernel>(start_value, stop_value, out);
         }
     }
     return out;

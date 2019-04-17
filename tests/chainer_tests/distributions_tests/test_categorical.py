@@ -26,7 +26,7 @@ class TestCategorical(testing.distribution_unittest):
         self.scipy_dist = stats.multinomial
 
         self.test_targets = set([
-            "batch_shape", "event_shape", "entropy", "log_prob", "sample"])
+            'batch_shape', 'event_shape', 'entropy', 'log_prob', 'sample'])
 
         if self.logit_option:
             if self.extreme_values:
@@ -39,7 +39,7 @@ class TestCategorical(testing.distribution_unittest):
                     size=self.shape+(3,)).astype(numpy.float32)
             p = numpy.exp(logit)
             p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
-            self.params = {"logit": logit}
+            self.params = {'logit': logit}
         else:
             if self.extreme_values:
                 p = numpy.zeros((3,)+self.shape).astype(numpy.float32)
@@ -50,10 +50,10 @@ class TestCategorical(testing.distribution_unittest):
                     size=self.shape+(3,)).astype(numpy.float32)
                 p = numpy.exp(logit)
                 p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
-            self.params = {"p": p}
+            self.params = {'p': p}
 
         n = numpy.ones(self.shape)
-        self.scipy_params = {"n": n, "p": p}
+        self.scipy_params = {'n': n, 'p': p}
 
         self.continuous = False
 

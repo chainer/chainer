@@ -184,7 +184,7 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
@@ -245,7 +245,7 @@ def main():
     trainer.extend(extensions.snapshot())
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'))
-    if args.resume:
+    if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 
     trainer.run()

@@ -153,6 +153,18 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.assertEqual(self.h.total_acquired_bytes(), 1024)
 
 
+@testing.parameterize(
+    {'unit': 'B'},
+    {'unit': 'KB'},
+    {'unit': 'MB'},
+    {'unit': 'GB'},
+    {'unit': 'TB'},
+    {'unit': 'PB'},
+    {'unit': 'EB'},
+    {'unit': 'ZB'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
+)
 @attr.gpu
 class TestCupyMemoryProfileReport(unittest.TestCase):
 
@@ -183,7 +195,7 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def test_print_report(self):
         io = six.StringIO()
-        self.h.print_report(file=io)
+        self.h.print_report(unit=self.unit, file=io)
         expect = r'''\AFunctionName  UsedBytes  AcquiredBytes  Occurrence
  +Exp +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+
  +ReLU +[0-9.\-e]+.?B +[0-9.\-e]+.?B +[0-9]+$

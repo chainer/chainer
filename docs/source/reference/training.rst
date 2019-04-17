@@ -144,6 +144,16 @@ These extensions provide features to take snapshots of models.
    chainer.training.extensions.snapshot
    chainer.training.extensions.snapshot_object
 
+Memory Release
+~~~~~~~~~~~~~~
+
+These extensions provide features to release memories.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.training.extensions.unchain_variables
 
 .. _triggers:
 
@@ -165,5 +175,6 @@ It is mainly used to determine when to call an extension. It is also used to det
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
+   chainer.training.triggers.OnceTrigger
    chainer.training.triggers.TimeTrigger
 

@@ -1,7 +1,8 @@
 import typing as tp
 
-from chainer import function_node
 import numpy
+
+from chainer import function_node
 
 
 # TODO(okapies): Split this into independent .py and .pyi files
@@ -231,44 +232,6 @@ class BackpropScope:
     def __exit__(self, *args) -> None: ...
 
 
-# chainerx_cc/chainerx/python/scalar.cc
-class Scalar:
-    @property
-    def dtype(self) -> numpy.dtype: ...
-
-    @tp.overload
-    def __init__(self, value: bool) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: int) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: float) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: bool, dtype: tp.Any) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: int, dtype: tp.Any) -> None: ...
-
-    @tp.overload
-    def __init__(self, value: float, dtype: tp.Any) -> None: ...
-
-    def __bool__(self) -> bool: ...
-
-    def __float__(self) -> float: ...
-
-    def __int__(self) -> int: ...
-
-    def __neg__(self) -> Scalar: ...
-
-    def __pos__(self) -> Scalar: ...
-
-    def __repr__(self) -> str: ...
-
-    def toList(self) -> tp.Any: ...
-
-
 # chainerx_cc/chainerx/python/array.cc
 class ndarray:
     @property
@@ -416,6 +379,16 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
+    @tp.overload
+    def min(self,
+            axis: int,
+            keepdims: bool=...) -> ndarray: ...
+
+    @tp.overload
+    def min(self,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
+            keepdims: bool=...) -> ndarray: ...
+
     def ravel(self) -> ndarray: ...
 
     def require_grad(
@@ -450,7 +423,8 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
-    def take(self, indices: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
+    def take(self, indices: tp.Union[tp.Sequence[int], numpy.ndarray, ndarray],
+             axis: tp.Optional[int]=None) -> ndarray: ...
 
     @tp.overload
     def to_device(self, arg0: Device) -> ndarray: ...
@@ -476,7 +450,18 @@ class ndarray:
 def add(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def all(x: ndarray) -> ndarray: ...
+
+
+def any(x: ndarray) -> ndarray: ...
+
+
 def amax(a: ndarray,
+         axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
+         keepdims: bool=...) -> ndarray: ...
+
+
+def amin(a: ndarray,
          axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
          keepdims: bool=...) -> ndarray: ...
 
@@ -487,6 +472,21 @@ def arange(
         step: tp.Optional[tp.Any]=None,
         dtype: tp.Optional[tp.Any]=None,
         device: tp.Optional[Device]=None) -> ndarray: ...
+
+
+def arccos(x: ndarray) -> ndarray: ...
+
+
+def arccosh(x: ndarray) -> ndarray: ...
+
+
+def arcsin(x: ndarray) -> ndarray: ...
+
+
+def arcsinh(x: ndarray) -> ndarray: ...
+
+
+def arctan(x: ndarray) -> ndarray: ...
 
 
 def argmax(a: ndarray, axis: tp.Optional[int]=None) -> ndarray: ...
@@ -509,9 +509,6 @@ def ascontiguousarray(
         a: tp.Any,
         dtype: tp.Optional[tp.Any]=None,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-def asscalar(a: ndarray) -> tp.Any: ...
 
 
 def average_pool(
@@ -537,6 +534,9 @@ def batch_norm(
 
 
 def broadcast_to(array: ndarray, shape: tp.Tuple[int, ...]) -> ndarray: ...
+
+
+def ceil(x: ndarray) -> ndarray: ...
 
 
 def concatenate(arrays: tp.List[ndarray], axis: tp.Optional[int]=...) -> ndarray: ...
@@ -565,6 +565,9 @@ def conv_transpose(
 
 def copy(a: ndarray) -> ndarray: ...
 
+def cos(x: ndarray) -> ndarray: ...
+
+def cosh(x: ndarray) -> ndarray: ...
 
 def diag(v: ndarray, k: int=..., device: tp.Optional[Device]=None) -> ndarray: ...
 
@@ -611,6 +614,9 @@ def fixed_batch_norm(
         var: ndarray,
         eps: float=...,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
+def floor(x: ndarray) -> ndarray: ...
 
 
 def frombuffer(
@@ -685,6 +691,12 @@ def log_softmax(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def logical_and(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
+def logical_or(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
 def logical_not(x: ndarray) -> ndarray: ...
 
 
@@ -703,6 +715,9 @@ def max_pool(
 
 
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
+
+
+def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
@@ -737,11 +752,24 @@ def reshape(
 @tp.overload
 def reshape(a: ndarray, *args: tp.Any) -> ndarray: ...
 
+def sin(x: ndarray) -> ndarray: ...
+
+def sinh(x: ndarray) -> ndarray: ...
+
+def sigmoid(x: ndarray) -> ndarray: ...
+
+def relu(x: ndarray) -> ndarray: ...
 
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         axis: int=...) -> tp.List[ndarray]: ...
+
+
+def square(x: ndarray) -> ndarray: ...
+
+
+def squared_difference(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def sqrt(x: ndarray) -> ndarray: ...
@@ -766,10 +794,16 @@ def sum(a: ndarray,
 def take(a: ndarray, indices: ndarray, axis: tp.Optional[int]) -> ndarray: ...
 
 
+def tan(x: ndarray) -> ndarray: ...
+
+
 def tanh(x: ndarray) -> ndarray: ...
 
 
 def to_numpy(array: ndarray, copy: bool=...) -> numpy.ndarray: ...
+
+
+def _to_cupy(array: ndarray) -> numpy.ndarray: ...
 
 
 def transpose(
@@ -843,13 +877,6 @@ def loadtxt(
         ndmin: int=...,
         encoding: tp.Optional[str]=...,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-# chainerx/activation.py
-def relu(x: ndarray) -> ndarray: ...
-
-
-def sigmoid(x: ndarray) -> ndarray: ...
 
 
 # chainerx/manipulation/shape.py

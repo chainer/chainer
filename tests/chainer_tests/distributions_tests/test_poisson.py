@@ -21,12 +21,12 @@ class TestLogNormal(testing.distribution_unittest):
         self.scipy_dist = stats.poisson
 
         self.test_targets = set([
-            "batch_shape", "event_shape", "log_prob", "mean", "sample",
-            "support", "variance"])
+            'batch_shape', 'event_shape', 'log_prob', 'mean', 'sample',
+            'support', 'variance'])
 
         lam = numpy.random.uniform(0.1, 10, self.shape).astype(numpy.float32)
-        self.params = {"lam": lam}
-        self.scipy_params = {"mu": lam}
+        self.params = {'lam': lam}
+        self.scipy_params = {'mu': lam}
 
         self.continuous = False
         self.support = 'non negative integer'

@@ -9,35 +9,14 @@ applies an optimizer to update the model.
 
 import argparse
 import os
-import re
-
-import numpy
 
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
-from chainer.iterators import SerialIterator
 import chainer.links as L
 from chainer import serializers
 
 import train_mnist
-
-
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.get_device(args.device)
 
 
 def main():
@@ -53,17 +32,18 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot using model '
                              'and state files in the specified directory')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -80,10 +60,17 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
-        serializers.load_npz('{}/mlp.model'.format(args.resume), model)
-        serializers.load_npz('{}/mlp.state'.format(args.resume), optimizer)
+        resume = args.resume
+        if os.path.exists(resume):
+            serializers.load_npz(os.path.join(resume, 'mlp.model'), model)
+            serializers.load_npz(os.path.join(resume, 'mlp.state'), optimizer)
+        else:
+            raise ValueError(
+                '`args.resume` ("{}") is specified,'
+                ' but it does not exist'.format(resume)
+            )
 
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
@@ -91,51 +78,52 @@ def main():
     train_count = len(train)
     test_count = len(test)
 
-    with SerialIterator(train, args.batchsize) as train_iter, \
-        SerialIterator(
-            test, args.batchsize, repeat=False, shuffle=False) as test_iter:
+    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
+    test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
+                                                 repeat=False, shuffle=False)
 
-        sum_accuracy = 0
-        sum_loss = 0
+    sum_accuracy = 0
+    sum_loss = 0
 
-        while train_iter.epoch < args.epoch:
-            batch = train_iter.next()
-            x, t = convert.concat_examples(batch, device)
-            optimizer.update(model, x, t)
-            sum_loss += float(model.loss.array) * len(t)
-            sum_accuracy += float(model.accuracy.array) * len(t)
+    while train_iter.epoch < args.epoch:
+        batch = train_iter.next()
+        x, t = convert.concat_examples(batch, device)
+        optimizer.update(model, x, t)
+        sum_loss += float(model.loss.array) * len(t)
+        sum_accuracy += float(model.accuracy.array) * len(t)
 
-            if train_iter.is_new_epoch:
-                print('epoch: {}'.format(train_iter.epoch))
-                print('train mean loss: {}, accuracy: {}'.format(
-                    sum_loss / train_count, sum_accuracy / train_count))
-                # evaluation
-                sum_accuracy = 0
-                sum_loss = 0
-                # Enable evaluation mode.
-                with configuration.using_config('train', False):
-                    # This is optional but can reduce computational overhead.
-                    with chainer.using_config('enable_backprop', False):
-                        for batch in test_iter:
-                            x, t = convert.concat_examples(batch, device)
-                            loss = model(x, t)
-                            sum_loss += float(loss.array) * len(t)
-                            sum_accuracy += float(
-                                model.accuracy.array) * len(t)
+        if train_iter.is_new_epoch:
+            print('epoch: {}'.format(train_iter.epoch))
+            print('train mean loss: {}, accuracy: {}'.format(
+                sum_loss / train_count, sum_accuracy / train_count))
+            # evaluation
+            sum_accuracy = 0
+            sum_loss = 0
+            # Enable evaluation mode.
+            with configuration.using_config('train', False):
+                # This is optional but can reduce computational overhead.
+                with chainer.using_config('enable_backprop', False):
+                    for batch in test_iter:
+                        x, t = convert.concat_examples(batch, device)
+                        loss = model(x, t)
+                        sum_loss += float(loss.array) * len(t)
+                        sum_accuracy += float(
+                            model.accuracy.array) * len(t)
 
-                test_iter.reset()
-                print('test mean  loss: {}, accuracy: {}'.format(
-                    sum_loss / test_count, sum_accuracy / test_count))
-                sum_accuracy = 0
-                sum_loss = 0
+            test_iter.reset()
+            print('test mean  loss: {}, accuracy: {}'.format(
+                sum_loss / test_count, sum_accuracy / test_count))
+            sum_accuracy = 0
+            sum_loss = 0
 
-        # Save the model and the optimizer
-        if not os.path.exists(args.out):
-            os.makedirs(args.out)
-        print('save the model')
-        serializers.save_npz('{}/mlp.model'.format(args.out), model)
-        print('save the optimizer')
-        serializers.save_npz('{}/mlp.state'.format(args.out), optimizer)
+    # Save the model and the optimizer
+    out = args.out
+    if not os.path.isdir(out):
+        os.makedirs(out)
+    print('save the model')
+    serializers.save_npz(os.path.join(out, 'mlp.model'), model)
+    print('save the optimizer')
+    serializers.save_npz(os.path.join(out, 'mlp.state'), optimizer)
 
 
 if __name__ == '__main__':

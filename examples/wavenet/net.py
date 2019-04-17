@@ -58,14 +58,14 @@ class WaveNet(chainer.Chain):
         self.resnet.initialize(n)
 
         self.embed.pad = (0, 0)
-        self.embed_queue = chainer.Variable(
-            self.xp.zeros((n, self.a_channels, 2, 1), dtype=self.xp.float32))
+        self.embed_queue = chainer.Variable(self.xp.zeros(
+            (n, self.a_channels, 2, 1), dtype=self.embed.W.dtype))
 
         self.proj1_queue = chainer.Variable(self.xp.zeros(
-            (n, self.s_channels, 1, 1), dtype=self.xp.float32))
+            (n, self.s_channels, 1, 1), dtype=self.proj1.W.dtype))
 
         self.proj2_queue3 = chainer.Variable(self.xp.zeros(
-            (n, self.s_channels, 1, 1), dtype=self.xp.float32))
+            (n, self.s_channels, 1, 1), dtype=self.proj2.W.dtype))
 
     def generate(self, x, condition):
         self.embed_queue = F.concat((self.embed_queue[:, :, 1:], x), axis=2)

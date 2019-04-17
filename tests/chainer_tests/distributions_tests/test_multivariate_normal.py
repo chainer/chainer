@@ -29,8 +29,8 @@ class TestMultivariateNormal(testing.distribution_unittest):
         d, = self.event_shape
 
         self.test_targets = set([
-            "batch_shape", "entropy", "event_shape", "log_prob",
-            "support"])
+            'batch_shape', 'entropy', 'event_shape', 'log_prob',
+            'support'])
 
         loc = numpy.random.uniform(
             -1, 1, self.shape + self.event_shape).astype(numpy.float32)
@@ -39,12 +39,12 @@ class TestMultivariateNormal(testing.distribution_unittest):
         cov = [cov_.dot(cov_.T) for cov_ in cov]
         cov = numpy.vstack(cov).reshape(self.shape + (d, d))
         scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
-        self.params = {"loc": loc, "scale_tril": scale_tril}
-        self.scipy_params = {"mean": loc, "cov": cov}
+        self.params = {'loc': loc, 'scale_tril': scale_tril}
+        self.scipy_params = {'mean': loc, 'cov': cov}
 
     def test_value_error(self):
         with self.assertRaises(ValueError):
-            self.dist(loc=self.params["loc"])
+            self.dist(loc=self.params['loc'])
 
     def sample_for_test(self):
         smp = numpy.random.normal(
