@@ -67,8 +67,11 @@ def _skip_if(cond, reason):
 )
 class TestStandardize(testing.FunctionTestCase):
 
+    # TODO(hitsgub): Delete this line once double backward of
+    # :func:`~chainer.functions._standardize` is implemented.
+    skip_double_backward_test = True
+
     def setUp(self):
-        self.skip_double_backward_test = self.same in ('equal', 'near')
         self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
         self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
         self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
