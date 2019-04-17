@@ -125,10 +125,6 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
-Array Fabs(const Array& x);
-
-Array Sign(const Array& x);
-
 Array Sinh(const Array& x);
 
 Array Cosh(const Array& x);
