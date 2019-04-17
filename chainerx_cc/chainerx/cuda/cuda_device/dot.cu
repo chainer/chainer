@@ -39,6 +39,14 @@ template <typename T>
 struct Gemm;
 
 template <>
+struct Gemm<chainerx::Float16> {
+    template <typename... Args>
+    cublasStatus_t operator()(Args&&... args) const {
+        return cublasHgemm(std::forward<Args>(args)...);
+    }
+};
+
+template <>
 struct Gemm<float> {
     template <typename... Args>
     cublasStatus_t operator()(Args&&... args) const {
@@ -116,14 +124,6 @@ public:
             return;
         }
 
-        if (out.dtype() == Dtype::kFloat16) {
-            // TODO(imanishi): Use cublasHgemm
-            Array out_float32 = Empty(out.shape(), Dtype::kFloat32, device);
-            device.backend().CallKernel<DotKernel>(a.AsType(Dtype::kFloat32), b.AsType(Dtype::kFloat32), out_float32);
-            device.backend().CallKernel<AsTypeKernel>(out_float32, out);
-            return;
-        }
-
         bool is_out_contiguous = out.IsContiguous();
         Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, device);
 
@@ -136,7 +136,8 @@ public:
 
             using T = typename decltype(pt)::type;
             using StorageType = cuda_internal::StorageType<T>;
-            using CudaType = cuda_internal::DataType<T>;
+            using DataType = cuda_internal::DataType<T>;
+            using CudaType = std::conditional_t<std::is_same<T, chainerx::Float16>::value, ::__half, T>;
 
             // Note that cuBLAS uses Fortran order.
             // To compute out = a x b, we use cuBLAS to compute out^T = b^T x a^T (here x is the matrix product).
@@ -146,14 +147,13 @@ public:
             Array a_cast_config = a_cast_layout.Configure(a_cast);
             Array b_cast_config = b_cast_layout.Configure(b_cast);
 
-            const CudaType one{chainerx::Float16{1}};
-            const CudaType zero{chainerx::Float16{0}};
-            const CudaType* a_cast_ptr =
-                    &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(a_cast_config)));
-            const CudaType* b_cast_ptr =
-                    &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(b_cast_config)));
-            CudaType* out_ptr =
-                    &cuda_internal::StorageToDataType<T>(*static_cast<StorageType*>(internal::GetRawOffsetData(out_contiguous)));
+            const DataType one{T{1}};
+            const DataType zero{T{0}};
+            const CudaType* one_ptr = static_cast<const CudaType*>(static_cast<const void*>(&one));
+            const CudaType* zero_ptr = static_cast<const CudaType*>(static_cast<const void*>(&zero));
+            const CudaType* a_cast_ptr = static_cast<const CudaType*>(internal::GetRawOffsetData(a_cast_config));
+            const CudaType* b_cast_ptr = static_cast<const CudaType*>(internal::GetRawOffsetData(b_cast_config));
+            CudaType* out_ptr = static_cast<CudaType*>(internal::GetRawOffsetData(out_contiguous));
 
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
@@ -164,17 +164,20 @@ public:
                     n,
                     m,
                     k,
-                    &one,
+                    one_ptr,
                     b_cast_ptr,
                     b_cast_layout.ld,
                     a_cast_ptr,
                     a_cast_layout.ld,
-                    &zero,
+                    zero_ptr,
                     out_ptr,
                     n);
         };
 
         switch (out.dtype()) {
+            case Dtype::kFloat16:
+                gemm_impl(PrimitiveType<chainerx::Float16>{});
+                break;
             case Dtype::kFloat32:
                 gemm_impl(PrimitiveType<float>{});
                 break;
