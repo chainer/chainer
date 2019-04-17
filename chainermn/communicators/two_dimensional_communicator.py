@@ -46,13 +46,14 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.intra_nccl_comm = _communication_utility.init_nccl_comm(
             intra_mpi_comm)
 
-    def allreduce_grad(self, model):
+    def allreduce_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 
-        params = _memory_utility.extract_params_set_grad(model)
+        params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = sum(param.grad.size for param in params)
+        n_elems_total = _memory_utility.count_grad_elements(params,
+                                                            zero_fill)
         n_elems_per_node_2d = int(math.ceil(n_elems_total / self.size))
         n_elems_per_node_1d = n_elems_per_node_2d * self.inter_size
         n_bytes_per_node_1d = n_elems_per_node_1d * itemsize
@@ -65,7 +66,7 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         allreduce_grad_dtype = np.float32
 
         _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
 
         if chainer.is_debug():
             stream.synchronize()
@@ -95,4 +96,4 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.ensure_all_finite(self.gpu_buffer_a.array(n_elems_total))
 
         _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)

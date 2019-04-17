@@ -65,13 +65,14 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
                 data[:] = tmp_gpu
 
-    def allreduce_grad(self, model):
+    def allreduce_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 
-        params = _memory_utility.extract_params_set_grad(model)
+        params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = sum(param.grad.size for param in params)
+        n_elems_total = _memory_utility.count_grad_elements(params,
+                                                            zero_fill)
         n_elems_per_node = int(math.ceil(n_elems_total / self.inter_size))
         n_elems_buffer = n_elems_per_node * self.inter_size
         n_bytes_per_node = n_elems_per_node * itemsize
@@ -83,7 +84,7 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         allreduce_grad_dtype = np.float32
 
         _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype)
+            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
 
         if chainer.is_debug():
             stream.synchronize()
@@ -132,4 +133,4 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
         _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype)
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill)
