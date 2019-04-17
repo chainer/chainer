@@ -17,6 +17,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/normalization.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
@@ -152,7 +153,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
 
 }  // namespace
 
-std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormOp::Call(
+std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormKernel::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -192,7 +193,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormOp::Call(
     return result;
 }
 
-std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
+std::tuple<Array, Array, Array> GenericBatchNormGradKernel::Call(
         const Array& x,
         const Array& gamma,
         const Array& gout,
@@ -246,7 +247,7 @@ std::tuple<Array, Array, Array> GenericBatchNormGradOp::Call(
     return std::make_tuple(std::move(actual_gx), std::move(actual_ggamma), std::move(actual_gbeta));
 }
 
-Array GenericFixedBatchNormOp::Call(
+Array GenericFixedBatchNormKernel::Call(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -285,7 +286,7 @@ Array BatchNorm(
     std::shared_ptr<BatchNormGradState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tie(out, state) = device.backend().CallOp<BatchNormOp>(
+        std::tie(out, state) = device.backend().CallKernel<BatchNormKernel>(
                 x.AsGradStopped(),
                 gamma_reshaped.AsGradStopped(),
                 beta_reshaped.AsGradStopped(),
@@ -322,7 +323,7 @@ Array BatchNorm(
             Array gbeta{};
             {
                 NoBackpropModeScope scope{};
-                std::tie(gx, ggamma, gbeta) = device.backend().CallOp<BatchNormGradOp>(
+                std::tie(gx, ggamma, gbeta) = device.backend().CallKernel<BatchNormGradKernel>(
                         x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
             }
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
@@ -416,7 +417,7 @@ Array FixedBatchNorm(
 
     {
         NoBackpropModeScope scope{};
-        return x.device().backend().CallOp<FixedBatchNormOp>(
+        return x.device().backend().CallKernel<FixedBatchNormKernel>(
                 x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, nonstd::nullopt);
     }
 }

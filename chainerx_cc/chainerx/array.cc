@@ -31,6 +31,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
@@ -40,7 +41,6 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
@@ -313,7 +313,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().backend().CallOp<AsTypeOp>(*this, out);
+    device().backend().CallKernel<AsTypeKernel>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
@@ -329,7 +329,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const {
     internal::CheckNoUnsafeInplace(*this, {});
-    device().backend().CallOp<FillOp>(*this, value);
+    device().backend().CallKernel<FillKernel>(*this, value);
 }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
