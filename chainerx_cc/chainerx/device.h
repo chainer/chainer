@@ -155,7 +155,7 @@ public:
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
 
-    DeviceScope(DeviceScope&& other) noexcept : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+    DeviceScope(DeviceScope&& other) noexcept : orig_{other.orig_}, exited_{other.exited_} { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 

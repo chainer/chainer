@@ -13,7 +13,7 @@ private:
 public:
     // NOLINT is required since `= default` does now work with CUDA.
     // NOLINTNEXTLINE(modernize-use-equals-default)
-    CHAINERX_HOST_DEVICE Float16(){};
+    CHAINERX_HOST_DEVICE Float16() {}
     CHAINERX_HOST_DEVICE explicit Float16(float v);
     CHAINERX_HOST_DEVICE explicit Float16(double v);
 
