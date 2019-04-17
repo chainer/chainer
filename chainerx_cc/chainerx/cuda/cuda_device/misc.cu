@@ -9,11 +9,11 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/numeric.cuh"
-#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/kernels/math.h"
 
 namespace chainerx {
 namespace cuda {
@@ -25,7 +25,7 @@ struct SquareImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = x * x; }
 };
 
-class CudaSquareOp : public SquareOp {
+class CudaSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -38,7 +38,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SquareOp, CudaSquareOp);
+CHAINERX_CUDA_REGISTER_KERNEL(SquareKernel, CudaSquareKernel);
 
 template <typename T>
 struct SqrtImpl {
@@ -46,7 +46,7 @@ struct SqrtImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sqrt(x); }
 };
 
-class CudaSqrtOp : public SqrtOp {
+class CudaSqrtKernel : public SqrtKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -60,51 +60,11 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(SqrtOp, CudaSqrtOp);
+CHAINERX_CUDA_REGISTER_KERNEL(SqrtKernel, CudaSqrtKernel);
 
-template <typename T>
-struct FabsImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Fabs(x); }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs(x); });
 
-class CudaFabsOp : public FabsOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(FabsImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(FabsOp, CudaFabsOp);
-
-template <typename T>
-struct SignImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sign(x); }
-};
-
-class CudaSignOp : public SignOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(SignImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_CUDA(SignOp, CudaSignOp);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = cuda::Sign(x); }, VisitNumericDtype);
 
 template <typename T>
 struct IsNanImpl {
@@ -112,7 +72,7 @@ struct IsNanImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }
 };
 
-class CudaIsNanOp : public IsNanOp {
+class CudaIsNanKernel : public IsNanKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -125,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IsNanOp, CudaIsNanOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IsNanKernel, CudaIsNanKernel);
 
 template <typename T>
 struct IsInfImpl {
@@ -133,7 +93,7 @@ struct IsInfImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsInf(x); }
 };
 
-class CudaIsInfOp : public IsInfOp {
+class CudaIsInfKernel : public IsInfKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -146,7 +106,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(IsInfOp, CudaIsInfOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IsInfKernel, CudaIsInfKernel);
 
 template <typename T>
 struct CeilImpl {
@@ -154,7 +114,7 @@ struct CeilImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Ceil(x); }
 };
 
-class CudaCeilOp : public CeilOp {
+class CudaCeilKernel : public CeilKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -168,7 +128,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(CeilOp, CudaCeilOp);
+CHAINERX_CUDA_REGISTER_KERNEL(CeilKernel, CudaCeilKernel);
 
 template <typename T>
 struct FloorImpl {
@@ -176,7 +136,7 @@ struct FloorImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Floor(x); }
 };
 
-class CudaFloorOp : public FloorOp {
+class CudaFloorKernel : public FloorKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -190,7 +150,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FloorOp, CudaFloorOp);
+CHAINERX_CUDA_REGISTER_KERNEL(FloorKernel, CudaFloorKernel);
 
 }  // namespace
 }  // namespace cuda

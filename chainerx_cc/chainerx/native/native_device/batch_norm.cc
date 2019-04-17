@@ -1,12 +1,12 @@
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/normalization.h"
+#include "chainerx/kernels/normalization.h"
+#include "chainerx/native/kernel_regist.h"
 
 namespace chainerx {
 namespace native {
 
-CHAINERX_REGISTER_OP_NATIVE(BatchNormOp, GenericBatchNormOp);
-CHAINERX_REGISTER_OP_NATIVE(BatchNormGradOp, GenericBatchNormGradOp);
-CHAINERX_REGISTER_OP_NATIVE(FixedBatchNormOp, GenericFixedBatchNormOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(BatchNormKernel, GenericBatchNormKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(BatchNormGradKernel, GenericBatchNormGradKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(FixedBatchNormKernel, GenericFixedBatchNormKernel);
 
 }  // namespace native
 }  // namespace chainerx

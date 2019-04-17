@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "chainerx/op.h"
-#include "chainerx/op_registry.h"
+#include "chainerx/kernel.h"
+#include "chainerx/kernel_registry.h"
 
 namespace chainerx {
 
@@ -40,7 +40,7 @@ public:
     Context& context() const { return context_; }
 
     // Returns the op registry.
-    OpRegistry& op_registry() { return op_registry_; }
+    KernelRegistry& kernel_registry() { return kernel_registry_; }
 
     // Returns the device for the given index.
     //
@@ -50,16 +50,16 @@ public:
     // Queries if the backend supports data transfer between two devices.
     virtual bool SupportsTransfer(Device& src_device, Device& dst_device) = 0;
 
-    // Calls the op implementation.
-    template <typename OpType, typename... Args>
-    auto CallOp(Args&&... args) {
-        Op& op = op_registry_.GetOp<OpType>();
-        return dynamic_cast<OpType&>(op).Call(std::forward<Args>(args)...);
+    // Calls the kernel implementation.
+    template <typename KernelType, typename... Args>
+    auto CallKernel(Args&&... args) {
+        Kernel& kernel = kernel_registry_.GetKernel<KernelType>();
+        return dynamic_cast<KernelType&>(kernel).Call(std::forward<Args>(args)...);
     }
 
 protected:
-    // Returns a backend-specific global op registry.
-    virtual OpRegistry& GetParentOpRegistry() = 0;
+    // Returns a backend-specific global kernel registry.
+    virtual KernelRegistry& GetParentKernelRegistry() = 0;
 
 private:
     // Creates a new device.
@@ -72,7 +72,7 @@ private:
 
     std::mutex devices_mutex_;
 
-    OpRegistry op_registry_;
+    KernelRegistry kernel_registry_;
 };
 
 }  // namespace chainerx

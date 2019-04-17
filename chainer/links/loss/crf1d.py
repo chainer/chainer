@@ -1,4 +1,7 @@
 from chainer.functions.loss import crf1d
+from chainer.functions.array import transpose_sequence
+from chainer.links.connection.n_step_rnn import argsort_list_descent
+from chainer.links.connection.n_step_rnn import permutate_list
 from chainer import initializers
 from chainer import link
 from chainer import variable
@@ -33,14 +36,42 @@ class CRF1d(link.Link):
             self.cost = variable.Parameter(initializer=initial_cost,
                                            shape=(n_label, n_label))
 
-    def forward(self, xs, ys, reduce='mean'):
-        return crf1d.crf1d(self.cost, xs, ys, reduce)
+    def forward(self, xs, ys, reduce='mean', transpose=False):
+        """Computes negative log-likelihood of linear-chain CRF
 
-    def argmax(self, xs):
+        Args:
+            xs (list of Variable): Input vector for each label
+            ys (list of Variable): Expected output labels.
+            transpose (bool): If ``True``, input/output sequences
+            will be sorted in descending order of length.
+
+        Returns:
+            ~chainer.Variable: A variable holding the average negative
+            log-likelihood of the input sequences.
+
+        .. seealso:: See :func:`~chainer.frunctions.crf1d` for more detail.
+        """
+
+        if transpose:
+            indices = argsort_list_descent(xs)
+            xs = permutate_list(xs, indices, inv=False)
+            ys = permutate_list(ys, indices, inv=False)
+            trans_x = transpose_sequence.transpose_sequence(xs)
+            trans_y = transpose_sequence.transpose_sequence(ys)
+            loss = crf1d.crf1d(self.cost, trans_x, trans_y, reduce)
+
+        else:
+            loss = crf1d.crf1d(self.cost, xs, ys, reduce)
+
+        return loss
+
+    def argmax(self, xs, transpose=False):
         """Computes a state that maximizes a joint probability.
 
         Args:
             xs (list of Variable): Input vector for each label.
+            transpose (bool): If ``True``, input/output sequences
+            will be sorted in descending order of length.
 
         Returns:
             tuple: A tuple of :class:`~chainer.Variable` representing each
@@ -50,4 +81,18 @@ class CRF1d(link.Link):
            detail.
 
         """
-        return crf1d.argmax_crf1d(self.cost, xs)
+
+        if transpose:
+            indices = argsort_list_descent(xs)
+            xs = permutate_list(xs, indices, inv=False)
+            trans_x = transpose_sequence.transpose_sequence(xs)
+            score, path = crf1d.argmax_crf1d(self.cost, trans_x)
+
+            path = transpose_sequence.transpose_sequence(path)
+            path = [p.array for p in path]
+            path = permutate_list(path, indices, inv=True)
+
+        else:
+            score, path = crf1d.argmax_crf1d(self.cost, xs)
+
+        return score, path

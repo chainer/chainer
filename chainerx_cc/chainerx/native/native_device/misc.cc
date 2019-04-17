@@ -6,8 +6,9 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
 #include "chainerx/routines/math.h"
 
@@ -15,43 +16,11 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeFabsOp : public FabsOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Fabs(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
 
-CHAINERX_REGISTER_OP_NATIVE(FabsOp, NativeFabsOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
 
-class NativeSignOp : public SignOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sign(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_NATIVE(SignOp, NativeSignOp);
-
-class NativeSquareOp : public SquareOp {
+class NativeSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -65,9 +34,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SquareOp, NativeSquareOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SquareKernel, NativeSquareKernel);
 
-class NativeSqrtOp : public SqrtOp {
+class NativeSqrtKernel : public SqrtKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -82,9 +51,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(SqrtOp, NativeSqrtOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SqrtKernel, NativeSqrtKernel);
 
-class NativeIsNanOp : public IsNanOp {
+class NativeIsNanKernel : public IsNanKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -98,9 +67,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IsNanOp, NativeIsNanOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IsNanKernel, NativeIsNanKernel);
 
-class NativeIsInfOp : public IsInfOp {
+class NativeIsInfKernel : public IsInfKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -114,9 +83,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IsInfOp, NativeIsInfOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IsInfKernel, NativeIsInfKernel);
 
-class NativeCeilOp : public CeilOp {
+class NativeCeilKernel : public CeilKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -132,9 +101,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(CeilOp, NativeCeilOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(CeilKernel, NativeCeilKernel);
 
-class NativeFloorOp : public FloorOp {
+class NativeFloorKernel : public FloorKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -150,7 +119,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(FloorOp, NativeFloorOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(FloorKernel, NativeFloorKernel);
 
 }  // namespace
 }  // namespace native
