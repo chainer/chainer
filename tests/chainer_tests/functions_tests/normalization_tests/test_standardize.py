@@ -31,6 +31,7 @@ def _skip_if(cond, reason):
         {'size': 20},
     ],
     [
+        {'dtype': numpy.float64},
         {'dtype': numpy.float32},
         {'dtype': numpy.float16},
     ],
