@@ -24,6 +24,7 @@ find /chainer -name "*.pyc" -exec rm -f {} \;
 
 TARGET="$1"
 : "${GPU:=0}"
+: "${XPYTEST_NUM_THREADS:=$(nproc)}"
 
 ################################################################################
 # Test functions
@@ -40,15 +41,14 @@ test_py37() {
     bucket=1
     export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
+    maker+=' and (gpu or cudnn)'
     bucket="${GPU}"
   fi
-  nproc="$(nproc)"
-  thread="$(( nproc / bucket ))"
 
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j${nproc}" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.7 -m pip install /chainer[test] 2>&1 >/tmp/install.log &
   install_pid=$!
@@ -68,8 +68,8 @@ test_py37() {
       -DCHAINERX_WARNINGS_AS_ERRORS=ON \
       /chainer/chainerx_cc
   # NOTE: Use nice to prioritize pip install process.
-  nice -n 19 make "-j${nproc}"
-  ctest --output-on-failure "-j${nproc}" && :
+  nice -n 19 make "-j$(nproc)"
+  ctest --output-on-failure "-j$(nproc)" && :
   cc_test_status=$?
   popd
 
@@ -82,7 +82,7 @@ test_py37() {
   fi
   xpytest_args=(
       --python=python3.7 -m "${marker}"
-      --bucket="${bucket}" --thread="${thread}"
+      --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
@@ -113,10 +113,9 @@ test_py27and35() {
     bucket=1
     export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
+    maker+=' and (gpu or cudnn)'
     bucket="${GPU}"
   fi
-  nproc="$(nproc)"
-  thread="$(( nproc / bucket ))"
 
   #-----------------------------------------------------------------------------
   # Install Chainer
@@ -130,7 +129,7 @@ test_py27and35() {
   # NOTE: Installation of python3.5 takes much longer time because it requires
   # ChainerX builds.  It is difficult to speed up with parallelization, so this
   # script runs it in the background of python2.7 unit testing.
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j${nproc}" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
@@ -139,8 +138,9 @@ test_py27and35() {
   # Test python2.7
   #-----------------------------------------------------------------------------
   xpytest_args=(
-    --python=python2.7 -m "${marker}" --bucket="${bucket}" --thread="${thread}"
-    --hint="/chainer/.pfnci/hint.pbtxt"
+      --python=python2.7 -m "${marker}"
+      --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
+      --hint="/chainer/.pfnci/hint.pbtxt"
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
@@ -158,7 +158,7 @@ test_py27and35() {
   fi
   xpytest_args=(
       --python=python3.5 -m "${marker}"
-      --bucket="${bucket}" --thread="${thread}"
+      --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then

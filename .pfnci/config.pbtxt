@@ -9,17 +9,38 @@
 # - chainerx_tests with python3.7 (not slow)
 # URL: https://ci.preferred.jp/chainer.py37/
 configs {
-  key: "chainer.py37"
+  key: "chainer.py37.cpu"
   value {
     requirement {
-      cpu: 32
-      memory: 80
+      cpu: 20
+      memory: 30
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "0" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py37"
+  }
+}
+configs {
+  key: "chainer.py37.gpu"
+  value {
+    requirement {
+      cpu: 30
+      memory: 40
       gpu: 2
     }
     time_limit: {
       seconds: 900
     }
     environment_variables { key: "GPU" value: "2" }
+    # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
+    # cudaErrorLaunchFailure because of insufficient memory on GPU.
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "20" }
     environment_variables {
       key: "SPREADSHEET_ID"
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
@@ -33,10 +54,28 @@ configs {
 # - chainer_tests with python3.5 (not slow)
 # URL: https://ci.preferred.jp/chainer.py27and35/
 configs {
-  key: "chainer.py27and35"
+  key: "chainer.py27and35.cpu"
   value {
     requirement {
-      cpu: 32
+      cpu: 20
+      memory: 30
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "0" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py27and35"
+  }
+}
+configs {
+  key: "chainer.py27and35.gpu"
+  value {
+    requirement {
+      cpu: 30
       memory: 80
       gpu: 2
     }
@@ -44,6 +83,9 @@ configs {
       seconds: 900
     }
     environment_variables { key: "GPU" value: "2" }
+    # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
+    # cudaErrorLaunchFailure because of insufficient memory on GPU.
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "20" }
     environment_variables {
       key: "SPREADSHEET_ID"
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"

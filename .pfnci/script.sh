@@ -41,6 +41,7 @@ main() {
   if [ "${XPYTEST:-}" != '' ]; then
     docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
   fi
+  docker_args+=(--env="XPYTEST_NUM_THREADS=${XPYTEST_NUM_THREADS:-$(nproc)}")
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     docker_args+=(--env="SPREADSHEET_ID=${SPREADSHEET_ID}")
   fi
