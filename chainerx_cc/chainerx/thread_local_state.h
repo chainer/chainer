@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "chainerx/backprop_mode.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
@@ -20,7 +22,9 @@ InternalThreadLocalState& GetInternalThreadLocalState();
 class ThreadLocalState {
 public:
     ThreadLocalState() = default;
-    explicit ThreadLocalState(const internal::InternalThreadLocalState& state) : state_{state} {}
+    explicit ThreadLocalState(internal::InternalThreadLocalState state) : state_{std::move(state)} {}
+
+    ~ThreadLocalState() = default;
 
     ThreadLocalState(const ThreadLocalState&) = default;
     ThreadLocalState& operator=(const ThreadLocalState&) = default;

@@ -51,6 +51,7 @@ public:
     size_t GetCudnnMaxWorkspaceSize();
 
     static KernelRegistry& GetGlobalKernelRegistry() {
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         static KernelRegistry* global_kernel_registry = new KernelRegistry{};
         return *global_kernel_registry;
     }

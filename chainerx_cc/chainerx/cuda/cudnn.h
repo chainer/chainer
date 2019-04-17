@@ -21,7 +21,7 @@ public:
     cudnnStatus_t error() const noexcept { return status_; }
 
 private:
-    cudnnStatus_t status_;
+    cudnnStatus_t status_{};
 };
 
 void CheckCudnnError(cudnnStatus_t status);
@@ -51,7 +51,13 @@ class CudnnTensorDescriptor {
 public:
     CudnnTensorDescriptor();
     explicit CudnnTensorDescriptor(const Array& arr);
+
     ~CudnnTensorDescriptor();
+
+    CudnnTensorDescriptor(const CudnnTensorDescriptor&) = default;
+    CudnnTensorDescriptor(CudnnTensorDescriptor&&) = default;
+    CudnnTensorDescriptor& operator=(const CudnnTensorDescriptor&) = default;
+    CudnnTensorDescriptor& operator=(CudnnTensorDescriptor&&) = default;
 
     cudnnTensorDescriptor_t descriptor() const { return desc_; }
     cudnnTensorDescriptor_t operator*() const { return desc_; }
@@ -66,6 +72,11 @@ class CudnnFilterDescriptor {
 public:
     explicit CudnnFilterDescriptor(const Array& w);
     ~CudnnFilterDescriptor();
+
+    CudnnFilterDescriptor(const CudnnFilterDescriptor&) = default;
+    CudnnFilterDescriptor(CudnnFilterDescriptor&&) = default;
+    CudnnFilterDescriptor& operator=(const CudnnFilterDescriptor&) = default;
+    CudnnFilterDescriptor& operator=(CudnnFilterDescriptor&&) = default;
 
     cudnnFilterDescriptor_t descriptor() const { return desc_; }
     cudnnFilterDescriptor_t operator*() const { return desc_; }
@@ -85,6 +96,11 @@ public:
             int groups);
     ~CudnnConvolutionDescriptor();
 
+    CudnnConvolutionDescriptor(const CudnnConvolutionDescriptor&) = default;
+    CudnnConvolutionDescriptor(CudnnConvolutionDescriptor&&) = default;
+    CudnnConvolutionDescriptor& operator=(const CudnnConvolutionDescriptor&) = default;
+    CudnnConvolutionDescriptor& operator=(CudnnConvolutionDescriptor&&) = default;
+
     cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
     cudnnConvolutionDescriptor_t operator*() const { return desc_; }
 
@@ -103,6 +119,11 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride);
     ~CudnnPoolingDescriptor();
 
+    CudnnPoolingDescriptor(const CudnnPoolingDescriptor&) = default;
+    CudnnPoolingDescriptor(CudnnPoolingDescriptor&&) = default;
+    CudnnPoolingDescriptor& operator=(const CudnnPoolingDescriptor&) = default;
+    CudnnPoolingDescriptor& operator=(CudnnPoolingDescriptor&&) = default;
+
     cudnnPoolingDescriptor_t descriptor() const { return desc_; }
     cudnnPoolingDescriptor_t operator*() const { return desc_; }
 
@@ -117,6 +138,11 @@ class CudnnHandle {
 public:
     explicit CudnnHandle(int device_index) : device_index_{device_index} {}
     ~CudnnHandle();
+
+    CudnnHandle(const CudnnHandle&) = delete;
+    CudnnHandle(CudnnHandle&&) = delete;
+    CudnnHandle& operator=(const CudnnHandle&) = delete;
+    CudnnHandle& operator=(CudnnHandle&&) = delete;
 
     template <class Func, class... Args>
     void Call(Func&& func, Args&&... args) {

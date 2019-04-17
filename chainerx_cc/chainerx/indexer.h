@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <ostream>
 
+#include <gsl/gsl>
+
 #include "chainerx/constant.h"
 #include "chainerx/index_iterator.h"
 #include "chainerx/macro.h"
@@ -13,11 +15,14 @@ namespace chainerx {
 
 class NdimIndex {
 public:
+    // Suppressing error with the following line that `index_` is not initialized.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     NdimIndex(const int64_t* index, int8_t ndim) : ndim_{ndim} { std::copy_n(index, ndim, index_); }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     explicit NdimIndex(int8_t ndim) : ndim_{ndim} {
         for (int8_t i = 0; i < ndim; ++i) {
-            index_[i] = 0;
+            gsl::at(index_, i) = 0;
         }
     }
 

@@ -36,6 +36,7 @@ public:
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
     static KernelRegistry& GetGlobalKernelRegistry() {
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         static KernelRegistry* global_kernel_registry = new KernelRegistry{};
         return *global_kernel_registry;
     }

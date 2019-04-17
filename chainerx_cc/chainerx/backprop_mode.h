@@ -51,6 +51,7 @@ public:
     explicit BackpropModeScope(const std::vector<BackpropId>& backprop_ids);
 
     // Backprop mode for specified graphs
+    // NOLINTNEXTLINE(google-explicit-constructor)
     explicit BackpropModeScope(std::initializer_list<BackpropId> backprop_ids)
         : BackpropModeScope({backprop_ids.begin(), backprop_ids.end()}) {}
 

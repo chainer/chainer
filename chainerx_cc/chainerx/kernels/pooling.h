@@ -15,7 +15,14 @@ namespace chainerx {
 
 class MaxPoolGradState {
 public:
+    MaxPoolGradState() = default;
+
     virtual ~MaxPoolGradState() = default;
+
+    MaxPoolGradState(const MaxPoolGradState&) = default;
+    MaxPoolGradState(MaxPoolGradState&&) = default;
+    MaxPoolGradState& operator=(const MaxPoolGradState&) = default;
+    MaxPoolGradState& operator=(MaxPoolGradState&&) = default;
 };
 
 class MaxPoolKernel : public Kernel {
@@ -34,7 +41,14 @@ public:
 
 class MaxPoolGradGradState {
 public:
+    MaxPoolGradGradState() = default;
+
     virtual ~MaxPoolGradGradState() = default;
+
+    MaxPoolGradGradState(const MaxPoolGradGradState&) = default;
+    MaxPoolGradGradState(MaxPoolGradGradState&&) = default;
+    MaxPoolGradGradState& operator=(const MaxPoolGradGradState&) = default;
+    MaxPoolGradGradState& operator=(MaxPoolGradGradState&&) = default;
 };
 
 class MaxPoolGradKernel : public Kernel {
@@ -67,7 +81,14 @@ public:
 
 class AveragePoolGradState {
 public:
+    AveragePoolGradState() = default;
+
     virtual ~AveragePoolGradState() = default;
+
+    AveragePoolGradState(const AveragePoolGradState&) = default;
+    AveragePoolGradState(AveragePoolGradState&&) = default;
+    AveragePoolGradState& operator=(const AveragePoolGradState&) = default;
+    AveragePoolGradState& operator=(AveragePoolGradState&&) = default;
 };
 
 class AveragePoolKernel : public Kernel {

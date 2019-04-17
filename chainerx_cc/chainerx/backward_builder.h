@@ -56,10 +56,13 @@ class RetainedArrayToken {
 public:
     RetainedArrayToken(internal::ArrayBody::Params array_params, size_t index) : array_params_{std::move(array_params)}, index_{index} {}
 
+    ~RetainedArrayToken() = default;
+
     RetainedArrayToken(const RetainedArrayToken&) = default;
-    RetainedArrayToken(RetainedArrayToken&&) = default;
+    RetainedArrayToken(RetainedArrayToken&&) noexcept = default;
     RetainedArrayToken& operator=(const RetainedArrayToken&) = default;
-    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;
+    // TODO(hvy): Make the move assignment operator noexcept.
+    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;  // NOLINT(performance-noexcept-move-constructor)
 
 private:
     friend class chainerx::BackwardContext;
@@ -131,6 +134,11 @@ public:
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
+
+    BackwardBuilder(const BackwardBuilder&) = default;
+    BackwardBuilder(BackwardBuilder&&) = default;
+    BackwardBuilder& operator=(const BackwardBuilder&) = delete;
+    BackwardBuilder& operator=(BackwardBuilder&&) = delete;
 
     // Creates a backward target for the specified inputs.
     Target CreateTarget(std::vector<size_t> input_indices) {

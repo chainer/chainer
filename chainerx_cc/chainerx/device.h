@@ -22,7 +22,15 @@ enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
+    MaxPoolForwardBackward() = default;
+
     virtual ~MaxPoolForwardBackward() = default;
+
+    MaxPoolForwardBackward(const MaxPoolForwardBackward&) = default;
+    MaxPoolForwardBackward(MaxPoolForwardBackward&&) = default;
+    MaxPoolForwardBackward& operator=(const MaxPoolForwardBackward&) = default;
+    MaxPoolForwardBackward& operator=(MaxPoolForwardBackward&&) = default;
+
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
     virtual Array DoubleBackward(const Array& ggx) = 0;
@@ -30,7 +38,15 @@ public:
 
 class AveragePoolForwardBackward {
 public:
+    AveragePoolForwardBackward() = default;
+
     virtual ~AveragePoolForwardBackward() = default;
+
+    AveragePoolForwardBackward(const AveragePoolForwardBackward&) = default;
+    AveragePoolForwardBackward(AveragePoolForwardBackward&&) = default;
+    AveragePoolForwardBackward& operator=(const AveragePoolForwardBackward&) = default;
+    AveragePoolForwardBackward& operator=(AveragePoolForwardBackward&&) = default;
+
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
 };
@@ -139,7 +155,7 @@ public:
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
 
-    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+    DeviceScope(DeviceScope&& other) noexcept : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 

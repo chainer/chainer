@@ -11,7 +11,7 @@ class Backend;
 
 class DeviceId {
 public:
-    DeviceId(const std::string& device_name);  // NOLINT(runtime/explicit)
+    DeviceId(const std::string& device_name);  // NOLINT(runtime/explicit, google-explicit-constructor)
     DeviceId(std::string backend_name, int index) : backend_name_{std::move(backend_name)}, index_{index} {}
 
     const std::string& backend_name() const { return backend_name_; }
@@ -30,6 +30,6 @@ inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) {
 
 inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs == rhs); }
 
-std::ostream& operator<<(std::ostream&, const DeviceId&);
+std::ostream& operator<<(std::ostream& os, const DeviceId& device_id);
 
 }  // namespace chainerx
