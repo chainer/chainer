@@ -186,22 +186,6 @@ def _populate_ndarray():
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
 
-    def _all(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.all(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.all = _all
-
-    def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.any(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.any = _any
-
 
 def populate():
     _populate_module_functions()
