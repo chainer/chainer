@@ -57,14 +57,13 @@ void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
-Array Divide(const Array& x1, const Array& x2);
-Array Divide(const Array& x1, Scalar x2);
-Array Divide(Scalar x1, const Array& x2);
-
-// TODO(imanishi): Support bool
 Array FloorDivide(const Array& x1, const Array& x2);
 Array FloorDivide(const Array& x1, Scalar x2);
 Array FloorDivide(Scalar x1, const Array& x2);
+
+Array Divide(const Array& x1, const Array& x2);
+Array Divide(const Array& x1, Scalar x2);
+Array Divide(Scalar x1, const Array& x2);
 
 Array TrueDivide(const Array& x1, const Array& x2);
 Array TrueDivide(const Array& x1, Scalar x2);
@@ -75,12 +74,15 @@ Array Reciprocal(const Array& x);
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array AMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+Array Maximum(const Array& x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
@@ -95,7 +97,13 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sigmoid(const Array& x);
 
+Array Relu(const Array& x);
+
+Array Softmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
+
 Array Square(const Array& x);
+
+Array SquaredDifference(const Array& x1, const Array& x2);
 
 Array Sqrt(const Array& x);
 
@@ -122,5 +130,17 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Sinh(const Array& x);
+
+Array Cosh(const Array& x);
+
+Array Arcsinh(const Array& x);
+
+Array Arccosh(const Array& x);
+
+Array Ceil(const Array& x);
+
+Array Floor(const Array& x);
 
 }  // namespace chainerx
