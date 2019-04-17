@@ -337,6 +337,14 @@ See :func:`chainerx.squeeze` for the full documentation.
 """)
 
     _docs.set_doc(
+        ndarray.swapaxes,
+        """swapaxes(axis1, axis2)
+Interchange two axes of an array..
+
+See :func:`chainerx.swapaxes` for the full documentation.
+""")
+
+    _docs.set_doc(
         ndarray.sum,
         """sum(axis=None, keepdims=False)
 Returns the sum of an array along given axes.

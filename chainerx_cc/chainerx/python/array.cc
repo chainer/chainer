@@ -280,6 +280,10 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr);
     c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, py::arg("axis"));
+    c.def("swapaxes",
+          [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
+          py::arg("axis1"),
+          py::arg("axis2"));
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());
