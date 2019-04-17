@@ -122,7 +122,7 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 def open_pickle_dataset(path):
     """Opens a dataset stored in a given path.
 
-    This is a hepler function to open :class:`PickleDataset`. It opens a given
+    This is a helper function to open :class:`PickleDataset`. It opens a given
     file in binary mode, and creates a :class:`PickleDataset` instance.
 
     This method does not close the opened file. A user needs to call
