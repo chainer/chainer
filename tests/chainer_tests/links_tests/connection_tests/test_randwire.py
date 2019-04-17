@@ -14,12 +14,18 @@ class TestRandWireWS(unittest.TestCase):
 
     in_channels = 3
     out_channels = 8
+    ksize = 3
+    pad = 1
     _n = 16
     _k = 4
     _p = 0.75
-    link = partial(
-        links.Convolution2D, in_channels=None,
-        out_channels=out_channels)
+    link = links.Convolution2D
+    kwargs = {
+        'in_channels': None,
+        'out_channels': out_channels,
+        'ksize': ksize,
+        'pad': pad,
+    }
 
     def setUp(self):
         self.x = numpy.random.uniform(
@@ -28,7 +34,8 @@ class TestRandWireWS(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (10, self.out_channels, 5, 5)
         ).astype(numpy.float32)
-        self.l = links.RandWireWS(self._n, self._k, self._p, self.link)
+        self.l = links.RandWireWS(
+            self._n, self._k, self._p, self.link, **self.kwargs)
 
     def check_backward(self, x_data, y_grad):
         x = chainer.Variable(x_data)
