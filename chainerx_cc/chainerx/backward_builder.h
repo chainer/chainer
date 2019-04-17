@@ -135,7 +135,7 @@ public:
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
 
-    BackwardBuilder(const BackwardBuilder&) = default;
+    BackwardBuilder(const BackwardBuilder&) = delete;
     BackwardBuilder(BackwardBuilder&&) = default;
     BackwardBuilder& operator=(const BackwardBuilder&) = delete;
     BackwardBuilder& operator=(BackwardBuilder&&) = delete;
