@@ -209,13 +209,19 @@ In that case, we can reduce them io :meth:`~FunctionNode.forward`.
            # Return the result as a tuple.
            return w,
 
-       def backward(self, inputs, grad_outputs):
-           x, y, z = inputs
+       def backward(self, target_input_indexes, grad_outputs):
+           # Unpack inputs retained in the forward process (``Variable``).
+           x, y = self.get_retained_inputs()
+
+           # Get gradients w.r.t. the output (Variable).
            gw, = grad_outputs
 
+           # Compute gradients w.r.t the inputs.
            gx = y * gw
            gy = x * gw
            gz = gw
+
+           # Return the result as a tuple.
            return gx, gy, gz
 
 .. testcode::
@@ -374,7 +380,7 @@ Our MulAdd implementation can be improved as follows:
        def forward_gpu(self, inputs):
            self.retain_inputs((0, 1))
            x, y, z = inputs
-           w = cuda.cupy.elementwise(
+           w = cuda.elementwise(
                'float32 x, float32 y, float32 z',
                'float32 w',
                'w = x * y + z',
@@ -382,20 +388,20 @@ Our MulAdd implementation can be improved as follows:
            return w,
 
        def backward(self, target_input_indexes, grad_outputs):
-           x, y, z = self.get_retained_inputs()
+           x, y = self.get_retained_inputs()
            gw, = grad_outputs
-           return MulAddGrad().apply((x, y, z, gw))
+           return MulAddGrad().apply((x, y, gw))
 
    class MulAddGrad(FunctionNode):
        def forward_cpu(self, inputs):
-           x, y, z, gw = inputs
+           x, y, gw = inputs
            gx = y * gw
            gy = x * gw
            gz = gw
            return gx, gy, gz
 
        def forward_gpu(self, inputs):
-           x, y, z, gw = inputs
+           x, y, gw = inputs
            gx, gy = cuda.elementwise(
                'float32 x, float32 y, float32 gw',
                'float32 gx, float32 gy',
