@@ -760,6 +760,10 @@ def sigmoid(x: ndarray) -> ndarray: ...
 
 def relu(x: ndarray) -> ndarray: ...
 
+def softmax(
+        x: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
