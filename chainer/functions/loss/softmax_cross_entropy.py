@@ -337,7 +337,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
             coeff = cupy.array(1, dtype=gloss.dtype)  # dtype does not matter
 
         if self.soft_target:
-            gx = coeff * (y - t)
+            gx = gloss * coeff * (y - t)
         elif self.class_weight is None:
             gx = cuda.elementwise(
                 'T y, S t, T gloss, U coeff, S n_channel, S n_unit, '
