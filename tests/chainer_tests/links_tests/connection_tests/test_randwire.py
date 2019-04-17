@@ -18,7 +18,7 @@ class TestRandWireWS(unittest.TestCase):
     _k = 4
     _p = 0.75
     link = partial(
-        links.Convolution2D, in_channels=in_channels,
+        links.Convolution2D, in_channels=None,
         out_channels=out_channels)
 
     def setUp(self):
