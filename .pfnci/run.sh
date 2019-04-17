@@ -41,7 +41,7 @@ test_py37() {
     bucket=1
     export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
-    maker+=' and (gpu or cudnn)'
+    marker+=' and (gpu or cudnn)'
     bucket="${GPU}"
   fi
 
@@ -113,7 +113,7 @@ test_py27and35() {
     bucket=1
     export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
-    maker+=' and (gpu or cudnn)'
+    marker+=' and (gpu or cudnn)'
     bucket="${GPU}"
   fi
 
