@@ -1,8 +1,9 @@
 import unittest
 
-import chainer
 import numpy
+import pytest
 
+import chainer
 from chainer import testing
 from chainer.training import triggers
 from chainer.training import util
@@ -22,7 +23,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
     def test_early_stopping_trigger_with_accuracy(self):
         key = 'main/accuracy'
-        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patience=3,
                                                 check_trigger=(1, 'epoch'),
                                                 verbose=False)
         trigger = util.get_trigger(trigger)
@@ -37,7 +38,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
     def test_early_stopping_trigger_with_loss(self):
         key = 'main/loss'
-        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patience=3,
                                                 check_trigger=(1, 'epoch'))
         trigger = util.get_trigger(trigger)
 
@@ -51,7 +52,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
     def test_early_stopping_trigger_with_max_epoch(self):
         key = 'main/loss'
-        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patience=3,
                                                 check_trigger=(1, 'epoch'),
                                                 max_trigger=(3, 'epoch'))
         trigger = util.get_trigger(trigger)
@@ -66,7 +67,7 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
     def test_early_stopping_trigger_with_max_iteration(self):
         key = 'main/loss'
-        trigger = triggers.EarlyStoppingTrigger(monitor=key, patients=3,
+        trigger = triggers.EarlyStoppingTrigger(monitor=key, patience=3,
                                                 check_trigger=(1, 'epoch'),
                                                 max_trigger=(3, 'iteration'))
         trigger = util.get_trigger(trigger)
@@ -78,6 +79,28 @@ class TestEarlyStoppingTrigger(unittest.TestCase):
 
         expected = [False, False, True]
         _test_trigger(self, trigger, key, accuracies, expected)
+
+
+class TestEarlyStoppingTriggerPatienceAlias(unittest.TestCase):
+    """Tests the alias argument `patients`."""
+
+    def test_alias(self):
+        # By keyword
+        trigger = triggers.EarlyStoppingTrigger(patients=10)
+        assert trigger.patience == 10
+
+        # By positional
+        trigger = triggers.EarlyStoppingTrigger((1, 'epoch'), 'main/loss', 10)
+        assert trigger.patience == 10
+
+        # Duplicated, by keyword
+        with pytest.raises(TypeError):
+            triggers.EarlyStoppingTrigger(patience=10, patients=3)
+
+        # Duplicated, by positional
+        with pytest.raises(TypeError):
+            triggers.EarlyStoppingTrigger(
+                (1, 'epoch'), 'main/loss', 10, patients=3)
 
 
 testing.run_module(__name__, __file__)

@@ -5,16 +5,16 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace native {
 namespace {
 
-class NativeExpOp : public ExpOp {
+class NativeExpKernel : public ExpKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -29,9 +29,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(ExpOp, NativeExpOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ExpKernel, NativeExpKernel);
 
-class NativeLogOp : public LogOp {
+class NativeLogKernel : public LogKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -46,7 +46,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(LogOp, NativeLogOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(LogKernel, NativeLogKernel);
 
 }  // namespace
 }  // namespace native
