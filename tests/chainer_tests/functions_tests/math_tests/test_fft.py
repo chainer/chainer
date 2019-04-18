@@ -1,12 +1,7 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer import cuda
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+from chainer import functions
 
 
 @testing.parameterize(*testing.product({
@@ -14,85 +9,49 @@ from chainer.testing import attr
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'method': ['fft', 'ifft']
 }))
-class TestFFT(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestFFT(testing.FunctionTestCase):
 
     def setUp(self):
-        self.rx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ix = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.rg = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ig = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.grx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.gix = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.check_backward_options.update({
+            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3})
+        self.check_double_backward_options.update({
+            'atol': 1e-2, 'rtol': 1e-3})
 
-    def check_forward(self, rx_data, ix_data):
-        ry, iy = getattr(chainer.functions, self.method)((rx_data, ix_data))
+    def generate_inputs(self):
+        rx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        ix = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return rx, ix
 
-        x = self.rx + self.ix * 1j
-        y = getattr(numpy.fft, self.method)(x)
+    def forward(self, inputs, device):
+        rx, ix = inputs
+        ry, iy = getattr(functions, self.method)((rx, ix))
+        return ry, iy
 
-        testing.assert_allclose(y.real.astype(self.dtype), ry.data)
-        testing.assert_allclose(y.imag.astype(self.dtype), iy.data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.rx, self.ix)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.rx), cuda.to_gpu(self.ix))
-
-    def check_backward(self, rx_data, ix_data, rg_data, ig_data):
-        def f(real, imag):
-            return getattr(chainer.functions, self.method)((real, imag))
-
-        gradient_check.check_backward(
-            f, (rx_data, ix_data),
-            (rg_data, ig_data), dtype='d', eps=2.0 ** -2, atol=1e-2, rtol=1e-3)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.rx, self.ix, self.rg, self.ig)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
-            cuda.to_gpu(self.rg), cuda.to_gpu(self.ig))
-
-    def test_backward_real_cpu(self):
-        self.check_backward(self.rx, self.ix, self.rg, None)
-
-    def test_backward_imag_cpu(self):
-        self.check_backward(self.rx, self.ix, None, self.ig)
-
-    @attr.gpu
-    def test_backward_real_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
-            cuda.to_gpu(self.rg), None)
-
-    @attr.gpu
-    def test_backward_imag_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
-            None, cuda.to_gpu(self.ig))
-
-    def check_double_backward(self, rx, ix, rg, ig, grx, gix):
-        def f(rx, ix):
-            ry, iy = chainer.functions.fft((rx, ix))
-            return ry * ry, iy * iy
-
-        gradient_check.check_double_backward(
-            f, (rx, ix), (rg, ig), (grx, gix), dtype='d', atol=1e-2, rtol=1e-3)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(
-            self.rx, self.ix, self.rg, self.ig, self.grx, self.gix)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
-            cuda.to_gpu(self.rg), cuda.to_gpu(self.ig),
-            cuda.to_gpu(self.grx), cuda.to_gpu(self.gix))
+    def forward_expected(self, inputs):
+        rx, ix = inputs
+        expected = getattr(numpy.fft, self.method)(rx + ix * 1j)
+        return (
+            expected.real.astype(self.dtype),
+            expected.imag.astype(self.dtype)
+        )
 
 
 testing.run_module(__name__, __file__)
