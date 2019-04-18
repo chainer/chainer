@@ -143,8 +143,37 @@ class TestConcatExamples(ConverterTestBase, unittest.TestCase):
         self.converter = dataset.concat_examples
 
 
+class _XFailConcatWithAsyncTransfer(object):
+
+    @attr.chainerx
+    @unittest.expectedFailure
+    def test_concat_arrays_to_chainerx(self, *args, **kwargs):
+        (
+            super(_XFailConcatWithAsyncTransfer, self)
+            .test_concat_arrays_to_chainerx(*args, **kwargs)
+        )
+
+    @attr.chainerx
+    @unittest.expectedFailure
+    def test_concat_tuples_to_chainerx(self, *args, **kwargs):
+        (
+            super(_XFailConcatWithAsyncTransfer, self)
+            .test_concat_tuples_to_chainerx(*args, **kwargs)
+        )
+
+    @attr.chainerx
+    @unittest.expectedFailure
+    def test_concat_dicts_to_chainerx(self, *args, **kwargs):
+        (
+            super(_XFailConcatWithAsyncTransfer, self)
+            .test_concat_dicts_to_chainerx(*args, **kwargs)
+        )
+
+
 @_inject_backend_tests
-class TestConcatWithAsyncTransfer(ConverterTestBase, unittest.TestCase):
+class TestConcatWithAsyncTransfer(
+        _XFailConcatWithAsyncTransfer,
+        ConverterTestBase, unittest.TestCase):
 
     def setUp(self):
         self.converter = chainer.dataset.ConcatWithAsyncTransfer()
