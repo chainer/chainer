@@ -1,11 +1,9 @@
 import copy
 import warnings
 
-import numpy
 import six
 
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
@@ -98,7 +96,7 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
         progress_bar = argument.parse_kwargs(kwargs, ('progress_bar', False))
 
         if device is not None:
-            device = backend._get_device_compat(device)
+            device = backend.get_device(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -235,7 +233,8 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self._call_converter(batch, self.device)
+                in_arrays = convert._call_converter(
+                    self.converter, batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):
                         eval_func(*in_arrays)
@@ -253,25 +252,6 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
             pbar.close()
 
         return summary.compute_mean()
-
-    def _call_converter(self, batch, device):
-        # TODO(niboshi): This is a temporary workaround to keep backward
-        # compatibility about user-defined custom converters. Existing
-        # converters expect int values as the `device` argument, so they
-        # can't handle ChainerX devices. We should either break backward
-        # compatibility at some time or introduce a sparate API.
-        converter = self.converter
-        if converter is convert.concat_examples:
-            return converter(batch, device)
-        else:
-            if device is None:
-                return converter(batch, None)
-            if device.xp is numpy:
-                return converter(batch, -1)
-            if device.xp is cuda.cupy:
-                return converter(batch, device.device.id)
-            raise NotImplementedError(
-                'Currently only `concat_examples` supports ChainerX.')
 
     def finalize(self):
         """Finalizes the evaluator object.

@@ -12,6 +12,7 @@ from chainer.functions.array import expand_dims
 from chainer.functions.array import squeeze
 from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
+from chainer.functions.array import transpose
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import matmul
@@ -201,6 +202,17 @@ class MultivariateNormal(distribution.Distribution):
     @property
     def support(self):
         return 'real'
+
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale_tril': self.scale_tril}
+
+    @property
+    def covariance(self):
+        return matmul.matmul(
+            self.scale_tril, transpose.transpose(
+                self.scale_tril,
+                tuple(range(len(self.batch_shape))) + (-1, -2)))
 
 
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)

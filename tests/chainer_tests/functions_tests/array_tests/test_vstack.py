@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 import six
 
 from chainer import functions
@@ -52,19 +53,19 @@ class TestVstack(testing.FunctionTestCase):
             self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def generate_inputs(self):
-        xs = [
+        xs = tuple(
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-            for i in six.moves.range(self.xs_length)
-        ]
-        return numpy.asarray(xs),
+            for _ in six.moves.range(self.xs_length)
+        )
+        return xs
 
     def forward_expected(self, inputs):
-        x, = inputs
+        x = list(inputs)
         y_expect = numpy.vstack(x)
         return y_expect,
 
     def forward(self, inputs, device):
-        x, = inputs
+        x = list(inputs)
         y = functions.vstack(x)
         return y,
 
@@ -92,7 +93,7 @@ class TestVstackTypeCheck(unittest.TestCase):
             # Check if it throws nothing
             functions.vstack(self.xs)
         else:
-            with self.assertRaises(type_check.InvalidType):
+            with pytest.raises(type_check.InvalidType):
                 functions.vstack(self.xs)
 
     def test_value_check_cpu(self):

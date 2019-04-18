@@ -124,7 +124,7 @@ We tested ChainerMN on all the following environments.
   * openmpi 2.1.2
 
 * MPI4py 3.0.0
-* NCCL 2.2.13
+* NCCL 2.3.2 2.4.2
 
 .. _non-gpu-env:
 

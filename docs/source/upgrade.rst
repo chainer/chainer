@@ -10,6 +10,12 @@ Most changes are carefully designed not to break existing code; however changes 
 Chainer v6
 ==========
 
+Dropping Python 3.4
+-------------------
+
+Starting from Chainer v6, Python 3.4 will no longer be supported as it reaches its end-of-life (EOL) and Python 3.5.1 will become the minimum Python 3 version supported by Chainer.
+Please upgrade the Python version if you are using Python 3.4 to any version listed under :ref:`install-guide`.
+
 CuPy Needs To Be Manually Updated
 ---------------------------------
 
@@ -19,6 +25,21 @@ You need to manually update CuPy package when updating Chainer package.
 
 This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
 See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
+
+Deprecation Notice on Communicators and Old NCCL versions
+---------------------------------------------------------
+
+Chainer v6 only supports NCCL 2.3 and newer versions.
+Old NCCL versions are to be deprecated and will be removed in future versions.
+As of old NCCL deprecation, several communicators built for them are to be deprecated as well:
+
+- ``hierarchical``
+- ``two_dimensional``
+- ``single_node``
+
+They will be removed in future versions. Also, default communicator
+changed to `pure_nccl` from `hierarchical`.
+
 
 CuPy v6
 -------

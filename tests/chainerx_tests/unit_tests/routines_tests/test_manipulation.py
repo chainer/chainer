@@ -1,3 +1,6 @@
+import unittest
+
+import chainer
 import numpy
 import pytest
 
@@ -6,6 +9,7 @@ import chainerx.testing
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
 # Value for parameterization to represent an unspecified (default) argument.
@@ -17,17 +21,40 @@ class _UnspecifiedType(object):
 _unspecified = _UnspecifiedType()
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-def test_transpose(is_module, xp, shape, dtype):
-    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        return xp.transpose(array)
-    else:
-        return array.transpose()
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('mode', ['module', 'transpose', 'T'])
+class TestTranspose(op_utils.NumpyOpTest):
+
+    def setup(self, shape, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.shape = shape
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        shape = self.shape
+        dtype = self.dtype
+        a = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        mode = self.mode
+        if mode == 'module':
+            b = xp.transpose(a)
+        elif mode == 'transpose':
+            b = a.transpose()
+        elif mode == 'T':
+            b = a.T
+        else:
+            assert False
+        return b,
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('shape,axes', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axes', [
     ((1,), 0),
     ((1,), (0,)),
     ((2,), (0,)),
@@ -36,12 +63,31 @@ def test_transpose(is_module, xp, shape, dtype):
     ((2, 3, 1), (2, 0, 1)),
     ((2, 3, 1), (2, -3, 1)),
 ])
-def test_transpose_axes(is_module, xp, shape, axes, dtype):
-    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    if is_module:
-        return xp.transpose(array, axes)
-    else:
-        return array.transpose(axes)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestTransposeAxes(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        shape = self.shape
+        dtype = self.dtype
+        a = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axes = self.axes
+        if self.is_module:
+            b = xp.transpose(a, axes)
+        else:
+            b = a.transpose(axes)
+        return b,
 
 
 @pytest.mark.parametrize('shape,axes', [
@@ -58,10 +104,82 @@ def test_transpose_invalid_axes(shape, axes):
         a.transpose(axes)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-def test_T(xp, shape, dtype):
-    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    return array.T
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('in_shape,axis,start', [
+    # various axis
+    ((2, 3, 4), 0, _unspecified),
+    ((2, 3, 4), 1, _unspecified),
+    ((2, 3, 4), 2, _unspecified),
+    ((2, 3, 4), -1, _unspecified),
+    ((2, 3, 4), -3, _unspecified),
+    # with start
+    ((2, 3, 4), 1, 0),
+    ((2, 3, 4), 1, 1),
+    ((2, 3, 4), 1, 2),
+    ((2, 3, 4), 1, 3),
+    ((2, 3, 4), 1, -1),
+    ((2, 3, 4), 1, -2),
+    ((2, 3, 4), 1, -3),
+    ((2, 3, 4), 2, 3),
+    ((2, 3, 4), 2, 0),
+    ((2, 3, 4), 0, 3),
+    ((2, 3, 4), 0, 0),
+    # single dim
+    ((1,), 0, _unspecified),
+    ((1,), -1, _unspecified),
+    # zero-length dims
+    ((0,), 0, _unspecified),
+    ((0,), 0, 0),
+    ((0,), 0, 1),
+    ((0,), -1, _unspecified),
+    ((2, 0, 3), 1, _unspecified),
+    ((2, 0, 3), -2, _unspecified),
+])
+class TestRollaxis(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        in_shape = self.in_shape
+        dtype = self.dtype
+        a = array_utils.create_dummy_ndarray(numpy, in_shape, dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axis = self.axis
+        start = self.axis
+        if start is _unspecified:
+            b = xp.rollaxis(a, axis)
+        else:
+            b = xp.rollaxis(a, axis, start)
+        return b,
+
+
+@pytest.mark.parametrize('in_shape,axis,start', [
+    # out of bounds axis
+    ((2, 3, 4), 3, _unspecified),
+    ((2, 3, 4), -4, _unspecified),
+    # out of bounds start
+    ((2, 3, 4), 2, 4),
+    ((2, 3, 4), 2, -4),
+    # empty shape
+    ((), 0, _unspecified),
+    ((), -1, _unspecified),
+])
+def test_rollaxis_invalid(in_shape, axis, start):
+    a = array_utils.create_dummy_ndarray(chainerx, in_shape, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        if start is _unspecified:
+            chainerx.rollaxis(a, axis)
+        else:
+            chainerx.rollaxis(a, axis, start)
 
 
 _reshape_shape = [
@@ -86,61 +204,78 @@ _reshape_shape = [
 ]
 
 
-# TODO(niboshi): Test with non-contiguous input array that requires copy to
-# reshape
-# TODO(niboshi): Test with non-contiguous input array that does not require
-# copy to reshape
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
-@pytest.mark.parametrize('shape_type', [tuple, list])
-@pytest.mark.parametrize('padding', [False, True])
-def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=padding)
-    if is_module:
-        b = xp.reshape(a, shape_type(b_shape))
-    else:
-        b = a.reshape(shape_type(b_shape))
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('shape_type', [tuple, list])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestReshape(op_utils.NumpyOpTest):
 
-    if xp is chainerx:
-        copied = a._debug_data_memory_address != b._debug_data_memory_address
-    else:
-        copied = a.ctypes.data != b.ctypes.data
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
 
-    if copied:
-        if xp is chainerx:
-            assert b.is_contiguous
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b_shape = self.b_shape
+        shape_type = self.shape_type
+        if self.is_module:
+            b = xp.reshape(a, shape_type(b_shape))
         else:
-            assert b.flags.c_contiguous
+            b = a.reshape(shape_type(b_shape))
+        if xp is chainerx:
+            copied = (
+                a._debug_data_memory_address
+                != b._debug_data_memory_address)
+        else:
+            copied = a.ctypes.data != b.ctypes.data
+        if copied:
+            if xp is chainerx:
+                assert b.is_contiguous
+            else:
+                assert b.flags.c_contiguous
 
-    return copied, b
+        return xp.asarray(copied), b
 
 
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(TypeError, chainerx.ChainerxError))
-@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
-def test_reshape_args(is_module, xp, a_shape, b_shape):
-    # TODO(niboshi): Remove padding=False
-    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=False)
-    if is_module:
-        if len(b_shape) > 1:
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+class TestReshapeArg(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+
+    def setup(self):
+        if self.is_module and len(self.b_shape) > 1:
             # Skipping tests where the 'order' argument is unintentionally
             # given a shape value, since numpy won't raise any errors in this
             # case which you might expect at first.
-            return xp.array([])
-        # TypeError/chainerx.ChainerxError in case b_shape is empty.
-        b = xp.reshape(a, *b_shape)
-    else:
-        # TypeError/chainerx.ChainerxError in case b_shape is empty.
-        b = a.reshape(*b_shape)
+            raise unittest.SkipTest(
+                'NumPy won\'t raise error for unintentional argument '
+                'unpacking')
 
-    if xp is chainerx:
-        assert b.is_contiguous
-        assert a._debug_data_memory_address == b._debug_data_memory_address, (
-            'Reshape must be done without copy')
-        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, (
-            'Strides after reshape must match NumPy behavior')
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
 
-    return b
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b_shape = self.b_shape
+        if self.is_module:
+            # TypeError/chainerx.ChainerxError in case b_shape is empty.
+            b = xp.reshape(a, *b_shape)
+        else:
+            # TypeError/chainerx.ChainerxError in case b_shape is empty.
+            b = a.reshape(*b_shape)
+
+        if xp is chainerx:
+            if self.contiguous == 'C':
+                assert b.is_contiguous
+                assert (a._debug_data_memory_address
+                        == b._debug_data_memory_address), (
+                            'Reshape must be done without copy')
+        return b,
 
 
 @pytest.mark.parametrize('shape1,shape2', [
@@ -173,8 +308,8 @@ def test_reshape_invalid_cannot_infer(shape1, shape2):
         a.reshape(shape2)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('shape,axis', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', [
     ((), None),
     ((0,), None),
     ((1,), None),
@@ -191,12 +326,21 @@ def test_reshape_invalid_cannot_infer(shape1, shape2):
     ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
     ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
 ])
-def test_squeeze(is_module, xp, shape, axis):
-    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
-    if is_module:
-        return xp.squeeze(a, axis)
-    else:
-        return a.squeeze(axis)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSqueeze(op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axis = self.axis
+        if self.is_module:
+            b = xp.squeeze(a, axis)
+        else:
+            b = a.squeeze(axis)
+        return b,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -216,22 +360,24 @@ def test_squeeze_invalid(is_module, xp, shape, axis):
         return a.squeeze(axis)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('src_shape,dst_shape', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
     ((1, 1), (2, 2)),
     ((1, 1), (1, 2)),
+    ((2,), (3, 2)),
 ])
-def test_broadcast_to(xp, src_shape, dst_shape):
-    a = array_utils.create_dummy_ndarray(xp, src_shape, 'float32')
-    return xp.broadcast_to(a, dst_shape)
+class TestBroadcastTo(op_utils.NumpyOpTest):
 
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.src_shape, 'float32')
+        return a,
 
-@chainerx.testing.numpy_chainerx_array_equal()
-def test_broadcast_to_auto_prefix(xp):
-    a = xp.arange(2, dtype='float32')
-    return xp.broadcast_to(a, (3, 2))
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.broadcast_to(a, self.dst_shape)
+        return b,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -246,32 +392,58 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
-def _concatenate(xp, shapes, dtypes, axis):
-    # Generates input ndarrays and returns the result of xp.concatenate.
+def _make_inputs(shapes, dtypes):
+    # Generates input ndarrays.
     assert isinstance(shapes, (list, tuple))
     assert isinstance(dtypes, (list, tuple))
     assert len(shapes) == len(dtypes)
 
-    arrays = []
+    inputs = []
     for i, (shape, dtype) in enumerate(zip(shapes, dtypes)):
-        size = numpy.product(shape)
+        size = array_utils.total_size(shape)
         a = numpy.arange(i * 100, i * 100 + size)
         a = a.reshape(shape)
         a = a.astype(dtype)
-        if xp is not numpy:
-            a = xp.array(a)
-        arrays.append(a)
+        inputs.append(a)
 
-    if axis is _unspecified:
-        return xp.concatenate(arrays)
-    else:
-        return xp.concatenate(arrays, axis)
+    assert len(inputs) > 0
+    return tuple(inputs)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(chainerx.DimensionError, ValueError))
-@pytest.mark.parametrize('shapes,axis', [
-    ([], 0),
+class ConcatenateTestBase(op_utils.NumpyOpTest):
+
+    chx_expected_dtype = None
+    dtypes = None
+
+    def setup(self):
+        # Skip backward/double-backward tests for int dtypes
+        if any(numpy.dtype(dt).kind != 'f' for dt in self.dtypes):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        # TODO(niboshi): Fix strides for 0-size inputs
+        if any(0 in shape for shape in self.shapes):
+            self.check_numpy_strides_compliance = False
+
+        if any(dt == 'float16' for dt in self.dtypes):
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        return _make_inputs(self.shapes, self.dtypes)
+
+    def forward_xp(self, inputs, xp):
+        if self.axis is _unspecified:
+            b = xp.concatenate(inputs)
+        else:
+            b = xp.concatenate(inputs, self.axis)
+
+        if self.chx_expected_dtype is not None:
+            b = dtype_utils.cast_if_numpy_array(xp, b, self.chx_expected_dtype)
+        return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,)], 0),
     ([(1,)], 0),
     ([(0,), (0,)], 0),
@@ -299,12 +471,22 @@ def _concatenate(xp, shapes, dtypes, axis):
     ([(2, 3), (2, 3)], _unspecified),
     ([(2, 3), (4, 5)], _unspecified),
 ])
-def test_concatenate(xp, shapes, axis):
-    return _concatenate(xp, shapes, ['float32'] * len(shapes), axis)
+class TestConcatenate(ConcatenateTestBase):
+
+    forward_accept_errors = (chainerx.DimensionError, ValueError)
+
+    def setup(self):
+        self.dtypes = ['float32'] * len(self.shapes)
+        super().setup()
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize('shapes,axis', [
+def test_concatenate_insufficient_inputs():
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.concatenate([])
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,), (0,)], 0),
     ([(0,), (1,)], 0),
     ([(1,), (1,)], 0),
@@ -319,17 +501,14 @@ def test_concatenate(xp, shapes, axis):
     ([(2, 3), (4, 5, 1)], None),
     ([(2, 3), (2, 3)], _unspecified),
 ])
-@pytest.mark.parametrize(
+@chainer.testing.parameterize_pytest(
     'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_two_arrays)
-def test_concatenate_two_arrays_mixed_dtypes(
-        xp, shapes, axis, dtypes, chx_expected_dtype):
-    assert len(shapes) == 2
-    y = _concatenate(xp, shapes, dtypes, axis)
-    return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
+class TestConcatenateTwoArraysMixedDtypes(ConcatenateTestBase):
+    pass
 
 
-@chainerx.testing.numpy_chainerx_array_equal(stride_check=False)
-@pytest.mark.parametrize('shapes,axis', [
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,), (0,), (0,)], 0),
     ([(0,), (1,), (1,)], 0),
     ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
@@ -337,20 +516,14 @@ def test_concatenate_two_arrays_mixed_dtypes(
     ([(2, 3), (4, 5, 1), (4,)], None),
     ([(2, 3), (2, 3), (1, 3)], _unspecified),
 ])
-@pytest.mark.parametrize(
+@chainer.testing.parameterize_pytest(
     'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_three_arrays)
-def test_concatenate_three_arrays_mixed_dtypes(
-        xp, shapes, axis, dtypes, chx_expected_dtype):
-    assert len(shapes) == 3
-    y = _concatenate(xp, shapes, dtypes, axis)
-    return dtype_utils.cast_if_numpy_array(xp, y, chx_expected_dtype)
+class TestConcatenateThreeArraysMixedDtypes(ConcatenateTestBase):
+    pass
 
 
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(chainerx.DimensionError, ValueError))
-@pytest.mark.parametrize('shapes,axis', [
-    ([], None),
-    ([], 0),
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,)], -1),
     ([(0,)], 0),
     ([(0,)], 1),
@@ -374,21 +547,31 @@ def test_concatenate_three_arrays_mixed_dtypes(
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 4),
     ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
 ])
-def test_stack(xp, shapes, axis):
-    arrays = []
-    for i, shape in enumerate(shapes):
-        size = numpy.product(shape)
-        a = numpy.arange(i * 100, i * 100 + size)
-        a = a.reshape(shape).astype('float32')
-        arrays.append(xp.array(a))
-    if axis is None:
-        return xp.stack(arrays)
-    else:
-        return xp.stack(arrays, axis)
+class TestStack(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (chainerx.DimensionError, ValueError)
+
+    def generate_inputs(self):
+        return _make_inputs(self.shapes, ['float32'] * len(self.shapes))
+
+    def forward_xp(self, inputs, xp):
+        axis = self.axis
+        if axis is None:
+            b = xp.stack(inputs)
+        else:
+            b = xp.stack(inputs, axis)
+        return b,
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('shape,indices_or_sections,axis', [
+def test_stack_insufficient_inputs():
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.stack([])
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.stack([], 0)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections,axis', [
     ((2,), 1, 0),
     ((2,), [], 0),
     ((2,), [1, 2], 0),
@@ -411,9 +594,27 @@ def test_stack(xp, shapes, axis):
     ((6,), numpy.array([], numpy.int32), 0),
     ((6,), numpy.array([], numpy.float64), 0),
 ])
-def test_split(xp, shape, indices_or_sections, axis):
-    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
-    return xp.split(a, indices_or_sections, axis)
+class TestSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(niboshi): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.split(a, self.indices_or_sections, self.axis)
+        assert isinstance(b, list)
+        return tuple(b)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -442,3 +643,52 @@ def test_split(xp, shape, indices_or_sections, axis):
 def test_split_invalid(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.split(a, indices_or_sections, axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('shape,axis1,axis2', [
+    ((1, 1), 0, 1),
+    ((2, 4), -1, 1),
+    ((1, 2, 2), 0, 1),
+    ((1, 2, 3, 4), 0, 2),
+    ((3, 2, 1, 2, 3), 0, 4),
+    ((1, 2, 4, 3, 1), 0, -2),
+    ((1, 2, 4, 2, 1), 0, 0),
+    ((1, 3, 3, 1), -1, -4),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSwapaxes(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.swapaxes(a, self.axis1, self.axis2)
+        else:
+            b = a.swapaxes(self.axis1, self.axis2)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize('shape,axis1,axis2', [
+    # Axis out of range.
+    ((), 1, 0),
+    ((2,), 3, 0),
+    ((2, 4), 1, 2),
+    ((1, 1, 2), -1, -4)
+])
+def test_swap_invalid(xp, shape, axis1, axis2):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.swapaxes(a, axis1, axis2)

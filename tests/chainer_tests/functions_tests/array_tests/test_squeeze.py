@@ -4,13 +4,29 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
-import chainerx
 
 
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
 @testing.parameterize(*testing.product_dict(
     [
         {'axis': None, 'out_shape': (3,)},
@@ -27,50 +43,26 @@ import chainerx
         {'dtype': numpy.float64},
     ],
 ))
-class TestSqueeze(unittest.TestCase):
+class TestSqueeze(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (1, 1, 3, 1)).astype(self.dtype)
-        self.g = numpy.random.uniform(-1, 1, self.out_shape).astype(self.dtype)
-
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+            self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+            self.check_backward_options.update({
+                'atol': 2 ** -4, 'rtol': 2 ** -4})
 
-    def check_forward(self, x_data):
-        y = functions.squeeze(x_data, axis=self.axis)
-        expected = numpy.squeeze(self.x, axis=self.axis)
-        testing.assert_allclose(y.data, expected, **self.check_forward_options)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, (1, 1, 3, 1)).astype(self.dtype)
+        return x,
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+    def forward_expected(self, inputs):
+        x, = inputs
+        y = numpy.squeeze(x, axis=self.axis)
+        return y,
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.chainerx
-    def test_forward_chainerx(self):
-        self.check_forward(chainerx.array(self.x))
-
-    def check_backward(self, x_data, g_data):
-        gradient_check.check_backward(
-            lambda x: functions.squeeze(x, self.axis),
-            x_data, g_data, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.g)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
-
-    @attr.chainerx
-    def test_backward_chainerx(self):
-        self.check_backward(chainerx.array(self.x), chainerx.array(self.g))
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.squeeze(x, axis=self.axis),
 
 
 @testing.parameterize(*testing.product(
