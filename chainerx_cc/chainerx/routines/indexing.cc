@@ -17,8 +17,11 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/indexing.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -43,7 +46,7 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     {
         NoBackpropModeScope scope{};
-        a.device().Add(b, out_view, out_view);
+        a.device().backend().CallKernel<AddKernel>(b, out_view, out_view);
     }
 
     {
@@ -133,7 +136,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<AddAtOp>(a, indices, axis, b, out);
+        a.device().backend().CallKernel<AddAtKernel>(a, indices, axis, b, out);
     }
 
     {
@@ -169,7 +172,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<TakeOp>(a, indices, axis_norm, out);
+        a.device().backend().CallKernel<TakeKernel>(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};

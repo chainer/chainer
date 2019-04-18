@@ -1,3 +1,4 @@
+add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
 add_subdirectory(testing)
@@ -42,13 +43,13 @@ install(FILES
     index_iterator.h
     indexable_array.h
     indexer.h
+    kernel.h
+    kernel_registry.h
     macro.h
     numerical_gradient.h
     numeric.h
     numeric_limits.h
-    op.h
     op_node.h
-    op_registry.h
     optional_container_arg.h
     platform.h
     reduction_kernel_arg.h
@@ -166,10 +167,10 @@ if(${CHAINERX_BUILD_TEST})
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc
+        kernel_registry_test.cc
         numeric_limits_test.cc
         numerical_gradient_test.cc
         numeric_test.cc
-        op_registry_test.cc
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
