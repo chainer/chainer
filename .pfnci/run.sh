@@ -6,8 +6,9 @@
 # - target is a test target (e.g., "py37").
 #
 # Environment variables:
-# - GPU (default: 0) ... Set a number of GPUs to GPU.  GPU=0 disables GPU
-#       testing.
+# - GPU (default: 0) ... Set a number of GPUs to GPU.
+#       CAVEAT: Setting GPU>0 disables non-GPU tests, and setting GPU=0 disables
+#               GPU tests.
 # - SPREADSHEET_ID ... Set SPREADSHEET_ID (e.g.,
 #       "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k") to enable xpytest to
 #       report to a spreadsheet.
@@ -35,13 +36,13 @@ test_py37() {
   #-----------------------------------------------------------------------------
   # Configure parameters
   #-----------------------------------------------------------------------------
+  export CHAINERX_TEST_CUDA_DEVICE_LIMIT="${GPU}"
   marker='not slow'
   if (( !GPU )); then
-    marker+=' and not gpu and not cudnn'
+    marker+=' and not (gpu or cudnn or cuda)'
     bucket=1
-    export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
-    marker+=' and (gpu or cudnn)'
+    marker+=' and (gpu or cudnn or cuda)'
     bucket="${GPU}"
   fi
 
@@ -107,13 +108,13 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Configure parameters
   #-----------------------------------------------------------------------------
+  export CHAINERX_TEST_CUDA_DEVICE_LIMIT="${GPU}"
   marker='not slow'
   if (( !GPU )); then
-    marker+=' and not gpu and not cudnn'
+    marker+=' and not (gpu or cudnn or cuda)'
     bucket=1
-    export CHAINERX_TEST_CUDA_DEVICE_LIMIT=0
   else
-    marker+=' and (gpu or cudnn)'
+    marker+=' and (gpu or cudnn or cuda)'
     bucket="${GPU}"
   fi
 

@@ -1,8 +1,10 @@
 #!/bin/bash
 # script.sh is a script to run Docker for testing.  This is called by CI like
-# "bash .pfnci/script.sh py37".  This script should also be designed to be
-# called in a local machine.  If a local machine has no GPUs, this should fall
-# back to CPU testing automatically.
+# "bash .pfnci/script.sh py37".  If a machine running the script has no GPUs,
+# this should fall back to CPU testing automatically.  This script requires that
+# a corresponding Docker image is accessible from the machine.
+# TODO(imos): Enable external contributors to test this script on their
+# machines.  Specifically, locate a Dockerfile generating chainer-ci-prep.*.
 #
 # Usage: .pfnci/script.sh [target]
 # - target is a test target (e.g., "py37").
