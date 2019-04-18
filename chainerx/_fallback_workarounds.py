@@ -40,17 +40,7 @@ def _from_numpy(array):
 def _to_cupy(array):
     assert cupy is not None
     # Convert to cupy.ndarray on the same device as source array
-    return cupy.ndarray(
-        array.shape,
-        array.dtype,
-        cupy.cuda.MemoryPointer(
-            cupy.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0),
-        strides=array.strides)
+    return chainerx._to_cupy(array)
 
 
 def _from_cupy(array):
@@ -195,22 +185,6 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
-
-    def _all(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.all(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.all = _all
-
-    def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.any(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.any = _any
 
 
 def populate():

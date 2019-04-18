@@ -17,8 +17,11 @@
 #include "chainerx/dims.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernel_registry.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/kernels/linalg.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
-#include "chainerx/op_registry.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
@@ -69,7 +72,7 @@ Array ConvGradWeight(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallOp<ConvGradWeightOp>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
@@ -142,7 +145,7 @@ Array Conv(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallOp<ConvOp>(x, w, b, stride, pad, cover_all, real_out_dtype, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, cover_all, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -254,7 +257,7 @@ Array ConvTranspose(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallOp<ConvTransposeOp>(x, w, b, stride, pad, real_out_size, real_out_dtype, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvTransposeKernel>(x, w, b, stride, pad, real_out_size, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -339,10 +342,10 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<DotOp>(x_matrix, w.Transpose(), out_matrix);
+        x.device().backend().CallKernel<DotKernel>(x_matrix, w.Transpose(), out_matrix);
 
         if (has_bias) {
-            x.device().backend().CallOp<AddOp>(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
+            x.device().backend().CallKernel<AddKernel>(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
         }
     }
 

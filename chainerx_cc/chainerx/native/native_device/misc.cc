@@ -6,8 +6,9 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
 #include "chainerx/routines/math.h"
 
@@ -15,7 +16,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeSquareOp : public SquareOp {
+class NativeSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -29,9 +30,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(SquareOp, NativeSquareOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SquareKernel, NativeSquareKernel);
 
-class NativeSqrtOp : public SqrtOp {
+class NativeSqrtKernel : public SqrtKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -46,9 +47,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(SqrtOp, NativeSqrtOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SqrtKernel, NativeSqrtKernel);
 
-class NativeIsNanOp : public IsNanOp {
+class NativeIsNanKernel : public IsNanKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -62,9 +63,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(IsNanOp, NativeIsNanOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IsNanKernel, NativeIsNanKernel);
 
-class NativeIsInfOp : public IsInfOp {
+class NativeIsInfKernel : public IsInfKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -78,9 +79,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(IsInfOp, NativeIsInfOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IsInfKernel, NativeIsInfKernel);
 
-class NativeCeilOp : public CeilOp {
+class NativeCeilKernel : public CeilKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -96,9 +97,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(CeilOp, NativeCeilOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(CeilKernel, NativeCeilKernel);
 
-class NativeFloorOp : public FloorOp {
+class NativeFloorKernel : public FloorKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -114,7 +115,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(FloorOp, NativeFloorOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(FloorKernel, NativeFloorKernel);
 
 }  // namespace
 }  // namespace native

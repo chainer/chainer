@@ -10,17 +10,18 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/cuda/numeric_limits.cuh"
-#include "chainerx/cuda/op_regist.h"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
 #include "chainerx/routines/math.h"
-#include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -45,7 +46,7 @@ struct ArgMaxImpl {
     __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
 };
 
-class CudaArgMaxOp : public ArgMaxOp {
+class CudaArgMaxKernel : public ArgMaxKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
@@ -58,7 +59,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(ArgMaxOp, CudaArgMaxOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ArgMaxKernel, CudaArgMaxKernel);
 
 template <typename In, typename Out>
 struct SumImpl {
@@ -70,7 +71,7 @@ struct SumImpl {
     __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
 };
 
-class CudaSumOp : public SumOp {
+class CudaSumKernel : public SumKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
@@ -88,7 +89,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(SumOp, CudaSumOp);
+CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
 
 template <typename T>
 struct AMaxImpl {
@@ -103,7 +104,7 @@ struct AMaxImpl {
     __device__ CudaType MapOut(CudaType accum) { return accum; }
 };
 
-class CudaAMaxOp : public AMaxOp {
+class CudaAMaxKernel : public AMaxKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
@@ -117,7 +118,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(AMaxOp, CudaAMaxOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AMaxKernel, CudaAMaxKernel);
 
 template <typename T>
 struct AMinImpl {
@@ -132,7 +133,7 @@ struct AMinImpl {
     __device__ CudaType MapOut(CudaType accum) { return accum; }
 };
 
-class CudaAMinOp : public AMinOp {
+class CudaAMinKernel : public AMinKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
@@ -146,7 +147,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AMinOp, CudaAMinOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AMinKernel, CudaAMinKernel);
 
 }  // namespace
 }  // namespace cuda

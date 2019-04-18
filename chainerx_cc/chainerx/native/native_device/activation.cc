@@ -6,8 +6,9 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
@@ -17,7 +18,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeIfLessElseASSAOp : public IfLessElseASSAOp {
+class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, neg, out);
@@ -39,9 +40,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(IfLessElseASSAOp, NativeIfLessElseASSAOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IfLessElseASSAKernel, NativeIfLessElseASSAKernel);
 
-class NativeIfGreaterElseASSAOp : public IfGreaterElseASSAOp {
+class NativeIfGreaterElseASSAKernel : public IfGreaterElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, neg, out);
@@ -63,9 +64,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(IfGreaterElseASSAOp, NativeIfGreaterElseASSAOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IfGreaterElseASSAKernel, NativeIfGreaterElseASSAKernel);
 
-class NativeIfGreaterElseAAAAOp : public IfGreaterElseAAAAOp {
+class NativeIfGreaterElseAAAAKernel : public IfGreaterElseAAAAKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, x2, pos, neg, out);
@@ -87,9 +88,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(IfGreaterElseAAAAOp, NativeIfGreaterElseAAAAOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IfGreaterElseAAAAKernel, NativeIfGreaterElseAAAAKernel);
 
-class NativeTanhOp : public TanhOp {
+class NativeTanhKernel : public TanhKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         x.device().CheckDevicesCompatible(x, out);
@@ -104,7 +105,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(TanhOp, NativeTanhOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(TanhKernel, NativeTanhKernel);
 
 }  // namespace
 }  // namespace native
