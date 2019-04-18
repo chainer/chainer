@@ -15,7 +15,7 @@ class TestCollectiveCommunication(unittest.TestCase):
         numpy.random.seed(42)
 
         if gpu:
-            self.communicator = chainermn.create_communicator('hierarchical')
+            self.communicator = chainermn.create_communicator('flat')
             self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:

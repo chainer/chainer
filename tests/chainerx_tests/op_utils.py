@@ -392,7 +392,13 @@ def op_test(devices):
         # TODO(niboshi): Avoid using private entries in chainer.testing.
         if isinstance(
                 cls, chainer.testing._bundle._ParameterizedTestCaseBundle):
-            classes = [(c, m) for c, m, name in cls.cases]
+            classes = []
+            for c, m, name in cls.cases:
+                classes.append((c, m))
+                if m is not None:
+                    # The input is a parameterized test case.
+                    # Remove it from its module.
+                    delattr(sys.modules[m], name)
         else:
             classes = [(cls, cls.__module__)]
 

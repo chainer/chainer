@@ -70,15 +70,22 @@ class InitializerArgument(object):
 
 
 class FunctionTestBase(object):
+
     backend_config = None
-    check_forward_options = {}  # type: tp.Dict[str, tp.Any]
-    check_backward_options = {}  # type: tp.Dict[str, tp.Any]
-    check_double_backward_options = {}  # type: tp.Dict[str, tp.Any]
+    check_forward_options = None
+    check_backward_options = None
+    check_double_backward_options = None
     skip_forward_test = False
     skip_backward_test = False
     skip_double_backward_test = False
     dodge_nondifferentiable = False
     contiguous = None
+
+    def __init__(self, *args, **kwargs):
+        super(FunctionTestBase, self).__init__(*args, **kwargs)
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+        self.check_double_backward_options = {}
 
     def before_test(self, test_name):
         pass
@@ -166,14 +173,15 @@ class FunctionTestBase(object):
         self.before_test(self.test_name)
 
         cpu_inputs = self._generate_inputs()
+        cpu_inputs = self._to_noncontiguous_as_needed(cpu_inputs)
         inputs_copied = [a.copy() for a in cpu_inputs]
 
         # Compute expected outputs
         cpu_expected = self._forward_expected(cpu_inputs)
-        inputs = backend_config.get_array(cpu_inputs)
-        inputs = self._to_noncontiguous_as_needed(inputs)
 
         # Compute actual outputs
+        inputs = backend_config.get_array(cpu_inputs)
+        inputs = self._to_noncontiguous_as_needed(inputs)
         outputs = self._forward(
             tuple([
                 chainer.Variable(a, requires_grad=a.dtype.kind == 'f')
@@ -436,8 +444,8 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
 class _LinkTestBase(object):
 
-    contiguous = None
     backend_config = None
+    contiguous = None
 
     # List of parameter names represented as strings.
     # I.e. ('gamma', 'beta') for BatchNormalization.
@@ -698,11 +706,17 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
 
     """
 
-    check_forward_options = {}
-    check_backward_options = {}
+    check_forward_options = None
+    check_backward_options = None
     skip_forward_test = False
     skip_backward_test = False
     dodge_nondifferentiable = False
+
+    def __init__(self, *args, **kwargs):
+        self.check_forward_options = {}
+        self.check_backward_options = {}
+
+        super(LinkTestCase, self).__init__(*args, **kwargs)
 
     def forward_expected(self, link, inputs):
         raise NotImplementedError('forward_expected() is not implemented.')
@@ -970,7 +984,12 @@ class LinkInitializersTestCase(_LinkTestBase, unittest.TestCase):
 
     """
 
-    check_initializers_options = {}
+    check_initializers_options = None
+
+    def __init__(self, *args, **kwargs):
+        self.check_initializers_options = {}
+
+        super(LinkInitializersTestCase, self).__init__(*args, **kwargs)
 
     def get_initializers(self):
         raise NotImplementedError('get_initializers is not implemented.')

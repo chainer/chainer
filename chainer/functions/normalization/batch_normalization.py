@@ -117,11 +117,6 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        xp = backend.get_array_module(x)
-        if self.running_mean is None:
-            self.running_mean = xp.zeros_like(gamma, dtype=x.dtype)
-            self.running_var = xp.zeros_like(gamma, dtype=x.dtype)
-
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
 
@@ -157,6 +152,7 @@ class BatchNormalization(function_node.FunctionNode):
         self.expander = expander
 
         self.mode = _BNMode(x, gamma, self.key_axis)
+        xp = backend.get_array_module(x)
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
@@ -178,70 +174,86 @@ class BatchNormalization(function_node.FunctionNode):
                 ))
             y = y.astype(x.dtype, copy=False)
 
-            m = x.size // gamma.size
-            adjust = m / max(m - 1., 1.)
-
-            # Update running_mean
-            if isinstance(self.running_mean, intel64.ideep.mdarray):
-                self.running_mean.inplace_axpby(
-                    self.decay, (1 - self.decay), self.mean)
-            else:
-                self.running_mean *= self.decay
-                self.running_mean += self.mean * (1 - self.decay)
-
-            # Update running_var
-            if isinstance(self.running_var, intel64.ideep.mdarray):
-                self.running_var.inplace_axpby(
-                    self.decay, (1 - self.decay), self.var * adjust)
-            else:
-                self.running_var *= self.decay
-                self.running_var += self.var * adjust * (1 - self.decay)
-
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
 
+            # Update running statistics if given
+            if self.running_mean is not None:
+                m = x.size // gamma.size
+                adjust = m / max(m - 1., 1.)
+
+                # Update running_mean
+                if isinstance(self.running_mean, intel64.ideep.mdarray):
+                    self.running_mean.inplace_axpby(
+                        self.decay, (1 - self.decay), self.mean)
+                else:
+                    self.running_mean *= self.decay
+                    self.running_mean += self.mean * (1 - self.decay)
+
+                # Update running_var
+                if isinstance(self.running_var, intel64.ideep.mdarray):
+                    self.running_var.inplace_axpby(
+                        self.decay, (1 - self.decay), self.var * adjust)
+                else:
+                    self.running_var *= self.decay
+                    self.running_var += self.var * adjust * (1 - self.decay)
+
         elif self.use_cudnn:
+            if self.running_mean is not None:
+                mean = self.running_mean
+                var = self.running_var
+            else:
+                # Create dummies.
+                mean = xp.zeros_like(gamma, dtype=x.dtype)
+                var = xp.zeros_like(gamma, dtype=x.dtype)
+
             # self.mean and self.inv_std are used as buffers to save
             # intermediate results computed during forward pass. These buffers
             # are used to speed-up backward pass.
             y, self.mean, self.inv_std = (
                 cudnn.batch_normalization_forward_training(
-                    x, gamma, beta, self.running_mean, self.running_var,
-                    None, None, self.eps, self.decay,
-                    self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                    chainer.is_debug()))
+                    x, gamma, beta, mean, var, None, None,
+                    self.eps, self.decay, self.mode.is_for_conv2d,
+                    self.mode.get_cudnn_mode(), chainer.is_debug()))
         else:
             # Generic CPU and GPU implementation
 
-            gamma = gamma[expander]
-            beta = beta[expander]
-            self.mean = x.mean(axis=self.axis, dtype=gamma.dtype)
-            var = x.var(axis=self.axis, dtype=gamma.dtype)
+            interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+            gamma = gamma[expander].astype(interm_dtype, copy=False)
+            beta = beta[expander].astype(interm_dtype, copy=False)
+            self.mean = x.mean(axis=self.axis, dtype=interm_dtype)
+            var = x.var(axis=self.axis, dtype=interm_dtype)
             if xp is numpy:
                 self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=gamma.dtype))
+                    var + self.eps, dtype=interm_dtype))
             else:
-                self.inv_std = cuda.cupyx.rsqrt(var + self.eps,
-                                                dtype=gamma.dtype)
+                self.inv_std = cuda.cupyx.rsqrt(
+                    var + self.eps, dtype=interm_dtype)
+
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
-            # Update running statistics
-            m = x.size // gamma.size
-            adjust = m / max(m - 1., 1.)  # unbiased estimation
 
-            xp = backend.get_array_module(self.running_mean, self.running_var)
-            if xp is chainerx:
-                self.running_mean, self.running_var = backend.from_chx(
-                    (self.running_mean, self.running_var))
+            # Update running statistics if given
+            if self.running_mean is not None:
+                m = x.size // gamma.size
+                adjust = m / max(m - 1., 1.)  # unbiased estimation
 
-            self.running_mean *= self.decay
-            self.running_mean += (1 - self.decay) * self.mean
-            self.running_var *= self.decay
-            self.running_var += (1 - self.decay) * adjust * var
+                xp = backend.get_array_module(
+                    self.running_mean, self.running_var)
 
-            if xp is chainerx:
-                self.running_mean = backend.to_chx(self.running_mean)
-                self.running_var = backend.to_chx(self.running_var)
+                if xp is chainerx:
+                    self.running_mean, self.running_var = backend.from_chx(
+                        (self.running_mean, self.running_var))
+
+                self.running_mean *= self.decay
+                self.running_mean += (1 - self.decay) * self.mean
+                self.running_var *= self.decay
+                self.running_var += (1 - self.decay) * adjust * var
+
+                if xp is chainerx:
+                    self.running_mean = backend.to_chx(self.running_mean)
+                    self.running_var = backend.to_chx(self.running_var)
 
         return y,
 

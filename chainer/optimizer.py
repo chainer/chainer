@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import collections
 import copy
 import warnings
@@ -280,11 +281,7 @@ class UpdateRule(object):
         """
         grad_array = param.grad
         backend_name = param.array.device.backend.name
-        if backend_name == 'native':
-            update_core = self.update_core_cpu
-        elif backend_name == 'cuda':
-            update_core = self.update_core_gpu
-        else:
+        if backend_name not in ('native', 'cuda'):
             raise RuntimeError(
                 'Default implementation of Optimizer.update_core_chainerx is '
                 'only provided for native or cuda backends (actual: {}). '
@@ -316,7 +313,7 @@ class UpdateRule(object):
                 backend.from_chx(grad_array))
 
         # Update
-        update_core(temp_param)
+        self.update_core(temp_param)
 
         # Restore state arrays
         for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
@@ -409,7 +406,7 @@ class UpdateRule(object):
           3. copys the data of fp32 parameter variable to the data of original
              parameter variable, converting its data type from fp32 to fp16.
 
-        See meth:`update` for details.
+        See :meth:`update` for details.
         """
         self._use_fp32_update = flag
 
