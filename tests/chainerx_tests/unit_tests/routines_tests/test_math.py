@@ -2180,6 +2180,8 @@ def test_min_amin():
 ))
 class TestMin(UnaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def generate_inputs(self):
         in_dtype, = self.in_dtypes
         if hasattr(self, 'array'):
