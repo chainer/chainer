@@ -170,7 +170,12 @@ class _XFailConcatWithAsyncTransfer(object):
         )
 
 
-@_inject_backend_tests
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+    ])
 class TestConcatWithAsyncTransfer(
         _XFailConcatWithAsyncTransfer,
         ConverterTestBase, unittest.TestCase):
