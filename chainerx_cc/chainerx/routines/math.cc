@@ -824,18 +824,22 @@ Array Sqrt(const Array& x) {
 }
 
 Array Power(const Array& x1, const Array& x2) {
-    Array broadcasted_x2 = x2.BroadcastTo(x1.shape());
+    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
+    Array broadcasted_x1 = x1.BroadcastTo(result_shape);
+    Array broadcasted_x2 = x2.BroadcastTo(result_shape);
 
-    CheckEqual(x1.dtype(), broadcasted_x2.dtype());
-    CheckEqual(x1.shape(), broadcasted_x2.shape());
-    Array out = EmptyLike(x1, x1.device());
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    Array x1_cast = broadcasted_x1.AsType(dtype);
+    Array x2_cast = broadcasted_x2.AsType(dtype);
+
+    Array out = Empty(x1.shape(), dtype, x1.device());
     {
         NoBackpropModeScope scope{};
-        x1.device().Pow(x1, broadcasted_x2, out);
+        x1_cast.device().backend().CallKernel<PowKernel>(x1_cast, x2_cast, out);
     }
 
     {
-        BackwardBuilder bb{"power", {x1, broadcasted_x2}, out};
+        BackwardBuilder bb{"power", {x1_cast, x2_cast}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
@@ -861,13 +865,15 @@ Array Power(const Array& x1, const Array& x2) {
 }
 
 Array Power(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    Array x1_cast = x1.AsType(dtype);
+    Array out = Empty(x1_cast.shape(), dtype, x1.device());
     {
         NoBackpropModeScope scope{};
-        x1.device().PowAS(x1, x2, out);
+        x1.device().backend().CallKernel<PowASKernel>(x1_cast, x2, out);
     }
 
-    BackwardBuilder bb{"pow__array_scalar", x1, out};
+    BackwardBuilder bb{"pow_array_scalar", x1_cast, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
             const Array& x1 = bctx.GetRetainedInput(x1_tok);
@@ -880,12 +886,14 @@ Array Power(const Array& x1, Scalar x2) {
 }
 
 Array Power(Scalar x1, const Array& x2) {
-    Array out = EmptyLike(x2, x2.device());
+    Dtype dtype = GetArithmeticResultDtype(x2, x1);
+    Array x2_cast = x2.AsType(dtype);
+    Array out = Empty(x2.shape(), dtype, x2.device());
     {
         NoBackpropModeScope scope{};
-        x2.device().PowSA(x1, x2, out);
+        x2.device().backend().CallKernel<PowSAKernel>(x1, x2_cast, out);
     }
-    BackwardBuilder bb{"pow_scalar_array", x2, out};
+    BackwardBuilder bb{"pow_scalar_array", x2_cast, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([out_tok = bb.RetainOutput(0), x1](BackwardContext& bctx) {
             const Array& out = bctx.GetRetainedOutput(out_tok);
