@@ -20,10 +20,9 @@ _backend_params = (
     + [{'use_cuda': True}]
     # ChainerX tests
     + [
-        # TODO(niboshi): Add the following configurations
-        # {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        # {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        # {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 
 
