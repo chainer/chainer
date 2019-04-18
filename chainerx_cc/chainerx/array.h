@@ -117,6 +117,9 @@ public:
     // If no axes can be removed, an array with aliased data is returned.
     Array Squeeze(const OptionalAxes& axis = nonstd::nullopt) const;
 
+    // Interchange two axes of an array.
+    Array Swapaxes(int8_t axis1, int8_t axis2) const;
+
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
