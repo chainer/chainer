@@ -1,4 +1,5 @@
 import copy
+import datetime
 import warnings
 
 import six
@@ -228,7 +229,8 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
         summary = reporter_module.DictSummary()
 
         if self._progress_bar:
-            pbar = util.IteratorProgressBar(iterator=it, title='validation ')
+            pbar = _IteratorProgressBar()
+            pbar.iterator = it
 
         for batch in it:
             observation = {}
@@ -263,3 +265,33 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
         """
         for iterator in six.itervalues(self._iterators):
             iterator.finalize()
+
+
+class _IteratorProgressBar(util.ProgressBar):
+
+    iterator = None
+
+    def get_lines(self):
+        iteration = self.iterator.current_position
+        epoch_detail = self.iterator.epoch_detail
+        epoch_size = getattr(self.iterator, '_epoch_size', None)
+
+        lines = []
+
+        rate = epoch_detail
+        marks = '#' * int(rate * self._bar_length)
+        lines.append('validation [{}{}] {:6.2%}\n'.format(
+                     marks, '.' * (self._bar_length - len(marks)), rate))
+
+        if epoch_size:
+            lines.append('{:10} / {} iterations\n'
+                         .format(iteration, epoch_size))
+        else:
+            lines.append('{:10} iterations\n'.format(iteration))
+
+        speed_t, speed_e = self.update_speed(iteration, epoch_detail)
+        estimated_time = (1.0 - epoch_detail) / speed_e
+        lines.append('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
+                     .format(speed_t,
+                             datetime.timedelta(seconds=estimated_time)))
+        return lines
