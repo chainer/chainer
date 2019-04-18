@@ -12,7 +12,7 @@ import chainer.testing.backend  # NOQA
 import chainerx
 
 
-@testing.backend.inject_backend_tests(
+_inject_backend_tests = testing.backend.inject_backend_tests(
     None,
     [
         # NumPy
@@ -25,7 +25,9 @@ import chainerx
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-class TestConcatExamples(unittest.TestCase):
+
+
+class ConverterTestBase(object):
 
     def get_arrays_to_concat(self, backend_config):
         return [
@@ -33,7 +35,7 @@ class TestConcatExamples(unittest.TestCase):
             for _ in range(5)]
 
     def check_concat_arrays(self, arrays, device, expected_device):
-        array = dataset.concat_examples(arrays, device)
+        array = self.converter(arrays, device)
         self.assertEqual(array.shape, (len(arrays),) + arrays[0].shape)
 
         assert backend.get_device_from_array(array) == expected_device
@@ -66,7 +68,7 @@ class TestConcatExamples(unittest.TestCase):
             for _ in range(5)]
 
     def check_concat_tuples(self, tuples, device, expected_device):
-        arrays = dataset.concat_examples(tuples, device)
+        arrays = self.converter(tuples, device)
         self.assertEqual(len(arrays), len(tuples[0]))
         for i in range(len(arrays)):
             shape = (len(tuples),) + tuples[0][i].shape
@@ -103,7 +105,7 @@ class TestConcatExamples(unittest.TestCase):
             for _ in range(5)]
 
     def check_concat_dicts(self, dicts, device, expected_device):
-        arrays = dataset.concat_examples(dicts, device)
+        arrays = self.converter(dicts, device)
         self.assertEqual(frozenset(arrays.keys()), frozenset(dicts[0].keys()))
         for key in arrays:
             shape = (len(dicts),) + dicts[0][key].shape
@@ -134,19 +136,21 @@ class TestConcatExamples(unittest.TestCase):
             arrays, device, backend.ChainerxDevice(device))
 
 
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # NumPy
-        {},
-        # CuPy
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
+@_inject_backend_tests
+class TestConcatExamples(ConverterTestBase, unittest.TestCase):
+
+    def setUp(self):
+        self.converter = dataset.concat_examples
+
+
+@_inject_backend_tests
+class TestConcatWithAsyncTransfer(ConverterTestBase, unittest.TestCase):
+
+    def setUp(self):
+        self.converter = chainer.dataset.ConcatWithAsyncTransfer()
+
+
+@_inject_backend_tests
 class TestConcatExamplesWithPadding(unittest.TestCase):
 
     def test_concat_arrays_padding(self, backend_config):
