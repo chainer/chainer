@@ -1757,6 +1757,29 @@ class TestSigmoid(op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+class TestSoftmax(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+        self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        axis = self.axis
+        if xp is chainerx:
+            return chainerx.softmax(x, axis=axis),
+        x = x.astype(self.out_dtype)
+        axis = axis if axis is not None else 1
+        return numpy.exp(x) / (numpy.exp(x).sum(axis=axis, keepdims=True)),
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
