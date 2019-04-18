@@ -3,12 +3,9 @@ import unittest
 import numpy
 import six
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+from chainer import utils
 
 
 @testing.parameterize(*(
@@ -26,107 +23,90 @@ from chainer.testing import attr
         'use_weights': [True, False],
         'keepdims': [True, False],
     })))
-class TestAverage(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    }))
+class TestAverage(testing.FunctionTestCase):
 
     def setUp(self):
-        ndim = len(self.shape)
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.skip_double_backward_test = True
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-1})
+        else:
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+
+    def before_test(self, test_name):
+        if self.use_weights and isinstance(self.axis, tuple):
+            # This condition is not supported
+            raise unittest.SkipTest(
+                'Tuple axis is not supported when weights is given')
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
         if self.axis is None:
             w_shape = self.shape
         elif isinstance(self.axis, int):
             axis = self.axis
             if axis < 0:
+                ndim = len(self.shape)
                 axis += ndim
             w_shape = self.shape[axis],
         else:
             w_shape = tuple(self.shape[a] for a in self.axis)
 
-        g_shape = self.x.sum(axis=self.axis, keepdims=self.keepdims).shape
-        self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
-
         # Sample weights. Weights should not sum to 0.
         while True:
-            self.w = numpy.random.uniform(-2, 2, w_shape).astype(self.dtype)
+            w = numpy.random.uniform(-2, 2, w_shape).astype(self.dtype)
             w_sum_eps = 1.0 if self.dtype == numpy.float16 else 5e-2
-            if abs(self.w.sum()) > w_sum_eps:
+            if abs(w.sum()) > w_sum_eps:
                 break
 
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
-        else:
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        return x, w
 
-    def check_forward(self, x_data, axis, weights):
-        if self.use_weights and isinstance(self.axis, tuple):
-            # This condition is not supported
-            return
-
-        x = chainer.Variable(x_data)
-        if self.use_weights:
-            w = chainer.Variable(weights)
-            w_data = self.w
-        else:
+    def forward(self, inputs, device):
+        x, w = inputs
+        if not self.use_weights:
             w = None
-            w_data = None
-        y = functions.average(x, axis=axis, weights=w, keepdims=self.keepdims)
-        self.assertEqual(y.data.dtype, self.dtype)
-        y_expect = numpy.average(
-            self.x, axis=axis, weights=w_data)
+        y = functions.average(
+            x, axis=self.axis, weights=w, keepdims=self.keepdims)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, w = inputs
+        if not self.use_weights:
+            w = None
+        y_expect = numpy.average(x, axis=self.axis, weights=w)
         if self.keepdims:
             # numpy.average does not support keepdims
+            axis = self.axis
             if axis is None:
-                axis = list(six.moves.range(x_data.ndim))
+                axis = list(six.moves.range(x.ndim))
             elif isinstance(axis, int):
                 axis = axis,
-            shape = list(x_data.shape)
+            shape = list(x.shape)
             for i in six.moves.range(len(shape)):
                 if i in axis or i - len(shape) in axis:
                     shape[i] = 1
             y_expect = y_expect.reshape(shape)
-
-        if self.dtype == numpy.float16:
-            options = {'atol': 5e-3, 'rtol': 5e-3}
-        else:
-            options = {}
-
-        self.assertEqual(y_expect.shape, y.shape)
-        testing.assert_allclose(y_expect, y.data, **options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.axis, self.w)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.w))
-
-    def check_backward(self, x_data, y_grad, axis, w_data):
-        if self.use_weights and isinstance(self.axis, tuple):
-            # This condition is not supported
-            return
-
-        if self.use_weights:
-            def f(x, w):
-                return functions.average(
-                    x, axis=axis, weights=w, keepdims=self.keepdims)
-            args = (x_data, w_data)
-        else:
-            def f(x):
-                return functions.average(x, axis=axis, keepdims=self.keepdims)
-            args = x_data
-
-        gradient_check.check_backward(
-            f, args, y_grad, dtype=numpy.float64,
-            **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy, self.axis, self.w)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), self.axis,
-            cuda.to_gpu(self.w))
+        y_expect = utils.force_array(y_expect, dtype=self.dtype)
+        return y_expect,
 
 
 @testing.parameterize(*testing.product({
