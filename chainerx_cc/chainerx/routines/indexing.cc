@@ -194,7 +194,8 @@ Array Diagonal(const Array& x, int64_t offset, int64_t axis1, int64_t axis2) {
     int64_t start_axis2 = (offset > 0) ? offset : 0;
 
     const Shape& x_shape = x.shape();
-    int64_t num_elements = std::min(x_shape[axis1] - start_axis1, x_shape[axis2] - start_axis2);
+    int64_t num_elements = std::max(0l,
+        std::min(x_shape[axis1] - start_axis1, x_shape[axis2] - start_axis2));
 
     std::vector<int64_t> out_shape;
     for (int i = 0; i < x.ndim(); i++) {

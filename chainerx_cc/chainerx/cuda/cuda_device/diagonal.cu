@@ -35,7 +35,7 @@ struct DiagonalImpl {
     using CudaTypeT = cuda_internal::DataType<T>;
 
     explicit DiagonalImpl(const Array& a) : x_indexable{a} {}
-    CHAINERX_HOST_DEVICE void operator()(const int64_t* index, CudaTypeT& out) {
+    __device__ void operator()(const int64_t* index, CudaTypeT& out) {
         int64_t x_index[kMaxNdim];
         int out_dim_index = 0;
         for (int j = 0; j < x_ndim; j++) {
@@ -59,7 +59,6 @@ struct DiagonalImpl {
 
     int64_t x_ndim;
     IndexableArray<const T> x_indexable;
-    std::vector<int64_t> x_index;
 
     int64_t num_elements;
 };
@@ -77,10 +76,10 @@ public:
             impl.start_axis1 = (offset < 0) ? -offset : 0;
             impl.start_axis2 = (offset > 0) ? offset : 0;
             impl.x_ndim = x.ndim();
-            impl.x_index.resize(x.ndim());
 
             const Shape& x_shape = x.shape();
-            impl.num_elements = std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2);
+            impl.num_elements = std::max(0l,
+                std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
 
             std::vector<int64_t> out_shape;
             for (int i = 0; i < x.ndim(); i++) {

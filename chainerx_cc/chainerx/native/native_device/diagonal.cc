@@ -71,7 +71,8 @@ public:
                 impl.x_index.resize(x.ndim());
 
                 const Shape& x_shape = x.shape();
-                impl.num_elements = std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2);
+                impl.num_elements = std::max(0l,
+                    std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
 
                 ElementwiseWithIndex<T>(std::move(impl), out);
             });

@@ -35,7 +35,7 @@ struct DiagonalflatImpl {
     using CudaTypeT = cuda_internal::DataType<T>;
 
     explicit DiagonalflatImpl(const Array& a) : x_indexable{a} {}
-    CHAINERX_HOST_DEVICE void operator()(const int64_t* index, CudaTypeT& out) {
+    __device__ void operator()(const int64_t* index, CudaTypeT& out) {
         int64_t x_index[kMaxNdim];
         int64_t element_index = (offset >= 0) ? index[axis1] : index[axis2];
         bool valid_element =
@@ -61,7 +61,6 @@ struct DiagonalflatImpl {
 
     int64_t x_ndim;
     IndexableArray<const T> x_indexable;
-    std::vector<int64_t> x_index;
 
     int64_t out_ndim;
 };

@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 
 import chainer.testing
 import chainerx
@@ -185,3 +186,109 @@ class TestTake(op_utils.NumpyOpTest):
         else:
             b = a.take(indices, axis)
         return b,
+
+
+@pytest.mark.parametrize('device', [
+    'native:0', 'cuda:0',
+])
+@pytest.mark.parametrize('dtype, range', [
+    ('int8', (-127, 127)),
+    ('int16', (-1000, 1000)),
+    ('int32', (-10**5, 10**5)),
+    ('int64', (-10**9, 10**9)),
+    ('uint8', (0, 255)),
+    ('float16', (-1, 1)),
+    ('float32', (-1, 1)),
+    ('float64', (-1, 1)),
+])
+@pytest.mark.parametrize('shape,offset,axis1,axis2', [
+    ((3, 3), 0, 0, 1),
+    ((3, 3), 1, 0, 1),
+    ((3, 3), 2, 0, 1),
+    ((3, 3), 3, 0, 1),
+    ((3, 3), -1, 0, 1),
+    ((3, 3), -2, 0, 1),
+    ((3, 3), -3, 0, 1),
+
+    ((3, 3), 0, 1, 0),
+    ((3, 3), 1, 1, 0),
+    ((3, 3), 2, 1, 0),
+    ((3, 3), 3, 1, 0),
+    ((3, 3), -1, 1, 0),
+    ((3, 3), -2, 1, 0),
+    ((3, 3), -3, 1, 0),
+
+    ((7, 5, 3), 0, 0, 1),
+    ((7, 5, 3), 2, 0, 1),
+    ((7, 5, 3), 4, 0, 1),
+    ((7, 5, 3), 6, 0, 1),
+    ((7, 5, 3), 8, 0, 1),
+    ((7, 5, 3), -2, 0, 1),
+    ((7, 5, 3), -4, 0, 1),
+    ((7, 5, 3), -6, 0, 1),
+    ((7, 5, 3), -8, 0, 1),
+    
+    ((7, 5, 3), 0, 1, 2),
+    ((7, 5, 3), 2, 1, 2),
+    ((7, 5, 3), 4, 1, 2),
+    ((7, 5, 3), 6, 1, 2),
+    ((7, 5, 3), 8, 1, 2),
+    ((7, 5, 3), -2, 1, 2),
+    ((7, 5, 3), -4, 1, 2),
+    ((7, 5, 3), -6, 1, 2),
+    ((7, 5, 3), -8, 1, 2),
+    
+    ((7, 5, 3), 0, 2, 0),
+    ((7, 5, 3), 2, 2, 0),
+    ((7, 5, 3), 4, 2, 0),
+    ((7, 5, 3), 6, 2, 0),
+    ((7, 5, 3), 8, 2, 0),
+    ((7, 5, 3), -2, 2, 0),
+    ((7, 5, 3), -4, 2, 0),
+    ((7, 5, 3), -6, 2, 0),
+    ((7, 5, 3), -8, 2, 0),
+])
+def test_valid_diagonal(shape, offset, axis1, axis2, dtype, range, device):
+    x = numpy.random.uniform(range[0], range[1], shape).astype(dtype)
+    numpy.testing.assert_allclose(
+        numpy.diagonal(x, offset, axis1, axis2), 
+        chainerx.to_numpy(
+            chainerx.diagonal(
+                chainerx.array(
+                    x, 
+                    device=chainerx.get_device(device)), 
+                    offset, 
+                    axis1, 
+                    axis2)))
+
+
+@pytest.mark.parametrize('device', [
+    'native:0', 'cuda:0',
+])
+@pytest.mark.parametrize('dtype, range', [
+    ('int8', (-127, 127)),
+    ('int16', (-1000, 1000)),
+    ('int32', (-10**5, 10**5)),
+    ('int64', (-10**9, 10**9)),
+    ('uint8', (0, 255)),
+    ('float16', (-1, 1)),
+    ('float32', (-1, 1)),
+    ('float64', (-1, 1)),
+])
+@pytest.mark.parametrize('shape,offset,axis1,axis2', [
+    ((3, 3), 0, -1, 1),
+    ((3, 3), 1, 0, -1),
+    ((3, 3), 0, 0, 2),
+    ((3, 3), 1, 2, 1),
+
+    ((7, 5, 3), 0, -1, 1),
+    ((7, 5, 3), 2, 0, -1),
+    ((7, 5, 3), 4, 3, 1),
+    ((7, 5, 3), 6, 0, 3),
+])
+def test_invalid_diagonal(shape, offset, axis1, axis2, dtype, range, device):
+    x = numpy.random.uniform(range[0], range[1], shape).astype(dtype)
+    with pytest.raises(Exception):
+        chainerx.diagonal(
+            chainerx.array(
+                x, device=chainerx.get_device(device)), offset, axis1, axis2)

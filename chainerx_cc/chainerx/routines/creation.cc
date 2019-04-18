@@ -317,29 +317,29 @@ Array Diagonalflat(const Array& x, int64_t offset, int64_t axis1, int64_t axis2,
 
     const Shape& x_shape = x.shape();
     const int64_t num_elements = x_shape[x_shape.size() - 1];
-    int64_t num_rows = 0, num_cols = 0;
+    int64_t axis1_length = 0, axis2_length = 0;
     if (offset >= 0) {
         if (delta >= 0) {
-            num_rows = num_elements + offset + delta;
-            num_cols = num_elements;
+            axis1_length = num_elements + offset + delta;
+            axis2_length = num_elements;
         } else {
-            num_rows = num_elements + offset;
-            num_cols = num_elements - delta;
+            axis1_length = num_elements + offset;
+            axis2_length = num_elements - delta;
         }
     } else {
         if (delta >= 0) {
-            num_rows = num_elements + delta;
-            num_cols = num_elements - offset;
+            axis1_length = num_elements + delta;
+            axis2_length = num_elements - offset;
         } else {
-            num_rows = num_elements;
-            num_cols = num_elements - offset - delta;
+            axis1_length = num_elements;
+            axis2_length = num_elements - offset - delta;
         }
     }
 
     std::vector<int64_t> out_shape;
     out_shape.resize(x.ndim() + 1);
-    out_shape[axis1] = num_rows;
-    out_shape[axis2] = num_cols;
+    out_shape[axis1] = axis1_length;
+    out_shape[axis2] = axis2_length;
     int64_t x_shape_index = 0;
     for (int64_t i = 0; i < (x.ndim() + 1); i++) {
         if (i != axis1 && i != axis2) {
