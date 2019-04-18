@@ -5,11 +5,11 @@
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_conv.h"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/connection.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
 
@@ -17,7 +17,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-class CudaConvOp : public ConvOp {
+class CudaConvKernel : public ConvKernel {
 public:
     Array Call(
             const Array& x,
@@ -39,9 +39,9 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(ConvOp, CudaConvOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvKernel, CudaConvKernel);
 
-class CudaConvTransposeOp : public ConvTransposeOp {
+class CudaConvTransposeKernel : public ConvTransposeKernel {
 public:
     Array Call(
             const Array& x,
@@ -62,9 +62,9 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(ConvTransposeOp, CudaConvTransposeOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvTransposeKernel, CudaConvTransposeKernel);
 
-class CudaConvGradWeightOp : public ConvGradWeightOp {
+class CudaConvGradWeightKernel : public ConvGradWeightKernel {
 public:
     Array Call(
             Dtype w_dtype,
@@ -85,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(ConvGradWeightOp, CudaConvGradWeightOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvGradWeightKernel, CudaConvGradWeightKernel);
 
 }  // namespace
 }  // namespace cuda

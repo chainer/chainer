@@ -13,7 +13,6 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
-#include "chainerx/op.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
