@@ -16,13 +16,13 @@
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/im2col.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
-#include "chainerx/routines/connection.h"
-#include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
@@ -31,7 +31,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeConvOp : public ConvOp {
+class NativeConvKernel : public ConvKernel {
 public:
     Array Call(
             const Array& x,
@@ -81,9 +81,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvOp, NativeConvOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvKernel, NativeConvKernel);
 
-class NativeConvGradWeightOp : public ConvGradWeightOp {
+class NativeConvGradWeightKernel : public ConvGradWeightKernel {
 public:
     Array Call(
             Dtype w_dtype,
@@ -120,9 +120,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvGradWeightOp, NativeConvGradWeightOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvGradWeightKernel, NativeConvGradWeightKernel);
 
-class NativeConvTransposeOp : public ConvTransposeOp {
+class NativeConvTransposeKernel : public ConvTransposeKernel {
 public:
     Array Call(
             const Array& x,
@@ -158,7 +158,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvTransposeOp, NativeConvTransposeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvTransposeKernel, NativeConvTransposeKernel);
 
 }  // namespace
 }  // namespace native

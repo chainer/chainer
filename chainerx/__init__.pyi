@@ -379,6 +379,16 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
+    @tp.overload
+    def min(self,
+            axis: int,
+            keepdims: bool=...) -> ndarray: ...
+
+    @tp.overload
+    def min(self,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
+            keepdims: bool=...) -> ndarray: ...
+
     def ravel(self) -> ndarray: ...
 
     def require_grad(
@@ -404,6 +414,8 @@ class ndarray:
 
     @tp.overload
     def squeeze(self, axis: int) -> ndarray: ...
+
+    def swapaxes(self, axis1: int, axis2: int) -> ndarray: ...
 
     @tp.overload
     def sum(self, axis: int, keepdims: bool=...) -> ndarray: ...
@@ -447,6 +459,11 @@ def any(x: ndarray) -> ndarray: ...
 
 
 def amax(a: ndarray,
+         axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
+         keepdims: bool=...) -> ndarray: ...
+
+
+def amin(a: ndarray,
          axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
          keepdims: bool=...) -> ndarray: ...
 
@@ -745,6 +762,10 @@ def sigmoid(x: ndarray) -> ndarray: ...
 
 def relu(x: ndarray) -> ndarray: ...
 
+def softmax(
+        x: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
@@ -776,6 +797,9 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
+
+
 def take(a: ndarray, indices: ndarray, axis: tp.Optional[int]) -> ndarray: ...
 
 
@@ -786,6 +810,9 @@ def tanh(x: ndarray) -> ndarray: ...
 
 
 def to_numpy(array: ndarray, copy: bool=...) -> numpy.ndarray: ...
+
+
+def _to_cupy(array: ndarray) -> numpy.ndarray: ...
 
 
 def transpose(

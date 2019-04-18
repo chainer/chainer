@@ -9,11 +9,11 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/numeric.cuh"
-#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/kernels/math.h"
 
 namespace chainerx {
 namespace cuda {
@@ -25,7 +25,7 @@ struct ExpImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
 };
 
-class CudaExpOp : public ExpOp {
+class CudaExpKernel : public ExpKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -39,7 +39,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ExpOp, CudaExpOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ExpKernel, CudaExpKernel);
 
 template <typename T>
 struct LogImpl {
@@ -47,7 +47,7 @@ struct LogImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
 };
 
-class CudaLogOp : public LogOp {
+class CudaLogKernel : public LogKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -61,7 +61,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(LogOp, CudaLogOp);
+CHAINERX_CUDA_REGISTER_KERNEL(LogKernel, CudaLogKernel);
 
 }  // namespace
 }  // namespace cuda
