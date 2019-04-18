@@ -48,9 +48,9 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         # extreme logit
         nan_dlogit = xp.zeros_like(dlogit.array)
         if self.binary_check:
-            nan_dlogit[self.invalid] = xp.nan
-        nan_dlogit[self.logit_ispinf] = xp.nan
-        nan_dlogit[self.logit_isminf] = xp.nan
+            nan_dlogit[self.invalid] = numpy.nan
+        nan_dlogit[self.logit_ispinf] = numpy.nan
+        nan_dlogit[self.logit_isminf] = numpy.nan
         dlogit += nan_dlogit
 
         return gy * dlogit, None
@@ -85,7 +85,7 @@ class Bernoulli(distribution.Distribution):
         super(Bernoulli, self).__init__()
         if not (p is None) ^ (logit is None):
             raise ValueError(
-                "Either `p` or `logit` (not both) must have a value.")
+                'Either `p` or `logit` (not both) must have a value.')
 
         self.__p = p
         self.__logit = logit
@@ -130,6 +130,10 @@ class Bernoulli(distribution.Distribution):
     @cache.cached_property
     def mean(self):
         return self.p
+
+    @property
+    def params(self):
+        return {'logit': self.logit}
 
     def prob(self, x):
         x = chainer.as_variable(x)

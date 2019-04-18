@@ -35,7 +35,7 @@ class Categorical(distribution.Distribution):
                 kwargs, ('logit', logit))
         if not (p is None) ^ (logit is None):
             raise ValueError(
-                "Either `p` or `logit` (not both) must have a value.")
+                'Either `p` or `logit` (not both) must have a value.')
         self.__p = p
         self.__logit = logit
 
@@ -73,6 +73,10 @@ class Categorical(distribution.Distribution):
             return self.log_p[mg + [x.data.astype(numpy.int32)]]
         else:
             return self.log_p[mg + [x.astype(numpy.int32)]]
+
+    @property
+    def params(self):
+        return {'p': self.p}
 
     def sample_n(self, n):
         xp = backend.get_array_module(self.p)

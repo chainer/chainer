@@ -1,3 +1,5 @@
+import warnings
+
 import chainer.cuda
 
 from chainermn.communicators import _communication_utility
@@ -19,6 +21,10 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 'NCCL is not available. '
                 'Please confirm that NCCL is enabled in CuPy.'
             )
+        if nccl.get_version() < 2302:
+            warnings.warn('NCCL 2.2 and older versions are deprecated.',
+                          DeprecationWarning)
+
         # We have to delay the initialization of communicators. This is because
         # NCCL's communicators use the current CUDA devices at the time of
         # initialization. Therefore, we have to initialize NCCL communicators
@@ -42,41 +48,53 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         stream = chainer.cuda.Stream.null
 
         params = _memory_utility.extract_params_set_data(model)
-        itemsize = 4
+
+        dtype = params[0].data.dtype
+        itemsize = dtype.itemsize
         n_elems_total = sum(param.data.size for param in params)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
 
-        _memory_utility.pack_params(
-            params, itemsize, 'data', self.gpu_buffer_a)
+        _memory_utility.pack_params(params, 'data', self.gpu_buffer_a, dtype)
 
         self.intra_nccl_comm.bcast(
-            self.gpu_buffer_a.ptr(), n_elems_total, nccl.NCCL_FLOAT,
+            self.gpu_buffer_a.ptr(), n_elems_total,
+            _communication_utility._get_nccl_type_id(dtype),
             0, stream.ptr)
 
-        _memory_utility.unpack_params(
-            params, itemsize, 'data', self.gpu_buffer_a)
+        _memory_utility.unpack_params(params, 'data', self.gpu_buffer_a, dtype)
 
     def allreduce_grad(self, model):
         self._init_comms()
         stream = chainer.cuda.Stream.null
-
         params = _memory_utility.extract_params_set_grad(model)
-        itemsize = 4
+
+        dtype = params[0].grad.dtype
+        itemsize = dtype.itemsize
         n_elems_total = sum(param.grad.size for param in params)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
         self.gpu_buffer_b.assign(n_bytes_total)
 
-        _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+        _memory_utility.pack_params(params, 'grad', self.gpu_buffer_a, dtype)
 
+        if chainer.is_debug():
+            stream.synchronize()
+            array_a = self.gpu_buffer_a.array(n_elems_total)
+            array_b = self.gpu_buffer_b.array(n_elems_total)
+            self.check_ready_to_allreduce(array_a, array_b)
+
+        # Same as PureNcclCommunicator's multi_node_mean but leave as it is
         self.intra_nccl_comm.allReduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
-            nccl.NCCL_FLOAT, nccl.NCCL_SUM, stream.ptr)
+            _communication_utility._get_nccl_type_id(dtype),
+            nccl.NCCL_SUM, stream.ptr)
 
-        arr = self.gpu_buffer_b.array(n_elems_total)
+        arr = self.gpu_buffer_b.array(n_elems_total, dtype=dtype)
         arr *= (1.0 / self.size)
 
-        _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+        if chainer.is_debug():
+            stream.synchronize()
+            self.ensure_all_finite(arr)
+
+        _memory_utility.unpack_params(params, 'grad', self.gpu_buffer_b, dtype)

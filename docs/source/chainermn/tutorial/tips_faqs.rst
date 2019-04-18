@@ -15,7 +15,7 @@ start child processes, with a process explicitly forked right after, **before
 communicator is created** as follows::
 
   multiprocessing.set_start_method('forkserver')
-  p = multiprocessing.Process(target=lambda *x: x, args=())
+  p = multiprocessing.Process()
   p.start()
   p.join()
 

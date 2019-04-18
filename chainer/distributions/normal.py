@@ -11,6 +11,7 @@ from chainer.functions.math import ndtr
 from chainer.functions.math import ndtri
 from chainer.utils import argument
 from chainer.utils import cache
+import chainerx
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
@@ -49,11 +50,15 @@ class Normal(distribution.Distribution):
                 kwargs, ('log_scale', log_scale))
         if not (scale is None) ^ (log_scale is None):
             raise ValueError(
-                "Either `scale` or `log_scale` (not both) must have a value.")
+                'Either `scale` or `log_scale` (not both) must have a value.')
 
         self.__loc = loc
         self.__scale = scale
         self.__log_scale = log_scale
+        if isinstance(loc, chainer.Variable):
+            self.__device = loc.device
+        else:
+            self.__device = chainer.backend.get_device_from_array(loc)
 
     @cache.cached_property
     def loc(self):
@@ -91,10 +96,6 @@ class Normal(distribution.Distribution):
     def icdf(self, x):
         return self.loc + self.scale * ndtri.ndtri(x)
 
-    @property
-    def _is_gpu(self):
-        return isinstance(self.loc.data, cuda.ndarray)
-
     def log_cdf(self, x):
         return log_ndtr.log_ndtr((x - self.loc) / self.scale)
 
@@ -118,12 +119,22 @@ class Normal(distribution.Distribution):
             - 0.5 * (x - self.loc) ** 2 / self.variance)
 
     def sample_n(self, n):
-        if self._is_gpu:
-            eps = cuda.cupy.random.standard_normal(
-                (n,)+self.loc.shape, dtype=self.loc.dtype)
+        dtype = self.loc.dtype
+        shape = (n,) + self.loc.shape
+        device = self.__device
+        if device.xp is cuda.cupy:
+            if dtype == numpy.float16:
+                # cuRAND supports only FP32 and FP64
+                eps = cuda.cupy.random.standard_normal(
+                    shape, dtype=numpy.float32).astype(numpy.float16)
+            else:
+                eps = cuda.cupy.random.standard_normal(shape, dtype=dtype)
+        elif device.xp is chainerx:
+            # TODO(niboshi): Support random in ChainerX
+            eps = device.send(
+                numpy.random.standard_normal(shape).astype(dtype))
         else:
-            eps = numpy.random.standard_normal(
-                (n,)+self.loc.shape).astype(numpy.float32)
+            eps = numpy.random.standard_normal(shape).astype(dtype)
         return self.loc + self.scale * eps
 
     @cache.cached_property

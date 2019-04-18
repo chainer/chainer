@@ -48,7 +48,7 @@ class NStepRNNBase(link.ChainList):
         :func:`chainer.links.NStepBiRNNReLU`
         :func:`chainer.links.NStepBiRNNTanh`
 
-    """  # NOQA
+    """
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
         if kwargs:
@@ -99,6 +99,14 @@ class NStepRNNBase(link.ChainList):
         self.out_size = out_size
         self.direction = direction
 
+    def copy(self, mode='share'):
+        ret = super(NStepRNNBase, self).copy(mode)
+        ret.ws = [[getattr(layer, 'w%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        ret.bs = [[getattr(layer, 'b%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        return ret
+
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
         with chainer.using_device(self.device):
@@ -126,13 +134,14 @@ class NStepRNNBase(link.ChainList):
         Calculate all hidden states and cell states.
 
         Args:
-            hx (~chainer.Variable or None): Initial hidden states. If ``None``
-                is specified zero-vector is used. Its shape is ``(S, B, N)``
-                for uni-directional RNN and ``(2S, B, N)`` for
-                bi-directional RNN where ``S`` is the number of layers
-                and is equal to ``n_layers``, ``B`` is the mini-batch size,
-                and ``N`` is the dimension of the hidden units.
-            xs (list of ~chainer.Variable): List of input sequences.
+            hx (:class:`~chainer.Variable` or None): Initial hidden states.
+                If ``None`` is specified zero-vector is used.
+                Its shape is ``(S, B, N)`` for uni-directional RNN
+                and ``(2S, B, N)`` for bi-directional RNN where ``S`` is
+                the number of layers and is equal to ``n_layers``, ``B`` is
+                the mini-batch size, and ``N`` is the dimension of
+                the hidden units.
+            xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence. Its shape is ``(L_i, I)``, where ``L_t`` is the
                 length of a sequence for batch ``i``, and ``I`` is the size of

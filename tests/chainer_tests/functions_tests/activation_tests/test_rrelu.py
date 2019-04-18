@@ -20,6 +20,11 @@ from chainer.testing import attr
         'use_cuda': [True],
         'cuda_device': [0, 1],
     })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
 )
 @testing.parameterize(*testing.product({
     'train': [True, False],
@@ -27,8 +32,6 @@ from chainer.testing import attr
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestRReLU(testing.FunctionTestCase):
-
-    dodge_nondifferentiable = True
 
     def setUp(self):
         # Assumption l < u
@@ -47,13 +50,14 @@ class TestRReLU(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        if self.test_name in ('test_backward', 'test_double_backward'):
+            x[(-0.05 < x) & (x < 0.05)] = 0.5
         return x,
 
     def forward(self, inputs, device):
         x, = inputs
-        r = self.r
+        r = self.r.astype(x.dtype)
         r = device.send(r)
-        r = r.astype(x.dtype)
         with chainer.using_config('train', self.train):
             y = functions.rrelu(x, l=self.l, u=self.u, r=r)
         return y,
@@ -64,7 +68,7 @@ class TestRReLU(testing.FunctionTestCase):
         if self.train:
             expected = numpy.where(x >= 0, x, x * r)
         else:
-            r_test = numpy.mean([self.l, self.u], dtype=self.dtype)
+            r_test = numpy.mean([self.l, self.u]).astype(self.dtype)
             expected = numpy.where(x >= 0, x, x * r_test)
         return expected,
 

@@ -73,10 +73,11 @@ class LinearModel(object):
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
-    def accuracy(self, backend_config):
+    def accuracy(self, backend_config, loss_scaling=False):
         model = self.model
         optimizer = self.optimizer
         optimizer.setup(model)
+        _optimizer_loss_scaling(optimizer, loss_scaling)
 
         if backend_config.use_ideep == 'always':
             if not intel64.is_ideep_available():
@@ -89,6 +90,16 @@ class LinearModel(object):
         with chainer.using_device(backend_config.device):
             return self._train_linear_classifier(
                 model, optimizer, backend_config)
+
+
+def _optimizer_loss_scaling(optimizer, loss_scaling):
+    if loss_scaling not in [False, 'dynamic', 'static']:
+        msg = 'loss_scaling must be False, \'dynamic\' or \'static\'.'
+        raise ValueError(msg)
+    if loss_scaling == 'dynamic':
+        optimizer.loss_scaling()
+    elif loss_scaling == 'static':
+        optimizer.loss_scaling(scale=10.0)
 
 
 _inject_backend_tests = (
@@ -110,6 +121,8 @@ _inject_backend_tests = (
 
 class OptimizerTestBase(object):
 
+    loss_scaling = False
+
     def create(self):
         raise NotImplementedError()
 
@@ -117,10 +130,24 @@ class OptimizerTestBase(object):
         self.model = LinearModel(self.create(), self.dtype,
                                  self.use_placeholder)
 
+    def skip_loss_scaling(self, backend_config=None):
+        if self.loss_scaling is not False:
+            if self.dtype != numpy.float16:
+                msg = 'loss_scaling is tested when dtype is float16.'
+                return True, msg
+            if backend_config is not None and not backend_config.use_cuda:
+                msg = 'loss_scaling is tested when use_cuda is True.'
+                return True, msg
+        return False, None
+
     @condition.retry(10)
     def test_linear_model(self, backend_config):
+        skip, msg = self.skip_loss_scaling(backend_config)
+        if skip:
+            return unittest.SkipTest(msg)
         try:
-            accuracy = self.model.accuracy(backend_config)
+            accuracy = self.model.accuracy(backend_config,
+                                           self.loss_scaling)
         except Skipped:
             # TODO(niboshi): This is temporary workaround.
             # See the comment on Skipped.
@@ -133,17 +160,24 @@ class OptimizerTestBase(object):
     def test_linear_model_multi_gpu(self):
         backend_config = backend.BackendConfig(
             {'use_cuda': True, 'cuda_device': 1})
+        skip, msg = self.skip_loss_scaling(backend_config)
+        if skip:
+            return unittest.SkipTest(msg)
         with cuda.Device(0):
             accuracy = self.model.accuracy(backend_config)
         self.assertGreater(cuda.to_cpu(accuracy.data), 0.9)
 
     @attr.multi_gpu(2)
     def test_model_setup_multi_gpu(self):
+        skip, msg = self.skip_loss_scaling()
+        if skip:
+            return unittest.SkipTest(msg)
         with cuda.Device(0):
             model = self.model.model
             optimizer = self.model.optimizer
             model.to_gpu(1)
             optimizer.setup(model)
+            _optimizer_loss_scaling(optimizer, self.loss_scaling)
         # Initialize the optimizer state by running an update
         for param in optimizer.target.params(False):
             param.cleargrad()
@@ -152,10 +186,14 @@ class OptimizerTestBase(object):
                 self.assertEqual(int(param.data.device), int(v.device))
 
     def test_initialize(self):
+        skip, msg = self.skip_loss_scaling()
+        if skip:
+            return unittest.SkipTest(msg)
         model = self.model.model
         assert isinstance(model, chainer.Link)
         optimizer = self.create()
         optimizer.setup(model)
+        _optimizer_loss_scaling(optimizer, self.loss_scaling)
 
         msg = 'optimization target must be a link'
         with six.assertRaisesRegex(self, TypeError, msg):
@@ -165,6 +203,7 @@ class OptimizerTestBase(object):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
@@ -176,6 +215,7 @@ class TestAdaDelta(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
@@ -187,21 +227,25 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
+    'amsgrad': [False, True],
+    'adabound': [False, True],
 }))
 @_inject_backend_tests
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        if self.dtype == numpy.float16:
-            kwargs = {'eps': 1e-6}
-        else:
-            kwargs = {}
+        kwargs = {
+            'amsgrad': self.amsgrad,
+            'adabound': self.adabound,
+        }
         return optimizers.Adam(0.05, **kwargs)
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
@@ -213,6 +257,7 @@ class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
@@ -224,6 +269,7 @@ class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestMSVAG(OptimizerTestBase, unittest.TestCase):
@@ -235,6 +281,7 @@ class TestMSVAG(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class NesterovAG(OptimizerTestBase, unittest.TestCase):
@@ -247,6 +294,7 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
     'eps_inside_sqrt': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
@@ -261,6 +309,7 @@ class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
@@ -272,6 +321,7 @@ class TestRMSpropGraves(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestSGD(OptimizerTestBase, unittest.TestCase):
@@ -283,6 +333,7 @@ class TestSGD(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
 class TestSMORMS3(OptimizerTestBase, unittest.TestCase):

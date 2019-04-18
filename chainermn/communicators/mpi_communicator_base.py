@@ -1,10 +1,10 @@
-import collections
-
 import mpi4py
 import numpy
 
+import chainer
 import chainer.backends
 import chainer.utils
+from chainer.utils import collections_abc
 from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
@@ -15,6 +15,7 @@ _dtype_mpi_type = {
     # see the definition of mpi4py.MPI._typedict (in mpi4py/MPI/typemap.pxi)
     numpy.dtype(numpy.int32): mpi4py.MPI._typedict['i'],
     numpy.dtype(numpy.int64): mpi4py.MPI._typedict['l'],
+    numpy.dtype(numpy.float16): mpi4py.MPI._typedict['f'],
     numpy.dtype(numpy.float32): mpi4py.MPI._typedict['f'],
     numpy.dtype(numpy.float64): mpi4py.MPI._typedict['d'],
 }
@@ -65,7 +66,7 @@ class _MessageType(object):
             self.ndims = [obj.ndim]
             self.shapes = [obj.shape]
             self.dtype = obj.dtype
-        elif isinstance(obj, collections.Iterable):
+        elif isinstance(obj, collections_abc.Iterable):
             if all(map(_is_numpy_array, obj)):
                 self.is_host = True
             elif all(map(_is_cupy_array, obj)):
@@ -229,6 +230,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             data = [data]
 
         for array in data:
+            if numpy.float16 == array.dtype:
+                array = array.astype(numpy.float32)
+
             if chainer.backend.get_array_module(array) is not numpy:
                 chainer.cuda.Stream.null.synchronize()
                 array = (_memory_utility.get_device_memory_pointer(array),
@@ -269,28 +273,38 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         msgtype = self.mpi_comm.recv(source=source, tag=tag)
         xp = msgtype.get_array_module()
+        if numpy.float16 == msgtype.dtype:
+            comm_dtype = numpy.float32
+        else:
+            comm_dtype = msgtype.dtype
 
         if msgtype.is_tuple:
             msg = []
             for shape in msgtype.shapes:
                 buf = xp.empty(
-                    [chainer.utils.size_of_shape(shape)], dtype=msgtype.dtype)
+                    [chainer.utils.size_of_shape(shape)], dtype=comm_dtype)
                 rtype = _get_mpi_type(msgtype)
                 self.mpi_comm.Recv(
                     _memory_utility.array_to_buffer_object(buf, rtype),
                     source=source, tag=tag)
+
+                if numpy.float16 == msgtype.dtype:
+                    buf = buf.astype(numpy.float16)
                 msg.append(buf.reshape(shape))
             return tuple(msg)
 
         else:
             assert len(msgtype.shapes) == 1
             shape = msgtype.shapes[0]
-            buf = xp.empty(
-                [chainer.utils.size_of_shape(shape)], dtype=msgtype.dtype)
+            buf = xp.empty([chainer.utils.size_of_shape(shape)],
+                           dtype=comm_dtype)
             rtype = _get_mpi_type(msgtype)
             self.mpi_comm.Recv(
                 _memory_utility.array_to_buffer_object(buf, rtype),
                 source=source, tag=tag)
+
+            if numpy.float16 == msgtype.dtype:
+                buf = buf.astype(numpy.float16)
             return buf.reshape(shape)
 
     def bcast(self, x, root=0):
@@ -471,9 +485,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         """
 
-        chainer.utils.experimental(
-            'chainermn.communicators.CommunicatorBase.allreduce')
-
         msgtype = _MessageType(x)
         _check_dtype('allreduce', msgtype)
 
@@ -611,8 +622,14 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def bcast_data(self, model):
         for _, param in sorted(model.namedparams()):
             if param.data is not None:
-                buf = _memory_utility.array_to_buffer_object(param.data)
+                data = param.data
+                is_float16 = param.data.dtype == numpy.float16
+                if is_float16:
+                    data = data.astype(numpy.float32)
+                buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
+                if is_float16:
+                    param.data = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
@@ -622,3 +639,55 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self._intra_size = my_ranks[2]
         self._inter_rank = my_ranks[3]
         self._inter_size = my_ranks[4]
+
+    def check_ready_to_allreduce(self, array_a, array_b):
+        my_shapes = ((None if array_a is None else array_a.shape,
+                      None if array_a is None else array_a.dtype),
+                     array_b.shape,
+                     array_b.dtype)
+        all_shapes = self.gather_obj((self.rank, my_shapes))
+        if self.rank == 0:
+            for rank, shapes in all_shapes:
+                if my_shapes != shapes:
+                    raise ValueError('Shape does not match: {}'
+                                     ' at rank 0 while {} at rank {}'
+                                     .format(my_shapes, shapes, rank))
+
+    def ensure_all_finite(self, array):
+        xp = chainer.backend.get_array_module(array)
+        if not xp.isfinite(array).all():
+            raise ValueError('Parameters diverged after allreduce.')
+
+    def multi_node_mean(self, array_a, array_b):
+        # The name is allreduce but actually a mean
+        # Sigma(a, all-procs)/n -> b or
+        # Sigma(b, all-procs)/n -> b if array_a is None
+        if chainer.is_debug():
+            self.check_ready_to_allreduce(array_a, array_b)
+
+        is_float16 = array_b.dtype == numpy.float16
+        if array_a is None:
+            buffer_a = mpi4py.MPI.IN_PLACE
+        elif is_float16:
+            assert array_a.dtype == array_b.dtype
+            buffer_a = _memory_utility.array_to_buffer_object(
+                array_a.astype(numpy.float32))
+        else:
+            buffer_a = _memory_utility.array_to_buffer_object(array_a)
+
+        if is_float16:
+            array_b32 = array_b.astype(numpy.float32)
+        else:
+            array_b32 = array_b
+        buffer_b = _memory_utility.array_to_buffer_object(array_b32)
+
+        self.mpi_comm.Allreduce(buffer_a, buffer_b)
+
+        if is_float16:
+            xp = chainer.backend.get_array_module(array_b)
+            xp.copyto(array_b, array_b32.astype(numpy.float16), casting='no')
+
+        array_b *= 1.0 / self.mpi_comm.size
+
+        if chainer.is_debug():
+            self.ensure_all_finite(array_b)

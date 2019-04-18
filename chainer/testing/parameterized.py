@@ -9,6 +9,12 @@ from chainer.testing import _bundle
 from chainer import utils
 
 
+def _param_to_str(obj):
+    if isinstance(obj, type):
+        return obj.__name__
+    return repr(obj)
+
+
 def _shorten(s, maxlen):
     # Shortens the string down to maxlen, by replacing the middle part with
     # a 3-dots string '...'.
@@ -27,7 +33,7 @@ def _make_class_name(base_class_name, i_param, param):
     SINGLE_PARAM_MAXLEN = 100  # Length limit of a single parameter value
     PARAMS_MAXLEN = 5000  # Length limit of the whole parameters part
     param_strs = [
-        '{}={}'.format(k, _shorten(repr(v), SINGLE_PARAM_MAXLEN))
+        '{}={}'.format(k, _shorten(_param_to_str(v), SINGLE_PARAM_MAXLEN))
         for k, v in param.items()]
     param_strs = _shorten(', '.join(param_strs), PARAMS_MAXLEN)
     cls_name = '{}_param_{}_{{{}}}'.format(
@@ -63,6 +69,9 @@ def _parameterize_test_case_generator(base, params):
         def method_generator(base_method):
             # Generates a wrapped test method
 
+            # Bind to a new variable.
+            param2 = param
+
             @functools.wraps(base_method)
             def new_method(self, *args, **kwargs):
                 try:
@@ -75,7 +84,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Base test method: {}.{}\n'.format(
                         base.__name__, base_method.__name__))
                     s.write('Test parameters:\n')
-                    for k, v in six.iteritems(param):
+                    for k, v in six.iteritems(param2):
                         s.write('  {}: {}\n'.format(k, v))
                     utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method
@@ -84,16 +93,44 @@ def _parameterize_test_case_generator(base, params):
 
 
 def parameterize(*params):
+    # TODO(niboshi): Add documentation
     return _bundle.make_decorator(
         lambda base: _parameterize_test_case_generator(base, params))
 
 
+def _values_to_dicts(names, values):
+    assert isinstance(names, str)
+    assert isinstance(values, (tuple, list))
+
+    def safe_zip(ns, vs):
+        if len(ns) == 1:
+            return [(ns[0], vs)]
+        assert isinstance(vs, (tuple, list)) and len(ns) == len(vs)
+        return zip(ns, vs)
+
+    names = names.split(',')
+    params = [dict(safe_zip(names, value_list)) for value_list in values]
+    return params
+
+
+def from_pytest_parameterize(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    return _values_to_dicts(names, values)
+
+
+def parameterize_pytest(names, values):
+    # Pytest-style parameterization.
+    # TODO(niboshi): Add documentation
+    return parameterize(*from_pytest_parameterize(names, values))
+
+
 def product(parameter):
+    # TODO(niboshi): Add documentation
     if isinstance(parameter, dict):
-        keys = sorted(parameter)
-        values = [parameter[key] for key in keys]
-        values_product = itertools.product(*values)
-        return [dict(zip(keys, vals)) for vals in values_product]
+        return product([
+            _values_to_dicts(names, values)
+            for names, values in sorted(parameter.items())])
 
     elif isinstance(parameter, list):
         # list of lists of dicts
@@ -117,6 +154,7 @@ def product(parameter):
 
 
 def product_dict(*parameters):
+    # TODO(niboshi): Add documentation
     return [
         {k: v for dic in dicts for k, v in six.iteritems(dic)}
         for dicts in itertools.product(*parameters)]

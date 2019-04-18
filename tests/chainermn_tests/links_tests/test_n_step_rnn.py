@@ -43,13 +43,13 @@ class TestNStepRNN(unittest.TestCase):
 
     def setup(self, gpu):
         if gpu:
-            self.communicator = chainermn.create_communicator('hierarchical')
+            self.communicator = chainermn.create_communicator('flat')
             chainer.cuda.get_device_from_id(self.communicator.intra_rank).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.rank_next = self.communicator.rank + 1
         self.rank_prev = self.communicator.rank - 1

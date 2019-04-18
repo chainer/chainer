@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import collections
 import os
 import threading
-import warnings
+import warnings as builtin_warnings
 
 import numpy
 
@@ -20,6 +21,7 @@ from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
+from chainer import warnings  # NOQA
 
 
 # import class and function
@@ -32,6 +34,7 @@ from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.device_resident import DeviceResident  # NOQA
 from chainer.distribution import cross_entropy  # NOQA
 from chainer.distribution import Distribution  # NOQA
 from chainer.distribution import kl_divergence  # NOQA
@@ -78,6 +81,13 @@ from chainer import _environment_check
 
 
 import chainerx
+
+
+# Introduce an alias that cannot be declared at the original place due to
+# circular imports.
+import chainer.utils.walker_alias
+chainer.utils.WalkerAlias = chainer.utils.walker_alias.WalkerAlias
+del chainer
 
 
 # Check environment conditions
@@ -184,8 +194,21 @@ def is_arrays_compatible(arrays):
     return all([isinstance(a, types) for a in arrays])
 
 
+class _Mixed16(object):
+
+    dtype = numpy.dtype(numpy.float16)
+
+    def __repr__(self):
+        return "dtype('mixed16')"
+
+
+mixed16 = _Mixed16()
+"""Dtype-like object that represents 16/32 bits mixed precision float."""
+
+
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
 global_config.cudnn_deterministic = False
+global_config.warn_nondeterministic = False
 global_config.enable_backprop = True
 global_config.keep_graph_on_report = bool(int(
     os.environ.get('CHAINER_KEEP_GRAPH_ON_REPORT', '0')))
@@ -202,10 +225,13 @@ global_config.cudnn_fast_batch_normalization = bool(int(
     os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
-if _chainer_dtype not in ('float16', 'float32', 'float64'):
+if _chainer_dtype in ('float16', 'float32', 'float64'):
+    global_config.dtype = numpy.dtype(_chainer_dtype)
+elif _chainer_dtype == 'mixed16':
+    global_config.dtype = mixed16
+else:
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
-global_config.dtype = numpy.dtype(_chainer_dtype)
 global_config.in_recomputing = False
 
 
@@ -249,9 +275,10 @@ class DebugMode(object):
     """
 
     def __init__(self, debug):
-        warnings.warn('chainer.DebugMode is deprecated. '
-                      'Use chainer.using_config("debug", ...) instead.',
-                      DeprecationWarning)
+        builtin_warnings.warn(
+            'chainer.DebugMode is deprecated. '
+            'Use chainer.using_config("debug", ...) instead.',
+            DeprecationWarning)
         self._using = using_config('debug', debug)
 
     def __enter__(self):
@@ -261,17 +288,27 @@ class DebugMode(object):
         self._using.__exit__(*args)
 
 
-def get_dtype(dtype=None):
+def get_dtype(dtype=None, map_mixed16=None):
     """Resolves Chainer's default dtype.
+
+    Args:
+        dtype: Dtype specifier. If this value is specified (not ``None``),
+            this function returns the dtype object corresponding to it.
+        map_mixed16: Dtype specifier. When ``chainer.config.dtype`` is mixed16,
+            this option is used. If this value is ``None``, float16 is used.
 
     Returns:
         If ``dtype`` is not ``None``, it returns the dtype normalized by
         ``numpy.dtype()``. Otherwise, it returns ``chainer.config.dtype`` (see
-        :ref:`configuration`) normalized as well.
+        :ref:`configuration`) normalized as well. When ``chainer.config.dtype``
+        is :data:`~chainer.mixed16` and ``map_mixed16`` is specified, it
+        returns the normalized version of ``map_mixed16``.
 
     """
     if dtype is None:
         dtype = config.dtype
+    if dtype is mixed16 and map_mixed16 is not None:
+        dtype = map_mixed16
     return numpy.dtype(dtype)
 
 

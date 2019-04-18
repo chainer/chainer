@@ -4,9 +4,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
-#include "chainerx/constant.h"
 #include "chainerx/scalar.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 

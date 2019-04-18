@@ -3,81 +3,129 @@
 #include <cstdint>
 
 #include "chainerx/array.h"
+#include "chainerx/axes.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
 namespace native {
+namespace {
 
-void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
-    CheckDevicesCompatible(a, out);
+class NativeArgMaxKernel : public ArgMaxKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+        a.device().CheckDevicesCompatible(a, out);
 
-    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            struct MaxAndArgMax {
-                T max;
-                int64_t argmax;
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                struct MaxAndArgMax {
+                    T max;
+                    int64_t argmax;
+                };
+
+                MaxAndArgMax Identity() { return {T{}, -1}; }
+                MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+                void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
+                    if (accum.argmax < 0 || accum.max < next.max) {
+                        accum = next;
+                    }
+                }
+                int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
             };
+            Reduce<T, int64_t>(a, axis, out, Impl{});
+        });
+    }
+};
 
-            MaxAndArgMax Identity() { return {T{}, -1}; }
-            MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
-            void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
-                if (accum.argmax < 0 || accum.max < next.max) {
-                    accum = next;
+CHAINERX_NATIVE_REGISTER_KERNEL(ArgMaxKernel, NativeArgMaxKernel);
+
+class NativeSumKernel : public SumKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
+            struct Impl {
+                Accum Identity() { return Accum{0}; }
+                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+                void Reduce(Accum next, Accum& accum) { accum += next; }
+                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+            };
+            Reduce<In, Out>(a, axis, out, Impl{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
+
+class NativeAMaxKernel : public AMaxKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T Identity() { return NumericLimits<T>::LowestOrInf(); }
+                T MapIn(T in, int64_t /*index*/) { return in; }
+                void Reduce(T next, T& accum) {
+                    if (chainerx::IsNan(next) || accum < next) {
+                        accum = next;
+                    }
                 }
-            }
-            int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
-        };
-        Reduce<T, int64_t>(a, axis, out, Impl{});
-    });
-}
+                T MapOut(T accum) { return accum; }
+            };
+            Reduce<T, T>(a, axis, out, Impl{});
+        });
+    }
+};
 
-void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
+CHAINERX_NATIVE_REGISTER_KERNEL(AMaxKernel, NativeAMaxKernel);
 
-    auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
-        using In = typename decltype(in_pt)::type;
-        using Out = typename decltype(out_pt)::type;
-        struct Impl {
-            Out Identity() { return Out{0}; }
-            Out MapIn(In in, int64_t /*index*/) { return static_cast<Out>(in); }
-            void Reduce(Out next, Out& accum) { accum += next; }
-            Out MapOut(Out accum) { return accum; }
-        };
-        Reduce<In, Out>(a, axis, out, Impl{});
-    };
+class NativeAMinKernel : public AMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
 
-    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
-}
-
-void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
-
-    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            T Identity() { return NumericLimits<T>::LowestOrInf(); }
-            T MapIn(T in, int64_t /*index*/) { return in; }
-            void Reduce(T next, T& accum) {
-                if (chainerx::IsNan(next) || accum < next) {
-                    accum = next;
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T Identity() { return NumericLimits<T>::MaxOrInf(); }
+                T MapIn(T in, int64_t /*index*/) { return in; }
+                void Reduce(T next, T& accum) {
+                    if (chainerx::IsNan(next) || accum > next) {
+                        accum = next;
+                    }
                 }
-            }
-            T MapOut(T accum) { return accum; }
-        };
-        Reduce<T, T>(a, axis, out, Impl{});
-    });
-}
+                T MapOut(T accum) { return accum; }
+            };
+            Reduce<T, T>(a, axis, out, Impl{});
+        });
+    }
+};
 
+CHAINERX_NATIVE_REGISTER_KERNEL(AMinKernel, NativeAMinKernel);
+
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

@@ -102,6 +102,7 @@ class DumpGraph(extension.Extension):
         out_name, = argument.parse_kwargs(kwargs, ('out_name', 'cg.dot'))
         if filename is None:
             filename = out_name
+        del out_name  # avoid accidental use
         self._root_name = root_name
         self._filename = filename
         if variable_style is None:

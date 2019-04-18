@@ -35,7 +35,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all);
+            bool cover_all,
+            Dtype out_dtype);
     Array ConvTranspose(
             CudaDevice& device,
             const Array& x,
@@ -43,7 +44,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size);
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype);
     Array ConvGradWeight(
             CudaDevice& device,
             Dtype w_dtype,
