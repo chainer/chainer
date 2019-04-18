@@ -10,10 +10,10 @@ install(FILES
     data_type.cuh
     elementwise.cuh
     float16.cuh
+    kernel_regist.h
     memory_pool.h
     numeric.cuh
     numeric_limits.cuh
-    op_regist.h
     reduce.cuh
     DESTINATION include/chainerx/cuda
     )
