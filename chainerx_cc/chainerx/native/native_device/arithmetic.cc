@@ -7,8 +7,9 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/scalar.h"
 
@@ -16,9 +17,9 @@ namespace chainerx {
 namespace native {
 namespace {
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(AddOp, { out = ArithmeticOps<T>::Add(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(AddKernel, { out = ArithmeticOps<T>::Add(x1, x2); });
 
-class NativeAddASOp : public AddASOp {
+class NativeAddASKernel : public AddASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -35,11 +36,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AddASKernel, NativeAddASKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(SubtractOp, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(SubtractKernel, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
 
-class NativeSubtractASOp : public SubtractASOp {
+class NativeSubtractASKernel : public SubtractASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -56,11 +57,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SubtractASKernel, NativeSubtractASKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(MultiplyOp, { out = ArithmeticOps<T>::Multiply(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(MultiplyKernel, { out = ArithmeticOps<T>::Multiply(x1, x2); });
 
-class NativeMultiplyASOp : public MultiplyASOp {
+class NativeMultiplyASKernel : public MultiplyASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -77,7 +78,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MultiplyASOp, NativeMultiplyASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MultiplyASKernel, NativeMultiplyASKernel);
 
 int32_t FloorDivide(int32_t x, int32_t y) {
     auto div = std::div(x, y);
@@ -102,9 +103,9 @@ chainerx::Float16 FloorDivide(chainerx::Float16 x, chainerx::Float16 y) {
     return chainerx::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivideOp, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(FloorDivideKernel, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
 
-class NativeFloorDivideASOp : public FloorDivideASOp {
+class NativeFloorDivideASKernel : public FloorDivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -121,11 +122,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(FloorDivideASKernel, NativeFloorDivideASKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_OP(DivideOp, { out = ArithmeticOps<T>::Divide(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(DivideKernel, { out = ArithmeticOps<T>::Divide(x1, x2); });
 
-class NativeDivideASOp : public DivideASOp {
+class NativeDivideASKernel : public DivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -142,7 +143,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(DivideASOp, NativeDivideASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DivideASKernel, NativeDivideASKernel);
 
 }  // namespace
 }  // namespace native

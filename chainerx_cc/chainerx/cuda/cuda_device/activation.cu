@@ -9,10 +9,11 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/numeric.cuh"
-#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/numeric.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
@@ -31,7 +32,7 @@ struct IfLessElseASSAImpl {
     OutCudaType pos;
 };
 
-class CudaIfLessElseASSAOp : public IfLessElseASSAOp {
+class CudaIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {
         Device& device = x1.device();
@@ -53,7 +54,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(IfLessElseASSAOp, CudaIfLessElseASSAOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IfLessElseASSAKernel, CudaIfLessElseASSAKernel);
 
 template <typename In, typename Out>
 struct IfGreaterElseASSAImpl {
@@ -64,7 +65,7 @@ struct IfGreaterElseASSAImpl {
     OutCudaType pos;
 };
 
-class CudaIfGreaterElseASSAOp : public IfGreaterElseASSAOp {
+class CudaIfGreaterElseASSAKernel : public IfGreaterElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {
         Device& device = x1.device();
@@ -86,7 +87,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(IfGreaterElseASSAOp, CudaIfGreaterElseASSAOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IfGreaterElseASSAKernel, CudaIfGreaterElseASSAKernel);
 
 template <typename In, typename Out>
 struct IfGreaterElseAAAAImpl {
@@ -97,7 +98,7 @@ struct IfGreaterElseAAAAImpl {
     }
 };
 
-class CudaIfGreaterElseAAAAOp : public IfGreaterElseAAAAOp {
+class CudaIfGreaterElseAAAAKernel : public IfGreaterElseAAAAKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override {
         Device& device = x1.device();
@@ -119,7 +120,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(IfGreaterElseAAAAOp, CudaIfGreaterElseAAAAOp);
+CHAINERX_CUDA_REGISTER_KERNEL(IfGreaterElseAAAAKernel, CudaIfGreaterElseAAAAKernel);
 
 template <typename T>
 struct TanhImpl {
@@ -127,7 +128,7 @@ struct TanhImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Tanh(x); }
 };
 
-class CudaTanhOp : public TanhOp {
+class CudaTanhKernel : public TanhKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -141,7 +142,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(TanhOp, CudaTanhOp);
+CHAINERX_CUDA_REGISTER_KERNEL(TanhKernel, CudaTanhKernel);
 
 }  // namespace
 }  // namespace cuda
