@@ -1,7 +1,5 @@
 #include "chainerx/cuda/cudnn.h"
 
-#include <utility>
-
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
@@ -97,11 +95,6 @@ CudnnTensorDescriptor::~CudnnTensorDescriptor() {
         cudnnDestroyTensorDescriptor(desc_);
     }
 }
-
-CudnnTensorDescriptor::CudnnTensorDescriptor(CudnnTensorDescriptor&& other) {
-    std::swap(desc_, other.desc_);
-    other.desc_ = nullptr;
-};
 
 CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDescriptor{} {
     CHAINERX_ASSERT(arr.IsContiguous());
