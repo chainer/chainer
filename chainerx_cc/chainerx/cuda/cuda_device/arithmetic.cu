@@ -10,9 +10,10 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/float16.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/scalar.h"
 
@@ -20,7 +21,7 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(AddOp, { out = ArithmeticOps<CudaType>::Add(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_KERNEL(AddKernel, { out = ArithmeticOps<CudaType>::Add(x1, x2); });
 
 template <typename T>
 struct AddASImpl {
@@ -29,7 +30,7 @@ struct AddASImpl {
     CudaType x2;
 };
 
-class CudaAddASOp : public AddASOp {
+class CudaAddASKernel : public AddASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -44,9 +45,9 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(AddASOp, CudaAddASOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AddASKernel, CudaAddASKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(SubtractOp, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(SubtractKernel, { out = ArithmeticOps<CudaType>::Subtract(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct SubtractASImpl {
@@ -55,7 +56,7 @@ struct SubtractASImpl {
     CudaType x2;
 };
 
-class CudaSubtractASOp : public SubtractASOp {
+class CudaSubtractASKernel : public SubtractASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -70,10 +71,10 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(SubtractASOp, CudaSubtractASOp);
+CHAINERX_CUDA_REGISTER_KERNEL(SubtractASKernel, CudaSubtractASKernel);
 
 // TODO(sonots): support stream
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(MultiplyOp, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_KERNEL(MultiplyKernel, { out = ArithmeticOps<CudaType>::Multiply(x1, x2); });
 
 template <typename T>
 struct MultiplyASImpl {
@@ -82,7 +83,7 @@ struct MultiplyASImpl {
     CudaType x2;
 };
 
-class CudaMultiplyASOp : public MultiplyASOp {
+class CudaMultiplyASKernel : public MultiplyASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -97,7 +98,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(MultiplyASOp, CudaMultiplyASOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MultiplyASKernel, CudaMultiplyASKernel);
 
 // CUDA does not have std::div.
 __device__ int8_t FloorDivide(int8_t x, int8_t y) { return x / y - ((y >= 0 ? x % y : -(x % y)) < 0 ? 1 : 0); }
@@ -117,7 +118,7 @@ __device__ cuda::Float16 FloorDivide(cuda::Float16 x, cuda::Float16 y) {
     return cuda::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_OP(FloorDivideOp, { out = cuda::FloorDivide(x1, x2); }, VisitNumericDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(FloorDivideKernel, { out = cuda::FloorDivide(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct FloorDivideASImpl {
@@ -126,7 +127,7 @@ struct FloorDivideASImpl {
     CudaType x2;
 };
 
-class CudaFloorDivideASOp : public FloorDivideASOp {
+class CudaFloorDivideASKernel : public FloorDivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -141,9 +142,9 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(FloorDivideASOp, CudaFloorDivideASOp);
+CHAINERX_CUDA_REGISTER_KERNEL(FloorDivideASKernel, CudaFloorDivideASKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_OP(DivideOp, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_KERNEL(DivideKernel, { out = ArithmeticOps<CudaType>::Divide(x1, x2); });
 
 template <typename T>
 struct DivideASImpl {
@@ -152,7 +153,7 @@ struct DivideASImpl {
     CudaType x2;
 };
 
-class CudaDivideASOp : public DivideASOp {
+class CudaDivideASKernel : public DivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -167,7 +168,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(DivideASOp, CudaDivideASOp);
+CHAINERX_CUDA_REGISTER_KERNEL(DivideASKernel, CudaDivideASKernel);
 
 }  // namespace
 }  // namespace cuda

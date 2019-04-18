@@ -15,10 +15,10 @@ public:
     std::string GetName() const override { return "backend1"; }
 
 protected:
-    chainerx::OpRegistry& GetParentOpRegistry() override {
-        static gsl::owner<chainerx::OpRegistry*> op_registry =
-                new chainerx::OpRegistry{&chainerx::native::NativeBackend::GetGlobalOpRegistry()};
-        return *op_registry;
+    chainerx::KernelRegistry& GetParentKernelRegistry() override {
+        static gsl::owner<chainerx::KernelRegistry*> kernel_registry =
+                new chainerx::KernelRegistry{&chainerx::native::NativeBackend::GetGlobalKernelRegistry()};
+        return *kernel_registry;
     }
 };
 

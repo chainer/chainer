@@ -18,8 +18,9 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -127,7 +128,7 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
     }
 
     Array out = Empty({size}, dtype, device);
-    device.backend().CallOp<ArangeOp>(start, step, out);
+    device.backend().CallKernel<ArangeKernel>(start, step, out);
     return out;
 }
 
@@ -159,7 +160,7 @@ Array Copy(const Array& a) {
     Array out = EmptyLike(a, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<CopyOp>(a, out);
+        a.device().backend().CallKernel<CopyKernel>(a, out);
     }
 
     BackwardBuilder bb{"copy", a, out};
@@ -181,7 +182,7 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     Array out = Empty(Shape{n, n}, dtype, device);
     {
         NoBackpropModeScope scope{};
-        device.backend().CallOp<IdentityOp>(out);
+        device.backend().CallKernel<IdentityKernel>(out);
     }
     return out;
 }
@@ -203,7 +204,7 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     Array out = Empty({n, m.value()}, dtype.value(), device);
     {
         NoBackpropModeScope scope{};
-        device.backend().CallOp<EyeOp>(k.value(), out);
+        device.backend().CallKernel<EyeKernel>(k.value(), out);
     }
     return out;
 }
@@ -218,7 +219,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<AsTypeOp>(a.AsGradStopped(), out);
+        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
@@ -268,7 +269,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         out = Empty(Shape{n, n}, v.dtype(), device);
         {
             NoBackpropModeScope scope{};
-            device.backend().CallOp<DiagflatOp>(v, k, out);
+            device.backend().CallKernel<DiagflatKernel>(v, k, out);
         }
     } else if (ndim == 2) {
         // Return the diagonal as a 1D array.
@@ -338,7 +339,7 @@ Array Linspace(
         }
         {
             NoBackpropModeScope scope{};
-            device.backend().CallOp<LinspaceOp>(start_value, stop_value, out);
+            device.backend().CallKernel<LinspaceKernel>(start_value, stop_value, out);
         }
     }
     return out;

@@ -13,11 +13,14 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/indexing.h"
+#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/im2col.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/connection.h"
@@ -54,7 +57,7 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-class NativeMaxPoolOp : public MaxPoolOp {
+class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
             const Array& x,
@@ -86,9 +89,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolOp, NativeMaxPoolOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolKernel, NativeMaxPoolKernel);
 
-class NativeMaxPoolGradOp : public MaxPoolGradOp {
+class NativeMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
@@ -122,7 +125,7 @@ public:
         Device& device = x.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
         Array offset = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices.dtype(), device);
-        device.backend().CallOp<AddAtOp>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
+        device.backend().CallKernel<AddAtKernel>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
@@ -142,9 +145,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradOp, NativeMaxPoolGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradKernel, NativeMaxPoolGradKernel);
 
-class NativeMaxPoolGradGradOp : public MaxPoolGradGradOp {
+class NativeMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
@@ -176,13 +179,13 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradGradKernel, NativeMaxPoolGradGradKernel);
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
-    device.backend().CallOp<SumOp>(a, axis, out);
-    device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.backend().CallKernel<SumKernel>(a, axis, out);
+    device.backend().CallKernel<DivideASKernel>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 Array GetPadModeIgnorePoolingWidths(
@@ -245,7 +248,7 @@ Array GetPadModeIgnorePoolingWidths(
     return widths;
 }
 
-class NativeAveragePoolOp : public AveragePoolOp {
+class NativeAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
@@ -280,10 +283,10 @@ public:
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
-                device.backend().CallOp<SumOp>(col, kernel_axes, actual_out);
+                device.backend().CallKernel<SumKernel>(col, kernel_axes, actual_out);
                 width_ignore =
                         GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(actual_out.shape());
-                device.backend().CallOp<DivideOp>(actual_out, *width_ignore, actual_out);
+                device.backend().CallKernel<DivideKernel>(actual_out, *width_ignore, actual_out);
                 break;
             }
             default:
@@ -297,9 +300,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AveragePoolOp, NativeAveragePoolOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolKernel, NativeAveragePoolKernel);
 
-class NativeAveragePoolGradOp : public AveragePoolGradOp {
+class NativeAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
@@ -347,7 +350,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AveragePoolGradOp, NativeAveragePoolGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolGradKernel, NativeAveragePoolGradKernel);
 
 }  // namespace
 }  // namespace native

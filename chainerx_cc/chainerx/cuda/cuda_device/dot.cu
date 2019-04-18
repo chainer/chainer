@@ -17,16 +17,18 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/float16.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/linalg.h"
+#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
-#include "chainerx/routines/misc.h"
 
 namespace chainerx {
 namespace cuda {
@@ -83,7 +85,7 @@ struct GemmInputLayout {
 
 }  // namespace
 
-class CudaDotOp : public DotOp {
+class CudaDotKernel : public DotKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
         Device& device = a.device();
@@ -110,15 +112,15 @@ public:
             // TODO(hvy): Avoid unnecessary cast here when multiplication supports mixed dtypes.
             const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
             const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
-            device.backend().CallOp<SumOp>(a_cast.Reshape({k}) * b_cast.Reshape({k}), Axes{0}, out.Reshape({}));
+            device.backend().CallKernel<SumKernel>(a_cast.Reshape({k}) * b_cast.Reshape({k}), Axes{0}, out.Reshape({}));
             return;
         }
 
         if (out.dtype() == Dtype::kFloat16) {
             // TODO(imanishi): Use cublasHgemm
             Array out_float32 = Empty(out.shape(), Dtype::kFloat32, device);
-            device.backend().CallOp<DotOp>(a.AsType(Dtype::kFloat32), b.AsType(Dtype::kFloat32), out_float32);
-            device.backend().CallOp<AsTypeOp>(out_float32, out);
+            device.backend().CallKernel<DotKernel>(a.AsType(Dtype::kFloat32), b.AsType(Dtype::kFloat32), out_float32);
+            device.backend().CallKernel<AsTypeKernel>(out_float32, out);
             return;
         }
 
@@ -184,12 +186,12 @@ public:
         }
 
         if (!is_out_contiguous) {
-            device.backend().CallOp<CopyOp>(out_contiguous, out);
+            device.backend().CallKernel<CopyKernel>(out_contiguous, out);
         }
     }
 };
 
-CHAINERX_CUDA_REGISTER_OP(DotOp, CudaDotOp);
+CHAINERX_CUDA_REGISTER_KERNEL(DotKernel, CudaDotKernel);
 
 }  // namespace cuda
 }  // namespace chainerx
