@@ -111,6 +111,13 @@ class Uniform(distribution.Distribution):
     def mean(self):
         return (self.high + self.low) / 2
 
+    @property
+    def params(self):
+        if self._use_low_high:
+            return {'low': self.low, 'high': self.high}
+        else:
+            return {'loc': self.loc, 'scale': self.scale}
+
     def sample_n(self, n):
         xp = backend.get_array_module(self.low)
         if xp is cuda.cupy:

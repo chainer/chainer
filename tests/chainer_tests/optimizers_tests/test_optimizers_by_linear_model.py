@@ -96,9 +96,9 @@ def _optimizer_loss_scaling(optimizer, loss_scaling):
     if loss_scaling not in [False, 'dynamic', 'static']:
         msg = 'loss_scaling must be False, \'dynamic\' or \'static\'.'
         raise ValueError(msg)
-    if loss_scaling is 'dynamic':
+    if loss_scaling == 'dynamic':
         optimizer.loss_scaling()
-    elif loss_scaling is 'static':
+    elif loss_scaling == 'static':
         optimizer.loss_scaling(scale=10.0)
 
 
@@ -228,12 +228,18 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
     'loss_scaling': [False, 'static', 'dynamic'],
+    'amsgrad': [False, True],
+    'adabound': [False, True],
 }))
 @_inject_backend_tests
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        return optimizers.Adam(0.05)
+        kwargs = {
+            'amsgrad': self.amsgrad,
+            'adabound': self.adabound,
+        }
+        return optimizers.Adam(0.05, **kwargs)
 
 
 @testing.parameterize(*testing.product({

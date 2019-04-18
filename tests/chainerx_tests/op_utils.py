@@ -9,7 +9,51 @@ import chainer.testing
 import chainerx
 
 
-class _OpTest(chainer.testing.function.FunctionTestBase):
+class OpTest(chainer.testing.function_link.FunctionTestBase):
+
+    """Base class for op test.
+
+    It must be used in conjunction with `op_test` decorator.
+
+    Examples:
+
+    @op_utils.op_test(['native:0', 'cuda:0'])
+    class test_relu(op_utils.OpTest):
+
+        # ReLU function has a non-differentiable point around zero, so
+        # dodge_nondifferentiable should be set to True.
+        dodge_nondifferentiable = True
+
+        def setup(self, float_dtype):
+            self.dtype = float_dtype
+
+        def generate_inputs(self):
+            dtype = self.dtype
+            x = numpy.random.uniform(-1, 1, (1, 3)).astype(dtype)
+            return x, w, b
+
+        def forward_chainerx(self, inputs):
+            x, w, b = inputs
+            y = chainerx.relu(x)
+            return y,
+
+        def forward_expected(self, inputs):
+            x, w, b = inputs
+            expected = x.copy()
+            expected[expected < 0] = 0
+            return expected,
+
+    In this example, `float_dtype` is a Pytest fixture for parameterizing
+    floating-point dtypes (i.e. float16, float32, float64). As seen from
+    this, arguments in the `setup` method are treated as Pytest fixtures.
+
+    Test implementations must at least override the following methods:
+      * `generate_inputs`: Generates inputs to the test target.
+      * `forward_chainerx`: Forward implementation using ChainerX.
+      * `forward_expected`: Forward reference implementation.
+
+    It can have the same attributes as `chainer.testing.FunctionTestCase`.
+    """
 
     def setup(self):
         # This method can be overridden by a concrete class with arbitrary
@@ -36,7 +80,7 @@ class _OpTest(chainer.testing.function.FunctionTestBase):
             'Op test implementation must override `forward_chainerx`.')
 
 
-class ChainerOpTest(_OpTest):
+class ChainerOpTest(OpTest):
 
     """Base class for op test that compares the output with Chainer
     implementation.
@@ -94,7 +138,7 @@ class ChainerOpTest(_OpTest):
             'Op test implementation must override `forward_chainer`.')
 
 
-class NumpyOpTest(_OpTest):
+class NumpyOpTest(OpTest):
 
     """Base class for op test that compares the output with NumPy
     implementation.
@@ -130,15 +174,77 @@ class NumpyOpTest(_OpTest):
     This test also compares strides of forward output arrays with NumPy
     outputs. Set ``check_numpy_strides_compliance`` attribute to ``False``
     to skip this check.
+
+    Acceptable errors in forward computations can be configured with
+    ``forward_accept_errors``. If both ChainerX/NumPy forward implementations
+    raise one of those errors, the test will succeed and
+    backward/double-backward tests will be skipped.
     """
 
     check_numpy_strides_compliance = True
 
+    # Acceptable errors in forward computation.
+    forward_accept_errors = ()
+
+    # Detected acceptable error in forward_chainerx / forward_expected.
+    # None     : Not computed yet
+    # 'ok'     : Computed without error.
+    # Exception: Error was detected.
+    __forward_error_chainerx = None
+    __forward_error_expected = None
+
+    @property
+    def is_forward_successful_with_accept_errors(self):
+        # Returns True if chainerx/expected forward computations are finished
+        # and both raised acceptable errors.
+        # This is used from `_create_test_entry_function` to skip
+        # backward/double-backward tests.
+        return (self.__forward_error_chainerx not in (None, 'ok')
+                and self.__forward_error_expected not in (None, 'ok'))
+
+    def __get_accept_errors(self):
+        # Returns the acceptable errors. In backward/double-backward tests,
+        # no error is acceptable.
+        if self.test_name == 'test_forward':
+            return self.forward_accept_errors
+        return ()
+
     def forward_chainerx(self, inputs):
-        return self.forward_xp(inputs, chainerx)
+        # Computes the forward pass in ChainerX.
+        #
+        # In case of an acceptable error, the error is stored and a dummy
+        # output array is returned.
+        #
+        # The detected errors are checked in `check_forward_outputs`, and
+        # also in `_create_test_entry_function` to skip
+        # backward/double-backward tests.
+        accept_errors = self.__get_accept_errors()
+        try:
+            outputs = self.forward_xp(inputs, chainerx)
+            self.__forward_error_chainerx = 'ok'
+        except accept_errors as e:
+            # Keep detected error
+            self.__forward_error_chainerx = e
+            # A dummy output array is returned
+            y = chainerx.zeros((0,), 'float32')
+            outputs = y,
+
+        return outputs
 
     def forward_expected(self, inputs):
-        outputs = self.forward_xp(inputs, numpy)
+        # Computes the forward pass in NumPy.
+        # Also see comments in `forward_chainerx`.
+        accept_errors = self.__get_accept_errors()
+        try:
+            outputs = self.forward_xp(inputs, numpy)
+            self.__forward_error_expected = 'ok'
+        except accept_errors as e:
+            # Keep detected error
+            self.__forward_error_expected = e
+            # A dummy output array is returned
+            y = numpy.zeros((0,), 'float32')
+            outputs = y,
+
         return tuple([numpy.asarray(y) for y in outputs])
 
     def forward_xp(self, inputs, xp):
@@ -146,8 +252,33 @@ class NumpyOpTest(_OpTest):
             'Op test implementation must override `forward_xp`.')
 
     def check_forward_outputs(self, outputs, expected_outputs):
+        # Check for detected acceptable errors.
+        error_chainerx = self.__forward_error_chainerx
+        error_expected = self.__forward_error_expected
+        assert error_chainerx is not None
+        assert error_expected is not None
+        if not (error_chainerx == 'ok' and error_expected == 'ok'):
+            # If only one of chainerx/expected caused an error, make the
+            # forward test fail.
+            if error_chainerx == 'ok':
+                chainer.testing.FunctionTestError.fail(
+                    'Error raised in NumPy while not in ChainerX.',
+                    error_expected)
+            if error_expected == 'ok':
+                chainer.testing.FunctionTestError.fail(
+                    'Error raised in ChainerX while not in NumPy.',
+                    error_chainerx)
+            # Both caused acceptable errors
+            return
+        # Both successful
+        assert error_chainerx == 'ok'
+        assert error_expected == 'ok'
+
+        # Default check, including numeric comparison
         super(NumpyOpTest, self).check_forward_outputs(
             outputs, expected_outputs)
+
+        # Check strides
         if self.check_numpy_strides_compliance:
             if not all(
                     a.strides == e.strides
@@ -173,27 +304,55 @@ def _make_backend_config(device_name):
     return backend_config
 
 
-def _create_test_entry_function(
-        cls, module, devices, func_suffix, method_name):
+def _create_test_entry_function(cls, module, devices):
     # Creates a test entry function from the template class, and places it in
     # the same module as the class.
-    #
-    # func_suffix:
-    #    The suffix of the test entry function to create.
-    # method_name:
-    #    The name of the test method name defined in `FunctionTestBase` class.
+
+    # We enforce 'Test' prefix in OpTest implementations so that they look like
+    # unittest.TestCase implementations. OTOH generated entry function must
+    # have a prefix 'test_' in order for it to be found in pytest test
+    # collection.
+    if not cls.__name__.startswith('Test'):
+        raise TypeError(
+            'OpTest class name must start with \'Test\'. Actual: {!r}'.format(
+                cls.__name__))
+
+    func_name = 'test_{}'.format(cls.__name__[len('Test'):])
 
     @pytest.mark.parametrize_device(devices)
     def entry_func(device, *args, **kwargs):
+        backend_config = _make_backend_config(device.name)
+
+        # Forward test
         obj = cls()
-        run_test_method = getattr(obj, method_name)
         try:
             obj.setup(*args, **kwargs)
-            run_test_method(_make_backend_config(device.name))
+            obj.run_test_forward(backend_config)
         finally:
             obj.teardown()
 
-    func_name = '{}_{}'.format(cls.__name__, func_suffix)
+        # If this is a NumpyOpTest instance, skip backward/double-backward
+        # tests if the forward test succeeds with acceptable errors.
+        if isinstance(obj, NumpyOpTest):
+            if obj.is_forward_successful_with_accept_errors:
+                return  # success with expected errors
+
+        # Backward test
+        obj = cls()
+        try:
+            obj.setup(*args, **kwargs)
+            obj.run_test_backward(backend_config)
+        finally:
+            obj.teardown()
+
+        # Double-backward test
+        obj = cls()
+        try:
+            obj.setup(*args, **kwargs)
+            obj.run_test_double_backward(backend_config)
+        finally:
+            obj.teardown()
+
     entry_func.__name__ = func_name
 
     # Set the signature of the entry function
@@ -233,19 +392,22 @@ def op_test(devices):
         # TODO(niboshi): Avoid using private entries in chainer.testing.
         if isinstance(
                 cls, chainer.testing._bundle._ParameterizedTestCaseBundle):
-            classes = [(c, m) for c, m, name in cls.cases]
+            classes = []
+            for c, m, name in cls.cases:
+                classes.append((c, m))
+                if m is not None:
+                    # The input is a parameterized test case.
+                    # Remove it from its module.
+                    delattr(sys.modules[m], name)
         else:
             classes = [(cls, cls.__module__)]
 
-        tests = [
-            ('forward', 'run_test_forward'),
-            ('backward', 'run_test_backward'),
-            ('double_backward', 'run_test_double_backward'),
-        ]
         for cls, mod in classes:
-            for func_suffix, method_name in tests:
-                _create_test_entry_function(
-                    cls, sys.modules[mod], devices, func_suffix, method_name)
+            if not issubclass(cls, OpTest):
+                raise TypeError(
+                    '@op_test decorator can only be applied to OpTest class '
+                    'definition.')
+            _create_test_entry_function(cls, sys.modules[mod], devices)
 
         # return None: no other decorator can be applied after this decorator.
         return None

@@ -146,8 +146,8 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         // Initialize array node queue with inputs.
         for (const Array& input : inputs) {
             const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
-            if (array_body->HasArrayNode(backprop_id)) {
-                PushNodeIfNotSeen(candidate_input_array_nodes, array_body->GetArrayNode(backprop_id).get(), seen_array_nodes);
+            if (const std::shared_ptr<ArrayNode>& array_node = array_body->GetArrayNode(backprop_id)) {
+                PushNodeIfNotSeen(candidate_input_array_nodes, array_node.get(), seen_array_nodes);
             }
         }
 
@@ -601,8 +601,7 @@ std::vector<nonstd::optional<Array>> Grad(
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
     for (const Array& input : inputs) {
         const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
-        if (array_body->HasArrayNode(actual_backprop_id)) {
-            const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id);
+        if (const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id)) {
             input_grads.emplace_back(nonstd::optional<Array>{});
             array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&input_grads.back()});
         } else {

@@ -7,10 +7,13 @@ Chainer provides some facilities to make debugging easy.
 
 Type checking utilities
 -----------------------
+
 :class:`~chainer.FunctionNode` uses a systematic type checking of the :mod:`chainer.utils.type_check` module.
 It enables users to easily find bugs of forward and backward implementations.
 You can find examples of type checking in some function implementations.
 
+.. module:: chainer.utils.type_check
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -22,16 +25,20 @@ You can find examples of type checking in some function implementations.
 
 Gradient checking utilities
 ---------------------------
+
 Most function implementations are numerically tested by *gradient checking*.
 This method computes numerical gradients of forward routines and compares their results with the corresponding backward routines.
 It enables us to make the source of issues clear when we hit an error of gradient computations.
 The :mod:`chainer.gradient_check` module makes it easy to implement the gradient checking.
 
+.. module:: chainer.gradient_check
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.gradient_check.check_backward
+   chainer.gradient_check.check_double_backward
    chainer.gradient_check.numerical_grad
 
 Standard Assertions
@@ -74,7 +81,6 @@ Utilities for testing serializable objects.
    chainer.testing.save_and_load
    chainer.testing.save_and_load_hdf5
    chainer.testing.save_and_load_npz
-   chainer.testing.get_trainer_with_mock_updater
 
 Trainer Extension Testing Utilities
 -----------------------------------
@@ -132,4 +138,3 @@ Decorators for making a unit test parameterized.
    chainer.testing.product
    chainer.testing.product_dict
    chainer.testing.inject_backend_tests
-   

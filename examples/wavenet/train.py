@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 
 try:
@@ -8,6 +9,7 @@ except ImportError:
     pass
 import chainer
 from chainer.training import extensions
+import chainerx
 
 from net import EncoderDecoderModel
 from net import UpsampleNet
@@ -22,8 +24,11 @@ parser.add_argument('--length', '-l', type=int, default=7680,
                     help='Number of samples in each audio clip')
 parser.add_argument('--epoch', '-e', type=int, default=100,
                     help='Number of sweeps over the dataset to train')
-parser.add_argument('--gpu', '-g', type=int, default=-1,
-                    help='GPU ID (negative value indicates CPU)')
+parser.add_argument('--device', '-d', type=str, default='-1',
+                    help='Device specifier. Either ChainerX device '
+                    'specifier or an integer. If non-negative integer, '
+                    'CuPy arrays with specified device id are used. If '
+                    'negative integer, NumPy arrays are used')
 parser.add_argument('--dataset', '-i', default='./VCTK-Corpus',
                     help='Directory of dataset')
 parser.add_argument('--out', '-o', default='result',
@@ -52,17 +57,25 @@ parser.add_argument('--process', type=int, default=1,
                     help='Number of parallel processes')
 parser.add_argument('--prefetch', type=int, default=8,
                     help='Number of prefetch samples')
+group = parser.add_argument_group('deprecated arguments')
+group.add_argument('--gpu', '-g', dest='device',
+                   type=int, nargs='?', const=0,
+                   help='GPU ID (negative value indicates CPU)')
 args = parser.parse_args()
 
-print('GPU: {}'.format(args.gpu))
+device = chainer.get_device(args.device)
+
+print('GPU: {}'.format(device))
 print('# Minibatch-size: {}'.format(args.batchsize))
 print('# epoch: {}'.format(args.epoch))
 print('')
 
-if args.gpu >= 0:
+if device.xp is chainer.backends.cuda.cupy:
     chainer.global_config.autotune = True
 
 # Datasets
+if not os.path.isdir(args.dataset):
+    raise RuntimeError('Dataset directory not found: {}'.format(args.dataset))
 paths = sorted([
     str(path) for path in pathlib.Path(args.dataset).glob('wav48/*/*.wav')])
 preprocess = Preprocess(
@@ -94,15 +107,17 @@ valid_iter = chainer.iterators.MultiprocessIterator(
 
 # Updater and Trainer
 updater = chainer.training.StandardUpdater(
-    train_iter, optimizer, device=args.gpu)
+    train_iter, optimizer, device=device)
 trainer = chainer.training.Trainer(
     updater, (args.epoch, 'epoch'), out=args.out)
 
 # Extensions
 snapshot_interval = (args.snapshot_interval, 'iteration')
 display_interval = (args.display_interval, 'iteration')
-trainer.extend(extensions.Evaluator(valid_iter, model, device=args.gpu))
-trainer.extend(extensions.dump_graph('main/loss'))
+trainer.extend(extensions.Evaluator(valid_iter, model, device=device))
+# TODO(niboshi): Temporarily disabled for chainerx. Fix it.
+if device.xp is not chainerx:
+    trainer.extend(extensions.dump_graph('main/loss'))
 trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
 trainer.extend(extensions.LogReport(trigger=display_interval))
 trainer.extend(extensions.PrintReport(
