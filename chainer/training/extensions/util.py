@@ -110,7 +110,7 @@ class IteratorProgressBar(object):
 
         # move the cursor to the head of the progress bar
         if os.name == 'nt':
-            set_console_cursor_position(0, 3)
+            set_console_cursor_position(0, -3)
         else:
             out.write('\033[3A')
         if hasattr(out, 'flush'):
