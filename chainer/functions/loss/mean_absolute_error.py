@@ -71,7 +71,7 @@ def mean_absolute_error(x0, x1):
 
         2D array example:
 
-        - In this example, there are 4 elements, and thus 4 errors
+        In this example, there are 4 elements, and thus 4 errors
         >>> x = np.array([[1, 2], [3, 4]]).astype(np.float32)
         >>> y = np.array([[8, 8], [8, 8]]).astype(np.float32)
         >>> F.mean_absolute_error(x, y)
