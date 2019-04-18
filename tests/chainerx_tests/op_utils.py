@@ -85,7 +85,7 @@ class OpTest(chainer.testing.function_link.FunctionTestBase):
         if self.skip_forward_test:
             raise unittest.SkipTest('skip_forward_test is set')
 
-        super(OpTest, self).run_test_forward
+        super(OpTest, self).run_test_forward(backend_config)
 
     def run_test_backward(self, backend_config):
         # Skipping Backward -> Test PASS
