@@ -1899,84 +1899,113 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('lhs, rhs', [
-    (numpy.asarray([[1., 2.], [4., 5.]]), numpy.asarray([1., 3.])),
-    (numpy.asarray([1., 2., 3.]), numpy.asarray([3., 4., 5.]))
-])
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class TestPow(op_utils.NumpyOpTest):
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    def setup(self, lhs, rhs, contiguous, float_dtype, is_module):
-        self.lhs = lhs
-        self.rhs = rhs
-        self.contiguous = contiguous
-        self.is_module = is_module
-
-        if float_dtype == 'float16':
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
-
-    def generate_inputs(self):
-        return self.lhs, self.rhs
-
-    def forward_xp(self, inputs, xp):
+    def func(self, xp, a, b):
         if self.is_module:
-            return xp.power(inputs[0], inputs[1]),
-        return inputs[0] ** inputs[1],
+            return xp.power(a, b)
+        else:
+            return a**b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input, scalar', [
-    (numpy.asarray([[1., 2.], [4., 5.]]), 3), (numpy.asarray(
-        [1., 2., 3.]), 4)
-])
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class TestPowArrayScalar(op_utils.NumpyOpTest):
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [2.0, 3.0],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [2.0, 3.0],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1.0],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
+        'input': [float('inf')],
+        'scalar_value': [1, 2],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestPowScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
-    def setup(self, input, scalar, contiguous, float_dtype, is_module):
-        self.input = input
-        self.scalar = scalar
-        self.contiguous = contiguous
-        self.is_module = is_module
-
-        if float_dtype == 'float16':
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
-
-    def generate_inputs(self):
-        return self.input,
-
-    def forward_xp(self, inputs, xp):
+    def func_scalar(self, xp, a, scalar):
         if self.is_module:
-            return xp.power(inputs[0], self.scalar),
-        return inputs[0] ** self.scalar,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input, scalar', [
-    (numpy.asarray([[1., 2.], [4., 5.]]), 3), (numpy.asarray(
-        [1., 2., 3.]), 4)
-])
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class TestPowScalarArray(op_utils.NumpyOpTest):
-
-    def setup(self, input, scalar, contiguous, float_dtype, is_module):
-        self.input = input
-        self.scalar = scalar
-        self.contiguous = contiguous
-        self.is_module = is_module
-
-        if float_dtype == 'float16':
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-1}
-
-    def generate_inputs(self):
-        return self.input,
-
-    def forward_xp(self, inputs, xp):
-        if self.is_module:
-            return xp.power(self.scalar, inputs[0]),
-        return self.scalar ** inputs[0],
+            if self.is_scalar_rhs:
+                return xp.power(a, scalar)
+            else:
+                return xp.power(scalar, a)
+        else:
+            if self.is_scalar_rhs:
+                return a ** scalar
+            else:
+                return scalar ** a
 
 
 @chainer.testing.parameterize(*(

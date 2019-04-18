@@ -118,9 +118,6 @@ private:
 class CudaMaxPoolGradState : public MaxPoolGradState, public CudaPoolStateBase {
     using CudaPoolStateBase::CudaPoolStateBase;
 };
-void Pow(const Array& x1, const Array& x2, const Array& out) override;
-void PowAS(const Array& x1, Scalar x2, const Array& out) override;
-void PowSA(Scalar x1, const Array& x2, const Array& out) override;
 
 class CudaMaxPoolGradGradState : public MaxPoolGradGradState, public CudaPoolStateBase {
     using CudaPoolStateBase::CudaPoolStateBase;

@@ -84,9 +84,6 @@ public:
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
-    virtual void Pow(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void PowAS(const Array& x1, Scalar x2, const Array& out) = 0;
-    virtual void PowSA(Scalar x1, const Array& x2, const Array& out) = 0;
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

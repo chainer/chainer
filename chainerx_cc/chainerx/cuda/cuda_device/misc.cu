@@ -68,18 +68,19 @@ struct PowImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = cuda::Pow(x1, x2); }
 };
 
-}  // namespace
+class CudaPowKernel : public PowKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) {
+        x1.device().CheckDevicesCompatible(x1, x2, out);
+        CudaSetDeviceScope scope{x1.device().index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, T>(PowImpl<T>{}, x1, x2, out);
+        });
+    }
+};
 
-void CudaDevice::Pow(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, T>(PowImpl<T>{}, x1, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_CUDA_REGISTER_KERNEL(PowKernel, CudaPowKernel);
 
 template <typename T>
 struct PowASImpl {
@@ -88,19 +89,20 @@ struct PowASImpl {
     CudaType x2;
 };
 
-}  // namespace
+class CudaPowASKernel : public PowASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) {
+        x1.device().CheckDevicesCompatible(x1, out);
+        CudaSetDeviceScope scope{x1.device().index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(PowASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
+        });
+    }
+};
 
-void CudaDevice::PowAS(const Array& x1, Scalar x2, const Array& out) {
-    CheckDevicesCompatible(x1, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(PowASImpl<T>{static_cast<CudaType>(x2)}, x1, out);
-    });
-}
-
-namespace {
+CHAINERX_CUDA_REGISTER_KERNEL(PowASKernel, CudaPowASKernel);
 
 template <typename T>
 struct PowSAImpl {
@@ -109,19 +111,20 @@ struct PowSAImpl {
     CudaType x1;
 };
 
-}  // namespace
+class CudaPowSAKernel : public PowSAKernel{
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) {
+        x2.device().CheckDevicesCompatible(x2, out);
+        CudaSetDeviceScope scope{x2.device().index()};
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(PowSAImpl<T>{static_cast<CudaType>(x1)}, x2, out);
+        });
+    }
+};
 
-void CudaDevice::PowSA(Scalar x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        using CudaType = cuda_internal::DataType<T>;
-        Elementwise<const T, T>(PowSAImpl<T>{static_cast<CudaType>(x1)}, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_CUDA_REGISTER_KERNEL(PowSAKernel, CudaPowSAKernel);
 
 template <typename T>
 struct IsNanImpl {

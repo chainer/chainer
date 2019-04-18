@@ -86,9 +86,6 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-void Pow(const Array& x1, const Array& x2, const Array& out) override;
-void PowAS(const Array& x1, Scalar x2, const Array& out) override;
-void PowSA(Scalar x1, const Array& x2, const Array& out) override;
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 

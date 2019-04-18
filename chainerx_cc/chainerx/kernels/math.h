@@ -109,6 +109,27 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class PowKernel : public Kernel {
+public:
+    static const char* name() { return "Pow"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class PowASKernel : public Kernel {
+public:
+    static const char* name() { return "PowAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class PowSAKernel : public Kernel {
+public:
+    static const char* name() { return "PowSA"; }
+
+    virtual void Call(const Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 class SinKernel : public Kernel {
 public:
     static const char* name() { return "Sin"; }
