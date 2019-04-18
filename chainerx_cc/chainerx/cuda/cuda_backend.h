@@ -9,6 +9,7 @@
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
+#include "chainerx/kernel_registry.h"
 
 namespace chainerx {
 namespace cuda {
@@ -48,6 +49,14 @@ public:
     // TODO(hvy): Move to CudaDevice.
     // Gets maximum cuDNN workspace size.
     size_t GetCudnnMaxWorkspaceSize();
+
+    static KernelRegistry& GetGlobalKernelRegistry() {
+        static KernelRegistry* global_kernel_registry = new KernelRegistry{};
+        return *global_kernel_registry;
+    }
+
+protected:
+    KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;

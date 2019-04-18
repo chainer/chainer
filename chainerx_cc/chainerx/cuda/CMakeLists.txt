@@ -10,6 +10,7 @@ install(FILES
     data_type.cuh
     elementwise.cuh
     float16.cuh
+    kernel_regist.h
     memory_pool.h
     numeric.cuh
     numeric_limits.cuh
@@ -36,6 +37,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/misc.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
+    cuda_device/trigonometric.cu
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc

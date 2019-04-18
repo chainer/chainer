@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import type_check
 
@@ -22,8 +23,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
             raise ValueError(
-                "only 'sum' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'sum\' and \'no\' are valid for \'reduce\', but \'%s\' '
+                'is given' % reduce)
 
         self.sampler = sampler
         self.sample_size = sample_size
@@ -34,7 +35,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler((size, self.sample_size + 1))
-        samples = backend.from_chainerx(samples)
+        samples = backend.from_chx(samples)
         samples[:, 0] = t
         return samples
 
@@ -174,6 +175,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         return gx, None, gW
 
     def forward_gpu(self, inputs):
+        utils.nondeterministic('atomicAdd')
         self.retain_inputs((0, 1, 2))
         x, W, gy = inputs
 

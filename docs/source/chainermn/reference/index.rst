@@ -35,6 +35,7 @@ Links
 .. autoclass:: MultiNodeChainList
     :members: add_link
 .. autoclass:: chainermn.links.MultiNodeBatchNormalization
+.. autofunction:: chainermn.links.create_mnbn_model
 
 
 Functions
@@ -54,6 +55,7 @@ Iterators
 ~~~~~~~~~
 
 .. autofunction:: chainermn.iterators.create_multi_node_iterator
+.. autofunction:: chainermn.iterators.create_synchronized_iterator
 
 
 Trainer extensions

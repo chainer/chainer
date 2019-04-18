@@ -17,4 +17,15 @@ It requires the training and validation dataset of following format:
 The text format is equivalent to what Caffe uses for ImageDataLayer.
 This example currently does not include a dataset preparation script.
 
-This example requires "mean file" which is computed by `compute_mean.py`.
+This example requires a "mean file," which is computed by `compute_mean.py`:
+
+```
+python compute_mean.py <path to training list>
+python train_imagenet.py <path to training list> <path to validation list>
+```
+
+With the `--dtype` argument, you can run the example in FP16 mode:
+
+```
+python train_imagenet.py --dtype float16 <path to training list> <path to validation list>
+```

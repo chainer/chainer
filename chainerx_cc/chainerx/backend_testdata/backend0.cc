@@ -2,6 +2,7 @@
 #include <string>
 
 #include "chainerx/context.h"
+#include "chainerx/kernel_registry.h"
 #include "chainerx/native/native_backend.h"
 
 namespace {
@@ -11,6 +12,12 @@ public:
     using NativeBackend::NativeBackend;
 
     std::string GetName() const override { return "backend0"; }
+
+protected:
+    chainerx::KernelRegistry& GetParentKernelRegistry() override {
+        static chainerx::KernelRegistry kernel_registry{&chainerx::native::NativeBackend::GetGlobalKernelRegistry()};
+        return kernel_registry;
+    }
 };
 
 }  // namespace

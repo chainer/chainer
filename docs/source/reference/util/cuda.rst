@@ -5,13 +5,16 @@ Utilities across backends
 -------------------------
 
 .. module:: chainer.backend
-.. currentmodule:: /
+.. currentmodule:: chainer
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
+   chainer.get_device
+   chainer.using_device
    chainer.backend.copyto
+   chainer.backend.get_array_module
 
 CUDA
 ----

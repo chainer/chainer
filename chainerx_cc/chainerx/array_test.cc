@@ -454,8 +454,8 @@ TEST_P(ArrayTest, FillInplaceWithBackpropRequiredNotAllowed) {
     ASSERT_TRUE(b.IsBackpropRequired(backprop_id));
     ASSERT_FALSE(b.IsGradRequired(backprop_id));
 
-    EXPECT_THROW(a.Fill(Scalar{1, dtype}), ChainerxError);
-    EXPECT_THROW(b.Fill(Scalar{1, dtype}), ChainerxError);
+    EXPECT_THROW(a.Fill(Scalar{1.f}), ChainerxError);
+    EXPECT_THROW(b.Fill(Scalar{1.f}), ChainerxError);
 }
 
 TEST_P(ArrayTest, Negative) {
@@ -1040,8 +1040,8 @@ TEST_P(ArrayTest, AsTypeDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<InT>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<OutT>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<InT>(-0.1, 0.1).WithPadding(1);
-    Array a_eps = Full(shape, 1e-3f);
-    Array go_eps = Full(shape, 1e-3);
+    Array a_eps = Full(shape, 1e-3, Dtype::kFloat32);
+    Array go_eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -1463,6 +1463,35 @@ TEST(ArrayMaxTest, MaxKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({19.f, 23.f, 43.f, 47.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, Min) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min(Axes{2, 0, -1});
+    EXPECT_EQ(Shape{3}, b.shape());
+    Array e = testing::BuildArray({3}).WithData<float>({0.f, 12.f, 24.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, MinAllAxes) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::BuildArray({}).WithData<float>({0.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, MinKeepDims) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min(Axes{-1, 1}, true);
+    EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
+    EXPECT_EQ(0, b.strides()[1]);
+    EXPECT_EQ(0, b.strides()[3]);
+    Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({0.f, 4.f, 24.f, 28.f});
     EXPECT_ARRAY_EQ(e, b);
 }
 

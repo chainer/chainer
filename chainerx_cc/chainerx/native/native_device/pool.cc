@@ -4,15 +4,23 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
+#include <tuple>
 #include <utility>
+
+#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/kernels/indexing.h"
+#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/im2col.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/connection.h"
@@ -49,92 +57,135 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-class NativeMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
+class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
-    explicit NativeMaxPoolForwardBackward(
+    std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
+            const Array& x,
             StackVector<int64_t, kMaxNdim> kernel_size,
             StackVector<int64_t, kMaxNdim> stride,
             StackVector<int64_t, kMaxNdim> pad,
-            bool cover_all)
-        : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, cover_all_{cover_all} {}
-
-    Array Forward(const Array& x) override {
+            bool cover_all,
+            bool return_state,
+            const nonstd::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
-        // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        col_ = native_internal::Im2Col(x, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
-        axes_.resize(kernel_size_.size());
-        std::iota(axes_.begin(), axes_.end(), 2);
-        x_ = x;
-        return col_.Max(axes_);
-    }
+        // TODO(hvy): Implement and test the `out` argument.
+        if (out.has_value()) {
+            throw NotImplementedError{"Passing out as an argument is not yet supported."};
+        }
 
-    Array Backward(const Array& gout) override {
+        // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
+        Axes axes{};
+        axes.resize(kernel_size.size());
+        std::iota(axes.begin(), axes.end(), 2);
+
+        Array actual_out = col.Max(axes);
+
+        std::unique_ptr<MaxPoolGradState> state =
+                return_state ? std::make_unique<NativeMaxPoolGradState>(x, std::move(col), std::move(axes)) : nullptr;
+
+        return std::make_tuple(std::move(actual_out), std::move(state));
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolKernel, NativeMaxPoolKernel);
+
+class NativeMaxPoolGradKernel : public MaxPoolGradKernel {
+public:
+    std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
+            const Array& gout,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            const std::shared_ptr<MaxPoolGradState>& state,
+            bool return_state,
+            const nonstd::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
-        indices_ = col_.ArgMax(axes_);
-        CHAINERX_ASSERT(indices_.shape() == gout.shape());
+        // TODO(hvy): Implement and test the `gx` argument.
+        if (gx.has_value()) {
+            throw NotImplementedError{"Passing gx as an argument is not yet supported."};
+        }
+
+        // TODO(hvy): Implement recomputation of state members.
+        CHAINERX_ASSERT(state != nullptr);
+        NativeMaxPoolGradState& native_state = dynamic_cast<NativeMaxPoolGradState&>(*state);
+        const Array& x = native_state.x();
+        const Array& col = native_state.col();
+        const Axes& axes = native_state.axes();
+
+        Array indices = col.ArgMax(axes);
+        CHAINERX_ASSERT(indices.shape() == gout.shape());
 
         // Compute flattened col gradients.
-        int64_t kernel_total_size = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
-        int64_t out_total_size = indices_.GetTotalSize();
+        int64_t kernel_total_size = std::accumulate(kernel_size.begin(), kernel_size.end(), int64_t{1}, std::multiplies<>());
+        int64_t out_total_size = indices.GetTotalSize();
         Shape out_flat{out_total_size};
-        Device& device = x_.device();
-        Array gcol = Zeros({out_total_size * kernel_total_size}, x_.dtype(), device);
-        offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
-        device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, 0, gout.Reshape(out_flat), gcol);
+        Device& device = x.device();
+        Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
+        Array offset = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices.dtype(), device);
+        device.backend().CallKernel<AddAtKernel>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
-        std::copy(kernel_size_.begin(), kernel_size_.end(), std::back_inserter(out_shape_with_kernel));
+        std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(out_shape_with_kernel));
 
         // Transform col gradients to input shape.
-        return native_internal::Col2Im(
-                gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())),
-                stride_,
-                pad_,
-                {x_.shape().begin() + 2, x_.shape().end()});
+        Array actual_gx = native_internal::Col2Im(
+                gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())),
+                stride,
+                pad,
+                {x.shape().begin() + 2, x.shape().end()});
+
+        std::unique_ptr<MaxPoolGradGradState> grad_grad_state =
+                return_state ? std::make_unique<NativeMaxPoolGradGradState>(std::move(indices), std::move(offset), x.dtype()) : nullptr;
+
+        return std::make_tuple(std::move(actual_gx), std::move(grad_grad_state));
     }
-
-    Array DoubleBackward(const Array& ggx) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
-
-        Array col = native_internal::Im2Col(ggx, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
-        return Take(
-                col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())).Reshape({col.GetTotalSize()}),
-                indices_ + offset_.Reshape(indices_.shape()),
-                0);
-    }
-
-private:
-    const StackVector<int64_t, kMaxNdim> kernel_size_;
-    const StackVector<int64_t, kMaxNdim> stride_;
-    const StackVector<int64_t, kMaxNdim> pad_;
-    Array x_;
-    bool cover_all_;
-    Array col_{};
-    Axes axes_{};
-    Array indices_{};
-    Array offset_{};
 };
 
-}  // namespace
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradKernel, NativeMaxPoolGradKernel);
 
-std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward(
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
-    return std::make_unique<NativeMaxPoolForwardBackward>(kernel_size, stride, pad, cover_all);
-}
+class NativeMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
+public:
+    Array Call(
+            const Array& ggx,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            bool cover_all,
+            const std::shared_ptr<MaxPoolGradGradState>& state,
+            const nonstd::optional<Array>& ggout) override {
+        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
-namespace {
+        // TODO(hvy): Implement and test the `ggout` argument.
+        if (ggout.has_value()) {
+            throw NotImplementedError{"Passing ggout as an argument is not yet supported."};
+        }
+
+        // TODO(hvy): Implement recomputation of state members.
+        CHAINERX_ASSERT(state != nullptr);
+        NativeMaxPoolGradGradState& native_state = dynamic_cast<NativeMaxPoolGradGradState&>(*state);
+        const Array& indices = native_state.indices();
+        const Array& offset = native_state.offset();
+        Dtype x_dtype = native_state.x_dtype();
+
+        Array col = native_internal::Im2Col(ggx, kernel_size, stride, pad, cover_all, GetLowestOrInf(x_dtype));
+        return Take(
+                col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
+                indices + offset.Reshape(indices.shape()),
+                0);
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradGradKernel, NativeMaxPoolGradGradKernel);
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
-    device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.backend().CallKernel<SumKernel>(a, axis, out);
+    device.backend().CallKernel<DivideASKernel>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 Array GetPadModeIgnorePoolingWidths(
@@ -190,96 +241,117 @@ Array GetPadModeIgnorePoolingWidths(
             Shape width_expanded{1};
             std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
 
-            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
+            widths = TensorDot(
+                    widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0}, dtype);
         }
     }
     return widths;
 }
 
-class NativeAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
+class NativeAveragePoolKernel : public AveragePoolKernel {
 public:
-    explicit NativeAveragePoolForwardBackward(
+    std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
+            const Array& x,
             StackVector<int64_t, kMaxNdim> kernel_size,
             StackVector<int64_t, kMaxNdim> stride,
             StackVector<int64_t, kMaxNdim> pad,
-            AveragePoolPadMode pad_mode)
-        : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, pad_mode_{pad_mode} {}
-
-    Array Forward(const Array& x) override {
+            AveragePoolPadMode pad_mode,
+            bool return_state,
+            const nonstd::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
-        Array col = native_internal::Im2Col(x, kernel_size_, stride_, pad_, false, 0);
+        // TODO(hvy): Implement and test the `out` argument.
+        if (out.has_value()) {
+            throw NotImplementedError{"Passing out as an argument is not yet supported."};
+        }
+
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Axes kernel_axes;
-        kernel_axes.resize(kernel_size_.size());
+        Axes kernel_axes{};
+        kernel_axes.resize(kernel_size.size());
         std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
 
-        Array out = internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
+        Device& device = col.device();
+        Array actual_out = internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, device);
 
-        switch (pad_mode_) {
+        nonstd::optional<Array> width_ignore{nonstd::nullopt};
+
+        switch (pad_mode) {
             case AveragePoolPadMode::kZero:
-                Mean(col, kernel_axes, out);
+                Mean(col, kernel_axes, actual_out);
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
-                device.Sum(col, kernel_axes, out);
-                width_ignore_ = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
-                device.Divide(out, width_ignore_, out);
+                device.backend().CallKernel<SumKernel>(col, kernel_axes, actual_out);
+                width_ignore =
+                        GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(actual_out.shape());
+                device.backend().CallKernel<DivideKernel>(actual_out, *width_ignore, actual_out);
                 break;
             }
             default:
                 CHAINERX_NEVER_REACH();
         }
-        x_ = x;
-        gcol_shape_ = col.shape();
-        return out;
-    }
 
-    Array Backward(const Array& gout) override {
+        std::unique_ptr<AveragePoolGradState> state =
+                return_state ? std::make_unique<NativeAveragePoolGradState>(x, col.shape(), width_ignore) : nullptr;
+
+        return std::make_tuple(std::move(actual_out), std::move(state));
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolKernel, NativeAveragePoolKernel);
+
+class NativeAveragePoolGradKernel : public AveragePoolGradKernel {
+public:
+    Array Call(
+            const Array& gout,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
+            AveragePoolPadMode pad_mode,
+            const std::shared_ptr<AveragePoolGradState>& state,
+            const nonstd::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
-        Shape reshape_to = gcol_shape_;
-        std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});
-        Array gx{};
-        switch (pad_mode_) {
+        // TODO(hvy): Implement and test the `gx` argument.
+        if (gx.has_value()) {
+            throw NotImplementedError{"Passing gx as an argument is not yet supported."};
+        }
+
+        CHAINERX_ASSERT(state != nullptr);
+        NativeAveragePoolGradState& native_state = dynamic_cast<NativeAveragePoolGradState&>(*state);
+        const Array& x = native_state.x();
+        const Shape& gcol_shape = native_state.gcol_shape();
+
+        Shape reshape_to = gcol_shape;
+        std::fill(reshape_to.begin() + 2, reshape_to.begin() + x.ndim(), int64_t{1});
+        Array actual_gx{};
+
+        switch (pad_mode) {
             case AveragePoolPadMode::kZero: {
-                Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape_);
-                gx = native_internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
-                int64_t width_zero = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
-                gx /= width_zero;
+                Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape);
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, {x.shape().begin() + 2, x.shape().end()});
+                int64_t width_zero = std::accumulate(kernel_size.begin(), kernel_size.end(), int64_t{1}, std::multiplies<>());
+                actual_gx /= width_zero;
                 break;
             }
             case AveragePoolPadMode::kIgnore: {
-                Array gcol = (gout / width_ignore_).Reshape(reshape_to).BroadcastTo(gcol_shape_);
-                gx = native_internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
+                const Array& width_ignore = native_state.width_ignore().value();
+                Array gcol = (gout / width_ignore).Reshape(reshape_to).BroadcastTo(gcol_shape);
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, {x.shape().begin() + 2, x.shape().end()});
                 break;
             }
             default:
                 CHAINERX_NEVER_REACH();
         }
-        return gx;
-    }
 
-private:
-    const StackVector<int64_t, kMaxNdim> kernel_size_;
-    const StackVector<int64_t, kMaxNdim> stride_;
-    const StackVector<int64_t, kMaxNdim> pad_;
-    const AveragePoolPadMode pad_mode_;
-    Array x_;
-    Shape gcol_shape_;
-    Array width_ignore_;
+        return actual_gx;
+    }
 };
 
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolGradKernel, NativeAveragePoolGradKernel);
+
 }  // namespace
-
-std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardBackward(
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        AveragePoolPadMode pad_mode) {
-    return std::make_unique<NativeAveragePoolForwardBackward>(kernel_size, stride, pad, pad_mode);
-}
-
 }  // namespace native
 }  // namespace chainerx

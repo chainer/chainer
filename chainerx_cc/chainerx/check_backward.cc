@@ -47,8 +47,10 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
         const std::shared_ptr<internal::ArrayBody>& input_body = internal::GetArrayBody(input);
-        if (input_body->HasArrayNode(backprop_id) && input_body->GetArrayNode(backprop_id)->creator_op_node() != nullptr) {
-            throw GradientCheckError{"BackwardGradients: All inputs must be leaf nodes of computational graph"};
+        if (const std::shared_ptr<internal::ArrayNode>& node = input_body->GetArrayNode(backprop_id)) {
+            if (node->creator_op_node() != nullptr) {
+                throw GradientCheckError{"BackwardGradients: All inputs must be leaf nodes of computational graph"};
+            }
         }
     }
 

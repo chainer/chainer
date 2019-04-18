@@ -22,18 +22,18 @@ class TestPareto(testing.distribution_unittest):
         self.scipy_dist = stats.pareto
 
         self.test_targets = set([
-            "batch_shape", "entropy", "event_shape", "log_prob",
-            "mean", "support", "variance"])
+            'batch_shape', 'entropy', 'event_shape', 'log_prob',
+            'mean', 'support', 'variance'])
 
         scale = numpy.exp(numpy.random.uniform(
             -1, 1, self.shape)).astype(numpy.float32)
         alpha = numpy.exp(numpy.random.uniform(
             -1, 1, self.shape)).astype(numpy.float32)
         scale, alpha = numpy.asarray(scale), numpy.asarray(alpha)
-        self.params = {"scale": scale, "alpha": alpha}
-        self.scipy_params = {"scale": scale, "b": alpha}
+        self.params = {'scale': scale, 'alpha': alpha}
+        self.scipy_params = {'scale': scale, 'b': alpha}
 
-        self.support = "[scale, inf]"
+        self.support = '[scale, inf]'
 
     def sample_for_test(self):
         smp = numpy.random.pareto(

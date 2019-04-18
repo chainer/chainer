@@ -21,17 +21,17 @@ class TestGamma(testing.distribution_unittest):
         self.scipy_dist = stats.gamma
 
         self.test_targets = set(
-            ["batch_shape", "entropy", "event_shape", "log_prob", "mean",
-             "sample", "support", "variance"])
+            ['batch_shape', 'entropy', 'event_shape', 'log_prob', 'mean',
+             'sample', 'support', 'variance'])
 
         k = utils.force_array(
             numpy.random.uniform(0, 5, self.shape).astype(numpy.float32))
         theta = utils.force_array(
             numpy.random.uniform(0, 5, self.shape).astype(numpy.float32))
-        self.params = {"k": k, "theta": theta}
-        self.scipy_params = {"a": k, "scale": theta}
+        self.params = {'k': k, 'theta': theta}
+        self.scipy_params = {'a': k, 'scale': theta}
 
-        self.support = "positive"
+        self.support = 'positive'
 
     def sample_for_test(self):
         smp = numpy.random.gamma(

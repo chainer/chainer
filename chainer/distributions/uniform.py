@@ -41,8 +41,8 @@ class Uniform(distribution.Distribution):
         self._use_loc_scale = loc is not None and scale is not None
         if not (self._use_low_high ^ self._use_loc_scale):
             raise ValueError(
-                "Either `low, high` or `loc, scale` (not both) must have a "
-                "value.")
+                'Either `low, high` or `loc, scale` (not both) must have a '
+                'value.')
         self.__low = low
         self.__high = high
         self.__loc = loc
@@ -111,6 +111,13 @@ class Uniform(distribution.Distribution):
     def mean(self):
         return (self.high + self.low) / 2
 
+    @property
+    def params(self):
+        if self._use_low_high:
+            return {'low': self.low, 'high': self.high}
+        else:
+            return {'loc': self.loc, 'scale': self.scale}
+
     def sample_n(self, n):
         xp = backend.get_array_module(self.low)
         if xp is cuda.cupy:
@@ -130,7 +137,7 @@ class Uniform(distribution.Distribution):
 
     @property
     def support(self):
-        return "[low, high]"
+        return '[low, high]'
 
     @cache.cached_property
     def variance(self):
