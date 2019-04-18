@@ -272,6 +272,14 @@ See :func:`chainerx.amax` for the full documentation.
 """)
 
     _docs.set_doc(
+        ndarray.min,
+        """min(axis=None, keepdims=False)
+Returns the minimum along a given axis.
+
+See :func:`chainerx.amin` for the full documentation.
+""")
+
+    _docs.set_doc(
         ndarray.prod,
         """mean(axis=None, keepdims=False)
 Return the product of array elements over a given axis or axes.
@@ -334,6 +342,14 @@ Args:
 Removes size-one axes from an array.
 
 See :func:`chainerx.squeeze` for the full documentation.
+""")
+
+    _docs.set_doc(
+        ndarray.swapaxes,
+        """swapaxes(axis1, axis2)
+Interchange two axes of an array..
+
+See :func:`chainerx.swapaxes` for the full documentation.
 """)
 
     _docs.set_doc(
