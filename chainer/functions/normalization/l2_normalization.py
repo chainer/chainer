@@ -59,7 +59,6 @@ class NormalizeL2(function_node.FunctionNode):
 
         norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis, keepdims=True))
         norm = norm_noeps + self.eps
-        norm = F.broadcast_to(norm, gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
 
@@ -70,7 +69,6 @@ class NormalizeL2(function_node.FunctionNode):
         x_gy_reduced, = _SetItemZero(mask).apply((
             x_gy_reduced[mask] / norm_noeps[mask],))
 
-        x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2
 

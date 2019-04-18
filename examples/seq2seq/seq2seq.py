@@ -7,7 +7,6 @@ import io
 from nltk.translate import bleu_score
 import numpy
 import progressbar
-import re
 import six
 
 import chainer
@@ -93,7 +92,7 @@ class Seq2seq(chainer.Chain):
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
         # support NumPy 1.9.
-        result = chainer.get_device(numpy).send(
+        result = chainer.get_device('@numpy').send(
             self.xp.concatenate([x[None, :] for x in result]).T)
 
         # Remove EOS taggs
@@ -216,23 +215,6 @@ def calculate_unknown_ratio(data):
     return unknown / total
 
 
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.get_device(args.device)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('SOURCE', help='source sentence list')
@@ -247,9 +229,9 @@ def main():
                         help='number of sentence pairs in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='number of sweeps over the dataset to train')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='resume the training from snapshot')
-    parser.add_argument('--save', '-s', default='',
+    parser.add_argument('--save', '-s', type=str,
                         help='save a snapshot of the training')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='number of units')
@@ -279,11 +261,12 @@ def main():
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
@@ -375,6 +358,10 @@ def main():
          'validation/main/bleu', 'elapsed_time']),
         trigger=(args.log_interval, 'iteration'))
 
+    trainer.extend(
+        extensions.snapshot(filename='snapshot_epoch_{.updater.iteration}'),
+        trigger=(args.validation_interval, 'iteration'))
+
     if args.validation_source and args.validation_target:
         test_source = load_data(source_ids, args.validation_source)
         test_target = load_data(target_ids, args.validation_target)
@@ -411,14 +398,14 @@ def main():
                 model, test_data, 'validation/main/bleu', device),
             trigger=(args.validation_interval, 'iteration'))
 
-    print('start training')
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
+    print('start training')
 
     trainer.run()
 
-    if args.save:
+    if args.save is not None:
         # Save a snapshot
         chainer.serializers.save_npz(args.save, trainer)
 

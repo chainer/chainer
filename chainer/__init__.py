@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import collections
 import os
 import threading
-import warnings
+import warnings as builtin_warnings
 
 import numpy
 
@@ -20,6 +21,7 @@ from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
 from chainer import variable  # NOQA
+from chainer import warnings  # NOQA
 
 
 # import class and function
@@ -32,6 +34,7 @@ from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.device_resident import DeviceResident  # NOQA
 from chainer.distribution import cross_entropy  # NOQA
 from chainer.distribution import Distribution  # NOQA
 from chainer.distribution import kl_divergence  # NOQA
@@ -78,6 +81,13 @@ from chainer import _environment_check
 
 
 import chainerx
+
+
+# Introduce an alias that cannot be declared at the original place due to
+# circular imports.
+import chainer.utils.walker_alias
+chainer.utils.WalkerAlias = chainer.utils.walker_alias.WalkerAlias
+del chainer
 
 
 # Check environment conditions
@@ -265,9 +275,10 @@ class DebugMode(object):
     """
 
     def __init__(self, debug):
-        warnings.warn('chainer.DebugMode is deprecated. '
-                      'Use chainer.using_config("debug", ...) instead.',
-                      DeprecationWarning)
+        builtin_warnings.warn(
+            'chainer.DebugMode is deprecated. '
+            'Use chainer.using_config("debug", ...) instead.',
+            DeprecationWarning)
         self._using = using_config('debug', debug)
 
     def __enter__(self):

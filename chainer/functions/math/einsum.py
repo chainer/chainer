@@ -1,5 +1,6 @@
 import warnings
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
@@ -49,6 +50,7 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
             '{xp}.einsum does not support optimize option. '
             'Use newer version of {xp} to speed up.'
             .format(xp=xp.__name__),
+            chainer.warnings.PerformanceWarning,
         )
         y = xp.einsum(subscripts, *inputs)
 

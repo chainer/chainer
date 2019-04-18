@@ -251,20 +251,6 @@ class GpuDevice(_backend.Device):
         self.device.use()
 
 
-def _get_device(device_spec):
-    if not available:
-        return None
-
-    if isinstance(device_spec, Device):
-        return GpuDevice(device_spec)
-    if (isinstance(device_spec, tuple) and len(device_spec) == 2
-            and device_spec[0] is cupy
-            and isinstance(device_spec[1], _integer_types)):
-        return GpuDevice.from_device_id(device_spec[1])
-
-    return None
-
-
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
@@ -431,17 +417,7 @@ def _array_to_gpu(array, device, stream):
         # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
-            array = cupy.ndarray(
-                array.shape,
-                array.dtype,
-                cupy.cuda.MemoryPointer(
-                    cupy.cuda.UnownedMemory(
-                        array.data_ptr + array.offset,
-                        array.data_size,
-                        array,
-                        array.device.index),
-                    0),
-                strides=array.strides)
+            array = chainerx._to_cupy(array)
         else:
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):
@@ -534,7 +510,7 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with _get_device(out_device):
+        with chainer.get_device(out_device):
             out = cupy.empty_like(array)
 
     with get_device_from_array(array):

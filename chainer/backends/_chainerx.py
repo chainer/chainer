@@ -98,20 +98,6 @@ def from_chx(array):
     return _backend._convert_arrays(array, _array_from_chainerx)
 
 
-def _get_device(device_spec):
-    # Called from chainer.backend.get_device
-    if not chainerx.is_available():
-        return None
-    if isinstance(device_spec, chainerx.Device):
-        return ChainerxDevice(device_spec)
-    if isinstance(device_spec, str):
-        return ChainerxDevice(chainerx.get_device(device_spec))
-    if (isinstance(device_spec, tuple) and len(device_spec) >= 1
-            and isinstance(device_spec[0], str)):
-        return ChainerxDevice(chainerx.get_device(*device_spec))
-    return None
-
-
 def _get_chainerx_device(device_spec):
     # Returns chainerx.Device
     if isinstance(device_spec, chainerx.Device):

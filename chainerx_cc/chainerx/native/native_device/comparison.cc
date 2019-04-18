@@ -5,77 +5,198 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/native/elementwise.h"
+#include "chainerx/native/kernel_regist.h"
+#include "chainerx/native/reduce.h"
+#include "chainerx/routines/logic.h"
 
 namespace chainerx {
 namespace native {
+namespace {
 
-void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
-    const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
-    const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
+class NativeEqualKernel : public EqualKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(EqualKernel, NativeEqualKernel);
+
+class NativeNotEqualKernel : public NotEqualKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 != x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NotEqualKernel, NativeNotEqualKernel);
+
+class NativeGreaterKernel : public GreaterKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 > x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(GreaterKernel, NativeGreaterKernel);
+
+class NativeGreaterEqualKernel : public GreaterEqualKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 >= x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(GreaterEqualKernel, NativeGreaterEqualKernel);
+
+class NativeLogicalNotKernel : public LogicalNotKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = !x; }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalNotKernel, NativeLogicalNotKernel);
+
+class NativeLogicalAndKernel : public LogicalAndKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 && x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalAndKernel, NativeLogicalAndKernel);
+
+class NativeLogicalOrKernel : public LogicalOrKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 || x2; }
+            };
+            Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalOrKernel, NativeLogicalOrKernel);
+
+class NativeAllKernel : public AllKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_all = [&a_cast, &axis, &out](auto in_pt) {
+            using In = typename decltype(in_pt)::type;
+            struct Impl {
+                bool Identity() { return true; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum && next; }
+                bool MapOut(bool accum) { return accum; }
+            };
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
-        Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
-    });
-}
+        VisitDtype(out.dtype(), do_all);
+    }
+};
 
-void NativeDevice::NotEqual(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
-    const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
-    const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 != x2; }
+CHAINERX_NATIVE_REGISTER_KERNEL(AllKernel, NativeAllKernel);
+
+class NativeAnyKernel : public AnyKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+        auto do_any = [&a_cast, &axis, &out](auto in_pt) {
+            using In = typename decltype(in_pt)::type;
+            struct Impl {
+                bool Identity() { return false; }
+                bool MapIn(In in, int64_t /*index*/) { return static_cast<bool>(in); }
+                void Reduce(bool next, bool& accum) { accum = accum || next; }
+                bool MapOut(bool accum) { return accum; }
+            };
+            Reduce<In, bool>(a_cast, axis, out, Impl{});
         };
-        Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
-    });
-}
 
-void NativeDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
-    const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
-    const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 > x2; }
-        };
-        Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
-    });
-}
+        VisitDtype(out.dtype(), do_any);
+    }
+};
 
-void NativeDevice::GreaterEqual(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
-    const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
-    const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 >= x2; }
-        };
-        Elementwise<const T, const T, bool>(Impl{}, x1_cast, x2_cast, out);
-    });
-}
+CHAINERX_NATIVE_REGISTER_KERNEL(AnyKernel, NativeAnyKernel);
 
-void NativeDevice::LogicalNot(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    VisitDtype(x.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, bool& out) { out = !x; }
-        };
-        Elementwise<const T, bool>(Impl{}, x, out);
-    });
-}
-
+}  // namespace
 }  // namespace native
 }  // namespace chainerx
