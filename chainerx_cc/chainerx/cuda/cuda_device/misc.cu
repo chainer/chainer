@@ -111,7 +111,7 @@ struct PowSAImpl {
     CudaType x1;
 };
 
-class CudaPowSAKernel : public PowSAKernel{
+class CudaPowSAKernel : public PowSAKernel {
 public:
     void Call(Scalar x1, const Array& x2, const Array& out) {
         x2.device().CheckDevicesCompatible(x2, out);
