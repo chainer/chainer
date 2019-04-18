@@ -79,7 +79,7 @@ def mean_absolute_error(x0, x1):
 
         3D array example:
 
-        - In this example, there are 8 elements, and thus 8 errors
+        In this example, there are 8 elements, and thus 8 errors
         >>> x = np.reshape(np.array([1, 2, 3, 4, 5, 6, 7, 8]), (2, 2, 2))
         >>> y = np.reshape(np.array([8, 8, 8, 8, 8, 8, 8, 8]), (2, 2, 2))
         >>> x = x.astype(np.float32)
