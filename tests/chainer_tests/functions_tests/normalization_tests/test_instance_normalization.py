@@ -87,6 +87,7 @@ class TestInstanceNormalization(testing.FunctionTestCase):
             self.running_var = numpy.random.uniform(
                 -1, 1, shape[1]).astype(dtype)
 
+        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
         if dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
@@ -129,6 +130,8 @@ class TestInstanceNormalization(testing.FunctionTestCase):
         return y, running_mean, running_var
 
     def before_test(self, test_name):
+        # N.B. When self.running_statistics is True, the number of outputs of
+        # self.forward and the number of grad_outputs are different.
         if 'backward' in test_name and self.running_statistics:
             raise unittest.SkipTest()
 

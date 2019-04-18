@@ -16,7 +16,7 @@ from chainer.testing import condition
     'shape': [(2, 3, 5, 5), (5, 3, 15)],
     'test': [True, False],
     'track_avg_stats': [True, False],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'dtype': [numpy.float32],
 })))
 class TestInstanceNormalization(unittest.TestCase):
 
