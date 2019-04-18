@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "chainerx/device.h"
-#include "chainerx/op_registry.h"
+#include "chainerx/kernel_registry.h"
 
 namespace chainerx {
 
@@ -12,7 +12,7 @@ Backend::~Backend() = default;
 
 Backend::Backend(Context& context) : context_{context} {}
 
-void Backend::Initialize() { op_registry_ = OpRegistry{&GetParentOpRegistry()}; }
+void Backend::Initialize() { kernel_registry_ = KernelRegistry{&GetParentKernelRegistry()}; }
 
 Device& Backend::GetDevice(int index) {
     if (index < 0) {

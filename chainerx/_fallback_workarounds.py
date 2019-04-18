@@ -40,17 +40,7 @@ def _from_numpy(array):
 def _to_cupy(array):
     assert cupy is not None
     # Convert to cupy.ndarray on the same device as source array
-    return cupy.ndarray(
-        array.shape,
-        array.dtype,
-        cupy.cuda.MemoryPointer(
-            cupy.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0),
-        strides=array.strides)
+    return chainerx._to_cupy(array)
 
 
 def _from_cupy(array):
@@ -136,6 +126,14 @@ def _populate_module_functions():
 
     chainerx.vstack = _vstack
 
+    def _sign(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.sign(arr)
+        return _to_chx(ret)
+
+    chainerx.sign = _sign
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
@@ -179,7 +177,10 @@ def _populate_ndarray():
                 'supported for arrays that are connected to a graph.')
 
         xp, dev, self = _from_chx(self)
-        _, _, key = _from_chx(key)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key)
         _, _, value = _from_chx(value)
 
         with dev:
@@ -187,30 +188,6 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
-
-    def _min(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.min(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.min = _min
-
-    def _all(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.all(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.all = _all
-
-    def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.any(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.any = _any
 
     def tolist(arr):
         _, dev, arr = _from_chx(arr)

@@ -17,6 +17,10 @@
 #include "chainerx/dims.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernel_registry.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/kernels/linalg.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
@@ -52,7 +56,7 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
 
 namespace {
 
-Array ConvGradW(
+Array ConvGradWeight(
         Dtype w_dtype,
         const Shape& w_shape,
         const Array& x,
@@ -68,7 +72,7 @@ Array ConvGradW(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
@@ -141,7 +145,7 @@ Array Conv(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().Conv(x, w, b, stride, pad, cover_all, real_out_dtype);
+        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, cover_all, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -167,7 +171,7 @@ Array Conv(
             bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, x, gout, stride, pad, cover_all);
             });
         }
 
@@ -253,7 +257,7 @@ Array ConvTranspose(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size, real_out_dtype);
+        out = x.device().backend().CallKernel<ConvTransposeKernel>(x, w, b, stride, pad, real_out_size, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -279,7 +283,7 @@ Array ConvTranspose(
             bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, gout, x, stride, pad, cover_all);
             });
         }
 
@@ -338,10 +342,10 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 
     {
         NoBackpropModeScope scope{};
-        x.device().Dot(x_matrix, w.Transpose(), out_matrix);
+        x.device().backend().CallKernel<DotKernel>(x_matrix, w.Transpose(), out_matrix);
 
         if (has_bias) {
-            x.device().Add(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
+            x.device().backend().CallKernel<AddKernel>(out_matrix, b_matrix.AsType(out_dtype, false), out_matrix);
         }
     }
 

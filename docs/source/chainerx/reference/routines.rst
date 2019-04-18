@@ -67,6 +67,7 @@ Array manipulation routines
    chainerx.concatenate
    chainerx.stack
    chainerx.split
+   chainerx.swapaxes
 
 Indexing routines
 -----------------
@@ -93,9 +94,14 @@ Logic functions
    :toctree: generated/
    :nosignatures:
 
+   chainerx.all
+   chainerx.any
+
    chainerx.isinf
    chainerx.isnan
 
+   chainerx.logical_and
+   chainerx.logical_or
    chainerx.logical_not
 
    chainerx.greater
@@ -130,9 +136,15 @@ Mathematical functions
    chainerx.arcsin
    chainerx.arccos
    chainerx.arctan
+   chainerx.sinh
+   chainerx.cosh
    chainerx.tanh
+   chainerx.arcsinh
+   chainerx.arccosh
    chainerx.square
    chainerx.clip
+   chainerx.ceil
+   chainerx.floor
 
 Random sampling
 ---------------
@@ -161,6 +173,8 @@ Statistics
    :nosignatures:
 
    chainerx.amax
+   chainerx.mean
+   chainerx.var
 
 Connection
 ----------

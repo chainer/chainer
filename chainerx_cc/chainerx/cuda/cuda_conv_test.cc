@@ -9,6 +9,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/device_id.h"
+#include "chainerx/kernels/connection.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/shape.h"
 #include "chainerx/stack_vector.h"
@@ -25,7 +26,10 @@ public:
     static size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.fwd_algo_cache_map_.size(); }
     static size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_data_algo_cache_map_.size(); }
     static size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_filter_algo_cache_map_.size(); }
-    static CudaConv& GetCudaConv(CudaDevice& cuda_device) { return cuda_device.cuda_conv_; }
+    static CudaConv& GetCudaConv(CudaDevice& cuda_device) {
+        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(cuda_device);
+        return device_internals.cuda_conv();
+    }
 };
 
 }  // namespace cuda_internal
@@ -152,9 +156,9 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
     {
@@ -168,9 +172,9 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
 }
