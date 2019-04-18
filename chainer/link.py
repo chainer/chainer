@@ -329,11 +329,13 @@ class Link(device_resident.DeviceResident):
             shape (int or tuple of ints): Shape of the parameter array. If it
                 is omitted, the parameter variable is left uninitialized.
             dtype: Data type of the parameter array.
-            initializer: If it is not ``None``, the data is initialized with
-                the given initializer. If it is an array, the data is directly
-                initialized by it. If it is callable, it is used as a weight
-                initializer. Note that in these cases, ``dtype`` argument is
-                ignored.
+            initializer (:ref:`initializer <initializer>`): If it is not
+                ``None``, the data is initialized with the given initializer.
+                If it is an array, the data is directly initialized by it. If
+                it is callable, it is used as a weight initializer. Note that
+                in these cases, ``dtype`` argument is ignored. It can also be
+                a scalar, in which case the data array will be filled by this
+                scalar. Note that float32 is used in this case.
 
         """
         if name in self.__dict__:
