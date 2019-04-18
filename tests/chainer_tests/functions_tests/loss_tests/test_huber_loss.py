@@ -14,8 +14,8 @@ from chainer import utils
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 5e-3, 'atol': 5e-3},
-      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0},
-      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0}},
+      'backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1},
+      'double_backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1}},
      {'dtype': numpy.float32,
       'forward_options': {},
       'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
@@ -24,7 +24,7 @@ from chainer import utils
       'forward_options': {},
       'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
       'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
-    ],
+     ],
     testing.product({
         'shape': [(), (3,)],
         'reduce': ['no'],
@@ -40,7 +40,7 @@ class TestHuberLoss(unittest.TestCase):
         self._config_user.__enter__()
 
         self.x = utils.force_array(
-            (numpy.random.random(self.shape) - 0.5) * 20, self.dtype)
+            (numpy.random.random(self.shape) - 0.5) * 4, self.dtype)
         self.t = utils.force_array(numpy.random.random(self.shape), self.dtype)
         if self.reduce == 'sum_along_second_axis':
             gy_shape = self.shape[:1] + self.shape[2:]
