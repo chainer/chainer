@@ -20,6 +20,7 @@ if _available:
         bool_, int8, int16, int32, int64, uint8, float16, float32, float64)
 
     from chainerx._core import *  # NOQA
+    from chainerx._core import _to_cupy  # NOQA
 
     from builtins import bool, int, float  # NOQA
 
@@ -32,12 +33,9 @@ if _available:
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
 
-    from chainerx.activation import relu  # NOQA
-
     from chainerx.manipulation.shape import ravel  # NOQA
 
     from chainerx.math.misc import clip  # NOQA
-    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 

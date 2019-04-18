@@ -2,9 +2,9 @@
 
 namespace chainerx {
 
-class Op {
+class Kernel {
 public:
-    virtual ~Op() = default;
+    virtual ~Kernel() = default;
 };
 
 }  // namespace chainerx

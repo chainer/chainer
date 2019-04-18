@@ -13,7 +13,7 @@ This uses the VGG-style network from [here](http://torch.ch/blog/2015/07/30/cifa
 
 No data augmentation is used and the classification accuracy on the CIFAR-10 test set for the VGG-style model should reach approximately 89% after 200 iterations or so.
 
-If you want to run this example on the N-th GPU, pass `--gpu=N` to the script. To run on CPU, pass `--gpu=-1`.
+If you want to run this example on the N-th GPU, pass `--device=N` to the script. To run on CPU, pass `--device=-1`.
 
 For example, to run the default model, which uses CIFAR-10 and GPU 0:
 ```
@@ -22,5 +22,5 @@ train_cifar.py
 
 to run the CIFAR-100 dataset on GPU 1:
 ```
-train_cifar.py --gpu=1 --dataset='cifar100'
+train_cifar.py --device=1 --dataset='cifar100'
 ```

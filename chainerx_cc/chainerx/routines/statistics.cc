@@ -8,8 +8,10 @@
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
@@ -24,8 +26,8 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().Sum(a, sorted_axis, out);
-        a.device().DivideAS(out, n, out);
+        a.device().backend().CallKernel<SumKernel>(a, sorted_axis, out);
+        a.device().backend().CallKernel<DivideASKernel>(out, n, out);
     }
 
     BackwardBuilder bb{"mean", a, out};

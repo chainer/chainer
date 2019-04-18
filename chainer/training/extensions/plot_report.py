@@ -108,6 +108,7 @@ class PlotReport(extension.Extension):
         file_name, = argument.parse_kwargs(kwargs, ('file_name', 'plot.png'))
         if filename is None:
             filename = file_name
+        del file_name  # avoid accidental use
 
         _check_available()
 
@@ -117,7 +118,7 @@ class PlotReport(extension.Extension):
 
         self._y_keys = y_keys
         self._trigger = trigger_module.get_trigger(trigger)
-        self._file_name = file_name
+        self._file_name = filename
         self._marker = marker
         self._grid = grid
         self._postprocess = postprocess

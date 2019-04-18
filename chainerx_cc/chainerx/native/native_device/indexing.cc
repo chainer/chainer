@@ -7,9 +7,10 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/shape.h"
 
@@ -17,7 +18,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeTakeOp : public TakeOp {
+class NativeTakeKernel : public TakeKernel {
 public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
@@ -81,9 +82,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(TakeKernel, NativeTakeKernel);
 
-class NativeAddAtOp : public AddAtOp {
+class NativeAddAtKernel : public AddAtKernel {
 public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
@@ -155,7 +156,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddAtOp, NativeAddAtOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AddAtKernel, NativeAddAtKernel);
 
 }  // namespace
 }  // namespace native
