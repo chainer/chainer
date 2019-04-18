@@ -336,6 +336,130 @@ class BaseNStepRNN(function.Function):
             return dhx, dw, dxs
 
 
+class BaseNStepRNNEx(function.Function):
+
+    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode):
+        if rnn_dir not in _rnn_dirs:
+            candidate_list = ','.join(_rnn_dirs.keys())
+            raise ValueError('Invalid rnn_dir: "%s". Please select from [%s]'
+                             % (rnn_dir, candidate_list))
+        if rnn_mode not in _rnn_modes:
+            candidate_list = ','.join(_rnn_modes.keys())
+            raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
+                             % (rnn_mode, candidate_list))
+        self.rnn_dir = _rnn_dirs[rnn_dir]
+        self.rnn_mode = _rnn_modes[rnn_mode]
+        self.rnn_direction = _rnn_params_direction[self.rnn_dir]
+        self.n_layers = n_layers
+        self.states = states
+        self.use_cell = _rnn_params_use_cell[self.rnn_mode]
+        self.lengths = lengths
+
+    def check_type_forward(self, in_types):
+        if self.use_cell:
+            type_check.expect(in_types.size() == 4)
+            h_type, c_type, w_type, x_type = in_types
+            h_size = self.n_layers * self.rnn_direction
+            type_check.expect(
+                h_type.dtype == numpy.float32,
+                c_type.dtype == numpy.float32,
+
+                h_type.ndim == 3,
+                h_type.shape[0] == h_size,
+                c_type.ndim == 3,
+                c_type.shape[0] == h_size,
+
+                # mini-batch size
+                h_type.shape[1] == c_type.shape[1],
+
+                # hidden size
+                h_type.shape[2] == c_type.shape[2],
+            )
+
+        else:
+            type_check.expect(in_types.size() == 3)
+            h_type, w_type, x_type = in_types
+            h_size = self.n_layers * self.rnn_direction
+            type_check.expect(
+                h_type.dtype == numpy.float32,
+
+                h_type.ndim == 3,
+                h_type.shape[0] == h_size,
+            )
+
+        type_check.expect(
+            x_type.dtype == numpy.float32,
+            x_type.ndim == 3,
+            x_type.shape[0] <= self.lengths.max(),
+            x_type.shape[1] == len(self.lengths),
+        )
+
+    def forward(self, inputs):
+        if self.use_cell:
+            # LSTM
+            hx, cx, w, xs = inputs
+        else:
+            # RNN, GRU
+            hx, w, xs = inputs
+            cx = None
+
+        if not configuration.config.train:
+            hy, cy, ys = cudnn.rnn_forward_inference_ex(
+                self.states, self.rnn_dir, self.rnn_mode,
+                hx, cx, w, xs, self.lengths)
+
+        else:
+            self.reserve_space, hy, cy, ys = cudnn.rnn_forward_training_ex(
+                self.states, self.rnn_dir, self.rnn_mode,
+                hx, cx, w, xs, self.lengths)
+
+        if self.use_cell:
+            # LSTM
+            self.retain_outputs((2,))
+            return hy, cy, ys
+        else:
+            # GRU, RNN
+            self.retain_outputs((1,))
+            return hy, ys
+
+    def backward(self, inputs, grads):
+        if self.use_cell:
+            # LSTM
+            hx, cx, w, xs = inputs
+            dhy, dcy, dys = grads
+            if dcy is None:
+                dcy = cuda.cupy.zeros_like(cx)
+
+        else:
+            # GRU, RNN
+            hx, w, xs = inputs
+            dhy, dys = grads
+            dcy = cx = None
+
+        ys = self.output_data[-1]
+
+        if dhy is None:
+            dhy = cuda.cupy.zeros_like(hx)
+        if dys is None:
+            dys = cuda.cupy.zeros_like(ys)
+
+        dhx, dcx, dxs = cudnn.rnn_backward_data_ex(
+            self.states, self.rnn_dir, self.rnn_mode,
+            hx, cx, w, xs, ys, self.reserve_space,
+            dhy, dcy, dys, self.lengths)
+
+        dw = cudnn.rnn_backward_weights_ex(
+            self.states, self.rnn_dir, self.rnn_mode,
+            xs, hx, ys, w, self.reserve_space, self.lengths)
+
+        if self.use_cell:
+            # LSTM
+            return dhx, dcx, dw, dxs
+        else:
+            # GRU, RNN
+            return dhx, dw, dxs
+
+
 class NStepRNNTanh(BaseNStepRNN):
 
     def __init__(self, n_layers, states, lengths, **kwargs):
