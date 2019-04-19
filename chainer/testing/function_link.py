@@ -197,7 +197,7 @@ class FunctionTestBase(object):
             except AssertionError:
                 indices.append(i)
 
-        if len(indices) > 0:
+        if indices:
             FunctionTestError.fail(
                 'Input arrays have been modified during forward.\n'
                 'Indices of modified inputs: {}\n'
@@ -1172,7 +1172,7 @@ def _check_arrays_equal(
                 array_module.assert_allclose(actual, expected, **opts)
             except AssertionError as e:
                 errors.append((i, e))
-        if len(errors) > 0:
+        if errors:
             message = (
                 'Outputs do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(

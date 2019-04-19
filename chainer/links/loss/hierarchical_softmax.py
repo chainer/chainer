@@ -331,7 +331,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             Binary Huffman tree with tuples and keys of ``word_coutns``.
 
         """
-        if len(word_counts) == 0:
+        if not word_counts:
             raise ValueError('Empty vocabulary')
 
         q = six.moves.queue.PriorityQueue()
