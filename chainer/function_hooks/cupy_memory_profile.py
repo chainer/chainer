@@ -129,10 +129,12 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
     def _choose_unit(self, size):
         """Choose optimal unit."""
         denomi = 1
+        if size <= 0:
+            return denomi, self._units[0]
         for unit in self._units[:-1]:
-            if size / denomi >= 1:
+            if size / (denomi * 1024.0) < 1:
                 return denomi, unit
-            denomi *= 1024.0
+            denomi *= 1024
         return denomi, self._units[-1]
 
     def print_report(self, unit='auto', file=sys.stdout):
