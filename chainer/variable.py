@@ -1639,8 +1639,23 @@ def backward(outputs, grad_outputs=None, **kwargs):
         grad_outputs = chainer.functions.identity(*grad_outputs)
         if not isinstance(grad_outputs, tuple):
             grad_outputs = grad_outputs,
+
+        # TODO(kataoka): Even after F.identity, non-float grad cannot be set.
+        # Move the check to elsewhere and remove this workaround.
+        outputs_ = []
         for y, gy in zip(outputs, grad_outputs):
+            if not y.requires_grad and gy is not None:
+                warnings.warn(
+                    'Some of grads are ignored by chainer.backward.\n'
+                    'backend: ChainerX, '
+                    'output.dtype: {}, grad_output.dtype: {}'.format(
+                        y.dtype, gy.dtype),
+                    RuntimeWarning)
+                continue
             y.grad_var = gy
+            outputs_.append(y)
+        outputs = outputs_
+        del outputs_
 
         # See also the ChainerX case of Variable.backward
         arrs = []
