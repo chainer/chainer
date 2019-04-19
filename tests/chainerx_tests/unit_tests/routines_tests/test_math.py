@@ -1941,6 +1941,15 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
 
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
+    
     def func(self, xp, a, b):
         if self.is_module:
             return xp.power(a, b)
