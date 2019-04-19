@@ -231,6 +231,10 @@ _in_out_dtypes_array_int_scalar = [
     (('float16',), int, 'float16'),
     (('float32',), int, 'float32'),
     (('float64',), int, 'float64'),
+    (('int16',), numpy.int16, 'int16'),
+    (('uint8',), numpy.int8, 'uint8'),
+    (('float64',), numpy.int8, 'float64'),
+    (('float16',), numpy.int64, 'float16'),
 ]
 
 
@@ -241,6 +245,9 @@ _in_out_dtypes_int_array_float_scalar = [
     (('int32',), float, 'float32'),
     (('int64',), float, 'float32'),
     (('uint8',), float, 'float32'),
+    (('int8',), numpy.float32, 'float32'),
+    (('int64',), numpy.float16, 'float32'),
+    (('uint8',), numpy.float64, 'float32'),
 ]
 
 
@@ -249,6 +256,9 @@ _in_out_dtypes_float_array_float_scalar = [
     (('float16',), float, 'float16'),
     (('float32',), float, 'float32'),
     (('float64',), float, 'float64'),
+    (('float64',), float, 'float64'),
+    (('float16',), numpy.float64, 'float16'),
+    (('float64',), numpy.float16, 'float64'),
 ]
 
 
