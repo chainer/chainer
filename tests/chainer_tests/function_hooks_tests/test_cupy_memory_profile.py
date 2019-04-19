@@ -203,5 +203,27 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
 
+@testing.parameterize(
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 0},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 0},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 1 - 512},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 1 - 1},
+
+    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024 ** 1},
+    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024 ** 2 - 1},
+
+    {'unit': 'MB', 'denomi': 1024 ** 2, 'bytes': 1024 ** 2},
+    {'unit': 'GB', 'denomi': 1024 ** 3, 'bytes': 1024 ** 3},
+    {'unit': 'TB', 'denomi': 1024 ** 4, 'bytes': 1024 ** 4},
+    {'unit': 'PB', 'denomi': 1024 ** 5, 'bytes': 1024 ** 5},
+    {'unit': 'EB', 'denomi': 1024 ** 6, 'bytes': 1024 ** 6},
+    {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 7},
+)
+class TestCupyMemoryProfileReportChooseUnit(unittest.TestCase):
+
+    def test_choose_unit(self):
+        h = function_hooks.CupyMemoryProfileHook()
+        self.assertEqual((self.denomi, self.unit), h._choose_unit(self.bytes))
+
 
 testing.run_module(__name__, __file__)
