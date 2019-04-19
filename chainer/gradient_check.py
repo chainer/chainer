@@ -1000,20 +1000,3 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         f.write('\n')
         f.write(str(e))
         raise AssertionError(f.getvalue())
-
-
-def _set_grad(ys, gys):
-    # Applies the `_GradientSetter` function.
-    # The gradient setter function accepts any number of upstream outputs as
-    # its inputs, and returns a single output variable with dummy data.
-    # This variable will be later backward()ed and during backprop, this
-    # function returns the given gradients (`y_grad`) on its backward.
-    assert len(ys) == len(gys)
-    assert all(y is None or isinstance(y, chainer.Variable) for y in ys)
-    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in gys)
-    # y is None => gy is None
-    assert all(gy is None for y, gy in zip(ys, gys) if y is None)
-
-    for y, gy in zip(ys, gys):
-        if y is not None:  # chainerx?
-            y.addgrad(gy)
