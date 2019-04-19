@@ -167,10 +167,10 @@ class VariableStatisticsPlot(extension.Extension):
             is passed to :class:`IntervalTrigger`.
         filename (str):
             Name of the output image file under the output directory.
-            Although it is recommended to use `filename`, you can also
-            specify the name of the output image file with the `file_name`
-            argument for backward compatibility. However, if both `filename`
-            and `file_name` are specified, `filename` will be used.
+            Although it is recommended to use ``filename``, you can also
+            specify the name of the output image file with the ``file_name``
+            argument for backward compatibility. However, if both ``filename``
+            and ``file_name`` are specified, ``filename`` will be used.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
