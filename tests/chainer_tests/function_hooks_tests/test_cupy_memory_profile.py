@@ -153,20 +153,9 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.assertEqual(self.h.total_acquired_bytes(), 1024)
 
 
-@testing.parameterize(
-    {'unit': 'B'},
-    {'unit': 'KB'},
-    {'unit': 'MB'},
-    {'unit': 'GB'},
-    {'unit': 'TB'},
-    {'unit': 'PB'},
-    {'unit': 'EB'},
-    {'unit': 'ZB'},
-    {'unit': 'auto'},
-    {'unit': 'auto_foreach'},
-)
+
 @attr.gpu
-class TestCupyMemoryProfileReport(unittest.TestCase):
+class TestCupyMemoryProfileReportBase(unittest.TestCase):
 
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
@@ -181,6 +170,9 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
             self.f2.apply((chainer.Variable(x),))
             self.f2.apply((chainer.Variable(x),))
 
+
+class TestCupyMemoryProfilerStatistics(TestCupyMemoryProfileReportBase):
+
     def test_call_history(self):
         self.assertEqual(4, len(self.h.call_history))
 
@@ -192,6 +184,21 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
 
     def test_summary(self):
         self.assertEqual(2, len(self.h.summary()))
+
+
+@testing.parameterize(
+    {'unit': 'B'},
+    {'unit': 'KB'},
+    {'unit': 'MB'},
+    {'unit': 'GB'},
+    {'unit': 'TB'},
+    {'unit': 'PB'},
+    {'unit': 'EB'},
+    {'unit': 'ZB'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
+)
+class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
 
     def test_print_report(self):
         io = six.StringIO()
