@@ -363,7 +363,7 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         ``outputs`` and ``expected_outputs`` are tuples of arrays.
         In case the check fails, ``FunctionTestError`` should be raised.
 
-    .. rubric:: Attributes
+    .. rubric:: Configurable attributes
 
     The concrete class can override the following attributes to control the
     behavior of the tests.
@@ -389,6 +389,17 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         gradients, and the second order input gradients). If ``None``, the
         arrays will be non-contiguous as long as possible. If ``'C'``, the
         arrays will be C-contiguous. ``None`` by default.
+
+    .. rubric:: Passive attributes
+
+    These attributes are automatically set.
+
+    ``test_name`` (str):
+        The name of the test being run. It is one of ``'test_forward'``,
+        ``'test_backward'``, and ``'test_double_backward'``.
+
+    ``backend_config`` (:class:`~chainer.testing.BackendConfig`):
+        The backend configuration.
 
     .. note::
 
