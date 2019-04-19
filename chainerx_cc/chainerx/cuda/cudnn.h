@@ -55,7 +55,7 @@ public:
     ~CudnnTensorDescriptor();
 
     CudnnTensorDescriptor(const CudnnTensorDescriptor&) = delete;
-    CudnnTensorDescriptor(CudnnTensorDescriptor&& other) : desc_{other.desc_} { other.desc_ = nullptr; }
+    CudnnTensorDescriptor(CudnnTensorDescriptor&& other) noexcept : desc_{other.desc_} { other.desc_ = nullptr; }
     CudnnTensorDescriptor& operator=(const CudnnTensorDescriptor&) = delete;
     CudnnTensorDescriptor& operator=(CudnnTensorDescriptor&&) = delete;
 

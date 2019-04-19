@@ -18,11 +18,9 @@ class NewAxis {};
 
 class ArrayIndex {
 public:
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor)
-    ArrayIndex(int64_t index) : tag_{ArrayIndexTag::kSingleElement}, index_{index} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor)
-    ArrayIndex(Slice slice) : tag_{ArrayIndexTag::kSlice}, slice_{std::move(slice)} {}
-    ArrayIndex(NewAxis /*new_axis*/) : tag_{ArrayIndexTag::kNewAxis} {}  // NOLINT(runtime/explicit, google-explicit-constructor)
+    ArrayIndex(int64_t index) : tag_{ArrayIndexTag::kSingleElement}, index_{index} {}  // NOLINT
+    ArrayIndex(Slice slice) : tag_{ArrayIndexTag::kSlice}, slice_{std::move(slice)} {}  // NOLINT
+    ArrayIndex(NewAxis /*new_axis*/) : tag_{ArrayIndexTag::kNewAxis} {}  // NOLINT
 
     ArrayIndexTag tag() const { return tag_; }
 

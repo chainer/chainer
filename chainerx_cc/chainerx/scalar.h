@@ -14,28 +14,19 @@ namespace chainerx {
 // Type safe, dynamically typed scalar value.
 class Scalar {
 public:
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(bool v) : bool_{v}, kind_{DtypeKind::kBool} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(int8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(int16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(int32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(int64_t v) : int_{v}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(uint8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(uint16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(uint32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(Float16 v) : float_{static_cast<double>(v)}, kind_{DtypeKind::kFloat} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(float v) : float_{double{v}}, kind_{DtypeKind::kFloat} {}
-    // NOLINTNEXTLINE(runtime/explicit, google-explicit-constructor, cppcoreguidelines-pro-type-member-init)
-    Scalar(double v) : float_{v}, kind_{DtypeKind::kFloat} {}
+    // Suppress 'runtime/explicit' from cpplint, and 'google-explicit-constructor' and 'cppcoreguidelines-pro-type-member-init' from
+    // clang-tidy.
+    Scalar(bool v) : bool_{v}, kind_{DtypeKind::kBool} {}  // NOLINT
+    Scalar(int8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int64_t v) : int_{v}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(Float16 v) : float_{static_cast<double>(v)}, kind_{DtypeKind::kFloat} {}  // NOLINT
+    Scalar(float v) : float_{double{v}}, kind_{DtypeKind::kFloat} {}  // NOLINT
+    Scalar(double v) : float_{v}, kind_{DtypeKind::kFloat} {}  // NOLINT
 
     template <typename T>
     Scalar(T v, DtypeKind kind) {
