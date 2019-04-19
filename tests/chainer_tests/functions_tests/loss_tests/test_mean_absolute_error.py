@@ -89,9 +89,9 @@ class TestMeanAbsoluteErrorFP16Overflow(unittest.TestCase):
 
     def check_fp16_overflow(self, xp):
         x0 = chainer.Variable(xp.full(
-            shape=(64,1,16,16), fill_value=2, dtype=xp.float16))
+            shape=(64, 1, 16, 16), fill_value=2, dtype=xp.float16))
         x1 = chainer.Variable(xp.full(
-            shape=(64,1,16,16), fill_value=-2, dtype=xp.float16))
+            shape=(64, 1, 16, 16), fill_value=-2, dtype=xp.float16))
         loss = functions.mean_absolute_error(x0, x1)
         self.assertFalse(xp.isinf(loss.array))
 
