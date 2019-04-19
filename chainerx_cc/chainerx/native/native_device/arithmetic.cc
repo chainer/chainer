@@ -7,8 +7,9 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/scalar.h"
 
@@ -16,26 +17,9 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeAddOp : public AddOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Add(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(AddKernel, { out = ArithmeticOps<T>::Add(x1, x2); });
 
-CHAINERX_NATIVE_REGISTER_OP(AddOp, NativeAddOp);
-
-class NativeAddASOp : public AddASOp {
+class NativeAddASKernel : public AddASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -52,28 +36,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AddASOp, NativeAddASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AddASKernel, NativeAddASKernel);
 
-class NativeSubtractOp : public SubtractOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(SubtractKernel, { out = ArithmeticOps<T>::Subtract(x1, x2); }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_OP(SubtractOp, NativeSubtractOp);
-
-class NativeSubtractASOp : public SubtractASOp {
+class NativeSubtractASKernel : public SubtractASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -90,28 +57,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(SubtractASOp, NativeSubtractASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(SubtractASKernel, NativeSubtractASKernel);
 
-class NativeMultiplyOp : public MultiplyOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Multiply(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(MultiplyKernel, { out = ArithmeticOps<T>::Multiply(x1, x2); });
 
-CHAINERX_NATIVE_REGISTER_OP(MultiplyOp, NativeMultiplyOp);
-
-class NativeMultiplyASOp : public MultiplyASOp {
+class NativeMultiplyASKernel : public MultiplyASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -128,7 +78,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MultiplyASOp, NativeMultiplyASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MultiplyASKernel, NativeMultiplyASKernel);
 
 int32_t FloorDivide(int32_t x, int32_t y) {
     auto div = std::div(x, y);
@@ -153,26 +103,9 @@ chainerx::Float16 FloorDivide(chainerx::Float16 x, chainerx::Float16 y) {
     return chainerx::Float16{FloorDivide(static_cast<float>(x), static_cast<float>(y))};
 }
 
-class NativeFloorDivideOp : public FloorDivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = native::FloorDivide(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(FloorDivideKernel, { out = native::FloorDivide(x1, x2); }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_OP(FloorDivideOp, NativeFloorDivideOp);
-
-class NativeFloorDivideASOp : public FloorDivideASOp {
+class NativeFloorDivideASKernel : public FloorDivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -189,28 +122,11 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(FloorDivideASOp, NativeFloorDivideASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(FloorDivideASKernel, NativeFloorDivideASKernel);
 
-class NativeDivideOp : public DivideOp {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, x2, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Divide(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1_cast, x2_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(DivideKernel, { out = ArithmeticOps<T>::Divide(x1, x2); });
 
-CHAINERX_NATIVE_REGISTER_OP(DivideOp, NativeDivideOp);
-
-class NativeDivideASOp : public DivideASOp {
+class NativeDivideASKernel : public DivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
@@ -227,7 +143,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(DivideASOp, NativeDivideASOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DivideASKernel, NativeDivideASKernel);
 
 }  // namespace
 }  // namespace native

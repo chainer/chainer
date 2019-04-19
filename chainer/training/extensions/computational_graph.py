@@ -82,8 +82,8 @@ class DumpGraph(extension.Extension):
             dictionary of the trainer.
         filename (str): Output file name. Although it is recommended to
             use this argument, you can also specify the name of the output
-            file with `out_name` argument for backward compatibility.
-            If both `filename` and `out_name` are specified, `filename`
+            file with ``out_name`` argument for backward compatibility.
+            If both ``filename`` and ``out_name`` are specified, ``filename``
             is used.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.
@@ -102,7 +102,7 @@ class DumpGraph(extension.Extension):
         out_name, = argument.parse_kwargs(kwargs, ('out_name', 'cg.dot'))
         if filename is None:
             filename = out_name
-        del out_name
+        del out_name  # avoid accidental use
         self._root_name = root_name
         self._filename = filename
         if variable_style is None:

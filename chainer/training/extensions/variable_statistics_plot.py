@@ -200,10 +200,10 @@ class VariableStatisticsPlot(extension.Extension):
         )
         if filename is None:
             filename = file_name
-        del file_name
+        del file_name  # avoid accidental use
 
         self._vars = _unpack_variables(targets)
-        if len(self._vars) == 0:
+        if not self._vars:
             raise ValueError(
                 'Need at least one variables for which to collect statistics.'
                 '\nActual: 0 <= 0')
@@ -266,7 +266,7 @@ class VariableStatisticsPlot(extension.Extension):
                 x = getattr(var, k, None)
                 if x is not None:
                     xs.append(x.ravel())
-            if len(xs) > 0:
+            if xs:
                 stat_dict = self._statistician(
                     xp.concatenate(xs, axis=0), axis=0, xp=xp)
                 stat_list = []
