@@ -134,6 +134,15 @@ def _populate_module_functions():
 
     chainerx.sign = _sign
 
+    def _fix(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
+        return _to_chx(ret)
+
+    chainerx.fix = _fix
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
