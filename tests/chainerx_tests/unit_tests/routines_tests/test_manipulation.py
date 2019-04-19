@@ -235,18 +235,7 @@ class TestReshape(op_utils.NumpyOpTest):
             else:
                 assert b.flags.c_contiguous
 
-        # FIXME
-        msg = 'NumpyOpTest has bug if forward_xp returns boolean array'
-        import warnings
-        warnings.warn(msg)
-        raise unittest.SkipTest(msg)
-
-        # The original test is:
         return xp.asarray(copied), b
-
-        # Instead it can be tested by:
-        # copied = b + b.dtype.type(copied)
-        # return copied, b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
