@@ -150,7 +150,10 @@ def _populate_ndarray():
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -185,6 +188,14 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
+
+    def tolist(arr):
+        _, dev, arr = _from_chx(arr)
+        with dev:
+            ret = arr.tolist()
+        return ret
+
+    ndarray.tolist = tolist
 
 
 def populate():

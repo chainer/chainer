@@ -21,8 +21,11 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=30,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', type=str,
@@ -31,7 +34,7 @@ def main():
                         help='Number of units')
     parser.add_argument('--layer', '-l', type=int, default=1,
                         help='Number of layers of RNN or MLP following CNN')
-    parser.add_argument('--dropout', '-d', type=float, default=0.4,
+    parser.add_argument('--dropout', type=float, default=0.4,
                         help='Dropout rate')
     parser.add_argument('--dataset', '-data', default='imdb.binary',
                         choices=['dbpedia', 'imdb.binary', 'imdb.fine',
@@ -44,9 +47,16 @@ def main():
     parser.add_argument('--char-based', action='store_true')
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
 
     args = parser.parse_args()
     print(json.dumps(args.__dict__, indent=2))
+
+    device = chainer.get_device(args.device)
+    device.use()
 
     # Load a dataset
     if args.dataset == 'dbpedia':
@@ -65,6 +75,7 @@ def main():
         train = train[:100]
         test = test[:100]
 
+    print('Device: {}'.format(device))
     print('# train data: {}'.format(len(train)))
     print('# test  data: {}'.format(len(test)))
     print('# vocab: {}'.format(len(vocab)))
@@ -85,10 +96,7 @@ def main():
     encoder = Encoder(n_layers=args.layer, n_vocab=len(vocab),
                       n_units=args.unit, dropout=args.dropout)
     model = nets.TextClassifier(encoder, n_class)
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
+    model.to_device(device)  # Copy the model to the device
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -98,13 +106,13 @@ def main():
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer,
-        converter=convert_seq, device=args.gpu)
+        converter=convert_seq, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(
         test_iter, model,
-        converter=convert_seq, device=args.gpu))
+        converter=convert_seq, device=device))
 
     # Take a best snapshot
     record_trigger = training.triggers.MaxValueTrigger(
