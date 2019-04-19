@@ -134,6 +134,15 @@ def _populate_module_functions():
 
     chainerx.sign = _sign
 
+    def _fix(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
+        return _to_chx(ret)
+
+    chainerx.fix = _fix
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
@@ -150,7 +159,10 @@ def _populate_ndarray():
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -186,21 +198,13 @@ def _populate_ndarray():
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
 
-    def _all(arr, *args, **kwargs):
+    def tolist(arr):
         _, dev, arr = _from_chx(arr)
         with dev:
-            ret = arr.all(*args, **kwargs)
-        return _to_chx(ret)
+            ret = arr.tolist()
+        return ret
 
-    ndarray.all = _all
-
-    def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.any(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.any = _any
+    ndarray.tolist = tolist
 
 
 def populate():

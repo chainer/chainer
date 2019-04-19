@@ -160,7 +160,7 @@ def _check_chainerx_numpy_result(
         chx_r = chainerx_result
         np_r = numpy_result
         i = 0
-        while len(indices[i:]) > 0:
+        while indices[i:]:
             chx_r = chx_r[indices[i]]
             np_r = np_r[indices[i]]
             i += 1
@@ -168,7 +168,7 @@ def _check_chainerx_numpy_result(
         def make_message(e):
             indices_str = ''.join('[{}]'.format(i) for i in indices)
             s = '{}: {}\n\n'.format(e.msg, e.condense_results(np_r, chx_r))
-            if len(indices) > 0:
+            if indices:
                 s += 'chainerx results{}: {}\n'.format(
                     indices_str, type(chx_r))
                 s += '{}\n\n'.format(chx_r)

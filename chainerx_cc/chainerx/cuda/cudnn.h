@@ -54,10 +54,10 @@ public:
 
     ~CudnnTensorDescriptor();
 
-    CudnnTensorDescriptor(const CudnnTensorDescriptor&) = default;
-    CudnnTensorDescriptor(CudnnTensorDescriptor&&) = default;
-    CudnnTensorDescriptor& operator=(const CudnnTensorDescriptor&) = default;
-    CudnnTensorDescriptor& operator=(CudnnTensorDescriptor&&) = default;
+    CudnnTensorDescriptor(const CudnnTensorDescriptor&) = delete;
+    CudnnTensorDescriptor(CudnnTensorDescriptor&& other) : desc_{other.desc_} { other.desc_ = nullptr; }
+    CudnnTensorDescriptor& operator=(const CudnnTensorDescriptor&) = delete;
+    CudnnTensorDescriptor& operator=(CudnnTensorDescriptor&&) = delete;
 
     cudnnTensorDescriptor_t descriptor() const { return desc_; }
     cudnnTensorDescriptor_t operator*() const { return desc_; }
@@ -71,12 +71,14 @@ private:
 class CudnnFilterDescriptor {
 public:
     explicit CudnnFilterDescriptor(const Array& w);
+
     ~CudnnFilterDescriptor();
 
-    CudnnFilterDescriptor(const CudnnFilterDescriptor&) = default;
-    CudnnFilterDescriptor(CudnnFilterDescriptor&&) = default;
-    CudnnFilterDescriptor& operator=(const CudnnFilterDescriptor&) = default;
-    CudnnFilterDescriptor& operator=(CudnnFilterDescriptor&&) = default;
+    // TODO(hvy): Allow move semantics as needed.
+    CudnnFilterDescriptor(const CudnnFilterDescriptor&) = delete;
+    CudnnFilterDescriptor(CudnnFilterDescriptor&&) = delete;
+    CudnnFilterDescriptor& operator=(const CudnnFilterDescriptor&) = delete;
+    CudnnFilterDescriptor& operator=(CudnnFilterDescriptor&&) = delete;
 
     cudnnFilterDescriptor_t descriptor() const { return desc_; }
     cudnnFilterDescriptor_t operator*() const { return desc_; }
@@ -94,12 +96,14 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
+
     ~CudnnConvolutionDescriptor();
 
-    CudnnConvolutionDescriptor(const CudnnConvolutionDescriptor&) = default;
-    CudnnConvolutionDescriptor(CudnnConvolutionDescriptor&&) = default;
-    CudnnConvolutionDescriptor& operator=(const CudnnConvolutionDescriptor&) = default;
-    CudnnConvolutionDescriptor& operator=(CudnnConvolutionDescriptor&&) = default;
+    // TODO(hvy): Allow move semantics as needed.
+    CudnnConvolutionDescriptor(const CudnnConvolutionDescriptor&) = delete;
+    CudnnConvolutionDescriptor(CudnnConvolutionDescriptor&&) = delete;
+    CudnnConvolutionDescriptor& operator=(const CudnnConvolutionDescriptor&) = delete;
+    CudnnConvolutionDescriptor& operator=(CudnnConvolutionDescriptor&&) = delete;
 
     cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
     cudnnConvolutionDescriptor_t operator*() const { return desc_; }
@@ -117,12 +121,14 @@ public:
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
+
     ~CudnnPoolingDescriptor();
 
-    CudnnPoolingDescriptor(const CudnnPoolingDescriptor&) = default;
-    CudnnPoolingDescriptor(CudnnPoolingDescriptor&&) = default;
-    CudnnPoolingDescriptor& operator=(const CudnnPoolingDescriptor&) = default;
-    CudnnPoolingDescriptor& operator=(CudnnPoolingDescriptor&&) = default;
+    // TODO(hvy): Allow move semantics as needed.
+    CudnnPoolingDescriptor(const CudnnPoolingDescriptor&) = delete;
+    CudnnPoolingDescriptor(CudnnPoolingDescriptor&&) = delete;
+    CudnnPoolingDescriptor& operator=(const CudnnPoolingDescriptor&) = delete;
+    CudnnPoolingDescriptor& operator=(CudnnPoolingDescriptor&&) = delete;
 
     cudnnPoolingDescriptor_t descriptor() const { return desc_; }
     cudnnPoolingDescriptor_t operator*() const { return desc_; }
