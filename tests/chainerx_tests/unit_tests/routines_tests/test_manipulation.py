@@ -643,3 +643,52 @@ class TestSplit(op_utils.NumpyOpTest):
 def test_split_invalid(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.split(a, indices_or_sections, axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('shape,axis1,axis2', [
+    ((1, 1), 0, 1),
+    ((2, 4), -1, 1),
+    ((1, 2, 2), 0, 1),
+    ((1, 2, 3, 4), 0, 2),
+    ((3, 2, 1, 2, 3), 0, 4),
+    ((1, 2, 4, 3, 1), 0, -2),
+    ((1, 2, 4, 2, 1), 0, 0),
+    ((1, 3, 3, 1), -1, -4),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestSwapaxes(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.swapaxes(a, self.axis1, self.axis2)
+        else:
+            b = a.swapaxes(self.axis1, self.axis2)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize('shape,axis1,axis2', [
+    # Axis out of range.
+    ((), 1, 0),
+    ((2,), 3, 0),
+    ((2, 4), 1, 2),
+    ((1, 1, 2), -1, -4)
+])
+def test_swap_invalid(xp, shape, axis1, axis2):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.swapaxes(a, axis1, axis2)

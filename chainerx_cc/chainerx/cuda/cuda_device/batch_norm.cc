@@ -14,10 +14,11 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/normalization.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/normalization.h"
@@ -70,7 +71,7 @@ cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
     return derive_desc;
 }
 
-class CudaBatchNormOp : public BatchNormOp {
+class CudaBatchNormKernel : public BatchNormKernel {
 public:
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
@@ -183,9 +184,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
+CHAINERX_CUDA_REGISTER_KERNEL(BatchNormKernel, CudaBatchNormKernel);
 
-class CudaBatchNormGradOp : public BatchNormGradOp {
+class CudaBatchNormGradKernel : public BatchNormGradKernel {
 public:
     std::tuple<Array, Array, Array> Call(
             const Array& x,
@@ -294,9 +295,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormGradOp, CudaBatchNormGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(BatchNormGradKernel, CudaBatchNormGradKernel);
 
-class CudaFixedBatchNormOp : public FixedBatchNormOp {
+class CudaFixedBatchNormKernel : public FixedBatchNormKernel {
 public:
     Array Call(
             const Array& x,
@@ -376,7 +377,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
+CHAINERX_CUDA_REGISTER_KERNEL(FixedBatchNormKernel, CudaFixedBatchNormKernel);
 
 }  // namespace
 }  // namespace cuda

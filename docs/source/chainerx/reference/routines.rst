@@ -67,6 +67,7 @@ Array manipulation routines
    chainerx.concatenate
    chainerx.stack
    chainerx.split
+   chainerx.swapaxes
 
 Indexing routines
 -----------------
