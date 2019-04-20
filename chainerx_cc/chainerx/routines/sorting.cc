@@ -48,7 +48,7 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     return out;
 }
 
-Array ArgMinOp::Call(const Array& a, const OptionalAxes& axis) {
+Array ArgMin(const Array& a, const OptionalAxes& axis) {
     Axes sorted_axis{};
     Shape out_shape{};
     if (axis.has_value()) {
@@ -76,7 +76,7 @@ Array ArgMinOp::Call(const Array& a, const OptionalAxes& axis) {
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
     {
         NoBackpropModeScope scope{};
-        Impl(a, sorted_axis, out);
+        a.device().backend().CallKernel<ArgMinKernel>(a, sorted_axis, out);
     }
     return out;
 }
