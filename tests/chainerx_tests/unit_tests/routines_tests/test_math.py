@@ -231,6 +231,10 @@ _in_out_dtypes_array_int_scalar = [
     (('float16',), int, 'float16'),
     (('float32',), int, 'float32'),
     (('float64',), int, 'float64'),
+    (('int16',), numpy.int16, 'int16'),
+    (('uint8',), numpy.int8, 'uint8'),
+    (('float64',), numpy.int8, 'float64'),
+    (('float16',), numpy.int64, 'float16'),
 ]
 
 
@@ -241,6 +245,9 @@ _in_out_dtypes_int_array_float_scalar = [
     (('int32',), float, 'float32'),
     (('int64',), float, 'float32'),
     (('uint8',), float, 'float32'),
+    (('int8',), numpy.float32, 'float32'),
+    (('int64',), numpy.float16, 'float32'),
+    (('uint8',), numpy.float64, 'float32'),
 ]
 
 
@@ -249,6 +256,9 @@ _in_out_dtypes_float_array_float_scalar = [
     (('float16',), float, 'float16'),
     (('float32',), float, 'float32'),
     (('float64',), float, 'float64'),
+    (('float64',), float, 'float64'),
+    (('float16',), numpy.float64, 'float16'),
+    (('float64',), numpy.float16, 'float64'),
 ]
 
 
@@ -1609,6 +1619,12 @@ class TestLogSumExp(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
 
+    def setup(self):
+        super().setup()
+        if self.in_dtypes == 'float16':
+            # TODO(imanishi): Support device implementation and remove this.
+            self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+
     def forward_xp(self, inputs, xp):
         x, = inputs
         axis = self.axis
@@ -1908,6 +1924,29 @@ class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.tan(a)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': ['random'],
+        'contiguous': [None, 'C'],
+    })
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        assert chainerx.abs is chainerx.absolute
+        return xp.abs(a)
+
+
 def _make_inverse_trig_params(name):
     # Makes test parameters for inverse trigonometric functions
 
@@ -2179,6 +2218,8 @@ def test_min_amin():
     })
 ))
 class TestMin(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
 
     def generate_inputs(self):
         in_dtype, = self.in_dtypes

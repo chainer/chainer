@@ -17,9 +17,8 @@ Run the following command from the root of the project to generate ``chainerx_cc
 
 .. code-block:: console
 
-    $ cd chainerx_cc
-    $ mkdir -p build
-    $ cd build
+    $ mkdir chainerx_cc/build
+    $ cd chainerx_cc/build
     $ cmake ..
     $ make
 
@@ -47,6 +46,7 @@ Once built, run the suite with the following command from within the ``build`` d
 
 .. code-block:: console
 
+    $ cd chainerx_cc/build
     $ ctest -V
 
 Coding standards
@@ -58,10 +58,11 @@ Formatting
 ~~~~~~~~~~
 
 ChainerX is formatted using `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
-To fix the formatting in-place, run the following command from the repository root:
+To fix the formatting in-place, run the following command from ``chainerx_cc`` directory:
 
 .. code-block:: console
 
+    $ cd chainerx_cc
     $ scripts/run-clang-format.sh --in-place
 
 Lint checking
@@ -69,11 +70,18 @@ Lint checking
 
 ChainerX uses the `cpplint <https://github.com/cpplint/cpplint>`_ and `clang-tidy <http://clang.llvm.org/extra/clang-tidy/>`_ for lint checking.
 Note that clang-tidy requires that you've finished running ``cmake``.
-To run them, run the following commands from the repository root:
+To run cpplint, run ``scripts/run-cpplint.sh`` from ``chainerx_cc`` directory:
 
 .. code-block:: console
 
+    $ cd chainerx_cc
     $ scripts/run-cpplint.sh
+
+To run clang-tidy, run ``make clang-tidy`` from the build directory:
+
+.. code-block:: console
+
+    $ cd chainerx_cc/build
     $ make clang-tidy
 
 Thread sanitizer
@@ -96,17 +104,24 @@ To test the Python binding, run the following command at the repository root:
 
     $ pytest
 
+The above command runs all the tests in the repository, including Chainer and ChainerMN.
+To run only ChainerX tests, specify the test directory:
+
+.. code-block:: console
+
+    $ pytest tests/chainerx_tests
+
 Run tests with coverage:
 
 .. code-block:: console
 
-    $ pytest --cov --no-cov-on-fail --cov-fail-under=80
+    $ pytest --cov --no-cov-on-fail --cov-fail-under=80 tests/chainerx_tests
 
 Run tests without CUDA GPU:
 
 .. code-block:: console
 
-    $ pytest -m 'not cuda'
+    $ pytest -m 'not cuda' tests/chainerx_tests
 
 Test coverage
 -------------
