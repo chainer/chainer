@@ -54,7 +54,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(ArgMaxKernel, NativeArgMaxKernel);
 
 class NativeArgMinKernel : public ArgMinKernel {
 protected:
-    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
         a.device().CheckDevicesCompatible(a, out);
