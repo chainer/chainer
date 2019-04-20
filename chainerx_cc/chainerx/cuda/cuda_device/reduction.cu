@@ -75,6 +75,7 @@ struct ArgMinImpl {
     __device__ MinAndArgMin Identity() { return {CudaType{}, -1}; }
     __device__ MinAndArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
     __device__ void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
         if (next.argmin != -1 && (accum.argmin == -1 || accum.min > next.min)) {
             accum = next;
         }
@@ -82,9 +83,9 @@ struct ArgMinImpl {
     __device__ int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
 };
 
-class CudaArgMinOp : public ArgMinOp {
+class CudaArgMinKernel : public ArgMinKernel {
 protected:
-    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
@@ -95,7 +96,7 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArgMinOp, CudaArgMinOp);
+CHAINERX_REGISTER_OP_CUDA(ArgMinKernel, CudaArgMinKernel);
 
 }  // namespace
 
