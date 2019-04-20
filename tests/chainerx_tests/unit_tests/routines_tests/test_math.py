@@ -1949,7 +1949,7 @@ class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
             self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
             self.check_double_backward_options.update(
                 {'rtol': 5e-3, 'atol': 5e-3})
-    
+
     def func(self, xp, a, b):
         if self.is_module:
             return xp.power(a, b)
