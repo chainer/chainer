@@ -692,3 +692,51 @@ class TestSwapaxes(op_utils.NumpyOpTest):
 def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('shape', [
+    # (2, 2, 2),
+    # (3, 3, 2, 3, 3),
+    (3, 0, 2, 0, 3),
+    # (1, 2, 3, 1, 3, 3),
+    # (3, 4, 5, 2, 3, 4, 5),
+    # (1,)
+])
+class TestExpandDIms(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        
+        print(a.strides)
+        print(a.shape)
+        b = ()
+
+        # for axis in range(a.ndim + 1):
+        #     b += (xp.expand_dims(a, axis), )
+
+        # for axis in range(-1, -a.ndim-1, -1):
+        #     b += (xp.expand_dims(a, axis), )
+
+        # For contigous array.
+
+        # for axis in range(a.ndim + 1):
+            # b += (xp.expand_dims(a.copy(), axis), )
+
+        # for axis in range(-1, -a.ndim-1, -1):
+        #     b += (xp.expand_dims(a.copy(), axis), )
+
+        return b
