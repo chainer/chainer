@@ -2095,6 +2095,19 @@ def test_isinf(xp, device, input, dtype):
     return xp.isinf(a)
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isfinite(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isfinite(a)
+
+
 def test_max_amax():
     assert chainerx.amax is chainerx.max
 

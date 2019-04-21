@@ -22,6 +22,15 @@ __device__ inline bool IsInf(cuda::Float16 value) { return value.IsInf(); }
 __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
+template <typename T>
+__device__ inline bool IsFinite(T /*value*/) {
+    return true;
+}
+
+__device__ inline bool IsFinite(cuda::Float16 value) { return (!value.IsInf()) && (!value.IsNan()); }
+__device__ inline bool IsFinite(double value) { return isfinite(value); }
+__device__ inline bool IsFinite(float value) { return isfinite(value); }
+
 __device__ inline double Arcsinh(double x) { return std::asinh(x); }
 
 __device__ inline float Arcsinh(float x) { return std::asinhf(x); }

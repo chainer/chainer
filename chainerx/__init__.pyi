@@ -660,6 +660,9 @@ def identity(
 def is_available(): ...
 
 
+def isfinite(x: ndarray) -> ndarray: ...
+
+
 def isinf(x: ndarray) -> ndarray: ...
 
 

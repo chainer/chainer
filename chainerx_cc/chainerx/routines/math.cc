@@ -1110,4 +1110,13 @@ Array IsInf(const Array& x) {
     return out;
 }
 
+Array IsFinite(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<IsFiniteKernel>(x, out);
+    }
+    return out;
+}
+
 }  // namespace chainerx
