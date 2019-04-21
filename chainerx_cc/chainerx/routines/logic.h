@@ -44,6 +44,8 @@ Array LogicalAnd(const Array& x1, const Array& x2);
 
 Array LogicalOr(const Array& x1, const Array& x2);
 
+Array LogicalXor(const Array& x1, const Array& x2);
+
 Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
