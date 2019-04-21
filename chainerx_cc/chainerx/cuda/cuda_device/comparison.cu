@@ -185,6 +185,30 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(LogicalOrKernel, CudaLogicalOrKernel);
 
+template <typename T>
+struct LogicalXorImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = !x1 != !x2; }
+};
+
+class CudaLogicalXorKernel : public LogicalXorKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(LogicalXorImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(LogicalXorKernel, CudaLogicalXorKernel);
+
 template <typename In>
 struct AllImpl {
     using InCudaType = cuda_internal::DataType<In>;
