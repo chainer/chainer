@@ -696,75 +696,19 @@ TEST_P(CreationTest, FromString) {
             [](const auto& x) { return testing::ExpectDataClose<float>(kSpecialFloat32Vector, x, 1e-8); },
     };
 
-    Device& device = GetDefaultDevice();
+    Context ctx;
+    Device& device = ctx.GetDevice({"native", 0});
 
-    testing::RunTestWithThreads([&device]() {
-        for (size_t j = 0; j < kDtypes.size(); j++) {
-            std::cerr << "Testing dtype " << kDtypes[j] << std::endl;
-            int64_t counts[2] = {int64_t(kDataLengths[j]), -1};
-            for (size_t i = 0; i < 2; i++) {
-                {
-                    std::cerr << "Running with text for " << kDtypes[j] << std::endl;
-                    Array x =
-                            FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], std::string{kTestSeparator}, device);
-
-                    Shape expected_shape{int64_t(kDataLengths[j])};
-                    Strides expected_strides{expected_shape, kDtypes[j]};
-
-                    EXPECT_EQ(expected_shape, x.shape());
-                    EXPECT_EQ(kDtypes[j], x.dtype());
-                    EXPECT_EQ(expected_strides, x.strides());
-                    EXPECT_EQ(0, x.offset());
-                    EXPECT_EQ(&device, &x.device());
-
-                    kExpectDataEqualChecks[j](x);
-                }
-
-                {
-                    std::string data = (testing::testing_internal::IsLittleEndian())
-                                               ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
-                                               : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
-                    std::cerr << "Running with binary for " << kDtypes[j] << std::endl;
-                    Array x = FromString(data, kDtypes[j], counts[i], nonstd::nullopt, device);
-
-                    Shape expected_shape{int64_t(kDataLengths[j])};
-                    Strides expected_strides{expected_shape, kDtypes[j]};
-
-                    EXPECT_EQ(expected_shape, x.shape());
-                    EXPECT_EQ(kDtypes[j], x.dtype());
-                    EXPECT_EQ(expected_strides, x.strides());
-                    EXPECT_EQ(0, x.offset());
-                    EXPECT_EQ(&device, &x.device());
-
-                    kExpectDataEqualChecks[j](x);
-                }
-            }
-
-            if (kDataLengths[j] > 0) {
-                try {
-                    std::cerr << "Failure case on not enough text elements to read" << std::endl;
-                    Array x = FromString(
-                            std::string(kText[j], kTextLengths[j]), kDtypes[j], kDataLengths[j] * 2, std::string{kTestSeparator}, device);
-                    FAIL();
-                } catch (ChainerxError e) {
-                }
-
-                try {
-                    std::cerr << "Failure case on not enough binary elements to read" << std::endl;
-                    std::string data = (testing::testing_internal::IsLittleEndian())
-                                               ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
-                                               : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
-                    Array x = FromString(data, kDtypes[j], kDataLengths[j] * 2, nonstd::nullopt, device);
-                    FAIL();
-                } catch (ChainerxError e) {
-                }
-            }
-
+    for (size_t j = 0; j < kDtypes.size(); j++) {
+        std::cerr << "Testing dtype " << kDtypes[j] << std::endl;
+        int64_t counts[2] = {int64_t(kDataLengths[j]), -1};
+        for (size_t i = 0; i < 2; i++) {
             {
-                std::cerr << "Empty string check" << std::endl;
-                Array x = FromString("", kDtypes[j], 0, std::string{kTestSeparator}, device);
+                std::cerr << "Running with text for " << kDtypes[j] << std::endl;
+                Array x =
+                        FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], std::string{kTestSeparator}, device);
 
-                Shape expected_shape{0};
+                Shape expected_shape{int64_t(kDataLengths[j])};
                 Strides expected_strides{expected_shape, kDtypes[j]};
 
                 EXPECT_EQ(expected_shape, x.shape());
@@ -772,9 +716,64 @@ TEST_P(CreationTest, FromString) {
                 EXPECT_EQ(expected_strides, x.strides());
                 EXPECT_EQ(0, x.offset());
                 EXPECT_EQ(&device, &x.device());
+
+                kExpectDataEqualChecks[j](x);
+            }
+
+            {
+                std::string data = (testing::testing_internal::IsLittleEndian())
+                                            ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
+                                            : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                std::cerr << "Running with binary for " << kDtypes[j] << std::endl;
+                Array x = FromString(data, kDtypes[j], counts[i], nonstd::nullopt, device);
+
+                Shape expected_shape{int64_t(kDataLengths[j])};
+                Strides expected_strides{expected_shape, kDtypes[j]};
+
+                EXPECT_EQ(expected_shape, x.shape());
+                EXPECT_EQ(kDtypes[j], x.dtype());
+                EXPECT_EQ(expected_strides, x.strides());
+                EXPECT_EQ(0, x.offset());
+                EXPECT_EQ(&device, &x.device());
+
+                kExpectDataEqualChecks[j](x);
             }
         }
-    });
+
+        if (kDataLengths[j] > 0) {
+            try {
+                std::cerr << "Failure case on not enough text elements to read" << std::endl;
+                Array x = FromString(
+                        std::string(kText[j], kTextLengths[j]), kDtypes[j], kDataLengths[j] * 2, std::string{kTestSeparator}, device);
+                FAIL();
+            } catch (ChainerxError e) {
+            }
+
+            try {
+                std::cerr << "Failure case on not enough binary elements to read" << std::endl;
+                std::string data = (testing::testing_internal::IsLittleEndian())
+                                            ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
+                                            : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                Array x = FromString(data, kDtypes[j], kDataLengths[j] * 2, nonstd::nullopt, device);
+                FAIL();
+            } catch (ChainerxError e) {
+            }
+        }
+
+        {
+            std::cerr << "Empty string check" << std::endl;
+            Array x = FromString("", kDtypes[j], 0, std::string{kTestSeparator}, device);
+
+            Shape expected_shape{0};
+            Strides expected_strides{expected_shape, kDtypes[j]};
+
+            EXPECT_EQ(expected_shape, x.shape());
+            EXPECT_EQ(kDtypes[j], x.dtype());
+            EXPECT_EQ(expected_strides, x.strides());
+            EXPECT_EQ(0, x.offset());
+            EXPECT_EQ(&device, &x.device());
+        }
+    }
 }
 
 TEST_P(CreationTest, Empty) {
