@@ -14,6 +14,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/backend.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
@@ -21,12 +22,13 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
-#include "chainerx/shape.h"
-#include "chainerx/strides.h"
-
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/type_util.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
 namespace chainerx {
 
@@ -444,11 +446,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            if (in_dtype == out_dtype) {
-                device.Copy(array, sliced_out);
-            } else {
-                device.AsType(array, sliced_out);
-            }
+            device.backend().CallKernel<AsTypeKernel>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }
@@ -457,7 +455,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     {
         BackwardBuilder bb{"concatenate", array_refs, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes)](BackwardContext& bctx) {
+            bt.Define([ indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes) ](BackwardContext & bctx) {
                 const Array& gy = *bctx.output_grad();
                 Dtype out_dtype = gy.dtype();
                 std::vector<Array> gxs = Split(gy, indices, axis);
@@ -573,7 +571,7 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         int64_t out_offset = 0;
         for (const Array& array : arrays) {
             Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
-            device.Copy(array, sliced_out);
+            device.backend().CallKernel<CopyKernel>(array, sliced_out);
             out_offset += step;
         }
     }
@@ -615,7 +613,7 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
 
     BackwardBuilder bb{"split", ary, out_refs};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([axis_norm, shapes = std::move(shapes), dtype = ary.dtype(), &device = ary.device()](BackwardContext& bctx) {
+        bt.Define([ axis_norm, shapes = std::move(shapes), dtype = ary.dtype(), &device = ary.device() ](BackwardContext & bctx) {
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {
@@ -694,6 +692,29 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     }
 
     DefineSplitBackward(ary, out, axis_norm);
+
+    return out;
+}
+
+Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
+    Shape shape = a.shape();
+    Strides strides = a.strides();
+
+    axis1 = internal::NormalizeAxis(axis1, a.ndim());
+    axis2 = internal::NormalizeAxis(axis2, a.ndim());
+
+    std::iter_swap(shape.begin() + axis1, shape.begin() + axis2);
+    std::iter_swap(strides.begin() + axis1, strides.begin() + axis2);
+    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
+
+    BackwardBuilder bb{"swapaxes", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis1, axis2](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Swapaxes(gout, axis1, axis2);
+        });
+    }
+    bb.Finalize();
 
     return out;
 }

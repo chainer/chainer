@@ -17,14 +17,14 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/float16.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
 
 namespace chainerx {
 namespace cuda {
@@ -63,7 +63,7 @@ struct DiagonalImpl {
     int64_t num_elements;
 };
 
-class CudaDiagonalOp : public DiagonalOp {
+class CudaDiagonalKernel : public DiagonalKernel {
 public:
     void Call(const Array& x, const int64_t offset, const int64_t axis1, const int64_t axis2, Array& out) {
         x.device().CheckDevicesCompatible(x, out);
@@ -78,8 +78,7 @@ public:
             impl.x_ndim = x.ndim();
 
             const Shape& x_shape = x.shape();
-            impl.num_elements = std::max(0l,
-                std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
+            impl.num_elements = std::max(0l, std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
 
             std::vector<int64_t> out_shape;
             for (int i = 0; i < x.ndim(); i++) {
@@ -87,14 +86,12 @@ public:
             }
             out_shape.push_back(impl.num_elements);
 
-            out = Empty(Shape{out_shape}, x.dtype(), x.device());
-
             ElementwiseWithIndex<T>(std::move(impl), out);
         });
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DiagonalOp, CudaDiagonalOp);
+CHAINERX_CUDA_REGISTER_KERNEL(DiagonalKernel, CudaDiagonalKernel);
 
 }  // namespace
 }  // namespace cuda

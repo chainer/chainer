@@ -17,12 +17,6 @@
 
 namespace chainerx {
 
-class DiagonalflatOp : public Op {
-public:
-    static const char* name() { return "Diagonalflat"; }
-    virtual void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta, Array& out) = 0;
-};
-
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.

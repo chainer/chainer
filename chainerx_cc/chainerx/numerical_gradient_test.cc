@@ -86,12 +86,10 @@ TEST_P(NumericalGradientTest, NumericalGradientAdd) {
     std::vector<T> grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
-            testing::BuildArray(shape).WithData(data1),
-            testing::BuildArray(shape).WithData(data2),
+            testing::BuildArray(shape).WithData(data1), testing::BuildArray(shape).WithData(data2),
     };
     Arrays eps = {
-            testing::BuildArray(shape).WithData(eps1),
-            testing::BuildArray(shape).WithData(eps2),
+            testing::BuildArray(shape).WithData(eps1), testing::BuildArray(shape).WithData(eps2),
     };
     Arrays grad_outputs = {
             testing::BuildArray(shape).WithData(grad_output_data),
@@ -117,12 +115,10 @@ TEST_P(NumericalGradientTest, NumericalGradientMul) {
     std::vector<T> grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
-            testing::BuildArray(shape).WithData(data1),
-            testing::BuildArray(shape).WithData(data2),
+            testing::BuildArray(shape).WithData(data1), testing::BuildArray(shape).WithData(data2),
     };
     Arrays eps = {
-            testing::BuildArray(shape).WithData(eps1),
-            testing::BuildArray(shape).WithData(eps2),
+            testing::BuildArray(shape).WithData(eps1), testing::BuildArray(shape).WithData(eps2),
     };
     Arrays grad_outputs = {
             testing::BuildArray(shape).WithData(grad_output_data),

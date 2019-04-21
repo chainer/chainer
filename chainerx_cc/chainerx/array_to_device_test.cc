@@ -1,3 +1,4 @@
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -31,12 +32,13 @@ public:
     using Key = std::tuple<int, int, int>;
 
     TestConfig() {
-        set_.insert({
-                Key{0, 0, 0},  // backend0 can transfer with itself
-                Key{0, 0, 1},  // backend0 can transfer to backend1
-                Key{0, 2, 0},  // backend0 can transfer from backend2
-                               // backend0 and backend3 are incompatible
-        });
+        set_.insert(
+                {
+                        Key{0, 0, 0},  // backend0 can transfer with itself
+                        Key{0, 0, 1},  // backend0 can transfer to backend1
+                        Key{0, 2, 0},  // backend0 can transfer from backend2
+                        // backend0 and backend3 are incompatible
+                });
     }
 
     // Returns true if the backend `who` can transfer data from backend `from` to backend `to`
@@ -63,7 +65,7 @@ public:
 // Test backend class
 class TestBackend : public native::NativeBackend {
 public:
-    TestBackend(Context& context, int num) : native::NativeBackend(context), num_(num) {}
+    TestBackend(Context& context, int num) : native::NativeBackend{context}, num_{num} {}
 
     int num() const { return num_; }
 
@@ -100,8 +102,10 @@ protected:
         dst_backend_num_ = ::testing::get<2>(GetParam());
 
         backends_.clear();
+        Context& context = context_session_->context();
         for (int i = 0; i < g_config.num_backends(); ++i) {
-            backends_.emplace_back(std::make_unique<TestBackend>(context_session_->context(), i));
+            Backend& backend = context.CreateBackend<TestBackend>("test_backend" + std::to_string(i), i);
+            backends_.emplace_back(backend);
         }
 
         // Set default backend (only if default_backend_num is non-negative)
@@ -120,17 +124,17 @@ protected:
         if (default_backend_num_ < 0) {
             return nullptr;
         }
-        return &backends_[default_backend_num_]->GetDevice(0);
+        return &backends_[default_backend_num_].get().GetDevice(0);
     }
 
-    Device& GetSourceDevice() { return backends_[src_backend_num_]->GetDevice(0); }
+    Device& GetSourceDevice() { return backends_[src_backend_num_].get().GetDevice(0); }
 
-    Device& GetDestinationDevice() { return backends_[dst_backend_num_]->GetDevice(0); }
+    Device& GetDestinationDevice() { return backends_[dst_backend_num_].get().GetDevice(0); }
 
 private:
     nonstd::optional<testing::ContextSession> context_session_;
     std::unique_ptr<DeviceScope> device_scope_;
-    std::vector<std::unique_ptr<TestBackend>> backends_;
+    std::vector<std::reference_wrapper<Backend>> backends_;
     int default_backend_num_{};
     int src_backend_num_{};
     int dst_backend_num_{};
@@ -227,7 +231,7 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     CHAINERX_REQUIRE_DEVICE("native", 3);
     testing::ContextSession context_session;
-    native::NativeBackend backend{context_session.context()};
+    Backend& backend = context_session.context().CreateBackend<native::NativeBackend>("native_test_backend");
 
     Device& dev0 = backend.GetDevice(0);
     Device& dev1 = backend.GetDevice(1);

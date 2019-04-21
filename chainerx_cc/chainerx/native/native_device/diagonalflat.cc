@@ -1,20 +1,15 @@
 #include "chainerx/native/native_device.h"
 
-#include <cmath>
-#include <cstdint>
-#include <type_traits>
-
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -22,7 +17,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeDiagonalflatOp : public DiagonalflatOp {
+class NativeDiagonalflatKernel : public DiagonalflatKernel {
 public:
     void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t, Array& out) {
         x.device().CheckDevicesCompatible(x, out);
@@ -74,7 +69,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DiagonalflatOp, NativeDiagonalflatOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DiagonalflatKernel, NativeDiagonalflatKernel);
 
 }  // namespace
 }  // namespace native

@@ -17,14 +17,14 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/float16.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
 
 namespace chainerx {
 namespace cuda {
@@ -65,7 +65,7 @@ struct DiagonalflatImpl {
     int64_t out_ndim;
 };
 
-class CudaDiagonalflatOp : public DiagonalflatOp {
+class CudaDiagonalflatKernel : public DiagonalflatKernel {
 public:
     void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t, Array& out) {
         x.device().CheckDevicesCompatible(x, out);
@@ -85,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(DiagonalflatOp, CudaDiagonalflatOp);
+CHAINERX_CUDA_REGISTER_KERNEL(DiagonalflatKernel, CudaDiagonalflatKernel);
 
 }  // namespace
 }  // namespace cuda

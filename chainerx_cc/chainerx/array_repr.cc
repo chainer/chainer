@@ -155,8 +155,9 @@ public:
 };
 
 template <typename T>
-using Formatter = std::
-        conditional_t<std::is_same<T, bool>::value, BoolFormatter, std::conditional_t<IsFloatingPointV<T>, FloatFormatter, IntFormatter>>;
+using Formatter = std::conditional_t<std::is_same<T, bool>::value,
+                                     BoolFormatter,
+                                     std::conditional_t<IsFloatingPointV<T>, FloatFormatter, IntFormatter>>;
 
 template <int8_t Ndim>
 struct ArrayReprImpl {

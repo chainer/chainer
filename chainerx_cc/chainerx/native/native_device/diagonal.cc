@@ -1,24 +1,15 @@
 #include "chainerx/native/native_device.h"
 
-#include <cmath>
-#include <cstdint>
-#include <type_traits>
-
-#ifdef CHAINERX_ENABLE_BLAS
-#include <cblas.h>
-#endif  // CHAINERX_ENABLE_BLAS
-
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -26,7 +17,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeDiagonalOp : public DiagonalOp {
+class NativeDiagonalKernel : public DiagonalKernel {
 public:
     void Call(const Array& x, const int64_t offset, const int64_t axis1, const int64_t axis2, Array& out) {
         x.device().CheckDevicesCompatible(x, out);
@@ -71,8 +62,7 @@ public:
                 impl.x_index.resize(x.ndim());
 
                 const Shape& x_shape = x.shape();
-                impl.num_elements = std::max(0l,
-                    std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
+                impl.num_elements = std::max(0l, std::min(x_shape[axis1] - impl.start_axis1, x_shape[axis2] - impl.start_axis2));
 
                 ElementwiseWithIndex<T>(std::move(impl), out);
             });
@@ -80,7 +70,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DiagonalOp, NativeDiagonalOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DiagonalKernel, NativeDiagonalKernel);
 
 }  // namespace
 }  // namespace native

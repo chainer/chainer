@@ -122,14 +122,16 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
     CHAINERX_ASSERT(
             std::all_of(outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output) != nullptr; }));
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
-    CHAINERX_ASSERT(std::all_of(
-            outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
+    CHAINERX_ASSERT(std::all_of(outputs_.begin(), outputs_.end(), [](const Array& output) {
+        return internal::GetArrayBody(output)->nodes().empty();
+    }));
     // Arrays must be on the same device within inputs / outputs respectively.
     CHAINERX_ASSERT(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
         return &outputs_.begin()->get().device() == &output.device();
     }));
-    CHAINERX_ASSERT(std::all_of(
-            inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
+    CHAINERX_ASSERT(std::all_of(inputs_.begin(), inputs_.end(), [this](const Array& input) {
+        return &inputs_.begin()->get().device() == &input.device();
+    }));
 
     has_any_applicable_outputs_ =
             std::any_of(outputs_.begin(), outputs_.end(), [](const Array& output) { return GetKind(output.dtype()) == DtypeKind::kFloat; });

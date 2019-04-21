@@ -1107,7 +1107,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
 
         # Collect the gradients w.r.t. the outputs
         ys = [y() for y in func.outputs]  # access via weak ref
-        gys = tuple([grads.pop(y) for y in ys])
+        gys = tuple([grads.pop(y)
+                     if y is not None and y.creator_node is not None else None
+                     for y in ys])
 
         for node, gy in six.moves.zip(ys, gys):
             if node is not None:
@@ -1187,7 +1189,7 @@ def _extract_apply_in_data(inputs):
     #
     # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
     # arrays are converted to ChainerX arrays without copy.
-    if len(inputs) == 0:
+    if not inputs:
         return False, ()
 
     if chainerx.is_available():

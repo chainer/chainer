@@ -321,17 +321,23 @@ TEST_F(BackpropTest, BackwardWithExtraInputs) {
 TEST_F(BackpropTest, BackwardMultipleOutputs) {
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
-    CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f}, [](auto& xs) -> std::vector<Array> {
-        Array z = xs[0] * xs[1];
-        return {xs[0] * z, xs[1] * z};
-    });
+    CheckBackpropSingleElement(
+            {2.0f, 3.0f},
+            {21.0f, 16.0f},
+            [](auto& xs) -> std::vector<Array> {
+                Array z = xs[0] * xs[1];
+                return {xs[0] * z, xs[1] * z};
+            });
 }
 
 TEST_F(BackpropTest, BackwardWithComplicatedRanks) {
-    CheckBackpropSingleElement({1.0f}, {-2.0f}, [](auto& xs) {
-        Array a = -xs[0] + 0;
-        return -(-a) + a;
-    });
+    CheckBackpropSingleElement(
+            {1.0f},
+            {-2.0f},
+            [](auto& xs) {
+                Array a = -xs[0] + 0;
+                return -(-a) + a;
+            });
 }
 
 TEST_F(BackpropTest, TryBackwardFromArrayWithoutNode) {
@@ -366,12 +372,15 @@ TEST_F(BackpropTest, DoubleBackprop) {
 
 TEST_F(BackpropTest, BackpropOnNonDefaultDevice) {
     testing::DeviceSession device_session{DeviceId{native::NativeBackend::kDefaultName, 0}};
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) {
-        auto ret = xs[0] * xs[1];
-        // This device switch also affects backward
-        SetDefaultDevice(&GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 1}));
-        return ret;
-    });
+    CheckBackpropSingleElement(
+            {3.0f, 2.0f},
+            {2.0f, 3.0f},
+            [](auto& xs) {
+                auto ret = xs[0] * xs[1];
+                // This device switch also affects backward
+                SetDefaultDevice(&GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 1}));
+                return ret;
+            });
 }
 
 TEST_F(BackpropTest, BackwardInnerBackpropIdNotProhibitedNoEdge) {
@@ -1626,7 +1635,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     DoubleBackpropOption double_backprop_opt = GetParam();
 
     auto forward = [gy1_value, gy2_value, double_backprop_opt, &backprop_id](
-                           const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) {
+            const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) {
         ASSERT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, x1));
         ASSERT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, x2));
         ASSERT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, x3));
@@ -1883,70 +1892,72 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be still alive.
-                ASSERT_NE(nullptr, y1_body.lock());
-                ASSERT_NE(nullptr, y2_body.lock());
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be still alive.
+                        ASSERT_NE(nullptr, y1_body.lock());
+                        ASSERT_NE(nullptr, y2_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
-                const Array& y2 = bctx.GetRetainedOutput(tok2);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                EXPECT_ARRAY_EQ(y2_value, y2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        EXPECT_ARRAY_EQ(y2_value, y2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
-                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx1 + gy2gx1;
-            });
+                        Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                        Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                        bctx.input_grad() = gy1gx1 + gy2gx1;
+                    });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             ASSERT_TRUE(bt);
-            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be still alive.
-                ASSERT_NE(nullptr, y1_body.lock());
-                ASSERT_NE(nullptr, y2_body.lock());
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be still alive.
+                        ASSERT_NE(nullptr, y1_body.lock());
+                        ASSERT_NE(nullptr, y2_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
-                const Array& y2 = bctx.GetRetainedOutput(tok2);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                EXPECT_ARRAY_EQ(y2_value, y2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        EXPECT_ARRAY_EQ(y2_value, y2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
-                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx2 + gy2gx2;
-            });
+                        Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                        Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                        bctx.input_grad() = gy1gx2 + gy2gx2;
+                    });
         }
         bb.Finalize();
     };
@@ -2012,69 +2023,71 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
-                ASSERT_EQ(nullptr, y2_body.lock());
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
+                        ASSERT_EQ(nullptr, y2_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
-                const Array& y2 = bctx.GetRetainedOutput(tok2);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                EXPECT_ARRAY_EQ(y2_value, y2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        EXPECT_ARRAY_EQ(y2_value, y2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
-                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx1 + gy2gx1;
-            });
+                        Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                        Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                        bctx.input_grad() = gy1gx1 + gy2gx1;
+                    });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
-                ASSERT_EQ(nullptr, y2_body.lock());
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
+                        ASSERT_EQ(nullptr, y2_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
-                const Array& y2 = bctx.GetRetainedOutput(tok2);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                EXPECT_ARRAY_EQ(y2_value, y2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        EXPECT_ARRAY_EQ(y2_value, y2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({}, y2));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
-                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                bctx.input_grad() = gy1gx2 + gy2gx2;
-            });
+                        Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                        Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                        bctx.input_grad() = gy1gx2 + gy2gx2;
+                    });
         }
         bb.Finalize();
     };
@@ -2130,7 +2143,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
     std::weak_ptr<const internal::ArrayNode> y1_node{};
 
     auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y1_node, double_backprop_opt](
-                           const Array& x1, const Array& x2, Array& y1, Array& y2) {
+            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = Exp(x1_c + 2 * x2_c) + Exp(2 * x1_c + x2_c);
@@ -2147,15 +2160,17 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y1_node,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(1),
+                y1_value,
+                y2_value,
+                &backprop_id1,
+                &backprop_id2,
+                &y1_body,
+                &y1_node,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
                 // Test assumption: the body and node of y1 must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
                 ASSERT_EQ(nullptr, y1_node.lock());
@@ -2187,15 +2202,17 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y1_node,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(1),
+                y1_value,
+                y2_value,
+                &backprop_id1,
+                &backprop_id2,
+                &y1_body,
+                &y1_node,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
                 // Test assumption: the body and node of y1 must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
                 ASSERT_EQ(nullptr, y1_node.lock());
@@ -2285,52 +2302,54 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             ASSERT_TRUE(bt);
-            bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define(
+                    [ tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                bctx.input_grad() = *bctx.output_grad(0) * y1 * 2;
-            });
+                        bctx.input_grad() = *bctx.output_grad(0) * y1 * 2;
+                    });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             ASSERT_TRUE(bt);
-            bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define(
+                    [ tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, y1));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                        // Retrieve retained outputs repeatedly
+                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                bctx.input_grad() = *bctx.output_grad(0) * y1;
-            });
+                        bctx.input_grad() = *bctx.output_grad(0) * y1;
+                    });
         }
         bb.Finalize();
     };
@@ -2379,7 +2398,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     std::weak_ptr<internal::ArrayBody> y1_body{};
 
     auto forward = [&backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
-                           const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+            const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         Array x3_c = x3.AsGradStopped();
@@ -2398,23 +2417,24 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            bt.Define([y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define(
+                    [ y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(y1_tok);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2, backprop_id3}, y1));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2, backprop_id3}, y1));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
+                        }
 
-                bctx.input_grad() = *bctx.output_grad(0) * y1;
-            });
+                        bctx.input_grad() = *bctx.output_grad(0) * y1;
+                    });
         }
         bb.Finalize();
     };
@@ -2466,7 +2486,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     std::weak_ptr<internal::ArrayBody> y1_body{};
 
     auto forward = [&backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
-                           const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+            const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         Array x3_c = x3.AsGradStopped();
@@ -2477,23 +2497,24 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         BackwardBuilder bb{"func", {x1, x2, x3}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            bt.Define([y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the bodies of ys must be dead.
-                ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define(
+                    [ y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the bodies of ys must be dead.
+                        ASSERT_EQ(nullptr, y1_body.lock());
 
-                // Retrieve retained outputs
-                const Array& y1 = bctx.GetRetainedOutput(y1_tok);
+                        // Retrieve retained outputs
+                        const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
-                EXPECT_ARRAY_EQ(y1_value, y1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2, backprop_id3}, y1));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
-                }
+                        EXPECT_ARRAY_EQ(y1_value, y1);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2, backprop_id3}, y1));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
+                        }
 
-                bctx.input_grad() = *bctx.output_grad(0) * y1;
-            });
+                        bctx.input_grad() = *bctx.output_grad(0) * y1;
+                    });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
@@ -2566,7 +2587,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define(
-                    [tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt](BackwardContext& bctx) {
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                            BackwardContext & bctx) {
                         // Retrieve retained inputs
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
@@ -2595,7 +2617,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             bt.Define(
-                    [tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt](BackwardContext& bctx) {
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                            BackwardContext & bctx) {
                         // Retrieve retained outputs
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
@@ -2663,7 +2686,7 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
     std::weak_ptr<internal::ArrayBody> x2_body{};
 
     auto forward = [&backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt](
-                           const Array& x1, const Array& x2, Array& y1, Array& y2) {
+            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = x1_c * x1_c * x2_c * x2_c;
@@ -2680,69 +2703,71 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the array bodies must be gone.
-                EXPECT_EQ(x1_body.lock(), nullptr);
-                EXPECT_EQ(x2_body.lock(), nullptr);
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the array bodies must be gone.
+                        EXPECT_EQ(x1_body.lock(), nullptr);
+                        EXPECT_EQ(x2_body.lock(), nullptr);
 
-                // Retrieve retained inputs
-                const Array& x1 = bctx.GetRetainedInput(tok1);
-                const Array& x2 = bctx.GetRetainedInput(tok2);
+                        // Retrieve retained inputs
+                        const Array& x1 = bctx.GetRetainedInput(tok1);
+                        const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                EXPECT_ARRAY_EQ(x1_c, x1);
-                EXPECT_ARRAY_EQ(x2_c, x2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x2));
-                }
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x2));
+                        }
 
-                // Retrieve retained inputs repeatedly
-                const Array& x1_again = bctx.GetRetainedInput(tok1);
-                const Array& x2_again = bctx.GetRetainedInput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
-                EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
+                        // Retrieve retained inputs repeatedly
+                        const Array& x1_again = bctx.GetRetainedInput(tok1);
+                        const Array& x2_again = bctx.GetRetainedInput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
+                        EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                Array gy1gx1 = *bctx.output_grad(0) * 2 * x1 * x2 * x2;
-                Array gy2gx1 = *bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
-                bctx.input_grad() = gy1gx1 + gy2gx1;
-            });
+                        Array gy1gx1 = *bctx.output_grad(0) * 2 * x1 * x2 * x2;
+                        Array gy2gx1 = *bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
+                        bctx.input_grad() = gy1gx1 + gy2gx1;
+                    });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt](
-                              BackwardContext& bctx) {
-                // Test assumption: the array bodies must be gone.
-                EXPECT_EQ(x1_body.lock(), nullptr);
-                EXPECT_EQ(x2_body.lock(), nullptr);
+            bt.Define(
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt ](
+                            BackwardContext & bctx) {
+                        // Test assumption: the array bodies must be gone.
+                        EXPECT_EQ(x1_body.lock(), nullptr);
+                        EXPECT_EQ(x2_body.lock(), nullptr);
 
-                // Retrieve retained outputs
-                const Array& x1 = bctx.GetRetainedInput(tok1);
-                const Array& x2 = bctx.GetRetainedInput(tok2);
+                        // Retrieve retained outputs
+                        const Array& x1 = bctx.GetRetainedInput(tok1);
+                        const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                EXPECT_ARRAY_EQ(x1_c, x1);
-                EXPECT_ARRAY_EQ(x2_c, x2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x2));
-                } else {
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x1));
-                    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x2));
-                }
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
+                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, x2));
+                        } else {
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x1));
+                            EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1}, x2));
+                        }
 
-                // Retrieve retained outputs repeatedly
-                const Array& x1_again = bctx.GetRetainedInput(tok1);
-                const Array& x2_again = bctx.GetRetainedInput(tok2);
-                EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
-                EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
+                        // Retrieve retained outputs repeatedly
+                        const Array& x1_again = bctx.GetRetainedInput(tok1);
+                        const Array& x2_again = bctx.GetRetainedInput(tok2);
+                        EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
+                        EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                Array gy1gx2 = *bctx.output_grad(0) * x1 * x1 * 2 * x2;
-                Array gy2gx2 = *bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
-                bctx.input_grad() = gy1gx2 + gy2gx2;
-            });
+                        Array gy1gx2 = *bctx.output_grad(0) * x1 * x1 * 2 * x2;
+                        Array gy2gx2 = *bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
+                        bctx.input_grad() = gy1gx2 + gy2gx2;
+                    });
         }
         bb.Finalize();
     };
@@ -2801,7 +2826,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define(
-                    [tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt](BackwardContext& bctx) {
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                            BackwardContext & bctx) {
                         // Retrieve retained inputs
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
@@ -2829,7 +2855,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             bt.Define(
-                    [tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt](BackwardContext& bctx) {
+                    [ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                            BackwardContext & bctx) {
                         // Retrieve retained outputs
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
@@ -2971,7 +2998,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
         {
             BackwardBuilder bb{"func", x1, y1};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([& device = x1.device()](BackwardContext& bctx) {
+            bt.Define([& device = x1.device()](BackwardContext & bctx) {
                 const Array& gy1 = *bctx.output_grad(0);
                 EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy1));
                 bctx.input_grad() =

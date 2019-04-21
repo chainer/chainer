@@ -17,8 +17,11 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/indexing.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -43,7 +46,7 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     {
         NoBackpropModeScope scope{};
-        a.device().Add(b, out_view, out_view);
+        a.device().backend().CallKernel<AddKernel>(b, out_view, out_view);
     }
 
     {
@@ -104,7 +107,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     BackwardBuilder bb{"get_item", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([indices, a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
+        bt.Define([ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
             const Array& gout = *bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
@@ -133,7 +136,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<AddAtOp>(a, indices, axis, b, out);
+        a.device().backend().CallKernel<AddAtKernel>(a, indices, axis, b, out);
     }
 
     {
@@ -169,14 +172,16 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<TakeOp>(a, indices, axis_norm, out);
+        a.device().backend().CallKernel<TakeKernel>(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
-        bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
+        bt.Define([ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
             const Array& gout = *bctx.output_grad();
+            // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
+            // the output of `AddAt`.
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }
@@ -194,8 +199,7 @@ Array Diagonal(const Array& x, int64_t offset, int64_t axis1, int64_t axis2) {
     int64_t start_axis2 = (offset > 0) ? offset : 0;
 
     const Shape& x_shape = x.shape();
-    int64_t num_elements = std::max(0l,
-        std::min(x_shape[axis1] - start_axis1, x_shape[axis2] - start_axis2));
+    int64_t num_elements = std::max(0l, std::min(x_shape[axis1] - start_axis1, x_shape[axis2] - start_axis2));
 
     std::vector<int64_t> out_shape;
     for (int i = 0; i < x.ndim(); i++) {
@@ -207,7 +211,7 @@ Array Diagonal(const Array& x, int64_t offset, int64_t axis1, int64_t axis2) {
 
     {
         NoBackpropModeScope scope{};
-        out.device().backend().CallOp<DiagonalOp>(x, offset, axis1, axis2, out);
+        out.device().backend().CallKernel<DiagonalKernel>(x, offset, axis1, axis2, out);
     }
 
     BackwardBuilder bb{"diagonal", x, out};

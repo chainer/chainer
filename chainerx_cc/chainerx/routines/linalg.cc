@@ -10,12 +10,14 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/backend.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/math.h"
@@ -73,20 +75,20 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     Array out_matrix = Empty({m, n}, real_out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Dot(a_matrix, b_matrix, out_matrix);
+        a.device().backend().CallKernel<DotKernel>(a_matrix, b_matrix, out_matrix);
     }
 
     {
         BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([b_matrix_tok = bb.RetainInput(1), a_dtype = a.dtype()](BackwardContext& bctx) {
+            bt.Define([ b_matrix_tok = bb.RetainInput(1), a_dtype = a.dtype() ](BackwardContext & bctx) {
                 const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = Dot(gout, b_matrix.Transpose(), a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([a_matrix_tok = bb.RetainInput(0), b_dtype = b.dtype()](BackwardContext& bctx) {
+            bt.Define([ a_matrix_tok = bb.RetainInput(0), b_dtype = b.dtype() ](BackwardContext & bctx) {
                 const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout, b_dtype);
