@@ -345,6 +345,10 @@ void InitChainerxLogic(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("logical_not", [](const ArrayBodyPtr& x) { return MoveArrayBody(LogicalNot(Array{x})); }, py::arg("x"));
+    m.def("logical_xor",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalXor(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("all",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(All(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),
