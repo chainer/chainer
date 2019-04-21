@@ -51,7 +51,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(ArgMaxKernel, NativeArgMaxKernel);
 
-
 class NativeArgMinKernel : public ArgMinKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
@@ -83,7 +82,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(ArgMinKernel, NativeArgMinKernel);
 
-
 class NativeSumKernel : public SumKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
@@ -108,7 +106,6 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
-
 
 class NativeAMaxKernel : public AMaxKernel {
 public:
