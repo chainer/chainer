@@ -285,4 +285,25 @@ public:
     virtual void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 };
 
+class BitwiseAndKernel : public Kernel {
+public:
+    static const char* name() { return "BitwiseAnd"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class BitwiseOrKernel : public Kernel {
+public:
+    static const char* name() { return "BitwiseOr"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class BitwiseXorKernel : public Kernel {
+public:
+    static const char* name() { return "BitwiseXor"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
 }  // namespace chainerx

@@ -1139,5 +1139,47 @@ Array IsFinite(const Array& x) {
     }
     return out;
 }
+        
+Array BitwiseAnd(const Array& x1, const Array& x2) {
+    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+    // promote to which ever is bigger
+    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
+    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
+    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
+    {
+        NoBackpropModeScope scope{};
+        x1_cast.device().backend().CallKernel<BitwiseAndKernel>(x1_cast, x2_cast, out);
+    }
+    return out;
+}
+
+Array BitwiseOr(const Array& x1, const Array& x2) {
+    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+    // promote to which ever is bigger
+    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
+    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
+    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
+    {
+        NoBackpropModeScope scope{};
+        x1_cast.device().backend().CallKernel<BitwiseOrKernel>(x1_cast, x2_cast, out);
+    }
+    return out;
+}
+
+Array BitwiseXor(const Array& x1, const Array& x2) {
+    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+    // promote to which ever is bigger
+    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
+    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
+    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
+    {
+        NoBackpropModeScope scope{};
+        x1_cast.device().backend().CallKernel<BitwiseXorKernel>(x1_cast, x2_cast, out);
+    }
+    return out;
+}
 
 }  // namespace chainerx

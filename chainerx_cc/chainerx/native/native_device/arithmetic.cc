@@ -145,6 +145,12 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(DivideASKernel, NativeDivideASKernel);
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseAndKernel, { out = x1 & x2; }, VisitIntegralDtype);
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseOrKernel, { out = x1 | x2; }, VisitIntegralDtype);
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseXorKernel, { out = x1 ^ x2; }, VisitIntegralDtype);
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx

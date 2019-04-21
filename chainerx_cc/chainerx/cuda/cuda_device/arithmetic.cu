@@ -170,6 +170,12 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(DivideASKernel, CudaDivideASKernel);
 
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseAndKernel, { out = x1 & x2; }, VisitIntegralDtype);
+
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseOrKernel, { out = x1 | x2; }, VisitIntegralDtype);
+
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseXorKernel, { out = x1 ^ x2; }, VisitIntegralDtype);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

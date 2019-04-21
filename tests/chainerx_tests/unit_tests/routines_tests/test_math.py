@@ -1349,6 +1349,88 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
+_bwise_in_out_dtypes = [
+    (('bool_', 'int8'), 'int8'),
+    (('bool_', 'int16'), 'int16'),
+    (('bool_', 'int32'), 'int32'),
+    (('bool_', 'int64'), 'int64'),
+    (('bool_', 'uint8'), 'uint8'),
+    (('int8', 'int16'), 'int16'),
+    (('int8', 'int32'), 'int32'),
+    (('int8', 'int64'), 'int64'),
+    (('int16', 'int32'), 'int32'),
+    (('int16', 'int64'), 'int64'),
+    (('int32', 'int64'), 'int64'),
+]
+
+
+_bwise_in_out_dtypes_rev = [((in2, in1), out) for
+                            ((in1, in2), out) in _bwise_in_out_dtypes]
+
+
+_bitwise_params = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _bwise_in_out_dtypes + _bwise_in_out_dtypes_rev,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_params)
+class TestBitwiseAnd(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.bitwise_and(a, b)
+        else:
+            return a & b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_params)
+class TestBitwiseOr(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.bitwise_or(a, b)
+        else:
+            return a | b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_params)
+class TestBitwiseXor(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.bitwise_xor(a, b)
+        else:
+            return a ^ b
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
     (('bool_',), 'int64'),

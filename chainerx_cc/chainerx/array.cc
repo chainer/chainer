@@ -178,6 +178,12 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
+
+Array Array::operator|(const Array& rhs) const { return chainerx::BitwiseOr(*this, rhs); }
+
+Array Array::operator^(const Array& rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
 Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
 Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }

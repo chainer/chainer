@@ -85,6 +85,10 @@ public:
     Array& operator/=(const Array& rhs);
     Array& operator/=(Scalar rhs);
 
+    Array operator&(const Array& rhs) const;
+    Array operator|(const Array& rhs) const;
+    Array operator^(const Array& rhs) const;
+
     const Array& operator+=(const Array& rhs) const;
     const Array& operator+=(Scalar rhs) const;
     const Array& operator-=(const Array& rhs) const;
