@@ -84,7 +84,7 @@ struct ArgMinImpl {
 };
 
 class CudaArgMinKernel : public ArgMinKernel {
-protected:
+public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
@@ -96,7 +96,7 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ArgMinKernel, CudaArgMinKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(ArgMinKernel, CudaArgMinKernel);
 
 }  // namespace
 
