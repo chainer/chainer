@@ -226,11 +226,15 @@ def logical_or(xp, a, b):
     return xp.logical_or(a, b)
 
 
+def logical_xor(xp, a, b):
+    return xp.logical_xor(a, b)
+
+
 _binary_logical_params = \
     chainer.testing.product({
         'dtypes': _expected_all_dtypes_comparison,
         'func': [
-            logical_and, logical_or
+            logical_and, logical_or, logical_xor
         ],
         'inputs': [
             ([], []),
@@ -240,7 +244,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_numeric_dtypes_comparison,
         'func': [
-            logical_and, logical_or
+            logical_and, logical_or, logical_xor
         ],
         'inputs': [
             ([0], [0]),
