@@ -22,9 +22,10 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -445,7 +446,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            device.backend().CallOp<AsTypeOp>(array, sliced_out);
+            device.backend().CallKernel<AsTypeKernel>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }
@@ -570,7 +571,7 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         int64_t out_offset = 0;
         for (const Array& array : arrays) {
             Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
-            device.backend().CallOp<CopyOp>(array, sliced_out);
+            device.backend().CallKernel<CopyKernel>(array, sliced_out);
             out_offset += step;
         }
     }
@@ -695,6 +696,29 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
+Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
+    Shape shape = a.shape();
+    Strides strides = a.strides();
+
+    axis1 = internal::NormalizeAxis(axis1, a.ndim());
+    axis2 = internal::NormalizeAxis(axis2, a.ndim());
+
+    std::iter_swap(shape.begin() + axis1, shape.begin() + axis2);
+    std::iter_swap(strides.begin() + axis1, strides.begin() + axis2);
+    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
+
+    BackwardBuilder bb{"swapaxes", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis1, axis2](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Swapaxes(gout, axis1, axis2);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array AtLeast2D(const Array& x) {
     Array out;
     switch (x.ndim()) {
@@ -707,7 +731,7 @@ Array AtLeast2D(const Array& x) {
             shape.insert(shape.begin(), 1);
             strides.insert(strides.begin(), 0);
             out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
-        }break;
+        } break;
         default:
             out = x.MakeView();
             break;
@@ -715,7 +739,7 @@ Array AtLeast2D(const Array& x) {
 
     BackwardBuilder bb{"atleast_2d", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([in_shape = std::move(x.shape()), ndim = x.ndim()](BackwardContext& bctx) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
             if (ndim <= 1) {
                 bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
             } else {

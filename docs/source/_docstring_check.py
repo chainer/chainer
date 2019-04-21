@@ -69,7 +69,7 @@ def _docstring_check_returns_indent(ctx):
     # Skip empty lines and seek the first line of the content
     try:
         line = ctx.nextline()
-        while len(line) == 0:
+        while not line:
             line = ctx.nextline()
     except StopIteration:
         ctx.error('`Returns` section has no content')

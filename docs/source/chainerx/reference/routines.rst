@@ -69,6 +69,7 @@ Array manipulation routines
    chainerx.hstack
    chainerx.vstack
    chainerx.split
+   chainerx.swapaxes
 
 Indexing routines
 -----------------
