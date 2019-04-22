@@ -167,10 +167,10 @@ class VariableStatisticsPlot(extension.Extension):
             is passed to :class:`IntervalTrigger`.
         filename (str):
             Name of the output image file under the output directory.
-            Although it is recommended to use `filename`, you can also
-            specify the name of the output image file with the `file_name`
-            argument for backward compatibility. However, if both `filename`
-            and `file_name` are specified, `filename` will be used.
+            Although it is recommended to use ``filename``, you can also
+            specify the name of the output image file with the ``file_name``
+            argument for backward compatibility. However, if both ``filename``
+            and ``file_name`` are specified, ``filename`` will be used.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
@@ -198,7 +198,7 @@ class VariableStatisticsPlot(extension.Extension):
         del file_name  # avoid accidental use
 
         self._vars = _unpack_variables(targets)
-        if len(self._vars) == 0:
+        if not self._vars:
             raise ValueError(
                 'Need at least one variables for which to collect statistics.'
                 '\nActual: 0 <= 0')
@@ -261,7 +261,7 @@ class VariableStatisticsPlot(extension.Extension):
                 x = getattr(var, k, None)
                 if x is not None:
                     xs.append(x.ravel())
-            if len(xs) > 0:
+            if xs:
                 stat_dict = self._statistician(
                     xp.concatenate(xs, axis=0), axis=0, xp=xp)
                 stat_list = []

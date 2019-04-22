@@ -8,7 +8,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitChainerxBackpropMode(pybind11::module&);
+void InitChainerxBackpropMode(pybind11::module& m);
 
 }  // namespace python_internal
 }  // namespace python

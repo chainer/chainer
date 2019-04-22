@@ -98,6 +98,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
     const auto range = GetDataRange(shape, strides, array.GetItemSize());
     const auto data_size = std::get<1>(range) - std::get<0>(range);
@@ -162,6 +163,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
+    c.def_property_readonly("__array_priority__", [](const ArrayBodyPtr & /*self*/) -> double { return 100.; });
     m.def("to_numpy",
           [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
           py::arg("array"),
