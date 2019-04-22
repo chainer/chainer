@@ -107,7 +107,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(IsInfKernel, CudaIsInfKernel);
 template <typename T>
 struct IsFiniteImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsFinite(x); }
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !(cuda::IsInf(x) || cuda::IsNan(x)); }
 };
 
 class CudaIsFiniteKernel : public IsFiniteKernel {

@@ -26,7 +26,16 @@ inline bool IsInf(chainerx::Float16 value) { return value.IsInf(); }
 inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
+<<<<<<< HEAD
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
+=======
+template <typename T>
+inline bool IsFinite(T /*value*/) {
+    return true;
+}
+
+#define DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)                    \
+>>>>>>> remove special function from numeric.{h,cuh}
     template <typename T>                                                   \
     inline T name(T x) {                                                    \
         return func(x);                                                     \

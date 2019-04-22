@@ -88,7 +88,7 @@ public:
         VisitDtype(x.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsFinite(x); }
+                void operator()(int64_t /*i*/, T x, bool& out) { out = !(chainerx::IsInf(x) || chainerx::IsNan(x)); }
             };
             Elementwise<const T, bool>(Impl{}, x, out);
         });
