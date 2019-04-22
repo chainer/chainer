@@ -127,6 +127,8 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
+Array Arctan2(const Array& x1, const Array& x2);
+
 Array Sinh(const Array& x);
 
 Array Cosh(const Array& x);

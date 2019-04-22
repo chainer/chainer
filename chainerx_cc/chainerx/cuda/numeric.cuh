@@ -22,6 +22,15 @@ __device__ inline bool IsInf(cuda::Float16 value) { return value.IsInf(); }
 __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
+template <typename T>
+__device__ inline T Arctan2(T x1, T x2) {
+    return std::atan2(x1, x2);
+}
+template <>
+__device__ inline cuda::Float16 Arctan2<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{std::atan2(static_cast<float>(x1), static_cast<float>(x2))};
+}
+
 __device__ inline double Arcsinh(double x) { return std::asinh(x); }
 
 __device__ inline float Arcsinh(float x) { return std::asinhf(x); }

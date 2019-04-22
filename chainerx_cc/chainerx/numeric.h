@@ -26,6 +26,15 @@ inline bool IsInf(chainerx::Float16 value) { return value.IsInf(); }
 inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
+template <typename T>
+inline T Arctan2(T x1, T x2) {
+    return std::atan2(x1, x2);
+}
+template <>
+inline chainerx::Float16 Arctan2<chainerx::Float16>(chainerx::Float16 x1, chainerx::Float16 x2) {
+    return chainerx::Float16{std::atan2(static_cast<float>(x1), static_cast<float>(x2))};
+}
+
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
     template <typename T>                                                   \
     inline T name(T x) {                                                    \
