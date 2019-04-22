@@ -153,7 +153,6 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.assertEqual(self.h.total_acquired_bytes(), 1024)
 
 
-
 @attr.gpu
 class TestCupyMemoryProfileReportBase(unittest.TestCase):
 
@@ -209,6 +208,7 @@ class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
 '''
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
+
 
 @testing.parameterize(
     {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 0},
