@@ -133,13 +133,14 @@ class TestGetItem(testing.FunctionTestCase):
 ))
 class TestGetItemAdvanced(testing.FunctionTestCase):
 
+    input_shape = (4, 3, 2)
+
     def setUp(self):
         self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-4})
         self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-3})
 
     def generate_inputs(self):
-        input_shape = (4, 3, 2)
-        x = numpy.random.uniform(-1, 1, input_shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, self.input_shape).astype(self.dtype)
         return x,
 
     def _convert_slices(self, slices, device):
