@@ -6,60 +6,36 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/native/elementwise.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
 namespace native {
+namespace {
 
-void NativeDevice::Tan(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Tan(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SinKernel, { out = chainerx::Sin(x); });
 
-void NativeDevice::Arcsin(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Arcsin(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CosKernel, { out = chainerx::Cos(x); });
 
-void NativeDevice::Arccos(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Arccos(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(TanKernel, { out = chainerx::Tan(x); });
 
-void NativeDevice::Arctan(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Arctan(x); }
-        };
-        Elementwise<const T, T>(Impl{}, x_cast, out);
-    });
-}
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArcsinKernel, { out = chainerx::Arcsin(x); });
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccosKernel, { out = chainerx::Arccos(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArctanKernel, { out = chainerx::Arctan(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SinhKernel, { out = chainerx::Sinh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CoshKernel, { out = chainerx::Cosh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArcsinhKernel, { out = chainerx::Arcsinh(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccoshKernel, { out = chainerx::Arccosh(x); });
+
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

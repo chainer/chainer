@@ -1732,7 +1732,10 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             i for i, x in enumerate(inputs) if x.requires_grad
         ])
         outputs = [y() for y in func.outputs]  # access via weak ref
-        out_grad = tuple([grads.pop(y) for y in outputs])
+        out_grad = tuple([grads.pop(y)
+                          if y is not None and y.creator_node is not None
+                          else None
+                          for y in outputs])
         if not target_input_indexes:
             continue
 
