@@ -859,6 +859,27 @@ Note:
 .. seealso:: :func:`numpy.swapaxes`
 """)
 
+    _docs.set_doc(
+        chainerx.expand_dims,
+        """expand_dims(a, axis)
+Expand the shape of an array.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    axis (int): Position in the expanded axes where the new axis is placed.
+
+Returns:
+    ~chainerx.ndarray: Output array.
+
+Note:
+    * Output array may or may not be a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.expand_dims`
+""")
+
 
 def _docs_math():
     _docs.set_doc(
