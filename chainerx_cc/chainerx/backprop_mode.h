@@ -51,7 +51,7 @@ public:
     explicit BackpropModeScope(const std::vector<BackpropId>& backprop_ids);
 
     // Backprop mode for specified graphs
-    BackpropModeScope(std::initializer_list<BackpropId> backprop_ids) : BackpropModeScope({backprop_ids.begin(), backprop_ids.end()}) {}
+    BackpropModeScope(std::initializer_list<BackpropId> backprop_ids) : BackpropModeScope{{backprop_ids.begin(), backprop_ids.end()}} {}
 
     BackpropModeScope(const BackpropModeScope&) = delete;
     BackpropModeScope(BackpropModeScope&& other) = delete;
