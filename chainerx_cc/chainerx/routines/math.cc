@@ -988,13 +988,12 @@ Array Arctan2(const Array& x1, const Array& x2) {
     Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
     Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
 
-    auto func =
-            [](const Array& x1, const Array& x2, Array& out) {
-                {
-                    NoBackpropModeScope scope{};
-                    x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
-                }
-            };
+    auto func = [](const Array& x1, const Array& x2, Array& out) {
+        {
+            NoBackpropModeScope scope{};
+            x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
+        }
+    };
 
     Array out = BroadcastBinary(func, x1_cast, x2_cast, x1_cast.dtype());
 
