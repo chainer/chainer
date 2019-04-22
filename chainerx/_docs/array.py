@@ -133,6 +133,10 @@ Returns self[key].
     binary_op('__mul__', 'Computes ``x * y`` elementwise.')
     binary_op('__truediv__', 'Computes ``x / y`` elementwise.')
 
+    binary_op('__and__', 'Computes ``x & y`` elementwise.')
+    binary_op('__or__', 'Computes ``x | y`` elementwise.')
+    binary_op('__xor__', 'Computes ``x ^ y`` elementwise.')
+
     binary_op('__radd__', 'Computes ``y + x`` elementwise.')
     binary_op('__rsub__', 'Computes ``y - x`` elementwise.')
     binary_op('__rmul__', 'Computes ``y * x`` elementwise.')

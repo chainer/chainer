@@ -1444,6 +1444,60 @@ Note:
 .. seealso:: :data:`numpy.isinf`
 """)
 
+    _docs.set_doc(
+        chainerx.bitwise_and,
+        """bitwise_and(x1, x2)
+Compute the bit-wise AND of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Result.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_and`
+""")
+
+    _docs.set_doc(
+        chainerx.bitwise_or,
+        """bitwise_or(x1, x2)
+Compute the bit-wise OR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Result.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_or`
+""")
+
+    _docs.set_doc(
+        chainerx.bitwise_xor,
+        """bitwise_xor(x1, x2)
+Compute the bit-wise XOR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Result.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_xor`
+""")
+
 
 def _docs_sorting():
     _docs.set_doc(
