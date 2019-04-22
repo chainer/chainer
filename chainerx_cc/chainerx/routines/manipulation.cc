@@ -722,7 +722,6 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 Array ExpandDims(const Array& a, int8_t axis) {
     Shape shape = a.shape();
     Strides strides = a.strides();
-    int64_t new_stride = 0;
 
     auto ndim = a.ndim();
     if (axis < -ndim - 1 || ndim < axis) {
@@ -733,84 +732,9 @@ Array ExpandDims(const Array& a, int8_t axis) {
         axis = axis + ndim + 1;
     }
 
-    if (ndim == 1) {
-        if (strides[0] != GetItemSize(a.dtype())) {
-            strides[0] = GetItemSize(a.dtype());
-        }
-        if (axis <= 0) {
-            new_stride = strides[0] * 2;
-        }
-        new_stride = strides[0];
-    } else if (a.IsContiguous()) {
-        if (axis == 0) {
-            new_stride = strides[0] * shape[0];
-        }else{
-            new_stride = strides[axis - 1];
-        }
-    } else{
-        for (uint8_t i = 0; i < shape.size(); i++) {
-            if (shape[i] == 1) {
-                strides[i] /= 2;
-            }
-        }
-
-        if (axis == ndim){
-            new_stride = strides[axis- 1];
-        }else{
-            new_stride = strides[axis] * shape[axis];
-        }
-        
-
-        // if (axis == 0){
-        //     new_stride = strides[0];
-        // }
-        // else if (axis < ndim && axis > 0){
-        //     if (shape[axis] == 1) {
-        //         new_stride = strides[axis];
-        //     } else if (shape[axis - 1] == 1) {
-        //         new_stride = strides[axis - 1];
-        //     } else {
-        //         new_stride = strides[axis - 1];  /// 2;
-        //     }
-        // } else {
-        //     new_stride = strides[axis - 1];
-        // }
-    }
-
-    // {
-    //     if (axis == 0) {
-    //         if (shape[0] == 1){
-    //             strides[0] /= 2;
-    //         }
-    //         new_stride = strides[0] * shape[0];
-    //     } else if (axis < ndim && strides[axis - 1] / strides[axis] != shape[axis]) {
-    //         // new_stride = strides[axis - 1] / shape[axis];
-    //         if (shape[axis] == 1) {
-    //             for (uint8_t i = 0; i < shape.size(); i++) {
-    //                 if (shape[i] == 1) {
-    //                     strides[i] /= 2;
-    //                 }
-    //             }
-    //             new_stride = strides[axis];
-    //         } else if (shape[axis - 1] == 1) {
-    //             for (uint8_t i = 0; i < shape.size(); i++) {
-    //                 if (shape[i] == 1) {
-    //                     strides[i] /= 2;
-    //                 }
-    //             }
-    //             new_stride = strides[axis - 1];
-    //         } else {
-    //             new_stride = strides[axis - 1] / 2;
-    //         }  // shape[axis +1] *
-    //     } else {
-    //         new_stride = strides[axis - 1];
-    //     }
-    // }
-
-    strides.insert(strides.begin() + axis, new_stride);
     shape.insert(shape.begin() + axis, 1);
 
-    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data());
+    Array out = a.Reshape(shape);
 
     BackwardBuilder bb{"expand_dims", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
