@@ -2056,8 +2056,10 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         'shape': [(2, 3)],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan'),
+                      +0.0, -0.0],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan'),
+                      +0.0, -0.0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
