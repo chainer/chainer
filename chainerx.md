@@ -34,7 +34,6 @@ Yes, it is possible. See the code samples below.
 
 - [Train an MLP with MNIST](chainerx_cc/examples/mnist)
 - [Train a CNN with ImageNet](chainerx_cc/examples/imagenet_py)
-- [`chainerx` basic usage examples](tests/chainerx_tests/acceptance_tests)
 
 ### What does the C++ interface look like?
 
