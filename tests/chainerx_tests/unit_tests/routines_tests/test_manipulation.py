@@ -741,3 +741,19 @@ class TestExpandDIms(op_utils.NumpyOpTest):
             b += (xp.expand_dims(a.copy(), axis), )
 
         return b
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError, DeprecationWarning))
+@pytest.mark.parametrize('shape,axis', [
+    # Axis out of range.
+    ((), 1),
+    ((2,), 3),
+    ((2,), -3),
+    ((2, 4), 4),
+    ((1, 1, 2), -4)
+])
+def test_expand_dims_invalid(xp, shape, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.expand_dims(a, axis)
