@@ -1140,46 +1140,30 @@ Array IsFinite(const Array& x) {
     return out;
 }
         
-Array BitwiseAnd(const Array& x1, const Array& x2) {
+template <typename Impl>
+inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
     // promote to which ever is bigger
     Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
     Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
-    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
-    {
-        NoBackpropModeScope scope{};
-        x1_cast.device().backend().CallKernel<BitwiseAndKernel>(x1_cast, x2_cast, out);
-    }
-    return out;
+    Dtype out_dtype = x1_cast.dtype();
+    return BroadcastBinary(impl, x1_cast, x2_cast, out_dtype);
+}
+
+Array BitwiseAnd(const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseAndKernel>(x1, x2, out); };
+    return BitwiseImpl(func, x1, x2);
 }
 
 Array BitwiseOr(const Array& x1, const Array& x2) {
-    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
-    // promote to which ever is bigger
-    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
-    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
-    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
-    {
-        NoBackpropModeScope scope{};
-        x1_cast.device().backend().CallKernel<BitwiseOrKernel>(x1_cast, x2_cast, out);
-    }
-    return out;
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseOrKernel>(x1, x2, out); };
+    return BitwiseImpl(func, x1, x2);
 }
 
 Array BitwiseXor(const Array& x1, const Array& x2) {
-    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
-    // promote to which ever is bigger
-    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
-    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
-    Array out = Empty(x1_cast.shape(), x1_cast.dtype(), x1_cast.device());
-    {
-        NoBackpropModeScope scope{};
-        x1_cast.device().backend().CallKernel<BitwiseXorKernel>(x1_cast, x2_cast, out);
-    }
-    return out;
+    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseXorKernel>(x1, x2, out); };
+    return BitwiseImpl(func, x1, x2);
 }
 
 }  // namespace chainerx
