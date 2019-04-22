@@ -1011,7 +1011,7 @@ Array Arctan2(const Array& x1, const Array& x2) {
             const Array& gout = *bctx.output_grad();
             const Array& x1 = bctx.GetRetainedInput(x1_tok);
             const Array& x2 = bctx.GetRetainedInput(x2_tok);
-            bctx.input_grad() = - gout * x1 / (Square(x1) + Square(x2));
+            bctx.input_grad() = -gout * x1 / (Square(x1) + Square(x2));
         });
     }
     bb.Finalize();
