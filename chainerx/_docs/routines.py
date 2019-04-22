@@ -1327,6 +1327,25 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.arctan2,
+        """arctan2(x1, x2)
+Element-wise arc tangent of x1/x2 choosing the quadrant correctly.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arctan (x1/x2)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and/or ``x2``.
+
+.. seealso:: :data:`numpy.arctan2`
+""")
+
+    _docs.set_doc(
         chainerx.arcsinh,
         """arcsinh(x)
 Inverse hyperbolic sine, element-wise
