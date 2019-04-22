@@ -90,7 +90,7 @@ protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 
 private:
-    friend NativeDevice* native_internal::CreateDevice(NativeBackend&, int);
+    friend NativeDevice* native_internal::CreateDevice(NativeBackend& backend, int index);
 };
 
 }  // namespace native
