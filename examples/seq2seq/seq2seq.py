@@ -10,7 +10,6 @@ import progressbar
 import six
 
 import chainer
-from chainer import backend
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -110,7 +109,7 @@ def convert(batch, device):
     def to_device_batch(batch):
         if device is None:
             return batch
-        src_xp = backend.get_array_module(*batch)
+        src_xp = chainer.backend.get_array_module(*batch)
         xp = device.xp
         concat = src_xp.concatenate(batch, axis=0)
         sections = list(numpy.cumsum(

@@ -22,7 +22,7 @@ def pytest_generate_tests(metafunc):
     marker = [
         m for m in metafunc.definition.iter_markers()
         if m.name == 'parametrize_device']
-    if len(marker) > 0:
+    if marker:
         marker, = marker  # asserts len == 1
         device_names, = marker.args
         metafunc.parametrize('device', device_names, indirect=True)
@@ -48,7 +48,7 @@ def _setup_cuda_marker(item):
     """
 
     cuda_marker = [m for m in item.iter_markers() if m.name == 'cuda']
-    if len(cuda_marker) > 0:
+    if cuda_marker:
         cuda_marker, = cuda_marker  # asserts len == 1
         required_num = cuda_marker.args[0] if cuda_marker.args else 1
         if cuda_utils.get_cuda_limit() < required_num:

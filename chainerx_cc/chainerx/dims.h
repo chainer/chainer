@@ -13,10 +13,12 @@ class DimsFormatter {
 public:
     explicit DimsFormatter(const StackVector<int64_t, kMaxNdim>& dims) : dims_{dims} {}
 
+    ~DimsFormatter() = default;
+
     DimsFormatter(const DimsFormatter&) = delete;
     DimsFormatter(DimsFormatter&&) = delete;
-    DimsFormatter operator=(const DimsFormatter&) = delete;
-    DimsFormatter operator=(DimsFormatter&&) = delete;
+    DimsFormatter& operator=(const DimsFormatter&) = delete;
+    DimsFormatter& operator=(DimsFormatter&&) = delete;
 
 private:
     void Print(std::ostream& os) const;

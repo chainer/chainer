@@ -43,11 +43,12 @@ public:
     template <typename IndexSource>
     CHAINERX_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
-            index_[i + offset_dim] = index_source.index()[i];
+            // NOLINT is required to suppress gsl::at usage since it does not work with CUDA.
+            index_[i + offset_dim] = index_source.index()[i];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
     }
 
-    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }  // NOLINT(google-explicit-constructor)
 
     CHAINERX_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
 
@@ -64,7 +65,7 @@ private:
         CHAINERX_ASSERT(total_size_ > 0);
         raw_index_ = i;
         for (int8_t j = kNdim; --j >= 0;) {
-            index_[j] = i % shape_[j];
+            index_[j] = i % shape_[j];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             i /= shape_[j];
         }
     }
@@ -117,7 +118,7 @@ public:
         assert(offset_dim == 0);
     }
 
-    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < 1; }
+    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < 1; }  // NOLINT(google-explicit-constructor)
 
     CHAINERX_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
 
@@ -172,7 +173,7 @@ public:
         raw_index_ = index_source.index()[0];
     }
 
-    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }  // NOLINT(google-explicit-constructor)
 
     CHAINERX_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
 
@@ -226,11 +227,11 @@ public:
     template <typename IndexSource>
     CHAINERX_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
-            index_[i + offset_dim] = index_source.index()[i];
+            index_[i + offset_dim] = index_source.index()[i];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
     }
 
-    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+    CHAINERX_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }  // NOLINT(google-explicit-constructor)
 
     CHAINERX_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
@@ -247,7 +248,7 @@ private:
         CHAINERX_ASSERT(total_size_ > 0);
         raw_index_ = i;
         for (int8_t j = ndim_; --j >= 0;) {
-            index_[j] = i % shape_[j];
+            index_[j] = i % shape_[j];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             i /= shape_[j];
         }
     }
