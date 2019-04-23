@@ -1354,7 +1354,7 @@ Args:
     x2 (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arctan (x1/x2)`.
+    :class:`~chainerx.ndarray`: Element-wise arc tangent of x1/x2.
 
 Note:
     During backpropagation, this function propagates the gradient of the
