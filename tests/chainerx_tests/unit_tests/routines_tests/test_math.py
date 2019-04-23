@@ -3,7 +3,6 @@ import unittest
 import chainer
 import numpy
 import pytest
-import itertools
 
 import chainerx
 import chainerx.testing
@@ -184,14 +183,6 @@ def _make_same_in_out_dtypes(number_of_in_params, dtypes):
     return [((dtype,) * number_of_in_params, dtype) for dtype in dtypes]
 
 
-def _make_mixed_dtypes(number_of_in_params, dtypes, expected_out):
-    in_out_dtypes = []
-    for combination in itertools.permutations(dtypes, number_of_in_params):
-        in_out_dtypes.append((combination, expected_out(*combination)))
-
-    return in_out_dtypes
-
-
 _in_out_dtypes_arithmetic_invalid = [
     (('bool_', 'bool_'), 'bool_'),
     (('bool_', 'int8'), 'int8'),
@@ -290,6 +281,16 @@ _in_out_dtypes_float_arithmetic_scalar = (
 
 _in_out_dtypes_inplace_float_arithmetic_scalar = (
     _in_out_dtypes_float_array_float_scalar)
+
+
+_in_out_dtypes_float_mixed = [
+    (('float16', 'float32'), 'float32'),
+    (('float16', 'float64'), 'float64'),
+    (('float32', 'float16'), 'float32'),
+    (('float32', 'float64'), 'float64'),
+    (('float64', 'float16'), 'float64'),
+    (('float64', 'float32'), 'float64'),
+]
 
 
 def _permutate_shapes(shapes_list):
@@ -2140,9 +2141,7 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Mixed dtypes
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype':
-            _make_mixed_dtypes(2, chainerx.testing.float_dtypes,
-                               lambda x, y: x if x > y else y),
+        'in_dtypes,out_dtype': _in_out_dtypes_float_mixed,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
