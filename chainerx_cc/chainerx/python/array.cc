@@ -98,6 +98,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const Shape& shape = array.shape();
     const Strides& strides = array.strides();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
     const auto range = GetDataRange(shape, strides, array.GetItemSize());
     const auto data_size = std::get<1>(range) - std::get<0>(range);
@@ -162,6 +163,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
+    c.def_property_readonly("__array_priority__", [](const ArrayBodyPtr & /*self*/) -> double { return 100.; });
     m.def("to_numpy",
           [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
           py::arg("array"),
@@ -280,6 +282,10 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr);
     c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, py::arg("axis"));
+    c.def("swapaxes",
+          [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
+          py::arg("axis1"),
+          py::arg("axis2"));
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());

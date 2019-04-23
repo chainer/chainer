@@ -767,6 +767,16 @@ Array Relu(const Array& x) {
     return Maximum(0, x_cast);
 }
 
+Array Softmax(const Array& x, const OptionalAxes& axis) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis.has_value() ? axis : OptionalAxes{1}, x.ndim());
+    Array xmax = AMax(x_cast, sorted_axis, true);
+    Array exps = Exp(x_cast - xmax);
+    Array sums = Sum(exps, sorted_axis, true);
+    return exps * Reciprocal(sums);
+}
+
 Array Square(const Array& x) {
     Array out = EmptyLike(x, x.device());
 
@@ -874,6 +884,14 @@ Array Cos(const Array& x) {
     }
     bb.Finalize();
 
+    return out;
+}
+
+Array Absolute(const Array& x) {
+    Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
+    Array x_flip_2 = IfLessElse(x, 0.0, 0.0, x);
+
+    Array out = x_flip_1 + x_flip_2;
     return out;
 }
 

@@ -34,27 +34,27 @@ __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
-#define DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
-    template <typename T>                              \
-    __device__ inline T name(T x) {                    \
-        return func(x);                                \
-    }                                                  \
+#define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
+    template <typename T>                                       \
+    __device__ inline T name(T x) {                             \
+        return func(x);                                         \
+    }                                                           \
     __device__ inline cuda::Float16 name(cuda::Float16 x) { return cuda::Float16{func(static_cast<float>(x))}; }
 
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
-DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 
 }  // namespace cuda
 }  // namespace chainerx

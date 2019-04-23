@@ -202,6 +202,8 @@ Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*th
 
 Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
 
+Array Array::Swapaxes(int8_t axis1, int8_t axis2) const { return chainerx::Swapaxes(*this, axis1, axis2); }
+
 Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastTo(*this, shape); }
 
 Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }

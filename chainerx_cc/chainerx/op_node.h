@@ -79,6 +79,8 @@ public:
             size_t input_count,
             const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes);
 
+    ~OpNode() = default;
+
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
     OpNode& operator=(const OpNode&) = delete;
