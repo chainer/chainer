@@ -140,7 +140,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
     // Collect backprop Ids from input arrays.
     std::vector<BackpropId> backprop_ids{};
     for (const Array& input : inputs_) {
-        std::shared_ptr<ArrayBody> input_body = internal::GetArrayBody(input);
+        const std::shared_ptr<ArrayBody>& input_body = internal::GetArrayBody(input);
         for (const std::shared_ptr<ArrayNode>& input_arr_node : input_body->nodes()) {
             const BackpropId& backprop_id = input_arr_node->backprop_id();
             if (!IsBackpropRequired(backprop_id)) {
