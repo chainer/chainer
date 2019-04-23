@@ -211,12 +211,13 @@ class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
 
 
 @testing.parameterize(
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': -1},
     {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 0},
-    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 0},
-    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 1 - 512},
-    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1024 ** 1 - 1},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 512},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1023},
 
-    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024 ** 1},
+    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024},
     {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024 ** 2 - 1},
 
     {'unit': 'MB', 'denomi': 1024 ** 2, 'bytes': 1024 ** 2},
@@ -225,6 +226,8 @@ class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
     {'unit': 'PB', 'denomi': 1024 ** 5, 'bytes': 1024 ** 5},
     {'unit': 'EB', 'denomi': 1024 ** 6, 'bytes': 1024 ** 6},
     {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 7},
+
+    {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 8},
 )
 class TestCupyMemoryProfileReportChooseUnit(unittest.TestCase):
 
