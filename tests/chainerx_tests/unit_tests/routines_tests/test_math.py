@@ -2131,15 +2131,15 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', -3., 3., 100., -100.],
-        'input_rhs': ['random', -3., 3., 100., -100.],
+        'input_lhs': ['random', -3., 3.],
+        'input_rhs': ['random', -3., 3.],
     })
     # Mixed dtypes
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype':
             _make_mixed_dtypes(2, chainerx.testing.float_dtypes,
                                lambda x, y: x if x > y else y),
@@ -2148,7 +2148,7 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan'),
