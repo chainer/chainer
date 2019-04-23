@@ -107,7 +107,10 @@ class TestNpzDeserializer(unittest.TestCase):
                       'zi64': numpy.array(-2**60, dtype=numpy.int64),
                       'w': None})
 
-        self.npzfile = numpy.load(path)
+        try:
+            self.npzfile = numpy.load(path, allow_pickle=True)
+        except TypeError:
+            self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
 
     def tearDown(self):
