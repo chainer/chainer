@@ -48,9 +48,9 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         # extreme logit
         nan_dlogit = xp.zeros_like(dlogit.array)
         if self.binary_check:
-            nan_dlogit[self.invalid] = xp.nan
-        nan_dlogit[self.logit_ispinf] = xp.nan
-        nan_dlogit[self.logit_isminf] = xp.nan
+            nan_dlogit[self.invalid] = numpy.nan
+        nan_dlogit[self.logit_ispinf] = numpy.nan
+        nan_dlogit[self.logit_isminf] = numpy.nan
         dlogit += nan_dlogit
 
         return gy * dlogit, None

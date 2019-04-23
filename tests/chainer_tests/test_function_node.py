@@ -1139,6 +1139,29 @@ class TestGradDelRetainedOutput2(unittest.TestCase):
             gx.array * x_grad_grad)
 
 
+class TestUnchainSplitGrad(unittest.TestCase):
+
+    def test_unchain_split(self):
+        x = chainer.Variable(numpy.arange(4).astype('f').reshape(2, 2))
+        h0, h1 = chainer.functions.split_axis(x, [1], axis=0)
+        y = chainer.functions.sum(h0)
+        z = chainer.functions.sum(h1)
+        w = y + z
+        h0.unchain()
+
+        dy_dh0 = numpy.array([[1., 1.]])
+        dz_dh1 = numpy.array([[1., 1.]])
+        dy_dx = None
+        dz_dx = numpy.array([[0., 0.], [1., 1.]])
+        dw_dx = numpy.array([[0., 0.], [1., 1.]])
+
+        testing.assert_allclose(chainer.grad([y], [h0])[0].array, dy_dh0)
+        testing.assert_allclose(chainer.grad([z], [h1])[0].array, dz_dh1)
+        assert chainer.grad([y], [x])[0] is dy_dx
+        testing.assert_allclose(chainer.grad([z], [x])[0].array, dz_dx)
+        testing.assert_allclose(chainer.grad([w], [x])[0].array, dw_dx)
+
+
 class TestGradV3Compat1(unittest.TestCase):
 
     def _var(self, val):

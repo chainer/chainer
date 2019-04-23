@@ -7,7 +7,7 @@ namespace python {
 namespace cuda {
 namespace cuda_internal {
 
-void InitChainerxCudaModule(pybind11::module&);
+void InitChainerxCudaModule(pybind11::module& m);
 
 }  // namespace cuda_internal
 }  // namespace cuda

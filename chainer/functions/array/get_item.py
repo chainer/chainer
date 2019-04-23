@@ -56,19 +56,23 @@ class GetItemGrad(function_node.FunctionNode):
         self._in_shape = in_shape
 
     def forward(self, inputs):
+        slices = tuple([
+            backend.from_chx(s) if isinstance(s, chainerx.ndarray) else s
+            for s in self.slices])
+
         gy, = inputs
         xp = backend.get_array_module(*inputs)
         gx = xp.zeros(self._in_shape, gy.dtype)
         if xp is numpy:
             try:
-                numpy.add.at(gx, self.slices, gy)
+                numpy.add.at(gx, slices, gy)
             except IndexError:
                 done = False
                 # In numpy<1.13, 0-dim boolean index is not supported in
                 # numpy.add.at and it's supported for 0-dim arr in
                 # arr.__getitem__.
-                if not _numpy_supports_0d_bool_index and len(self.slices) == 1:
-                    idx = numpy.asanyarray(self.slices[0])
+                if not _numpy_supports_0d_bool_index and len(slices) == 1:
+                    idx = numpy.asanyarray(slices[0])
                     if idx.dtype == numpy.dtype(bool):
                         # Convert the array and the mask to 1-dim.
                         # numpy.add.at with them is supported in older numpy.
@@ -86,7 +90,7 @@ https://github.com/chainer/chainer/issues/new.
 '''
                     raise IndexError(msg)
         else:
-            gx.scatter_add(self.slices, inputs[0])
+            gx.scatter_add(slices, inputs[0])
         return gx,
 
     def backward(self, indexes, ggx):
