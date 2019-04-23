@@ -87,16 +87,17 @@ class BinaryMathTestBase(object):
 
     def generate_inputs(self):
         in_dtype1, in_dtype2 = self.in_dtypes
+        in_shape1, in_shape2 = self.in_shapes
         if self.input_lhs == 'random':
-            a = array_utils.uniform(self.shape, in_dtype1)
+            a = array_utils.uniform(in_shape1, in_dtype1)
         elif isinstance(self.input_lhs, (bool, int, float)):
-            a = numpy.full(self.shape, self.input_lhs, dtype=in_dtype1)
+            a = numpy.full(in_shape1, self.input_lhs, dtype=in_dtype1)
         else:
             assert False
         if self.input_rhs == 'random':
-            b = array_utils.uniform(self.shape, in_dtype2)
+            b = array_utils.uniform(in_shape2, in_dtype2)
         elif isinstance(self.input_rhs, (bool, int, float)):
-            b = numpy.full(self.shape, self.input_rhs, dtype=in_dtype2)
+            b = numpy.full(in_shape2, self.input_rhs, dtype=in_dtype2)
         else:
             assert False
         return a, b
@@ -282,6 +283,52 @@ _in_out_dtypes_inplace_float_arithmetic_scalar = (
     _in_out_dtypes_float_array_float_scalar)
 
 
+def _permutate_shapes(shapes_list):
+    # Permutates input shapes
+    permutated_shapes_list = []
+    for in_shape1, in_shape2 in shapes_list:
+        permutated_shapes_list.append((in_shape1, in_shape2))
+        permutated_shapes_list.append((in_shape2, in_shape1))
+    return list(set(permutated_shapes_list))
+
+
+_shapes_combination_inplace_binary = [
+    # Same shapes
+    ((1,), (1,)),
+    ((3, 4), (3, 4)),
+    # Broadcast
+    ((10,), (1,)),
+    ((3, 4), (3, 1)),
+    ((3, 4), (1, 4)),
+    ((3, 4), (4,)),
+    ((3, 4), (1, 1)),
+    ((3, 4), (1,)),
+    ((2, 3, 4), (1, 1, 1)),
+    # 0-dim shape
+    ((), ()),
+    ((1,), ()),
+    ((3,), ()),
+    ((2, 3), ()),
+    # 0-size shape
+    ((0,), (0,)),
+    ((0,), (1,)),
+    ((0,), ()),
+    ((2, 0, 3), (2, 0, 3)),
+    # TODO(imanishi): Fix strides
+    # ((2, 0, 3), (0, 1)),
+]
+
+
+_shapes_combination_binary = _permutate_shapes([
+    # Broadcast
+    ((3, 1), (1, 4)),
+    ((2, 1, 4), (3, 1)),
+    # 0-size shape
+    # TODO(imanishi): Fix strides
+    # ((0, 1), (0, 1, 0)),
+]) + _permutate_shapes(_shapes_combination_inplace_binary)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -335,7 +382,7 @@ def test_negative_invalid_bool(xp, device, is_module):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -344,7 +391,7 @@ def test_negative_invalid_bool(xp, device, is_module):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -352,7 +399,7 @@ def test_negative_invalid_bool(xp, device, is_module):
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -361,7 +408,7 @@ def test_negative_invalid_bool(xp, device, is_module):
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -398,7 +445,7 @@ def test_add_invalid_dtypes(device, dtypes, is_module):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_inplace_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -406,14 +453,14 @@ def test_add_invalid_dtypes(device, dtypes, is_module):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -535,7 +582,7 @@ class TestIAddScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -544,7 +591,7 @@ class TestIAddScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -552,7 +599,7 @@ class TestIAddScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -561,7 +608,7 @@ class TestIAddScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -598,7 +645,7 @@ def test_sub_invalid_dtypes(device, dtypes, is_module):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_inplace_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -606,14 +653,14 @@ def test_sub_invalid_dtypes(device, dtypes, is_module):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -735,7 +782,7 @@ class TestISubScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
@@ -744,7 +791,7 @@ class TestISubScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -752,7 +799,7 @@ class TestISubScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
@@ -761,7 +808,7 @@ class TestISubScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -784,7 +831,7 @@ class TestMul(BinaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_inplace_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
@@ -792,7 +839,7 @@ class TestMul(BinaryMathTestBase, op_utils.NumpyOpTest):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic + [
             ((t, 'bool_'), t) for t in chainerx.testing.all_dtypes
         ],
@@ -801,7 +848,7 @@ class TestMul(BinaryMathTestBase, op_utils.NumpyOpTest):
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -1100,7 +1147,7 @@ _in_out_dtypes_truediv_scalar = _in_out_dtypes_inplace_truediv_scalar + [
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': _in_out_dtypes_truediv,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -1108,7 +1155,7 @@ _in_out_dtypes_truediv_scalar = _in_out_dtypes_inplace_truediv_scalar + [
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_truediv,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -1116,7 +1163,7 @@ _in_out_dtypes_truediv_scalar = _in_out_dtypes_inplace_truediv_scalar + [
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_truediv,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -1124,7 +1171,7 @@ _in_out_dtypes_truediv_scalar = _in_out_dtypes_inplace_truediv_scalar + [
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -1180,21 +1227,21 @@ def test_truediv_invalid_dtypes(device, dtypes, is_module):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_inplace_binary,
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_truediv,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_truediv,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
     # Special values
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
@@ -2257,7 +2304,7 @@ def test_min_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -2265,7 +2312,7 @@ def test_min_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -2273,7 +2320,7 @@ def test_min_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -2305,7 +2352,7 @@ def test_maximum_invalid_dtypes(device, dtypes):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
@@ -2314,7 +2361,7 @@ def test_maximum_invalid_dtypes(device, dtypes):
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
