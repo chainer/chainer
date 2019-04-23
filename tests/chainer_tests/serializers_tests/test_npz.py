@@ -207,14 +207,10 @@ class TestNpzDeserializer(unittest.TestCase):
         with pytest.raises(TypeError):
             self.deserializer('zf32', z)
 
-    # TODO(kataoka): fix (de)serializing issues with allow_pickle=False
-    @testing.with_requires('numpy<1.16.3')
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)
         self.assertIs(ret, None)
 
-    # TODO(kataoka): fix (de)serializing issues with allow_pickle=False
-    @testing.with_requires('numpy<1.16.3')
     def test_deserialize_by_passing_array(self):
         y = numpy.empty((1,), dtype=numpy.float32)
         ret = self.deserializer('w', y)
