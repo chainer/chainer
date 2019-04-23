@@ -1354,7 +1354,9 @@ Args:
     x2 (~chainerx.ndarray): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Element-wise arc tangent of x1/x2.
+    :class:`~chainerx.ndarray`: Returns an array where each element
+    represents theta in the range [-pi, pi], such that x1 = r sin(theta),
+    x2 = r cos(theta) for some r > 0.
 
 Note:
     During backpropagation, this function propagates the gradient of the
