@@ -103,6 +103,11 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         out_strides.emplace_back(a.strides()[i]);
     }
 
+    // Empty arrays should all have offsets of 0 to avoid e.g. out-of-memory errors.
+    if (a.GetTotalSize() == 0) {
+        out_offset = 0;
+    }
+
     Array out = MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
     BackwardBuilder bb{"get_item", a, out};
