@@ -695,14 +695,15 @@ def test_swap_invalid(xp, shape, axis1, axis2):
 
 
 @op_utils.op_test(['native:0'])
-@chainer.testing.parameterize_pytest('shape', [
-    (2, 2, 2),
-    (3, 3, 2, 3, 3),
-    (3, 0, 2, 0, 3),
-    (1, 2, 3, 1, 3, 3),
-    (3, 4, 5, 2, 3, 5),
-    (1,)
+@chainer.testing.parameterize_pytest('shape,ndim', [
+    ((2, 2, 2), 3),
+    ((3, 3, 2, 3, 3), 5),
+    ((3, 0, 2, 0, 3), 5),
+    ((1, 2, 3, 1, 3, 3), 6),
+    ((3, 4, 5, 2, 3, 5), 6),
+    ((1,), 1),
 ])
+@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
 class TestExpandDIms(op_utils.NumpyOpTest):
 
     # TODO(kshitij12345): Remove this when fixed
@@ -726,19 +727,14 @@ class TestExpandDIms(op_utils.NumpyOpTest):
         a, = inputs
         b = ()
 
-        for axis in range(a.ndim + 1):
+        if self.is_contiguous:
+            a = a.copy()
+
+        for axis in range(self.ndim + 1):
             b += (xp.expand_dims(a, axis), )
 
-        for axis in range(-1, -a.ndim-1, -1):
+        for axis in range(-1, -self.ndim-1, -1):
             b += (xp.expand_dims(a, axis), )
-
-        # For contigous array.
-
-        for axis in range(a.ndim + 1):
-            b += (xp.expand_dims(a.copy(), axis), )
-
-        for axis in range(-1, -a.ndim-1, -1):
-            b += (xp.expand_dims(a.copy(), axis), )
 
         return b
 

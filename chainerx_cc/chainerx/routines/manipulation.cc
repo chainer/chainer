@@ -721,29 +721,12 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 
 Array ExpandDims(const Array& a, int8_t axis) {
     Shape shape = a.shape();
-    Strides strides = a.strides();
 
-    auto ndim = a.ndim();
-    if (axis < -ndim - 1 || ndim < axis) {
-        throw DimensionError{"Axis ", axis, " is out of bounds for array of dimension ", ndim};
-    }
-
-    if (axis < 0) {
-        axis = axis + ndim + 1;
-    }
+    axis = internal::NormalizeAxis(axis, a.ndim() + 1);
 
     shape.insert(shape.begin() + axis, 1);
 
     Array out = a.Reshape(shape);
-
-    BackwardBuilder bb{"expand_dims", a, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([axis](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = gout.Squeeze(Axes{axis});
-        });
-    }
-    bb.Finalize();
 
     return out;
 }
