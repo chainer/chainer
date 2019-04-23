@@ -887,6 +887,14 @@ Array Cos(const Array& x) {
     return out;
 }
 
+Array Absolute(const Array& x) {
+    Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
+    Array x_flip_2 = IfLessElse(x, 0.0, 0.0, x);
+
+    Array out = x_flip_1 + x_flip_2;
+    return out;
+}
+
 Array Tan(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

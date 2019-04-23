@@ -29,6 +29,8 @@ public:
 
     Shape() = default;
 
+    ~Shape() = default;
+
     // by iterators
     template <typename InputIt>
     Shape(InputIt first, InputIt last) {
@@ -101,7 +103,7 @@ Shape TransposeShape(const Shape& shape, const Axes& axes);
 
 }  // namespace internal
 
-std::ostream& operator<<(std::ostream&, const Shape&);
+std::ostream& operator<<(std::ostream& os, const Shape& shape);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
 

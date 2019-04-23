@@ -117,6 +117,8 @@ Array Sin(const Array& x);
 
 Array Cos(const Array& x);
 
+Array Absolute(const Array& x);
+
 Array Tan(const Array& x);
 
 Array Arcsin(const Array& x);

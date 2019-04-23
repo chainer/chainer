@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
@@ -11,8 +12,8 @@ namespace chainerx {
 
 class Slice {
 public:
-    Slice(nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, nonstd::optional<int64_t> step)
-        : start_{start}, stop_{stop}, step_{step.value_or(1)} {
+    Slice(nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, const nonstd::optional<int64_t>& step)
+        : start_{std::move(start)}, stop_{std::move(stop)}, step_{step.value_or(1)} {
         if (step_ == 0) {
             throw DimensionError{"Step must not be zero."};
         }

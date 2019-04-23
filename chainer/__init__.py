@@ -175,7 +175,7 @@ def is_arrays_compatible(arrays):
 
     arrays = [a for a in arrays if a is not None]
 
-    if len(arrays) == 0:
+    if not arrays:
         return True
 
     # If there's at least one chainerx.ndarray, all other arrays

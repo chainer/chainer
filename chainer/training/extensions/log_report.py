@@ -53,10 +53,10 @@ class LogReport(extension.Extension):
             formatting. For example, users can use '{iteration}' to separate
             the log files for different iterations. If the log name is None, it
             does not output the log to any file.
-            Although it is recommended to use `filename`, you can also specify
-            the name of the log file with the `log_name` argument
-            for back compatibility. However, `filename` will be used if
-            both `filename` and `log_name` are specified.
+            Although it is recommended to use ``filename``,
+            you can also specify the name of the log file with the ``log_name``
+            argument for back compatibility. However, ``filename`` will be used
+            if both ``filename`` and ``log_name`` are specified.
 
     """
 
