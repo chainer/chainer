@@ -985,17 +985,16 @@ Array Arctan(const Array& x) {
 }
 
 Array Arctan2(const Array& x1, const Array& x2) {
-    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
-    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
+    Dtype out_dtype = GetMathResultDtype(GetArithmeticResultDtype(x1, x2));
+    Array x1_cast = x1.dtype() != out_dtype ? x1.AsType(out_dtype) : x1;
+    Array x2_cast = x2.dtype() != out_dtype ? x2.AsType(out_dtype) : x2;
 
     auto func = [](const Array& x1, const Array& x2, Array& out) {
-        {
-            NoBackpropModeScope scope{};
-            x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
-        }
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
     };
 
-    Array out = BroadcastBinary(func, x1_cast, x2_cast, x1_cast.dtype());
+    Array out = BroadcastBinary(func, x1_cast, x2_cast, out_dtype);
 
     BackwardBuilder bb{"arctan2", {x1_cast, x2_cast}, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {

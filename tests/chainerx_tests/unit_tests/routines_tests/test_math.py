@@ -3,6 +3,7 @@ import unittest
 import chainer
 import numpy
 import pytest
+import itertools
 
 import chainerx
 import chainerx.testing
@@ -180,6 +181,14 @@ class InplaceMathScalarTestBase(InplaceUnaryMathTestBase):
 
 def _make_same_in_out_dtypes(number_of_in_params, dtypes):
     return [((dtype,) * number_of_in_params, dtype) for dtype in dtypes]
+
+
+def _make_mixed_dtypes(number_of_in_params, dtypes, expected_out):
+    in_out_dtypes = []
+    for combination in itertools.permutations(dtypes, number_of_in_params):
+        in_out_dtypes.append((combination, expected_out(*combination)))
+
+    return in_out_dtypes
 
 
 _in_out_dtypes_arithmetic_invalid = [
@@ -2048,8 +2057,17 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', 3.14, 1.57, 100., -100.],
-        'input_rhs': ['random', 3.14, 1.57, 100., -100.],
+        'input_lhs': ['random', -3., 3., 100., -100.],
+        'input_rhs': ['random', -3., 3., 100., -100.],
+    })
+    # Mixed dtypes
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype':
+            _make_mixed_dtypes(2, chainerx.testing.float_dtypes,
+                               lambda x, y: x if x > y else y),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
     })
     # Special values
     + chainer.testing.product({
