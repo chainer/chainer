@@ -221,6 +221,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class IsFiniteKernel : public Kernel {
+public:
+    static const char* name() { return "IsFinite"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 // Calculate the sum of an array.
 // It will be summed over the specified axes.
 // `axis` must be normalized so that

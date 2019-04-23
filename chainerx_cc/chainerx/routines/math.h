@@ -112,6 +112,8 @@ Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
+Array IsFinite(const Array& x);
+
 Array Tanh(const Array& x);
 
 Array Sin(const Array& x);

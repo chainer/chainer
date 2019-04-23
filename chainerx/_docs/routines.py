@@ -1409,6 +1409,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.isfinite,
+        """isfinite(x)
+Test element-wise for finiteness (not infinity or not Not a Number).
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: True where x is not positive infinity,
+    negative infinity, or NaN; false otherwise.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.isfinite`
+""")
+
+    _docs.set_doc(
         chainerx.isinf,
         """isinf(x)
 Test element-wise for positive or negative infinity.
