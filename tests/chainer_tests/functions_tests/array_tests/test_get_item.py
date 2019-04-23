@@ -32,17 +32,17 @@ _backend_params = (
      {'dtype': numpy.float32},
      {'dtype': numpy.float64},
      ],
-    [{'axes': [1, 2], 'offsets': 0, 'sliced_shape': (4, 2, 1)},
-     {'axes': [1, 2], 'offsets': [0, 1, 1], 'sliced_shape': (4, 2, 1)},
-     {'axes': 1, 'offsets': 1, 'sliced_shape': (4, 2, 2)},
-     {'axes': 1, 'offsets': [0, 1, 1], 'sliced_shape': (4, 2, 2)},
-     {'axes': [], 'offsets': 0, 'new_axes': 0, 'sliced_shape': (1, 4, 3, 2)},
-     {'axes': [], 'offsets': 0, 'new_axes': 2, 'sliced_shape': (4, 3, 1, 2)},
-     {'axes': [], 'offsets': 0, 'new_axes': 3, 'sliced_shape': (4, 3, 2, 1)},
-     {'slices': (1, -1, 0), 'sliced_shape': ()},
-     {'slices': (1, -1), 'sliced_shape': (2,)},
-     {'slices': (1, Ellipsis, -1), 'sliced_shape': (3,)},
-     {'slices': (1, None, Ellipsis, None, -1), 'sliced_shape': (1, 3, 1)},
+    [{'axes': [1, 2], 'offsets': 0},
+     {'axes': [1, 2], 'offsets': [0, 1, 1]},
+     {'axes': 1, 'offsets': 1},
+     {'axes': 1, 'offsets': [0, 1, 1]},
+     {'axes': [], 'offsets': 0, 'new_axes': 0},
+     {'axes': [], 'offsets': 0, 'new_axes': 2},
+     {'axes': [], 'offsets': 0, 'new_axes': 3},
+     {'slices': (1, -1, 0)},
+     {'slices': (1, -1)},
+     {'slices': (1, Ellipsis, -1)},
+     {'slices': (1, None, Ellipsis, None, -1)},
      ]
 ))
 class TestGetItem(testing.FunctionTestCase):
@@ -82,7 +82,6 @@ class TestGetItem(testing.FunctionTestCase):
     def forward(self, inputs, device):
         x, = inputs
         y = functions.get_item(x, self.slices)
-        assert y.shape == self.sliced_shape
         return y,
 
     def forward_expected(self, inputs):
@@ -97,48 +96,38 @@ class TestGetItem(testing.FunctionTestCase):
      {'dtype': numpy.float32},
      {'dtype': numpy.float64},
      ],
-    [{'slices': [], 'sliced_shape': (0, 3, 2)},
-     {'slices': ([],), 'sliced_shape': (0, 3, 2)},
-     {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
-     {'slices': numpy.array([], dtype=numpy.bool),
-         'sliced_shape': (0, 3, 2)},
-     {'slices': (1, [1]), 'sliced_shape': (1, 2)},
-     {'slices': ([1], slice(1, 2)), 'sliced_shape': (1, 1, 2)},
-     {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
-     {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
-     {'slices': numpy.array([[1, 0], [2, 3]]),
-         'sliced_shape': (2, 2, 3, 2)},
-     {'slices': ([1, 0], [1, 1]), 'sliced_shape': (2, 2)},
-     {'slices': ([1, 0], slice(None), [[1, 1], [1, 1]]),
-         'sliced_shape': (2, 2, 3)},
-     {'slices': ([1, 0], slice(1, 2), [0, 0]), 'sliced_shape': (2, 1)},
-     {'slices': ([[1, 1], [1, 0]], slice(1, 2), 1),
-         'sliced_shape': (2, 2, 1)},
-     {'slices': numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2),
-         'sliced_shape': (18,)},
-     {'slices': numpy.array([True, False, False, True]),
-         'sliced_shape': (2, 3, 2)},
-     {'slices': (slice(None), numpy.array([True, False, True])),
-         'sliced_shape': (4, 2, 2)},
-     {'slices': numpy.array([False, False, False, False]),
-         'sliced_shape': (0, 3, 2)},
-     {'slices': (3, 2, Ellipsis, 1),
-         'sliced_shape': ()},
-     {'slices': (numpy.array(False)),
-         'input_shape': (), 'sliced_shape': (0,)},
-     {'slices': (numpy.array(True)),
-         'input_shape': (), 'sliced_shape': (1,)},
+    [{'slices': []},
+     {'slices': ([],)},
+     {'slices': ([[]],)},
+     {'slices': numpy.array([], dtype=numpy.bool)},
+     {'slices': (1, [1])},
+     {'slices': ([1], slice(1, 2))},
+     {'slices': [1, 0]},
+     {'slices': ([1, 0],)},
+     {'slices': numpy.array([[1, 0], [2, 3]])},
+     {'slices': ([1, 0], [1, 1])},
+     {'slices': ([1, 0], slice(None), [[1, 1], [1, 1]])},
+     {'slices': ([1, 0], slice(1, 2), [0, 0])},
+     {'slices': ([[1, 1], [1, 0]], slice(1, 2), 1)},
+     {'slices': numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2)},
+     {'slices': numpy.array([True, False, False, True])},
+     {'slices': (slice(None), numpy.array([True, False, True]))},
+     {'slices': numpy.array([False, False, False, False])},
+     {'slices': (3, 2, Ellipsis, 1)},
+     {'slices': (numpy.array(False)), 'input_shape': ()},
+     {'slices': (numpy.array(True)), 'input_shape': ()},
      ]
 ))
 class TestGetItemAdvanced(testing.FunctionTestCase):
+
+    input_shape = (4, 3, 2)
 
     def setUp(self):
         self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-4})
         self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-3})
 
     def generate_inputs(self):
-        input_shape = (4, 3, 2)
-        x = numpy.random.uniform(-1, 1, input_shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, self.input_shape).astype(self.dtype)
         return x,
 
     def _convert_slices(self, slices, device):

@@ -19,6 +19,7 @@
         }                                                                                           \
     };                                                                                              \
                                                                                                     \
+    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                    \
     class Cuda##key_kernel_cls : public key_kernel_cls {                                            \
     public:                                                                                         \
         void Call(const Array& x, const Array& out) override {                                      \
@@ -52,6 +53,7 @@
         }                                                                                                 \
     };                                                                                                    \
                                                                                                           \
+    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                          \
     class Cuda##key_kernel_cls : public key_kernel_cls {                                                  \
     public:                                                                                               \
         void Call(const Array& x1, const Array& x2, const Array& out) override {                          \

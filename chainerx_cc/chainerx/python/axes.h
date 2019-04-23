@@ -17,17 +17,15 @@ Axes ToAxes(const pybind11::tuple& tup);
 inline OptionalAxes ToAxes(const nonstd::optional<std::vector<int8_t>>& vec) {
     if (vec.has_value()) {
         return Axes{vec->begin(), vec->end()};
-    } else {
-        return nonstd::nullopt;
     }
+    return nonstd::nullopt;
 }
 
 inline OptionalAxes ToAxes(const nonstd::optional<int8_t>& vec) {
     if (vec.has_value()) {
         return Axes{*vec};
-    } else {
-        return nonstd::nullopt;
     }
+    return nonstd::nullopt;
 }
 
 }  // namespace python_internal

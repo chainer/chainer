@@ -62,7 +62,7 @@ class TextDataset(dataset_mixin.DatasetMixin):
             filter_func=None):
         if isinstance(paths, six.string_types):
             paths = [paths]
-        elif len(paths) == 0:
+        elif not paths:
             raise ValueError('at least one text file must be specified')
 
         if isinstance(encoding, six.string_types) or encoding is None:
