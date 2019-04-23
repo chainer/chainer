@@ -127,6 +127,7 @@ Mathematical functions
    chainerx.maximum
    chainerx.exp
    chainerx.log
+   chainerx.log10
    chainerx.logsumexp
    chainerx.log_softmax
    chainerx.sqrt
