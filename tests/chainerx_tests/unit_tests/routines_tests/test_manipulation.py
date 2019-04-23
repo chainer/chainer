@@ -694,15 +694,33 @@ def test_swap_invalid(xp, shape, axis1, axis2):
     return xp.swapaxes(a, axis1, axis2)
 
 
-@op_utils.op_test(['native:0'])
-@chainer.testing.parameterize_pytest('shape,ndim', [
-    ((2, 2, 2), 3),
-    ((3, 3, 2, 3, 3), 5),
-    ((3, 0, 2, 0, 3), 5),
-    ((1, 2, 3, 1, 3, 3), 6),
-    ((3, 4, 5, 2, 3, 5), 6),
-    ((1,), 1),
-])
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(2, 2, 2)],
+        'axis': [*range(3 + 1)] + [*range(-1, -3 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 3, 2, 3, 3)],
+        'axis': [*range(5 + 1)] + [*range(-1, -5 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2, 0, 3)],
+        'axis': [*range(5 + 1)] + [*range(-1, -5 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 2, 3, 1, 3, 3)],
+        'axis': [*range(6 + 1)] + [*range(-1, -6 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 4, 5, 2, 3, 5)],
+        'axis': [*range(6 + 1)] + [*range(-1, -6 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': [*range(1 + 1)] + [*range(-1, -1 - 1, -1)],
+    })
+))
 @chainer.testing.parameterize_pytest('is_contiguous', [True, False])
 class TestExpandDIms(op_utils.NumpyOpTest):
 
@@ -725,18 +743,11 @@ class TestExpandDIms(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        b = ()
 
         if self.is_contiguous:
             a = a.copy()
 
-        for axis in range(self.ndim + 1):
-            b += (xp.expand_dims(a, axis), )
-
-        for axis in range(-1, -self.ndim-1, -1):
-            b += (xp.expand_dims(a, axis), )
-
-        return b
+        return xp.expand_dims(a, self.axis),
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
