@@ -1061,6 +1061,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.log10,
+        """log10(x)
+Base 10 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{10} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
         chainerx.logsumexp,
         """logsumexp(x, axis=None, keepdims=False)
 The log of the sum of exponentials of input array.

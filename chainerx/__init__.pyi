@@ -694,6 +694,9 @@ def linspace(
 def log(x: ndarray) -> ndarray: ...
 
 
+def log10(x: ndarray) -> ndarray: ...
+
+
 def log_softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...

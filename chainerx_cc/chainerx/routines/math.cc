@@ -740,6 +740,27 @@ Array Log(const Array& x) {
     return out;
 }
 
+Array Log10(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Log10Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"log10", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() / x * (1.0 / std::log(10));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
