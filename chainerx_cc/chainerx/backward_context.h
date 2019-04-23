@@ -33,9 +33,11 @@ public:
     explicit GradRef(ArrayNode& array_node);
 
     // Initialize with a temporary grad without value.
-    explicit GradRef(nonstd::nullopt_t);
+    explicit GradRef(nonstd::nullopt_t nullopt);
 
     explicit GradRef(nonstd::optional<Array>* grad);
+
+    ~GradRef() = default;
 
     GradRef(const GradRef&) = delete;
     GradRef(GradRef&&) = default;
