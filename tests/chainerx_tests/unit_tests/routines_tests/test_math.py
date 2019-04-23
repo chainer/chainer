@@ -1954,7 +1954,7 @@ class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
         if self.is_module:
             return xp.power(a, b)
         else:
-            return a**b
+            return a ** b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
