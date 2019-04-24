@@ -1371,7 +1371,7 @@ _bwise_in_out_dtypes_rev = [((in2, in1), out) for
 _bitwise_params = (
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
         'input_lhs': ['random'],
@@ -1380,7 +1380,7 @@ _bitwise_params = (
     })
     # Dtype combinations
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _bwise_in_out_dtypes + _bwise_in_out_dtypes_rev,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
@@ -1388,7 +1388,7 @@ _bitwise_params = (
     })
     # is_module
     + chainer.testing.product({
-        'shape': [(2, 3)],
+        'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
         'input_lhs': ['random'],
