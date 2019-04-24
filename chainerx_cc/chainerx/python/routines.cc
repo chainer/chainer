@@ -647,6 +647,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
+    m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
           py::arg("x"),
@@ -704,6 +705,7 @@ void InitChainerxMath(pybind11::module& m) {
     m.def("floor", [](const ArrayBodyPtr& x) { return MoveArrayBody(Floor(Array{x})); }, py::arg("x"));
     m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
     m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
+    m.def("isfinite", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsFinite(Array{x})); }, py::arg("x"));
 }
 
 void InitChainerxSorting(pybind11::module& m) {

@@ -43,8 +43,9 @@ class MeanSquaredError(function_node.FunctionNode):
 def mean_squared_error(x0, x1):
     """Mean squared error function.
 
-    This function computes mean squared error between two variables. The mean
-    is taken over the minibatch. Note that the error is not scaled by 1/2.
+    The function computes the mean squared error between two variables. The
+    mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
+    same dimensions. Note that the error is not scaled by 1/2.
 
     Args:
         x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
@@ -54,6 +55,37 @@ def mean_squared_error(x0, x1):
         ~chainer.Variable:
             A variable holding an array representing the mean squared
             error of two inputs.
+
+     .. admonition:: Example
+
+        1D array examples:
+
+        >>> x = np.array([1, 2, 3, 4]).astype(np.float32)
+        >>> y = np.array([0, 0, 0, 0]).astype(np.float32)
+        >>> F.mean_squared_error(x, y)
+        variable(7.5)
+        >>> x = np.array([1, 2, 3, 4, 5, 6]).astype(np.float32)
+        >>> y = np.array([7, 8, 9, 10, 11, 12]).astype(np.float32)
+        >>> F.mean_squared_error(x, y)
+        variable(36.)
+
+        2D array example:
+
+        In this example, there are 4 elements, and thus 4 errors
+        >>> x = np.array([[1, 2], [3, 4]]).astype(np.float32)
+        >>> y = np.array([[8, 8], [8, 8]]).astype(np.float32)
+        >>> F.mean_squared_error(x, y)
+        variable(31.5)
+
+        3D array example:
+
+        In this example, there are 8 elements, and thus 8 errors
+        >>> x = np.reshape(np.array([1, 2, 3, 4, 5, 6, 7, 8]), (2, 2, 2))
+        >>> y = np.reshape(np.array([8, 8, 8, 8, 8, 8, 8, 8]), (2, 2, 2))
+        >>> x = x.astype(np.float32)
+        >>> y = y.astype(np.float32)
+        >>> F.mean_squared_error(x, y)
+        variable(17.5)
 
     """
     return MeanSquaredError().apply((x0, x1))[0]

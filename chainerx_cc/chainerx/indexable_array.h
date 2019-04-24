@@ -46,8 +46,11 @@ private:
     using DeviceStorageType = TypeToDeviceStorageType<T>;
 
 public:
+    // Suppressing error with the following line that `strides_` is not initialized.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     IndexableArray(VoidType* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
@@ -56,6 +59,7 @@ public:
 #endif  // CHAINERX_DEBUG
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
     CHAINERX_HOST_DEVICE int8_t ndim() const { return kNdim; }
@@ -67,6 +71,7 @@ public:
     CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
         auto data_ptr = static_cast<WithConstnessOfT<uint8_t>*>(data_);
         for (int8_t dim = 0; dim < kNdim; ++dim) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             data_ptr += strides_[dim] * index[dim];
         }
 #if CHAINERX_DEBUG
@@ -178,8 +183,8 @@ public:
     CHAINERX_HOST_DEVICE VoidType* data() const { return data_; }
 
     CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
-        auto data_ptr = reinterpret_cast<WithConstnessOfT<uint8_t>*>(data_) +
-                        stride_ * index[0];  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto data_ptr = reinterpret_cast<WithConstnessOfT<uint8_t>*>(data_) + stride_ * index[0];
 #if CHAINERX_DEBUG
         CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
         CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
@@ -216,10 +221,12 @@ private:
     using DeviceStorageType = TypeToDeviceStorageType<T>;
 
 public:
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     IndexableArray(WithConstnessOfT<void>* data, const Strides& strides) : data_{data}, ndim_{strides.ndim()} {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData(array), strides} {
         CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
@@ -228,6 +235,7 @@ public:
 #endif  // CHAINERX_DEBUG
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
     CHAINERX_HOST_DEVICE int8_t ndim() const { return ndim_; }
@@ -239,6 +247,7 @@ public:
     CHAINERX_HOST_DEVICE DeviceStorageType& operator[](const int64_t* index) const {
         auto data_ptr = static_cast<WithConstnessOfT<uint8_t>*>(data_);
         for (int8_t dim = 0; dim < ndim_; ++dim) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             data_ptr += strides_[dim] * index[dim];
         }
 #if CHAINERX_DEBUG
@@ -262,7 +271,7 @@ public:
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
         for (size_t i = 0; i < axes.size(); ++i) {
-            strides_[i] = c[axes[i]];
+            gsl::at(strides_, i) = gsl::at(c, axes[i]);
         }
         ndim_ = static_cast<int8_t>(axes.size());
         return *this;

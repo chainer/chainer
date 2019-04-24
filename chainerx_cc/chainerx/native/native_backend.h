@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <gsl/gsl>
+
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
 #include "chainerx/kernel_registry.h"
@@ -36,7 +38,7 @@ public:
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
     static KernelRegistry& GetGlobalKernelRegistry() {
-        static KernelRegistry* global_kernel_registry = new KernelRegistry{};
+        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
         return *global_kernel_registry;
     }
 
