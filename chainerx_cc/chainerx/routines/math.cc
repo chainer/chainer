@@ -1139,7 +1139,7 @@ Array IsFinite(const Array& x) {
     }
     return out;
 }
-        
+
 template <typename Impl>
 inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
@@ -1151,19 +1151,34 @@ inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     return BroadcastBinary(impl, x1_cast, x2_cast, out_dtype);
 }
 
-Array BitwiseAnd(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseAndKernel>(x1, x2, out); };
-    return BitwiseImpl(func, x1, x2);
+template <typename Kernel>
+inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
+    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
 }
 
-Array BitwiseOr(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseOrKernel>(x1, x2, out); };
-    return BitwiseImpl(func, x1, x2);
+namespace internal {
+
+template <typename Impl>
+inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
+    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+
+    CheckInplaceArithmeticDtypes(x1, x2);
+    BroadcastBinaryInPlace(impl, x1, x2);
 }
 
-Array BitwiseXor(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2, Array& out) { x1.device().backend().CallKernel<BitwiseXorKernel>(x1, x2, out); };
-    return BitwiseImpl(func, x1, x2);
-}
+void IBitwiseAnd(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+
+void IBitwiseOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+
+void IBitwiseXOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
+
+}  // namespace internal
+
+Array BitwiseAnd(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+
+Array BitwiseOr(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+
+Array BitwiseXor(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
 
 }  // namespace chainerx

@@ -1431,6 +1431,50 @@ class TestBitwiseXor(BinaryMathTestBase, op_utils.NumpyOpTest):
             return a ^ b
 
 
+# @op_utils.op_test(['native:0', 'cuda:0'])
+# @chainer.testing.parameterize(*(
+#     # Special shapes
+#     chainer.testing.product({
+#         'in_shapes': _shapes_combination_inplace_binary,
+#         'in_dtypes,out_dtype': (
+#             _make_same_in_out_dtypes(2, chainerx.testing.integral_dtypes)),
+#         'input_lhs': ['random'],
+#         'input_rhs': ['random'],
+#     })
+#     # Dtype combinations
+#     + chainer.testing.product({
+#         'in_shapes': [((2, 3), (2, 3))],
+#         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
+#         'input_lhs': ['random'],
+#         'input_rhs': ['random'],
+#     })
+#     # Special values
+#     + chainer.testing.product({
+#         'in_shapes': [((2, 3), (2, 3))],
+#         'in_dtypes,out_dtype': (
+#             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+#         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+#         'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+#         'skip_backward_test': [True],
+#         'skip_double_backward_test': [True],
+#     })
+# ))
+# class TestIAnd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+#     def func(self, xp, a, b):
+#         a &= b
+
+
+# @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+# @pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
+# def test_iand_invalid_dtypes(device, dtypes):
+#     (in_dtype1, in_dtype2), _ = dtypes
+#     shape = (2, 3)
+#     a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+#     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+#     with pytest.raises(chainerx.DtypeError):
+#         a &= b
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
     (('bool_',), 'int64'),

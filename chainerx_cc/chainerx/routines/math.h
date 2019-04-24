@@ -142,6 +142,15 @@ Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
 
+namespace internal {
+
+void IBitwiseAnd(const Array& x1, const Array& x2);
+
+void IBitwiseOr(const Array& x1, const Array& x2);
+
+void IBitwiseXor(const Array& x1, const Array& x2);
+}
+
 Array BitwiseAnd(const Array& x1, const Array& x2);
 
 Array BitwiseOr(const Array& x1, const Array& x2);

@@ -98,6 +98,21 @@ Array Array::operator<(const Array& rhs) const { return Less(*this, rhs); }
 
 Array Array::operator<=(const Array& rhs) const { return LessEqual(*this, rhs); }
 
+// Array& Array::operator&=(const Array& rhs) {
+//     internal::IBitwiseAnd(*this, rhs);
+//     return *this;
+// }
+
+// Array& Array::operator|=(const Array& rhs) {
+//     internal::IBitwiseOr(*this, rhs);
+//     return *this;
+// }
+
+// Array& Array::operator^=(const Array& rhs) {
+//     internal::IBitwiseXor(*this, rhs);
+//     return *this;
+// }
+
 Array& Array::operator+=(const Array& rhs) {
     internal::IAdd(*this, rhs);
     return *this;
@@ -137,6 +152,21 @@ Array& Array::operator/=(Scalar rhs) {
     internal::IDivide(*this, rhs);
     return *this;
 }
+
+// const Array& Array::operator&=(const Array& rhs) const {
+//     internal::IBitwiseAnd(*this, rhs);
+//     return *this;
+// }
+
+// const Array& Array::operator|=(const Array& rhs) const {
+//     internal::IBitwiseOr(*this, rhs);
+//     return *this;
+// }
+
+// const Array& Array::operator^=(const Array& rhs) const {
+//     internal::IBitwiseXor(*this, rhs);
+//     return *this;
+// }
 
 const Array& Array::operator+=(const Array& rhs) const {
     internal::IAdd(*this, rhs);
