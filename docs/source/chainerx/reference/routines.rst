@@ -68,6 +68,7 @@ Array manipulation routines
    chainerx.stack
    chainerx.hstack
    chainerx.vstack
+   chainerx.atleast_2d
    chainerx.split
    chainerx.swapaxes
 
