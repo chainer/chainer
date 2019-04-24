@@ -20,7 +20,7 @@ esac
 # Assign default values
 : "${MATRIX_EVAL:=}"
 : "${SKIP_CHAINERX:=0}"
-: "${SKIP_CHAINERMN:=1}"
+: "${SKIP_CHAINERMN:=0}"
 : "${CHAINER_TEST_STATUS:=0}"
 
 REPO_DIR="$TRAVIS_BUILD_DIR"

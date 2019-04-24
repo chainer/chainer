@@ -136,19 +136,27 @@ step_chainer_install_from_sdist() {
 
 
 step_chainer_tests() {
-    echo "chainer test"
+    local mark="not slow and not gpu and not cudnn and not ideep"
+
+    # On Windows theano fails to import
+    if [[ $TRAVIS_OS_NAME == "windows" ]]; then
+        mark="$mark and not theano"
+    fi
+
+    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 
 step_chainerx_python_tests() {
-    sudo apt-get install -y gdb  # install gdb
-    # pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
-    gdb -return-child-result -batch -ex r -ex bt --args python -m pytest -v "$REPO_DIR"/tests/chainerx_tests/unit_tests/routines_tests/test_manipulation.py
+    pytest "$REPO_DIR"/tests/chainerx_tests
 }
 
 
 step_chainermn_tests() {
-    echo "chainermn test"
+    for NP in 1 2; do
+        OMP_NUM_THREADS=1 \
+            mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' "$REPO_DIR"/tests/chainermn_tests
+    done
 }
 
 
