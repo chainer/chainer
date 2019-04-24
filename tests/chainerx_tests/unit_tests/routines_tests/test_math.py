@@ -2209,6 +2209,18 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.arctan(a)
 
 
+def differentiable_points_atan2(input_lhs, input_rhs):
+    return chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': input_lhs,
+        'input_rhs': input_rhs,
+    })
+
+
+# Since the gradient of arctan2 is quite flaky.
+# for smaller values especially `float16`.
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -2216,9 +2228,20 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': [-3, -0.75, -0.4, 0.4, 0.75, 3],
-        'input_rhs': [-3, -0.75, -0.4, 0.4, 0.75, 3],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
     })
+    # Differentiable points
+    # Same signed input
+    + differentiable_points_atan2([-3.], [-3.])
+    + differentiable_points_atan2([-0.75], [-0.75])
+    + differentiable_points_atan2([0.75], [0.75])
+    + differentiable_points_atan2([3.], [3.])
+    # Mixed signed input
+    + differentiable_points_atan2([0.75], [-0.75])
+    + differentiable_points_atan2([-3.], [-3.])
     # Mixed dtypes
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
