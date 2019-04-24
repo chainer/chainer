@@ -149,7 +149,8 @@ void IBitwiseAnd(const Array& x1, const Array& x2);
 void IBitwiseOr(const Array& x1, const Array& x2);
 
 void IBitwiseXor(const Array& x1, const Array& x2);
-}
+
+}  // namespace internal
 
 Array BitwiseAnd(const Array& x1, const Array& x2);
 
