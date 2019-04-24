@@ -721,20 +721,25 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 
 Array AtLeast2D(const Array& x) {
     Array out;
-    switch (x.ndim()) {
-        case 0:
-            out = x.Reshape({1, 1});
-            break;
-        case 1: {
-            Shape shape = x.shape();
-            Strides strides = x.strides();
-            shape.insert(shape.begin(), 1);
-            strides.insert(strides.begin(), 0);
-            out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
-        } break;
-        default:
-            out = x.MakeView();
-            break;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                strides.insert(strides.begin(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
     }
 
     BackwardBuilder bb{"atleast_2d", x, out};
