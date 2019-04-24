@@ -192,7 +192,7 @@ step_python_test_chainerx() {
 
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
-    pytest -v \
+    pytest \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
