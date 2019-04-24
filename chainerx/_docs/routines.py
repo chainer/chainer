@@ -864,7 +864,7 @@ Returns:
 Note:
     * Arrays that already have two or more dimensions are preserved.
     * During backpropagation, this function propagates the gradient of the
-    output array to the input arrays in ``a``.
+      output array to the input arrays in ``a``.
 
 .. seealso:: :func:`numpy.vstack`
 """)
