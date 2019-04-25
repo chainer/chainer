@@ -197,7 +197,7 @@ class FunctionTestBase(object):
             except AssertionError:
                 indices.append(i)
 
-        if len(indices) > 0:
+        if indices:
             FunctionTestError.fail(
                 'Input arrays have been modified during forward.\n'
                 'Indices of modified inputs: {}\n'
@@ -363,7 +363,7 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         ``outputs`` and ``expected_outputs`` are tuples of arrays.
         In case the check fails, ``FunctionTestError`` should be raised.
 
-    .. rubric:: Attributes
+    .. rubric:: Configurable attributes
 
     The concrete class can override the following attributes to control the
     behavior of the tests.
@@ -389,6 +389,17 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         gradients, and the second order input gradients). If ``None``, the
         arrays will be non-contiguous as long as possible. If ``'C'``, the
         arrays will be C-contiguous. ``None`` by default.
+
+    .. rubric:: Passive attributes
+
+    These attributes are automatically set.
+
+    ``test_name`` (str):
+        The name of the test being run. It is one of ``'test_forward'``,
+        ``'test_backward'``, and ``'test_double_backward'``.
+
+    ``backend_config`` (:class:`~chainer.testing.BackendConfig`):
+        The backend configuration.
 
     .. note::
 
@@ -1172,7 +1183,7 @@ def _check_arrays_equal(
                 array_module.assert_allclose(actual, expected, **opts)
             except AssertionError as e:
                 errors.append((i, e))
-        if len(errors) > 0:
+        if errors:
             message = (
                 'Outputs do not match the expected values.\n'
                 'Indices of outputs that do not match: {}'.format(

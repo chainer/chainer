@@ -213,7 +213,7 @@ public:
     ContextScope& operator=(const ContextScope&) = delete;
     ContextScope& operator=(ContextScope&& other) = delete;
 
-    ContextScope(ContextScope&& other) : orig_ctx_{other.orig_ctx_}, orig_device_{other.orig_device_}, exited_{other.exited_} {
+    ContextScope(ContextScope&& other) noexcept : orig_ctx_{other.orig_ctx_}, orig_device_{other.orig_device_}, exited_{other.exited_} {
         other.exited_ = true;
     }
 

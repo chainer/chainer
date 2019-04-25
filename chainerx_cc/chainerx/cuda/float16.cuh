@@ -70,6 +70,7 @@ public:
     __device__ bool IsInf() const { return (data_ & 0x7c00U) == 0x7c00U && (data_ & 0x03ffU) == 0; }
     __device__ Float16 Exp() const { return Float16{std::exp(static_cast<float>(*this))}; }
     __device__ Float16 Log() const { return Float16{std::log(static_cast<float>(*this))}; }
+    __device__ Float16 Log10() const { return Float16{std::log10(static_cast<float>(*this))}; }
     __device__ Float16 Sqrt() const { return Float16{std::sqrt(static_cast<float>(*this))}; }
     __device__ Float16 Floor() const { return Float16{std::floor(static_cast<float>(*this))}; }
 

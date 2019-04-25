@@ -86,6 +86,7 @@ Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
+Array Log10(const Array& x);
 
 // Returns the LogSumExp (LSE) of x, reduced along the specified axes.
 // If no axes are specified, all axes will be reduced.
@@ -111,11 +112,15 @@ Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
+Array IsFinite(const Array& x);
+
 Array Tanh(const Array& x);
 
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
+
+Array Absolute(const Array& x);
 
 Array Tan(const Array& x);
 

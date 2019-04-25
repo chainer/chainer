@@ -441,7 +441,7 @@ class _CheckBackward(object):
         device = backend.get_device_from_array(*xs)
 
         if device.xp is chainerx:
-            if len(params) > 0 and not is_immutable_params:
+            if params and not is_immutable_params:
                 raise NotImplementedError(
                     'gradient_check does not support params argument for '
                     'ChainerX arrays')

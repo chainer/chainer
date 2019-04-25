@@ -68,6 +68,7 @@ Array manipulation routines
    chainerx.stack
    chainerx.split
    chainerx.swapaxes
+   chainerx.expand_dims
 
 Indexing routines
 -----------------
@@ -127,6 +128,7 @@ Mathematical functions
    chainerx.maximum
    chainerx.exp
    chainerx.log
+   chainerx.log10
    chainerx.logsumexp
    chainerx.log_softmax
    chainerx.sqrt

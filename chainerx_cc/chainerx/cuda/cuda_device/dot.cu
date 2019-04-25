@@ -34,26 +34,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// Dispatch gemm routines based on the element type T
-template <typename T>
-struct Gemm;
-
-template <>
-struct Gemm<float> {
-    template <typename... Args>
-    cublasStatus_t operator()(Args&&... args) const {
-        return cublasSgemm(std::forward<Args>(args)...);
-    }
-};
-
-template <>
-struct Gemm<double> {
-    template <typename... Args>
-    cublasStatus_t operator()(Args&&... args) const {
-        return cublasDgemm(std::forward<Args>(args)...);
-    }
-};
-
 struct GemmInputLayout {
     int64_t ld = 0;
     cublasOperation_t trans = CUBLAS_OP_T;
@@ -116,27 +96,20 @@ public:
             return;
         }
 
-        if (out.dtype() == Dtype::kFloat16) {
-            // TODO(imanishi): Use cublasHgemm
-            Array out_float32 = Empty(out.shape(), Dtype::kFloat32, device);
-            device.backend().CallKernel<DotKernel>(a.AsType(Dtype::kFloat32), b.AsType(Dtype::kFloat32), out_float32);
-            device.backend().CallKernel<AsTypeKernel>(out_float32, out);
-            return;
-        }
-
         bool is_out_contiguous = out.IsContiguous();
         Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, device);
 
         const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
         const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
 
-        auto gemm_impl = [&](auto pt) {
+        auto gemm_impl = [&](auto pt1, auto pt2, cudaDataType_t data_type, cudaDataType_t compute_type) {
             CHAINERX_ASSERT(a_cast.dtype() == out_contiguous.dtype());
             CHAINERX_ASSERT(b_cast.dtype() == out_contiguous.dtype());
 
-            using T = typename decltype(pt)::type;
+            using T = typename decltype(pt1)::type;
             using StorageType = cuda_internal::StorageType<T>;
-            using CudaType = cuda_internal::DataType<T>;
+            using CudaType = std::conditional_t<std::is_same<T, chainerx::Float16>::value, ::__half, T>;
+            using ComputeType = typename decltype(pt2)::type;
 
             // Note that cuBLAS uses Fortran order.
             // To compute out = a x b, we use cuBLAS to compute out^T = b^T x a^T (here x is the matrix product).
@@ -146,40 +119,42 @@ public:
             Array a_cast_config = a_cast_layout.Configure(a_cast);
             Array b_cast_config = b_cast_layout.Configure(b_cast);
 
-            const CudaType one{chainerx::Float16{1}};
-            const CudaType zero{chainerx::Float16{0}};
-            const CudaType* a_cast_ptr =
-                    &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(a_cast_config)));
-            const CudaType* b_cast_ptr =
-                    &cuda_internal::StorageToDataType<const T>(*static_cast<const StorageType*>(internal::GetRawOffsetData(b_cast_config)));
-            CudaType* out_ptr =
-                    &cuda_internal::StorageToDataType<T>(*static_cast<StorageType*>(internal::GetRawOffsetData(out_contiguous)));
+            const ComputeType one{T{1}};
+            const ComputeType zero{T{0}};
 
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
             device_internals.cublas_handle().Call(
-                    Gemm<T>{},
+                    cublasGemmEx,
                     b_cast_layout.trans,
                     a_cast_layout.trans,
                     n,
                     m,
                     k,
                     &one,
-                    b_cast_ptr,
+                    internal::GetRawOffsetData(b_cast_config),
+                    data_type,
                     b_cast_layout.ld,
-                    a_cast_ptr,
+                    internal::GetRawOffsetData(a_cast_config),
+                    data_type,
                     a_cast_layout.ld,
                     &zero,
-                    out_ptr,
-                    n);
+                    internal::GetRawOffsetData(out_contiguous),
+                    data_type,
+                    n,
+                    compute_type,
+                    CUBLAS_GEMM_DEFAULT_TENSOR_OP);
         };
 
         switch (out.dtype()) {
+            case Dtype::kFloat16:
+                gemm_impl(PrimitiveType<chainerx::Float16>{}, PrimitiveType<float>{}, CUDA_R_16F, CUDA_R_32F);
+                break;
             case Dtype::kFloat32:
-                gemm_impl(PrimitiveType<float>{});
+                gemm_impl(PrimitiveType<float>{}, PrimitiveType<float>{}, CUDA_R_32F, CUDA_R_32F);
                 break;
             case Dtype::kFloat64:
-                gemm_impl(PrimitiveType<double>{});
+                gemm_impl(PrimitiveType<double>{}, PrimitiveType<double>{}, CUDA_R_64F, CUDA_R_64F);
                 break;
             default:
                 CHAINERX_NEVER_REACH();

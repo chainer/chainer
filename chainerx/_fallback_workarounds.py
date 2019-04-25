@@ -94,14 +94,6 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _isfinite(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.isfinite(arr)
-        return _to_chx(ret)
-
-    chainerx.isfinite = _isfinite
-
     def _hstack(arrs):
         assert len(arrs) > 0
         arrs2 = []
@@ -126,6 +118,15 @@ def _populate_module_functions():
 
     chainerx.vstack = _vstack
 
+    def _fix(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
+        return _to_chx(ret)
+
+    chainerx.fix = _fix
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
@@ -142,7 +143,10 @@ def _populate_ndarray():
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -177,6 +181,14 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
+
+    def tolist(arr):
+        _, dev, arr = _from_chx(arr)
+        with dev:
+            ret = arr.tolist()
+        return ret
+
+    ndarray.tolist = tolist
 
 
 def populate():

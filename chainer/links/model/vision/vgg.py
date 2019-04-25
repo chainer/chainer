@@ -191,7 +191,7 @@ class VGGLayers(link.Chain):
         activations = {}
         target_layers = set(layers)
         for key, funcs in self.functions.items():
-            if len(target_layers) == 0:
+            if not target_layers:
                 break
             for func in funcs:
                 h = func(h)

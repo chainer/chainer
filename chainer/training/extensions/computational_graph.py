@@ -82,8 +82,8 @@ class DumpGraph(extension.Extension):
             dictionary of the trainer.
         filename (str): Output file name. Although it is recommended to
             use this argument, you can also specify the name of the output
-            file with `out_name` argument for backward compatibility.
-            If both `filename` and `out_name` are specified, `filename`
+            file with ``out_name`` argument for backward compatibility.
+            If both ``filename`` and ``out_name`` are specified, ``filename``
             is used.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.

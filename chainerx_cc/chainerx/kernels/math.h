@@ -95,6 +95,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class Log10Kernel : public Kernel {
+public:
+    static const char* name() { return "Log10"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class SquareKernel : public Kernel {
 public:
     static const char* name() { return "Square"; }
@@ -224,6 +231,13 @@ public:
 class IsInfKernel : public Kernel {
 public:
     static const char* name() { return "IsInf"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class IsFiniteKernel : public Kernel {
+public:
+    static const char* name() { return "IsFinite"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };

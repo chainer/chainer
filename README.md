@@ -11,8 +11,9 @@
 [**Website**](https://chainer.org/)
 | [**Docs**](https://docs.chainer.org/en/stable/)
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
-| [**Tutorial**](https://docs.chainer.org/en/stable/guides/)
+| **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
 | **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**Concepts**](https://docs.chainer.org/en/stable/guides/)
 | [**ChainerX**](#chainerx)
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))

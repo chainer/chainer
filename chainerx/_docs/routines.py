@@ -859,6 +859,27 @@ Note:
 .. seealso:: :func:`numpy.swapaxes`
 """)
 
+    _docs.set_doc(
+        chainerx.expand_dims,
+        """expand_dims(a, axis)
+Expand the shape of an array.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    axis (int): Position in the expanded axes where the new axis is placed.
+
+Returns:
+    ~chainerx.ndarray: Output array.
+
+Note:
+    * Output array may or may not be a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.expand_dims`
+""")
+
 
 def _docs_math():
     _docs.set_doc(
@@ -1037,6 +1058,24 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log`
+""")
+
+    _docs.set_doc(
+        chainerx.log10,
+        """log10(x)
+Base 10 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{10} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log10`
 """)
 
     _docs.set_doc(
@@ -1413,6 +1452,24 @@ Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.isnan`
+""")
+
+    _docs.set_doc(
+        chainerx.isfinite,
+        """isfinite(x)
+Test element-wise for finiteness (not infinity or not Not a Number).
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: True where x is not positive infinity,
+    negative infinity, or NaN; false otherwise.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.isfinite`
 """)
 
     _docs.set_doc(

@@ -48,6 +48,8 @@ class Array {
 public:
     Array() = default;
 
+    ~Array() = default;
+
     // TODO(hvy): Consider making this contructor private and prohibit body from being null (assert that given body is not null).
     explicit Array(std::shared_ptr<internal::ArrayBody> body) : body_{std::move(body)} {
         if (body_ == nullptr) {
