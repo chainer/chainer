@@ -20,6 +20,7 @@ from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 import chainer.testing.backend
+from chainer.utils import collections_abc
 from chainer import variable
 import chainerx
 
@@ -1426,6 +1427,11 @@ class TestVariableBasic(unittest.TestCase):
         with pytest.raises(TypeError):
             if not a:
                 pass
+
+    def test_iterable(self):
+        assert issubclass(chainer.Variable, collections_abc.Iterable)
+        a = chainer.Variable(np.ones((2,)))
+        assert isinstance(a, collections_abc.Iterable)
 
 
 class TestVariableDataAssign(unittest.TestCase):
