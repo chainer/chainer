@@ -12,8 +12,8 @@ namespace chainerx {
 namespace native {
 namespace reduce_detail {
 
-constexpr int64_t ExpandLen = 8;
-constexpr int64_t SerialLen = 16;
+constexpr int64_t ExpandLen = 4;
+constexpr int64_t SerialLen = 8;
 
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T, int64_t n>
 struct ExpandedPairwiseReduction {
