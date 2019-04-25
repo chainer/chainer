@@ -729,4 +729,16 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     return out;
 }
 
+Array ExpandDims(const Array& a, int8_t axis) {
+    Shape shape = a.shape();
+
+    axis = internal::NormalizeAxis(axis, a.ndim() + 1);
+
+    shape.insert(shape.begin() + axis, 1);
+
+    Array out = a.Reshape(shape);
+
+    return out;
+}
+
 }  // namespace chainerx

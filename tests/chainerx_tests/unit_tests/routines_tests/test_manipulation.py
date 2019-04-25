@@ -705,3 +705,75 @@ class TestSwapaxes(op_utils.NumpyOpTest):
 def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(2, 2, 2)],
+        'axis': [*range(3 + 1)] + [*range(-1, -3 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 3, 2, 3, 3)],
+        'axis': [*range(5 + 1)] + [*range(-1, -5 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2, 0, 3)],
+        'axis': [*range(5 + 1)] + [*range(-1, -5 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 2, 3, 1, 3, 3)],
+        'axis': [*range(6 + 1)] + [*range(-1, -6 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 4, 5, 2, 3, 5)],
+        'axis': [*range(6 + 1)] + [*range(-1, -6 - 1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': [*range(1 + 1)] + [*range(-1, -1 - 1, -1)],
+    })
+))
+@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
+class TestExpandDIms(op_utils.NumpyOpTest):
+
+    # TODO(kshitij12345): Remove this when fixed
+    check_numpy_strides_compliance = False
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if self.is_contiguous:
+            a = a.copy()
+
+        return xp.expand_dims(a, self.axis),
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError, DeprecationWarning))
+@pytest.mark.parametrize('shape,axis', [
+    # Axis out of range.
+    ((), 1),
+    ((2,), 3),
+    ((2,), -3),
+    ((2, 4), 4),
+    ((1, 1, 2), -4)
+])
+def test_expand_dims_invalid(xp, shape, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.expand_dims(a, axis)
