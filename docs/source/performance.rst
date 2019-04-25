@@ -173,5 +173,4 @@ See :doc:`guides/gpu` for the working examples of each case.
 Use Multiple Nodes
 ------------------
 
-You can scale-out the training process of your Chainer model to multiple-node cluster by using `ChainerMN <http://github.com/chainer/chainermn>`__, an additional package for Chainer which enables distributed deep learning.
-See `ChainerMN Official Documentation <http://chainermn.readthedocs.io/en/latest/>`_ for details.
+You can scale-out the training process of your Chainer model to multiple-node cluster by using :doc:`ChainerMN <chainermn/index>` module which enables distributed deep learning.
