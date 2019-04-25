@@ -617,6 +617,19 @@ class TestSplit(op_utils.NumpyOpTest):
         return tuple(b)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices_or_sections,axis', [
+    ((7, 0), [2, 5], 0),
+    ((0, 6), 3, 1),
+])
+def test_split_zero_sized_no_offset(device, shape, indices_or_sections, axis):
+    # An (sub-)array of size 0 should always have 0 offset.
+    a = chainerx.random.uniform(-1, 1, shape)
+    assert a.offset == 0  # Test pre-condition.
+    b = chainerx.split(a, indices_or_sections, axis)
+    assert all(bi.offset == 0 for bi in b)
+
+
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(
         chainerx.DimensionError, IndexError, ValueError, TypeError,
