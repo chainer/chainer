@@ -93,3 +93,97 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return xp.dot(a, b)
     else:
         return a.dot(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,offset,axis1,axis2', [
+    # Valid
+    ((3, 3), 0, 0, 1),
+    ((3, 3), 1, 0, 1),
+    ((3, 3), 2, 0, -1),
+    ((3, 3), 3, 0, -1),
+    ((3, 3), -1, 0, 1),
+    ((3, 3), -2, 0, -1),
+    ((3, 3), -3, 0, -1),
+
+    ((7, 5, 3), 0, 0, 1),
+    ((7, 5, 3), 2, 0, 1),
+    ((7, 5, 3), 4, 0, 1),
+    ((7, 5, 3), 6, 0, -1),
+    ((7, 5, 3), 8, 0, -1),
+    ((7, 5, 3), -2, 0, 1),
+    ((7, 5, 3), -4, 0, 1),
+    ((7, 5, 3), -6, 0, -1),
+    ((7, 5, 3), -8, 0, -1),
+
+    ((7, 5, 3), 0, 1, 2),
+    ((7, 5, 3), 2, 1, 2),
+    ((7, 5, 3), 4, -1, 2),
+    ((7, 5, 3), 6, -1, 2),
+    ((7, 5, 3), 8, 1, -2),
+    ((7, 5, 3), -2, 1, -2),
+    ((7, 5, 3), -4, -1, 2),
+    ((7, 5, 3), -6, -1, 2),
+    ((7, 5, 3), -8, 1, -2),
+
+    ((7, 5, 3), 0, 2, 0),
+    ((7, 5, 3), 2, 2, 0),
+    ((7, 5, 3), 4, -2, 0),
+    ((7, 5, 3), 6, -2, 0),
+    ((7, 5, 3), 8, 2, 0),
+    ((7, 5, 3), -2, 2, 0),
+    ((7, 5, 3), -4, 2, 0),
+    ((7, 5, 3), -6, -2, 0),
+    ((7, 5, 3), -8, -2, 0),
+
+    # Invalid
+    ((3, 3), 0, -1, 1),
+    ((3, 3), 0, 0, -1),
+    ((3, 3), 0, 2, 1),
+    ((3, 3), 1, 0, 2),
+
+    ((3,), 0, 0, 1),
+    ((3,), 0, 0, 1),
+    ((3,), 0, 0, 1),
+
+    ((7, 5, 3), 0, -1, 1),
+    ((7, 5, 3), 2, 0, -1),
+    ((7, 5, 3), 4, 3, 1),
+    ((7, 5, 3), 6, 0, 3),
+
+    ((7, 5, 3), 0, -1, 2),
+    ((7, 5, 3), 2, 1, -1),
+    ((7, 5, 3), 4, 3, 2),
+    ((7, 5, 3), 6, 1, 3),
+
+    ((7, 5, 3), 0, -1, 0),
+    ((7, 5, 3), 2, 2, -1),
+    ((7, 5, 3), 4, 3, 0),
+    ((7, 5, 3), 6, 2, 3),
+])
+@chainer.testing.parameterize_pytest('dtype,range', [
+    ('int8', (-127, 127)),
+    ('int16', (-1000, 1000)),
+    ('int32', (-10**5, 10**5)),
+    ('int64', (-10**9, 10**9)),
+    ('uint8', (0, 255)),
+    ('float32', (-1, 1)),
+    ('float64', (-1, 1)),
+])
+class TestValidDiagonal(op_utils.NumpyOpTest):
+    check_numpy_strides_compliance = False
+    forward_accept_errors = (
+        chainerx.DimensionError,
+        chainerx.ChainerxError,
+        numpy.AxisError,
+        ValueError)
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return numpy.random.uniform(
+            self.range[0], self.range[1], self.shape).astype(self.dtype),
+
+    def forward_xp(self, inputs, xp):
+        return xp.trace(
+            inputs[0], self.offset, self.axis1, self.axis2, self.dtype),

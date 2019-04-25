@@ -1,15 +1,19 @@
 from io import StringIO
+import itertools
 import sys
 import tempfile
 
 import numpy
 import pytest
 
+import chainer
+
 import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
 _array_params_list = [
@@ -1173,3 +1177,127 @@ def test_copy(xp, shape, dtype, device, is_module):
         return xp.copy(a)
     else:
         return a.copy()
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,offset,axis1,axis2', [
+    ((3, 3), 0, 0, 1),
+    ((3, 3), 1, 0, 1),
+    ((3, 3), 2, 0, 1),
+    ((3, 3), 3, 0, 1),
+    ((3, 3), -1, 0, 1),
+    ((3, 3), -2, 0, 1),
+    ((3, 3), -3, 0, 1),
+
+    ((7, 5, 3), 0, 0, 1),
+    ((7, 5, 3), 2, 0, 1),
+    ((7, 5, 3), 4, 0, 1),
+    ((7, 5, 3), 6, 0, 1),
+    ((7, 5, 3), 8, 0, 1),
+    ((7, 5, 3), -2, 0, 1),
+    ((7, 5, 3), -4, 0, 1),
+    ((7, 5, 3), -6, 0, 1),
+    ((7, 5, 3), -8, 0, 1),
+
+    ((7, 5, 3), 0, 1, 2),
+    ((7, 5, 3), 2, 1, 2),
+    ((7, 5, 3), 4, 1, 2),
+    ((7, 5, 3), 6, 1, 2),
+    ((7, 5, 3), 8, 1, 2),
+    ((7, 5, 3), -2, 1, 2),
+    ((7, 5, 3), -4, 1, 2),
+    ((7, 5, 3), -6, 1, 2),
+    ((7, 5, 3), -8, 1, 2),
+
+    ((7, 5, 3), 0, 2, 0),
+    ((7, 5, 3), 2, 2, 0),
+    ((7, 5, 3), 4, 2, 0),
+    ((7, 5, 3), 6, 2, 0),
+    ((7, 5, 3), 8, 2, 0),
+    ((7, 5, 3), -2, 2, 0),
+    ((7, 5, 3), -4, 2, 0),
+    ((7, 5, 3), -6, 2, 0),
+    ((7, 5, 3), -8, 2, 0),
+])
+@chainer.testing.parameterize_pytest('dtype,range', [
+    ('int8', (-127, 127)),
+    ('int16', (-1000, 1000)),
+    ('int32', (-10**5, 10**5)),
+    ('int64', (-10**9, 10**9)),
+    ('uint8', (0, 255)),
+    ('float16', (-1, 1)),
+    ('float32', (-1, 1)),
+    ('float64', (-1, 1)),
+])
+class TestValidDiagonalflat(op_utils.NumpyOpTest):
+    check_numpy_strides_compliance = False
+
+    def setup(self):
+        self.skip_backward_test = numpy.dtype(self.dtype).kind != 'f'
+        self.skip_double_backward_test = self.skip_backward_test
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(
+            self.range[0], self.range[1], self.shape).astype(self.dtype)
+        self.dim1 = self.shape[self.axis1]
+        self.dim2 = self.shape[self.axis2]
+        return numpy.diagonal(x, self.offset, self.axis1, self.axis2),
+
+    def forward_xp(self, inputs, xp):
+        if xp is numpy:
+            ndim = len(self.shape)
+            axis1 = self.axis1 + self.dim1 if self.axis1 < 0 else self.axis1
+            axis2 = self.axis2 + self.dim2 if self.axis2 < 0 else self.axis2
+            if self.axis1 < 0 or self.axis2 < 0 or (
+                    self.axis1 >= ndim or self.axis2 >= ndim):
+                raise numpy.AxisError
+            elif self.axis1 == self.axis2 or self.dim1 < 0 or self.dim2 < 0:
+                raise ValueError
+
+            axes = [axis1, axis2]
+            dims = [self.dim1, self.dim2]
+
+            min_index, max_index = (0, 1) if axis1 < axis2 else (1, 0)
+
+            out_shape = []
+            iter_index = []
+            num_elements = 0
+            if len(inputs[0].shape) > 1:
+                out_shape = list(inputs[0].shape[:-1])
+                iter_index = inputs[0].shape[:-1]
+
+            if len(inputs[0].shape) > 0:
+                out_shape.insert(axes[min_index], dims[min_index])
+                out_shape.insert(axes[max_index], dims[max_index])
+                num_elements = inputs[0].shape[-1]
+
+            if not out_shape:
+                return numpy.array(out_shape, dtype=inputs[0].dtype)
+
+            start_axes = [0, 0]
+            if self.offset > 0:
+                start_axes[1] = self.offset
+            else:
+                start_axes[0] = -self.offset
+
+            end_axes = [a + num_elements for a in start_axes]
+
+            out = numpy.zeros(out_shape, dtype=inputs[0].dtype)
+            for index in itertools.product(
+                    *map(lambda x: list(range(x)), iter_index)):
+                out_index = list(index)
+                out_index.insert(
+                    axes[min_index],
+                    slice(start_axes[min_index], end_axes[min_index]))
+                out_index.insert(
+                    axes[max_index],
+                    slice(start_axes[max_index], end_axes[max_index]))
+                out_index = tuple(out_index)
+                input_index = tuple(list(index) + [slice(None)])
+                out[out_index] = numpy.diagflat(inputs[0][input_index])
+            return out,
+        else:
+            return xp.diagonalflat(
+                inputs[0], self.offset,
+                self.axis1, self.axis2,
+                self.dim1, self.dim2),

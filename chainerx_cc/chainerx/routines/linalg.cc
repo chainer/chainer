@@ -101,14 +101,18 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
 }
 
 Array Trace(const Array& x, const int64_t offset, const int64_t axis1, const int64_t axis2, nonstd::optional<Dtype> dtype) {
-    if (x.ndim() < 2) throw DimensionError{"Trace requires at least 2 dimensions"};
-    if (axis1 < 0 || axis2 < 0 || axis1 >= x.ndim() || axis2 >= x.ndim()) throw ChainerxError{"Invalid axes detected"};
-    if (axis1 == axis2) throw ChainerxError{"Axes must be different"};
+    Dtype out_dtype;
+    DtypeKind kind = GetKind(x.dtype());
+    if (dtype.has_value()) {
+        out_dtype = *dtype;
+    } else if (kind == DtypeKind::kInt || kind == DtypeKind::kUInt) {
+        out_dtype = Dtype::kInt64;
+    } else {
+        out_dtype = x.dtype();
+    }
 
-    Dtype out_dtype = dtype.has_value() ? *dtype : x.dtype();
-    Array diagonal = Diagonal(x, offset, axis1, axis2).AsType(out_dtype, false);
-    Array out = Sum(diagonal, {static_cast<char>(diagonal.shape().size() - 1)});
-
+    Array diagonal = Diagonal(x, offset, axis1, axis2);
+    Array out = Sum(diagonal, {static_cast<char>(diagonal.shape().size() - 1)}).AsType(out_dtype, false);
     return out;
 }
 

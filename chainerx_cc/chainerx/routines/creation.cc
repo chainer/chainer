@@ -313,36 +313,32 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
     return Diag(v.Reshape({v.GetTotalSize()}), k, device);
 }
 
-Array Diagonalflat(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta) {
+Array Diagonalflat(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t dim1, int64_t dim2) {
+    int64_t out_ndim = x.ndim() + 1;
+    axis1 = (axis1 < 0) ? (axis1 + out_ndim) : axis1;
+    axis2 = (axis2 < 0) ? (axis2 + out_ndim) : axis2;
+
     if (x.ndim() < 1) throw DimensionError{"Input must be 1D or greater"};
-    if (axis1 < 0 || axis2 < 0 || axis1 >= (x.ndim() + 1) || axis2 >= (x.ndim() + 1)) throw ChainerxError{"Invalid axes detected"};
-    if (axis1 == axis2) throw ChainerxError{"Axes must be different"};
+    if (dim1 < 0 || dim2 < 0) throw DimensionError{"Cannot have negative dimensions"};
+    if (axis1 < 0 || axis2 < 0 || axis1 >= out_ndim || axis2 >= out_ndim) throw AxisError{"Axis out of bounds"};
+    if (axis1 == axis2) throw ValueError{"Axes must be different"};
 
     const Shape& x_shape = x.shape();
     const int64_t num_elements = x_shape[x_shape.size() - 1];
-    int64_t axis1_length = 0, axis2_length = 0;
-    if (offset >= 0) {
-        if (delta >= 0) {
-            axis1_length = num_elements + offset + delta;
-            axis2_length = num_elements;
-        } else {
-            axis1_length = num_elements + offset;
-            axis2_length = num_elements - delta;
-        }
-    } else {
-        if (delta >= 0) {
-            axis1_length = num_elements + delta;
-            axis2_length = num_elements - offset;
-        } else {
-            axis1_length = num_elements;
-            axis2_length = num_elements - offset - delta;
-        }
-    }
+
+    dim1 = (dim1 >= 0) ? dim1 : num_elements;
+    dim2 = (dim2 >= 0) ? dim2 : num_elements;
+
+    int64_t start_axis1 = (offset < 0) ? -offset : 0;
+    int64_t start_axis2 = (offset > 0) ? offset : 0;
+    int64_t check_num_elements = std::max(0l, std::min(dim1 - start_axis1, dim2 - start_axis2));
+
+    if (num_elements != check_num_elements) throw AxisError{"Axes lengths don't match number with given axes lengths"};
 
     std::vector<int64_t> out_shape;
     out_shape.resize(x.ndim() + 1);
-    out_shape[axis1] = axis1_length;
-    out_shape[axis2] = axis2_length;
+    out_shape[axis1] = dim1;
+    out_shape[axis2] = dim2;
     int64_t x_shape_index = 0;
     for (int64_t i = 0; i < (x.ndim() + 1); i++) {
         if (i != axis1 && i != axis2) {
@@ -354,12 +350,12 @@ Array Diagonalflat(const Array& x, int64_t offset, int64_t axis1, int64_t axis2,
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<DiagonalflatKernel>(x, offset, axis1, axis2, delta, out);
+        x.device().backend().CallKernel<DiagonalflatKernel>(x, offset, axis1, axis2, out);
     }
 
     BackwardBuilder bb{"diagonalflat", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([offset, axis1, axis2, delta](BackwardContext& bctx) {
+        bt.Define([offset, axis1, axis2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = Diagonal(gout, offset, axis1, axis2);
         });

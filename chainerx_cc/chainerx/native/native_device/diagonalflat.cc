@@ -19,7 +19,7 @@ namespace {
 
 class NativeDiagonalflatKernel : public DiagonalflatKernel {
 public:
-    void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t, Array& out) {
+    void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, Array& out) {
         x.device().CheckDevicesCompatible(x, out);
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;

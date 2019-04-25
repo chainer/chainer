@@ -417,6 +417,39 @@ Note:
 .. seealso:: :func:`numpy.diagflat`
 """)
 
+    _docs.set_doc(
+        chainerx.diagonalflat,
+        """diagonalflat(a, offset=0, axis1=0, axis2=1, dtype=None)
+Build a new array of diagonals.
+
+The diagonals are taken from the given two axes and then
+appended to the array in a new dimension. The resulting
+array will have one less dimension that the input.
+
+Args:
+    a (~chainerx.ndarray): Source array.
+    offset (~chainerx.ndarray):
+        Offset of the diagonal from the main diagonal.
+        Can be positive or negative.
+    axis1 (int):
+        The first axis of the 2-D sub-arrays to which
+        the diagonals should be written.
+    axis2 (int):
+        The second axis of the 2-D sub-arrays to which
+        the diagonals should be written.
+    dim1 (int):
+        The dimension of the first output axis of the 2-D sub-arrays to
+        which the diagonals should be written.
+    dim2 (int):
+        The dimension of the second output axis of the 2-D sub-arrays to
+        which the diagonals should be written.
+
+Returns:
+    :func:`~chainerx.ndarray`: Output array.
+
+.. seealso:: :func:`numpy.diagonalflat`
+""")
+
 
 def _docs_indexing():
     _docs.set_doc(
@@ -446,6 +479,33 @@ Note:
 
 .. seealso:: :func:`numpy.take`
 """)
+    _docs.set_doc(
+        chainerx.diagonal,
+        """diagonal(a, offset=0, axis1=0, axis2=1, dtype=None)
+Build a new array of diagonals.
+
+The diagonals are taken from the given two axes and then
+appended to the array in a new dimension. The resulting
+array will have one less dimension that the input.
+
+Args:
+    a (~chainerx.ndarray): Source array.
+    offset (~chainerx.ndarray):
+        Offset of the diagonal from the main diagonal.
+        Can be positive or negative.
+    axis1 (int):
+        The first axis of the 2-D sub-arrays from which
+        the diagonals should be taken.
+    axis2 (int):
+        The second axis of the 2-D sub-arrays from which
+        the diagonals should be taken.
+    dtype ()
+
+Returns:
+    :func:`~chainerx.ndarray`: Output array.
+
+.. seealso:: :func:`numpy.diagonal`
+""")
 
 
 def _docs_linalg():
@@ -474,6 +534,35 @@ Note:
     output array to input arrays ``a`` and ``b``.
 
 .. seealso:: :func:`numpy.dot`
+""")
+    _docs.set_doc(
+        chainerx.trace,
+        """trace(a, offset=0, axis1=0, axis2=1, dtype=None)
+Build a new array of diagonals.
+
+The diagonals are taken from the given two axes and then
+appended to the array in a new dimension. The resulting
+array will have one less dimension that the input.
+
+Args:
+    a (~chainerx.ndarray): Source array.
+    offset (~chainerx.ndarray):
+        Offset of the diagonal from the main diagonal.
+        Can be positive or negative.
+    axis1 (int):
+        The first axis of the 2-D sub-arrays from which
+        the diagonals should be taken.
+    axis2 (int):
+        The second axis of the 2-D sub-arrays from which
+        the diagonals should be taken.
+    dtype: The output data type. If None, then the data type
+        is int64 when an integral type is used or that of
+        the input data type otherwise.
+
+Returns:
+    :func:`~chainerx.ndarray`: Output array.
+
+.. seealso:: :func:`numpy.trace`
 """)
 
 

@@ -112,8 +112,9 @@ Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 // TODO(niboshi): Remove device argument and use v.device(). Also fix tests
 Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
-// Delta is (num_columns - num_rows).
-Array Diagonalflat(const Array& x, int64_t offset = 0, int64_t axis1 = 0, int64_t axis2 = 1, int64_t delta = 0);
+// Returns an array where the diagonals specified by the offset and axes are filled wit
+// the elements in the last dimension of the input array.
+Array Diagonalflat(const Array& x, int64_t offset = 0, int64_t axis1 = 0, int64_t axis2 = 1, int64_t dim1 = -1, int64_t dim2 = -1);
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(

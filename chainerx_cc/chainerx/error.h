@@ -75,6 +75,18 @@ public:
     using ChainerxError::ChainerxError;
 };
 
+// Error on axes mismatch.
+class AxisError : public ChainerxError {
+public:
+    using ChainerxError::ChainerxError;
+};
+
+// Error with value.
+class ValueError : public ChainerxError {
+public:
+    using ChainerxError::ChainerxError;
+};
+
 // Error on dtype mismatch.
 class DtypeError : public ChainerxError {
 public:

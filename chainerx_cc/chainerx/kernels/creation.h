@@ -63,7 +63,7 @@ class DiagonalflatKernel : public Kernel {
 public:
     static const char* name() { return "Diagonalflat"; }
 
-    virtual void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, int64_t delta, Array& out) = 0;
+    virtual void Call(const Array& x, int64_t offset, int64_t axis1, int64_t axis2, Array& out) = 0;
 };
 
 }  // namespace chainerx
