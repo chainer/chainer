@@ -103,7 +103,7 @@ def to_device(device, x):
             given ID. If it is``None``, an array is left in the original
             device. Also, any of device specifiers described at
             :class:`~chainer.backend.DeviceId` is accepted.
-        x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
+        x (:ref:`ndarray`): An array to send.
 
     Returns:
         Converted array.
@@ -118,19 +118,9 @@ def to_device(device, x):
 
 def _get_device(device_spec):
     # Converts device specificer to a chainer.Device instance.
-    # Additionally to chainer.get_device,
-    # this function supports the following conversions:
-    # - None: returns None
-    # - negative integer: returns CpuDevice
-    # - non-negative integer: returns GpuDevice
+    # Additionally to chainer.get_device, this function supports None
     if device_spec is None:
         return None
-
-    # For backward compatibilities
-    if isinstance(device_spec, six.integer_types):
-        if device_spec < 0:
-            return backend.CpuDevice()
-        return backend.get_device(cuda.Device(device_spec))
     return backend.get_device(device_spec)
 
 

@@ -16,8 +16,8 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.normalize = normalize
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
         self.reduce = reduce
         self.count = None
 

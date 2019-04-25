@@ -39,13 +39,13 @@ class Convolution2DFunction(function_node.FunctionNode):
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) context "
-            "where value is either `True` or `False`.",
-            requires_x_grad="requires_x_grad argument is not supported "
-            "anymore. Just remove the argument. Note that whether to compute "
-            "the gradient w.r.t. x is automatically decided during "
-            "backpropagation.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) context '
+            'where value is either `True` or `False`.',
+            requires_x_grad='requires_x_grad argument is not supported '
+            'anymore. Just remove the argument. Note that whether to compute '
+            'the gradient w.r.t. x is automatically decided during '
+            'backpropagation.')
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -440,7 +440,8 @@ class Convolution2DGradW(function_node.FunctionNode):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
-    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1, groups=1)
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, \
+dilate=1, groups=1)
 
     Two-dimensional convolution function.
 
@@ -565,12 +566,12 @@ cover_all=True)
         >>> y.shape == (n, c_o, h_o, w_o + 1)
         True
 
-    """  # NOQA
+    """
     dilate, groups = argument.parse_kwargs(
         kwargs, ('dilate', 1), ('groups', 1),
-        deterministic="deterministic argument is not supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
+        deterministic='deterministic argument is not supported anymore. '
+        'Use chainer.using_config(\'cudnn_deterministic\', value) '
+        'context where value is either `True` or `False`.')
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)

@@ -77,10 +77,6 @@ class TestBlackOut(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainerx_native(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         device = chainer.get_device('native:0')
         self.link.to_device(device)
         self.check_forward(device.send(self.x), device.send(self.t))
@@ -88,10 +84,6 @@ class TestBlackOut(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        # TODO(niboshi): Support it
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         device = chainer.get_device('cuda:0')
         self.link.to_device(device)
         self.check_forward(device.send(self.x), device.send(self.t))

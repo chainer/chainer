@@ -48,7 +48,7 @@ def main():
 
     if args.gpu:
         if args.communicator == 'naive':
-            print("Error: 'naive' communicator does not support GPU.\n")
+            print('Error: \'naive\' communicator does not support GPU.\n')
             exit(-1)
         comm = chainermn.create_communicator(args.communicator)
         device = comm.intra_rank

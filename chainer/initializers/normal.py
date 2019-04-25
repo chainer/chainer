@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer import backend
+from chainer.backends import cuda
 from chainer import initializer
 
 
@@ -34,7 +35,7 @@ class Normal(initializer.Initializer):
     def __call__(self, array):
         xp = backend.get_array_module(array)
         args = {'loc': 0.0, 'scale': self.scale, 'size': array.shape}
-        if xp is not numpy:
+        if xp is cuda.cupy:
             # Only CuPy supports dtype option
             if self.dtype == numpy.float32 or self.dtype == numpy.float16:
                 # float16 is not supported in cuRAND

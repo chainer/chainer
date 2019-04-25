@@ -36,9 +36,9 @@ void Free(void* param, void* ptr, int device_id) {
 
 std::tuple<intptr_t, intptr_t, intptr_t> GetCAllocator() {
     return std::make_tuple(
-            reinterpret_cast<intptr_t>(&GetBackend("cuda")),  // NOLINT(cppcoreguidelines-cppcoreguidelines);
-            reinterpret_cast<intptr_t>(&Malloc),  // NOLINT(cppcoreguidelines-cppcoreguidelines);
-            reinterpret_cast<intptr_t>(&Free));  // NOLINT(cppcoreguidelines-cppcoreguidelines);
+            reinterpret_cast<intptr_t>(&GetBackend("cuda")),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            reinterpret_cast<intptr_t>(&Malloc),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            reinterpret_cast<intptr_t>(&Free));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 void InitChainerxCudaModule(py::module& m) {

@@ -57,7 +57,7 @@ class ReLU(function_node.FunctionNode):
             self._use_cudnn = True
             y = cudnn.activation_forward(x, _mode)
         else:
-            y = cuda.cupy.maximum(x, 0)
+            y = cuda.cupy.maximum(x, 0, dtype=x.dtype)
         self.retain_outputs((0,))
         return y,
 

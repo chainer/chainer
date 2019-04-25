@@ -132,10 +132,6 @@ class TestMatMul(unittest.TestCase):
 
     @attr.chainerx
     def test_matmul_forward_chainerx(self):
-        # TODO(sonots): Support it
-        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_forward(chainerx.array(self.x1), chainerx.array(self.x2))
 
     def check_backward(self, x1_data, x2_data, y_grad, atol, rtol):
@@ -154,10 +150,6 @@ class TestMatMul(unittest.TestCase):
 
     @attr.chainerx
     def test_matmul_backward_chainerx(self):
-        # TODO(sonots): Support it
-        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_backward(
             chainerx.array(self.x1), chainerx.array(self.x2),
             chainerx.array(self.gy), atol=1e-2, rtol=1e-2)
@@ -183,10 +175,6 @@ class TestMatMul(unittest.TestCase):
 
     @attr.chainerx
     def test_matmul_double_backward_chainerx(self):
-        # TODO(sonots): Support it
-        if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         self.check_double_backward(
             chainerx.array(self.x1), chainerx.array(self.x2),
             chainerx.array(self.gy), chainerx.array(self.ggx1),

@@ -77,9 +77,6 @@ class TestNegativeSamplingFunction(unittest.TestCase):
             self.check_double_backward_options['dtype'] = numpy.float64
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         sampler = make_sampler(backend_config, self.label_size)
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)
@@ -135,9 +132,6 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         testing.assert_allclose(y.data, loss, **self.check_forward_options)
 
     def test_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         sampler = make_sampler(backend_config, self.label_size)
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)
@@ -153,9 +147,6 @@ class TestNegativeSamplingFunction(unittest.TestCase):
                 f, (x_data, w_data), y_grad, **self.check_backward_options)
 
     def test_double_backward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         sampler = make_sampler(backend_config, self.label_size)
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)

@@ -144,6 +144,16 @@ These extensions provide features to take snapshots of models.
    chainer.training.extensions.snapshot
    chainer.training.extensions.snapshot_object
 
+Memory Release
+~~~~~~~~~~~~~~
+
+These extensions provide features to release memories.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.training.extensions.unchain_variables
 
 .. _triggers:
 

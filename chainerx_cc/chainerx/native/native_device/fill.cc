@@ -8,6 +8,7 @@
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -30,7 +31,7 @@ void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            void operator()(int64_t i, T& out) { out = start + step * i; }
+            void operator()(int64_t i, T& out) { out = start + step * static_cast<T>(i); }
             T start;
             T step;
         };
@@ -91,7 +92,7 @@ void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
 
         // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
         for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
-            out_iarray[out_it] = T{0};
+            out_iarray[out_it] = native_internal::DataToStorageType(T{0});
         }
 
         auto out_it = out_indexer.It(0);

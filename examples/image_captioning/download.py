@@ -25,7 +25,7 @@ if __name__ == '__main__':
         os.makedirs(args.out)
     except OSError:
         raise OSError(
-            "'{}' already exists, delete it and try again".format(args.out))
+            '\'{}\' already exists, delete it and try again'.format(args.out))
 
     for url in urls:
         print('Downloading {}...'.format(url))

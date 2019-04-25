@@ -50,7 +50,8 @@ def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
 
 def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
-    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None, snapshot_on_error=False)
+    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
+*, target=None, condition=None, writer=None, snapshot_on_error=False)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -147,7 +148,7 @@ ProcessQueueWriter`
     .. seealso::
 
         - :meth:`chainer.training.extensions.snapshot_object`
-    """  # NOQA
+    """
     target, condition, writer, snapshot_on_error = argument.parse_kwargs(
         kwargs,
         ('target', None), ('condition', None), ('writer', None),

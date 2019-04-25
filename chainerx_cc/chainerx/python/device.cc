@@ -55,6 +55,16 @@ private:
 
 void InitChainerxDevice(pybind11::module& m) {
     py::class_<Device> c{m, "Device"};
+    c.def("__reduce__", [](Device& self) {
+        // Implements serialization of Device instance.
+        // Note that the deserialization function chainerx._device._recover_device() is implemented in .py code, because the function itself
+        // would be unpicklable if it were defined with pybind. (pybind-generated function cannot be pickled.)
+        // TODO(niboshi): Add context name
+        std::string backend_name = self.backend().GetName();
+        int device_index = self.index();
+        py::tuple args = py::make_tuple(backend_name, device_index);
+        return py::make_tuple(py::module::import("chainerx").attr("_device").attr("_recover_device"), args);
+    });
     c.def("__repr__", &Device::name);
     c.def("synchronize", &Device::Synchronize);
     c.def_property_readonly("name", &Device::name);

@@ -44,6 +44,7 @@ TEST(DtypeTest, IsValidDtype) {
     EXPECT_TRUE(IsValidDtype(Dtype::kInt32));
     EXPECT_TRUE(IsValidDtype(Dtype::kInt64));
     EXPECT_TRUE(IsValidDtype(Dtype::kUInt8));
+    EXPECT_TRUE(IsValidDtype(Dtype::kFloat16));
     EXPECT_TRUE(IsValidDtype(Dtype::kFloat32));
     EXPECT_TRUE(IsValidDtype(Dtype::kFloat64));
     EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(0)));
@@ -66,6 +67,7 @@ TEST(DtypeTest, NumericDtypeMapping) {
 TEST(DtypeTest, FloatingPointDtypeMapping) {
     for (Dtype dtype : GetAllDtypes()) {
         switch (dtype) {
+            case Dtype::kFloat16:
             case Dtype::kFloat32:
             case Dtype::kFloat64:
                 EXPECT_EQ(dtype, VisitFloatingPointDtype(dtype, [](auto pt) { return decltype(pt)::kDtype; }));

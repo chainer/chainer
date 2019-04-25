@@ -37,8 +37,9 @@ class Generator(chainer.Chain):
             self.bn3 = L.BatchNormalization(ch // 8)
 
     def make_hidden(self, batchsize):
+        dtype = chainer.get_dtype()
         return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
-            .astype(numpy.float32)
+            .astype(dtype)
 
     def forward(self, z):
         h = F.reshape(F.relu(self.bn0(self.l0(z))),

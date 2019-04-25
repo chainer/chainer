@@ -24,6 +24,14 @@ class MyModel(chainer.Chain):
         return self.l2(h)
 
 
+@testing.parameterize(
+    {'unit': 'sec'},
+    {'unit': 'ms'},
+    {'unit': 'us'},
+    {'unit': 'ns'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
+)
 class TestTimerHook(unittest.TestCase):
 
     def test_name(self):
@@ -31,7 +39,7 @@ class TestTimerHook(unittest.TestCase):
 
     def check_forward(self, xp):
         link = MyModel()
-        if xp is not numpy:
+        if xp is cuda.cupy:
             link = link.to_gpu()
         hook = link_hooks.TimerHook()
 
@@ -64,7 +72,7 @@ class TestTimerHook(unittest.TestCase):
 
         # print_report
         s = six.StringIO()
-        hook.print_report(file=s)
+        hook.print_report(unit=self.unit, file=s)
         report = s.getvalue()
         assert len(report.splitlines()) == 3
         assert re.search(r'Linear +[.0-9a-z]+ +4', report) is not None

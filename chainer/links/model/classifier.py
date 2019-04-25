@@ -102,7 +102,7 @@ class Classifier(link.Chain):
         When ``label_key`` is ``int``, the corresponding element in ``args``
         is treated as ground truth labels. And when it is ``str``, the
         element in ``kwargs`` is used.
-        The all elements of ``args`` and ``kwargs`` except the ground trush
+        The all elements of ``args`` and ``kwargs`` except the ground truth
         labels are features.
         It feeds features to the predictor and compare the result
         with ground truth labels.

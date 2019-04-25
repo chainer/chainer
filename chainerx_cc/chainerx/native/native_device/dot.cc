@@ -1,6 +1,8 @@
 #include "chainerx/native/native_device.h"
 
+#include <cmath>
 #include <cstdint>
+#include <type_traits>
 
 #ifdef CHAINERX_ENABLE_BLAS
 #include <cblas.h>
@@ -11,6 +13,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
@@ -95,9 +98,9 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 
         const T one = 1;
         const T zero = 0;
-        const T* a_ptr = internal::GetRawOffsetData<const T>(a_config);
-        const T* b_ptr = internal::GetRawOffsetData<const T>(b_config);
-        T* out_ptr = internal::GetRawOffsetData<T>(out_contiguous);
+        const T* a_ptr = static_cast<const T*>(internal::GetRawOffsetData(a_config));
+        const T* b_ptr = static_cast<const T*>(internal::GetRawOffsetData(b_config));
+        T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
         GemmImpl<T>{}(
                 CblasRowMajor, a_layout.trans, b_layout.trans, m, n, k, one, a_ptr, a_layout.ld, b_ptr, b_layout.ld, zero, out_ptr, n);
     };
@@ -117,6 +120,23 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 }  // namespace
 #endif  // CHAINERX_ENABLE_BLAS
 
+namespace {
+
+template <typename T>
+T MultiplyAdd(T x, T y, T z) {
+    return x * y + z;
+}
+
+bool MultiplyAdd(bool x, bool y, bool z) { return (x && y) || z; }
+
+float MultiplyAdd(Float16 x, Float16 y, float z) { return std::fmaf(static_cast<float>(x), static_cast<float>(y), z); }
+
+float MultiplyAdd(float x, float y, float z) { return std::fmaf(x, y, z); }
+
+double MultiplyAdd(double x, double y, double z) { return std::fma(x, y, z); }
+
+}  // namespace
+
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
 
@@ -127,33 +147,69 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
 #ifdef CHAINERX_ENABLE_BLAS
     if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
-        Gemm(a, b, out);
+        Gemm(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
+        return;
+    }
+
+    if (out.dtype() == Dtype::kFloat16) {
+        Array a32 = a.AsType(Dtype::kFloat32, false);
+        Array b32 = b.AsType(Dtype::kFloat32, false);
+        Array acc = out.AsType(Dtype::kFloat32);
+        Gemm(a32, b32, acc);
+
+        // TODO(gwtnb): Replace Fill(0) and += with CopyTo when CopyTo is added
+        out.Fill(0);
+        out += acc.AsType(Dtype::kFloat16);
         return;
     }
 #endif  // CHAINERX_ENABLE_BLAS
 
+    const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+    const Array& b_cast = b.dtype() == out.dtype() ? b : b.AsType(out.dtype());
+
     out.Fill(0);
     VisitDtype(out.dtype(), [&](auto pt) {
+        CHAINERX_ASSERT(a_cast.dtype() == out.dtype());
+        CHAINERX_ASSERT(b_cast.dtype() == out.dtype());
+
         using T = typename decltype(pt)::type;
-        IndexableArray<const T, 2> a_iarray{a};
-        IndexableArray<const T, 2> b_iarray{b};
+
+        IndexableArray<const T, 2> a_cast_iarray{a_cast};
+        IndexableArray<const T, 2> b_cast_iarray{b_cast};
         IndexableArray<T, 2> out_iarray{out};
 
-        int64_t m = a.shape()[0];
-        int64_t k = a.shape()[1];
-        int64_t n = b.shape()[1];
-        CHAINERX_ASSERT(b.shape()[0] == k);
+        int64_t m = a_cast.shape()[0];
+        int64_t k = a_cast.shape()[1];
+        int64_t n = b_cast.shape()[1];
+        CHAINERX_ASSERT(b_cast.shape()[0] == k);
         CHAINERX_ASSERT(out.shape()[0] == m);
         CHAINERX_ASSERT(out.shape()[1] == n);
 
+        using AccT = std::conditional_t<std::is_same<T, Float16>{}, float, T>;
+        constexpr auto acc_dtype = PrimitiveType<AccT>::kDtype;
+
+        Array acc = out.AsType(acc_dtype, false);
+        IndexableArray<AccT, 2> acc_iarray{acc};
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
                 int64_t a_i_l[] = {i, l};
-                T a_value = a_iarray[a_i_l];
+                T a_value = native_internal::StorageToDataType<const T>(a_cast_iarray[a_i_l]);
                 for (int64_t j = 0; j < n; ++j) {
-                    int64_t out_i_j[] = {i, j};
+                    int64_t acc_i_j[] = {i, j};
                     int64_t b_l_j[] = {l, j};
-                    out_iarray[out_i_j] += a_value * b_iarray[b_l_j];
+                    T b_value = native_internal::StorageToDataType<const T>(b_cast_iarray[b_l_j]);
+                    AccT& acc_value = native_internal::StorageToDataType<AccT>(acc_iarray[acc_i_j]);
+                    acc_value = MultiplyAdd(a_value, b_value, acc_value);
+                }
+            }
+        }
+        if (!std::is_same<T, AccT>{}) {
+            for (int64_t i = 0; i < m; ++i) {
+                for (int64_t j = 0; j < n; ++j) {
+                    int64_t i_j[] = {i, j};
+                    AccT acc_value = native_internal::StorageToDataType<AccT>(acc_iarray[i_j]);
+                    T& out_value = native_internal::StorageToDataType<T>(out_iarray[i_j]);
+                    out_value = static_cast<T>(acc_value);
                 }
             }
         }

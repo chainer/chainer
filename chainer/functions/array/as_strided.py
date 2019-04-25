@@ -152,12 +152,12 @@ def _stride_array(array, shape, strides, storage_offset):
     storage_offset, = _step2byte((storage_offset,), array.itemsize)
 
     if min_index < 0:
-        raise ValueError("Out of buffer: too small index was specified")
+        raise ValueError('Out of buffer: too small index was specified')
 
     if isinstance(array, cuda.ndarray):
         pooled_memory = array.data.mem
         if (max_index + 1) * array.itemsize > pooled_memory.size:
-            raise ValueError("Out of buffer: too large index was specified")
+            raise ValueError('Out of buffer: too large index was specified')
 
         memptr = cuda.cupy.cuda.memory.MemoryPointer(pooled_memory,
                                                      storage_offset)
@@ -165,12 +165,12 @@ def _stride_array(array, shape, strides, storage_offset):
     elif isinstance(array, np.ndarray):
         base_array = _get_base_array(array)
         if (max_index + 1) * base_array.itemsize > base_array.nbytes:
-            raise ValueError("Out of buffer: too large index was specified")
+            raise ValueError('Out of buffer: too large index was specified')
 
         return np.ndarray(shape, base_array.dtype, base_array.data,
                           storage_offset, strides)
     else:
-        raise TypeError("Only (np|cp).ndarray is accepted")
+        raise TypeError('Only (np|cp).ndarray is accepted')
 
 
 class TensorGeometry(object):
@@ -185,7 +185,7 @@ class TensorGeometry(object):
         elif isinstance(array, cuda.ndarray):
             offset_bytes = array.data.ptr - array.data.mem.ptr
         else:
-            raise ValueError("only (np|cp).ndarray is supported")
+            raise ValueError('only (np|cp).ndarray is supported')
         self.storage_offset, = _byte2step((offset_bytes,), array.itemsize)
         self.itemsize = array.itemsize
 

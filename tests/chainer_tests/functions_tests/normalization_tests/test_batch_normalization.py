@@ -173,10 +173,6 @@ class TestBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         if self.running_statistics:
             running_mean_expected = self.running_mean.copy()
             running_var_expected = self.running_var.copy()
@@ -217,10 +213,6 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
@@ -243,10 +235,6 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
@@ -342,10 +330,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, enable_backprop, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         y_expected, = self.forward_cpu(inputs)
 
         inputs = backend_config.get_array(inputs)
@@ -368,10 +352,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, True, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
@@ -393,10 +373,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
@@ -487,8 +463,11 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
         functions.batch_normalization(*self.args, eps=1e-5)
 
     def test_invalid(self):
+        eps = -0.1
+        if chainer.backends.cuda.libcudnn.get_build_version() < 7500:
+            eps = 2e-6
         with self.assertRaises(RuntimeError):
-            functions.batch_normalization(*self.args, eps=2e-6)
+            functions.batch_normalization(*self.args, eps=eps)
 
 
 @attr.cudnn
@@ -509,8 +488,11 @@ class TestFixedBatchNormalizationCudnnEps(unittest.TestCase):
         functions.fixed_batch_normalization(*self.args, eps=1e-5)
 
     def test_invalid(self):
+        eps = -0.1
+        if chainer.backends.cuda.libcudnn.get_build_version() < 7500:
+            eps = 2e-6
         with self.assertRaises(RuntimeError):
-            functions.fixed_batch_normalization(*self.args, eps=2e-6)
+            functions.fixed_batch_normalization(*self.args, eps=eps)
 
 
 class TestBatchNormalizationWarning(unittest.TestCase):

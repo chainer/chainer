@@ -14,7 +14,7 @@ class Send(chainer.Function):
 
     @property
     def label(self):
-        return "{} (peer_rank: {})".format(
+        return '{} (peer_rank: {})'.format(
             self.__class__.__name__,
             self.peer_rank)
 
@@ -67,7 +67,7 @@ class Recv(chainer.Function):
 
     @property
     def label(self):
-        return "{} (peer_rank: {})".format(
+        return '{} (peer_rank: {})'.format(
             self.__class__.__name__,
             self.peer_rank)
 

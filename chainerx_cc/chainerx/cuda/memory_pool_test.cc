@@ -372,10 +372,34 @@ TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeHead) {
     EXPECT_EQ(allocator->free_called(), 0);
 }
 
+TEST(MemoryPoolTest, FreeUnusedBlocksThreadSafe) {
+    static constexpr size_t kRepeat = 100U;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
+
+    // TODO(niboshi): Use TEST_THREAD_SAFE. Currently it depends on thread sanitizer and does not work with CUDA.
+    testing::RunThreads(2, [&memory_pool](size_t thread_index) {
+        for (size_t i = 0; i < kRepeat; ++i) {
+            switch (thread_index) {
+                case 0: {
+                    void* ptr = memory_pool.Malloc(1U);
+                    memory_pool.Free(ptr);
+                    break;
+                }
+                case 1:
+                    memory_pool.FreeUnusedBlocks();
+                    break;
+                default:
+                    CHAINERX_NEVER_REACH();
+            }
+        }
+    });
+}
+
 TEST(MemoryPoolTest, MallocFreeThreadSafe) {
     static constexpr size_t kRepeat = 100U;
     MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
 
+    // TODO(niboshi): Use TEST_THREAD_SAFE. Currently it depends on thread sanitizer and does not work with CUDA.
     testing::RunThreads(2, [&memory_pool](size_t thread_index) {
         for (size_t i = 0; i < kRepeat; ++i) {
             switch (thread_index) {

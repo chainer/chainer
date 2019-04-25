@@ -71,6 +71,7 @@ Activation/loss/normalization functions with parameters
 
    chainer.links.BatchNormalization
    chainer.links.BatchRenormalization
+   chainer.links.DecorrelatedBatchNormalization
    chainer.links.GroupNormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax
@@ -234,6 +235,7 @@ Chainer provides a link-hook mechanism that enriches the behavior of :class:`~ch
    :toctree: generated/
    :nosignatures:
 
+   chainer.link_hooks.SpectralNormalization
    chainer.link_hooks.TimerHook
 
 You can also implement your own link-hook to inject arbitrary code before/after the forward propagation.

@@ -1,11 +1,11 @@
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
+from chainer import device_resident
 
 
-class WalkerAlias(object):
+class WalkerAlias(device_resident.DeviceResident):
     """Implementation of Walker's alias method.
 
     This method generates a random sample from given probabilities
@@ -22,6 +22,8 @@ class WalkerAlias(object):
     """
 
     def __init__(self, probs):
+        super(WalkerAlias, self).__init__()
+
         prob = numpy.array(probs, numpy.float32)
         prob /= numpy.sum(prob)
         threshold = numpy.ndarray(len(probs), numpy.float32)
@@ -45,16 +47,12 @@ class WalkerAlias(object):
         assert((values < len(threshold)).all())
         self.threshold = threshold
         self.values = values
-        self._device = backend.CpuDevice()
-
-    @property
-    def device(self):
-        return self._device
 
     @property
     def use_gpu(self):
         # TODO(niboshi): Maybe better to deprecate the property.
-        xp = self._device.xp
+        device = self.device
+        xp = device.xp
         if xp is cuda.cupy:
             return True
         elif xp is numpy:
@@ -64,24 +62,10 @@ class WalkerAlias(object):
             'cupy devices. Use WalkerAlias.device attribute for general '
             'devices.')
 
-    def to_device(self, device):
-        device = chainer.get_device(device)
-        self.threshold = device.send(self.threshold)
-        self.values = device.send(self.values)
-        self._device = device
-        return self
-
-    def to_gpu(self):
-        """Make a sampler GPU mode.
-
-        """
-        return self.to_device(cuda.Device())
-
-    def to_cpu(self):
-        """Make a sampler CPU mode.
-
-        """
-        return self.to_device(backend.CpuDevice())
+    def device_resident_accept(self, visitor):
+        super(WalkerAlias, self).device_resident_accept(visitor)
+        self.threshold = visitor.visit_array(self.threshold)
+        self.values = visitor.visit_array(self.values)
 
     def sample(self, shape):
         """Generates a random sample based on given probabilities.
@@ -95,8 +79,9 @@ class WalkerAlias(object):
             if it is in GPU mode the return value is a :class:`cupy.ndarray`
             object.
         """
-        xp = self._device.xp
-        with chainer.using_device(self._device):
+        device = self.device
+        xp = device.xp
+        with chainer.using_device(device):
             if xp is cuda.cupy:
                 return self.sample_gpu(shape)
             else:

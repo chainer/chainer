@@ -50,7 +50,7 @@ class TheOnlyError(Exception):
 class DummyCallableClass(object):
 
     def __init__(self, test_case):
-        self.name = "DummyCallableClass"
+        self.name = 'DummyCallableClass'
         self.is_called = False
         self.is_finalized = False
         self._test_case = test_case

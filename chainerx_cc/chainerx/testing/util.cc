@@ -1,15 +1,16 @@
 #include "chainerx/testing/util.h"
 
 #include <atomic>
-#include <cstdlib>
 #include <string>
 
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace testing {
@@ -24,14 +25,17 @@ int GetNativeDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    const char* env = std::getenv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT");
-    if (env == nullptr) {
-        limit = backend.GetDeviceCount();
-    } else {
-        limit = std::stoi(env);
-        if (limit < 0) {
-            throw ChainerxError{"CHAINERX_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", env};
+    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT")) {
+        try {
+            limit = std::stoi(*env);
+        } catch (const std::exception&) {
+            limit = -1;
         }
+        if (limit < 0) {
+            throw ChainerxError{"CHAINERX_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", *env};
+        }
+    } else {
+        limit = backend.GetDeviceCount();
     }
     return limit;
 }
@@ -42,14 +46,17 @@ int GetCudaDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    const char* env = std::getenv("CHAINERX_TEST_CUDA_DEVICE_LIMIT");
-    if (env == nullptr) {
-        limit = backend.GetDeviceCount();
-    } else {
-        limit = std::stoi(env);
-        if (limit < 0) {
-            throw ChainerxError{"CHAINERX_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", env};
+    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_CUDA_DEVICE_LIMIT")) {
+        try {
+            limit = std::stoi(*env);
+        } catch (const std::exception&) {
+            limit = -1;
         }
+        if (limit < 0) {
+            throw ChainerxError{"CHAINERX_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", *env};
+        }
+    } else {
+        limit = backend.GetDeviceCount();
     }
     return limit;
 }

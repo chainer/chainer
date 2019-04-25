@@ -58,7 +58,7 @@ class TestDataset(unittest.TestCase):
 def scatter_large_data(communicator):
     data = []
     if communicator.rank == 0:
-        data = ["test"] * 2000000000
+        data = ['test'] * 2000000000
     data = chainermn.scatter_dataset(data, communicator)
     assert len(data) > 0
 
@@ -70,7 +70,7 @@ def test_scatter_large_dataset_naive():
 
     # This test only runs when comm.size >= 2.
     if communicator.size == 1:
-        pytest.skip("This test is for multinode")
+        pytest.skip('This test is for multinode')
 
     scatter_large_data(communicator)
 
@@ -83,6 +83,6 @@ def test_scatter_large_dataset_flat():
 
     # This test only runs when comm.size >= 2.
     if communicator.size == 1:
-        pytest.skip("This test is for multinode")
+        pytest.skip('This test is for multinode')
 
     scatter_large_data(communicator)

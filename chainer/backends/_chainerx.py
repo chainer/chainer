@@ -81,7 +81,7 @@ class ChainerxDevice(_backend.Device):
         chainerx.set_default_device(self.device)
 
 
-def to_chainerx(array):
+def to_chx(array):
     """Converts an array or arrays to ChainerX.
 
     Destination ChainerX devices are chosen according to the types of input
@@ -90,26 +90,12 @@ def to_chainerx(array):
     return _backend._convert_arrays(array, _array_to_chainerx)
 
 
-def from_chainerx(array):
+def from_chx(array):
     """Converts an array or arrays from ChainerX to NumPy or CuPy ones.
 
     Destination array types are chosen such that no copies occur.
     """
     return _backend._convert_arrays(array, _array_from_chainerx)
-
-
-def _get_device(device_spec):
-    # Called from chainer.backend.get_device
-    if not chainerx.is_available():
-        return None
-    if isinstance(device_spec, chainerx.Device):
-        return ChainerxDevice(device_spec)
-    if isinstance(device_spec, str):
-        return ChainerxDevice(chainerx.get_device(device_spec))
-    if (isinstance(device_spec, tuple) and len(device_spec) >= 1
-            and isinstance(device_spec[0], str)):
-        return ChainerxDevice(chainerx.get_device(*device_spec))
-    return None
 
 
 def _get_chainerx_device(device_spec):

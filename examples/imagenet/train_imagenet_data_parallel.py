@@ -33,10 +33,8 @@ import train_imagenet
 def main():
     archs = {
         'alex': alex.Alex,
-        'alex_fp16': alex.AlexFp16,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
-        'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
@@ -52,7 +50,7 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpus', '-g', type=int, nargs="*",
+    parser.add_argument('--gpus', '-g', type=int, nargs='*',
                         default=[0, 1, 2, 3])
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')

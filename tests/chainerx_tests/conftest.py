@@ -13,6 +13,11 @@ def pytest_runtest_setup(item):
     _setup_cuda_marker(item)
 
 
+def pytest_runtest_teardown(item, nextitem):
+    current_device = cuda_utils.get_current_device()
+    assert current_device is None or current_device == 0
+
+
 def pytest_generate_tests(metafunc):
     marker = [
         m for m in metafunc.definition.iter_markers()
@@ -25,8 +30,8 @@ def pytest_generate_tests(metafunc):
 
 def _register_cuda_marker(config):
     config.addinivalue_line(
-        "markers",
-        "cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.")
+        'markers',
+        'cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.')
 
 
 def _setup_cuda_marker(item):

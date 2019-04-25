@@ -8,7 +8,6 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 import chainermn.functions
-from chainermn.functions.pseudo_connect import PseudoConnect
 
 
 @testing.parameterize(*testing.product({
@@ -33,17 +32,11 @@ class TestPseudoConnect(unittest.TestCase):
         x = tuple([chainer.Variable(data) for data in x_data])
 
         y = chainermn.functions.pseudo_connect(delegate_variable, *x)
-        if isinstance(y, tuple):
-            for _y in y:
-                self.assertEqual(_y.data.dtype, self.dtype)
-            for _x, _y in zip(self.x, y):
-                y_expect = _x.copy()
-                testing.assert_allclose(y_expect, _y.data)
-
-        else:
-            self.assertEqual(y.data.dtype, self.dtype)
-            y_expect = self.x[0].copy()
-            testing.assert_allclose(y_expect, y.data)
+        for _y in y:
+            self.assertEqual(_y.data.dtype, self.dtype)
+        for _x, _y in zip(self.x, y):
+            y_expect = _x.copy()
+            testing.assert_allclose(y_expect, _y.data)
 
     def test_forward_cpu(self):
         self.check_forward(self.delegate, self.x)
@@ -55,7 +48,7 @@ class TestPseudoConnect(unittest.TestCase):
 
     def check_backward(self, delegate_data, x_data, y_grad):
         gradient_check.check_backward(
-            PseudoConnect(),
+            chainermn.functions.pseudo_connect,
             (delegate_data, ) + x_data, y_grad,
             dtype=numpy.float64)
 

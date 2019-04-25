@@ -10,13 +10,13 @@ class Contrastive(function_node.FunctionNode):
 
     def __init__(self, margin, reduce='mean'):
         if margin <= 0:
-            raise ValueError("margin should be positive value.")
+            raise ValueError('margin should be positive value.')
         self.margin = margin
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
