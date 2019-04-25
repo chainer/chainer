@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "chainerx/array.h"
 #include "chainerx/macro.h"
@@ -11,19 +12,95 @@ namespace chainerx {
 namespace native {
 namespace reduce_detail {
 
+constexpr int64_t ExpandLen = 8;
+constexpr int64_t SerialLen = 16;
+
+template <typename In, typename ReductionImpl, int8_t InNdim, typename T, int64_t n>
+struct ExpandedPairwiseReduction {
+    static T run(
+            const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
+            int64_t& i_reduce) {
+        T accum = ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, n / 2>::run(in, it_in, impl, i_reduce);
+        impl.Reduce(ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, n / 2>::run(in, it_in, impl, i_reduce), accum);
+        return accum;
+    }
+};
+
+template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
+struct ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, 1> {
+    static T run(
+            const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
+            int64_t& i_reduce) {
+        T accum = impl.MapIn(native_internal::StorageToDataType<const In>(in[it_in]), i_reduce);
+        ++it_in, ++i_reduce;
+        return accum;
+    }
+};
+
+inline int64_t pairwise_len(int64_t reduce_len) {
+    return ((reduce_len / ExpandLen + (SerialLen - 1)) / SerialLen);
+}
+
+template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
+T PairwiseReduction(
+        const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
+        int64_t reduce_len, std::vector<T>& tree_accum) {
+    int64_t i_reduce = 0;
+    T accum = impl.Identity();
+
+    bool first_loop = true;
+    while (i_reduce < (reduce_len & -ExpandLen)) {
+        if (first_loop) {
+            first_loop = false;
+        } else if ((i_reduce & (SerialLen * ExpandLen - 1)) == 0) {
+            int i = 0;
+            for (int64_t k = i_reduce >> 1; (k & (SerialLen * ExpandLen - 1)) == 0; k >>= 1, ++i) {
+                impl.Reduce(tree_accum[i], accum);
+            }
+            tree_accum[i] = accum;
+            accum = impl.Identity();
+        }
+        impl.Reduce(ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, ExpandLen>::run(in, it_in, impl, i_reduce), accum);
+    }
+
+    while (i_reduce < reduce_len) {
+        impl.Reduce(impl.MapIn(native_internal::StorageToDataType<const In>(in[it_in]), i_reduce), accum);
+        ++it_in, ++i_reduce;
+    }
+
+    int64_t k = pairwise_len(reduce_len) - 1;
+    for (const T& leaf_accum : tree_accum) {
+        if (k & 1) {
+            impl.Reduce(leaf_accum, accum);
+        }
+        k >>= 1;
+    }
+    return accum;
+}
+
+inline int bits_of_index(int64_t n) {
+    if (--n <= 0) return 0;
+    int64_t t;
+    int bits = 1;
+    if ((t = n >> 32)) bits += 32, n = t;
+    if ((t = n >> 16)) bits += 16, n = t;
+    if ((t = n >> 8)) bits += 8, n = t;
+    if ((t = n >> 4)) bits += 4, n = t;
+    if ((t = n >> 2)) bits += 2, n = t;
+    bits += static_cast<int>(n >> 1);
+    return bits;
+}
+
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl) {
     auto it_in = arg.in_indexer.It(0, arg.out_indexer.total_size());
+    int64_t reduce_len = arg.in_indexer.total_size() / arg.out_indexer.total_size();
+    std::vector<decltype(impl.Identity())> tree_accum(bits_of_index(pairwise_len(reduce_len)), impl.Identity());
 
     // Iterate over output dimensions
     for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
-        auto accum = impl.Identity();
-
-        int64_t i_reduce{0};
-        for (it_in.Restart(it_out.raw_index()); it_in; ++it_in, ++i_reduce) {
-            impl.Reduce(impl.MapIn(native_internal::StorageToDataType<const In>(arg.in[it_in]), i_reduce), accum);
-        }
-
+        it_in.Restart(it_out.raw_index());
+        auto accum = PairwiseReduction<In, ReductionImpl, InNdim, decltype(impl.Identity())>(arg.in, it_in, impl, reduce_len, tree_accum);
         arg.out[it_out] = native_internal::DataToStorageType<Out>(impl.MapOut(accum));
     }
 }
