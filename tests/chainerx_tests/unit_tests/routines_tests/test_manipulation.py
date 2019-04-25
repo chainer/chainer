@@ -620,6 +620,7 @@ class TestSplit(op_utils.NumpyOpTest):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('shape,indices_or_sections,axis', [
     ((7, 0), [2, 5], 0),
+    ((0, 6), 3, 1),
 ])
 def test_split_zero_sized_no_offset(device, shape, indices_or_sections, axis):
     # An (sub-)array of size 0 should always have 0 offset.
