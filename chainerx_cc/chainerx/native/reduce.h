@@ -17,9 +17,7 @@ constexpr int64_t SerialLen = 16;
 
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T, int64_t n>
 struct ExpandedPairwiseReduction {
-    static T run(
-            const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
-            int64_t& i_reduce) {
+    static T run(const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl, int64_t& i_reduce) {
         T accum = ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, n / 2>::run(in, it_in, impl, i_reduce);
         impl.Reduce(ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, n / 2>::run(in, it_in, impl, i_reduce), accum);
         return accum;
@@ -28,23 +26,22 @@ struct ExpandedPairwiseReduction {
 
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
 struct ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, 1> {
-    static T run(
-            const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
-            int64_t& i_reduce) {
+    static T run(const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl, int64_t& i_reduce) {
         T accum = impl.MapIn(native_internal::StorageToDataType<const In>(in[it_in]), i_reduce);
         ++it_in, ++i_reduce;
         return accum;
     }
 };
 
-inline int64_t pairwise_len(int64_t reduce_len) {
-    return ((reduce_len / ExpandLen + (SerialLen - 1)) / SerialLen);
-}
+inline int64_t pairwise_len(int64_t reduce_len) { return ((reduce_len / ExpandLen + (SerialLen - 1)) / SerialLen); }
 
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
 T PairwiseReduction(
-        const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl,
-        int64_t reduce_len, std::vector<T>& tree_accum) {
+        const IndexableArray<const In, InNdim>& in,
+        IndexIterator<InNdim>& it_in,
+        ReductionImpl&& impl,
+        int64_t reduce_len,
+        std::vector<T>& tree_accum) {
     int64_t i_reduce = 0;
     T accum = impl.Identity();
 
