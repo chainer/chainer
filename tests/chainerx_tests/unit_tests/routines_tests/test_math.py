@@ -2162,8 +2162,8 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [1],
+        'input_rhs': [2],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
