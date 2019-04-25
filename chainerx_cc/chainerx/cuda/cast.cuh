@@ -24,8 +24,9 @@ __device__ auto cuda_numeric_cast(From from)
 template <typename To, typename From>
 __device__ auto cuda_numeric_cast(From from) ->
         // TODO(niboshi): true && is needed to pass compilation.
-        std::enable_if_t<std::is_same<To, bool>::value || !std::is_unsigned<To>::value || !(true && cast_detail::IsFloatingPointV<From>),
-                         To> {
+        std::enable_if_t<
+                std::is_same<To, bool>::value || !std::is_unsigned<To>::value || !(true && cast_detail::IsFloatingPointV<From>),
+                To> {
     return static_cast<To>(from);
 }
 

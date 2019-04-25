@@ -183,21 +183,19 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
 
     if (ndim == 2) {
-        CheckCudnnError(
-                cudnnSetConvolution2dDescriptor(
-                        desc_,
-                        int_pad[0],
-                        int_pad[1],
-                        int_stride[0],
-                        int_stride[1],
-                        int_dilation[0],
-                        int_dilation[1],
-                        CUDNN_CROSS_CORRELATION,
-                        compute_type));
+        CheckCudnnError(cudnnSetConvolution2dDescriptor(
+                desc_,
+                int_pad[0],
+                int_pad[1],
+                int_stride[0],
+                int_stride[1],
+                int_dilation[0],
+                int_dilation[1],
+                CUDNN_CROSS_CORRELATION,
+                compute_type));
     } else {
-        CheckCudnnError(
-                cudnnSetConvolutionNdDescriptor(
-                        desc_, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], CUDNN_CROSS_CORRELATION, compute_type));
+        CheckCudnnError(cudnnSetConvolutionNdDescriptor(
+                desc_, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], CUDNN_CROSS_CORRELATION, compute_type));
     }
     if (groups > 1) {
         CheckCudnnError(cudnnSetConvolutionGroupCount(desc_, groups));
@@ -228,17 +226,16 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
 
     if (ndim == 2) {
-        CheckCudnnError(
-                cudnnSetPooling2dDescriptor(
-                        desc_,
-                        mode,
-                        max_pooling_nan_opt,
-                        int_kernel_size[0],
-                        int_kernel_size[1],
-                        int_pad[0],
-                        int_pad[1],
-                        int_stride[0],
-                        int_stride[1]));
+        CheckCudnnError(cudnnSetPooling2dDescriptor(
+                desc_,
+                mode,
+                max_pooling_nan_opt,
+                int_kernel_size[0],
+                int_kernel_size[1],
+                int_pad[0],
+                int_pad[1],
+                int_stride[0],
+                int_stride[1]));
     } else {
         CheckCudnnError(
                 cudnnSetPoolingNdDescriptor(desc_, mode, max_pooling_nan_opt, ndim, &int_kernel_size[0], &int_pad[0], &int_stride[0]));

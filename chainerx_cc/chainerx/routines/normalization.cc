@@ -304,15 +304,13 @@ Array BatchNorm(
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
     if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
-        bt.Define([
-            state = std::move(state),
-            x_tok = bb.RetainInput(0),
-            gamma_tok = bb.RetainInput(1),
-            eps,
-            sorted_axis,
-            beta_shape = beta_reshaped.shape(),
-            beta_dtype = beta_reshaped.dtype()
-        ](BackwardContext & bctx) {
+        bt.Define([state = std::move(state),
+                   x_tok = bb.RetainInput(0),
+                   gamma_tok = bb.RetainInput(1),
+                   eps,
+                   sorted_axis,
+                   beta_shape = beta_reshaped.shape(),
+                   beta_dtype = beta_reshaped.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& x = bctx.GetRetainedInput(x_tok);
             const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
@@ -335,15 +333,13 @@ Array BatchNorm(
             if (bctx.next_required()) {
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
-                    bt2.Define([
-                        x_tok = bb2.RetainInput(0),
-                        gamma2_tok = bb2.RetainInput(1),
-                        gout_tok = bb2.RetainInput(2),
-                        eps,
-                        sorted_axis,
-                        gx_tok = bb2.RetainOutput(0),
-                        ggamma_tok = bb2.RetainOutput(1)
-                    ](BackwardContext & bctx2) {
+                    bt2.Define([x_tok = bb2.RetainInput(0),
+                                gamma2_tok = bb2.RetainInput(1),
+                                gout_tok = bb2.RetainInput(2),
+                                eps,
+                                sorted_axis,
+                                gx_tok = bb2.RetainOutput(0),
+                                ggamma_tok = bb2.RetainOutput(1)](BackwardContext& bctx2) {
                         const Array& x_retained = bctx2.GetRetainedInput(x_tok);
                         const Array& gamma_reshaped_retained = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout_retained = bctx2.GetRetainedInput(gout_tok);

@@ -85,7 +85,7 @@ public:
             Reduce<In, Out>(a, axis, out, SumImpl<In, Out>{});
         };
 
-        VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_sum ](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
     }
 };
 

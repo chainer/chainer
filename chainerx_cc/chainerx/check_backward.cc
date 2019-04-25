@@ -274,9 +274,8 @@ void CheckBackward(
                 std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
         CHAINERX_ASSERT(!grad_outputs.empty());
-        CHAINERX_ASSERT(std::none_of(grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) {
-            return a.IsBackpropRequired(backprop_id);
-        }));
+        CHAINERX_ASSERT(std::none_of(
+                grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
         CHAINERX_ASSERT(eps.size() == inputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
@@ -452,9 +451,8 @@ void CheckDoubleBackwardComputation(
                 std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
         CHAINERX_ASSERT(!grad_outputs.empty());
-        CHAINERX_ASSERT(std::all_of(grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) {
-            return a.IsBackpropRequired(backprop_id);
-        }));
+        CHAINERX_ASSERT(std::all_of(
+                grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
         CHAINERX_ASSERT(grad_grad_inputs.size() == inputs.size());
         CHAINERX_ASSERT(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {

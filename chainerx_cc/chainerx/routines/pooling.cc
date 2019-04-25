@@ -89,7 +89,7 @@ Array MaxPool(
             {
                 BackwardBuilder bb2{"max_pooling_backward", gout, gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
-                    bt2.Define([ st = *this, grad_grad_state = std::move(grad_grad_state) ](BackwardContext & bctx2) {
+                    bt2.Define([st = *this, grad_grad_state = std::move(grad_grad_state)](BackwardContext& bctx2) {
                         const Array& ggx = *bctx2.output_grad();
 
                         Array ggout{};
@@ -155,7 +155,7 @@ Array AveragePool(
     {
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define([ state = std::move(state), kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+            bt1.Define([state = std::move(state), kernel_size, stride, pad, pad_mode](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
 
                 Array gx{};

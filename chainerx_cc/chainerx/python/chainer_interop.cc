@@ -122,10 +122,9 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                   });
 
                   // Retain inputs/outputs
-                  auto retain_arrays = [](
-                          auto retain,
-                          const std::vector<nonstd::optional<size_t>>& index_o2r_map,
-                          const std::vector<size_t>& indexes_to_retain) {
+                  auto retain_arrays = [](auto retain,
+                                          const std::vector<nonstd::optional<size_t>>& index_o2r_map,
+                                          const std::vector<size_t>& indexes_to_retain) {
                       // Given the original indices to retain, retain the corresponding arrays and return the retain tokens. If the
                       // corresponding array was None, the token is nullopt.
                       using RetainedToken = decltype(retain(size_t{}));
@@ -148,14 +147,12 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                           retain_arrays([&bb](size_t j) { return bb.RetainOutput(j); }, output_index_o2r_map, output_indexes_to_retain);
 
                   // Define backward function
-                  bt.Define([
-                      chainer_output_count,
-                      function_node_ptr = std::move(function_node_ptr),
-                      input_index_r2o_map = std::move(input_index_r2o_map),
-                      output_index_r2o_map = std::move(output_index_r2o_map),
-                      in_toks = std::move(retained_input_tokens),
-                      out_toks = std::move(retained_output_tokens)
-                  ](BackwardContext & bctx) {
+                  bt.Define([chainer_output_count,
+                             function_node_ptr = std::move(function_node_ptr),
+                             input_index_r2o_map = std::move(input_index_r2o_map),
+                             output_index_r2o_map = std::move(output_index_r2o_map),
+                             in_toks = std::move(retained_input_tokens),
+                             out_toks = std::move(retained_output_tokens)](BackwardContext& bctx) {
                       // Target input indices
                       // This is reduced <r> indices of grad-required inputs.
                       std::vector<size_t> target_input_indexes;

@@ -80,7 +80,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputFirstParam) {
         BackwardBuilder bb{"forward", x, {y1, y2}};
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
-        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const nonstd::optional<Array>& y1 = bctx.GetRetainedOutput(out_tok);
             ASSERT_FALSE(bctx.output_grad(0).has_value());
             ASSERT_TRUE(bctx.output_grad(1).has_value());
@@ -116,7 +116,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputSecondParam) {
         BackwardBuilder bb{"forward", x, {y1, y2}};
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
-        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
             const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());
@@ -152,7 +152,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayBodyIsGone) {
         BackwardBuilder bb{"forward", x, {y1, y2}};
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
-        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
             const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());
@@ -192,7 +192,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayNodeIsGone) {
         BackwardBuilder bb{"forward", x, {y1, y2}};
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
-        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
             const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());

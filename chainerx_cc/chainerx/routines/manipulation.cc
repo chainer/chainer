@@ -455,7 +455,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     {
         BackwardBuilder bb{"concatenate", array_refs, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([ indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes) ](BackwardContext & bctx) {
+            bt.Define([indices = std::move(indices), axis, in_dtypes = std::move(in_dtypes)](BackwardContext& bctx) {
                 const Array& gy = *bctx.output_grad();
                 Dtype out_dtype = gy.dtype();
                 std::vector<Array> gxs = Split(gy, indices, axis);
@@ -613,7 +613,7 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
 
     BackwardBuilder bb{"split", ary, out_refs};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ axis_norm, shapes = std::move(shapes), dtype = ary.dtype(), &device = ary.device() ](BackwardContext & bctx) {
+        bt.Define([axis_norm, shapes = std::move(shapes), dtype = ary.dtype(), &device = ary.device()](BackwardContext& bctx) {
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {

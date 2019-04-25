@@ -130,13 +130,13 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"add", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([dtype = x1.dtype()](BackwardContext & bctx) {
+            bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
                 const Array& gx = *bctx.output_grad();
                 bctx.input_grad() = dtype == gx.dtype() ? gx : gx.AsType(dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([dtype = x2.dtype()](BackwardContext & bctx) {
+            bt.Define([dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& gx = *bctx.output_grad();
                 bctx.input_grad() = dtype == gx.dtype() ? gx : gx.AsType(dtype);
             });
@@ -189,13 +189,13 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"subtract", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([dtype = x1.dtype()](BackwardContext & bctx) {
+            bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
                 const Array& gx = *bctx.output_grad();
                 bctx.input_grad() = dtype == gx.dtype() ? gx : gx.AsType(dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([dtype = x2.dtype()](BackwardContext & bctx) {
+            bt.Define([dtype = x2.dtype()](BackwardContext& bctx) {
                 Array gx = -*bctx.output_grad();
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
@@ -256,14 +256,14 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"multiply", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([ x2_tok = bb.RetainInput(1), dtype = x1.dtype() ](BackwardContext & bctx) {
+            bt.Define([x2_tok = bb.RetainInput(1), dtype = x1.dtype()](BackwardContext& bctx) {
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
                 Array gx = *bctx.output_grad() * x2;
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([ x1_tok = bb.RetainInput(0), dtype = x2.dtype() ](BackwardContext & bctx) {
+            bt.Define([x1_tok = bb.RetainInput(0), dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 Array gx = *bctx.output_grad() * x1;
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
@@ -349,14 +349,14 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"divide", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([ x2_tok = bb.RetainInput(1), dtype = x1.dtype() ](BackwardContext & bctx) {
+            bt.Define([x2_tok = bb.RetainInput(1), dtype = x1.dtype()](BackwardContext& bctx) {
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
                 Array gx = *bctx.output_grad() / x2;
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([ x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype() ](BackwardContext & bctx) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
                 Array gx = -*bctx.output_grad() * x1 / (x2 * x2);
@@ -375,7 +375,7 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
     BackwardBuilder bb{"divide_scalar", x1, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([other = x2](BackwardContext & bctx) { bctx.input_grad() = *bctx.output_grad() / other; });
+        bt.Define([other = x2](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad() / other; });
     }
     bb.Finalize();
 }
@@ -458,7 +458,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"sum", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
+        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -495,7 +495,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     BackwardBuilder bb{"amax", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         // a and out are used only for restoring the mask. We don't need graph nodes.
-        bt.Define([ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
+        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -540,7 +540,7 @@ Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
     BackwardBuilder bb{"amin", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         // a and out are used only for restoring the mask. We don't need graph nodes.
-        bt.Define([ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
+        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -583,7 +583,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     BackwardBuilder bb{"if_less_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ x1 = x1.AsGradStopped(), x2 ](BackwardContext & bctx) {
+        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout).AsType(x1.dtype(), false);
         });
@@ -618,7 +618,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     BackwardBuilder bb{"if_greater_else", neg, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ x1 = x1.AsGradStopped(), x2 ](BackwardContext & bctx) {
+        bt.Define([x1 = x1.AsGradStopped(), x2](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = IfGreaterElse(x1, x2, Scalar{0, GetKind(gout.dtype())}, gout).AsType(x1.dtype(), false);
         });
@@ -643,7 +643,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
             Array mask = Greater(x1, x2);
-            bt.Define([ mask = std::move(mask), pos_dtype = pos.dtype() ](BackwardContext & bctx) {
+            bt.Define([mask = std::move(mask), pos_dtype = pos.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = gout.AsType(pos_dtype, false) * mask;
             });
@@ -651,7 +651,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             // TODO(imanishi): Remove redundantly comparison x1 > x2 twice.
             Array not_mask = Less(x1, x2);
-            bt.Define([ not_mask = std::move(not_mask), neg_dtype = neg.dtype() ](BackwardContext & bctx) {
+            bt.Define([not_mask = std::move(not_mask), neg_dtype = neg.dtype()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = gout.AsType(neg_dtype, false) * not_mask;
             });
@@ -709,7 +709,7 @@ Array Exp(const Array& x) {
 
     BackwardBuilder bb{"exp", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = *bctx.output_grad() * out;
         });
@@ -730,7 +730,7 @@ Array Log(const Array& x) {
 
     BackwardBuilder bb{"log", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x = bctx.GetRetainedInput(x_tok);
             bctx.input_grad() = *bctx.output_grad() / x;
         });
@@ -787,7 +787,7 @@ Array Square(const Array& x) {
 
     BackwardBuilder bb{"square", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x = bctx.GetRetainedInput(x_tok);
             bctx.input_grad() = *bctx.output_grad() * (2 * x);
         });
@@ -810,7 +810,7 @@ Array Sqrt(const Array& x) {
 
     BackwardBuilder bb{"sqrt", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = gout / (2 * out);
@@ -832,7 +832,7 @@ Array Tanh(const Array& x) {
 
     BackwardBuilder bb{"tanh", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = gout * (1 - out * out);
@@ -854,7 +854,7 @@ Array Sin(const Array& x) {
 
     BackwardBuilder bb{"sin", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout * Cos(inp);
@@ -876,7 +876,7 @@ Array Cos(const Array& x) {
 
     BackwardBuilder bb{"cos", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout * -Sin(inp);
@@ -906,7 +906,7 @@ Array Tan(const Array& x) {
 
     BackwardBuilder bb{"tan", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             const Array& out = Cos(inp);
@@ -929,7 +929,7 @@ Array Arcsin(const Array& x) {
 
     BackwardBuilder bb{"arcsin", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout / Sqrt(1 - Square(inp));
@@ -951,7 +951,7 @@ Array Arccos(const Array& x) {
 
     BackwardBuilder bb{"arccos", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = -gout / Sqrt(1 - Square(inp));
@@ -973,7 +973,7 @@ Array Arctan(const Array& x) {
 
     BackwardBuilder bb{"arctan", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout / (1 + Square(inp));
@@ -995,7 +995,7 @@ Array Sinh(const Array& x) {
 
     BackwardBuilder bb{"sinh", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout * Cosh(inp);
@@ -1017,7 +1017,7 @@ Array Cosh(const Array& x) {
 
     BackwardBuilder bb{"cosh", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout * Sinh(inp);
@@ -1039,7 +1039,7 @@ Array Arcsinh(const Array& x) {
 
     BackwardBuilder bb{"arcsinh", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout / Sqrt(1 + Square(inp));
@@ -1061,7 +1061,7 @@ Array Arccosh(const Array& x) {
 
     BackwardBuilder bb{"arccosh", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& inp = bctx.GetRetainedInput(inp_tok);
             bctx.input_grad() = gout / Sqrt(Square(inp) - 1);

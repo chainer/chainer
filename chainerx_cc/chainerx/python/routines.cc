@@ -271,14 +271,13 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dim2") = -1);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
-              return MoveArrayBody(
-                      Linspace(
-                              start,
-                              stop,
-                              num,
-                              endpoint,
-                              dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
-                              GetDevice(device)));
+              return MoveArrayBody(Linspace(
+                      start,
+                      stop,
+                      num,
+                      endpoint,
+                      dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
+                      GetDevice(device)));
           },
           py::arg("start"),
           py::arg("stop"),
@@ -812,15 +811,14 @@ void InitChainerxConnection(pybind11::module& m) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return MoveArrayBody(
-                      ConvTranspose(
-                              x_array,
-                              Array{w},
-                              b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                              ToStackVector<int64_t>(stride, ndim),
-                              ToStackVector<int64_t>(pad, ndim),
-                              outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
-                                                  : nonstd::nullopt));
+              return MoveArrayBody(ConvTranspose(
+                      x_array,
+                      Array{w},
+                      b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                      ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
+                                          : nonstd::nullopt));
           },
           py::arg("x"),
           py::arg("w"),
@@ -913,13 +911,12 @@ void InitChainerxPooling(pybind11::module& m) {
                   throw py::value_error{"pad_mode must be either of 'zero' or 'ignore'"};
               }
 
-              return MoveArrayBody(
-                      AveragePool(
-                              x_array,
-                              ToStackVector<int64_t>(ksize, ndim),
-                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                              ToStackVector<int64_t>(pad, ndim),
-                              mode));
+              return MoveArrayBody(AveragePool(
+                      x_array,
+                      ToStackVector<int64_t>(ksize, ndim),
+                      stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      mode));
           },
           py::arg("x"),
           py::arg("ksize"),

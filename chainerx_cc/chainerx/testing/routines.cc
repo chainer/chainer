@@ -106,9 +106,8 @@ void CheckForward(
         double rtol) {
     Context& context = inputs.front().context();
     CHAINERX_ASSERT(std::all_of(inputs.begin(), inputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
-    CHAINERX_ASSERT(std::all_of(expected_outputs.begin(), expected_outputs.end(), [&context](const Array& array) {
-        return &array.context() == &context;
-    }));
+    CHAINERX_ASSERT(std::all_of(
+            expected_outputs.begin(), expected_outputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
 
     // Use thread local or global default context if it is set. Else, use the context of the given arrays.
     if (Context* default_context = chainerx::internal::GetDefaultContextNoExcept()) {

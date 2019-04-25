@@ -31,9 +31,10 @@ auto CallFunc(const Func& func, size_t /*thread_index*/) -> decltype(func()) {
 
 }  // namespace threading_detail
 
-template <typename Func,
-          typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
-          std::enable_if_t<!std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
+template <
+        typename Func,
+        typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
+        std::enable_if_t<!std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
 std::vector<ResultType> RunThreads(size_t thread_count, const Func& func) {
     std::mutex mutex;
     std::condition_variable cv_all_ready;
@@ -75,9 +76,10 @@ std::vector<ResultType> RunThreads(size_t thread_count, const Func& func) {
     return results;
 }
 
-template <typename Func,
-          typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
-          std::enable_if_t<std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
+template <
+        typename Func,
+        typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
+        std::enable_if_t<std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
 void RunThreads(size_t thread_count, const Func& func) {
     // Call overload by wrapping the given function that returns void with a lambda that returns a nullptr.
     RunThreads(thread_count, [&func](size_t thread_index) {
