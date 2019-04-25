@@ -183,15 +183,22 @@ def test_rollaxis_invalid(in_shape, axis, start):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,pad_width,mode,constant_values', [
-    ((1,), 1, "constant", 0),
-    ((1,), (1, 2), "constant", (0, 1)),
-    ((2,), ((1, 0)), "constant", ((0, 1))),
-    ((2, 3), (2), "constant", 1),
-    ((2, 3), ((1, 0)), "constant", ((0, 1))),
-    ((2, 3), ((1, 0), (2, 1)), "constant", ((0, 1), (1, 2))),
-    ((2, 3, 1), 1, "constant", 1),
-    ((2, 3, 1), (1, 2),"constant", (0, 1)),
-    ((2, 3, 1), ((1, 0), (2, 0), (1, 2)), "constant", ((0, 1), (1, 1), (2, 3))),
+    ((1,), 1, 'constant', 0),
+    ((1,), (1, 2), 'constant', (0, 1)),
+    ((1,), ((1, 0)), 'constant', ((0, 1))),
+    ((1,), (1, 2), 'constant', 1),
+    ((2, 3), (2), 'constant', 1),
+    ((2, 3), (2), 'constant', (0, 1)),
+    ((2, 3), (2), 'constant', ((0, 1),(1,2))),
+    ((2, 3), ((1, 0)), 'constant', 1),
+    ((2, 3), ((1, 0)), 'constant', ((0, 1))),
+    ((2, 3), ((1, 0)), 'constant', ((0, 1), (1, 2))),
+    ((2, 3), ((1, 0), (2, 1)), 'constant', 2),
+    ((2, 3), ((1, 0), (2, 1)), 'constant', ((0, 1))),
+    ((2, 3), ((1, 0), (2, 1)), 'constant', ((0, 1), (1, 2))),
+    ((2, 3, 1), 1, 'constant', 1),
+    ((2, 3, 1), (1, 2),'constant', (0, 1)),
+    ((2, 3, 1), ((1, 0), (2, 0), (1, 2)), 'constant', ((0, 1), (1, 1), (2, 3))),
 ])
 class TestPad(op_utils.NumpyOpTest):
 
@@ -210,10 +217,7 @@ class TestPad(op_utils.NumpyOpTest):
         pad_width = self.pad_width
         mode = self.mode
         constant_values = self.constant_values
-        if xp is numpy:
-            b = xp.pad(a, pad_width, mode=mode, constant_values=constant_values)
-        else:
-            b = xp.pad(a, pad_width, mode, constant_values)
+        b = xp.pad(a, pad_width, mode=mode, constant_values=constant_values)
         return b,
 
 _reshape_shape = [

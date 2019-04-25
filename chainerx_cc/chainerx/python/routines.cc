@@ -356,53 +356,128 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis"),
           py::arg("start") = 0);
     m.def("pad",
-          [](const ArrayBodyPtr& array, int8_t pad_width, const std::string& mode, int64_t constant_values) {
-              PadMode pad_mode{};
-              if (mode == "constant") {
-                  pad_mode = PadMode::constant;
-              } else {
-                  throw py::value_error{"Currently only `constant` padding mode is supported"};
-              }
-              return MoveArrayBody(Pad(Array{array}, pad_width, pad_mode, constant_values));
-          },
-          py::arg("array"),
-          py::arg("pad_width"),
-          py::arg("mode"),
-          py::arg("constant_values"));
-    m.def("pad",
           [](const ArrayBodyPtr& array,
-             const std::vector<int8_t> pad_width,
+             py::handle pad_widths,
              const std::string& mode,
-             const std::vector<int64_t> constant_values) {
+             py::handle constant_values) {
               PadMode pad_mode{};
               if (mode == "constant") {
-                 pad_mode = PadMode::constant;
+                 pad_mode = PadMode::kConstant;
               } else {
                  throw py::value_error{"Currently only `constant` padding mode is supported"};
               }
-              return MoveArrayBody(Pad(Array{array}, pad_width, pad_mode, constant_values));
-          },
-          py::arg("array"),
-          py::arg("pad_width"),
-          py::arg("mode"),
-          py::arg("constant_values"));
-    m.def("pad",
-          [](const ArrayBodyPtr& array,
-             const std::vector<std::vector<int8_t>> pad_width,
-             const std::string& mode,
-             const std::vector<std::vector<int64_t>> constant_values) {
-              PadMode pad_mode{};
-              if (mode == "constant") {
-                 pad_mode = PadMode::constant;
-              } else {
-                 throw py::value_error{"Currently only `constant` padding mode is supported"};
+
+              if (py::isinstance<py::int_>(pad_widths)) {
+                  int64_t casted_pad_widths = py::cast<int64_t>(pad_widths);
+                  // check Constant values
+                  if (py::isinstance<py::int_>(constant_values)){
+                    int64_t casted_constant_values = py::cast<int64_t>(constant_values);
+                    return MoveArrayBody(
+                            Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                  }
+                  if (py::isinstance<py::float_>(constant_values)){
+                    double casted_constant_values = py::cast<double>(constant_values);
+                    return MoveArrayBody(
+                            Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                  }
+                  if (py::isinstance<py::iterable>(constant_values)){
+                    py::array constant_values_array = py::cast<py::array>(constant_values);
+                    if (constant_values_array.ndim() == 1){
+                      std::vector<Scalar> casted_constant_values = py::cast<std::vector<Scalar>>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (constant_values_array.ndim() == 2){
+                      std::vector<std::vector<Scalar>> casted_constant_values = py::cast<std::vector<std::vector<Scalar>>>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (constant_values_array.ndim() > 2) {
+                        throw py::value_error{std::string{"Too many dimensions of constant values "} +
+                                              std::to_string(constant_values_array.ndim())};
+                    }
+                  }
               }
-              return MoveArrayBody(Pad(Array{array}, pad_width, pad_mode, constant_values));
+
+              if (py::isinstance<py::iterable>(pad_widths)) {
+                  py::array pad_widths_array = py::cast<py::array>(pad_widths);
+
+                  if (pad_widths_array.ndim() == 1){
+                    std::vector<int64_t> casted_pad_widths = py::cast<std::vector<int64_t>>(pad_widths);
+                    if (py::isinstance<py::int_>(constant_values)){
+                      int64_t casted_constant_values = py::cast<int64_t>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (py::isinstance<py::float_>(constant_values)){
+                      double casted_constant_values = py::cast<double>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (py::isinstance<py::iterable>(constant_values)){
+                      py::array constant_values_array = py::cast<py::array>(constant_values);
+                      if (constant_values_array.ndim() == 1){
+                        std::vector<Scalar> casted_constant_values = py::cast<std::vector<Scalar>>(constant_values);
+                        return MoveArrayBody(
+                                Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                      }
+                      if (constant_values_array.ndim() == 2){
+                        std::vector<std::vector<Scalar>> casted_constant_values
+                            = py::cast<std::vector<std::vector<Scalar>>>(constant_values);
+                        return MoveArrayBody(
+                                Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                      }
+                      if (constant_values_array.ndim() > 2) {
+                          throw py::value_error{std::string{"Too many dimensions of constant values "} +
+                                                std::to_string(constant_values_array.ndim())};
+                      }
+                    }
+                  }
+
+                  if (pad_widths_array.ndim() == 2){
+                    std::vector<std::vector<int64_t>> casted_pad_widths = py::cast<std::vector<std::vector<int64_t>>>(pad_widths);
+                    if (py::isinstance<py::int_>(constant_values)){
+                      int64_t casted_constant_values = py::cast<int64_t>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (py::isinstance<py::float_>(constant_values)){
+                      double casted_constant_values = py::cast<double>(constant_values);
+                      return MoveArrayBody(
+                              Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                    }
+                    if (py::isinstance<py::iterable>(constant_values)){
+                      py::array constant_values_array = py::cast<py::array>(constant_values);
+                      if (constant_values_array.ndim() == 1){
+                        std::vector<Scalar> casted_constant_values = py::cast<std::vector<Scalar>>(constant_values);
+                        return MoveArrayBody(
+                                Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                      }
+                      if (constant_values_array.ndim() == 2){
+                        std::vector<std::vector<Scalar>> casted_constant_values
+                            = py::cast<std::vector<std::vector<Scalar>>>(constant_values);
+                        return MoveArrayBody(
+                                Pad(Array{array}, PadWidths(casted_pad_widths), pad_mode, ConstantValues(casted_constant_values)));
+                      }
+                      if (constant_values_array.ndim() > 2) {
+                          throw py::value_error{std::string{"Too many dimensions of constant values "} +
+                                                std::to_string(constant_values_array.ndim())};
+                      }
+                    }
+                  }
+
+                  if (pad_widths_array.ndim() > 2) {
+                      throw py::value_error{std::string{"Too many dimensions of pad widths "} +
+                                            std::to_string(pad_widths_array.ndim())};
+                  }
+              }
+
+              throw py::type_error{std::string{"parameters not understood"}};
           },
           py::arg("array"),
-          py::arg("pad_width"),
+          py::arg("pad_widths"),
           py::arg("mode"),
-          py::arg("constant_values"));
+          py::arg("constant_values") = 0);
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
           py::arg("a"),
