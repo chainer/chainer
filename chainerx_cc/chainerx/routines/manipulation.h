@@ -59,4 +59,6 @@ Array VStack(const std::vector<Array>& arrays);
 
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
+Array ExpandDims(const Array& a, int8_t axis);
+
 }  // namespace chainerx

@@ -614,6 +614,9 @@ def eye(N: int,
         device: tp.Optional[Device]=None) -> ndarray: ...
 
 
+def expand_dims(a: ndarray, axis: int) -> ndarray: ...
+
+
 def fixed_batch_norm(
         x: ndarray,
         gamma: ndarray,
