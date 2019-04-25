@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 
 import chainer.testing
 import chainerx
@@ -121,6 +122,15 @@ class TestGetitem(op_utils.NumpyOpTest):
         x, = inputs
         y = x[self.indices]
         return y,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_getitem_zero_sized_no_offset(device):
+    # An (sub-)array of size 0 should always have 0 offset.
+    a = chainerx.random.uniform(-1, 1, (7, 0))
+    assert a.offset == 0  # Test pre-condition.
+    b = a[2:]
+    assert b.offset == 0
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
