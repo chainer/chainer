@@ -99,7 +99,7 @@ class TestHuberLoss(unittest.TestCase):
 
         delta = 1
         eps = self.double_backward_options['eps']
-        xp = cuda.cupy.get_array_module(x_data)
+        xp = chainer.get_array_module(x_data)
         mask = xp.abs(xp.abs(x_data - t_data) - delta) < eps
         x_data[mask] = 0
         t_data[mask] = 0
