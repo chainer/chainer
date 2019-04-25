@@ -223,7 +223,7 @@ global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
 global_config.cudnn_fast_batch_normalization = bool(int(
     os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
-# TODO(kataoka): initializers_legacy_scale defaults to False in Chainer v7
+# TODO(kataoka): initializers_legacy_scale defaults to False in Chainer v8
 global_config.initializers_legacy_scale = None
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')

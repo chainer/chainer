@@ -42,7 +42,7 @@ class Initializer(object):
 def _warn_legacy_scale():
     if chainer.config.initializers_legacy_scale is None:
         warnings.warn('''\
-The default scales of initializers are changed in Chainer v6.
+The default scales of initializers are changed in Chainer v7.
 Set chainer.config.initializers_legacy_scale=True to use old defaults.
 Set chainer.config.initializers_legacy_scale=False to disable this warning.
 ''')
