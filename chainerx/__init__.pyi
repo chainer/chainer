@@ -660,6 +660,9 @@ def identity(
 def is_available(): ...
 
 
+def isfinite(x: ndarray) -> ndarray: ...
+
+
 def isinf(x: ndarray) -> ndarray: ...
 
 
@@ -689,6 +692,9 @@ def linspace(
 
 
 def log(x: ndarray) -> ndarray: ...
+
+
+def log10(x: ndarray) -> ndarray: ...
 
 
 def log_softmax(

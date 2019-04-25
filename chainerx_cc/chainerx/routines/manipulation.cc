@@ -646,13 +646,18 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     out_shape[axis_norm] = out_dim;
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(sections);
 
     for (int64_t i = 0; i < sections; ++i) {
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
-        out_offset += out_stride * out_dim;
+
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * out_dim;
+        }
     }
 
     DefineSplitBackward(ary, out, axis_norm);
@@ -674,6 +679,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(indices.size());
@@ -687,7 +693,11 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
 
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
 
-        out_offset += out_stride * slice_step;
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * slice_step;
+        }
+
         slice_start = slice_stop;
     }
 

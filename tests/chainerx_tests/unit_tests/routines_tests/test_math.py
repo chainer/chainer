@@ -1629,6 +1629,36 @@ class TestLog(UnaryMathTestBase, op_utils.NumpyOpTest):
         return xp.log(a)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+    })
+    # Special shapes (array.size = 0)
+    + chainer.testing.product({
+        'shape': [(0,), (2, 0, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [1, 3],
+        'check_numpy_strides_compliance': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestLog10(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.log10(a)
+
+
 _logsumexp_params = [
     ((2,), 0),
     ((2,), -1),
@@ -2140,6 +2170,19 @@ def test_isnan(xp, device, input, dtype):
 def test_isinf(xp, device, input, dtype):
     a = xp.array(input.astype(dtype))
     return xp.isinf(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isfinite(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isfinite(a)
 
 
 def test_max_amax():
