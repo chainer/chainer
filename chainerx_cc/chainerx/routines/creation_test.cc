@@ -705,8 +705,7 @@ TEST_P(CreationTest, FromString) {
         for (size_t i = 0; i < 2; i++) {
             {
                 std::cerr << "Running with text for " << kDtypes[j] << std::endl;
-                Array x =
-                        FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], std::string{kTestSeparator}, device);
+                Array x = FromString(std::string(kText[j], kTextLengths[j]), kDtypes[j], counts[i], std::string{kTestSeparator}, device);
 
                 Shape expected_shape{int64_t(kDataLengths[j])};
                 Strides expected_strides{expected_shape, kDtypes[j]};
@@ -722,8 +721,8 @@ TEST_P(CreationTest, FromString) {
 
             {
                 std::string data = (testing::testing_internal::IsLittleEndian())
-                                            ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
-                                            : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                                           ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
+                                           : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
                 std::cerr << "Running with binary for " << kDtypes[j] << std::endl;
                 Array x = FromString(data, kDtypes[j], counts[i], nonstd::nullopt, device);
 
@@ -752,8 +751,8 @@ TEST_P(CreationTest, FromString) {
             try {
                 std::cerr << "Failure case on not enough binary elements to read" << std::endl;
                 std::string data = (testing::testing_internal::IsLittleEndian())
-                                            ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
-                                            : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
+                                           ? std::string(reinterpret_cast<const char*>(kLittleEndianBins[j]), kBinLengths[j])
+                                           : std::string(reinterpret_cast<const char*>(kBigEndianBins[j]), kBinLengths[j]);
                 Array x = FromString(data, kDtypes[j], kDataLengths[j] * 2, nonstd::nullopt, device);
                 FAIL();
             } catch (ChainerxError e) {
