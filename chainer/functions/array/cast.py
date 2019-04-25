@@ -15,6 +15,9 @@ class Cast(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
 
+    def forward_chainerx(self, x):
+        return x[0].astype(self.type, copy=False),
+
     def forward(self, x):
         self._in_type = x[0].dtype.type
         return x[0].astype(self.type, copy=False),
