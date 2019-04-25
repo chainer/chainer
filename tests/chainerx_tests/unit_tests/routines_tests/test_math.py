@@ -1349,7 +1349,7 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
-_bwise_in_out_dtypes = [
+_bwise_in_out_dtypes = dtype_utils._permutate_dtype_mapping([
     (('bool_', 'int8'), 'int8'),
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'int32'), 'int32'),
@@ -1361,12 +1361,20 @@ _bwise_in_out_dtypes = [
     (('int16', 'int32'), 'int32'),
     (('int16', 'int64'), 'int64'),
     (('int32', 'int64'), 'int64'),
+])
+
+_bwise_inplace_invalid = [
+    (('bool_', 'int8'), 'int8'),
+    (('bool_', 'int16'), 'int16'),
+    (('bool_', 'int32'), 'int32'),
+    (('bool_', 'int64'), 'int64'),
+    (('bool_', 'uint8'), 'uint8'),
 ]
 
-
-_bwise_in_out_dtypes_rev = [((in2, in1), out) for
-                            ((in1, in2), out) in _bwise_in_out_dtypes]
-
+_bwise_in_out_inplace_dtypes = [
+    dtypes for dtypes in _bwise_in_out_dtypes
+    if dtypes not in _bwise_inplace_invalid
+]
 
 _bitwise_params = (
     # Special shapes
@@ -1381,7 +1389,7 @@ _bitwise_params = (
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _bwise_in_out_dtypes + _bwise_in_out_dtypes_rev,
+        'in_dtypes,out_dtype': _bwise_in_out_dtypes,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -1394,6 +1402,33 @@ _bitwise_params = (
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [True, False],
+    })
+)
+
+
+_bitwise_inplace_params = (
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': _shapes_combination_inplace_binary,
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _bwise_in_out_inplace_dtypes,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
     })
 )
 
@@ -1431,49 +1466,62 @@ class TestBitwiseXor(BinaryMathTestBase, op_utils.NumpyOpTest):
             return a ^ b
 
 
-# @op_utils.op_test(['native:0', 'cuda:0'])
-# @chainer.testing.parameterize(*(
-#     # Special shapes
-#     chainer.testing.product({
-#         'in_shapes': _shapes_combination_inplace_binary,
-#         'in_dtypes,out_dtype': (
-#             _make_same_in_out_dtypes(2, chainerx.testing.integral_dtypes)),
-#         'input_lhs': ['random'],
-#         'input_rhs': ['random'],
-#     })
-#     # Dtype combinations
-#     + chainer.testing.product({
-#         'in_shapes': [((2, 3), (2, 3))],
-#         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
-#         'input_lhs': ['random'],
-#         'input_rhs': ['random'],
-#     })
-#     # Special values
-#     + chainer.testing.product({
-#         'in_shapes': [((2, 3), (2, 3))],
-#         'in_dtypes,out_dtype': (
-#             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-#         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
-#         'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
-#         'skip_backward_test': [True],
-#         'skip_double_backward_test': [True],
-#     })
-# ))
-# class TestIAnd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_params)
+class TestIBitwiseAnd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
-#     def func(self, xp, a, b):
-#         a &= b
+    def func(self, xp, a, b):
+        a &= b
 
 
-# @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# @pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
-# def test_iand_invalid_dtypes(device, dtypes):
-#     (in_dtype1, in_dtype2), _ = dtypes
-#     shape = (2, 3)
-#     a = chainerx.array(array_utils.uniform(shape, in_dtype1))
-#     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
-#     with pytest.raises(chainerx.DtypeError):
-#         a &= b
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_params)
+class TestIBitwiseOr(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a |= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_params)
+class TestIBitwiseXor(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a ^= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+def test_iand_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a &= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+def test_ior_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a |= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+def test_ixor_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a ^= b
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [

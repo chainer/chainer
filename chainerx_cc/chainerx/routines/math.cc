@@ -1144,15 +1144,15 @@ template <typename Impl>
 inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
-    // promote to which ever is bigger
-    Array x1_cast = x1.dtype() < x2.dtype() ? x1.AsType(x2.dtype()) : x1;
-    Array x2_cast = x2.dtype() < x1.dtype() ? x2.AsType(x1.dtype()) : x2;
-    Dtype out_dtype = x1_cast.dtype();
-    return BroadcastBinary(impl, x1_cast, x2_cast, out_dtype);
+
+    Dtype out_dtype = GetArithmeticResultDtype(x1, x2, true);
+    return BroadcastBinary(impl, x1, x2, out_dtype);
 }
 
 template <typename Kernel>
 inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
+    NoBackpropModeScope scope;
+    CheckEqual(x1.shape(), x2.shape());
     x1.device().backend().CallKernel<Kernel>(x1, x2, out);
 }
 
@@ -1163,7 +1163,7 @@ inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
 
-    CheckInplaceArithmeticDtypes(x1, x2);
+    CheckInplaceArithmeticDtypes(x1, x2, true);
     BroadcastBinaryInPlace(impl, x1, x2);
 }
 
@@ -1171,7 +1171,7 @@ void IBitwiseAnd(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseIm
 
 void IBitwiseOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
 
-void IBitwiseXOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
+void IBitwiseXor(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
 
 }  // namespace internal
 
