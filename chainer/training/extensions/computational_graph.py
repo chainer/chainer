@@ -42,7 +42,10 @@ _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
 class DumpGraph(extension.Extension):
 
-    """Trainer extension to dump a computational graph.
+    """__init__(\
+        root_name, filename='cg.dot', variable_style=None, function_style=None)
+
+    Trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
     language. If graphviz is available, this also renders and saves the image
@@ -80,11 +83,9 @@ class DumpGraph(extension.Extension):
         root_name (str): Name of the root of the computational graph. The
             root variable is retrieved by this name from the observation
             dictionary of the trainer.
-        filename (str): Output file name. Although it is recommended to
-            use this argument, you can also specify the name of the output
-            file with ``out_name`` argument for backward compatibility.
-            If both ``filename`` and ``out_name`` are specified, ``filename``
-            is used.
+        filename (str): Output file name.
+            For historical reasons ``out_name`` is also accepted as an alias
+            of this argument.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.
         function_style (dict): Dot node style for functions. Each function is
