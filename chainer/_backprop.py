@@ -38,7 +38,7 @@ def backward(outputs, grad_outputs=None, **kwargs):
         raise TypeError(
             'outputs must be a tuple or a list, not {}.'.format(type(outputs)))
     for v in outputs:
-        if not isinstance(v, Variable):
+        if not isinstance(v, chainer.Variable):
             raise TypeError(
                 'each output must be a Variable, not {}'.format(type(v)))
     if grad_outputs is not None:
@@ -230,7 +230,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
 
             for gx_elem in gx:
                 if gx_elem is not None:
-                    _check_grad_type(func, x, True, gx_elem.array)
+                    chainer.variable._check_grad_type(
+                        func, x, True, gx_elem.array)
             del gx_elem  # to reduce memory usage
 
             if x.creator_node is None:  # leaf

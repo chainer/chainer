@@ -8,6 +8,7 @@ import weakref
 import numpy
 
 import chainer
+from chainer import _backprop
 from chainer import backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -1426,7 +1427,8 @@ class Variable(object):
             # TODO(kataoka): The following line should not pass grad_var = None
             # to _backprop_to_all, but it is working because grad_var is
             # immediately popped away as None = _backprop_utils._reduce([None])
-            _backprop_to_all([(node, grad_var)], retain_grad, loss_scale)
+            _backprop._backprop_to_all(
+                [(node, grad_var)], retain_grad, loss_scale)
 
     def item(self):
         """Converts the variable with one element to a Python scalar.
