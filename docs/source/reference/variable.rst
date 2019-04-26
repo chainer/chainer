@@ -10,6 +10,7 @@ Variable classes and utilities
 
    chainer.Variable
    chainer.as_variable
+   chainer.backward
    chainer.Parameter
    chainer.variable.VariableNode
 
