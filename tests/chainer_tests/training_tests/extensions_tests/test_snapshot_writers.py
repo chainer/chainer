@@ -14,14 +14,41 @@ snapshot_writers_path = 'chainer.training.extensions.snapshot_writers'
 
 class TestSimpleWriter(unittest.TestCase):
 
-    def test_call(self):
+    @staticmethod
+    def _touch(filename, target, **kwargs):
+        open(filename, 'w')
+
+    def test_call_without_kwargs(self):
         target = mock.MagicMock()
-        w = snapshot_writers.SimpleWriter()
-        w.save = mock.MagicMock()
+        savefun = mock.MagicMock()
+        savefun.side_effect = self._touch
+        w = snapshot_writers.SimpleWriter(savefun)
         with utils.tempdir() as tempd:
             w('myfile.dat', tempd, target)
 
-        assert w.save.call_count == 1
+        # check if called as `savefun('filename', target)`
+        assert savefun.call_count == 1
+        args, kwargs = savefun.call_args_list[0]
+        assert len(args) == 2
+        assert isinstance(args[0], str)
+        assert args[1] is target
+        assert kwargs == {}
+
+    def test_call_with_kwargs(self):
+        target = mock.MagicMock()
+        savefun = mock.MagicMock()
+        savefun.side_effect = self._touch
+        w = snapshot_writers.SimpleWriter(savefun, spam='ham', egg=1)
+        with utils.tempdir() as tempd:
+            w('myfile.dat', tempd, target)
+
+        # check if called as `savefun('filename', target, spam='ham', egg=1)`
+        assert savefun.call_count == 1
+        args, kwargs = savefun.call_args_list[0]
+        assert len(args) == 2
+        assert isinstance(args[0], str)
+        assert args[1] is target
+        assert kwargs == { 'spam': 'ham', 'egg': 1 }
 
 
 class TestStandardWriter(unittest.TestCase):

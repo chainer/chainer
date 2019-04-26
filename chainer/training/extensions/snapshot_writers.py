@@ -43,7 +43,7 @@ class Writer(object):
         self.finalize()
 
     def finalize(self):
-        """Finalizes the wirter.
+        """Finalizes the writer.
 
         Like extensions in :class:`~chainer.training.Trainer`, this method
         is invoked at the end of the training.
@@ -55,7 +55,7 @@ class Writer(object):
         prefix = 'tmp' + filename
         with utils.tempdir(prefix=prefix, dir=outdir) as tmpdir:
             tmppath = os.path.join(tmpdir, filename)
-            savefun(tmppath, target)
+            savefun(tmppath, target, **kwds)
             shutil.move(tmppath, os.path.join(outdir, filename))
 
 
