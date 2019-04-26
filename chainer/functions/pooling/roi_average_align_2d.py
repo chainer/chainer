@@ -253,8 +253,8 @@ class ROIAverageAlign2D(function.Function):
             T roi_end_w = bottom_rois[n * 4 + 3] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
-            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
-            T roi_width = max(roi_end_w - roi_start_w, (T)1.);
+            T roi_height = max((T)(roi_end_h - roi_start_h), (T)1.);
+            T roi_width = max((T)(roi_end_w - roi_start_w), (T)1.);
             T bin_size_h = static_cast<T>(roi_height)
                             / static_cast<T>(pooled_height);
             T bin_size_w = static_cast<T>(roi_width)
@@ -434,8 +434,8 @@ class ROIAverageAlign2D(function.Function):
             T roi_end_w = bottom_rois[n * 4 + 3] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
-            T roi_width = max(roi_end_w - roi_start_w, (T)1.);
-            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
+            T roi_width = max((T)(roi_end_w - roi_start_w), (T)1.);
+            T roi_height = max((T)(roi_end_h - roi_start_h), (T)1.);
             T bin_size_h = static_cast<T>(roi_height) /
                 static_cast<T>(pooled_height);
             T bin_size_w = static_cast<T>(roi_width) /
