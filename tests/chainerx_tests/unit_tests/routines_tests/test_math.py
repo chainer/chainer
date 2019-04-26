@@ -1376,6 +1376,19 @@ _bwise_in_out_inplace_dtypes = [
     if dtypes not in _bwise_inplace_invalid
 ]
 
+_bwise_scalar_invalid = [
+    (('float16',), int, 'float16'),
+    (('float32',), int, 'float32'),
+    (('float64',), int, 'float64'),
+    (('float64',), numpy.int8, 'float64'),
+    (('float16',), numpy.int64, 'float16'),
+]
+
+_bwise_in_out_scalar_dtypes = [
+    dtypes for dtypes in _in_out_dtypes_array_int_scalar
+    if dtypes not in _bwise_scalar_invalid
+]
+
 _bitwise_params = (
     # Special shapes
     chainer.testing.product({
@@ -1429,6 +1442,50 @@ _bitwise_inplace_params = (
             _make_same_in_out_dtypes(2, chainerx.testing.nonfloat_dtypes)),
         'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
         'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+    })
+)
+
+
+_bitwise_scalar_params = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _bwise_in_out_scalar_dtypes,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
     })
 )
 
@@ -1521,6 +1578,57 @@ def test_ixor_invalid_dtypes(device, dtypes):
     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
     with pytest.raises(chainerx.DtypeError):
         a ^= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_scalar_params)
+class TestBitwiseAndScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a & scalar
+            else:
+                return scalar & a
+        else:
+            if self.is_scalar_rhs:
+                return xp.bitwise_and(a, scalar)
+            else:
+                return xp.bitwise_and(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_scalar_params)
+class TestBitwiseOrScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a | scalar
+            else:
+                return scalar | a
+        else:
+            if self.is_scalar_rhs:
+                return xp.bitwise_or(a, scalar)
+            else:
+                return xp.bitwise_or(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_scalar_params)
+class TestBitwiseXorScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a ^ scalar
+            else:
+                return scalar ^ a
+        else:
+            if self.is_scalar_rhs:
+                return xp.bitwise_xor(a, scalar)
+            else:
+                return xp.bitwise_xor(scalar, a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

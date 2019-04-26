@@ -172,9 +172,81 @@ CHAINERX_CUDA_REGISTER_KERNEL(DivideASKernel, CudaDivideASKernel);
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseAndKernel, { out = x1 & x2; }, VisitIntegralDtype);
 
+template <typename T>
+struct BitwiseAndASImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = x1 & x2; }
+    CudaType x2;
+};
+
+class CudaBitwiseAndASKernel : public BitwiseAndASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, out);
+        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(BitwiseAndASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(BitwiseAndASKernel, CudaBitwiseAndASKernel);
+
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseOrKernel, { out = x1 | x2; }, VisitIntegralDtype);
 
+template <typename T>
+struct BitwiseOrASImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = x1 | x2; }
+    CudaType x2;
+};
+
+class CudaBitwiseOrASKernel : public BitwiseOrASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, out);
+        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(BitwiseOrASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(BitwiseOrASKernel, CudaBitwiseOrASKernel);
+
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseXorKernel, { out = x1 ^ x2; }, VisitIntegralDtype);
+
+template <typename T>
+struct BitwiseXorASImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = x1 ^ x2; }
+    CudaType x2;
+};
+
+class CudaBitwiseXorASKernel : public BitwiseXorASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, out);
+        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(BitwiseXorASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(BitwiseXorASKernel, CudaBitwiseXorASKernel);
 
 }  // namespace
 }  // namespace cuda
