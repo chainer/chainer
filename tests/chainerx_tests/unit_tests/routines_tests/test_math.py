@@ -1997,6 +1997,9 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+    check_backward_options = {'atol': 3e-5}
+
     def func(self, xp, a):
         return xp.tan(a)
 
