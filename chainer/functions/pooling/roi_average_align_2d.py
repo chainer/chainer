@@ -131,9 +131,9 @@ class ROIAverageAlign2D(function.Function):
 
         x_type, roi_type, roi_index_type = in_types
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 4,
-            roi_type.dtype == numpy.float32,
+            x_type.dtype == roi_type.dtype,
             roi_type.ndim == 2,
             roi_type.shape[1] == 4,
             roi_index_type.dtype == numpy.int32,
