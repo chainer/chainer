@@ -6,6 +6,9 @@ configs {
       memory: 36
       disk: 10
     }
+    time_limit {
+      seconds: 3600
+    }
     command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
       key: "REPOSITORY"
@@ -54,6 +57,9 @@ configs {
       disk: 10
       gpu: 2
     }
+    time_limit {
+      seconds: 1800
+    }
     command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
     environment_variables {
       key: "REPOSITORY"
@@ -76,6 +82,9 @@ configs {
       cpu: 6
       memory: 36
       disk: 10
+    }
+    time_limit {
+      seconds: 3600
     }
     command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
@@ -124,6 +133,9 @@ configs {
       memory: 24
       disk: 10
       gpu: 2
+    }
+    time_limit {
+      seconds: 1800
     }
     command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
     environment_variables {
