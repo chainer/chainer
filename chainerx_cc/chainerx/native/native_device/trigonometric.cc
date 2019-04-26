@@ -28,6 +28,8 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccosKernel, { out = chaine
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArctanKernel, { out = chainerx::Arctan(x); });
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(Arctan2Kernel, { out = chainerx::Arctan2(x1, x2); });
+
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SinhKernel, { out = chainerx::Sinh(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CoshKernel, { out = chainerx::Cosh(x); });

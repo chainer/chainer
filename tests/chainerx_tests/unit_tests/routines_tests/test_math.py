@@ -1569,6 +1569,41 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 ]
 
 
+_in_out_dtypes_math_binary_functions = dtype_utils._permutate_dtype_mapping([
+    # integer mixed
+    (('int8', 'int16'), 'float32'),
+    (('int8', 'int32'), 'float32'),
+    (('int8', 'int64'), 'float32'),
+    (('int8', 'uint8'), 'float32'),
+    (('int16', 'int32'), 'float32'),
+    (('int16', 'int64'), 'float32'),
+    (('int16', 'uint8'), 'float32'),
+    (('int32', 'int64'), 'float32'),
+    (('int32', 'uint8'), 'float32'),
+    (('int64', 'uint8'), 'float32'),
+    # integer float mixed
+    (('int8', 'float16'), 'float16'),
+    (('int8', 'float32'), 'float32'),
+    (('int8', 'float64'), 'float64'),
+    (('int16', 'float16'), 'float16'),
+    (('int16', 'float32'), 'float32'),
+    (('int16', 'float64'), 'float64'),
+    (('int32', 'float16'), 'float16'),
+    (('int32', 'float32'), 'float32'),
+    (('int32', 'float64'), 'float64'),
+    (('int64', 'float16'), 'float16'),
+    (('int64', 'float32'), 'float32'),
+    (('int64', 'float64'), 'float64'),
+    (('uint8', 'float16'), 'float16'),
+    (('uint8', 'float32'), 'float32'),
+    (('uint8', 'float64'), 'float64'),
+    # float mixed
+    (('float16', 'float32'), 'float32'),
+    (('float16', 'float64'), 'float64'),
+    (('float32', 'float64'), 'float64'),
+])
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -2119,6 +2154,54 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.arctan(a)
+
+
+# Since the gradient of arctan2 is quite flaky.
+# for smaller values especially `float16`.
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': _shapes_combination_binary,
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': [1],
+        'input_rhs': [2],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+    # Differentiable points
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': [-3, -0.75, 0.75, 3],
+        'input_rhs': [-3, -0.75, 0.75, 3],
+    })
+    # Mixed dtypes
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_binary_functions,
+        'input_lhs': [-1.],
+        'input_rhs': [-1.],
+    })
+    # Special values
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan'),
+                      +0.0, -0.0],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan'),
+                      +0.0, -0.0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestArctan2(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        return xp.arctan2(a, b)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

@@ -1005,6 +1005,42 @@ Array Arctan(const Array& x) {
     return out;
 }
 
+Array Arctan2(const Array& x1, const Array& x2) {
+    Dtype out_dtype = GetMathResultDtype(GetArithmeticResultDtype(x1, x2));
+
+    auto impl = [](const Array& x1, const Array& x2, Array& out) {
+        CheckEqual(x1.shape(), x2.shape());
+
+        {
+            NoBackpropModeScope scope{};
+            x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
+        }
+
+        BackwardBuilder bb{"arctan2", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& gin = gout * x2 / (Square(x1) + Square(x2));
+                bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& gin = -gout * x1 / (Square(x1) + Square(x2));
+                bctx.input_grad() = x2.dtype() != gin.dtype() ? gin.AsType(x2.dtype()) : gin;
+            });
+        }
+        bb.Finalize();
+    };
+
+    return BroadcastBinary(impl, x1, x2, out_dtype);
+}
+
 Array Sinh(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

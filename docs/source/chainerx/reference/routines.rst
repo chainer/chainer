@@ -138,6 +138,7 @@ Mathematical functions
    chainerx.arcsin
    chainerx.arccos
    chainerx.arctan
+   chainerx.arctan2
    chainerx.sinh
    chainerx.cosh
    chainerx.tanh

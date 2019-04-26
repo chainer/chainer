@@ -179,6 +179,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class Arctan2Kernel : public Kernel {
+public:
+    static const char* name() { return "Arctan2"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
 class ArcsinhKernel : public Kernel {
 public:
     static const char* name() { return "Archsinh"; }
