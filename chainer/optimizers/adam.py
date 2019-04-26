@@ -446,7 +446,7 @@ class AdamW(Adam):
     """
 
     def __init__(self,
-                 alpha=_default_hyperparam,
+                 alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
                  weight_decay_rate=_default_hyperparam.weight_decay_rate,
