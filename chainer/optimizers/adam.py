@@ -343,7 +343,8 @@ class Adam(optimizer.GradientMethod):
     See: `Adam: A Method for Stochastic Optimization \
           <https://arxiv.org/abs/1412.6980v8>`_
 
-    Modified for proper weight decay (also called AdamW).
+    Modified for proper weight decay (also called
+    :class:`~chainer.optimizers.AdamW`).
     AdamW introduces the additional parameters ``eta``
     and ``weight_decay_rate``, which can be used to properly scale the
     learning rate, and decouple the weight decay rate from ``alpha``,
@@ -356,13 +357,19 @@ class Adam(optimizer.GradientMethod):
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
-    A flag ``amsgrad`` to use the AMSGrad variant of Adam from
+    A flag ``amsgrad`` to use the :class:`~chainer.optimizers.AMSGrad`
+    variant of Adam from
     the paper: `On the Convergence of Adam and Beyond \
                <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
-    A flag ``adabound`` to use the AdaBound variant of Adam from
+    A flag ``adabound`` to use the :class:`~chainer.optimizers.AdaBound`
+    variant of Adam from
     the paper: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
                <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+
+    If both ``amsgrad`` and ``adabound`` are ``True``, the optimizer is
+    equivalent to :class:`~chainer.optimizers.AMSBound` proposed in the
+    AdaBound paper.
 
     Args:
         alpha (float): Coefficient of learning rate.
@@ -432,6 +439,8 @@ class AdamW(Adam):
 
     """AdamW optimizer.
 
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
@@ -461,6 +470,8 @@ class AMSGrad(Adam):
 
     """AmsGrad optimizer.
 
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
     See: `On the Convergence of Adam and Beyond \
           <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
@@ -486,6 +497,8 @@ class AMSGrad(Adam):
 class AdaBound(Adam):
 
     """AdaBound optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
 
     See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
           <https://openreview.net/forum?id=Bkg3g2R9FX>`_
@@ -516,6 +529,8 @@ class AdaBound(Adam):
 class AMSBound(Adam):
 
     """AMSBound optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
 
     See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
           <https://openreview.net/forum?id=Bkg3g2R9FX>`_
