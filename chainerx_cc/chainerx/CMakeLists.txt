@@ -112,7 +112,24 @@ else()
     add_library(chainerx SHARED ${chainerx_srcs})
 endif()
 
-if(${APPLE})
+if(MSVC)
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS})
+
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_routines>)
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_native>)
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_testing>)
+    target_link_libraries(chainerx PRIVATE chainerx_routines)
+    target_link_libraries(chainerx PRIVATE chainerx_native)
+    target_link_libraries(chainerx PRIVATE chainerx_testing)
+
+    if(${CUDA_FOUND})
+      target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_cuda>)
+      target_link_libraries(chainerx PRIVATE chainerx_cuda)
+    endif()
+
+elseif(${APPLE})
     target_link_libraries(chainerx
         PUBLIC
         ${CMAKE_DL_LIBS})
