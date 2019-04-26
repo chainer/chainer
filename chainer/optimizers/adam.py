@@ -508,7 +508,7 @@ class AdaBound(Adam):
                  gamma=_default_hyperparam.gamma,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta):
-        super(Adam, self).__init__(
+        super(AdaBound, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=False, adabound=True, final_lr=final_lr, gamma=gamma)
 
