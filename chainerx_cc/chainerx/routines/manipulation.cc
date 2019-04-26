@@ -498,6 +498,8 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
     Strides strides{gout.strides()};
     size_t dim = shape[axis];
     int64_t step = strides[axis];
+    int64_t offset = gout.offset();
+    bool is_empty = gout.GetTotalSize() == 0;
     shape.erase(shape.begin() + axis);
     strides.erase(strides.begin() + axis);
 
@@ -510,8 +512,11 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
         Dtype dtype = gout.dtype();
         Device& device = gout.device();
         for (size_t i = 0; i < dim; ++i) {
-            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
+            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), offset));
             gxs_refs.emplace_back(gxs.back());
+            if (!is_empty) {
+                offset += step;
+            }
         }
     }
 
@@ -539,9 +544,10 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         throw DimensionError{"Need at least one array to stack"};
     }
 
-    Shape shape = arrays.front().shape();
-    Dtype dtype = arrays.front().dtype();
-    Device& device = arrays.front().device();
+    const Array& array = arrays.front();
+    Shape shape = array.shape();
+    Dtype dtype = array.dtype();
+    Device& device = array.device();
     uint8_t ndim = shape.ndim();
     axis = internal::NormalizeAxis(axis, ndim + 1);
 
@@ -564,15 +570,17 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
 
     Array out = internal::Empty(shape, dtype, strides, device);
 
-    int64_t step = strides[axis];
-    strides.erase(strides.begin() + axis);
-    {
-        NoBackpropModeScope scope{};
-        int64_t out_offset = 0;
-        for (const Array& array : arrays) {
-            Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
-            device.backend().CallKernel<CopyKernel>(array, sliced_out);
-            out_offset += step;
+    if (out.GetTotalSize() != 0) {
+        int64_t step = strides[axis];
+        strides.erase(strides.begin() + axis);
+        {
+            NoBackpropModeScope scope{};
+            int64_t out_offset = 0;
+            for (const Array& array : arrays) {
+                Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
+                device.backend().CallKernel<CopyKernel>(array, sliced_out);
+                out_offset += step;
+            }
         }
     }
 
@@ -725,6 +733,18 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
         });
     }
     bb.Finalize();
+
+    return out;
+}
+
+Array ExpandDims(const Array& a, int8_t axis) {
+    Shape shape = a.shape();
+
+    axis = internal::NormalizeAxis(axis, a.ndim() + 1);
+
+    shape.insert(shape.begin() + axis, 1);
+
+    Array out = a.Reshape(shape);
 
     return out;
 }

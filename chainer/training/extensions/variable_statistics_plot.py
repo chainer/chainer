@@ -124,7 +124,14 @@ class Statistician(object):
 
 class VariableStatisticsPlot(extension.Extension):
 
-    """Trainer extension to plot statistics for :class:`Variable`\\s.
+    """__init__(\
+           targets, max_sample_size=1000, report_data=True,\
+           report_grad=True, plot_mean=True, plot_std=True,\
+           percentile_sigmas=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87,\
+           100), trigger=(1, 'epoch'), filename='statistics.png',\
+           figsize=None, marker=None, grid=True)
+
+    Trainer extension to plot statistics for :class:`Variable`\\s.
 
     This extension collects statistics for a single :class:`Variable`, a list
     of :class:`Variable`\\s or similarly a single or a list of
@@ -167,10 +174,8 @@ class VariableStatisticsPlot(extension.Extension):
             is passed to :class:`IntervalTrigger`.
         filename (str):
             Name of the output image file under the output directory.
-            Although it is recommended to use ``filename``, you can also
-            specify the name of the output image file with the ``file_name``
-            argument for backward compatibility. However, if both ``filename``
-            and ``file_name`` are specified, ``filename`` will be used.
+            For historical reasons ``file_name`` is also accepted as an alias
+            of this argument.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
