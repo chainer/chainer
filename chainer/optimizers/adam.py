@@ -478,7 +478,7 @@ class AMSGrad(Adam):
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta):
-        super(Adam, self).__init__(
+        super(AMSGrad, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=True)
 
