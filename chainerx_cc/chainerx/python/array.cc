@@ -99,7 +99,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const Strides& strides = array.strides();
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
+    const intptr_t ptr = reinterpret_cast<intptr_t>(array.raw_data());
     const auto range = GetDataRange(shape, strides, array.GetItemSize());
     const auto data_size = std::get<1>(range) - std::get<0>(range);
     const auto device_index = device.index();
@@ -107,7 +107,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     // Convert object to CuPy array using cupy.ndarray()
     auto memory_pointer = GetCachedCupyMemoryPointer();
     auto unowned_memory = GetCachedCupyUnownedMemory();
-    py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), 0);
+    py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), array.offset());
 
     auto ndarray = GetCachedCupyNdarray();
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
