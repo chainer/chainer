@@ -410,7 +410,7 @@ def _make_inputs(shapes, dtypes):
     return tuple(inputs)
 
 
-class ConcatenateTestBase(op_utils.NumpyOpTest):
+class JoinTestBase(op_utils.NumpyOpTest):
 
     chx_expected_dtype = None
     dtypes = None
@@ -431,15 +431,28 @@ class ConcatenateTestBase(op_utils.NumpyOpTest):
     def generate_inputs(self):
         return _make_inputs(self.shapes, self.dtypes)
 
+    def join(self, inputs, xp):
+        # Calls and returns the result of joining routines e.g. xp.concatenate,
+        # xp.stack and xp.vstack.
+        raise NotImplementedError()
+
     def forward_xp(self, inputs, xp):
+        b = self.join(inputs, xp)
+        if self.chx_expected_dtype is not None:
+            b = dtype_utils.cast_if_numpy_array(xp, b, self.chx_expected_dtype)
+        return b,
+
+
+class ConcatenateTestBase(JoinTestBase):
+
+    axis = None
+
+    def join(self, inputs, xp):
         if self.axis is _unspecified:
             b = xp.concatenate(inputs)
         else:
             b = xp.concatenate(inputs, self.axis)
-
-        if self.chx_expected_dtype is not None:
-            b = dtype_utils.cast_if_numpy_array(xp, b, self.chx_expected_dtype)
-        return b,
+        return b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -480,11 +493,6 @@ class TestConcatenate(ConcatenateTestBase):
         super().setup()
 
 
-def test_concatenate_insufficient_inputs():
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.concatenate([])
-
-
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,), (0,)], 0),
@@ -522,6 +530,23 @@ class TestConcatenateThreeArraysMixedDtypes(ConcatenateTestBase):
     pass
 
 
+def test_concatenate_insufficient_inputs():
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.concatenate([])
+
+
+class StackTestBase(JoinTestBase):
+
+    axis = None
+
+    def join(self, inputs, xp):
+        if self.axis is None:
+            b = xp.stack(inputs)
+        else:
+            b = xp.stack(inputs, self.axis)
+        return b
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,)], -1),
@@ -539,28 +564,65 @@ class TestConcatenateThreeArraysMixedDtypes(ConcatenateTestBase):
     ([(1, 0,), (1, 0,)], 0),
     ([(1, 0,), (1, 0,)], 1),
     ([(1, 0,), (1, 0,)], 2),
+    ([(2, 3,), (2, 3,)], None),
+    ([(2, 3,), (2, 3,)], 1),
+    ([(2, 3,), (2, 3,)], -1),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], None),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 0),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 1),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 2),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 3),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 4),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], -1),
     ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
 ])
-class TestStack(op_utils.NumpyOpTest):
+class TestStack(StackTestBase):
 
     forward_accept_errors = (chainerx.DimensionError, ValueError)
 
-    def generate_inputs(self):
-        return _make_inputs(self.shapes, ['float32'] * len(self.shapes))
+    def setup(self):
+        self.dtypes = ['float32'] * len(self.shapes)
+        super().setup()
 
-    def forward_xp(self, inputs, xp):
-        axis = self.axis
-        if axis is None:
-            b = xp.stack(inputs)
-        else:
-            b = xp.stack(inputs, axis)
-        return b,
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', [
+    ((0,), 0),
+    ((0,), 1),
+    ((0, 0), 0),
+    ((0, 0), 1),
+    ((1, 0), 0),
+    ((1, 0), 1),
+    ((1, 0), 2),
+    ((2, 3), None),
+    ((2, 3), 1),
+    ((2, 3), -1),
+])
+@chainer.testing.parameterize_pytest(
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_two_arrays)
+class TestStackTwoArraysMixedDtypes(StackTestBase):
+
+    def setup(self):
+        self.shapes = (self.shape, self.shape)
+        super().setup()
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', [
+    ((3, 4, 5), None),
+    ((3, 4, 5), 0),
+    ((3, 4, 5), 1),
+    ((3, 4, 5), 2),
+    ((3, 4, 5), 3),
+    ((3, 4, 5), -1),
+])
+@chainer.testing.parameterize_pytest(
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_three_arrays)
+class TestStackThreeArraysMixedDtypes(StackTestBase):
+
+    def setup(self):
+        self.shapes = (self.shape, self.shape, self.shape)
+        super().setup()
 
 
 def test_stack_insufficient_inputs():
