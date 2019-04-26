@@ -18,6 +18,7 @@ def _pair(x):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float64],
     'sampling_ratio': [None, 1, 2, (None, 3), (1, 2)],
     'outsize': [5, 7, (5, 7)],
     'spatial_scale': [0.6, 1.0, 2.0],
@@ -31,20 +32,20 @@ class TestROIAlign2D(unittest.TestCase):
             N * n_channels * 12 * 8,
             dtype=numpy.float32).reshape((N, n_channels, 12, 8))
         numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        self.x = (2 * self.x / self.x.size - 1).astype(self.dtype)
         self.rois = numpy.array([
             [1, 1, 6, 6],
             [2, 6, 11, 7],
             [1, 3, 10, 5],
             [3, 3, 3, 3],
             [1.1, 2.2, 3.3, 4.4],
-        ], dtype=numpy.float32)
+        ], dtype=self.dtype)
         self.roi_indices = numpy.array([0, 2, 1, 0, 2], dtype=numpy.int32)
         n_rois = self.rois.shape[0]
         outsize = _pair(self.outsize)
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
-                    outsize[0], outsize[1])).astype(numpy.float32)
+                    outsize[0], outsize[1])).astype(self.dtype)
         self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, roi_data, roi_index_data):
@@ -56,7 +57,7 @@ class TestROIAlign2D(unittest.TestCase):
             spatial_scale=self.spatial_scale,
             sampling_ratio=self.sampling_ratio,
         )
-        self.assertEqual(y.data.dtype, numpy.float32)
+        self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
