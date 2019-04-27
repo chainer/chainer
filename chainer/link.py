@@ -390,6 +390,10 @@ class Link(device_resident.DeviceResident):
         self._persistent.add(name)
         self._params.discard(name)
 
+    @classmethod
+    def from_params(cls, W, b=None, **kwargs):
+        raise NotImplementedError('This link does not implement `from_params`.')
+
     def copy(self, mode='share'):
         # type: (str) -> 'Link'
         """Copies the link hierarchy to new one.

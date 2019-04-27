@@ -167,6 +167,16 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
+    @classmethod
+    def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
+        out_channels, in_channels, kw, kh = W.shape
+        if b is not None:
+            if out_channels != b.size:
+                raise ValueError('`out_channels` does not match the size of `b`')
+
+        link = cls(in_channels, out_channels, (kw, kh), stride, pad, nobias, **kwargs)
+        return link
+
     def forward(self, x):
         """Applies the convolution layer.
 

@@ -124,6 +124,15 @@ class Linear(link.Link):
 
         self.W.initialize((self.out_size, in_size))  # type: ignore
 
+    @classmethod
+    def from_params(cls, W, b=None, nobias=False):
+        out_size, in_size = W.shape
+        if b is not None:
+            if out_size != b.size:
+                raise ValueError('`out_size` does not match the size of `b`')
+        link = cls(in_size, out_size, nobias, initialW=W, initial_bias=b)
+        return link
+
     @property
     def printable_specs(self):
         specs = [
