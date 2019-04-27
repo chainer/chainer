@@ -376,12 +376,15 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__iand__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} &= Array{rhs})); },
           py::is_operator());
+    c.def("__iand__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} &= rhs)); }, py::is_operator());
     c.def("__ior__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} |= Array{rhs})); },
           py::is_operator());
+    c.def("__ior__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} |= rhs)); }, py::is_operator());
     c.def("__ixor__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} ^= Array{rhs})); },
           py::is_operator());
+    c.def("__ixor__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} ^= rhs)); }, py::is_operator());
     c.def("__add__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
           py::is_operator());

@@ -1490,6 +1490,35 @@ _bitwise_scalar_params = (
 )
 
 
+_bitwise_inplace_scalar_params = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _bwise_in_out_scalar_dtypes,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _bwise_in_out_scalar_dtypes,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _bwise_in_out_scalar_dtypes,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2],
+    })
+)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_bitwise_params)
 class TestBitwiseAnd(BinaryMathTestBase, op_utils.NumpyOpTest):
@@ -1629,6 +1658,30 @@ class TestBitwiseXorScalar(MathScalarTestBase, op_utils.NumpyOpTest):
                 return xp.bitwise_xor(a, scalar)
             else:
                 return xp.bitwise_xor(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+class TestIBitwiseAndScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a &= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+class TestIBitwiseOrScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a |= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+class TestIBitwiseXorScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a ^= scalar
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
