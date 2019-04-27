@@ -1450,17 +1450,17 @@ Note:
 Compute the bit-wise AND of two arrays element-wise.
 
 Args:
-    x1 (~chainerx.ndarray): Input array.
-    x2 (~chainerx.ndarray): Input array.
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Result.
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_and`
-""")
+""")  # NOQA
 
     _docs.set_doc(
         chainerx.bitwise_or,
@@ -1468,11 +1468,11 @@ Note:
 Compute the bit-wise OR of two arrays element-wise.
 
 Args:
-    x1 (~chainerx.ndarray): Input array.
-    x2 (~chainerx.ndarray): Input array.
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Result.
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 | x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
@@ -1486,17 +1486,17 @@ Note:
 Compute the bit-wise XOR of two arrays element-wise.
 
 Args:
-    x1 (~chainerx.ndarray): Input array.
-    x2 (~chainerx.ndarray): Input array.
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
 
 Returns:
-    :class:`~chainerx.ndarray`: Result.
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_xor`
-""")
+""")  # NOQA
 
 
 def _docs_sorting():
