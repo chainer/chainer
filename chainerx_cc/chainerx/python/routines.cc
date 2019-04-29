@@ -24,6 +24,7 @@
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
+#include "chainerx/routines/loss.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/normalization.h"
@@ -1002,6 +1003,28 @@ void InitChainerxPooling(pybind11::module& m) {
           py::arg("pad_mode") = "ignore");
 }
 
+void InitChainerxLoss(pybind11::module& m) {
+    m.def("mean_absolute_error",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) {
+              return MoveArrayBody(MeanAbsoluteError(Array{y}, Array{targ}));
+          },
+          py::arg("y"),
+          py::arg("targ"));
+    m.def("mean_squared_error",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) {
+              return MoveArrayBody(MeanSquaredError(Array{y}, Array{targ}));
+          },
+          py::arg("y"),
+          py::arg("targ"));
+    m.def("gaussian_kl_divergence",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ, const std::string& reduction) {
+              return MoveArrayBody(GaussianKLDivergence(Array{y}, Array{targ}, reduction));
+          },
+          py::arg("y"),
+          py::arg("targ"),
+          py::arg("reduction") = "sum");
+}
+
 }  // namespace
 
 void InitChainerxRoutines(pybind11::module& m) {
@@ -1009,6 +1032,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxIndexing(m);
     InitChainerxLinalg(m);
     InitChainerxLogic(m);
+    InitChainerxLoss(m);
     InitChainerxManipulation(m);
     InitChainerxMath(m);
     InitChainerxSorting(m);
