@@ -1,4 +1,5 @@
 import unittest
+from itertools import chain, combinations
 
 import chainer
 import numpy
@@ -10,6 +11,12 @@ import chainerx.testing
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)  # allows duplicate elements
+    return list(chain(*[combinations(s, r) for r in range(len(s)+1)]))
 
 
 # Value for parameterization to represent an unspecified (default) argument.
@@ -777,3 +784,88 @@ class TestExpandDIms(op_utils.NumpyOpTest):
 def test_expand_dims_invalid(xp, shape, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.expand_dims(a, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Single axis
+    chainer.testing.product({
+        'shape': [(2, 2, 2)],
+        'axis': [*range(3)] + [*range(-1, -3, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 3, 2, 3, 3)],
+        'axis': [*range(5)] + [*range(-1, -5, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2, 0, 3)],
+        'axis': [*range(5)] + [*range(-1, -5, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 2, 3, 1, 3, 3)],
+        'axis': [*range(6)] + [*range(-1, -6, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 4, 5, 2, 3, 5)],
+        'axis': [*range(6)] + [*range(-1, -6, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': [*range(1)] + [*range(-1, -1, -1)],
+    })
+    # Multiple axes
+    + chainer.testing.product({
+        'shape': [(1, 3, 4)],
+        'axis': powerset([*range(3)]) + powerset([*range(-1, -3, -1)]),
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2)],
+        'axis': powerset([*range(3)]) + powerset([*range(-1, -3, -1)]),
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': powerset([*range(1)]) + powerset([*range(-1, -1, -1)]),
+    })
+))
+@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
+class TestFlip(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # TO-DO(kshitij12345) : Remove when #6621 is in.
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.uniform(self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if self.is_contiguous:
+            a = a.copy()
+
+        return xp.flip(a, self.axis),
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize('shape,axis', [
+    # Axis out of range.
+    ((), 1),
+    ((2,), 3),
+    ((2,), -3),
+    ((2, 4), 4),
+    ((1, 1, 2), -4),
+    ((1, 1, 2), (0, 4)),
+    ((1, 1, 2), (0, -6)),
+])
+def test_flip_invalid(xp, shape, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.flip(a, axis)

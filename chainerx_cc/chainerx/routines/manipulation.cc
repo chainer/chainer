@@ -749,4 +749,44 @@ Array ExpandDims(const Array& a, int8_t axis) {
     return out;
 }
 
+Array Flip(const Array& m, const OptionalAxes& axes) {
+    Axes real_axes;
+    if (axes.has_value()) {
+        real_axes = internal::GetNormalizedAxes(*axes, m.ndim());
+    } else {
+        for (int8_t i = 0; i < m.ndim(); ++i) {
+            real_axes.emplace_back(m.ndim() - i - 1);
+        }
+    }
+
+    Strides strides = m.strides();
+    Shape shape = m.shape();
+    int64_t offset = 0;
+    for (auto axis : real_axes) {
+        // last element of that dimension.
+        offset += std::max(shape[axis] - 1, 0L) * strides[axis];
+        if (shape[axis] != 0) {
+            strides[axis] = -strides[axis];
+        }
+    }
+
+    auto is_zero = std::find(shape.begin(), shape.end(), 0);
+    if (is_zero != shape.end()) {
+        offset = 0;
+    }
+
+    Array out = internal::MakeArray(m.shape(), strides, m.dtype(), m.device(), m.data(), offset);
+
+    BackwardBuilder bb{"flip", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([real_axes](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Flip(gout, real_axes);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx
