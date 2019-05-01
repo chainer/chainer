@@ -627,6 +627,11 @@ def fixed_batch_norm(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def flip(
+        a: ndarray,
+        axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
 def floor(x: ndarray) -> ndarray: ...
 
 

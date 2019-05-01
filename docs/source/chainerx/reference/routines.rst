@@ -69,6 +69,7 @@ Array manipulation routines
    chainerx.split
    chainerx.swapaxes
    chainerx.expand_dims
+   chainerx.flip
 
 Indexing routines
 -----------------
