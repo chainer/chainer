@@ -869,3 +869,75 @@ class TestFlip(op_utils.NumpyOpTest):
 def test_flip_invalid(xp, shape, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.flip(a, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(2, 2, 2)],
+    })
+    + chainer.testing.product({
+        'shape': [(2, 1, 3)],
+    })
+    + chainer.testing.product({
+        'shape': [(0, 1, 3, 4)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 0, 3, 4)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 0, 3, 4, 0)],
+    })
+))
+@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
+@chainer.testing.parameterize_pytest('func', [
+    lambda xp, a: xp.fliplr(a),
+    lambda xp, a: xp.flipud(a)
+])
+class TestFlipLRUD(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # TO-DO(kshitij12345) : Remove when #6621 is in.
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.uniform(self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if self.is_contiguous:
+            a = a.copy()
+
+        return self.func(xp, a),
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape', [
+    (),
+    (1,),
+    (10,),
+])
+def test_fliplr_invalid(xp, shape):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.fliplr(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape', [
+    (),
+])
+def test_flipud_invalid(xp, shape):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.flipud(a)

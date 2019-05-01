@@ -789,4 +789,18 @@ Array Flip(const Array& m, const OptionalAxes& axes) {
     return out;
 }
 
+Array Fliplr(const Array& m) {
+    if (m.ndim() < 2) {
+        throw DimensionError{"Input must be >= 2-d."};
+    }
+    return Flip(m, Axes{1});
+}
+
+Array Flipud(const Array& m) {
+    if (m.ndim() < 1) {
+        throw DimensionError{"Input must be >= 1-d."};
+    }
+    return Flip(m, Axes{0});
+}
+
 }  // namespace chainerx

@@ -55,4 +55,8 @@ Array ExpandDims(const Array& a, int8_t axis);
 
 Array Flip(const Array& m, const OptionalAxes& axes = nonstd::nullopt);
 
+Array Fliplr(const Array& m);
+
+Array Flipud(const Array& m);
+
 }  // namespace chainerx

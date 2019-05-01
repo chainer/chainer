@@ -70,6 +70,8 @@ Array manipulation routines
    chainerx.swapaxes
    chainerx.expand_dims
    chainerx.flip
+   chainerx.fliplr
+   chainerx.flipud
 
 Indexing routines
 -----------------
