@@ -106,16 +106,19 @@ class TestBernoulli(testing.distribution_unittest):
         [(2, 3), (2, 3)],
         [(), ()],
         [(), (3,)]
-        ],
+    ],
     'dtype': [numpy.float32, numpy.float64],
 }))
 class TestBernoulliLogProb(unittest.TestCase):
 
     def setUp(self):
-        self.logit = numpy.random.normal(size=self.logit_shape).astype(self.dtype)
-        self.x = numpy.random.randint(0, 2, size=self.x_shape).astype(self.dtype)
+        self.logit = numpy.random.normal(
+            size=self.logit_shape).astype(self.dtype)
+        self.x = numpy.random.randint(
+            0, 2, size=self.x_shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.x_shape).astype(self.dtype)
-        self.ggx = numpy.random.normal(size=self.logit_shape).astype(self.dtype)
+        self.ggx = numpy.random.normal(
+            size=self.logit_shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, logit_data, x_data):
