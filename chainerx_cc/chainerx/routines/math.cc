@@ -1176,4 +1176,28 @@ Array IsFinite(const Array& x) {
     return out;
 }
 
+Array Where(const Array& condition, const Array& x, const Array& y) {
+    if (condition.dtype() != Dtype::kBool) {
+        throw DtypeError{"condition should be an array of dtype bool."};
+    }
+
+    if (x.dtype() != y.dtype()) {
+        throw DtypeError{"dtype of x and y should be same."};
+    }
+
+    const Array& x_b = x.BroadcastTo(condition.shape());
+    const Array& y_b = y.BroadcastTo(condition.shape());
+
+    Shape _false_sh = x_b.shape();
+    std::fill(_false_sh.begin(), _false_sh.end(), 1);
+
+    Scalar{false};
+
+    const Array& _false = Zeros(_false_sh, Dtype::kBool, condition.device());
+    Array out = Empty(condition.shape(), x.dtype(), x.device());
+    IfGreaterElseImpl(condition, _false.BroadcastTo(x_b.shape()), x_b, y_b, out);
+
+    return out;
+}
+
 }  // namespace chainerx
