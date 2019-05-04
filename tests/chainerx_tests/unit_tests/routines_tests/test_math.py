@@ -1349,7 +1349,7 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a /= scalar
 
 
-_bwise_in_out_dtypes = dtype_utils._permutate_dtype_mapping([
+_in_out_dtypes_bitwise = dtype_utils._permutate_dtype_mapping([
     (('bool_', 'int8'), 'int8'),
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'int32'), 'int32'),
@@ -1363,7 +1363,7 @@ _bwise_in_out_dtypes = dtype_utils._permutate_dtype_mapping([
     (('int32', 'int64'), 'int64'),
 ])
 
-_bwise_inplace_invalid = [
+_inplace_invalid_bitwise = [
     (('bool_', 'int8'), 'int8'),
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'int32'), 'int32'),
@@ -1371,12 +1371,12 @@ _bwise_inplace_invalid = [
     (('bool_', 'uint8'), 'uint8'),
 ]
 
-_bwise_in_out_inplace_dtypes = [
-    dtypes for dtypes in _bwise_in_out_dtypes
-    if dtypes not in _bwise_inplace_invalid
+_in_out_inplace_dtypes_bitwise = [
+    dtypes for dtypes in _in_out_dtypes_bitwise
+    if dtypes not in _inplace_invalid_bitwise
 ]
 
-_bwise_scalar_invalid = [
+_scalar_invalid_bitwise = [
     (('float16',), int, 'float16'),
     (('float32',), int, 'float32'),
     (('float64',), int, 'float64'),
@@ -1384,12 +1384,12 @@ _bwise_scalar_invalid = [
     (('float16',), numpy.int64, 'float16'),
 ]
 
-_bwise_in_out_scalar_dtypes = [
+_in_out_scalar_dtypes_bitwise = [
     dtypes for dtypes in _in_out_dtypes_array_int_scalar
-    if dtypes not in _bwise_scalar_invalid
+    if dtypes not in _scalar_invalid_bitwise
 ]
 
-_bitwise_params = (
+_params_bitwise = (
     # Special shapes
     chainer.testing.product({
         'in_shapes': _shapes_combination_binary,
@@ -1402,7 +1402,7 @@ _bitwise_params = (
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _bwise_in_out_dtypes,
+        'in_dtypes,out_dtype': _in_out_dtypes_bitwise,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -1419,7 +1419,7 @@ _bitwise_params = (
 )
 
 
-_bitwise_inplace_params = (
+_inplace_params_bitwise = (
     # Special shapes
     chainer.testing.product({
         'in_shapes': _shapes_combination_inplace_binary,
@@ -1431,7 +1431,7 @@ _bitwise_inplace_params = (
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _bwise_in_out_inplace_dtypes,
+        'in_dtypes,out_dtype': _in_out_inplace_dtypes_bitwise,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
@@ -1446,11 +1446,11 @@ _bitwise_inplace_params = (
 )
 
 
-_bitwise_scalar_params = (
+_scalar_params_bitwise = (
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'in_dtypes,scalar_type,out_dtype': _in_out_scalar_dtypes_bitwise,
         'input': ['random'],
         'scalar_value': [1],
         'is_module': [False],
@@ -1459,7 +1459,7 @@ _bitwise_scalar_params = (
     # Type combinations
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'in_dtypes,scalar_type,out_dtype': _in_out_scalar_dtypes_bitwise,
         'input': ['random'],
         'scalar_value': [1],
         'is_module': [False],
@@ -1468,7 +1468,7 @@ _bitwise_scalar_params = (
     # is_module
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _bwise_in_out_scalar_dtypes,
+        'in_dtypes,scalar_type,out_dtype': _in_out_scalar_dtypes_bitwise,
         'input': ['random'],
         'scalar_value': [1],
         'is_module': [True, False],
@@ -1478,7 +1478,7 @@ _bitwise_scalar_params = (
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype':
-            _bwise_in_out_scalar_dtypes,
+            _in_out_scalar_dtypes_bitwise,
         'input': [float('inf'), -float('inf'), float('nan')],
         'scalar_value': [
             0, -1, 1, 2],
@@ -1490,12 +1490,12 @@ _bitwise_scalar_params = (
 )
 
 
-_bitwise_inplace_scalar_params = (
+_inplace_scalar_params_bitwise = (
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,scalar_type,out_dtype':
-            _bwise_in_out_scalar_dtypes,
+            _in_out_scalar_dtypes_bitwise,
         'input': ['random'],
         'scalar_value': [1],
     })
@@ -1503,7 +1503,7 @@ _bitwise_inplace_scalar_params = (
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype':
-            _bwise_in_out_scalar_dtypes,
+            _in_out_scalar_dtypes_bitwise,
         'input': ['random'],
         'scalar_value': [1],
     })
@@ -1511,7 +1511,7 @@ _bitwise_inplace_scalar_params = (
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype':
-            _bwise_in_out_scalar_dtypes,
+            _in_out_scalar_dtypes_bitwise,
         'input': [float('inf'), -float('inf'), float('nan')],
         'scalar_value': [
             0, -1, 1, 2],
@@ -1520,7 +1520,7 @@ _bitwise_inplace_scalar_params = (
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_params)
+@chainer.testing.parameterize(*_params_bitwise)
 class TestBitwiseAnd(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1531,7 +1531,7 @@ class TestBitwiseAnd(BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_params)
+@chainer.testing.parameterize(*_params_bitwise)
 class TestBitwiseOr(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1542,7 +1542,7 @@ class TestBitwiseOr(BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_params)
+@chainer.testing.parameterize(*_params_bitwise)
 class TestBitwiseXor(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1553,7 +1553,7 @@ class TestBitwiseXor(BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_params)
+@chainer.testing.parameterize(*_inplace_params_bitwise)
 class TestIBitwiseAnd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1561,7 +1561,7 @@ class TestIBitwiseAnd(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_params)
+@chainer.testing.parameterize(*_inplace_params_bitwise)
 class TestIBitwiseOr(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1569,7 +1569,7 @@ class TestIBitwiseOr(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_params)
+@chainer.testing.parameterize(*_inplace_params_bitwise)
 class TestIBitwiseXor(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a, b):
@@ -1577,7 +1577,7 @@ class TestIBitwiseXor(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+@pytest.mark.parametrize('dtypes', _inplace_invalid_bitwise)
 def test_iand_invalid_dtypes(device, dtypes):
     (in_dtype1, in_dtype2), _ = dtypes
     shape = (2, 3)
@@ -1588,7 +1588,7 @@ def test_iand_invalid_dtypes(device, dtypes):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+@pytest.mark.parametrize('dtypes', _inplace_invalid_bitwise)
 def test_ior_invalid_dtypes(device, dtypes):
     (in_dtype1, in_dtype2), _ = dtypes
     shape = (2, 3)
@@ -1599,7 +1599,7 @@ def test_ior_invalid_dtypes(device, dtypes):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dtypes', _bwise_inplace_invalid)
+@pytest.mark.parametrize('dtypes', _inplace_invalid_bitwise)
 def test_ixor_invalid_dtypes(device, dtypes):
     (in_dtype1, in_dtype2), _ = dtypes
     shape = (2, 3)
@@ -1610,7 +1610,7 @@ def test_ixor_invalid_dtypes(device, dtypes):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_scalar_params)
+@chainer.testing.parameterize(*_scalar_params_bitwise)
 class TestBitwiseAndScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
@@ -1627,7 +1627,7 @@ class TestBitwiseAndScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_scalar_params)
+@chainer.testing.parameterize(*_scalar_params_bitwise)
 class TestBitwiseOrScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
@@ -1644,7 +1644,7 @@ class TestBitwiseOrScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_scalar_params)
+@chainer.testing.parameterize(*_scalar_params_bitwise)
 class TestBitwiseXorScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
@@ -1661,7 +1661,7 @@ class TestBitwiseXorScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+@chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
 class TestIBitwiseAndScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
@@ -1669,7 +1669,7 @@ class TestIBitwiseAndScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+@chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
 class TestIBitwiseOrScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
@@ -1677,7 +1677,7 @@ class TestIBitwiseOrScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*_bitwise_inplace_scalar_params)
+@chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
 class TestIBitwiseXorScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):

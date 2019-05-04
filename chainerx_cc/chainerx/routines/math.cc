@@ -1142,8 +1142,9 @@ Array IsFinite(const Array& x) {
 
 template <typename Impl>
 inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
 
     Dtype out_dtype = GetArithmeticResultDtype(x1, x2, true);
     return BroadcastBinary(impl, x1, x2, out_dtype);
@@ -1159,6 +1160,9 @@ inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out)
 template <typename Kernel>
 inline void ApplyBitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
     NoBackpropModeScope scope;
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || x2.kind() == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
     x1.device().backend().CallKernel<Kernel>(x1, x2, out);
 }
 
@@ -1166,8 +1170,9 @@ namespace internal {
 
 template <typename Impl>
 inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    CHAINERX_ASSERT(GetKind(x1.dtype()) != DtypeKind::kFloat);
-    CHAINERX_ASSERT(GetKind(x2.dtype()) != DtypeKind::kFloat);
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
 
     CheckInplaceArithmeticDtypes(x1, x2, true);
     BroadcastBinaryInPlace(impl, x1, x2);
