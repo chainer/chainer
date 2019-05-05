@@ -1350,6 +1350,14 @@ class TestITrueDivideScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
 
 
 _in_out_dtypes_bitwise = dtype_utils._permutate_dtype_mapping([
+    # Same dtypes
+    (('bool_', 'bool_'), 'bool_'),
+    (('int8', 'int8'), 'int8'),
+    (('int16', 'int16'), 'int16'),
+    (('int32', 'int32'), 'int32'),
+    (('int64', 'int64'), 'int64'),
+    (('uint8', 'uint8'), 'uint8'),
+    # Mixed dtypes
     (('bool_', 'int8'), 'int8'),
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'int32'), 'int32'),
@@ -1358,9 +1366,13 @@ _in_out_dtypes_bitwise = dtype_utils._permutate_dtype_mapping([
     (('int8', 'int16'), 'int16'),
     (('int8', 'int32'), 'int32'),
     (('int8', 'int64'), 'int64'),
+    (('int8', 'uint8'), 'int16'),
     (('int16', 'int32'), 'int32'),
     (('int16', 'int64'), 'int64'),
+    (('int16', 'uint8'), 'int16'),
     (('int32', 'int64'), 'int64'),
+    (('int32', 'uint8'), 'int32'),
+    (('int64', 'uint8'), 'int64'),
 ])
 
 _inplace_invalid_bitwise = [
