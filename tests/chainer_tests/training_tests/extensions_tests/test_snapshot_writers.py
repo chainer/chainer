@@ -16,7 +16,7 @@ class TestSimpleWriter(unittest.TestCase):
 
     @staticmethod
     def _touch(filename, target, **kwargs):
-        open(filename, 'w')
+        open(filename, 'w').close()
 
     def test_call_without_kwargs(self):
         target = mock.MagicMock()
@@ -48,7 +48,7 @@ class TestSimpleWriter(unittest.TestCase):
         assert len(args) == 2
         assert isinstance(args[0], str)
         assert args[1] is target
-        assert kwargs == { 'spam': 'ham', 'egg': 1 }
+        assert kwargs == {'spam': 'ham', 'egg': 1}
 
 
 class TestStandardWriter(unittest.TestCase):
