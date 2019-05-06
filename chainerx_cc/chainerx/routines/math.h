@@ -144,6 +144,4 @@ Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
 
-Array Where(const Array& condition, const Array& x, const Array& y);
-
 }  // namespace chainerx

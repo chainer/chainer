@@ -198,4 +198,41 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     return out;
 }
 
+Array Where(const Array& condition, const Array& x, const Array& y) {
+    const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+    if (x.dtype() != y.dtype()) {
+        throw DtypeError{"dtype of x and y should be same."};
+    }
+
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
+
+    Array out = Empty(out_shape, x.dtype(), x.device());
+
+    const Array& x_b = x.BroadcastTo(out_shape);
+    const Array& y_b = y.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        x.device().backend().CallKernel<WhereKernel>(condition_cast, x_b, y_b, out);
+    }
+
+    BackwardBuilder bb{"where", {x_b, y_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([condition_cast](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Where(condition_cast, gout, ZerosLike(gout));
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([condition_cast](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Where(condition_cast, ZerosLike(gout), gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx

@@ -267,6 +267,32 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(AddAtKernel, CudaAddAtKernel);
 
+template <typename T>
+struct WhereImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, bool condition, CudaType x, CudaType y, CudaType& out) { out = condition ? x : y; }
+};
+
+class CudaWhereKernel : public WhereKernel {
+public:
+    void Call(const Array& condition, const Array& x, const Array& y, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(condition, x, y, out);
+        Dtype dtype = std::max(x.dtype(), y.dtype());
+        const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+        const Array& y_cast = y.dtype() == dtype ? y : y.AsType(dtype);
+        const Array& out_cast = out.dtype() == dtype ? out : out.AsType(dtype);
+
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto x_pt) {
+            using T = typename decltype(x_pt)::type;
+            Elementwise<const bool, const T, const T, T>(WhereImpl<T>{}, condition, x_cast, y_cast, out_cast);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(WhereKernel, CudaWhereKernel);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx
