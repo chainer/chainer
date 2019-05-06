@@ -835,6 +835,9 @@ def transpose(
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def where(cond: ndarray, x: ndarray, y: ndarray) -> ndarray: ...
+
+
 def zeros(
         shape: tp.Union[int, tp.Tuple[int, ...]],
         dtype: tp.Optional[tp.Any]=None,

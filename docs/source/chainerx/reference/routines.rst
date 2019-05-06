@@ -78,6 +78,7 @@ Indexing routines
    :nosignatures:
 
    chainerx.take
+   chainerx.where
 
 Linear algebra
 --------------

@@ -447,6 +447,30 @@ Note:
 .. seealso:: :func:`numpy.take`
 """)
 
+    _docs.set_doc(
+        chainerx.where,
+        """where(condition, x, y)
+Return elements chosen from x or y depending on condition.
+
+Args:
+    condition (~chainerx.ndarray): Where True, yield x, otherwise yield y.
+    x (~chainerx.ndarray): Values from which to choose.
+    y (~chainerx.ndarray): Values from which to choose.
+
+Returns:
+    :func:`~chainerx.ndarray`: An array with elements
+    from x where condition is True, and elements from y elsewhere.
+
+Note:
+    x, y and condition need to be broadcastable to some shape.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x`` and ``y``.
+
+.. seealso:: :func:`numpy.where`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(
