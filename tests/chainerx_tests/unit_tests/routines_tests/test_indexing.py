@@ -237,7 +237,6 @@ class TestWhere(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         x, y, condition = inputs
-        print(x.dtype, y.dtype)
         b = xp.where(condition > 0.5, x, y)
         return b,
 
