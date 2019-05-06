@@ -3,6 +3,7 @@ import unittest
 import numpy
 import pytest
 
+from chainerx_tests import array_utils
 import chainer.testing
 import chainerx
 import chainerx.testing
@@ -201,3 +202,56 @@ class TestTake(op_utils.NumpyOpTest):
         else:
             b = a.take(indices, axis)
         return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('cond_shape,x_shape,y_shape', [
+    # Same Shapes
+    ((2, 3), (2, 3), (2, 3)),
+    # Broadcast Shapes
+    ((2, 3), (1, 3), (1, 3)),
+    ((2, 3), (2, 1), (1, 3)),
+    ((2, 3), (2, 3), (1, 3)),
+])
+@chainer.testing.parameterize_pytest(
+    'dtypes', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize_pytest(
+    'condition_dtypes', chainerx.testing.integral_dtypes)
+class TestWhere(op_utils.NumpyOpTest):
+
+    def setup(self):
+        if numpy.dtype(self.dtypes).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if self.dtypes == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtypes)
+        y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtypes)
+        condition = \
+            numpy.random.uniform(-1, 1,
+                                 self.cond_shape).astype(self.condition_dtypes)
+        return (x, y, condition)
+
+    def forward_xp(self, inputs, xp):
+        x, y, condition = inputs
+        print(x.dtype, y.dtype)
+        b = xp.where(condition > 0.5, x, y)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('cond_shape,x_shape,y_shape', [
+    ((2, 3), (3, 4), (2, 3)),
+    ((2, 3), (2, 3), (3, 4)),
+    ((2, 3), (1, 3), (2, 4))
+])
+def test_where_invalid_shapes(xp, cond_shape, x_shape, y_shape):
+    x = array_utils.create_dummy_ndarray(xp, x_shape, 'float32')
+    y = array_utils.create_dummy_ndarray(xp, y_shape, 'float32')
+    c = array_utils.create_dummy_ndarray(xp, cond_shape, 'float32')
+    return xp.where(c, x, y)
