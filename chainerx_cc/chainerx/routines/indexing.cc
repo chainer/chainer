@@ -218,12 +218,14 @@ Array Where(const Array& condition, const Array& x, const Array& y) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([condition](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
             bctx.input_grad() = Where(condition, gout, ZerosLike(gout));
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
         bt.Define([condition](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
             bctx.input_grad() = Where(condition, ZerosLike(gout), gout);
         });
     }
