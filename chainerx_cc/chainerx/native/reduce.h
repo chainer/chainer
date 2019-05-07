@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "chainerx/array.h"
@@ -41,22 +42,23 @@ struct ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, 1> {
 };
 
 constexpr int log2(int64_t v) { return v == 1 ? 0 : log2(v >> 1) + 1; }
-constexpr int64_t TreeDepth = 63 - log2(ExpandLen * SerialLen);
 
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
 T PairwiseReduction(const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl, int64_t reduce_len) {
     int64_t i_reduce = 0;
     T accum = impl.Identity();
-    T tree_accum[TreeDepth];
 
-    while (i_reduce < reduce_len / ExpandLen * ExpandLen) {
+    constexpr int TreeDepth = 63 - log2(ExpandLen * SerialLen);
+    std::array<T, TreeDepth> tree_accum;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+
+    while (i_reduce < reduce_len - (reduce_len % ExpandLen)) {
         // Invoke dynamic pairwise reduction if `i_reduce` is multiple of `SerialLen * ExpandLen`.
         if (i_reduce != 0 && i_reduce % (SerialLen * ExpandLen) == 0) {
             int i = 0;
             for (int64_t k = i_reduce >> 1; k % (SerialLen * ExpandLen) == 0; k >>= 1, ++i) {
-                impl.Reduce(tree_accum[i], accum);
+                impl.Reduce(tree_accum[i], accum);  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             }
-            tree_accum[i] = accum;
+            tree_accum[i] = accum;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             accum = impl.Identity();
         }
         // This increments `i_reduce` by `ExpandLen`.
@@ -73,7 +75,7 @@ T PairwiseReduction(const IndexableArray<const In, InNdim>& in, IndexIterator<In
     int i = 0;
     for (int64_t k = (reduce_len / ExpandLen - 1) / SerialLen; k > 0; k >>= 1, ++i) {
         if (k & 1) {
-            impl.Reduce(tree_accum[i], accum);
+            impl.Reduce(tree_accum[i], accum);  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
     }
 
