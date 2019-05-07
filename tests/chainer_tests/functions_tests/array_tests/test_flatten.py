@@ -1,53 +1,45 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 4), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestFlatten(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestFlatten(testing.FunctionTestCase):
 
-    dtype = numpy.float32
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
 
-    def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.g_shape = (numpy.prod((1,) + self.shape),)
-        self.g = numpy.random.uniform(-1, 1, self.g_shape).astype(self.dtype)
+    def forward_expected(self, inputs):
+        x, = inputs
+        return x.flatten(),
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
+    def forward(self, inputs, device):
+        x, = inputs
         y = functions.flatten(x)
-
-        self.assertEqual(y.shape, self.g_shape)
-        self.assertEqual(y.dtype, self.dtype)
-        testing.assert_allclose(self.x.flatten(), y.data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, g_data):
-        gradient_check.check_backward(
-            functions.flatten, x_data, g_data, dtype=numpy.float64)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.g)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
+        return y,
 
 
 testing.run_module(__name__, __file__)

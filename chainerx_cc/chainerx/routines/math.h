@@ -57,14 +57,13 @@ void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
-Array Divide(const Array& x1, const Array& x2);
-Array Divide(const Array& x1, Scalar x2);
-Array Divide(Scalar x1, const Array& x2);
-
-// TODO(imanishi): Support bool
 Array FloorDivide(const Array& x1, const Array& x2);
 Array FloorDivide(const Array& x1, Scalar x2);
 Array FloorDivide(Scalar x1, const Array& x2);
+
+Array Divide(const Array& x1, const Array& x2);
+Array Divide(const Array& x1, Scalar x2);
+Array Divide(Scalar x1, const Array& x2);
 
 Array TrueDivide(const Array& x1, const Array& x2);
 Array TrueDivide(const Array& x1, Scalar x2);
@@ -75,9 +74,11 @@ Array Reciprocal(const Array& x);
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array AMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+Array Maximum(const Array& x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
@@ -85,6 +86,7 @@ Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
+Array Log10(const Array& x);
 
 // Returns the LogSumExp (LSE) of x, reduced along the specified axes.
 // If no axes are specified, all axes will be reduced.
@@ -96,6 +98,10 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sigmoid(const Array& x);
 
+Array Relu(const Array& x);
+
+Array Softmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
+
 Array Square(const Array& x);
 
 Array SquaredDifference(const Array& x1, const Array& x2);
@@ -106,67 +112,15 @@ Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
+Array IsFinite(const Array& x);
+
 Array Tanh(const Array& x);
-
-class SinOp : public Op {
-public:
-    static const char* name() { return "Sin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CosOp : public Op {
-public:
-    static const char* name() { return "Cos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanOp : public Op {
-public:
-    static const char* name() { return "Tan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArcsinOp : public Op {
-public:
-    static const char* name() { return "Arcsin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccosOp : public Op {
-public:
-    static const char* name() { return "Arccos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArctanOp : public Op {
-public:
-    static const char* name() { return "Arctan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CeilOp : public Op {
-public:
-    static const char* name() { return "Ceil"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class FloorOp : public Op {
-public:
-    static const char* name() { return "Floor"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
 
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
+
+Array Absolute(const Array& x);
 
 Array Tan(const Array& x);
 
@@ -176,8 +130,43 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
+Array Arctan2(const Array& x1, const Array& x2);
+
+Array Sinh(const Array& x);
+
+Array Cosh(const Array& x);
+
+Array Arcsinh(const Array& x);
+
+Array Arccosh(const Array& x);
+
 Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
+
+namespace internal {
+
+void IBitwiseAnd(const Array& x1, const Array& x2);
+void IBitwiseAnd(const Array& x1, Scalar x2);
+
+void IBitwiseOr(const Array& x1, const Array& x2);
+void IBitwiseOr(const Array& x1, Scalar x2);
+
+void IBitwiseXor(const Array& x1, const Array& x2);
+void IBitwiseXor(const Array& x1, Scalar x2);
+
+}  // namespace internal
+
+Array BitwiseAnd(const Array& x1, const Array& x2);
+Array BitwiseAnd(const Array& x1, Scalar x2);
+Array BitwiseAnd(Scalar x1, const Array& x2);
+
+Array BitwiseOr(const Array& x1, const Array& x2);
+Array BitwiseOr(const Array& x1, Scalar x2);
+Array BitwiseOr(Scalar x1, const Array& x2);
+
+Array BitwiseXor(const Array& x1, const Array& x2);
+Array BitwiseXor(const Array& x1, Scalar x2);
+Array BitwiseXor(Scalar x1, const Array& x2);
 
 }  // namespace chainerx

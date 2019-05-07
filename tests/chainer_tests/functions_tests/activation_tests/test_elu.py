@@ -31,8 +31,6 @@ from chainer import testing
     ])
 class TestELU(testing.FunctionTestCase):
 
-    dodge_nondifferentiable = True
-
     def setUp(self):
         if isinstance(self.alpha_range, tuple):
             l, u = self.alpha_range
@@ -43,9 +41,13 @@ class TestELU(testing.FunctionTestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
             self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+            self.check_double_backward_options.update(
+                {'atol': 5e-4, 'rtol': 5e-3})
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        if self.test_name in ('test_backward', 'test_double_backward'):
+            x[(-0.01 < x) & (x < 0.01)] = 0.5
         return x,
 
     def forward(self, inputs, device):

@@ -40,8 +40,6 @@ from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
     ])
 class TestMaxPoolingND(testing.FunctionTestCase):
 
-    dodge_nondifferentiable = True
-
     def setUp(self):
         self.ndim = len(self.in_dims)
         self.ksize = (3,) * self.ndim
@@ -56,7 +54,12 @@ class TestMaxPoolingND(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x_shape = (2, 3) + self.in_dims
-        x = numpy.random.randn(*x_shape).astype(self.dtype, copy=False)
+        if self.test_name in ('test_backward', 'test_double_backward'):
+            x = numpy.arange(functools.reduce(mul, x_shape), dtype=self.dtype)
+            x = x.reshape(x_shape)
+            x = 2 * x / x.size - 1
+        else:
+            x = numpy.random.randn(*x_shape).astype(self.dtype, copy=False)
         return x,
 
     def forward(self, inputs, device):

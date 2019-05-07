@@ -4,8 +4,11 @@ from chainer.training.extensions import snapshot_writers
 from chainer.utils import argument
 
 
-def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
-    """Returns a trainer extension to take snapshots of a given object.
+def snapshot_object(target, filename, savefun=None, **kwargs):
+    """snapshot_object(target, filename, savefun=None, \
+*, condition=None, writer=None, snapshot_on_error=False)
+
+    Returns a trainer extension to take snapshots of a given object.
 
     This extension serializes the given object and saves it to the output
     directory.
@@ -27,6 +30,19 @@ def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
             ``'snapshot_10000'`` at the 10,000th iteration.
         savefun: Function to save the object. It takes two arguments: the
             output file path and the object to serialize.
+        condition: Condition object. It must be a callable object that returns
+            boolean without any arguments. If it returns ``True``, the snapshot
+            will be done.
+            If not, it will be skipped. The default is a function that always
+            returns ``True``.
+        writer: Writer object.
+            It must be a callable object.
+            See below for the list of built-in writers.
+            If ``savefun`` is other than ``None``, this argument must be
+            ``None``. In that case, a
+            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`
+            object instantiated with specified ``savefun`` argument will be
+            used.
         snapshot_on_error (bool): Whether to take a snapshot in case trainer
             loop has been failed.
 
@@ -37,15 +53,9 @@ def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
-    snapshot_on_error = argument.parse_kwargs(
-        kwargs, ('snapshot_on_error', False))
-    argument.assert_kwargs_empty(kwargs)
 
-    return _Snapshot(
-        target=target,
-        writer=snapshot_writers.SimpleWriter(savefun=savefun),
-        filename=filename,
-        snapshot_on_error=snapshot_on_error)
+    return snapshot(target=target, filename=filename, savefun=savefun,
+                    **kwargs)
 
 
 def snapshot(savefun=None,

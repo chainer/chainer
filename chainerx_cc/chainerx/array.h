@@ -48,6 +48,8 @@ class Array {
 public:
     Array() = default;
 
+    ~Array() = default;
+
     // TODO(hvy): Consider making this contructor private and prohibit body from being null (assert that given body is not null).
     explicit Array(std::shared_ptr<internal::ArrayBody> body) : body_{std::move(body)} {
         if (body_ == nullptr) {
@@ -82,6 +84,12 @@ public:
     Array& operator*=(Scalar rhs);
     Array& operator/=(const Array& rhs);
     Array& operator/=(Scalar rhs);
+    Array& operator&=(const Array& rhs);
+    Array& operator&=(Scalar rhs);
+    Array& operator|=(const Array& rhs);
+    Array& operator|=(Scalar rhs);
+    Array& operator^=(const Array& rhs);
+    Array& operator^=(Scalar rhs);
 
     const Array& operator+=(const Array& rhs) const;
     const Array& operator+=(Scalar rhs) const;
@@ -91,6 +99,12 @@ public:
     const Array& operator*=(Scalar rhs) const;
     const Array& operator/=(const Array& rhs) const;
     const Array& operator/=(Scalar rhs) const;
+    const Array& operator&=(const Array& rhs) const;
+    const Array& operator&=(Scalar rhs) const;
+    const Array& operator|=(const Array& rhs) const;
+    const Array& operator|=(Scalar rhs) const;
+    const Array& operator^=(const Array& rhs) const;
+    const Array& operator^=(Scalar rhs) const;
 
     Array operator+(const Array& rhs) const;
     Array operator+(Scalar rhs) const;
@@ -100,6 +114,12 @@ public:
     Array operator*(Scalar rhs) const;
     Array operator/(const Array& rhs) const;
     Array operator/(Scalar rhs) const;
+    Array operator&(const Array& rhs) const;
+    Array operator&(Scalar rhs) const;
+    Array operator|(const Array& rhs) const;
+    Array operator|(Scalar rhs) const;
+    Array operator^(const Array& rhs) const;
+    Array operator^(Scalar rhs) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
@@ -116,6 +136,9 @@ public:
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
     Array Squeeze(const OptionalAxes& axis = nonstd::nullopt) const;
+
+    // Interchange two axes of an array.
+    Array Swapaxes(int8_t axis1, int8_t axis2) const;
 
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
@@ -135,9 +158,18 @@ public:
     // Otherwise, all the elements are searched at once.
     Array Max(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    // Returns the minimum value of the array.
+    // If `axis` is set, the minimum value is chosen along the specified axes.
+    // Otherwise, all the elements are searched at once.
+    Array Min(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
     Array Mean(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
     Array Var(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    Array All(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    Array Any(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
