@@ -79,12 +79,6 @@ class MultithreadIterator(iterator.Iterator):
         # reset internal state
         self._next = None
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.finalize()
-
     def finalize(self):
         pool = self._pool
 

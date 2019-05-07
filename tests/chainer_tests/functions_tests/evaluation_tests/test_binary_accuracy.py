@@ -4,9 +4,9 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
 from chainer import testing
-from chainer.testing import attr
+from chainer import functions
+from chainer.utils import force_array
 from chainer.utils import type_check
 
 
@@ -15,27 +15,48 @@ from chainer.utils import type_check
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }))
-class TestBinaryAccuracy(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestBinaryAccuracy(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.t = numpy.random.randint(-1, 2, self.shape).astype(
-            self.label_dtype)
-        self.check_forward_options = {}
+        self.skip_backward_test = True
+        self.skip_double_backward_test = True
+
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
 
-    def check_forward(self, x_data, t_data):
-        x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
-        y = chainer.functions.binary_accuracy(x, t)
-        self.assertEqual(y.data.dtype, self.dtype)
-        self.assertEqual((), y.data.shape)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        t = numpy.random.randint(-1, 2, self.shape).astype(self.label_dtype)
+        return x, t
 
+    def forward(self, inputs, device):
+        x, t = inputs
+        return functions.binary_accuracy(x, t),
+
+    def forward_expected(self, inputs):
+        x, t = inputs
         count = 0
         correct = 0
-        x_flatten = self.x.ravel()
-        t_flatten = self.t.ravel()
+        x_flatten = x.ravel()
+        t_flatten = t.ravel()
         for i in six.moves.range(t_flatten.size):
             if t_flatten[i] == -1:
                 continue
@@ -44,42 +65,49 @@ class TestBinaryAccuracy(unittest.TestCase):
                 correct += 1
             count += 1
         expected = float(correct) / count
-        testing.assert_allclose(
-            expected, cuda.to_cpu(y.data), **self.check_forward_options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.t)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+        expected = force_array(expected, self.dtype)
+        return expected,
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestBinaryAccuracyIgnoreAll(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestBinaryAccuracyIgnoreAll(testing.FunctionTestCase):
 
     def setUp(self):
+        self.skip_backward_test = True
+        self.skip_double_backward_test = True
+
+    def generate_inputs(self):
         shape = (5, 4)
-        self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.t = -numpy.ones(shape).astype(numpy.int32)
+        x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        t = -numpy.ones(shape).astype(numpy.int32)
+        return x, t
 
-    def check_forward(self, x_data, t_data):
-        x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
-        y = chainer.functions.binary_accuracy(x, t)
-        self.assertEqual(y.data.dtype, self.dtype)
+    def forward(self, inputs, device):
+        x, t = inputs
+        return functions.binary_accuracy(x, t),
 
-        expected = 0.0
-        testing.assert_allclose(expected, cuda.to_cpu(y.data))
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.t)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+    def forward_expected(self, inputs):
+        return force_array(0.0, self.dtype),
 
 
 class TestBinaryAccuracyTypeError(unittest.TestCase):

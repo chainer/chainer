@@ -16,8 +16,8 @@ class Geometric(distribution.Distribution):
         for k = 1, 2, 3, ...,
 
     Args:
-        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        p(:class:`~chainer.Variable` or :ref:`ndarray`):
+            Parameter of distribution.
     """
 
     def __init__(self, p):
@@ -46,6 +46,10 @@ class Geometric(distribution.Distribution):
     @cache.cached_property
     def mean(self):
         return 1 / self.p
+
+    @property
+    def params(self):
+        return {'p': self.p}
 
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)

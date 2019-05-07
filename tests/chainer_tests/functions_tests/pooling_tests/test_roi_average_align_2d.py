@@ -20,6 +20,7 @@ def _pair(x):
 @testing.parameterize(*testing.product({
     'sampling_ratio': [None, 1, 2, (None, 3), (1, 2)],
     'outsize': [5, 7, (5, 7)],
+    'spatial_scale': [0.6, 1.0, 2.0],
 }))
 class TestROIAlign2D(unittest.TestCase):
 
@@ -40,7 +41,6 @@ class TestROIAlign2D(unittest.TestCase):
         ], dtype=numpy.float32)
         self.roi_indices = numpy.array([0, 2, 1, 0, 2], dtype=numpy.int32)
         n_rois = self.rois.shape[0]
-        self.spatial_scale = 0.6
         outsize = _pair(self.outsize)
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,

@@ -48,7 +48,10 @@ Configuration Keys
 
    Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
 
-   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``float16``, ``float32`` or ``float64``.
+   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``mixed16``, ``float16``, ``float32``, ``float64``.
+
+   .. note::
+      If you want to use float16 for better performance, it is recommended to use ``mixed16`` instead of ``float16``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -65,6 +68,18 @@ Configuration Keys
    If it is ``True``, :func:`report` just stores the :class:`Variable` object as is with the computational graph left attached.
 
    You can change the default value to ``True`` by setting ``CHAINER_KEEP_GRAPH_ON_REPORT`` environment variable to ``1``.
+
+* ``warn_nondeterministic`` (default: ``False``)
+   Flag to give warning when a non-deterministic function is used. This function is experimental.
+
+   If it is true, then functions that use non-deterministic functions and cannot be given a seed, such as atomicAdd, will
+   give a warning when executed. For functions that can take a seed argument, such as
+   :func:`~chainer.datasets.split_dataset_random`, setting the seed should be done when the function is called and will not
+   be flagged by this setting.
+   
+   Note that this feature is provided as best-effort. It cannot assure that every nondeterministic function can be detected.  For example, SSE computations in CPU mode may cause non-deterministic behavior that would not raise a warning.
+
+   Also, determinisitic outputs may still result, even if this flag produces a non-deterministic warning. For example, reduction on 1-dim axis should always be deterministic, but it may raise a warning.
 
 * ``train`` (default: ``True``)
    Training mode flag.
@@ -254,6 +269,7 @@ Related functions
    :nosignatures:
 
    chainer.get_dtype
+   chainer.mixed16
 
 
 Environment Variables
@@ -293,7 +309,7 @@ Here are the environment variables Chainer uses.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
-|                                           | The value must be any of ``'float16'``, ``'float32'`` or ``'float64'``.                               |
+|                                           | The value must be any of ``'mixed16'``, ``'float16'``, ``'float32'`` or ``'float64'``.                |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |

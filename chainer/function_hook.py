@@ -149,7 +149,7 @@ class FunctionHook(object):
         Args:
             function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            in_data(tuple of :ref:`ndarray`):
                Input data of forward propagation.
         """
         pass
@@ -160,7 +160,7 @@ class FunctionHook(object):
         Args:
             function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            in_data(tuple of :ref:`ndarray`):
                 Input data of forward propagation.
         """
         pass
@@ -172,9 +172,9 @@ class FunctionHook(object):
         Args:
             function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            in_data(tuple of :ref:`ndarray`):
                 Input data of forward propagation.
-            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            out_grad(tuple of :ref:`ndarray`):
                 Gradient data of backward propagation.
         """
         pass
@@ -185,9 +185,9 @@ class FunctionHook(object):
         Args:
             function(~chainer.FunctionNode): Function object to which
                 the function hook is registered.
-            in_data(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            in_data(tuple of :ref:`ndarray`):
                 Input of forward propagation.
-            out_grad(tuple of numpy.ndarray or tuple of cupy.ndarray):
+            out_grad(tuple of :ref:`ndarray`):
                 Gradient data of backward propagation.
         """
         pass

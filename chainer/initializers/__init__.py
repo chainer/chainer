@@ -3,6 +3,7 @@ import typing as tp  # NOQA
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import _chainerx  # NOQA
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -36,8 +37,8 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     used instead. See :ref:`configuration` for the dtype config.
 
     Args:
-        initializer: A callable object that takes :class:`numpy.ndarray`
-             or :class:`cupy.ndarray` and edits its value.
+        initializer: A callable object that takes :ref:`ndarray` and edits its
+            value.
         shape (tuple): Shape of a return array.
         xp (module): :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx`.
         dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
@@ -46,7 +47,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
              :mod:`chainerx`.
 
     Returns:
-        numpy.ndarray, cupy.ndarray, or chainerx.ndarray: An initialized array.
+        :ref:`ndarray`: An initialized array.
 
     """
     dtype_attr = getattr(initializer, 'dtype', None)
@@ -59,12 +60,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     dtype = chainer.get_dtype(dtype)
 
     if device is None:
-        if xp is cuda.cupy:
-            backend_device = chainer.get_device(cuda.Device())
-        elif xp is chainerx:
-            backend_device = chainer.get_device(chainerx.get_default_device())
-        else:
-            backend_device = chainer.get_device(numpy)
+        backend_device = backend._guess_device_from_array_module(xp)
     else:
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:
@@ -110,3 +106,14 @@ def _get_initializer(initializer):
     if not callable(initializer):
         raise TypeError('invalid type of initializer: %s' % type(initializer))
     return initializer
+
+
+def _check_is_initializer_like(initializer):
+    if not (initializer is None
+            or isinstance(initializer, chainer.Initializer)
+            or callable(initializer)
+            or isinstance(initializer, chainer.get_array_types())
+            or numpy.isscalar(initializer)):
+        raise TypeError(
+            'Initializer is of wrong type: {}. Allowed types are Initializer, '
+            'ndarray and scalar.'.format(type(initializer)))

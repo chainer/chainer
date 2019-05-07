@@ -196,7 +196,7 @@ class ResNetLayers(link.Chain):
         activations = {}
         target_layers = set(layers)
         for key, funcs in self.functions.items():
-            if len(target_layers) == 0:
+            if not target_layers:
                 break
             for func in funcs:
                 h = func(h)
@@ -552,7 +552,7 @@ class BuildingBlock(link.Chain):
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride,
                 initialW, downsample_fb)
-            self._forward = ["a"]
+            self._forward = ['a']
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)

@@ -377,8 +377,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             When ``return_indices`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            pooling indices (`ndarray`). Pooling indices will be on the same
-            device as the input.
+            pooling indices (:ref:`ndarray`). Pooling indices will be on the
+            same device as the input.
 
     """
     func = MaxPooling2D(ksize, stride, pad, cover_all, return_indices)

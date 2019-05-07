@@ -1,4 +1,3 @@
-import contextlib
 import sys
 import threading
 import typing as tp  # NOQA
@@ -16,6 +15,7 @@ class GlobalConfig(object):
 
     debug = None  # type: bool
     cudnn_deterministic = None  # type: bool
+    warn_nondeterministic = None  # type: bool
     enable_backprop = None  # type: bool
     keep_graph_on_report = None  # type: bool
     train = None  # type: bool
@@ -66,8 +66,9 @@ class LocalConfig(object):
         delattr(self._local, name)
 
     def __getattr__(self, name):
-        if hasattr(self._local, name):
-            return getattr(self._local, name)
+        dic = self._local.__dict__
+        if name in dic:
+            return dic[name]
         return getattr(self._global, name)
 
     def __setattr__(self, name, value):
@@ -123,7 +124,34 @@ See :ref:`configuration` for details.
 '''
 
 
-@contextlib.contextmanager
+class _ConfigContext(object):
+
+    is_local = False
+    old_value = None
+
+    def __init__(self, config, name, value):
+        self.config = config
+        self.name = name
+        self.value = value
+
+    def __enter__(self):
+        name = self.name
+        value = self.value
+        config = self.config
+        is_local = hasattr(config._local, name)
+        if is_local:
+            self.old_value = getattr(config, name)
+            self.is_local = is_local
+
+        setattr(config, name, value)
+
+    def __exit__(self, typ, value, traceback):
+        if self.is_local:
+            setattr(self.config, self.name, self.old_value)
+        else:
+            delattr(self.config, self.name)
+
+
 def using_config(name, value, config=config):
     """using_config(name, value, config=chainer.config)
 
@@ -139,16 +167,4 @@ def using_config(name, value, config=config):
         :ref:`configuration`
 
     """
-    if hasattr(config._local, name):
-        old_value = getattr(config, name)
-        setattr(config, name, value)
-        try:
-            yield
-        finally:
-            setattr(config, name, old_value)
-    else:
-        setattr(config, name, value)
-        try:
-            yield
-        finally:
-            delattr(config, name)
+    return _ConfigContext(config, name, value)

@@ -51,7 +51,8 @@ step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
         brew update >/dev/null
-        brew outdated pyenv || brew upgrade --quiet pyenv
+        brew uninstall openssl@1.1 || :  # tentative workaround: pyenv/pyenv#1302
+        brew outdated pyenv || brew upgrade pyenv
 
         PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
         pyenv global $PYTHON_VERSION
@@ -114,16 +115,6 @@ step_python_style_check() {
 }
 
 
-step_python_mypy_check_deps() {
-    pip install -U 'mypy>=0.650'
-}
-
-
-step_python_mypy_check() {
-    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
-}
-
-
 step_chainer_install_from_sdist() {
     # Build sdist.
     # sdist does not support out-of-source build.
@@ -132,7 +123,10 @@ step_chainer_install_from_sdist() {
     popd
 
     # Install from sdist
-    local envs=(MAKEFLAGS=-j"$DEFAULT_JOBS")
+    local envs=(
+        MAKEFLAGS=-j"$DEFAULT_JOBS"
+        CHAINERX_BUILD_TYPE=Debug
+    )
 
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)
@@ -167,7 +161,7 @@ step_chainermn_tests() {
 
 
 step_docs() {
-    make -C "$REPO_DIR"/docs html;
+    SPHINXOPTS=-W make -C "$REPO_DIR"/docs html;
 }
 
 

@@ -71,6 +71,10 @@ class OneHotCategorical(distribution.Distribution):
     def mean(self):
         return self.p
 
+    @property
+    def params(self):
+        return {'p': self.p}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)
         obo_p = self.p.data.reshape((-1,) + self.event_shape)

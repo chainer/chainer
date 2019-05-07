@@ -1,7 +1,11 @@
+import unittest
+
+import chainer
 import numpy
-import pytest
 
 import chainerx.testing
+
+from chainerx_tests import op_utils
 
 
 _min_max_single_axis_params = [
@@ -16,6 +20,7 @@ _min_max_single_axis_params = [
     (numpy.asarray([4, 1, 4, 1]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
+    (numpy.asarray([-2, -3, -1]), 0),
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
     (numpy.asarray([[True, True, False, False],
                     [True, False, True, False]]), 0),
@@ -31,18 +36,31 @@ _min_max_single_axis_params = [
 ]
 
 
-@pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@chainerx.testing.numpy_chainerx_array_equal(
-    accept_error=(ValueError, chainerx.DimensionError))
-def test_argmax(is_module, xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('input,axis', _min_max_single_axis_params)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestArgmax(op_utils.NumpyOpTest):
 
-    a = xp.array(a_np)
-    if is_module:
-        return xp.argmax(a, axis)
-    else:
-        return a.argmax(axis)
+    skip_backward_test = True
+    skip_double_backward_test = True
+    forward_accept_errors = (ValueError, chainerx.DimensionError)
+
+    def setup(self, dtype):
+        try:
+            a_np = self.input.astype(dtype)
+        except (ValueError, OverflowError):
+            raise unittest.SkipTest('invalid combination of data and dtype')
+
+        self.a_np = a_np
+
+    def generate_inputs(self):
+        return self.a_np,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axis = self.axis
+        if self.is_module:
+            b = xp.argmax(a, axis)
+        else:
+            b = a.argmax(axis)
+        return b,

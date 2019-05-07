@@ -6,6 +6,7 @@
 
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/float16.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
@@ -13,64 +14,57 @@ namespace chainerx {
 // Type safe, dynamically typed scalar value.
 class Scalar {
 public:
-    Scalar(bool v) : bool_{v}, dtype_{Dtype::kBool} {}  // NOLINT(runtime/explicit)
-    Scalar(int8_t v) : int8_{v}, dtype_{Dtype::kInt8} {}  // NOLINT(runtime/explicit)
-    Scalar(int16_t v) : int16_{v}, dtype_{Dtype::kInt16} {}  // NOLINT(runtime/explicit)
-    Scalar(int32_t v) : int32_{v}, dtype_{Dtype::kInt32} {}  // NOLINT(runtime/explicit)
-    Scalar(int64_t v) : int64_{v}, dtype_{Dtype::kInt64} {}  // NOLINT(runtime/explicit)
-    Scalar(uint8_t v) : uint8_{v}, dtype_{Dtype::kUInt8} {}  // NOLINT(runtime/explicit)
-    Scalar(float v) : float32_{v}, dtype_{Dtype::kFloat32} {}  // NOLINT(runtime/explicit)
-    Scalar(double v) : float64_{v}, dtype_{Dtype::kFloat64} {}  // NOLINT(runtime/explicit)
+    // Suppress 'runtime/explicit' from cpplint, and 'google-explicit-constructor' and 'cppcoreguidelines-pro-type-member-init' from
+    // clang-tidy.
+    Scalar(bool v) : bool_{v}, kind_{DtypeKind::kBool} {}  // NOLINT
+    Scalar(int8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(int64_t v) : int_{v}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint8_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint16_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(uint32_t v) : int_{int64_t{v}}, kind_{DtypeKind::kInt} {}  // NOLINT
+    Scalar(Float16 v) : float_{static_cast<double>(v)}, kind_{DtypeKind::kFloat} {}  // NOLINT
+    Scalar(float v) : float_{double{v}}, kind_{DtypeKind::kFloat} {}  // NOLINT
+    Scalar(double v) : float_{v}, kind_{DtypeKind::kFloat} {}  // NOLINT
 
     template <typename T>
-    Scalar(T v, Dtype dtype) : dtype_{dtype} {
-        switch (dtype) {
-            case Dtype::kBool:
-                bool_ = v;
+    Scalar(T v, DtypeKind kind) {
+        switch (kind) {
+            case DtypeKind::kBool:
+                bool_ = static_cast<bool>(v);
+                kind_ = DtypeKind::kBool;
                 break;
-            case Dtype::kInt8:
-                int8_ = v;
+            case DtypeKind::kInt:
+            case DtypeKind::kUInt:
+                int_ = static_cast<int64_t>(v);
+                kind_ = DtypeKind::kInt;
                 break;
-            case Dtype::kInt16:
-                int16_ = v;
-                break;
-            case Dtype::kInt32:
-                int32_ = v;
-                break;
-            case Dtype::kInt64:
-                int64_ = v;
-                break;
-            case Dtype::kUInt8:
-                uint8_ = v;
-                break;
-            case Dtype::kFloat32:
-                float32_ = v;
-                break;
-            case Dtype::kFloat64:
-                float64_ = v;
+            case DtypeKind::kFloat:
+                float_ = static_cast<double>(v);
+                kind_ = DtypeKind::kFloat;
                 break;
             default:
                 CHAINERX_NEVER_REACH();
         }
     }
 
-    Scalar(const Scalar&) = default;
-    Scalar& operator=(const Scalar&) = default;
+    ~Scalar() = default;
 
-    Dtype dtype() const { return dtype_; }
+    Scalar(const Scalar&) = default;
+    Scalar(Scalar&&) = default;
+    Scalar& operator=(const Scalar&) = default;
+    Scalar& operator=(Scalar&&) = default;
+
+    DtypeKind kind() const { return kind_; }
 
     std::string ToString() const;
 
     bool operator==(Scalar other) const {
-        // TODO(niboshi): Support different dtypes
-        if (dtype_ != other.dtype_) {
-            return false;
+        if (this->kind() == DtypeKind::kFloat || other.kind() == DtypeKind::kFloat) {
+            return this->UnwrapAndCast<double>() == other.UnwrapAndCast<double>();
         }
-
-        return VisitDtype(dtype_, [this, other](auto pt) {
-            using T = typename decltype(pt)::type;
-            return this->UnwrapAndCast<T>() == other.UnwrapAndCast<T>();
-        });
+        return this->UnwrapAndCast<int64_t>() == other.UnwrapAndCast<int64_t>();
     }
 
     bool operator!=(Scalar other) const { return !operator==(other); }
@@ -80,24 +74,13 @@ public:
     Scalar operator+() const { return *this; }
 
     Scalar operator-() const {
-        switch (dtype_) {
-            case Dtype::kBool:
+        switch (this->kind()) {
+            case DtypeKind::kBool:
                 throw DtypeError{"bool scalar cannot be negated"};
-            case Dtype::kInt8:
-                return -int8_;
-            case Dtype::kInt16:
-                return -int16_;
-            case Dtype::kInt32:
-                return -int32_;
-            case Dtype::kInt64:
-                return -int64_;
-            case Dtype::kUInt8:
-                // Negating unsigned
-                return -uint8_;
-            case Dtype::kFloat32:
-                return -float32_;
-            case Dtype::kFloat64:
-                return -float64_;
+            case DtypeKind::kInt:
+                return -int_;
+            case DtypeKind::kFloat:
+                return -float_;
             default:
                 CHAINERX_NEVER_REACH();
         }
@@ -110,49 +93,34 @@ public:
     explicit operator int32_t() const { return UnwrapAndCast<int32_t>(); }
     explicit operator int64_t() const { return UnwrapAndCast<int64_t>(); }
     explicit operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
+    explicit operator Float16() const { return UnwrapAndCast<Float16>(); }
     explicit operator float() const { return UnwrapAndCast<float>(); }
     explicit operator double() const { return UnwrapAndCast<double>(); }
 
     Scalar operator+(const Scalar& rhs) const {
-        // TODO(niboshi): Support dtype conversion
-        CHAINERX_ASSERT(dtype_ == rhs.dtype_);
-
-        return VisitDtype(dtype_, [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            return Scalar{static_cast<T>(*this) + static_cast<T>(rhs)};
-        });
+        if (this->kind() == DtypeKind::kFloat || rhs.kind() == DtypeKind::kFloat) {
+            return this->UnwrapAndCast<double>() + rhs.UnwrapAndCast<double>();
+        }
+        return this->UnwrapAndCast<int64_t>() + rhs.UnwrapAndCast<int64_t>();
     }
 
     Scalar operator*(const Scalar& rhs) const {
-        // TODO(niboshi): Support dtype conversion
-        CHAINERX_ASSERT(dtype_ == rhs.dtype_);
-
-        return VisitDtype(dtype_, [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            return Scalar{static_cast<T>(*this) * static_cast<T>(rhs)};
-        });
+        if (this->kind() == DtypeKind::kFloat || rhs.kind() == DtypeKind::kFloat) {
+            return Scalar{this->UnwrapAndCast<double>() * rhs.UnwrapAndCast<double>()};
+        }
+        return Scalar{this->UnwrapAndCast<int64_t>() * rhs.UnwrapAndCast<int64_t>()};
     }
 
 private:
     template <typename T>
     T UnwrapAndCast() const {
-        switch (dtype_) {
-            case Dtype::kBool:
-                return bool_;
-            case Dtype::kInt8:
-                return int8_;
-            case Dtype::kInt16:
-                return int16_;
-            case Dtype::kInt32:
-                return int32_;
-            case Dtype::kInt64:
-                return int64_;
-            case Dtype::kUInt8:
-                return uint8_;
-            case Dtype::kFloat32:
-                return float32_;
-            case Dtype::kFloat64:
-                return float64_;
+        switch (this->kind()) {
+            case DtypeKind::kBool:
+                return static_cast<T>(bool_);
+            case DtypeKind::kInt:
+                return static_cast<T>(int_);
+            case DtypeKind::kFloat:
+                return static_cast<T>(float_);
             default:
                 CHAINERX_NEVER_REACH();
         }
@@ -161,16 +129,11 @@ private:
 
     union {
         bool bool_;
-        int8_t int8_;
-        int16_t int16_;
-        int32_t int32_;
-        int64_t int64_;
-        uint8_t uint8_;
-        float float32_;
-        double float64_;
+        int64_t int_;
+        double float_;
     };
 
-    Dtype dtype_;
+    DtypeKind kind_{};
 };
 
 std::ostream& operator<<(std::ostream& os, Scalar value);

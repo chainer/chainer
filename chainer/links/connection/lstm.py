@@ -1,7 +1,6 @@
 import six
 
 import chainer
-from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
@@ -173,25 +172,21 @@ class LSTM(LSTMBase):
             omitted, parameter initialization will be deferred until the first
             forward data pass at which time the size will be determined.
         out_size (int): Dimensionality of output vectors.
-        lateral_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        lateral_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the lateral connections.
             May be ``None`` to use default initialization.
-        upward_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        upward_init: A callable that takes :ref:`ndarray` and edits its value.
             It is used for initialization of the upward connections.
             May be ``None`` to use default initialization.
-        bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
+        bias_init: A callable that takes :ref:`ndarray` and edits its value
             It is used for initialization of the biases of cell input,
             input gate and output gate.and gates of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the cell-input bias is initialized to zero.
-        forget_bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value
-            It is used for initialization of the biases of the forget gate of
-            the upward connection.
+        forget_bias_init: A callable that takes :ref:`ndarray` and edits its
+            value. It is used for initialization of the biases of the forget
+            gate of the upward connection.
             May be a scalar, in that case, the bias is
             initialized by this value.
             If it is ``None``, the forget bias is initialized to one.
@@ -242,23 +237,12 @@ class LSTM(LSTMBase):
             forget_bias_init)
         self.reset_state()
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        super(LSTM, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def device_resident_accept(self, visitor):
+        super(LSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.c, cuda.ndarray)):
-                self.c.to_device(device)
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.h, cuda.ndarray)):
-                self.h.to_device(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, c, h):
         """Sets the internal state.

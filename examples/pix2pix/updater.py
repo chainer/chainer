@@ -5,8 +5,6 @@ from __future__ import print_function
 import chainer
 import chainer.functions as F
 
-from chainer import Variable
-
 
 class FacadeUpdater(chainer.training.StandardUpdater):
 
@@ -54,13 +52,12 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         w_in = 256
         w_out = 256
 
-        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype("f")
-        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype("f")
+        x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype('f')
+        t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype('f')
 
         for i in range(batchsize):
             x_in[i, :] = xp.asarray(batch[i][0])
             t_out[i, :] = xp.asarray(batch[i][1])
-        x_in = Variable(x_in)
 
         z = enc(x_in)
         x_out = dec(z)
@@ -72,6 +69,5 @@ class FacadeUpdater(chainer.training.StandardUpdater):
         for z_ in z:
             z_.unchain_backward()
         dec_optimizer.update(self.loss_dec, dec, x_out, t_out, y_fake)
-        x_in.unchain_backward()
         x_out.unchain_backward()
         dis_optimizer.update(self.loss_dis, dis, y_real, y_fake)

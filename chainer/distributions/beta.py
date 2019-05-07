@@ -79,6 +79,10 @@ class Beta(distribution.Distribution):
     def mean(self):
         return self.a / self._a_plus_b
 
+    @property
+    def params(self):
+        return {'a': self.a, 'b': self.b}
+
     def sample_n(self, n):
         xp = backend.get_array_module(self.a)
         eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)

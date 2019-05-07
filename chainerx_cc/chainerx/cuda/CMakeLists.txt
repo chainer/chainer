@@ -7,8 +7,13 @@ install(FILES
     cuda_set_device_scope.h
     cuda_runtime.h
     cudnn.h
+    data_type.cuh
     elementwise.cuh
+    float16.cuh
+    kernel_regist.h
     memory_pool.h
+    numeric.cuh
+    numeric_limits.cuh
     reduce.cuh
     DESTINATION include/chainerx/cuda
     )
@@ -24,7 +29,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/conv.cc
     cuda_device/copy.cu
     cuda_device/comparison.cu
-    cuda_device/dot.cc
+    cuda_device/dot.cu
     cuda_device/exp_log.cu
     cuda_device/fill.cu
     cuda_device/indexing.cu
@@ -32,6 +37,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/misc.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
+    cuda_device/trigonometric.cu
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc

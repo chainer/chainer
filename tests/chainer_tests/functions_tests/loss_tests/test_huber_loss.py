@@ -14,16 +14,16 @@ from chainer import utils
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 5e-3, 'atol': 5e-3},
-      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0},
-      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0}},
+      'backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1},
+      'double_backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1}},
      {'dtype': numpy.float32,
       'forward_options': {},
-      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+      'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
      {'dtype': numpy.float64,
       'forward_options': {},
-      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+      'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
      ],
     testing.product({
         'shape': [(), (3,)],
@@ -40,7 +40,7 @@ class TestHuberLoss(unittest.TestCase):
         self._config_user.__enter__()
 
         self.x = utils.force_array(
-            (numpy.random.random(self.shape) - 0.5) * 20, self.dtype)
+            (numpy.random.random(self.shape) - 0.5) * 4, self.dtype)
         self.t = utils.force_array(numpy.random.random(self.shape), self.dtype)
         if self.reduce == 'sum_along_second_axis':
             gy_shape = self.shape[:1] + self.shape[2:]
@@ -96,8 +96,16 @@ class TestHuberLoss(unittest.TestCase):
 
     def check_double_backward(self, x_data, t_data, y_grad, x_grad_grad,
                               t_grad_grad):
+
+        delta = 1
+        eps = self.double_backward_options['eps']
+        xp = chainer.backend.get_array_module(x_data)
+        mask = xp.abs(xp.abs(x_data - t_data) - delta) < eps
+        x_data[mask] = 0
+        t_data[mask] = 0
+
         def f(x, t):
-            return functions.huber_loss(x, t, delta=1, reduce=self.reduce)
+            return functions.huber_loss(x, t, delta=delta, reduce=self.reduce)
 
         gradient_check.check_double_backward(
             f, (x_data, t_data), y_grad, (x_grad_grad, t_grad_grad),

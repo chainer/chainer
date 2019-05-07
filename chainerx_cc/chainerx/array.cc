@@ -9,6 +9,7 @@
 #include <ostream>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -30,6 +31,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
@@ -41,6 +43,7 @@
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -56,9 +59,23 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays) {
     std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_body_ptrs), [](Array& array) {
-        return MoveArrayBody(std::move(array));
-    });
+    array_body_ptrs.reserve(arrays.size());
+    for (Array& array : arrays) {
+        array_body_ptrs.emplace_back(MoveArrayBody(std::move(array)));
+    }
+    return array_body_ptrs;
+}
+
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays) {
+    std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
+    array_body_ptrs.reserve(arrays.size());
+    for (nonstd::optional<Array>& array : arrays) {
+        if (array.has_value()) {
+            array_body_ptrs.emplace_back(MoveArrayBody(std::move(*array)));
+        } else {
+            array_body_ptrs.emplace_back(nullptr);
+        }
+    }
     return array_body_ptrs;
 }
 
@@ -121,6 +138,36 @@ Array& Array::operator/=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator&=(const Array& rhs) {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator&=(Scalar rhs) {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator|=(const Array& rhs) {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator|=(Scalar rhs) {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator^=(const Array& rhs) {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator^=(Scalar rhs) {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator+=(const Array& rhs) const {
     internal::IAdd(*this, rhs);
     return *this;
@@ -161,6 +208,36 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator&=(const Array& rhs) const {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator&=(Scalar rhs) const {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator|=(const Array& rhs) const {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator|=(Scalar rhs) const {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator^=(const Array& rhs) const {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator^=(Scalar rhs) const {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
 Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
 Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }
@@ -177,6 +254,18 @@ Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, 
 
 Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
 
+Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
+
+Array Array::operator&(Scalar rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
+
+Array Array::operator|(const Array& rhs) const { return chainerx::BitwiseOr(*this, rhs); }
+
+Array Array::operator|(Scalar rhs) const { return chainerx::BitwiseOr(*this, rhs); }
+
+Array Array::operator^(const Array& rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
+Array Array::operator^(Scalar rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
@@ -185,6 +274,8 @@ Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*th
 
 Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
 
+Array Array::Swapaxes(int8_t axis1, int8_t axis2) const { return chainerx::Swapaxes(*this, axis1, axis2); }
+
 Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastTo(*this, shape); }
 
 Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }
@@ -192,6 +283,16 @@ Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*t
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
+
+Array Array::Min(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMin(*this, axis, keepdims); }
+
+Array Array::Mean(const OptionalAxes& axis, bool keepdims) const { return chainerx::Mean(*this, axis, keepdims); }
+
+Array Array::Var(const OptionalAxes& axis, bool keepdims) const { return chainerx::Var(*this, axis, keepdims); }
+
+Array Array::All(const OptionalAxes& axis, bool keepdims) const { return chainerx::All(*this, axis, keepdims); }
+
+Array Array::Any(const OptionalAxes& axis, bool keepdims) const { return chainerx::Any(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
@@ -290,7 +391,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().AsType(*this, out);
+    device().backend().CallKernel<AsTypeKernel>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
@@ -306,7 +407,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const {
     internal::CheckNoUnsafeInplace(*this, {});
-    device().Fill(*this, value);
+    device().backend().CallKernel<FillKernel>(*this, value);
 }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
@@ -371,6 +472,10 @@ template const Array& Array::RequireGradImpl<const Array>(const Array& array, co
 template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<BackpropId>& backprop_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
+
+Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
+Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
+Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 
 namespace {
 

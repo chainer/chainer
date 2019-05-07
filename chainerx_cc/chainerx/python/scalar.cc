@@ -4,8 +4,11 @@
 
 #include <pybind11/operators.h>
 
+#include "chainerx/array.h"
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
+#include "chainerx/python/array.h"
+#include "chainerx/python/py_cached_objects.h"
 #include "chainerx/scalar.h"
 
 #include "chainerx/python/common.h"
@@ -19,50 +22,35 @@ namespace py = pybind11;  // standard convention
 
 namespace {
 
-template <typename T>
-Scalar MakeScalar(T value, py::handle dtype) {
-    return Scalar{value, GetDtype(dtype)};
+using internal::MoveArrayBody;
+
+Scalar HandleToScalar(py::handle obj) {
+    if (py::isinstance<Scalar>(obj)) {
+        return py::cast<Scalar>(obj);
+    }
+    if (py::isinstance<py::float_>(obj)) {
+        return Scalar{py::cast<double>(obj)};
+    }
+    if (py::isinstance<py::bool_>(obj)) {
+        return Scalar{py::cast<bool>(obj)};
+    }
+    if (py::isinstance<py::int_>(obj)) {
+        return Scalar{py::cast<int64_t>(obj)};
+    }
+    if (py::isinstance(obj, python_internal::GetCachedNumpyNumber()) || py::isinstance(obj, python_internal::GetCachedNumpyBool())) {
+        py::object sc = obj.attr("tolist")();  // Do not pass it as a temporary
+        return HandleToScalar(sc);
+    }
+    throw py::type_error{"Cannot interpret as a scalar: " + py::cast<std::string>(py::repr(obj.attr("__class__")))};
 }
 
 }  // namespace
 
 void InitChainerxScalar(pybind11::module& m) {
-    py::class_<Scalar> c{m, "Scalar"};
-    c.def(py::init<bool>());
-    c.def(py::init<int64_t>());
-    c.def(py::init<double>());
-    c.def(py::init(&MakeScalar<bool>));
-    c.def(py::init(&MakeScalar<int64_t>));
-    c.def(py::init(&MakeScalar<double>));
-    c.def(py::self == py::self);  // NOLINT
-    c.def("__eq__", [](Scalar scalar, bool value) { return scalar == Scalar{value}; });
-    c.def("__eq__", [](Scalar scalar, int64_t value) { return scalar == Scalar{value}; });
-    c.def("__eq__", [](Scalar scalar, double value) { return scalar == Scalar{value}; });
-    c.def(+py::self);
-    c.def(-py::self);
-    c.def("__bool__", &Scalar::operator bool);
-    c.def("__int__", &Scalar::operator int64_t);
-    c.def("__float__", &Scalar::operator double);
-    c.def("__repr__", &Scalar::ToString);
-    c.def_property_readonly("dtype", [](Scalar scalar) { return py::dtype(GetDtypeName(scalar.dtype())); });
-    c.def("tolist", [](Scalar scalar) -> py::object {
-        switch (GetKind(scalar.dtype())) {
-            case DtypeKind::kBool:
-                return py::bool_{static_cast<bool>(scalar)};
-            case DtypeKind::kInt:  // fallthrough
-            case DtypeKind::kUInt:
-                return py::int_{static_cast<int64_t>(scalar)};
-            case DtypeKind::kFloat:
-                return py::float_{static_cast<double>(scalar)};
-            default:
-                CHAINERX_NEVER_REACH();
-        }
-        return {};
-    });
-
-    py::implicitly_convertible<py::bool_, Scalar>();
-    py::implicitly_convertible<py::int_, Scalar>();
-    py::implicitly_convertible<py::float_, Scalar>();
+    // This binding allows implicit casting from Python and NumPy scalars.
+    py::class_<Scalar> c{m, "_Scalar"};
+    c.def(py::init([](py::handle obj) { return HandleToScalar(obj); }));
+    py::implicitly_convertible<py::handle, Scalar>();
 }
 
 }  // namespace python_internal

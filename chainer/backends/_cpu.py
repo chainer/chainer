@@ -34,12 +34,6 @@ class CpuDevice(_backend.Device):
         return _array_to_cpu(array)
 
 
-def _get_device(device_spec):
-    if device_spec is numpy:
-        return CpuDevice()
-    return None
-
-
 def _to_cpu(array):
     """Converts an array or arrays to NumPy."""
     return _backend._convert_arrays(array, _array_to_cpu)

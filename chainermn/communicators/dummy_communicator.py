@@ -23,7 +23,7 @@ class DummyCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a.assign(n_bytes_total)
 
         _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, 'grad', self.gpu_buffer_a)
 
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, 'grad', self.gpu_buffer_a)

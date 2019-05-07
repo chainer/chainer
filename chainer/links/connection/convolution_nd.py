@@ -63,7 +63,8 @@ class ConvolutionND(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(2 * 5 * 5 * 5, dtype=np.float32).reshape(1, 2, 5, 5, 5)
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype=np.float32).reshape(
+        ...     1, 2, 5, 5, 5)
 
         1. Give the first four arguments explicitly:
 
@@ -100,7 +101,7 @@ class ConvolutionND(link.Link):
             >>> y.shape
             (1, 7, 2, 2, 2)
 
-    """  # NOQA
+    """
 
     def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
                  pad=0, nobias=False, initialW=None, initial_bias=None,

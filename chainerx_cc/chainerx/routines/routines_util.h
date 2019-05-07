@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <initializer_list>
+#include <memory>
 
 #include "chainerx/array.h"
 #include "chainerx/error.h"

@@ -99,7 +99,7 @@ The following code shows how you could implement an affine transformation and ba
     y.backward()
 
     assert type(W.grad) is chx.ndarray
-    assert type((b.grad) is chx.ndarray
+    assert type(b.grad) is chx.ndarray
 
 .. note::
 

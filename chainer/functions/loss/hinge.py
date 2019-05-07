@@ -21,14 +21,14 @@ class Hinge(function.Function):
         if norm in ['L1', 'L2']:
             self.norm = norm
         else:
-            raise NotImplementedError("norm should be either 'L1' or 'L2'")
+            raise NotImplementedError('norm should be either \'L1\' or \'L2\'')
 
         if reduce in ['mean', 'no']:
             self.reduce = reduce
         else:
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x', 't'))

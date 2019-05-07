@@ -162,7 +162,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     next = __next__
 
-    def __del__(self):
+    def finalize(self):
         if self._finalized:
             return
 
@@ -175,14 +175,6 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = None
         self._prefetch_loop = None
         self._finalized = True
-
-    finalize = __del__
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.finalize()
 
     def __copy__(self):
         # This function is implemented for backward compatibility.
@@ -296,7 +288,7 @@ class _Communicator(object):
     def get(self):
         with self._lock:
             start = datetime.datetime.now()
-            while len(self._batch_queue) == 0:
+            while not self._batch_queue:
                 self._not_empty_cond.wait(_response_time)
                 dt = datetime.datetime.now() - start
                 if (self.dataset_timeout is not None

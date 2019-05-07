@@ -15,14 +15,14 @@ class TestCollectiveCommunication(unittest.TestCase):
         numpy.random.seed(42)
 
         if gpu:
-            self.communicator = chainermn.create_communicator('hierarchical')
+            self.communicator = chainermn.create_communicator('flat')
             self.device = self.communicator.intra_rank
             chainer.cuda.get_device_from_id(self.device).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode")
+            pytest.skip('This test is for multinode')
 
     def check_all_gather(self, xs):
         x = xs[self.communicator.rank]
@@ -34,7 +34,7 @@ class TestCollectiveCommunication(unittest.TestCase):
 
         # Check backward does not fall in deadlock, and error = 0.
         self.assertEqual(e.data, 0)
-        self.assertEqual(e.grad, 1)
+        self.assertIsNotNone(x.grad)
 
     def test_all_gather_cpu(self):
         self.setup(False)
@@ -63,7 +63,7 @@ class TestCollectiveCommunication(unittest.TestCase):
         y.backward()
 
         # Check if gradients are passed back without deadlock.
-        self.assertTrue(xs[0].grad is not None)
+        self.assertIsNotNone(xs[0].grad)
 
     def test_all_to_all_cpu(self):
         self.setup(False)
@@ -100,7 +100,7 @@ class TestCollectiveCommunication(unittest.TestCase):
         # Check backward does not fall in deadlock, and error = 0 in root.
         if self.communicator.rank == root:
             self.assertEqual(e.data, 0)
-            self.assertEqual(e.grad, 1)
+            self.assertIsNotNone(x.grad)
 
     def test_bcast_cpu(self):
         self.setup(False)
@@ -129,17 +129,16 @@ class TestCollectiveCommunication(unittest.TestCase):
                 e += chainer.functions.mean_squared_error(y, xs[i])
             e.backward()
 
-            # Check backward does not fall in deadlock, and error = 0.
+            # Check error = 0.
             self.assertEqual(e.data, 0)
-            self.assertEqual(e.grad, 1)
 
         else:
             phi = chainermn.functions.gather(
                 self.communicator, x, root)
             phi.backward()
 
-            # Check backward does not fall in deadlock.
-            self.assertTrue(x.grad is not None)
+        # Check backward does not fall in deadlock.
+        self.assertIsNotNone(x.grad)
 
     def test_gather_cpu(self):
         self.setup(False)
@@ -189,7 +188,7 @@ class TestCollectiveCommunication(unittest.TestCase):
 
         # Check backward does not fall in deadlock, and error = 0.
         self.assertEqual(e.data, 0)
-        self.assertEqual(e.grad, 1)
+        self.assertIsNotNone(x.grad)
 
     def test_scatter_cpu(self):
         self.setup(False)

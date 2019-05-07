@@ -1,5 +1,7 @@
 #include "chainerx/backward_builder.h"
 
+#include <utility>
+
 #include <gtest/gtest.h>
 
 #include "chainerx/array.h"

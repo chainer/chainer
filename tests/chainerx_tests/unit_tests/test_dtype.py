@@ -17,5 +17,6 @@ def test_dtypes():
     assert chainerx.int32 is numpy.int32
     assert chainerx.int64 is numpy.int64
     assert chainerx.uint8 is numpy.uint8
+    assert chainerx.float16 is numpy.float16
     assert chainerx.float32 is numpy.float32
     assert chainerx.float64 is numpy.float64

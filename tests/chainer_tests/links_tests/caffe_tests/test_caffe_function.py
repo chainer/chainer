@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import warnings
 
 import mock
 import numpy
@@ -8,9 +9,15 @@ import six
 
 import chainer
 from chainer import links
-from chainer.links import caffe
-from chainer.links.caffe.caffe_function import caffe_pb
 from chainer import testing
+
+
+# The caffe submodule relies on protobuf which under protobuf==3.7.0 and
+# Python 3.7 raises a DeprecationWarning from the collections module.
+with warnings.catch_warnings():
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning)
+    from chainer.links import caffe
+    from chainer.links.caffe.caffe_function import caffe_pb
 
 
 def _iter_init(param, data):
@@ -1146,6 +1153,30 @@ class TestSliceSlicePoint(TestCaffeFunctionBaseMock):
             indices_or_sections=[3, 5],
             axis=1
         )
+
+
+class TestSigmoid(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.sigmoid'
+    in_shapes = [(2, 3)]
+    out_shapes = [(2, 3)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Sigmoid',
+                'bottom': ['x'],
+                'top': ['y'],
+            }
+        ]
+    }
+
+    def test_sigmoid(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0])
 
 
 class TestSoftmax(TestCaffeFunctionBaseMock):

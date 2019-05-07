@@ -9,6 +9,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/data_type.cuh"
 #include "chainerx/index_iterator.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
@@ -22,7 +23,7 @@ namespace elementwise_detail {
 template <int8_t Ndim, typename Op, typename... Ts>
 __global__ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
     for (auto it = indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        op(it.raw_index(), args[it]...);
+        op(it.raw_index(), cuda_internal::StorageToDataType<Ts>(args[it])...);
     }
 }
 

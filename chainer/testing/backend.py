@@ -10,6 +10,8 @@ from chainer.testing import attr
 import chainerx
 
 
+# TODO(hvy): BackendConfig.__enter__ does not have to modify the current
+# device. Change it so that it does not.
 class BackendConfig(object):
 
     _props = [

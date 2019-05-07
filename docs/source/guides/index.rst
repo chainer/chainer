@@ -1,5 +1,5 @@
-Guides
-======
+Concepts Walkthrough
+====================
 
 .. toctree::
    :maxdepth: 1

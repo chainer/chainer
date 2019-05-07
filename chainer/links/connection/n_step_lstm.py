@@ -31,16 +31,17 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         Calculate all hidden states and cell states.
 
         Args:
-            hx (~chainer.Variable or None): Initial hidden states. If ``None``
-                is specified zero-vector is used. Its shape is ``(S, B, N)``
-                for uni-directional LSTM and ``(2S, B, N)`` for
-                bi-directional LSTM where ``S`` is the number of layers
-                and is equal to ``n_layers``, ``B`` is the mini-batch size,
+            hx (:class:`~chainer.Variable` or None):
+                Initial hidden states. If ``None`` is specified zero-vector
+                is used. Its shape is ``(S, B, N)`` for uni-directional LSTM
+                and ``(2S, B, N)`` for bi-directional LSTM where ``S`` is
+                the number of layers and is equal to ``n_layers``,
+                ``B`` is the mini-batch size,
                 and ``N`` is the dimension of the hidden units.
-            cx (~chainer.Variable or None): Initial cell states. If ``None``
-                is specified zero-vector is used.
-                It has the same shape as ``hx``.
-            xs (list of ~chainer.Variable): List of input sequences.
+            cx (:class:`~chainer.Variable` or None):
+                Initial cell states. If ``None`` is specified zero-vector is
+                used.  It has the same shape as ``hx``.
+            xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
                 length of a sequence for batch ``i``, and ``I`` is the size of

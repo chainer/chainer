@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>

@@ -369,8 +369,8 @@ After the pre-processing the dataset, let's make dataset objects:
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
-   :start-after: parser.parse_args
-   :end-before: Setup model
+   :start-after: chainerx._cuda.cupy_share_allocator()
+   :end-before: # Set the current device
    :caption: seq2seq.py
    :dedent: 4
 
@@ -422,7 +422,7 @@ Instantiate ``Seq2seq`` model.
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
    :start-after: Setup model
-   :end-before: args.gpu
+   :end-before: model.to_device(device)
    :caption: seq2seq.py
    :dedent: 4
 
