@@ -6,9 +6,9 @@ from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
-from chainer.functions.math import sum
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
+from chainer.functions.math import sum
 from chainer import utils
 from chainer.utils import cache
 
