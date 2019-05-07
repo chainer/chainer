@@ -9,7 +9,7 @@ configs {
     time_limit {
       seconds: 3600
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
@@ -33,7 +33,7 @@ configs {
       disk: 10
       gpu: 1
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
@@ -60,7 +60,7 @@ configs {
     time_limit {
       seconds: 1800
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
@@ -86,7 +86,7 @@ configs {
     time_limit {
       seconds: 3600
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
@@ -110,7 +110,7 @@ configs {
       disk: 10
       gpu: 1
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
@@ -137,7 +137,7 @@ configs {
     time_limit {
       seconds: 1800
     }
-    command: "git clone https://github.com/Hakuyume/chainercv.git --branch pfnci-chainer --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    command: "git clone https://github.com/chainercv/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
