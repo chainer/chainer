@@ -1005,6 +1005,42 @@ Array Arctan(const Array& x) {
     return out;
 }
 
+Array Arctan2(const Array& x1, const Array& x2) {
+    Dtype out_dtype = GetMathResultDtype(GetArithmeticResultDtype(x1, x2));
+
+    auto impl = [](const Array& x1, const Array& x2, Array& out) {
+        CheckEqual(x1.shape(), x2.shape());
+
+        {
+            NoBackpropModeScope scope{};
+            x1.device().backend().CallKernel<Arctan2Kernel>(x1, x2, out);
+        }
+
+        BackwardBuilder bb{"arctan2", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& gin = gout * x2 / (Square(x1) + Square(x2));
+                bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& gin = -gout * x1 / (Square(x1) + Square(x2));
+                bctx.input_grad() = x2.dtype() != gin.dtype() ? gin.AsType(x2.dtype()) : gin;
+            });
+        }
+        bb.Finalize();
+    };
+
+    return BroadcastBinary(impl, x1, x2, out_dtype);
+}
+
 Array Sinh(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
@@ -1169,5 +1205,90 @@ Array IsFinite(const Array& x) {
     }
     return out;
 }
+
+template <typename Impl>
+inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
+
+    Dtype out_dtype = GetArithmeticResultDtype(x1, x2, true);
+    return BroadcastBinary(impl, x1, x2, out_dtype);
+}
+
+template <typename Kernel>
+inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
+    NoBackpropModeScope scope;
+    CheckEqual(x1.shape(), x2.shape());
+    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
+}
+
+template <typename Kernel>
+inline void ApplyBitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
+    NoBackpropModeScope scope;
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || x2.kind() == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
+    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
+}
+
+namespace internal {
+
+template <typename Impl>
+inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
+    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
+
+    CheckInplaceArithmeticDtypes(x1, x2, true);
+    BroadcastBinaryInPlace(impl, x1, x2);
+}
+
+void IBitwiseAnd(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+
+void IBitwiseAnd(const Array& x1, Scalar x2) {
+    CheckInplaceArithmeticDtypes(x1, x2, true);
+    BinaryInPlace(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2);
+}
+
+void IBitwiseOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+
+void IBitwiseOr(const Array& x1, Scalar x2) {
+    CheckInplaceArithmeticDtypes(x1, x2, true);
+    BinaryInPlace(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2);
+}
+
+void IBitwiseXor(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
+
+void IBitwiseXor(const Array& x1, Scalar x2) {
+    CheckInplaceArithmeticDtypes(x1, x2, true);
+    BinaryInPlace(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2);
+}
+
+}  // namespace internal
+
+Array BitwiseAnd(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+
+Array BitwiseAnd(const Array& x1, Scalar x2) {
+    return Binary(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
+}
+
+Array BitwiseAnd(Scalar x1, const Array& x2) { return BitwiseAnd(x2, x1); }
+
+Array BitwiseOr(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+
+Array BitwiseOr(const Array& x1, Scalar x2) {
+    return Binary(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
+}
+
+Array BitwiseOr(Scalar x1, const Array& x2) { return BitwiseOr(x2, x1); }
+
+Array BitwiseXor(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
+
+Array BitwiseXor(const Array& x1, Scalar x2) {
+    return Binary(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
+}
+
+Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
 
 }  // namespace chainerx

@@ -130,6 +130,8 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
+Array Arctan2(const Array& x1, const Array& x2);
+
 Array Sinh(const Array& x);
 
 Array Cosh(const Array& x);
@@ -145,5 +147,30 @@ Array Floor(const Array& x);
 Array Fabs(const Array& x);
 
 Array Sign(const Array& x);
+
+namespace internal {
+
+void IBitwiseAnd(const Array& x1, const Array& x2);
+void IBitwiseAnd(const Array& x1, Scalar x2);
+
+void IBitwiseOr(const Array& x1, const Array& x2);
+void IBitwiseOr(const Array& x1, Scalar x2);
+
+void IBitwiseXor(const Array& x1, const Array& x2);
+void IBitwiseXor(const Array& x1, Scalar x2);
+
+}  // namespace internal
+
+Array BitwiseAnd(const Array& x1, const Array& x2);
+Array BitwiseAnd(const Array& x1, Scalar x2);
+Array BitwiseAnd(Scalar x1, const Array& x2);
+
+Array BitwiseOr(const Array& x1, const Array& x2);
+Array BitwiseOr(const Array& x1, Scalar x2);
+Array BitwiseOr(Scalar x1, const Array& x2);
+
+Array BitwiseXor(const Array& x1, const Array& x2);
+Array BitwiseXor(const Array& x1, Scalar x2);
+Array BitwiseXor(Scalar x1, const Array& x2);
 
 }  // namespace chainerx

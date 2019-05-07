@@ -99,7 +99,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     const Strides& strides = array.strides();
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const intptr_t ptr = reinterpret_cast<intptr_t>(internal::GetRawOffsetData(array));
+    const intptr_t ptr = reinterpret_cast<intptr_t>(array.raw_data());
     const auto range = GetDataRange(shape, strides, array.GetItemSize());
     const auto data_size = std::get<1>(range) - std::get<0>(range);
     const auto device_index = device.index();
@@ -107,7 +107,7 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     // Convert object to CuPy array using cupy.ndarray()
     auto memory_pointer = GetCachedCupyMemoryPointer();
     auto unowned_memory = GetCachedCupyUnownedMemory();
-    py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), 0);
+    py::object memptr = memory_pointer(unowned_memory(ptr, data_size, self, device_index), array.offset());
 
     auto ndarray = GetCachedCupyNdarray();
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
@@ -373,6 +373,18 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); },
           py::is_operator());
     c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} /= rhs)); });
+    c.def("__iand__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} &= Array{rhs})); },
+          py::is_operator());
+    c.def("__iand__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} &= rhs)); }, py::is_operator());
+    c.def("__ior__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} |= Array{rhs})); },
+          py::is_operator());
+    c.def("__ior__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} |= rhs)); }, py::is_operator());
+    c.def("__ixor__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} ^= Array{rhs})); },
+          py::is_operator());
+    c.def("__ixor__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} ^= rhs)); }, py::is_operator());
     c.def("__add__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
           py::is_operator());
@@ -398,6 +410,21 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} / Array{rhs}); },
           py::is_operator());
     c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} / rhs); }, py::is_operator());
+    c.def("__and__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} & Array{rhs}); },
+          py::is_operator());
+    c.def("__and__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} & rhs); }, py::is_operator());
+    c.def("__rand__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} & lhs); }, py::is_operator());
+    c.def("__or__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} | Array{rhs}); },
+          py::is_operator());
+    c.def("__or__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} | rhs); }, py::is_operator());
+    c.def("__ror__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} | lhs); }, py::is_operator());
+    c.def("__xor__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} ^ Array{rhs}); },
+          py::is_operator());
+    c.def("__xor__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} ^ rhs); }, py::is_operator());
+    c.def("__rxor__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} ^ lhs); }, py::is_operator());
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           py::arg("axis"),

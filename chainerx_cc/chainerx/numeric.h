@@ -36,6 +36,15 @@ inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
     return IsNan(x) ? x : Float16{(Float16{0} < x) - (x < Float16{0})};
 }
 
+template <typename T>
+inline T Arctan2(T x1, T x2) {
+    return std::atan2(x1, x2);
+}
+template <>
+inline chainerx::Float16 Arctan2<chainerx::Float16>(chainerx::Float16 x1, chainerx::Float16 x2) {
+    return chainerx::Float16{std::atan2(static_cast<float>(x1), static_cast<float>(x2))};
+}
+
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
     template <typename T>                                                   \
     inline T name(T x) {                                                    \

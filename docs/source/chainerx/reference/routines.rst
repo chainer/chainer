@@ -138,6 +138,7 @@ Mathematical functions
    chainerx.arcsin
    chainerx.arccos
    chainerx.arctan
+   chainerx.arctan2
    chainerx.sinh
    chainerx.cosh
    chainerx.tanh
@@ -149,6 +150,9 @@ Mathematical functions
    chainerx.sign
    chainerx.ceil
    chainerx.floor
+   chainerx.bitwise_and
+   chainerx.bitwise_or
+   chainerx.bitwise_xor
 
 Random sampling
 ---------------
