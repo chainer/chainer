@@ -737,6 +737,109 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     return out;
 }
 
+Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats, int8_t axis) {
+    Shape shape = a.shape();
+    Dtype dtype = a.dtype();
+    Device& device = a.device();
+    Strides strides = a.strides();
+
+    Shape out_shape = shape;
+    out_shape[axis] = 0;
+    for (int64_t i = 0; i < shape[axis]; i++) {
+        out_shape[axis] += repeats(i);
+    }
+
+    Strides out_strides{out_shape, dtype};
+
+    Array out = internal::Empty(out_shape, dtype, out_strides, device);
+
+    {
+        NoBackpropModeScope scope{};
+        int64_t offset = 0;
+        int64_t in_offset = 0;
+        int64_t out_offset = 0;
+        Shape copy_shape = shape;
+        copy_shape[axis] = 1;
+
+        for (int32_t i = 0; i < out_shape[axis]; i += repeats(offset)) {
+            Array src = internal::MakeArray(copy_shape, strides, dtype, device, a.data(), in_offset);
+
+            for (int32_t j = 0; j < repeats(offset); j++) {
+                Array dst = internal::MakeArray(copy_shape, out_strides, dtype, device, out.data(), out_offset);
+                device.backend().CallKernel<CopyKernel>(src, dst);
+                out_offset += out_strides[axis];
+            }
+
+            in_offset += a.strides()[axis];
+            offset++;
+        }
+    }
+
+    {
+        BackwardBuilder bb{"repeat", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+            bt.Define([shape, axis, repeats](BackwardContext& bctx) {
+                const Array& gout = *bctx.output_grad();
+                Array& gin = bctx.input_grad();
+                Device& device = gin.device();
+                Dtype dtype = gin.dtype();
+
+                int64_t gout_offset = 0;
+                int64_t gin_offset = 0;
+
+                for (int32_t i = 0; i < shape[axis]; i++) {
+                    Shape summed_shape = shape;
+                    summed_shape[axis] = 1;
+                    Array summed = Zeros(summed_shape, dtype, device);
+
+                    for (int32_t j = 0; j < repeats(i); j++) {
+                        Array g = internal::MakeArray(summed_shape, gout.strides(), dtype, device, gout.data(), gout_offset);
+                        summed += g;
+                        gout_offset += gout.strides()[axis];
+                    }
+
+                    Array gin_dst = internal::MakeArray(summed_shape, gin.strides(), dtype, device, gin.data(), gin_offset);
+                    gin.device().backend().CallKernel<CopyKernel>(summed, gin_dst);
+                    gin_offset += gin.strides()[axis];
+                }
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
+}
+
+Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
+    if (repeats < 0) {
+        throw DimensionError("repeats must be larger than 0.");
+    }
+
+    if (axis.has_value()) {
+        return RepeatImpl(a, [repeats](int64_t v) { return repeats; }, *axis);
+    }
+
+    auto reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    return RepeatImpl(reshaped, [repeats](int64_t v) { return repeats; }, 0);
+}
+
+Array Repeat(const Array& a, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {
+    if (axis.has_value()) {
+        if (repeats.size() != static_cast<size_t>(a.shape()[*axis])) {
+            throw DimensionError("The number of repeats must be same with a shape in the axis direction.");
+        }
+
+        return RepeatImpl(a, [repeats](int64_t v) { return repeats[v]; }, *axis);
+    }
+
+    if (repeats.size() != static_cast<size_t>(a.shape().GetTotalSize())) {
+        throw DimensionError("The number of repeats must be same with a shape.");
+    }
+
+    auto reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    return RepeatImpl(reshaped, [repeats](int64_t v) { return repeats[v]; }, 0);
+}
+
 Array ExpandDims(const Array& a, int8_t axis) {
     Shape shape = a.shape();
 

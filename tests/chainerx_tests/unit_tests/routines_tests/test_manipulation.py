@@ -706,6 +706,45 @@ def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
 
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('shape,repeats,axis', [
+    ((1, 1), 1, 1),
+    ((2, 4), 1, 1),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRepeat(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.repeat(a, self.repeats, self.axis)
+        else:
+            b = a.repeat(self.repeats, self.axis)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize('shape,repeats,axis', [
+    # Axis out of range.
+    ((), 1, 1),
+    ((2, 4), 1, 0),
+])
+def test_repeat_invalid(xp, shape, repeats, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.repeat(a, repeats, axis)
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
