@@ -244,6 +244,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
 
 CudnnHandle::~CudnnHandle() {
     if (handle_ != nullptr) {
+        // TODO(hvy): Reset device upon return similar to CublasHandle?
         cudaSetDevice(device_index_);
         cudnnDestroy(handle_);
     }
@@ -251,6 +252,7 @@ CudnnHandle::~CudnnHandle() {
 
 cudnnHandle_t CudnnHandle::handle() {
     if (handle_ == nullptr) {
+        // TODO(hvy): Use CudaSetDeviceScope similar to CublasHandle?
         CheckCudaError(cudaSetDevice(device_index_));
         CheckCudnnError(cudnnCreate(&handle_));
     }

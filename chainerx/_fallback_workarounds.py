@@ -40,17 +40,7 @@ def _from_numpy(array):
 def _to_cupy(array):
     assert cupy is not None
     # Convert to cupy.ndarray on the same device as source array
-    return cupy.ndarray(
-        array.shape,
-        array.dtype,
-        cupy.cuda.MemoryPointer(
-            cupy.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0),
-        strides=array.strides)
+    return chainerx._to_cupy(array)
 
 
 def _from_cupy(array):
@@ -104,14 +94,6 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _isfinite(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.isfinite(arr)
-        return _to_chx(ret)
-
-    chainerx.isfinite = _isfinite
-
     def _hstack(arrs):
         assert len(arrs) > 0
         arrs2 = []
@@ -140,9 +122,19 @@ def _populate_module_functions():
         xp, dev, arr = _from_chx(arr)
         with dev:
             ret = xp.sign(arr)
+            ret = xp.asarray(ret)
         return _to_chx(ret)
 
     chainerx.sign = _sign
+
+    def _fix(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
+        return _to_chx(ret)
+
+    chainerx.fix = _fix
 
 
 def _populate_ndarray():
@@ -160,7 +152,10 @@ def _populate_ndarray():
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -196,29 +191,13 @@ def _populate_ndarray():
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
 
-    def _min(arr, *args, **kwargs):
+    def tolist(arr):
         _, dev, arr = _from_chx(arr)
         with dev:
-            ret = arr.min(*args, **kwargs)
-        return _to_chx(ret)
+            ret = arr.tolist()
+        return ret
 
-    ndarray.min = _min
-
-    def _all(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.all(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.all = _all
-
-    def _any(arr, *args, **kwargs):
-        _, dev, arr = _from_chx(arr)
-        with dev:
-            ret = arr.any(*args, **kwargs)
-        return _to_chx(ret)
-
-    ndarray.any = _any
+    ndarray.tolist = tolist
 
 
 def populate():

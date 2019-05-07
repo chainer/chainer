@@ -78,7 +78,7 @@ class TransposeSequence(function_node.FunctionNode):
             )
 
     def forward(self, xs):
-        if len(xs) == 0:
+        if not xs:
             return ()
         return _transpose(xs, self._length)
 
@@ -115,6 +115,6 @@ def transpose_sequence(xs):
         (variable([1, 2, 3]), variable([1, 2]), variable([1]))
 
     """
-    if len(xs) == 0:
+    if not xs:
         return ()
     return TransposeSequence(len(xs[0])).apply(xs)

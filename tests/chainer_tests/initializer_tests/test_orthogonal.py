@@ -131,14 +131,14 @@ class OrthogonalBase(unittest.TestCase):
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow_cpu(self):
-        self.check_initializer_statistics(numpy, 100000)
+        self.check_initializer_statistics(numpy, 10000)
 
     @attr.slow
     @attr.gpu
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow_gpu(self):
-        self.check_initializer_statistics(cuda.cupy, 100000)
+        self.check_initializer_statistics(cuda.cupy, 10000)
 
 
 class TestEmpty(unittest.TestCase):

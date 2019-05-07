@@ -69,6 +69,18 @@ Utilities for testing functions.
    chainer.testing.FunctionTestCase
    chainer.testing.unary_math_function_unittest
 
+Link testing utilities
+--------------------------
+
+Utilities for testing links.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.LinkInitializersTestCase
+   chainer.testing.LinkTestCase
+
 Serialization testing utilities
 -------------------------------
 

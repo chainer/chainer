@@ -5,9 +5,9 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.utils import force_array
 
 
 @testing.parameterize(*testing.product_dict(
@@ -20,53 +20,49 @@ from chainer.testing import attr
      {'label_dtype': numpy.int32},
      {'label_dtype': numpy.int64}]
 ))
-class TestPermutate(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestPermutate(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.indices = numpy.random.permutation(
+        self.skip_double_backward_test = True
+        self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        indices = numpy.random.permutation(
             self.shape[self.axis]).astype(self.label_dtype)
+        return x, indices
 
-    def check_forward(self, x_data, ind_data):
-        x = chainer.Variable(x_data)
-        indices = chainer.Variable(ind_data)
+    def forward(self, inputs, device):
+        x, indices = inputs
         y = functions.permutate(x, indices, axis=self.axis, inv=self.inv)
+        return y,
 
-        y_cpu = cuda.to_cpu(y.data)
-        y_cpu = numpy.rollaxis(y_cpu, axis=self.axis)
-        x_data = numpy.rollaxis(self.x, axis=self.axis)
-        for i, ind in enumerate(self.indices):
-            if self.inv:
-                numpy.testing.assert_array_equal(y_cpu[ind], x_data[i])
-            else:
-                numpy.testing.assert_array_equal(y_cpu[i], x_data[ind])
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.indices)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.indices))
-
-    @attr.gpu
-    def test_forward_mixed(self):
-        self.check_forward(cuda.to_gpu(self.x), self.indices)
-
-    def check_backward(self, x_data, ind_data, g_data):
-        def fun(x, ind):
-            return functions.permutate(x, ind, self.axis, self.inv)
-        gradient_check.check_backward(
-            fun, (x_data, ind_data), g_data, dtype='d', atol=0.001, rtol=0.001)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.indices, self.g)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x),
-                            cuda.to_gpu(self.indices),
-                            cuda.to_gpu(self.g))
+    def forward_expected(self, inputs):
+        x, indices = inputs
+        if self.inv:
+            indices = numpy.argsort(indices)
+        expected = numpy.take(x, indices, axis=self.axis)
+        expected = force_array(expected)
+        return expected,
 
 
 @testing.parameterize(

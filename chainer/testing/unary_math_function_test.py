@@ -210,8 +210,11 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             else:
                 self.x, self.gy = make_data(self.shape, self.dtype)
 
-            self.forward_options = {'atol': 1e-4, 'rtol': 1e-4}
             if self.dtype == numpy.float16:
+                self.forward_options = {
+                    'atol': numpy.finfo('float16').eps,  # = 0.000977
+                    'rtol': numpy.finfo('float16').eps,  # = 0.000977
+                }
                 self.backward_options = {
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
                     'dtype': numpy.float64}
@@ -219,6 +222,7 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                     'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4,
                     'dtype': numpy.float64}
             else:
+                self.forward_options = {'atol': 1e-4, 'rtol': 1e-4}
                 self.backward_options = {
                     'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
                 self.double_backward_options = {

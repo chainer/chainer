@@ -7,11 +7,12 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/creation.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -19,7 +20,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeArangeOp : public ArangeOp {
+class NativeArangeKernel : public ArangeKernel {
 public:
     void Call(Scalar start, Scalar step, const Array& out) override {
         VisitDtype(out.dtype(), [&](auto pt) {
@@ -34,9 +35,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ArangeOp, NativeArangeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ArangeKernel, NativeArangeKernel);
 
-class NativeIdentityOp : public IdentityOp {
+class NativeIdentityKernel : public IdentityKernel {
 public:
     void Call(const Array& out) override {
         CHAINERX_ASSERT(out.ndim() == 2);
@@ -54,9 +55,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(IdentityOp, NativeIdentityOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(IdentityKernel, NativeIdentityKernel);
 
-class NativeEyeOp : public EyeOp {
+class NativeEyeKernel : public EyeKernel {
 public:
     void Call(int64_t k, const Array& out) override {
         VisitDtype(out.dtype(), [k, &out](auto pt) {
@@ -73,9 +74,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(EyeOp, NativeEyeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(EyeKernel, NativeEyeKernel);
 
-class NativeDiagflatOp : public DiagflatOp {
+class NativeDiagflatKernel : public DiagflatKernel {
 public:
     void Call(const Array& v, int64_t k, const Array& out) override {
         CHAINERX_ASSERT(v.ndim() == 1);
@@ -114,9 +115,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(DiagflatOp, NativeDiagflatOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(DiagflatKernel, NativeDiagflatKernel);
 
-class NativeLinspaceOp : public LinspaceOp {
+class NativeLinspaceKernel : public LinspaceKernel {
 public:
     void Call(double start, double stop, const Array& out) override {
         CHAINERX_ASSERT(out.ndim() == 1);
@@ -140,20 +141,24 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LinspaceOp, NativeLinspaceOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(LinspaceKernel, NativeLinspaceKernel);
+
+class NativeFillKernel : public FillKernel {
+public:
+    void Call(const Array& out, Scalar value) override {
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T& out) { out = value; }
+                T value;
+            };
+            Elementwise<T>(Impl{static_cast<T>(value)}, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(FillKernel, NativeFillKernel);
 
 }  // namespace
-
-void NativeDevice::Fill(const Array& out, Scalar value) {
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T& out) { out = value; }
-            T value;
-        };
-        Elementwise<T>(Impl{static_cast<T>(value)}, out);
-    });
-}
-
 }  // namespace native
 }  // namespace chainerx

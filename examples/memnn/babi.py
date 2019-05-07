@@ -76,13 +76,13 @@ def read_data(vocab, path):
         for line in f:
             sid, content = line.strip().split(' ', 1)
             if sid == '1':
-                if len(data) > 0:
+                if data:
                     all_data.append(data)
                     data = []
 
             data.append(parse_line(vocab, content))
 
-        if len(data) > 0:
+        if data:
             all_data.append(data)
 
         return all_data
