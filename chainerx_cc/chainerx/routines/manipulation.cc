@@ -480,95 +480,26 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
 
 Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
-    if (axis.has_value()) {
-        return ConcatenateImpl(arrays, *axis);
+    if (!axis.has_value()) {
+        // Special case, making input arrays 1-dimensional and concatenating along the first axis.
+        std::vector<Array> raveled_arrays;
+        raveled_arrays.reserve(arrays.size());
+        std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
+            Shape shape{array.GetTotalSize()};
+            return array.Reshape(shape);
+        });
+        return ConcatenateImpl(raveled_arrays, 0);
     }
-    std::vector<Array> raveled_arrays;
-    raveled_arrays.reserve(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
-        Shape shape{array.GetTotalSize()};
-        return array.Reshape(shape);
-    });
-    return ConcatenateImpl(raveled_arrays, 0);
+    return ConcatenateImpl(arrays, *axis);
 }
 
 Array Stack(const std::vector<Array>& arrays, int8_t axis) {
-    if (arrays.empty()) {
-        throw DimensionError{"Need at least one array to stack"};
-    }
-
-    const Array& array = arrays.front();
-    Shape shape = array.shape();
-    Dtype out_dtype = ResultType(arrays);
-    Device& device = array.device();
-    uint8_t ndim = shape.ndim();
-    axis = internal::NormalizeAxis(axis, ndim + 1);
-
-    for (const Array& array : arrays) {
-        if (shape != array.shape()) {
-            throw DimensionError{"All input arrays must have the same shape"};
-        }
-    }
-    shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
-
-    Strides strides{shape, out_dtype};
-
-    // Aligning with NumPy strides behavior
-    auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
-    if (last_zero_it != shape.rend()) {
-        std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
-    }
-
-    Array out = internal::Empty(shape, out_dtype, strides, device);
-
-    size_t in_size = arrays.size();
-
-    // If input dtypes are mixed, elements in the input arrays are casted to the resulting dtype.
-    // Their original dtypes must therefore be remembered in order to cast the computed gradients back in the backward pass.
-    std::vector<Dtype> in_dtypes;
-    in_dtypes.reserve(in_size);
-
-    int64_t step = strides[axis];
-    strides.erase(strides.begin() + axis);
-    {
-        NoBackpropModeScope scope{};
-        int64_t out_offset = 0;
-        for (const Array& array : arrays) {
-            if (out.GetTotalSize() != 0) {
-                Array sliced_out = internal::MakeArray(array.shape(), strides, out_dtype, device, out.data(), out_offset);
-                device.backend().CallKernel<CopyKernel>(array, sliced_out);
-                out_offset += step;
-            }
-            in_dtypes.emplace_back(array.dtype());
-        }
-    }
-
-    std::vector<ConstArrayRef> array_refs;
-    array_refs.reserve(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_refs), [](const Array& array) { return ConstArrayRef{array}; });
-
-    {
-        BackwardBuilder bb{"stack", array_refs, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([axis, in_shape = array.shape(), in_dtypes = std::move(in_dtypes)](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                Dtype gout_dtype = gout.dtype();
-                std::vector<Array> gxs = Split(gout, gout.shape()[axis], axis);
-                for (size_t i = 0; i < gxs.size(); ++i) {
-                    Array gx = gxs[i].Reshape(in_shape);  // Remove axis (of length 1) introduced during forward.
-                    Dtype in_dtype = in_dtypes[i];
-                    if (in_dtype != gout_dtype) {
-                        bctx.input_grad(i) = gx.AsType(in_dtype);
-                    } else {
-                        bctx.input_grad(i) = std::move(gx);
-                    }
-                }
-            });
-        }
-        bb.Finalize();
-    }
-
-    return out;
+    std::vector<Array> reshaped_arrays;
+    reshaped_arrays.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(reshaped_arrays), [axis](const Array& array) {
+        return ExpandDims(array, axis);
+    });
+    return ConcatenateImpl(reshaped_arrays, axis);
 }
 
 namespace {
