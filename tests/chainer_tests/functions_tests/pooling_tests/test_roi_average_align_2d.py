@@ -18,7 +18,7 @@ def _pair(x):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'sampling_ratio': [None, 1, 2, (None, 3), (1, 2)],
     'outsize': [5, 7, (5, 7)],
     'spatial_scale': [0.6, 1.0, 2.0],
