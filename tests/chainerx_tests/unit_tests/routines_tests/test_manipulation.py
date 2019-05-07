@@ -706,6 +706,7 @@ def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
 
+
 @op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest('shape,repeats,axis', [
     ((1, 1), 1, 1),
@@ -745,6 +746,7 @@ class TestRepeat(op_utils.NumpyOpTest):
 def test_repeat_invalid(xp, shape, repeats, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.repeat(a, repeats, axis)
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(

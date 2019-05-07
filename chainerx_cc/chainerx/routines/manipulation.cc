@@ -816,11 +816,23 @@ Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
     }
 
     if (axis.has_value()) {
-        return RepeatImpl(a, [repeats](int64_t v) { return repeats; }, *axis);
+        return RepeatImpl(
+                a,
+                [repeats](int64_t v) {
+                    (void)v;  // unused
+                    return repeats;
+                },
+                *axis);
     }
 
     auto reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
-    return RepeatImpl(reshaped, [repeats](int64_t v) { return repeats; }, 0);
+    return RepeatImpl(
+            reshaped,
+            [repeats](int64_t v) {
+                (void)v;  // unused
+                return repeats;
+            },
+            0);
 }
 
 Array Repeat(const Array& a, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {
