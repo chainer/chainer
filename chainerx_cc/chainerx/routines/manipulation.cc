@@ -780,6 +780,10 @@ Array AtLeast2D(const Array& x) {
 }
 
 Array HStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
     if (arrays.front().ndim() <= 1) {
         return Concatenate(arrays, 0);
     }
@@ -787,6 +791,10 @@ Array HStack(const std::vector<Array>& arrays) {
 }
 
 Array VStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
     std::vector<Array> reshaped_arrays(arrays.size());
     std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
 
