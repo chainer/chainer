@@ -28,6 +28,7 @@
 # Written by Ross Girshick
 # -----------------------------------------------------------------------------
 
+import numbers
 import numpy
 import six
 
@@ -51,17 +52,17 @@ class ROIAveragePooling2D(function.Function):
 
     def __init__(self, outsize, spatial_scale):
         outh, outw = _pair(outsize)
-        if not (numpy.issubdtype(type(outh), numpy.integer) and outh > 0):
+        if not (isinstance(outh, numbers.Integral) and outh > 0):
             raise TypeError(
                 'outsize[0] must be positive integer: {}, {}'
                 .format(type(outh), outh))
-        if not (numpy.issubdtype(type(outw), numpy.integer) and outw > 0):
+        if not (isinstance(outw, numbers.Integral) and outw > 0):
             raise TypeError(
                 'outsize[1] must be positive integer: {}, {}'
                 .format(type(outw), outw))
-        if numpy.issubdtype(type(spatial_scale), numpy.integer):
+        if isinstance(spatial_scale, numbers.Integral):
             spatial_scale = float(spatial_scale)
-        if not (numpy.issubdtype(type(spatial_scale), numpy.floating) and
+        if not (isinstance(spatial_scale, numbers.Real) and
                 spatial_scale > 0):
             raise TypeError(
                 'spatial_scale must be a positive float number: {}, {}'
