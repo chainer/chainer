@@ -40,11 +40,13 @@ struct ExpandedPairwiseReduction<In, ReductionImpl, InNdim, T, 1> {
     }
 };
 
+constexpr int log2(int64_t v) { return v == 1 ? 0 : log2(v >> 1) + 1; }
+
 template <typename In, typename ReductionImpl, int8_t InNdim, typename T>
-T PairwiseReduction(
-        const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl, int64_t reduce_len, T* tree_accum) {
+T PairwiseReduction(const IndexableArray<const In, InNdim>& in, IndexIterator<InNdim>& it_in, ReductionImpl&& impl, int64_t reduce_len) {
     int64_t i_reduce = 0;
     T accum = impl.Identity();
+    T tree_accum[63 - log2(ExpandLen * SerialLen)];
 
     while (i_reduce < reduce_len / ExpandLen * ExpandLen) {
         // Invoke dynamic pairwise reduction if `i_reduce` is multiple of `SerialLen * ExpandLen`.
@@ -77,18 +79,15 @@ T PairwiseReduction(
     return accum;
 }
 
-constexpr int log2(int64_t v) { return v == 1 ? 0 : log2(v >> 1) + 1; }
-
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl) {
     auto it_in = arg.in_indexer.It(0, arg.out_indexer.total_size());
     int64_t reduce_len = arg.in_indexer.total_size() / arg.out_indexer.total_size();
-    decltype(impl.Identity()) tree_accum[63 - log2(ExpandLen * SerialLen)];
 
     // Iterate over output dimensions
     for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
         it_in.Restart(it_out.raw_index());
-        auto accum = PairwiseReduction<In, ReductionImpl, InNdim, decltype(impl.Identity())>(arg.in, it_in, impl, reduce_len, tree_accum);
+        auto accum = PairwiseReduction<In, ReductionImpl, InNdim, decltype(impl.Identity())>(arg.in, it_in, impl, reduce_len);
         arg.out[it_out] = native_internal::DataToStorageType<Out>(impl.MapOut(accum));
     }
 }
