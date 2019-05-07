@@ -376,7 +376,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
             bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                Array gx = -*bctx.output_grad() * x1 / (x2 * x2);
+                Array gx = -*bctx.output_grad() * x1 / Square(x2);
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }
@@ -407,7 +407,7 @@ void DivideSAImpl(Scalar x1, const Array& x2, const Array& out) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([other = x1, x2_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x2 = bctx.GetRetainedInput(x2_tok);
-            bctx.input_grad() = -*bctx.output_grad() * other / (x2 * x2);
+            bctx.input_grad() = -*bctx.output_grad() * other / Square(x2);
         });
     }
     bb.Finalize();
