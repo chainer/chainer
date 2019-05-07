@@ -36,6 +36,9 @@ export REPO_DIR
 export WORK_DIR
 export CHAINER_BASH_ENV
 
+# Increase the default columns for better browsability
+export COLUMNS=120
+
 
 run_prestep() {
     # Failure immediately stops the script.
