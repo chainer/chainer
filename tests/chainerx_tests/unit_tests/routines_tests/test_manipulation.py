@@ -1,5 +1,5 @@
 import unittest
-from itertools import chain, combinations
+import itertools
 
 import chainer
 import numpy
@@ -16,7 +16,8 @@ from chainerx_tests import op_utils
 def powerset(iterable):
     "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
     s = list(iterable)  # allows duplicate elements
-    return list(chain(*[combinations(s, r) for r in range(len(s)+1)]))
+    return list(itertools.chain(*[itertools.combinations(s, r)
+                                  for r in range(len(s)+1)]))
 
 
 # Value for parameterization to represent an unspecified (default) argument.
@@ -788,30 +789,38 @@ def test_expand_dims_invalid(xp, shape, axis):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    # Single axis
+    # Single axis and None
     chainer.testing.product({
+        'shape': [()],
+        'axis': [*range(0)] + [None] + [*range(-0, -0, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(0,)],
+        'axis': [*range(1)] + [None] + [*range(-1, -1, -1)],
+    })
+    + chainer.testing.product({
         'shape': [(2, 2, 2)],
-        'axis': [*range(3)] + [*range(-1, -3, -1)],
+        'axis': [*range(3)] + [None] + [*range(-1, -3, -1)],
     })
     + chainer.testing.product({
         'shape': [(3, 3, 2, 3, 3)],
-        'axis': [*range(5)] + [*range(-1, -5, -1)],
+        'axis': [*range(5)] + [None] + [*range(-1, -5, -1)],
     })
     + chainer.testing.product({
         'shape': [(3, 0, 2, 0, 3)],
-        'axis': [*range(5)] + [*range(-1, -5, -1)],
+        'axis': [*range(5)] + [None] + [*range(-1, -5, -1)],
     })
     + chainer.testing.product({
         'shape': [(1, 2, 3, 1, 3, 3)],
-        'axis': [*range(6)] + [*range(-1, -6, -1)],
+        'axis': [*range(6)] + [None] + [*range(-1, -6, -1)],
     })
     + chainer.testing.product({
         'shape': [(3, 4, 5, 2, 3, 5)],
-        'axis': [*range(6)] + [*range(-1, -6, -1)],
+        'axis': [*range(6)] + [None] + [*range(-1, -6, -1)],
     })
     + chainer.testing.product({
         'shape': [(1,)],
-        'axis': [*range(1)] + [*range(-1, -1, -1)],
+        'axis': [*range(1)] + [None] + [*range(-1, -1, -1)],
     })
     # Multiple axes
     + chainer.testing.product({
@@ -826,12 +835,16 @@ def test_expand_dims_invalid(xp, shape, axis):
         'shape': [(1,)],
         'axis': powerset([*range(1)]) + powerset([*range(-1, -1, -1)]),
     })
+    + chainer.testing.product({
+        'shape': [(0,)],
+        'axis': powerset([*range(1)]) + powerset([*range(-1, -1, -1)]),
+    })
 ))
-@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
 class TestFlip(op_utils.NumpyOpTest):
 
     def setup(self, dtype):
-        # TO-DO(kshitij12345) : Remove when #6621 is in.
+        # TODO(kshitij12345) : Remove when #6621 is in.
         if numpy.dtype(dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
@@ -846,10 +859,6 @@ class TestFlip(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-
-        if self.is_contiguous:
-            a = a.copy()
-
         return xp.flip(a, self.axis),
 
 
@@ -889,7 +898,7 @@ def test_flip_invalid(xp, shape, axis):
         'shape': [(1, 0, 3, 4, 0)],
     })
 ))
-@chainer.testing.parameterize_pytest('is_contiguous', [True, False])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
 @chainer.testing.parameterize_pytest('func', [
     lambda xp, a: xp.fliplr(a),
     lambda xp, a: xp.flipud(a)
@@ -897,7 +906,7 @@ def test_flip_invalid(xp, shape, axis):
 class TestFlipLRUD(op_utils.NumpyOpTest):
 
     def setup(self, dtype):
-        # TO-DO(kshitij12345) : Remove when #6621 is in.
+        # TODO(kshitij12345) : Remove when #6621 is in.
         if numpy.dtype(dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
@@ -912,10 +921,6 @@ class TestFlipLRUD(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-
-        if self.is_contiguous:
-            a = a.copy()
-
         return self.func(xp, a),
 
 
