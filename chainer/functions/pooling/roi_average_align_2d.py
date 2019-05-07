@@ -68,7 +68,7 @@ bool get_bounds(
         // empty
         return false;
     }
-    low = (int)p;
+    low = (int)floor(p);
     if (low == limit) {
         low = low - 1;
     }
