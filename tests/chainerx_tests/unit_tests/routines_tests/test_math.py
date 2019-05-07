@@ -1761,6 +1761,38 @@ class TestSum(UnaryMathTestBase, op_utils.NumpyOpTest):
             return a.sum(axis=self.axis, keepdims=self.keepdims)
 
 
+@op_utils.op_test(['native:0'])
+class TestSumStability(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return numpy.full(2 ** 20, 0.1, dtype=numpy.float32),
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        if xp is chainerx:
+            return x.sum(),
+        else:
+            return (x[0] * x.size).astype(x.dtype),
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('size', list(range(1024)))
+class TestSumEachSize(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        return numpy.arange(self.size, dtype=numpy.int32) + 1,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return x.sum(),
+
+
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('keepdims', [False, True])
