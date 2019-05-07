@@ -5,8 +5,8 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
-from chainer.functions import sum_to
 from chainer.functions.activation import sigmoid
+from chainer.functions.math import sum
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer import utils
@@ -54,7 +54,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         nan_dlogit[self.logit_isminf] = numpy.nan
         dlogit += nan_dlogit
 
-        return sum_to(gy * dlogit, logit.shape), None
+        return sum.sum_to(gy * dlogit, logit.shape), None
 
 
 def _bernoulli_log_prob(logit, x, binary_check=False):
