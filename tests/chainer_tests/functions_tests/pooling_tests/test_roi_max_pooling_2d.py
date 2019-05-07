@@ -95,6 +95,7 @@ class TestROIMaxPooling2D(unittest.TestCase):
                 x, rois, roi_indices, outsize=self.outsize,
                 spatial_scale=self.spatial_scale)
             xp = cuda.get_array_module(y)
+            # replace -inf with zero for gradient_check
             y = functions.where(
                 xp.isinf(y.array), xp.zeros(y.shape, dtype=y.dtype), y)
             return y
