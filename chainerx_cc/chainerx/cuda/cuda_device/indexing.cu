@@ -278,15 +278,12 @@ public:
     void Call(const Array& condition, const Array& x, const Array& y, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(condition, x, y, out);
-        Dtype dtype = std::max(x.dtype(), y.dtype());
-        const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-        const Array& y_cast = y.dtype() == dtype ? y : y.AsType(dtype);
-        const Array& out_cast = out.dtype() == dtype ? out : out.AsType(dtype);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
 
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(dtype, [&](auto x_pt) {
+        VisitDtype(out.dtype(), [&](auto x_pt) {
             using T = typename decltype(x_pt)::type;
-            Elementwise<const bool, const T, const T, T>(WhereImpl<T>{}, condition, x_cast, y_cast, out_cast);
+            Elementwise<const bool, const T, const T, T>(WhereImpl<T>{}, condition_cast, x, y, out);
         });
     }
 };

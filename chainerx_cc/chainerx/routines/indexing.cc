@@ -22,6 +22,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -199,35 +200,31 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 }
 
 Array Where(const Array& condition, const Array& x, const Array& y) {
-    const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
-
-    if (x.dtype() != y.dtype()) {
-        throw DtypeError{"dtype of x and y should be same."};
-    }
+    Dtype out_dtype = ResultType(x, y);
+    const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+    const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
 
     Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
-
-    Array out = Empty(out_shape, x.dtype(), x.device());
-
-    const Array& x_b = x.BroadcastTo(out_shape);
-    const Array& y_b = y.BroadcastTo(out_shape);
+    Array out = Empty(out_shape, out_dtype, x.device());
+    const Array& x_b = x_cast.BroadcastTo(out_shape);
+    const Array& y_b = y_cast.BroadcastTo(out_shape);
 
     {
         NoBackpropModeScope scope;
-        x.device().backend().CallKernel<WhereKernel>(condition_cast, x_b, y_b, out);
+        x.device().backend().CallKernel<WhereKernel>(condition, x_b, y_b, out);
     }
 
     BackwardBuilder bb{"where", {x_b, y_b}, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([condition_cast](BackwardContext& bctx) {
+        bt.Define([condition](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Where(condition_cast, gout, ZerosLike(gout));
+            bctx.input_grad() = Where(condition, gout, ZerosLike(gout));
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-        bt.Define([condition_cast](BackwardContext& bctx) {
+        bt.Define([condition](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Where(condition_cast, ZerosLike(gout), gout);
+            bctx.input_grad() = Where(condition, ZerosLike(gout), gout);
         });
     }
     bb.Finalize();

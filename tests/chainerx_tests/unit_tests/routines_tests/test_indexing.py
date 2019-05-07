@@ -8,6 +8,7 @@ import chainer.testing
 import chainerx
 import chainerx.testing
 
+from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
@@ -204,6 +205,50 @@ class TestTake(op_utils.NumpyOpTest):
         return b,
 
 
+_in_out_dtypes_where = dtype_utils._permutate_dtype_mapping([
+    # integer mixed
+    (('int8', 'int16'), 'int16'),
+    (('int8', 'int32'), 'int32'),
+    (('int8', 'int64'), 'int64'),
+    (('int8', 'uint8'), 'int16'),
+    (('int16', 'int32'), 'int32'),
+    (('int16', 'int64'), 'int64'),
+    (('int16', 'uint8'), 'int16'),
+    (('int32', 'int64'), 'int64'),
+    (('int32', 'uint8'), 'int32'),
+    (('int64', 'uint8'), 'int64'),
+    # integer float mixed
+    (('int8', 'float16'), 'float16'),
+    (('int8', 'float32'), 'float32'),
+    (('int8', 'float64'), 'float64'),
+    (('int16', 'float16'), 'float16'),
+    (('int16', 'float32'), 'float32'),
+    (('int16', 'float64'), 'float64'),
+    (('int32', 'float16'), 'float16'),
+    (('int32', 'float32'), 'float32'),
+    (('int32', 'float64'), 'float64'),
+    (('int64', 'float16'), 'float16'),
+    (('int64', 'float32'), 'float32'),
+    (('int64', 'float64'), 'float64'),
+    (('uint8', 'float16'), 'float16'),
+    (('uint8', 'float32'), 'float32'),
+    (('uint8', 'float64'), 'float64'),
+    # float mixed
+    (('float16', 'float32'), 'float32'),
+    (('float16', 'float64'), 'float64'),
+    (('float32', 'float64'), 'float64'),
+    # un-mixed
+    (('int8', 'int8'), 'int8'),
+    (('int16', 'int16'), 'int16'),
+    (('int32', 'int32'), 'int32'),
+    (('int64', 'int64'), 'int64'),
+    (('uint8', 'uint8'), 'uint8'),
+    (('float16', 'float16'), 'float16'),
+    (('float32', 'float32'), 'float32'),
+    (('float64', 'float64'), 'float64'),
+])
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('cond_shape,x_shape,y_shape', [
     # Same Shapes
@@ -214,22 +259,28 @@ class TestTake(op_utils.NumpyOpTest):
     ((2, 3), (2, 3), (1, 3)),
 ])
 @chainer.testing.parameterize_pytest(
-    'dtypes', chainerx.testing.all_dtypes)
+    'in_dtypes,out_dtype', _in_out_dtypes_where
+)
 @chainer.testing.parameterize_pytest(
     'condition_dtypes', chainerx.testing.integral_dtypes)
 class TestWhere(op_utils.NumpyOpTest):
 
+    check_numpy_strides_compliance = False
+
     def setup(self):
-        if numpy.dtype(self.dtypes).kind != 'f':
+        (x_dtype, y_dtype) = self.in_dtypes
+        if numpy.dtype(x_dtype).kind != 'f' or \
+           numpy.dtype(y_dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
 
-        if self.dtypes == 'float16':
+        if x_dtype == 'float16' or y_dtype == 'float16':
             self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
 
     def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtypes)
-        y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtypes)
+        (x_dtype, y_dtype) = self.in_dtypes
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(x_dtype)
+        y = numpy.random.uniform(-1, 1, self.y_shape).astype(y_dtype)
         condition = \
             numpy.random.uniform(-1, 1,
                                  self.cond_shape).astype(self.condition_dtypes)
@@ -237,8 +288,9 @@ class TestWhere(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         x, y, condition = inputs
-        b = xp.where(condition > 0.5, x, y)
-        return b,
+        o = xp.where(condition > 0.5, x, y)
+        o = dtype_utils.cast_if_numpy_array(xp, o, self.out_dtype)
+        return o,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(

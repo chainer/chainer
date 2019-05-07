@@ -163,16 +163,14 @@ public:
     void Call(const Array& condition, const Array& x, const Array& y, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(condition, x, y, out);
-        Dtype dtype = std::max(x.dtype(), y.dtype());
-        const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-        const Array& y_cast = y.dtype() == dtype ? y : y.AsType(dtype);
-        const Array& out_cast = out.dtype() == dtype ? out : out.AsType(dtype);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t /*i*/, bool condition, T x, T y, T& out) { out = condition ? x : y; }
             };
-            Elementwise<const bool, const T, const T, T>(Impl{}, condition, x_cast, y_cast, out_cast);
+            Elementwise<const bool, const T, const T, T>(Impl{}, condition_cast, x, y, out);
         });
     }
 };
