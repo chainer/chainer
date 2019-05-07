@@ -161,10 +161,12 @@ def create_multi_node_optimizer(actual_optimizer, communicator,
              the gradients of the previous iteration are used
              for update. This flag is supported by
              ``PureNcclCommunicator`` only.
-        zero_fill: If ``True``, gradients of initialized ``Link`` not used
-             are filled zero before all-reduce. gradients of uninitialized
-             ``Link`` are skipped.
-             If ``False``, gradients of ``Link`` not used are skipped.
+        zero_fill: A knob to control whether to fill gradients of initialized
+             and unused Link (which is None internally) with zero-valued array,
+             because the all gradients must be an array among processes for
+             performing all-reduce, which might be an array or None after
+             backward computation. Gradients of uninitialized Link are skipped.
+             If it is False, gradients of unused Link are just skipped.
     Returns:
         The multi node optimizer based on ``actual_optimizer``.
     """
