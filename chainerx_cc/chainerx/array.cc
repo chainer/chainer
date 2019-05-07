@@ -476,6 +476,7 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
+Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
 
 namespace {
 
