@@ -815,24 +815,36 @@ Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
         throw DimensionError("repeats must be larger than 0.");
     }
 
+    int8_t targetAxis = 0;
+    Array targetArray;
+
     if (axis.has_value()) {
-        return RepeatImpl(
-                a,
-                [repeats](int64_t v) {
-                    (void)v;  // unused
-                    return repeats;
-                },
-                *axis);
+        if (*axis < 0) {
+            throw DimensionError("axis must be larger than 0.");
+        }
+        if (*axis >= a.shape().size()) {
+            throw DimensionError("axis must be lower than the number of shape.");
+        }
+
+        targetAxis = *axis;
+        targetArray = a;
+    } else {
+        targetArray = Reshape(a, Shape({a.shape().GetTotalSize()}));
     }
 
-    auto reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
-    return RepeatImpl(
-            reshaped,
-            [repeats](int64_t v) {
-                (void)v;  // unused
-                return repeats;
-            },
-            0);
+    auto firstReshapeShape = targetArray.shape();
+    firstReshapeShape.insert(firstReshapeShape.begin() + targetAxis + 1, 1);
+
+    auto broadcastShape = targetArray.shape();
+    broadcastShape.insert(broadcastShape.begin() + targetAxis + 1, repeats);
+
+    auto lastReshapeShape = targetArray.shape();
+    lastReshapeShape[targetAxis] *= repeats;
+
+    auto firstReshapedArray = Reshape(targetArray, firstReshapeShape);
+    auto broadcastedArray = BroadcastTo(firstReshapedArray, broadcastShape);
+    auto lastReshapedArray = Reshape(broadcastedArray, lastReshapeShape);
+    return lastReshapedArray;
 }
 
 Array Repeat(const Array& a, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {
