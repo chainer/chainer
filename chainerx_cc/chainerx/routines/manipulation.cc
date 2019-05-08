@@ -832,19 +832,16 @@ Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
         targetArray = Reshape(a, Shape({a.shape().GetTotalSize()}));
     }
 
-    auto firstReshapeShape = targetArray.shape();
-    firstReshapeShape.insert(firstReshapeShape.begin() + targetAxis + 1, 1);
-
     auto broadcastShape = targetArray.shape();
     broadcastShape.insert(broadcastShape.begin() + targetAxis + 1, repeats);
 
-    auto lastReshapeShape = targetArray.shape();
-    lastReshapeShape[targetAxis] *= repeats;
+    auto reshapeShape = targetArray.shape();
+    reshapeShape[targetAxis] *= repeats;
 
-    auto firstReshapedArray = Reshape(targetArray, firstReshapeShape);
-    auto broadcastedArray = BroadcastTo(firstReshapedArray, broadcastShape);
-    auto lastReshapedArray = Reshape(broadcastedArray, lastReshapeShape);
-    return lastReshapedArray;
+    auto expandedArray = ExpandDims(targetArray, targetAxis + 1);
+    auto broadcastedArray = BroadcastTo(expandedArray, broadcastShape);
+    auto reshapedArray = Reshape(broadcastedArray, reshapeShape);
+    return reshapedArray;
 }
 
 Array Repeat(const Array& a, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {

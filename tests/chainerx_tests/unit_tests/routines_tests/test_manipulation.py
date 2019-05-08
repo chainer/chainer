@@ -709,14 +709,14 @@ def test_swap_invalid(xp, shape, axis1, axis2):
 
 @op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest('shape,repeats,axis', [
-    ([1, 1], 1, 0),
-    ([2, 4], 2, 0),
-    ([2, 4], (1, 2), 0),
-    ([2, 4], (0, 2), 0),
-    ([[1, 1], [2, 4]], 2, 0),
-    ([[1, 1], [2, 4]], 2, 1),
-    ([[1, 1], [2, 4]], (1, 2), 0),
-    ([[1, 1], [2, 4]], (1, 2), 1),
+    ((4,), 1, 0),
+    ((4,), 2, 0),
+    ((4,), (1, 2), 0),
+    ((4,), (0, 2), 0),
+    ((4,2), 2, 0),
+    ((4,2), 2, 1),
+    ((2,4), (1, 2), 0),
+    ((4,2), (1, 2), 1),
 ])
 @chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestRepeat(op_utils.NumpyOpTest):
@@ -746,8 +746,8 @@ class TestRepeat(op_utils.NumpyOpTest):
         chainerx.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize('shape,repeats,axis', [
     # Axis out of range.
-    ([], 1, 1),
-    ([2, 4], 1, 0),
+    ((1,), 1, 1),
+    ((1,1), (1,), 0),
 ])
 def test_repeat_invalid(xp, shape, repeats, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
