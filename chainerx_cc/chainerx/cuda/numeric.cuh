@@ -50,7 +50,7 @@ __device__ inline T Sign(T x) {
 
 template <>
 __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
-    return IsNan(x) ? x : cuda::Float16{(cuda::Float16{0} < x) - (x < cuda::Float16{0})};
+    return IsNan(x) ? x : cuda::Float16{int{cuda::Float16{0} < x} - int{x < cuda::Float16{0}}};
 }
 
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
