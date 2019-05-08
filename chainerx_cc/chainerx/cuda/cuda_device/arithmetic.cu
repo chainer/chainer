@@ -13,8 +13,8 @@
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/math.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {

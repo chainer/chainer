@@ -8,10 +8,10 @@
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {

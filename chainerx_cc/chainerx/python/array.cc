@@ -26,6 +26,7 @@
 #include "chainerx/indexer.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/native_backend.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
