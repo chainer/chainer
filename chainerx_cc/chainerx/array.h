@@ -309,7 +309,7 @@ private:
 Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
-// TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
+Array operator/(Scalar lhs, const Array& rhs);
 
 namespace internal {
 
