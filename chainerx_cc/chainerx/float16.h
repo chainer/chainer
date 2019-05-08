@@ -38,21 +38,21 @@ public:
     CHAINERX_HOST_DEVICE explicit operator signed char() const { return static_cast<float>(*this); }
     CHAINERX_HOST_DEVICE explicit operator unsigned char() const { return static_cast<float>(*this); }
 
-    CHAINERX_HOST_DEVICE bool operator==(const Float16& r) const { return static_cast<float>(*this) == static_cast<float>(r); }
-    CHAINERX_HOST_DEVICE bool operator!=(const Float16& r) const { return static_cast<float>(*this) != static_cast<float>(r); }
-    CHAINERX_HOST_DEVICE bool operator<(const Float16& r) const { return static_cast<float>(*this) < static_cast<float>(r); }
-    CHAINERX_HOST_DEVICE bool operator>(const Float16& r) const { return static_cast<float>(*this) > static_cast<float>(r); }
-    CHAINERX_HOST_DEVICE bool operator<=(const Float16& r) const { return static_cast<float>(*this) <= static_cast<float>(r); }
-    CHAINERX_HOST_DEVICE bool operator>=(const Float16& r) const { return static_cast<float>(*this) >= static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator==(Float16 r) const { return static_cast<float>(*this) == static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator!=(Float16 r) const { return static_cast<float>(*this) != static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator<(Float16 r) const { return static_cast<float>(*this) < static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator>(Float16 r) const { return static_cast<float>(*this) > static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator<=(Float16 r) const { return static_cast<float>(*this) <= static_cast<float>(r); }
+    CHAINERX_HOST_DEVICE bool operator>=(Float16 r) const { return static_cast<float>(*this) >= static_cast<float>(r); }
     CHAINERX_HOST_DEVICE Float16 operator-() const { return Float16{-static_cast<float>(*this)}; }
-    CHAINERX_HOST_DEVICE Float16 operator+(const Float16& r) const { return Float16{static_cast<float>(*this) + static_cast<float>(r)}; }
-    CHAINERX_HOST_DEVICE Float16 operator-(const Float16& r) const { return Float16{static_cast<float>(*this) - static_cast<float>(r)}; }
-    CHAINERX_HOST_DEVICE Float16 operator*(const Float16& r) const { return Float16{static_cast<float>(*this) * static_cast<float>(r)}; }
-    CHAINERX_HOST_DEVICE Float16 operator/(const Float16& r) const { return Float16{static_cast<float>(*this) / static_cast<float>(r)}; }
-    CHAINERX_HOST_DEVICE Float16& operator+=(const Float16& r) { return *this = *this + r; }
-    CHAINERX_HOST_DEVICE Float16& operator-=(const Float16& r) { return *this = *this - r; }
-    CHAINERX_HOST_DEVICE Float16& operator*=(const Float16& r) { return *this = *this * r; }
-    CHAINERX_HOST_DEVICE Float16& operator/=(const Float16& r) { return *this = *this / r; }
+    CHAINERX_HOST_DEVICE Float16 operator+(Float16 r) const { return Float16{static_cast<float>(*this) + static_cast<float>(r)}; }
+    CHAINERX_HOST_DEVICE Float16 operator-(Float16 r) const { return Float16{static_cast<float>(*this) - static_cast<float>(r)}; }
+    CHAINERX_HOST_DEVICE Float16 operator*(Float16 r) const { return Float16{static_cast<float>(*this) * static_cast<float>(r)}; }
+    CHAINERX_HOST_DEVICE Float16 operator/(Float16 r) const { return Float16{static_cast<float>(*this) / static_cast<float>(r)}; }
+    CHAINERX_HOST_DEVICE Float16& operator+=(Float16 r) { return *this = *this + r; }
+    CHAINERX_HOST_DEVICE Float16& operator-=(Float16 r) { return *this = *this - r; }
+    CHAINERX_HOST_DEVICE Float16& operator*=(Float16 r) { return *this = *this * r; }
+    CHAINERX_HOST_DEVICE Float16& operator/=(Float16 r) { return *this = *this / r; }
 
     CHAINERX_HOST_DEVICE uint16_t data() const { return data_; }
     CHAINERX_HOST_DEVICE static constexpr Float16 FromData(uint16_t data) { return Float16{data, FromDataTag{}}; }
@@ -66,22 +66,22 @@ private:
 };
 
 template <typename T>
-CHAINERX_HOST_DEVICE inline bool operator==(const T& l, const Float16& r) {
+CHAINERX_HOST_DEVICE inline bool operator==(const T& l, Float16 r) {
     return l == static_cast<float>(r);
 }
 
 template <typename T>
-CHAINERX_HOST_DEVICE inline bool operator==(const Float16& l, const T& r) {
+CHAINERX_HOST_DEVICE inline bool operator==(Float16 l, const T& r) {
     return static_cast<float>(l) == r;
 }
 
 template <typename T>
-CHAINERX_HOST_DEVICE inline bool operator!=(const T& l, const Float16& r) {
+CHAINERX_HOST_DEVICE inline bool operator!=(const T& l, Float16 r) {
     return l != static_cast<float>(r);
 }
 
 template <typename T>
-CHAINERX_HOST_DEVICE inline bool operator!=(const Float16& l, const T& r) {
+CHAINERX_HOST_DEVICE inline bool operator!=(Float16 l, const T& r) {
     return static_cast<float>(l) != r;
 }
 
