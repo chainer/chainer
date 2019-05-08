@@ -1579,6 +1579,23 @@ Returns:
 .. seealso:: :func:`numpy.argmax`
 """)
 
+    _docs.set_doc(
+        chainerx.argmin,
+        """argmin(a, axis=None)
+Returns the indices of the minimum along an axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the indices of the minimum of.
+    axis (None or int): Along which axis to compute the minimum. The flattened
+        array is used by default.
+
+Returns:
+    :class:`~chainerx.ndarray`: The indices of the minimum of ``a``, along the
+    axis if specified.
+
+.. seealso:: :func:`numpy.argmin`
+""")
+
 
 def _docs_statistics():
     _docs.set_doc(

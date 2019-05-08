@@ -128,6 +128,9 @@ class IndexSelectorBase(function_node.FunctionNode):
 
 class ArgMin(IndexSelectorBase):
 
+    def forward_chainerx(self, x):
+        return chainerx.argmin(x[0], axis=self.axis).astype(numpy.int32),
+
     def _fwd(self, x, xp):
         return xp.argmin(x, axis=self.axis).astype(numpy.int32)
 

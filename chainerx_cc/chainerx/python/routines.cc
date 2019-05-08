@@ -741,6 +741,10 @@ void InitChainerxSorting(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
           py::arg("a"),
           py::arg("axis") = nullptr);
+    m.def("argmin",
+          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          py::arg("a"),
+          py::arg("axis") = nullptr);
 }
 
 void InitChainerxStatistics(pybind11::module& m) {

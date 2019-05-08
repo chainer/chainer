@@ -1402,6 +1402,26 @@ TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
     EXPECT_ARRAY_EQ(e, b);
 }
 
+TEST(ArrayArgMinTest, ArgMin) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMin(0);
+    Array e = testing::BuildArray({3}).WithData<int64_t>({1, 1, 0});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayArgMinTest, ArgMinAllAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMin();
+    Array e = testing::BuildArray({}).WithData<int64_t>({3});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
 TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};

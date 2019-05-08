@@ -171,6 +171,7 @@ Sorting, searching, and counting
    :nosignatures:
 
    chainerx.argmax
+   chainerx.argmin
 
 Statistics
 ----------

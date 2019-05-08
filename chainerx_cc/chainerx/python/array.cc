@@ -502,6 +502,9 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("argmax",
           [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
           py::arg("axis") = nullptr);
+    c.def("argmin",
+          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
+          py::arg("axis") = nullptr);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return MoveArrayBody(Array{self}.Dot(Array{b})); }, py::arg("b"));
     c.def("fill",
           [](const ArrayBodyPtr& self, Scalar value) {
