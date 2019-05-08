@@ -786,19 +786,14 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
                 Array gin = Zeros(shape, dtype, device);
 
                 for (int32_t i = 0; i < shape[axis]; i++) {
-                    Shape summed_shape = shape;
-                    summed_shape[axis] = 1;
-                    Array summed = Zeros(summed_shape, dtype, device);
-
-                    for (int32_t j = 0; j < repeats(i); j++) {
-                        Array g = internal::MakeArray(summed_shape, gout.strides(), dtype, device, gout.data(), gout_offset);
-                        summed += g;
-                        gout_offset += gout.strides()[axis];
-                    }
-
-                    Array gin_dst = internal::MakeArray(summed_shape, gin.strides(), dtype, device, gin.data(), gin_offset);
+                    Shape summingShape = shape;
+                    summingShape[axis] = repeats(i);
+                    Array summing = internal::MakeArray(summingShape, gout.strides(), dtype, device, gout.data(), gout_offset);
+                    Array summed = summing.Sum(axis, true);
+                    Array gin_dst = internal::MakeArray(summed.shape(), gin.strides(), dtype, device, gin.data(), gin_offset);
                     gin.device().backend().CallKernel<CopyKernel>(summed, gin_dst);
                     gin_offset += gin.strides()[axis];
+                    gout_offset += gout.strides()[axis] * summingShape[axis];
                 }
 
                 bctx.input_grad() = std::move(gin);
