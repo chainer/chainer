@@ -143,12 +143,12 @@ step_chainer_tests() {
         mark="$mark and not theano"
     fi
 
-    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 
 step_chainerx_python_tests() {
-    pytest "$REPO_DIR"/tests/chainerx_tests
+    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
 
 
