@@ -7,7 +7,7 @@ import chainer.backends
 try:
     import cupy as cp
     _cupy_avail = True
-except ImportError:
+except Exception:
     _cupy_avail = False
 
 

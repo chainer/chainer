@@ -15,7 +15,7 @@ namespace chainerx {
 // instance.
 class KernelRegistry {
 public:
-    KernelRegistry() {}
+    KernelRegistry() = default;
 
     explicit KernelRegistry(KernelRegistry* parent) : parent_{parent} {}
 

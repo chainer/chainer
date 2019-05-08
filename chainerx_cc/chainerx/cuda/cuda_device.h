@@ -41,7 +41,14 @@ class CudaConvTest;  // for unit-tests
 // Operations in this class are thread safe.
 class MemoryKeeper {
 public:
+    MemoryKeeper() = default;
+
     ~MemoryKeeper();
+
+    MemoryKeeper(const MemoryKeeper&) = delete;
+    MemoryKeeper(MemoryKeeper&&) = delete;
+    MemoryKeeper& operator=(const MemoryKeeper&) = delete;
+    MemoryKeeper& operator=(MemoryKeeper&&) = delete;
 
     // Registers a pointer to a memory chunk.
     // The memory is only freed after all preceding CUDA operations in the stream are finished.
@@ -60,12 +67,14 @@ private:
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
+    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
+
+    ~DeviceInternals() = default;
+
     DeviceInternals(const DeviceInternals&) = delete;
     DeviceInternals(DeviceInternals&&) = delete;
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
-
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
 
     cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
@@ -158,7 +167,7 @@ protected:
           device_internals_{index} {}
 
 private:
-    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
+    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend& backend, int index);
 
     friend cuda_internal::DeviceInternals& cuda_internal::GetDeviceInternals(CudaDevice& device);
 

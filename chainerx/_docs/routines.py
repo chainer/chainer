@@ -859,6 +859,27 @@ Note:
 .. seealso:: :func:`numpy.swapaxes`
 """)
 
+    _docs.set_doc(
+        chainerx.expand_dims,
+        """expand_dims(a, axis)
+Expand the shape of an array.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    axis (int): Position in the expanded axes where the new axis is placed.
+
+Returns:
+    ~chainerx.ndarray: Output array.
+
+Note:
+    * Output array may or may not be a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.expand_dims`
+""")
+
 
 def _docs_math():
     _docs.set_doc(
@@ -1037,6 +1058,24 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log`
+""")
+
+    _docs.set_doc(
+        chainerx.log10,
+        """log10(x)
+Base 10 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{10} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log10`
 """)
 
     _docs.set_doc(
@@ -1327,6 +1366,29 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.arctan2,
+        """arctan2(x1, x2)
+Element-wise arc tangent of :math:`\\frac{x_1}{x_2}` choosing the quadrant
+correctly.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returns an array where each element
+    represents :math:`\\theta` in the range :math:`[-\\pi, \\pi]`, such
+    that :math:`x_1 = r \\sin(\\theta)` and :math:`x_2 = r \\cos(\\theta)`
+    for some :math:`r > 0`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and/or ``x2``.
+
+.. seealso:: :data:`numpy.arctan2`
+""")
+
+    _docs.set_doc(
         chainerx.arcsinh,
         """arcsinh(x)
 Inverse hyperbolic sine, element-wise
@@ -1391,6 +1453,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.isfinite,
+        """isfinite(x)
+Test element-wise for finiteness (not infinity or not Not a Number).
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: True where x is not positive infinity,
+    negative infinity, or NaN; false otherwise.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.isfinite`
+""")
+
+    _docs.set_doc(
         chainerx.isinf,
         """isinf(x)
 Test element-wise for positive or negative infinity.
@@ -1407,6 +1487,60 @@ Note:
 
 .. seealso:: :data:`numpy.isinf`
 """)
+
+    _docs.set_doc(
+        chainerx.bitwise_and,
+        """bitwise_and(x1, x2)
+Compute the bit-wise AND of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_and`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.bitwise_or,
+        """bitwise_or(x1, x2)
+Compute the bit-wise OR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 | x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_or`
+""")
+
+    _docs.set_doc(
+        chainerx.bitwise_xor,
+        """bitwise_xor(x1, x2)
+Compute the bit-wise XOR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_xor`
+""")  # NOQA
 
 
 def _docs_sorting():
