@@ -132,8 +132,10 @@ We tested ChainerMN on all the following environments.
 
 .. note::
 
-  Note that certain versions of Open MPI have a bug that might cause a ChainerMN program to hang.
+  Note that certain versions of Open MPI have a bug that might cause ChainerMN program to hang.
   The versions are 3.0.[0-2] , 3.1.[0-2].
+  For more details, see `Open MPI Issue #3972 <https://github.com/open-mpi/ompi/issues/3972>`__ and
+  `Chainer Issue #5740 <https://github.com/chainer/chainer/issues/5740>`__ .
 
   Also, mpi4py does not support Open MPI 4.0.x
 
