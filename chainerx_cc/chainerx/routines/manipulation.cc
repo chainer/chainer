@@ -822,7 +822,7 @@ Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
         if (*axis < 0) {
             throw DimensionError("axis must be larger than 0.");
         }
-        if (*axis >= a.shape().size()) {
+        if (static_cast<size_t>(*axis) >= a.shape().size()) {
             throw DimensionError("axis must be lower than the number of shape.");
         }
 
