@@ -67,13 +67,6 @@ public:
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
-class FloorDivideSAKernel : public Kernel {
-public:
-    static const char* name() { return "FloorDivideSA"; }
-
-    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
-};
-
 class DivideKernel : public Kernel {
 public:
     static const char* name() { return "Divide"; }
@@ -86,13 +79,6 @@ public:
     static const char* name() { return "DivideAS"; }
 
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
-};
-
-class DivideSAKernel : public Kernel {
-public:
-    static const char* name() { return "DivideSA"; }
-
-    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
 class ExpKernel : public Kernel {

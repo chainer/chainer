@@ -49,7 +49,6 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2);
 void IFloorDivide(const Array& x1, Scalar x2);
-
 void ITrueDivide(const Array& x1, const Array& x2);
 void ITrueDivide(const Array& x1, Scalar x2);
 

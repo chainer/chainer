@@ -959,25 +959,24 @@ class TestIMulScalar(InplaceMathScalarTestBase, op_utils.NumpyOpTest):
         a *= scalar
 
 
+# TODO(imanishi): Support and test zero division
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*chainer.testing.product({
     'lhs,rhs': [
         ([], []),
         ([0, 1, 2, 3, 100, 101, 102, 103], [3] * 8),
-        ([-0, -1, -2, -3, -4, -100, -101, -102, -103], [3] * 9),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [3] * 8),
         ([0, 1, 2, 3, 100, 101, 102, 103], [-3] * 8),
-        ([-0, -1, -2, -3, -4, -100, -101, -102, -103], [-3] * 9),
+        ([-1, -2, -3, -4, -100, -101, -102, -103], [-3] * 8),
         ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [1.2] * 8),
-        ([-0., -0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4],
-         [1.2] * 9),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [1.2] * 8),
         ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4], [-1.2] * 8),
-        ([-0., -0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4],
-         [-1.2] * 9),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4], [-1.2] * 8),
     ],
     'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
     'is_module': [True, False],
 }))
-class TestFloorDivide(BinaryMathTestBase, op_utils.NumpyOpTest):
+class TestFloorDiv(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     skip_backward_test = True
     skip_double_backward_test = True
@@ -995,32 +994,22 @@ class TestFloorDivide(BinaryMathTestBase, op_utils.NumpyOpTest):
             return a // b
 
 
+# TODO(imanishi): Support and test chainerx.Scalar // chainerx.ndarray.
+# TODO(imanishi): Support and test zero division
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(chainer.testing.product_dict(
-    chainer.testing.product({
-        'array': [
-            ([]),
-            ([0, 1, 2, 3, 100, 101, 102, 103]),
-            ([-0, -1, -2, -3, -4, -100, -101, -102, -103]),
-            ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4]),
-            ([-0., -0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4]),
-            ([-0.61, -0.6, -0.59, 0.59, 0.6, 0.61]),
-        ],
-        'is_module': [True, False],
-        'is_scalar_rhs': [True, False],
-    }),
-    chainer.testing.product({
-        'scalar_value': [-3, 3, -1.2, 1.2, 0],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-    })
-    # Special values
-    + chainer.testing.product({
-        'scalar_value': [float('inf'), -float('inf'), float('nan')],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_float_arithmetic_scalar,
-    })
-)))
-class TestFloorDivideScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+@chainer.testing.parameterize(*chainer.testing.product({
+    'array': [
+        ([]),
+        ([0, 1, 2, 3, 100, 101, 102, 103]),
+        ([-1, -2, -3, -4, -100, -101, -102, -103]),
+        ([0., 0.8, 1.6, 2.4, 100., 100.8, 101.6, 102.4]),
+        ([-0.8, -1.6, -2.4, -3.2, -100., -100.8, -101.6, -102.4]),
+    ],
+    'scalar_value': [-3, 3, -1.2, 1.2],
+    'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+    'is_module': [True, False],
+}))
+class TestFloorDivScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     skip_backward_test = True
     skip_double_backward_test = True
@@ -1040,15 +1029,9 @@ class TestFloorDivideScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
         if self.is_module:
-            if self.is_scalar_rhs:
-                return xp.floor_divide(a, scalar)
-            else:
-                return xp.floor_divide(scalar, a)
+            return xp.floor_divide(a, scalar)
         else:
-            if self.is_scalar_rhs:
-                return a // scalar
-            else:
-                return scalar // a
+            return a // scalar
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -1293,7 +1276,7 @@ class TestITrueDivide(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
         'input': ['random'],
         'scalar_value': [1],
         'is_module': [False],
-        'is_scalar_rhs': [True, False],
+        'is_scalar_rhs': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
@@ -1302,7 +1285,17 @@ class TestITrueDivide(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
         'input': ['random'],
         'scalar_value': [1],
         'is_module': [False],
-        'is_scalar_rhs': [True, False],
+        'is_scalar_rhs': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_truediv_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        # TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
+        'is_scalar_rhs': [True],
     })
     # Special values
     + chainer.testing.product({
@@ -1313,7 +1306,7 @@ class TestITrueDivide(InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
         'input': [float('inf'), -float('inf'), float('nan')],
         'scalar_value': [-1, 1, 2, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
-        'is_scalar_rhs': [True, False],
+        'is_scalar_rhs': [False],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
@@ -1322,29 +1315,11 @@ class TestTrueDivideScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
 
-    def generate_inputs(self):
-        # Do not divide by small number to avoid ridiculously large outputs.
-        if not self.is_scalar_rhs and self.input == 'random':
-            in_dtype, = self.in_dtypes
-            low = -5 if numpy.dtype(in_dtype).kind != 'u' else 2
-            high = 5
-            x = array_utils.uniform(self.shape, in_dtype, low=low, high=high)
-            x[(-1 < x) & (x < 0)] = -2
-            x[(0 <= x) & (x < 1)] = 2
-            return x,
-        return super().generate_inputs()
-
     def func_scalar(self, xp, a, scalar):
         if self.is_module:
-            if self.is_scalar_rhs:
-                return xp.divide(a, scalar)
-            else:
-                return xp.divide(scalar, a)
+            return a / scalar
         else:
-            if self.is_scalar_rhs:
-                return a / scalar
-            else:
-                return scalar / a
+            return xp.divide(a, scalar)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

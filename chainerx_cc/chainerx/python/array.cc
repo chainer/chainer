@@ -406,14 +406,10 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__floordiv__",
           [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(FloorDivide(Array{self}, rhs)); },
           py::is_operator());
-    c.def("__rfloordiv__",
-          [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(FloorDivide(lhs, Array{self})); },
-          py::is_operator());
     c.def("__truediv__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} / Array{rhs}); },
           py::is_operator());
     c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} / rhs); }, py::is_operator());
-    c.def("__rtruediv__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs / Array{self}); }, py::is_operator());
     c.def("__and__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} & Array{rhs}); },
           py::is_operator());
