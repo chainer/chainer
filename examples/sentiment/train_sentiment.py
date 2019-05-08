@@ -88,7 +88,7 @@ class RecursiveNet(chainer.Chain):
         y = self.label(v)
 
         label = self.xp.array([node['label']], np.int32)
-        t = chainer.Variable(label)
+        t = chainer.Variable(label, requires_grad=False)
         loss += F.softmax_cross_entropy(y, t)
 
         predict = cuda.to_cpu(y.array.argmax(1))
@@ -118,10 +118,18 @@ def evaluate(model, test_trees):
         acc_root, result['correct_root'], result['total_root']))
 
 
+@chainer.dataset.converter()
+def convert(batch, _):
+    return batch
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', '-g', default=-1, type=int,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result', type=str,
                         help='Directory to ouput the result')
     parser.add_argument('--resume', '-r', type=str,
@@ -138,6 +146,10 @@ def main():
                         help='number of epochs per evaluation')
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     n_epoch = args.epoch       # number of epochs
@@ -151,6 +163,9 @@ def main():
     else:
         max_size = None
 
+    device = chainer.get_device(args.device)
+    device.use()
+
     vocab = {}
     train_data = [convert_tree(vocab, tree)
                   for tree in data.read_corpus('trees/train.txt', max_size)]
@@ -163,28 +178,22 @@ def main():
                  for tree in data.read_corpus('trees/test.txt', max_size)]
 
     model = RecursiveNet(len(vocab), n_units, n_label)
-
-    if args.gpu >= 0:
-        cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     # Setup optimizer
     optimizer = optimizers.AdaGrad(lr=0.1)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
 
-    def _convert(batch, _):
-        return batch
-
     # Setup updater
     updater = chainer.training.StandardUpdater(
-        train_iter, optimizer, device=args.gpu, converter=_convert)
+        train_iter, optimizer, device=device, converter=convert)
 
     # Setup trainer and run
     trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'), args.out)
     trainer.extend(
-        extensions.Evaluator(validation_iter, model, device=args.gpu,
-                             converter=_convert),
+        extensions.Evaluator(validation_iter, model, device=device,
+                             converter=convert),
         trigger=(epoch_per_eval, 'epoch'))
     trainer.extend(extensions.LogReport())
 
@@ -202,8 +211,11 @@ def main():
         extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
         trigger=(epoch_per_eval, 'epoch'))
 
+    trainer.extend(extensions.ProgressBar(update_interval=10))
+
     if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
+
     trainer.run()
 
     print('Test evaluation')
