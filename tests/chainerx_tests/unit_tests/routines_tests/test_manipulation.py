@@ -709,8 +709,8 @@ def test_swap_invalid(xp, shape, axis1, axis2):
 
 @op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest('shape,repeats,axis', [
-    ((1, 1), 1, 1),
-    ((2, 4), 1, 1),
+    ([1, 1], 1, 0),
+    ([2, 4], 2, 0),
 ])
 @chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestRepeat(op_utils.NumpyOpTest):

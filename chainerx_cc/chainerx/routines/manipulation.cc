@@ -778,14 +778,12 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
     {
         BackwardBuilder bb{"repeat", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([shape, axis, repeats](BackwardContext& bctx) {
+            bt.Define([shape, axis, repeats, dtype = a.dtype(), &device = a.device()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                Array& gin = bctx.input_grad();
-                Device& device = gin.device();
-                Dtype dtype = gin.dtype();
-
                 int64_t gout_offset = 0;
                 int64_t gin_offset = 0;
+
+                Array gin = Zeros(shape, dtype, device);
 
                 for (int32_t i = 0; i < shape[axis]; i++) {
                     Shape summed_shape = shape;
@@ -802,6 +800,8 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
                     gin.device().backend().CallKernel<CopyKernel>(summed, gin_dst);
                     gin_offset += gin.strides()[axis];
                 }
+
+                bctx.input_grad() = std::move(gin);
             });
         }
         bb.Finalize();

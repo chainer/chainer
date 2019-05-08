@@ -866,7 +866,8 @@ Construct an array by repeating a given array.
 
 Args:
     a (~chainerx.ndarray): Array to repeat.
-    repeasets (int or tuple of ints): The number of times which each element of a is repeated.
+    repeats (int or tuple of ints): The number of times which each 
+        element of a is repeated.
     axis (int): The axis along which to repeat values.
 
 Returns:

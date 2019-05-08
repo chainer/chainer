@@ -68,6 +68,7 @@ Array manipulation routines
    chainerx.stack
    chainerx.split
    chainerx.swapaxes
+   chainerx.repeat
    chainerx.expand_dims
 
 Indexing routines
