@@ -693,42 +693,6 @@ void InitChainerxMath(pybind11::module& m) {
     m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
     m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
     m.def("isfinite", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsFinite(Array{x})); }, py::arg("x"));
-    m.def("bitwise_and",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseAnd(Array{x1}, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_and",
-          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseAnd(Array{x1}, x2)); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_and",
-          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseAnd(x1, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_or",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseOr(Array{x1}, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_or",
-          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseOr(Array{x1}, x2)); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_or",
-          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseOr(x1, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_xor",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseXor(Array{x1}, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_xor",
-          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseXor(Array{x1}, x2)); },
-          py::arg("x1"),
-          py::arg("x2"));
-    m.def("bitwise_xor",
-          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseXor(x1, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
 }
 
 void InitChainerxSorting(pybind11::module& m) {

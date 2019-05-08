@@ -148,9 +148,6 @@ Mathematical functions
    chainerx.clip
    chainerx.ceil
    chainerx.floor
-   chainerx.bitwise_and
-   chainerx.bitwise_or
-   chainerx.bitwise_xor
 
 Random sampling
 ---------------
