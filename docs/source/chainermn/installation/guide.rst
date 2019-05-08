@@ -91,6 +91,8 @@ You can install MPI4py by::
 Please make be sure to properly configure environment variables so that MPI is available at installation time, because MPI4py links to MPI library at installation time.
 In particular, if you have multiple MPI implementations installed in your environment, please expose the implementation that you want to use both when you install and use ChainerMN.
 
+As of writing, MPI4py does not support Open MPI 4.x. Please use versions from the :ref:`tested-environments` section below.
+
 .. _cupy-install:
 
 CuPy
@@ -108,6 +110,8 @@ Chainer and ChainerMN can be installed without CuPy, in which case the correspon
 See :ref:`non-gpu-env` for more details.
 
 
+.. _tested-environments:
+
 Tested Environments
 -------------------
 
@@ -121,10 +125,19 @@ We tested ChainerMN on all the following environments.
 * Python 2.7.13, 3.5.1, 3.6.1
 * MPI
 
-  * openmpi 2.1.2
+  * Open MPI 2.1.6, 3.0.4, 3.1.4
 
 * MPI4py 3.0.0
 * NCCL 2.3.2 2.4.2
+
+.. note::
+
+  Note that certain versions of Open MPI have a bug that might cause a ChainerMN program to hang.
+  The versions are 3.0.[0-2] , 3.1.[0-2].
+
+  Also, mpi4py does not support Open MPI 4.0.x
+
+
 
 .. _non-gpu-env:
 
