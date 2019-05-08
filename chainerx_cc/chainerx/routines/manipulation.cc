@@ -189,8 +189,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 CHAINERX_ASSERT(dim > 0);
-                if (dim == 1 && st == 0) {
-                    // If the axis has unit-length with no stride, skip this dimension.
+                if (dim == 1) {
+                    // If the axis has unit-length, skip this dimension.
                 } else if (dim * st == reduced_strides.back()) {
                     // If the pair is compatible with the previous stride, reduce the pair to it.
                     reduced_shape.back() *= dim;
@@ -642,6 +642,9 @@ Array ExpandDims(const Array& a, int8_t axis) {
     shape.insert(shape.begin() + axis, 1);
 
     Array out = a.Reshape(shape);
+
+    // A trivial reshape of adding a new axis should just return a view of the input.
+    CHAINERX_ASSERT(out.raw_data() == a.raw_data());
 
     return out;
 }
