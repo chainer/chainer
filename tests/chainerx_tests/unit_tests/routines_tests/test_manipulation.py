@@ -830,9 +830,21 @@ class TestHVStack(op_utils.NumpyOpTest):
     lambda xp, input: xp.hstack(input),
     lambda xp, input: xp.vstack(input),
 ])
-def test_hvstack_invalid(func, xp, shape):
+def test_hvstack_invalid_shapes(func, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
     inputs = [xp.array(a) for a in inputs]
+    return func(xp, inputs)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('func', [
+    lambda xp, input: xp.hstack(input),
+    lambda xp, input: xp.vstack(input),
+])
+def test_hvstack_invalid_empty(func, xp):
+    inputs = []
     return func(xp, inputs)
 
 
