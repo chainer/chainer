@@ -103,6 +103,7 @@ Logic functions
 
    chainerx.logical_and
    chainerx.logical_or
+   chainerx.logical_xor
    chainerx.logical_not
 
    chainerx.greater
