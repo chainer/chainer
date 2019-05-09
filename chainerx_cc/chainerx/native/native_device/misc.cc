@@ -18,7 +18,7 @@ namespace {
 
 class NativePowerKernel : public PowerKernel {
 public:
-    void Call(const Array& x1, const Array& x2, const Array& out) {
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, x2, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -34,7 +34,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(PowerKernel, NativePowerKernel);
 
 class NativePowerASKernel : public PowerASKernel {
 public:
-    void Call(const Array& x1, Scalar x2, const Array& out) {
+    void Call(const Array& x1, Scalar x2, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -51,7 +51,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
 
 class NativePowerSAKernel : public PowerSAKernel {
 public:
-    void Call(Scalar x1, const Array& x2, const Array& out) {
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
         x2.device().CheckDevicesCompatible(x2, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
