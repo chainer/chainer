@@ -16,3 +16,6 @@ def make_data(shape, dtype):
 @testing.unary_math_function_unittest(F.arctanh, make_data=make_data)
 class TestArctanh(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)
