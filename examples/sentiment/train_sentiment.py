@@ -211,8 +211,6 @@ def main():
         extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
         trigger=(epoch_per_eval, 'epoch'))
 
-    trainer.extend(extensions.ProgressBar(update_interval=10))
-
     if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 

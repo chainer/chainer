@@ -235,8 +235,6 @@ def main():
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
-    trainer.extend(extensions.ProgressBar(update_interval=10))
-
     trainer.run()
 
 
