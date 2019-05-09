@@ -103,6 +103,7 @@ Logic functions
 
    chainerx.logical_and
    chainerx.logical_or
+   chainerx.logical_xor
    chainerx.logical_not
 
    chainerx.greater
@@ -170,6 +171,7 @@ Sorting, searching, and counting
    :nosignatures:
 
    chainerx.argmax
+   chainerx.argmin
 
 Statistics
 ----------

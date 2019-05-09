@@ -578,6 +578,24 @@ Note:
     """)
 
     _docs.set_doc(
+        chainerx.logical_xor,
+        """logical_xor(x1, x2)
+Returns an array of x1 XOR x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_xor`
+    """)
+
+    _docs.set_doc(
         chainerx.greater,
         """greater(x1, x2)
 Returns an array of (x1 > x2) element-wise.
@@ -1559,6 +1577,23 @@ Returns:
     axis if specified.
 
 .. seealso:: :func:`numpy.argmax`
+""")
+
+    _docs.set_doc(
+        chainerx.argmin,
+        """argmin(a, axis=None)
+Returns the indices of the minimum along an axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the indices of the minimum of.
+    axis (None or int): Along which axis to compute the minimum. The flattened
+        array is used by default.
+
+Returns:
+    :class:`~chainerx.ndarray`: The indices of the minimum of ``a``, along the
+    axis if specified.
+
+.. seealso:: :func:`numpy.argmin`
 """)
 
 

@@ -797,7 +797,7 @@ def test_swap_invalid(xp, shape, axis1, axis2):
     })
 ))
 @chainer.testing.parameterize_pytest('is_contiguous', [True, False])
-class TestExpandDIms(op_utils.NumpyOpTest):
+class TestExpandDims(op_utils.NumpyOpTest):
 
     # TODO(kshitij12345): Remove this when fixed
     check_numpy_strides_compliance = False
@@ -822,7 +822,13 @@ class TestExpandDIms(op_utils.NumpyOpTest):
         if self.is_contiguous:
             a = a.copy()
 
-        return xp.expand_dims(a, self.axis),
+        y = xp.expand_dims(a, self.axis)
+
+        # Result should be a view, not a copy.
+        if xp is chainerx:
+            assert y.data_ptr == a.data_ptr
+
+        return y,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
