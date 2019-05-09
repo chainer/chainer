@@ -105,8 +105,9 @@ class BatchRenormalizationFunction(function.Function):
                 x_hat_renorm = x_hat * r + d;
                 y = gamma * x_hat_renorm + beta;
                 ''',
-                'bn_fwd')(x, mean[expander], self.std[expander], gamma,
-                          beta, self.r[expander], d[expander])
+                'brn_fwd')(
+                    x, mean[expander], self.std[expander], gamma, beta,
+                    self.r[expander], d[expander])
 
         if self.update_statistics:
             # Update running statistics:
@@ -154,9 +155,10 @@ class BatchRenormalizationFunction(function.Function):
                 'T gx',
                 'gx = (r * gamma / std) * (gy - (x_hat * gsigma_batch + gbeta) * \
                 inv_m)',
-                'bn_bwd')(gy, self.x_hat, gamma[expander],
-                          self.std[expander], gsigma_batch[expander],
-                          gbeta[expander], inv_m, self.r[expander])
+                'brn_bwd')(
+                    gy, self.x_hat, gamma[expander],
+                    self.std[expander], gsigma_batch[expander],
+                    gbeta[expander], inv_m, self.r[expander])
         return gx, ggamma, gbeta
 
 
