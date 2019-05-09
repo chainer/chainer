@@ -179,6 +179,12 @@ get_third_party(optional-lite)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
+
+# TODO(durswd): Remove it. It is hack for MSVC+LLVM
+if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang") AND MSVC)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
+
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
