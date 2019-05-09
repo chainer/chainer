@@ -67,11 +67,6 @@ Please refer to the `list of lables on GitHub <https://github.com/chainer/chaine
 Coding Guidelines
 -----------------
 
-.. note::
-
-   Coding guidelines are updated in v3.0.
-   Those who have contributed to older versions may want to read the updated guidelines.
-
 We follow `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and partially `OpenStack Style Guidelines <https://docs.openstack.org/developer/hacking/>`_ as basic style guidelines.
 Any contributions in terms of code are expected to follow these guidelines.
 
