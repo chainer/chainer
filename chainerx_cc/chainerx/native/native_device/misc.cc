@@ -51,7 +51,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(PowASKernel, NativePowASKernel);
 
 class NativePowSAKernel : public PowSAKernel {
 public:
-    void Call(Scalar x1, const Array& x2, const Array& out) {
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
         x2.device().CheckDevicesCompatible(x2, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
