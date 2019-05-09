@@ -369,7 +369,7 @@ It means that **alpha, beta, and RC updates are developed at the** ``master`` **
 This branch contains the most up-to-date source tree that includes features newly added after the latest major version.
 
 The stable version is developed on the ``vN`` branch where "N" reflects the version number (*versioned branch*).
-For example, v3.0.0, v3.0.1, and v3.0.2 are developed on the ``v3`` branch.
+For example, v3.0.0, v3.1.0, and v3.2.0 are developed on the ``v3`` branch.
 
 A PR from a contributor should in general be targeting the ``master`` branch.
 If the change can and should be applied to the stable version in addition, a member from the core team will make sure it is backported to be included in the next revision update.
