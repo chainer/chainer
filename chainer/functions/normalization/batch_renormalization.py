@@ -199,6 +199,10 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     .. seealso:: :class:`~chainer.links.BatchRenormalization`
 
     """
+    if running_mean is None:
+        raise TypeError('running_mean is required')
+    if running_var is None:
+        raise TypeError('running_var is required')
     return BatchRenormalizationFunction(
         eps, running_mean, running_var, decay, rmax, dmax, update_statistics
     )(x, gamma, beta)
