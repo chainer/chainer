@@ -13,7 +13,12 @@ def make_data(shape, dtype):
     return x, gy, ggx
 
 
-@testing.unary_math_function_unittest(F.arctanh, make_data=make_data)
+@testing.unary_math_function_unittest(
+    F.arctanh,
+    make_data=make_data,
+    backward_options={'eps': 1e-3},
+    double_backward_options={'eps': 1e-3},
+)
 class TestArctanh(unittest.TestCase):
     pass
 
