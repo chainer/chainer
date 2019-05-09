@@ -18,7 +18,7 @@ namespace {
 
 class NativePowKernel : public PowKernel {
 public:
-    void Call(const Array& x1, const Array& x2, const Array& out) {
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
         x1.device().CheckDevicesCompatible(x1, x2, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
