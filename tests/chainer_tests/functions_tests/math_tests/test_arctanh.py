@@ -6,6 +6,7 @@ import numpy
 
 
 def make_data(shape, dtype):
+    # Input values close to -1 or 1 would make tests unstable
     x = numpy.random.uniform(-0.9, 0.9, shape).astype(dtype, copy=False)
     gy = numpy.random.uniform(-1, 1, shape).astype(dtype, copy=False)
     ggx = numpy.random.uniform(-1, 1, shape).astype(dtype, copy=False)
