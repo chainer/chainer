@@ -60,7 +60,6 @@ Issue/Pull Request Labels
 Issues and PRs are labeled on GitHub so that they can be grouped, filtered and better maintained.
 For instance, a label can indicate that a ticket needs response from the PR author, or that an issue needs immediate action in case of a critical bug.
 Please refer to the `list of lables on GitHub <https://github.com/chainer/chainer/labels>`_.
-**Note that revision releases cannot include PRs labeled as a feature or compability breaking.**
 
 .. _coding-guide:
 
