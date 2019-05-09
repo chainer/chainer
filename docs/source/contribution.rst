@@ -46,8 +46,8 @@ However, even if your code is not complete, you can send a PR as a *work-in-prog
 If you just describe the PR, the core team and other contributors can join the discussion about how to proceed with it.
 WIP PRs may occasionally be useful for discussing based on concrete code.
 
-When a PR is created (or updated), it is automatically tested in the CI environment.
-Once tests pass and the PR is approved by a reviewer from the core team, it will be merged.
+When a PR is created (or updated), it is automatically tested in one of our CI environments, namely Travis CI.
+Once tests pass all CI environments and the PR is approved by a reviewer from the core team, it will be merged.
 
 .. note::
 
