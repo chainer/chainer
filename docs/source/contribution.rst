@@ -44,7 +44,7 @@ this is the first documentation of your code and an important part of your PR.
 
 However, even if your code is not complete, you can send a PR as a *work-in-progress (WIP) PR* by prefixing the PR title with ``[WIP]``.
 If you just describe the PR, the core team and other contributors can join the discussion about how to proceed with it.
-WIP PRs may occasionally be be useful for discussing based on concrete code.
+WIP PRs may occasionally be useful for discussing based on concrete code.
 
 When a PR is created (or updated), it is automatically tested in the CI environment.
 Once tests pass and the PR is approved by a reviewer from the core team, it will be merged.
@@ -294,7 +294,7 @@ Open ``index.html`` with the browser and see if it is rendered as expected.
 
 .. note::
 
-   If you are unsure about how to write the documentation or failt to build it locally, you can submit a PR without documentations.
+   If you are unsure about how to write the documentation or failed to build it locally, you can submit a PR without documentation.
    Reviewers will help you with it.
 
 Other Forms of Contribution
@@ -371,7 +371,7 @@ This branch contains the most up-to-date source tree that includes features newl
 The stable version is developed on the ``vN`` branch where "N" reflects the version number (*versioned branch*).
 For example, v3.0.0, v3.0.1, and v3.0.2 are developed on the ``v3`` branch.
 
-A PR should from a contributor should in general be targeting the ``master`` branch.
+A PR from a contributor should in general be targeting the ``master`` branch.
 If the change can and should be applied to the stable version in addition, a member from the core team will make sure it is backported to be included in the next revision update.
 
 If the change is only applicable to the stable version and not to the ``master`` branch, please send it to the versioned branch.
