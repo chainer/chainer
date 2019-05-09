@@ -187,13 +187,13 @@ def main():
 
     # Setup updater
     updater = chainer.training.StandardUpdater(
-        train_iter, optimizer, device=device, converter=convert)
+        train_iter, optimizer, converter=convert, device=device)
 
     # Setup trainer and run
     trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'), args.out)
     trainer.extend(
-        extensions.Evaluator(validation_iter, model, device=device,
-                             converter=convert),
+        extensions.Evaluator(
+            validation_iter, model, converter=convert, device=device),
         trigger=(epoch_per_eval, 'epoch'))
     trainer.extend(extensions.LogReport())
 
