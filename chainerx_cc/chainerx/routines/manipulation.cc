@@ -761,7 +761,7 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
         Shape copy_shape = shape;
         copy_shape[axis] = 1;
 
-        for (int32_t i = 0; i < out_shape[axis]; i += repeats(offset)) {
+        for (int32_t i = 0; i < shape[axis]; i++) {
             Array src = internal::MakeArray(copy_shape, strides, dtype, device, a.data(), in_offset);
 
             for (int32_t j = 0; j < repeats(offset); j++) {
