@@ -286,6 +286,18 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
           py::arg("axis1"),
           py::arg("axis2"));
+    c.def("repeat",
+          [](const ArrayBodyPtr& self, int64_t repeats, nonstd::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
+          },
+          py::arg("repeats"),
+          py::arg("axis") = nullptr);
+    c.def("repeat",
+          [](const ArrayBodyPtr& self, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
+          },
+          py::arg("repeats"),
+          py::arg("axis") = nullptr);
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());
