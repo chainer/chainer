@@ -89,6 +89,7 @@ test_py37() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(imos): Enable xpytest to support python_files setting in setup.cfg.
   OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainerx_tests/**/test_*.py' \
       '/chainer/tests/chainer_tests/**/test_*.py' \
