@@ -531,8 +531,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"amax", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        // a and out are used only for restoring the mask. We don't need graph
-        // nodes.
+        // a and out are used only for restoring the mask. We don't need graph nodes.
         bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
@@ -892,7 +891,7 @@ Array Power(const Array& x1, const Array& x2) {
     Array out = Empty(x1.shape(), dtype, x1.device());
     {
         NoBackpropModeScope scope{};
-        x1_cast.device().backend().CallKernel<PowKernel>(x1_cast, x2_cast, out);
+        x1_cast.device().backend().CallKernel<PowerKernel>(x1_cast, x2_cast, out);
     }
 
     {
@@ -927,7 +926,7 @@ Array Power(const Array& x1, Scalar x2) {
     Array out = Empty(x1_cast.shape(), dtype, x1.device());
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallKernel<PowASKernel>(x1_cast, x2, out);
+        x1.device().backend().CallKernel<PowerASKernel>(x1_cast, x2, out);
     }
 
     BackwardBuilder bb{"pow_array_scalar", x1_cast, out};
@@ -948,7 +947,7 @@ Array Power(Scalar x1, const Array& x2) {
     Array out = Empty(x2.shape(), dtype, x2.device());
     {
         NoBackpropModeScope scope{};
-        x2.device().backend().CallKernel<PowSAKernel>(x1, x2_cast, out);
+        x2.device().backend().CallKernel<PowerSAKernel>(x1, x2_cast, out);
     }
     BackwardBuilder bb{"pow_scalar_array", x2_cast, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {

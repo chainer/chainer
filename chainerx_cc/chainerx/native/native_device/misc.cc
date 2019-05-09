@@ -16,7 +16,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativePowKernel : public PowKernel {
+class NativePowerKernel : public PowerKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) {
         x1.device().CheckDevicesCompatible(x1, x2, out);
@@ -30,9 +30,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(PowKernel, NativePowKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerKernel, NativePowerKernel);
 
-class NativePowASKernel : public PowASKernel {
+class NativePowerASKernel : public PowerASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) {
         x1.device().CheckDevicesCompatible(x1, out);
@@ -47,24 +47,24 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(PowASKernel, NativePowASKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
 
-class NativePowSAKernel : public PowSAKernel {
+class NativePowerSAKernel : public PowerSAKernel {
 public:
     void Call(Scalar x1, const Array& x2, const Array& out) {
         x2.device().CheckDevicesCompatible(x2, out);
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Pow(x2, x1); }
-                T x2;
+                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Pow(x1, x2); }
+                T x1;
             };
             Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2, out);
         });
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(PowSAKernel, NativePowSAKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
 
 class NativeSquareKernel : public SquareKernel {
 public:

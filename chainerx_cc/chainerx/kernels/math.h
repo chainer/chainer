@@ -130,25 +130,25 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class PowKernel : public Kernel {
+class PowerKernel : public Kernel {
 public:
-    static const char* name() { return "Pow"; }
+    static const char* name() { return "Power"; }
 
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-class PowASKernel : public Kernel {
+class PowerASKernel : public Kernel {
 public:
-    static const char* name() { return "PowAS"; }
+    static const char* name() { return "PowerAS"; }
 
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
-class PowSAKernel : public Kernel {
+class PowerSAKernel : public Kernel {
 public:
-    static const char* name() { return "PowSA"; }
+    static const char* name() { return "PowerSA"; }
 
-    virtual void Call(const Scalar x1, const Array& x2, const Array& out) = 0;
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
 class SinKernel : public Kernel {
