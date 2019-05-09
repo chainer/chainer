@@ -110,7 +110,6 @@ class BatchRenormalizationFunction(function.Function):
                     self.r[expander], d[expander])
 
         if self.update_statistics:
-            # Update running statistics:
             m = x.size // gamma[expander].size
             self._running_mean *= self.decay
             adjust = m / max(m - 1., 1.)  # unbiased estimation
@@ -172,6 +171,7 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     individual examples rather than the entire minibatch.
 
     .. note::
+
         This function does not perform in-place update to
         ``running_mean`` and ``running_var`` by default, contrary to
         :func:`~chainer.functions.batch_normalization`.
@@ -179,7 +179,19 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
         updated running mean and variance statistics, because they are members
         of the function object, which cannot be accessed by the caller.
         If it is desired to update the running statistics, call the function
-        with `update_statistics=True` option.
+        with ``update_statistics=True`` option.
+
+    .. note::
+
+        For the consistency with Batch Normalization, this function
+        intentionally ignores some of the theoretical flaws in Algorithm 1 of
+        the Batch Renormalization paper:
+
+        - The function maintains the moving average of variances
+          :math:`\\sigma^2`, while the original paper maintain the moving
+          average of standard deviations :math:`\\sigma`.
+        - The function applies Bessel's correction to update the moving average
+          of variances.
 
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
           Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
