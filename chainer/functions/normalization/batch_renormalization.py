@@ -69,10 +69,6 @@ class BatchRenormalizationFunction(function.Function):
         # Note: we must be in train mode.
         assert configuration.config.train
 
-        if not self.update_statistics:
-            self._running_mean = xp.array(self._running_mean)
-            self._running_var = xp.array(self._running_var)
-
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
 
@@ -90,20 +86,6 @@ class BatchRenormalizationFunction(function.Function):
         d = xp.clip(
             (mean - self._running_mean) / running_sigma,
             -self.dmax, self.dmax)
-
-        # Update running statistics:
-        m = x.size // gamma[expander].size
-        self._running_mean *= self.decay
-        adjust = m / max(m - 1., 1.)  # unbiased estimation
-        temp_ar = xp.array(mean)
-        temp_ar *= (1 - self.decay)
-        self._running_mean += temp_ar
-        del temp_ar
-        self._running_var *= self.decay
-        temp_ar = xp.array(var)
-        temp_ar *= (1 - self.decay) * adjust
-        self._running_var += temp_ar
-        del temp_ar
 
         gamma = gamma[expander]
         beta = beta[expander]
@@ -125,6 +107,21 @@ class BatchRenormalizationFunction(function.Function):
                 ''',
                 'bn_fwd')(x, mean[expander], self.std[expander], gamma,
                           beta, self.r[expander], d[expander])
+
+        if self.update_statistics:
+            # Update running statistics:
+            m = x.size // gamma[expander].size
+            self._running_mean *= self.decay
+            adjust = m / max(m - 1., 1.)  # unbiased estimation
+            temp_ar = xp.array(mean)
+            temp_ar *= (1 - self.decay)
+            self._running_mean += temp_ar
+            del temp_ar
+            self._running_var *= self.decay
+            temp_ar = xp.array(var)
+            temp_ar *= (1 - self.decay) * adjust
+            self._running_var += temp_ar
+            del temp_ar
 
         return y,
 
