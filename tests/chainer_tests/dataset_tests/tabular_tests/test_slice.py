@@ -14,22 +14,27 @@ from .test_tabular_dataset import DummyDataset
         'seq': [list, np.array],
     }),
     [
-        {'indices': slice(None), 'expected_len': 10,
-         'expected_indices': slice(0, 10, 1)},
-        {'indices': [3, 1], 'expected_len': 2, 'expected_indices': [3, 1]},
-        {'indices': [11, 1], 'exception': IndexError},
-        {'indices': slice(3, None, -2), 'expected_len': 2,
-         'expected_indices': slice(3, -1, -2)},
-    ],
-    [
         {'keys': None, 'expected_keys': ('a', 'b', 'c'),
          'expected_key_indices': None},
         {'keys': (1,), 'expected_keys': ('b',),
          'expected_key_indices': (1,)},
+        {'keys': (3,), 'exception': IndexError},
         {'keys': ('c',), 'expected_keys': ('c',),
          'expected_key_indices': (2,)},
+        {'keys': ('d',), 'exception': KeyError},
         {'keys': ('c', 0), 'expected_keys': ('c', 'a'),
          'expected_key_indices': (2, 0)},
+    ],
+    [
+        {'indices': slice(None), 'expected_len': 10,
+         'expected_indices': slice(0, 10, 1)},
+        {'indices': [3, 1], 'expected_len': 2, 'expected_indices': [3, 1]},
+        {'indices': [11, 1], 'exception': IndexError},
+        {'indices': [i in {1, 3} for i in range(10)],
+         'expected_len': 2, 'expected_indices': [1, 3]},
+        {'indices': [True] * 11, 'exception': ValueError},
+        {'indices': slice(3, None, -2), 'expected_len': 2,
+         'expected_indices': slice(3, -1, -2)},
     ],
 ))
 class TestSlice(unittest.TestCase):
@@ -37,7 +42,8 @@ class TestSlice(unittest.TestCase):
     def setUp(self):
         if isinstance(self.indices, list):
             self.indices = self.seq(
-                [self.integer(index) for index in self.indices])
+                [index if isinstance(index, bool) else self.integer(index)
+                 for index in self.indices])
 
     def test_slice(self):
         def callback(indices, key_indices):
