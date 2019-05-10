@@ -99,10 +99,10 @@ def _as_indices(indices, len_):
                              'different from the length of dataset')
         new_indices = []
         for i, index in enumerate(indices):
-            if isinstance(index, (bool, np.bool_)):
-                new_indices.append(i)
-            else:
+            if not isinstance(index, (bool, np.bool_)):
                 raise ValueError('{} is not a boolean'.format(index))
+            elif index:
+                new_indices.append(i)
         return new_indices
     elif isinstance(indices[0], numbers.Integral):
         new_indices = []
