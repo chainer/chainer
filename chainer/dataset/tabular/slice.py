@@ -1,5 +1,6 @@
 import numbers
 import numpy as np
+import six
 
 from chainer.dataset import TabularDataset
 
@@ -15,7 +16,7 @@ class Slice(TabularDataset):
         if self._indices is None:
             return len(self._dataset)
         elif isinstance(self._indices, slice):
-            return len(range(
+            return len(six.moves.range(
                 self._indices.start, self._indices.stop, self._indices.step))
         else:
             return len(self._indices)
@@ -122,7 +123,7 @@ def _merge_indices(a, b):
     elif isinstance(a, slice):
         return [a.start + a.step * index for index in b]
     elif isinstance(b, slice):
-        return [a[index] for index in range(b.start, b.stop, b.step)]
+        return [a[index] for index in six.moves.range(b.start, b.stop, b.step)]
     else:
         return [a[index] for index in b]
 
