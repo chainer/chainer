@@ -1,4 +1,7 @@
-class TabularDataset(object):
+from chainer.dataset import DatasetMixin
+
+
+class TabularDataset(DatasetMixin):
 
     def __len__(self):
         raise NotImplementedError
@@ -26,18 +29,6 @@ class TabularDataset(object):
         elif self.mode is dict:
             return dict(zip(self.keys, examples))
 
-    def __getitem__(self, index):
-        slice_ = self.slice[index]
-        if not isinstance(slice_, TabularDataset):
-            return slice_
-
-        examples = slice_.get_examples(None, None)
-        if slice_.mode is tuple:
-            return list(zip(*examples))
-        elif slice_.mode is dict:
-            return [dict(zip(self.keys, example))
-                    for example in zip(*examples)]
-
     def as_tuple(self):
         from chainer.dataset.tabular.as_mode import AsTuple
         return AsTuple(self)
@@ -45,3 +36,11 @@ class TabularDataset(object):
     def as_dict(self):
         from chainer.dataset.tabular.as_mode import AsDict
         return AsDict(self)
+
+    def get_example(self, index):
+        example = self.get_examples([index], None)
+        example = tuple(col[0] for col in example)
+        if self.mode is tuple:
+            return example
+        elif self.mode is dict:
+            return dict(zip(self.keys, example))
