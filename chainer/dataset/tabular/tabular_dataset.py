@@ -79,6 +79,26 @@ class TabularDataset(DatasetMixin):
 
     @property
     def slice(self):
+        """Get a slice of dataset.
+
+        >>> len(dataet)
+        4
+        >>> dataet.keys
+        ('a', 'b', 'c')
+        >>>
+        >>> dataset = dataset.slice[[3, 2], ('c', 0)]
+        >>> len(dataet)
+        2
+        >>> dataet.keys
+        ('c', 'a')
+
+        Args:
+           indices (list/array of ints/bools or slice): Requested rows.
+           keys (tuple of ints/strs): Requested columns.
+
+        Returns:
+            A view of specifed range.
+        """
         from chainer.dataset.tabular.slice import SliceHelper
         return SliceHelper(self)
 
@@ -103,12 +123,20 @@ class TabularDataset(DatasetMixin):
             return dict(zip(self.keys, examples))
 
     def as_tuple(self):
-        """Return a view in tuple mode"""
+        """Return a view with tuple mode.
+
+        Returns:
+            A view whose :attr:`mode` is :class:`tuple`.
+        """
         from chainer.dataset.tabular.as_mode import AsTuple
         return AsTuple(self)
 
     def as_dict(self):
-        """Return a view in dict mode"""
+        """Return a view with dict mode.
+
+        Returns:
+            A view whose :attr:`mode` is :class:`dict`.
+        """
         from chainer.dataset.tabular.as_mode import AsDict
         return AsDict(self)
 
