@@ -1,4 +1,9 @@
 import numpy
+import numpy.lib.stride_tricks
+try:
+    import cupy.lib.stride_tricks
+except ImportError:
+    pass
 
 from chainer import backend
 from chainer.backends import cuda
@@ -36,6 +41,14 @@ class Unpooling2D(pooling_2d.Pooling2D):
                 self.outw, self.kw, self.sx, self.pw, cover_all=self.cover_all)
             type_check.expect(x_type.shape[3] == expected_w)
 
+    def _integer_scale_forward(self, x):
+        xp = backend.get_array_module(x)
+        b, c, h, w = x.shape
+        bs, cs, hs, ws = x.strides
+        y = xp.lib.stride_tricks.as_strided(x, (b, c, h, self.kh, w, self.kw), (bs, cs, hs, 0, ws, 0))
+        y = y.reshape((b, c, self.kh * h, self.kw * w))
+        return y,
+
     def forward(self, x):
         h, w = x[0].shape[2:]
         if self.outh is None:
@@ -44,6 +57,11 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
+        if (self.outh % h == 0 and self.outw % w == 0 and
+           self.outh // h == self.kh and self.outw // w == self.kw and
+           self.ph == 0 and self.pw == 0 and
+           self.sx in (None, 1) and self.sy in (None, 1)):
+            return self._integer_scale_forward(x[0])
         xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
                       (1, 1, self.kh, self.kw, 1, 1))
@@ -70,9 +88,20 @@ class Unpooling2DGrad(function_node.FunctionNode):
         self.pw = unpooling2d.pw
         self.outh = unpooling2d.outh
         self.outw = unpooling2d.outw
+        self.sh = getattr(self, 'sh', None)
+        self.sw = getattr(self, 'sw', None)
         self.cover_all = unpooling2d.cover_all
 
+    def _integer_scale_forward(self, gy):
+        xp = backend.get_array_module(gy)
+        b, c, h, w = gy.shape
+        gx = gy.reshape((b, c, h // self.kh, self.kh, w // self.kw, self.kw))
+        gx = xp.rollaxis(gx, 3, 5).sum((4, 5))
+        return gx,
+
     def forward(self, gy):
+        if self.sh is not None and self.sw is not None:
+            return self._integer_scale_forward(gy[0])
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
                 gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
