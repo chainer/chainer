@@ -63,7 +63,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         visitor = _ToDeviceVisitor(
             backend.CpuDevice(),
             entry_method_info=('to_cpu', {}),
-            skip_between_cupy_devices=True)
+            skip_between_cupy_devices=True,
+            starting_device_resident=self)
         self.__to_device(visitor)
         return self
 
@@ -91,7 +92,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         visitor = _ToDeviceVisitor(
             device,
             entry_method_info=('to_gpu', {'device': device.device}),
-            skip_between_cupy_devices=True)
+            skip_between_cupy_devices=True,
+            starting_device_resident=self)
         self.__to_device(visitor)
         return self
 
@@ -101,7 +103,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         intel64.check_ideep_available()
         visitor = _ToDeviceVisitor(
             chainer.get_device(intel64.Intel64Device()),
-            entry_method_info=('to_intel64', {}))
+            entry_method_info=('to_intel64', {}),
+            starting_device_resident=self)
         self.__to_device(visitor)
         return self
 
@@ -205,7 +208,8 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def __init__(
             self, device, entry_method_info=None,
-            skip_between_cupy_devices=False):
+            skip_between_cupy_devices=False,
+            starting_device_resident=None):
 
         assert isinstance(device, chainer.backend.Device)
 
@@ -219,15 +223,29 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
             assert len(entry_method_info) == 2
             assert entry_method_info[0] in ('to_cpu', 'to_gpu', 'to_intel64')
 
+        # starting_device_resident is also for backward compatibility
+        # workaround for overridden methods.
+        # It is a DeviceResident if to_xxx methods were initially called
+        # on this visitor. This is used to avoid infinite accept-visit loop
+        # that would occur by calling to_xxx methods.
+        assert (starting_device_resident is None
+                or isinstance(starting_device_resident, DeviceResident))
+
         self._device = device
         self._entry_method_info = entry_method_info
         self._skip_between_cupy_devices = skip_between_cupy_devices
+        self._starting_device_resident = starting_device_resident
 
     def visit_device_resident(self, device_resident):
         device_resident._device = self._device
 
         # Backward compatibility workaround for overridden methods
         if device_resident._overridden_to_methods:
+            # Skip this device resident, if the visitor was initially triggered
+            # from it.
+            if device_resident is self._starting_device_resident:
+                return
+
             if self._entry_method_info is not None:
                 # Deprecated method is being called: e.g. to_cpu and to_gpu.
                 method_name, kwargs = self._entry_method_info

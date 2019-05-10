@@ -10,12 +10,14 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/backend.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
@@ -71,7 +73,7 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     Array out_matrix = Empty({m, n}, real_out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().Dot(a_matrix, b_matrix, out_matrix);
+        a.device().backend().CallKernel<DotKernel>(a_matrix, b_matrix, out_matrix);
     }
 
     {

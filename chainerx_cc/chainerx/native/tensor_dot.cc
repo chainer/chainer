@@ -9,6 +9,7 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
@@ -88,7 +89,8 @@ Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& 
     // Compute the dot product between a and b reshaped to 2-dimensions.
     Shape dot_shape{a_remain_total_size, b_remain_total_size};
     Array dot_out = Empty(dot_shape, out_dtype, a.device());
-    a.device().Dot(a.Transpose(a_roll_axes).Reshape(a_shape), b.Transpose(b_roll_axes).Reshape(b_shape), dot_out);
+    a.device().backend().CallKernel<DotKernel>(
+            a.Transpose(a_roll_axes).Reshape(a_shape), b.Transpose(b_roll_axes).Reshape(b_shape), dot_out);
 
     // Reshape and return the output array.
     Shape out_shape = a_remain_dims;

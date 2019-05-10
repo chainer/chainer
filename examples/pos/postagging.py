@@ -7,7 +7,6 @@ import six
 
 import chainer
 from chainer import datasets
-import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 from chainer import training
@@ -23,28 +22,19 @@ class CRF(chainer.Chain):
             self.crf = L.CRF1d(n_pos)
 
     def forward(self, xs, ys):
-        # Before making a transpose, you need to sort two lists in descending
-        # order of length.
-        inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)
-        xs = [xs[i] for i in inds]
-        ys = [ys[i] for i in inds]
-
-        # Make transposed sequences.
-        # Now xs[t] is a batch of words at time t.
-        xs = F.transpose_sequence(xs)
-        ys = F.transpose_sequence(ys)
-
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
-        loss = self.crf(hs, ys)
+        loss = self.crf(hs, ys, transpose=True)
         reporter.report({'loss': loss}, self)
 
         # To predict labels, call argmax method.
-        _, predict = self.crf.argmax(hs)
+        _, predict = self.crf.argmax(hs, transpose=True)
         correct = 0
         total = 0
         for y, p in six.moves.zip(ys, predict):
-            correct += self.xp.sum(y.array == p)
+            # NOTE y is ndarray because
+            # it does not pass to transpose_sequence
+            correct += self.xp.sum(y == p)
             total += len(y)
         reporter.report({'correct': correct}, self)
         reporter.report({'total': total}, self)
@@ -53,7 +43,7 @@ class CRF(chainer.Chain):
 
     def argmax(self, xs):
         hs = [self.feature(x) for x in xs]
-        return self.crf.argmax(hs)
+        return self.crf.argmax(hs, transpose=True)
 
 
 def convert(batch, device):

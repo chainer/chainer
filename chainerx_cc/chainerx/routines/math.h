@@ -49,6 +49,7 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2);
 void IFloorDivide(const Array& x1, Scalar x2);
+
 void ITrueDivide(const Array& x1, const Array& x2);
 void ITrueDivide(const Array& x1, Scalar x2);
 
@@ -57,14 +58,13 @@ void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
-Array Divide(const Array& x1, const Array& x2);
-Array Divide(const Array& x1, Scalar x2);
-Array Divide(Scalar x1, const Array& x2);
-
-// TODO(imanishi): Support bool
 Array FloorDivide(const Array& x1, const Array& x2);
 Array FloorDivide(const Array& x1, Scalar x2);
 Array FloorDivide(Scalar x1, const Array& x2);
+
+Array Divide(const Array& x1, const Array& x2);
+Array Divide(const Array& x1, Scalar x2);
+Array Divide(Scalar x1, const Array& x2);
 
 Array TrueDivide(const Array& x1, const Array& x2);
 Array TrueDivide(const Array& x1, Scalar x2);
@@ -75,15 +75,19 @@ Array Reciprocal(const Array& x);
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array AMin(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+Array Maximum(const Array& x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
+Array Log10(const Array& x);
 
 // Returns the LogSumExp (LSE) of x, reduced along the specified axes.
 // If no axes are specified, all axes will be reduced.
@@ -95,7 +99,13 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sigmoid(const Array& x);
 
+Array Relu(const Array& x);
+
+Array Softmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
+
 Array Square(const Array& x);
+
+Array SquaredDifference(const Array& x1, const Array& x2);
 
 Array Sqrt(const Array& x);
 
@@ -103,78 +113,61 @@ Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
+Array IsFinite(const Array& x);
+
 Array Tanh(const Array& x);
 
-class SinOp : public Op {
-public:
-    static const char* name() { return "Sin"; }
+Array Sin(const Array& x);
 
-    virtual Array Call(const Array& x);
+Array Cos(const Array& x);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+Array Absolute(const Array& x);
 
-inline Array Sin(const Array& x) { return x.device().backend().CallOp<SinOp>(x); }
+Array Tan(const Array& x);
 
-class CosOp : public Op {
-public:
-    static const char* name() { return "Cos"; }
+Array Arcsin(const Array& x);
 
-    virtual Array Call(const Array& x);
+Array Arccos(const Array& x);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+Array Arctan(const Array& x);
 
-inline Array Cos(const Array& x) { return x.device().backend().CallOp<CosOp>(x); }
+Array Arctan2(const Array& x1, const Array& x2);
 
-class TanOp : public Op {
-public:
-    static const char* name() { return "Tan"; }
+Array Sinh(const Array& x);
 
-    virtual Array Call(const Array& x);
+Array Cosh(const Array& x);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+Array Arcsinh(const Array& x);
 
-inline Array Tan(const Array& x) { return x.device().backend().CallOp<TanOp>(x); }
+Array Arccosh(const Array& x);
 
-class ArcsinOp : public Op {
-public:
-    static const char* name() { return "Arcsin"; }
+Array Ceil(const Array& x);
 
-    virtual Array Call(const Array& x);
+Array Floor(const Array& x);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+namespace internal {
 
-inline Array Arcsin(const Array& x) { return x.device().backend().CallOp<ArcsinOp>(x); }
+void IBitwiseAnd(const Array& x1, const Array& x2);
+void IBitwiseAnd(const Array& x1, Scalar x2);
 
-class ArccosOp : public Op {
-public:
-    static const char* name() { return "Arccos"; }
+void IBitwiseOr(const Array& x1, const Array& x2);
+void IBitwiseOr(const Array& x1, Scalar x2);
 
-    virtual Array Call(const Array& x);
+void IBitwiseXor(const Array& x1, const Array& x2);
+void IBitwiseXor(const Array& x1, Scalar x2);
 
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
+}  // namespace internal
 
-inline Array Arccos(const Array& x) { return x.device().backend().CallOp<ArccosOp>(x); }
+Array BitwiseAnd(const Array& x1, const Array& x2);
+Array BitwiseAnd(const Array& x1, Scalar x2);
+Array BitwiseAnd(Scalar x1, const Array& x2);
 
-class ArctanOp : public Op {
-public:
-    static const char* name() { return "Arctan"; }
+Array BitwiseOr(const Array& x1, const Array& x2);
+Array BitwiseOr(const Array& x1, Scalar x2);
+Array BitwiseOr(Scalar x1, const Array& x2);
 
-    virtual Array Call(const Array& x);
-
-protected:
-    virtual void Impl(const Array& x, const Array& out) = 0;
-};
-
-inline Array Arctan(const Array& x) { return x.device().backend().CallOp<ArctanOp>(x); }
+Array BitwiseXor(const Array& x1, const Array& x2);
+Array BitwiseXor(const Array& x1, Scalar x2);
+Array BitwiseXor(Scalar x1, const Array& x2);
 
 }  // namespace chainerx

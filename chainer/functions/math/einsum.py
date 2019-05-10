@@ -254,7 +254,7 @@ def _parse_einsum_input(operands):
     ('@a,@a', '@', [a, b])
     """
 
-    if len(operands) == 0:
+    if not operands:
         raise ValueError('No input operands')
 
     if isinstance(operands[0], str):

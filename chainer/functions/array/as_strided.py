@@ -56,7 +56,7 @@ def _min_index(shape, strides, storage_offset):
         int: The leftest pointer in the array
     """
     sh_st_neg = [sh_st for sh_st in zip(shape, strides) if sh_st[1] < 0]
-    if len(sh_st_neg) == 0:
+    if not sh_st_neg:
         return storage_offset
     else:
         return storage_offset + moves.reduce(
@@ -77,7 +77,7 @@ def _max_index(shape, strides, storage_offset):
         int: The rightest pointer in the array
     """
     sh_st_pos = [sh_st for sh_st in zip(shape, strides) if sh_st[1] > 0]
-    if len(sh_st_pos) == 0:
+    if not sh_st_pos:
         return storage_offset
     else:
         return storage_offset + moves.reduce(

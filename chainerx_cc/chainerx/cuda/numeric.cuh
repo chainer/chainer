@@ -23,74 +23,48 @@ __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
 template <typename T>
-__device__ inline T Tanh(T x) {
-    return std::tanh(x);
+__device__ inline T Arctan2(T x1, T x2) {
+    return std::atan2(x1, x2);
+}
+template <>
+__device__ inline cuda::Float16 Arctan2<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{std::atan2(static_cast<float>(x1), static_cast<float>(x2))};
 }
 
-__device__ inline cuda::Float16 Tanh(cuda::Float16 x) { return cuda::Float16{std::tanh(static_cast<float>(x))}; }
+__device__ inline double Arcsinh(double x) { return std::asinh(x); }
 
-template <typename T>
-__device__ inline T Sin(T x) {
-    return std::sin(x);
-}
+__device__ inline float Arcsinh(float x) { return std::asinhf(x); }
 
-__device__ inline cuda::Float16 Sin(cuda::Float16 x) { return cuda::Float16{std::sin(static_cast<float>(x))}; }
+__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinhf(static_cast<float>(x))}; }
 
-template <typename T>
-__device__ inline T Cos(T x) {
-    return std::cos(x);
-}
+__device__ inline double Arccosh(double x) { return std::acosh(x); }
 
-__device__ inline cuda::Float16 Cos(cuda::Float16 x) { return cuda::Float16{std::cos(static_cast<float>(x))}; }
+__device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
-template <typename T>
-__device__ inline T Tan(T x) {
-    return std::tan(x);
-}
+__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
-__device__ inline cuda::Float16 Tan(cuda::Float16 x) { return cuda::Float16{std::tan(static_cast<float>(x))}; }
+#define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
+    template <typename T>                                       \
+    __device__ inline T name(T x) {                             \
+        return func(x);                                         \
+    }                                                           \
+    __device__ inline cuda::Float16 name(cuda::Float16 x) { return cuda::Float16{func(static_cast<float>(x))}; }
 
-template <typename T>
-__device__ inline T Arcsin(T x) {
-    return std::asin(x);
-}
-
-__device__ inline cuda::Float16 Arcsin(cuda::Float16 x) { return cuda::Float16{std::asin(static_cast<float>(x))}; }
-
-template <typename T>
-__device__ inline T Arccos(T x) {
-    return std::acos(x);
-}
-
-__device__ inline cuda::Float16 Arccos(cuda::Float16 x) { return cuda::Float16{std::acos(static_cast<float>(x))}; }
-
-template <typename T>
-__device__ inline T Arctan(T x) {
-    return std::atan(x);
-}
-
-__device__ inline cuda::Float16 Arctan(cuda::Float16 x) { return cuda::Float16{std::atan(static_cast<float>(x))}; }
-
-template <typename T>
-__device__ inline T Exp(T x) {
-    return std::exp(x);
-}
-
-__device__ inline cuda::Float16 Exp(cuda::Float16 x) { return x.Exp(); }
-
-template <typename T>
-__device__ inline T Log(T x) {
-    return std::log(x);
-}
-
-__device__ inline cuda::Float16 Log(cuda::Float16 x) { return x.Log(); }
-
-template <typename T>
-__device__ inline T Sqrt(T x) {
-    return std::sqrt(x);
-}
-
-__device__ inline cuda::Float16 Sqrt(cuda::Float16 x) { return x.Sqrt(); }
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 
 }  // namespace cuda
 }  // namespace chainerx

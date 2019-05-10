@@ -30,6 +30,9 @@ class CpuDevice(_backend.Device):
     def __repr__(self):
         return '<{} (numpy)>'.format(self.__class__.__name__)
 
+    def __str__(self):
+        return '@numpy'
+
     def send_array(self, array):
         return _array_to_cpu(array)
 

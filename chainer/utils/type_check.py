@@ -503,6 +503,10 @@ Invalid operation is performed in: {0} (Forward)
         self.expect = expect
         self.actual = actual
 
+    def __reduce__(self):
+        msg, = self.args
+        return (InvalidType, (self.expect, self.actual, msg))
+
 
 def _argname(in_types, names):
     """Assigns user friendly names for the input types.

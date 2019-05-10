@@ -6,7 +6,9 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import testing
+from chainer import functions
 from chainer.testing import attr
+from chainer.utils import force_array
 from chainer.utils import type_check
 
 
@@ -56,36 +58,51 @@ def accuracy(x, t, ignore_label):
          {'label_dtype': numpy.int64}]
     )
 )
-class TestAccuracy(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestAccuracy(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.skip_backward_test = True
+        self.skip_double_backward_test = True
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
         if self.t_data == 'randint':
-            self.t = numpy.random.randint(
+            t = numpy.random.randint(
                 3, size=self.t_shape).astype(self.label_dtype)
         elif self.t_data == 'zero':
-            self.t = numpy.zeros(self.t_shape).astype(self.label_dtype)
-        self.check_forward_options = {}
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            t = numpy.zeros(self.t_shape).astype(self.label_dtype)
+        return x, t
 
-    def check_forward(self, x_data, t_data):
-        x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
-        y = chainer.functions.accuracy(x, t, self.ignore_label)
-        self.assertEqual(y.data.dtype, self.dtype)
-        self.assertEqual((), y.data.shape)
+    def forward(self, inputs, device):
+        x, t = inputs
+        return functions.accuracy(x, t, self.ignore_label),
 
-        expected = accuracy(self.x, self.t, self.ignore_label)
-        testing.assert_allclose(
-            expected, cuda.to_cpu(y.data), **self.check_forward_options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.t)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+    def forward_expected(self, inputs):
+        x, t = inputs
+        expected = accuracy(x, t, self.ignore_label)
+        expected = force_array(expected, self.dtype)
+        return expected,
 
 
 @testing.parameterize(
@@ -107,7 +124,7 @@ class TestInvalidShape(unittest.TestCase):
         x = chainer.Variable(xp.asarray(self.x))
         t = chainer.Variable(xp.asarray(self.t))
         with self.assertRaises(type_check.InvalidType):
-            chainer.functions.accuracy(x, t)
+            functions.accuracy(x, t)
 
     def test_invalid_shape_cpu(self):
         self.check_invalid_shape(numpy)
