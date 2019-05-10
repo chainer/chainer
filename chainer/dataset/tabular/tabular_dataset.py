@@ -42,11 +42,11 @@ class TabularDataset(object):
                     for example in zip(*examples)]
 
     def as_tuple(self):
-        from sugoi.view import View
+        from chainer.dataset.tabular.view import View
         return View(self, None, None, tuple)
 
     def as_dict(self):
-        from sugoi.view import View
+        from chainer.dataset.tabular.view import View
         return View(self, None, None, dict)
 
 

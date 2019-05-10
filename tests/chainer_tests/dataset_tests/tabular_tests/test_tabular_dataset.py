@@ -87,5 +87,21 @@ class TestTabularDataset(unittest.TestCase):
             self.assertEqual(
                 output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
 
+    def test_as_tuple(self):
+        dataset = DummyDataset(self.mode, None)
+        view = dataset.as_tuple()
+        self.assertIsInstance(view, TabularDataset)
+        self.assertEqual(len(view), len(dataset))
+        self.assertEqual(view.keys, dataset.keys)
+        self.assertEqual(view.mode, tuple)
+
+    def test_as_dict(self):
+        dataset = DummyDataset(self.mode, None)
+        view = dataset.as_dict()
+        self.assertIsInstance(view, TabularDataset)
+        self.assertEqual(len(view), len(dataset))
+        self.assertEqual(view.keys, dataset.keys)
+        self.assertEqual(view.mode, dict)
+
 
 testing.run_module(__name__, __file__)
