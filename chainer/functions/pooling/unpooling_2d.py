@@ -46,7 +46,8 @@ class Unpooling2D(pooling_2d.Pooling2D):
         xp = backend.get_array_module(x)
         b, c, h, w = x.shape
         bs, cs, hs, ws = x.strides
-        y = xp.lib.stride_tricks.as_strided(x, (b, c, h, self.kh, w, self.kw), (bs, cs, hs, 0, ws, 0))
+        y = xp.lib.stride_tricks.as_strided(
+            x, (b, c, h, self.kh, w, self.kw), (bs, cs, hs, 0, ws, 0))
         y = y.reshape((b, c, self.kh * h, self.kw * w))
         return y,
 
@@ -59,9 +60,9 @@ class Unpooling2D(pooling_2d.Pooling2D):
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
         if (self.outh % h == 0 and self.outw % w == 0 and
-           self.outh // h == self.kh and self.outw // w == self.kw and
-           self.ph == 0 and self.pw == 0 and
-           self.sx == self.kh and self.sy == self.kw):
+            self.outh // h == self.kh and self.outw // w == self.kw and
+            self.ph == 0 and self.pw == 0 and
+                self.sx == self.kh and self.sy == self.kw):
             self._use_integer_scale_forward = True
             return self._integer_scale_forward(x[0])
         xp = backend.get_array_module(*x)
