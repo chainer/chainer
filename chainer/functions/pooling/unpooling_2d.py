@@ -1,7 +1,7 @@
 import numpy
 import numpy.lib.stride_tricks
 try:
-    import cupy.lib.stride_tricks
+    import cupy.lib.stride_tricks  # NOQA
 except ImportError:
     pass
 
@@ -21,7 +21,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
                  outsize=None, cover_all=True):
         super(Unpooling2D, self).__init__(ksize, stride, pad, cover_all)
         self.outh, self.outw = (None, None) if outsize is None else outsize
-        self._use_integer_scale_forward = False
+        self._use_int_scale_forward = False
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -63,7 +63,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
             self.outh // h == self.kh and self.outw // w == self.kw and
             self.ph == 0 and self.pw == 0 and
                 self.sx == self.kh and self.sy == self.kw):
-            self._use_integer_scale_forward = True
+            self._use_int_scale_forward = True
             return self._integer_scale_forward(x[0])
         xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
@@ -92,7 +92,7 @@ class Unpooling2DGrad(function_node.FunctionNode):
         self.outh = unpooling2d.outh
         self.outw = unpooling2d.outw
         self.cover_all = unpooling2d.cover_all
-        self._use_integer_scale_forward = unpooling2d._use_integer_scale_forward
+        self._use_int_scale_forward = unpooling2d._use_int_scale_forward
 
     def _integer_scale_forward(self, gy):
         xp = backend.get_array_module(gy)
@@ -102,7 +102,7 @@ class Unpooling2DGrad(function_node.FunctionNode):
         return gx,
 
     def forward(self, gy):
-        if self._use_integer_scale_forward:
+        if self._use_int_scale_forward:
             return self._integer_scale_forward(gy[0])
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
