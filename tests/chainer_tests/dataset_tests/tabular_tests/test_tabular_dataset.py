@@ -45,6 +45,11 @@ class TestTabularDataset(unittest.TestCase):
         elif self.mode is dict:
             self.assertEqual(output, {'a': 3, 'b': 1, 'c': 4})
 
+    def test_getitem_index_invalid(self):
+        dataset = DummyDataset(self.mode, None)
+        with self.assertRaises(IndexError):
+            dataset[self.integer(11)]
+
     def test_getitem_indices_list(self):
         def get_examples(indices, key_indices):
             self.assertEqual(indices, [3, 1])
@@ -58,6 +63,11 @@ class TestTabularDataset(unittest.TestCase):
         elif self.mode is dict:
             self.assertEqual(
                 output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
+
+    def test_getitem_indices_list_invalid(self):
+        dataset = DummyDataset(self.mode, None)
+        with self.assertRaises(IndexError):
+            dataset[[self.integer(11), self.integer(1)]]
 
     def test_getitem_indices_array(self):
         def get_examples(indices, key_indices):
