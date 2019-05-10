@@ -21,6 +21,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
                  outsize=None, cover_all=True):
         super(Unpooling2D, self).__init__(ksize, stride, pad, cover_all)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self._use_integer_scale_forward = False
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -60,7 +61,8 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if (self.outh % h == 0 and self.outw % w == 0 and
            self.outh // h == self.kh and self.outw // w == self.kw and
            self.ph == 0 and self.pw == 0 and
-           self.sx in (None, 1) and self.sy in (None, 1)):
+           self.sx == self.kh and self.sy == self.kw):
+            self._use_integer_scale_forward = True
             return self._integer_scale_forward(x[0])
         xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
@@ -88,9 +90,8 @@ class Unpooling2DGrad(function_node.FunctionNode):
         self.pw = unpooling2d.pw
         self.outh = unpooling2d.outh
         self.outw = unpooling2d.outw
-        self.sh = getattr(self, 'sh', None)
-        self.sw = getattr(self, 'sw', None)
         self.cover_all = unpooling2d.cover_all
+        self._use_integer_scale_forward = unpooling2d._use_integer_scale_forward
 
     def _integer_scale_forward(self, gy):
         xp = backend.get_array_module(gy)
@@ -100,7 +101,7 @@ class Unpooling2DGrad(function_node.FunctionNode):
         return gx,
 
     def forward(self, gy):
-        if self.sh is not None and self.sw is not None:
+        if self._use_integer_scale_forward:
             return self._integer_scale_forward(gy[0])
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
