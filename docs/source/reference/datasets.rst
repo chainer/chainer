@@ -33,6 +33,16 @@ See :ref:`datasets` for dataset implementations.
 
    chainer.dataset.DatasetMixin
 
+Tabular Dataset Representation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.TabularDataset
+
+
 Iterator Interface
 ~~~~~~~~~~~~~~~~~~
 See :ref:`iterators` for dataset iterator implementations.
