@@ -7,12 +7,18 @@ from chainer.dataset import TabularDataset
 
 class DummyDataset(TabularDataset):
 
-    def __init__(self, mode, get_examples):
+    data = np.array([
+        [3, 1, 4, 1, 5, 9, 2, 6, 5, 3],
+        [2, 7, 1, 8, 2, 8, 1, 8, 2, 8],
+        [1, 4, 1, 4, 2, 1, 3, 5, 6, 2],
+    ])
+
+    def __init__(self, mode, callback):
         self._mode = mode
-        self._get_examples = get_examples
+        self._callback = callback
 
     def __len__(self):
-        return 10
+        return self.data.shape[1]
 
     @property
     def keys(self):
@@ -23,7 +29,19 @@ class DummyDataset(TabularDataset):
         return self._mode
 
     def get_examples(self, indices, key_indices):
-        return self._get_examples(indices, key_indices)
+        self._callback(indices, key_indices)
+
+        if indices is None:
+            indices = slice(0, len(self), 1)
+        if isinstance(indices, slice):
+            indices = range(indices.start, indices.stop, indices.step)
+
+        if key_indices is None:
+            key_indices = (0, 1, 2)
+
+        return tuple(
+            list(self.data[key_index][index] for index in indices)
+            for key_index in key_indices)
 
 
 @testing.parameterize(*testing.product({
@@ -33,159 +51,46 @@ class DummyDataset(TabularDataset):
 }))
 class TestTabularDataset(unittest.TestCase):
 
-    def test_getitem_index(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, [3])
+    def _check_getitem(self, indices, expected_indices):
+        def callback(indices, key_indices):
+            self.assertEqual(indices, expected_indices)
             self.assertIsNone(key_indices)
-            return [3], [1], [4]
 
-        dataset = DummyDataset(self.mode, get_examples)
-        output = dataset[self.integer(3)]
-        if self.mode is tuple:
-            self.assertEqual(output, (3, 1, 4))
-        elif self.mode is dict:
-            self.assertEqual(output, {'a': 3, 'b': 1, 'c': 4})
+        dataset = DummyDataset(self.mode, callback)
+        output = dataset[indices]
+
+        data = dataset.data.transpose()[indices]
+        if data.ndim == 1:
+            if self.mode is tuple:
+                expected_output = tuple(data)
+            elif self.mode is dict:
+                expected_output = dict(zip(('a', 'b', 'c'), data))
+        else:
+            if self.mode is tuple:
+                expected_output = list(tuple(d) for d in data)
+            elif self.mode is dict:
+                expected_output = list(
+                    dict(zip(('a', 'b', 'c'), d)) for d in data)
+        self.assertEqual(output, expected_output)
+
+    def test_getitem_index(self):
+        self._check_getitem(self.integer(3), [3])
 
     def test_getitem_index_invalid(self):
-        dataset = DummyDataset(self.mode, None)
         with self.assertRaises(IndexError):
-            dataset[self.integer(11)]
+            self._check_getitem(self.integer(11), None)
 
     def test_getitem_indices_seq(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, [3, 1])
-            self.assertIsNone(key_indices)
-            return [3, 5], [1, 9], [4, 2]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        output = dataset[self.seq([self.integer(3), self.integer(1)])]
-        if self.mode is tuple:
-            self.assertEqual(output, [(3, 1, 4), (5, 9, 2)])
-        elif self.mode is dict:
-            self.assertEqual(
-                output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
+        self._check_getitem(
+            self.seq([self.integer(3), self.integer(1)]), [3, 1])
 
     def test_getitem_indices_seq_invalid(self):
-        dataset = DummyDataset(self.mode, None)
         with self.assertRaises(IndexError):
-            dataset[self.seq([self.integer(11), self.integer(1)])]
+            self._check_getitem(
+                self.seq([self.integer(11), self.integer(1)]), None)
 
     def test_getitem_indices_slice(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, slice(3, -1, -2))
-            self.assertIsNone(key_indices)
-            return [3, 5], [1, 9], [4, 2]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        output = dataset[3::-2]
-        if self.mode is tuple:
-            self.assertEqual(output, [(3, 1, 4), (5, 9, 2)])
-        elif self.mode is dict:
-            self.assertEqual(
-                output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
-
-    def test_slice_index(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, [3])
-            self.assertIsNone(key_indices)
-            return [3], [1], [4]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        output = dataset.slice[self.integer(3)]
-        if self.mode is tuple:
-            self.assertEqual(output, (3, 1, 4))
-        elif self.mode is dict:
-            self.assertEqual(output, {'a': 3, 'b': 1, 'c': 4})
-
-    def test_slice_index_invalid(self):
-        dataset = DummyDataset(self.mode, None)
-        with self.assertRaises(IndexError):
-            dataset.slice[self.integer(11)]
-
-    def test_slice_indices_seq(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, [3, 1])
-            self.assertIsNone(key_indices)
-            return [3, 5], [1, 9], [4, 2]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        view = dataset.slice[self.seq([self.integer(3), self.integer(1)])]
-        self.assertIsInstance(view, TabularDataset)
-        self.assertEqual(len(view), 2)
-        self.assertEqual(view.keys, dataset.keys)
-        self.assertEqual(view.mode, dataset.mode)
-
-        output = view.fetch()
-        if self.mode is tuple:
-            self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
-        elif self.mode is dict:
-            self.assertEqual(output, {'a': [3, 5], 'b': [1, 9], 'c': [4, 2]})
-
-    def test_slice_indices_seq_invalid(self):
-        dataset = DummyDataset(self.mode, None)
-        with self.assertRaises(IndexError):
-            dataset.slice[self.seq([self.integer(11), self.integer(1)])]
-
-    def test_slice_mask_seq(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, [1, 3])
-            self.assertIsNone(key_indices)
-            return [3, 5], [1, 9], [4, 2]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        view = dataset.slice[self.seq(
-            [False, True, False, True, False,
-             False, False, False, False, False])]
-        self.assertIsInstance(view, TabularDataset)
-        self.assertEqual(len(view), 2)
-        self.assertEqual(view.keys, dataset.keys)
-        self.assertEqual(view.mode, dataset.mode)
-
-        output = view.fetch()
-        if self.mode is tuple:
-            self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
-        elif self.mode is dict:
-            self.assertEqual(output, {'a': [3, 5], 'b': [1, 9], 'c': [4, 2]})
-
-    def test_slice_mask_list_invalid(self):
-        dataset = DummyDataset(self.mode, None)
-        with self.assertRaises(ValueError):
-            dataset.slice[self.seq([True] * 11)]
-
-    def test_slice_indices_slice(self):
-        def get_examples(indices, key_indices):
-            self.assertEqual(indices, slice(3, -1, -2))
-            self.assertIsNone(key_indices)
-            return [3, 5], [1, 9], [4, 2]
-
-        dataset = DummyDataset(self.mode, get_examples)
-        view = dataset.slice[3::-2]
-        self.assertIsInstance(view, TabularDataset)
-        self.assertEqual(len(view), 2)
-        self.assertEqual(view.keys, dataset.keys)
-        self.assertEqual(view.mode, dataset.mode)
-
-        output = view.fetch()
-        if self.mode is tuple:
-            self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
-        elif self.mode is dict:
-            self.assertEqual(output, {'a': [3, 5], 'b': [1, 9], 'c': [4, 2]})
-
-    def test_as_tuple(self):
-        dataset = DummyDataset(self.mode, None)
-        view = dataset.as_tuple()
-        self.assertIsInstance(view, TabularDataset)
-        self.assertEqual(len(view), len(dataset))
-        self.assertEqual(view.keys, dataset.keys)
-        self.assertEqual(view.mode, tuple)
-
-    def test_as_dict(self):
-        dataset = DummyDataset(self.mode, None)
-        view = dataset.as_dict()
-        self.assertIsInstance(view, TabularDataset)
-        self.assertEqual(len(view), len(dataset))
-        self.assertEqual(view.keys, dataset.keys)
-        self.assertEqual(view.mode, dict)
+        self._check_getitem(slice(3, None, -2), slice(3, -1, -2))
 
 
 testing.run_module(__name__, __file__)
