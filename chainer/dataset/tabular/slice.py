@@ -6,11 +6,10 @@ from chainer.dataset import TabularDataset
 
 class Slice(TabularDataset):
 
-    def __init__(self, dataset, indices, key_indices, mode):
+    def __init__(self, dataset, indices, key_indices):
         self._dataset = dataset
         self._indices = indices
         self._key_indices = key_indices
-        self._mode = mode
 
     def __len__(self):
         if self._indices is None:
@@ -31,7 +30,7 @@ class Slice(TabularDataset):
 
     @property
     def mode(self):
-        return self._mode
+        return self._dataset.mode
 
     def get_examples(self, indices, key_indices):
         indices = _merge_indices(self._indices, indices)
@@ -60,7 +59,7 @@ class SliceHelper(object):
         indices = _as_indices(indices, len(self._dataset))
         key_indices = _as_key_indices(keys, self._dataset.keys)
 
-        slice_ = Slice(self._dataset, indices, key_indices, self._dataset.mode)
+        slice_ = Slice(self._dataset, indices, key_indices)
 
         if single_index:
             examples = slice_.get_examples(None, None)
