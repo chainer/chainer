@@ -110,6 +110,11 @@ class TestTabularDataset(unittest.TestCase):
 
         dataset = DummyDataset(self.mode, get_examples)
         view = dataset.slice[self.seq([self.integer(3), self.integer(1)])]
+        self.assertIsInstance(view, TabularDataset)
+        self.assertEqual(len(view), 2)
+        self.assertEqual(view.keys, dataset.keys)
+        self.assertEqual(view.mode, dataset.mode)
+
         output = view.fetch()
         if self.mode is tuple:
             self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
@@ -131,6 +136,11 @@ class TestTabularDataset(unittest.TestCase):
         view = dataset.slice[self.seq(
             [False, True, False, True, False,
              False, False, False, False, False])]
+        self.assertIsInstance(view, TabularDataset)
+        self.assertEqual(len(view), 2)
+        self.assertEqual(view.keys, dataset.keys)
+        self.assertEqual(view.mode, dataset.mode)
+
         output = view.fetch()
         if self.mode is tuple:
             self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
@@ -141,6 +151,25 @@ class TestTabularDataset(unittest.TestCase):
         dataset = DummyDataset(self.mode, None)
         with self.assertRaises(ValueError):
             dataset.slice[self.seq([True] * 11)]
+
+    def test_slice_indices_slice(self):
+        def get_examples(indices, key_indices):
+            self.assertEqual(indices, slice(3, -1, -2))
+            self.assertIsNone(key_indices)
+            return [3, 5], [1, 9], [4, 2]
+
+        dataset = DummyDataset(self.mode, get_examples)
+        view = dataset.slice[3::-2]
+        self.assertIsInstance(view, TabularDataset)
+        self.assertEqual(len(view), 2)
+        self.assertEqual(view.keys, dataset.keys)
+        self.assertEqual(view.mode, dataset.mode)
+
+        output = view.fetch()
+        if self.mode is tuple:
+            self.assertEqual(output, ([3, 5], [1, 9], [4, 2]))
+        elif self.mode is dict:
+            self.assertEqual(output, {'a': [3, 5], 'b': [1, 9], 'c': [4, 2]})
 
     def test_as_tuple(self):
         dataset = DummyDataset(self.mode, None)
