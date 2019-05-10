@@ -31,7 +31,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 60
+      memory: 70
       gpu: 2
     }
     time_limit: {
@@ -40,7 +40,7 @@ configs {
     environment_variables { key: "GPU" value: "2" }
     # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
     # cudaErrorLaunchFailure because of insufficient memory on GPU.
-    environment_variables { key: "XPYTEST_NUM_THREADS" value: "20" }
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "30" }
     environment_variables {
       key: "SPREADSHEET_ID"
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
@@ -76,7 +76,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 60
+      memory: 70
       gpu: 2
     }
     time_limit: {
@@ -85,7 +85,7 @@ configs {
     environment_variables { key: "GPU" value: "2" }
     # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
     # cudaErrorLaunchFailure because of insufficient memory on GPU.
-    environment_variables { key: "XPYTEST_NUM_THREADS" value: "20" }
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "30" }
     environment_variables {
       key: "SPREADSHEET_ID"
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"

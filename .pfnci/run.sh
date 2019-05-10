@@ -27,6 +27,11 @@ TARGET="$1"
 : "${GPU:=0}"
 : "${XPYTEST_NUM_THREADS:=$(nproc)}"
 
+if (( GPU > 0 )); then
+    nvidia-smi -c EXCLUSIVE_PROCESS
+    nvidia-cuda-mps-control -d
+fi
+
 ################################################################################
 # Test functions
 ################################################################################

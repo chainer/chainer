@@ -38,7 +38,7 @@ main() {
   # Prepare docker args.
   docker_args=(docker run  --rm --volume="$(pwd):/src:ro")
   if [ "${GPU:-0}" != '0' ]; then
-    docker_args+=(--env="GPU=${GPU}" --runtime=nvidia)
+    docker_args+=(--ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
   fi
   if [ "${XPYTEST:-}" != '' ]; then
     docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
