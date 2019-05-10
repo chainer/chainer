@@ -36,7 +36,7 @@ class TabularDataset(object):
 
         examples = view.get_examples(None, None)
         if view.mode is tuple:
-            return tuple(zip(*examples))
+            return list(zip(*examples))
         elif view.mode is dict:
             return [dict(zip(self.keys, example))
                     for example in zip(*examples)]

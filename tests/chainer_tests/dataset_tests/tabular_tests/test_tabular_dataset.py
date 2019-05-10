@@ -45,5 +45,47 @@ class TestTabularDataset(unittest.TestCase):
         elif self.mode is dict:
             self.assertEqual(output, {'a': 3, 'b': 1, 'c': 4})
 
+    def test_getitem_indices_list(self):
+        def get_examples(indices, key_indices):
+            self.assertEqual(indices, [3, 1])
+            self.assertIsNone(key_indices)
+            return [3, 5], [1, 9], [4, 2]
+
+        dataset = DummyDataset(self.mode, get_examples)
+        output = dataset[[self.integer(3), self.integer(1)]]
+        if self.mode is tuple:
+            self.assertEqual(output, [(3, 1, 4), (5, 9, 2)])
+        elif self.mode is dict:
+            self.assertEqual(
+                output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
+
+    def test_getitem_indices_array(self):
+        def get_examples(indices, key_indices):
+            self.assertEqual(indices, [3, 1])
+            self.assertIsNone(key_indices)
+            return [3, 5], [1, 9], [4, 2]
+
+        dataset = DummyDataset(self.mode, get_examples)
+        output = dataset[np.array((3, 1))]
+        if self.mode is tuple:
+            self.assertEqual(output, [(3, 1, 4), (5, 9, 2)])
+        elif self.mode is dict:
+            self.assertEqual(
+                output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
+
+    def test_getitem_indices_slice(self):
+        def get_examples(indices, key_indices):
+            self.assertEqual(indices, slice(3, -1, -2))
+            self.assertIsNone(key_indices)
+            return [3, 5], [1, 9], [4, 2]
+
+        dataset = DummyDataset(self.mode, get_examples)
+        output = dataset[3::-2]
+        if self.mode is tuple:
+            self.assertEqual(output, [(3, 1, 4), (5, 9, 2)])
+        elif self.mode is dict:
+            self.assertEqual(
+                output, [{'a': 3, 'b': 1, 'c': 4}, {'a': 5, 'b': 9, 'c': 2}])
+
 
 testing.run_module(__name__, __file__)
