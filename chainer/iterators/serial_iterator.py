@@ -3,6 +3,7 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
+from chainer.dataset import TabularDataset
 from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
@@ -73,6 +74,9 @@ class SerialIterator(iterator.Iterator):
             len(self.dataset))
         if indices is None:
             raise StopIteration
+
+        if isinstance(self.dataset, TabularDataset):
+            return self.dataset.slice[indices].fetch()
 
         batch = [self.dataset[index] for index in indices]
         return batch

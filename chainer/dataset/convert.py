@@ -211,6 +211,15 @@ def concat_examples(batch, device=None, padding=None):
     if not batch:
         raise ValueError('batch is empty')
 
+    # batch from TabularDataset.fetch
+    if isinstance(batch, tuple):
+        return tuple(
+            to_device(device, _concat_arrays(array, None)) for array in batch)
+    elif isinstance(batch, dict):
+        return {
+            key: to_device(device, _concat_arrays(batch[key], None))
+            for key in batch}
+
     first_elem = batch[0]
 
     if isinstance(first_elem, tuple):
