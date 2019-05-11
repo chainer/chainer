@@ -5,7 +5,7 @@ import numpy
 import six
 
 from chainer.dataset import download
-from chainer.datasets import tuple_dataset
+from chainer.dataset import tabular
 
 
 def make_npz(path, urls):
@@ -50,6 +50,7 @@ def preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
 
     if withlabel:
         labels = raw['y'].astype(label_dtype)
-        return tuple_dataset.TupleDataset(images, labels)
+        return tabular.from_array('image', images).join(
+            tabular.from_array('label', labels))
     else:
         return images
