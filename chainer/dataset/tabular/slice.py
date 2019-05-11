@@ -16,8 +16,8 @@ class Slice(TabularDataset):
         if self._indices is None:
             return len(self._dataset)
         elif isinstance(self._indices, slice):
-            return len(six.moves.range(
-                self._indices.start, self._indices.stop, self._indices.step))
+            start, stop, step = self._indices.indices(len(self._dataset))
+            return len(six.moves.range(start, stop, step))
         else:
             return len(self._indices)
 
@@ -34,7 +34,8 @@ class Slice(TabularDataset):
         return self._dataset.mode
 
     def get_examples(self, indices, key_indices):
-        indices = _merge_indices(self._indices, indices)
+        indices = _merge_indices(
+            self._indices, indices, len(self._dataset), len(self))
         key_indices = _merge_key_indices(self._key_indices, key_indices)
         return self._dataset.get_examples(indices, key_indices)
 
@@ -55,11 +56,7 @@ class SliceHelper(object):
 
 
 def _as_indices(indices, len_):
-    if isinstance(indices, slice):
-        start, stop, step = indices.indices(len_)
-        return slice(start, stop, step)
-
-    if len(indices) == 0:
+    if isinstance(indices, slice) or len(indices) == 0:
         return indices
 
     if isinstance(indices[0], (bool, np.bool_)):
@@ -112,18 +109,29 @@ def _as_key_indices(keys, key_names):
     return tuple(key_indices)
 
 
-def _merge_indices(a, b):
+def _merge_indices(a, b, len_a, len_b):
     if a is None or b is None:
         return a or b
     elif isinstance(a, slice) and isinstance(b, slice):
-        return slice(
-            a.start + a.step * b.start,
-            a.start + a.step * b.stop,
-            a.step * b.step)
+        a_start, a_stop, a_step = a.indices(len_a)
+        b_start, b_stop, b_step = b.indices(len_b)
+
+        start = a_start + a_step * b_start
+        stop = a_start + a_step * b_stop
+        step = a_step * b_step
+
+        if start < 0 and step > 0:
+            start = None
+        if stop < 0 and step < 0:
+            stop = None
+
+        return slice(start, stop, step)
     elif isinstance(a, slice):
-        return [a.start + a.step * index for index in b]
+        a_start, _, a_step = a.indices(len_a)
+        return [a_start + a_step * index for index in b]
     elif isinstance(b, slice):
-        return [a[index] for index in six.moves.range(b.start, b.stop, b.step)]
+        b_start, b_stop, b_step = b.indices(len_b)
+        return [a[index] for index in six.moves.range(b_start, b_stop, b_step)]
     else:
         return [a[index] for index in b]
 
