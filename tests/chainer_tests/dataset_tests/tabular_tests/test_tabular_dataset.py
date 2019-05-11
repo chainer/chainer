@@ -29,9 +29,10 @@ class DummyDataset(TabularDataset):
             self._callback(indices, key_indices)
 
         if indices is None:
-            indices = slice(0, len(self), 1)
+            indices = slice(None, None, 1)
         if isinstance(indices, slice):
-            indices = range(indices.start, indices.stop, indices.step)
+            start, stop, step = indices.indices(len(self))
+            indices = range(start, stop, step)
 
         if key_indices is None:
             key_indices = (0, 1, 2)

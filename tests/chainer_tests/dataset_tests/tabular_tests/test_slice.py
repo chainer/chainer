@@ -11,18 +11,14 @@ from .test_tabular_dataset import DummyDataset
     testing.product({
         'mode': [tuple, dict],
         'integer': [int, np.int32],
-        'seq': [list, np.array],
     }),
     [
-        {'indices': slice(None), 'expected_len': 10,
-         'expected_indices': slice(0, 10, 1)},
-        {'indices': [3, 1], 'expected_len': 2, 'expected_indices': [3, 1]},
+        {'indices': slice(None), 'expected_len': 10},
+        {'indices': [3, 1], 'expected_len': 2},
         {'indices': [11, 1], 'index_exception': IndexError},
-        {'indices': [i in {1, 3} for i in range(10)],
-         'expected_len': 2, 'expected_indices': [1, 3]},
+        {'indices': [i in {1, 3} for i in range(10)], 'expected_len': 2},
         {'indices': [True] * 11, 'index_exception': ValueError},
-        {'indices': slice(3, None, -2), 'expected_len': 2,
-         'expected_indices': slice(3, -1, -2)},
+        {'indices': slice(3, None, -2), 'expected_len': 2}
     ],
     [
         {'keys': None, 'expected_keys': ('a', 'b', 'c')},
@@ -33,7 +29,9 @@ from .test_tabular_dataset import DummyDataset
         {'keys': ('c', 0), 'expected_keys': ('c', 'a')},
     ],
     testing.product({
-        'get_examples_key_indices': [None, [1], [1, 0]],
+        'get_examples_indices': [
+            None, [1], [1, 0], slice(0, 2, 1), slice(1, None, -1)],
+        'get_examples_key_indices': [None, (1,), (1, 0)],
     }),
 ))
 class TestSlice(unittest.TestCase):
@@ -43,27 +41,25 @@ class TestSlice(unittest.TestCase):
             or getattr(self, 'key_exception', None)
 
         if isinstance(self.indices, list):
-            self.indices = self.seq(
-                [index if isinstance(index, bool) else self.integer(index)
-                 for index in self.indices])
+            self.indices = [
+                index if isinstance(index, bool) else self.integer(index)
+                for index in self.indices]
 
     def test_slice(self):
         def callback(indices, key_indices):
-            self.assertEqual(indices, self.expected_indices)
-
-            if self.keys is None:
-                self.assertEqual(key_indices, self.get_examples_key_indices)
+            if isinstance(self.indices, list) \
+                    or isinstance(self.get_examples_indices, list):
+                self.assertIsInstance(indices, list)
+            elif isinstance(self.indices, slice) \
+                    or isinstance(self.get_examples_indices, slice):
+                self.assertIsInstance(indices, slice)
             else:
-                if self.get_examples_key_indices is None:
-                    keys = self.keys
-                else:
-                    keys = tuple(
-                        self.keys[key_index]
-                        for key_index in self.get_examples_key_indices)
-                self.assertEqual(
-                    key_indices,
-                    tuple({'a': 0, 'b': 1, 'c': 2}.get(key, key)
-                          for key in keys))
+                self.assertIsNone(indices)
+
+            if self.keys is None and self.get_examples_key_indices is None:
+                self.assertIsNone(key_indices)
+            else:
+                self.assertIsInstance(key_indices, tuple)
 
         dataset = DummyDataset(mode=self.mode, callback=callback)
 
@@ -89,14 +85,21 @@ class TestSlice(unittest.TestCase):
         self.assertEqual(view.keys, self.expected_keys)
         self.assertEqual(view.mode, self.mode)
 
-        if self.get_examples_key_indices is not None:
-            if any(key_index >= len(self.expected_keys)
-                   for key_index in self.get_examples_key_indices):
+        if self.get_examples_indices is not None:
+            try:
+                data = data[:, self.get_examples_indices]
+            except IndexError:
                 return
-            data = data[self.get_examples_key_indices]
+
+        if self.get_examples_key_indices is not None:
+            try:
+                data = data[list(self.get_examples_key_indices)]
+            except IndexError:
+                return
 
         self.assertEqual(
-            view.get_examples(None, self.get_examples_key_indices),
+            view.get_examples(
+                self.get_examples_indices, self.get_examples_key_indices),
             tuple(list(d) for d in data))
 
 

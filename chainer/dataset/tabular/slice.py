@@ -34,8 +34,23 @@ class Slice(TabularDataset):
         return self._dataset.mode
 
     def get_examples(self, indices, key_indices):
+        if isinstance(indices, slice):
+            start, stop, step = indices.indices(len(self))
+            indices = slice(start, stop, step)
+
         indices = _merge_indices(self._indices, indices)
         key_indices = _merge_key_indices(self._key_indices, key_indices)
+
+        if isinstance(indices, slice):
+            start = indices.start
+            stop = indices.stop
+            step = indices.step
+            if start < 0 and step > 0:
+                start = None
+            if stop < 0 and step < 0:
+                stop = None
+            indices = slice(start, stop, step)
+
         return self._dataset.get_examples(indices, key_indices)
 
 
