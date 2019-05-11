@@ -143,7 +143,7 @@ class TabularDataset(DatasetMixin):
         return AsDict(self)
 
     def concat(self, *datasets):
-        """Concatenate datasets.
+        """Stack datasets along rows.
 
         Args:
             datasets (iterable of :class:`TabularDataset`):
@@ -157,6 +157,16 @@ class TabularDataset(DatasetMixin):
         return Concat(self, *datasets)
 
     def join(self, *datasets):
+        """Stack datasets along columns.
+
+        Args:
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
+                All datasets must have the same length
+
+        Returns:
+            A joined dataset.
+        """
         from chainer.dataset.tabular.join import Join
         return Join(self, *datasets)
 
