@@ -28,18 +28,12 @@ class DummyDataset(TabularDataset):
         if self._callback:
             self._callback(indices, key_indices)
 
-        if indices is None:
-            indices = slice(None, None, 1)
-        if isinstance(indices, slice):
-            start, stop, step = indices.indices(len(self))
-            indices = range(start, stop, step)
-
-        if key_indices is None:
-            key_indices = (0, 1, 2)
-
-        return tuple(
-            list(self.data[key_index, index] for index in indices)
-            for key_index in key_indices)
+        data = self.data
+        if indices is not None:
+            data = data[:, indices]
+        if key_indices is not None:
+            data = data[list(key_indices)]
+        return tuple(list(d) for d in data)
 
 
 @testing.parameterize(
