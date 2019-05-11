@@ -50,7 +50,7 @@ class TestSlice(unittest.TestCase):
             self.assertEqual(indices, self.expected_indices)
             self.assertEqual(key_indices, self.expected_key_indices)
 
-        dataset = DummyDataset(self.mode, callback)
+        dataset = DummyDataset(mode=self.mode, callback=callback)
 
         if hasattr(self, 'exception'):
             with self.assertRaises(self.exception):

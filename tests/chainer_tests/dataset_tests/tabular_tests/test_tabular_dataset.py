@@ -52,7 +52,7 @@ class TestTabularDataset(unittest.TestCase):
             self.assertIsNone(indices)
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(self.mode, callback)
+        dataset = DummyDataset(mode=self.mode, callback=callback)
 
         if self.mode is tuple:
             expected = tuple(list(d) for d in dataset.data)
@@ -67,7 +67,7 @@ class TestTabularDataset(unittest.TestCase):
             self.assertEqual(indices, [3])
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(self.mode)
+        dataset = DummyDataset(mode=self.mode, callback=callback)
 
         if self.mode is tuple:
             expected = tuple(dataset.data[:, 3])
