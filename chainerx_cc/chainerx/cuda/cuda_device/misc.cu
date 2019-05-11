@@ -173,8 +173,6 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(FloorKernel, CudaFloorKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(GaussianKLDivergenceKernel, { out = ((x1 * x1) + cuda::Exp(x2) - x2 - CudaType{1}) * CudaType{0.5}; });
-
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

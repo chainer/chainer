@@ -137,8 +137,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(FloorKernel, NativeFloorKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(GaussianKLDivergenceKernel, { out = ((x1 * x1) + chainerx::Exp(x2) - x2 - T{1}) * T{0.5}; });
-
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
