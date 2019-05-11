@@ -28,7 +28,7 @@ inline bool IsInf(float value) { return std::isinf(value); }
 
 template <typename T>
 inline T Sign(T x) {
-    return IsNan(x) ? x : static_cast<T>((T{0} < x) - (x < T{0}));
+    return IsNan(x) ? x : static_cast<T>(int{T{0} < x} - int{x < T{0}});
 }
 
 template <>
