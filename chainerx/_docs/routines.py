@@ -898,6 +898,74 @@ Note:
 .. seealso:: :func:`numpy.expand_dims`
 """)
 
+    _docs.set_doc(
+        chainerx.flip,
+        """flip(m, axis)
+Reverse the order of elements in an array along the given axis.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+    axis (int or tuple of ints): Axis or axes along which to flip over.
+    The default, axis=None, will flip over all of the axes of the input array.
+    If axis is negative it counts from the last to the first axis.
+    If axis is a tuple of ints, flipping is performed on all of the
+    axes specified in the tuple.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the entries of axis reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.flip`
+""")
+
+    _docs.set_doc(
+        chainerx.fliplr,
+        """fliplr(m)
+Flip array in the left/right direction.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the columns reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.fliplr`
+""")
+
+    _docs.set_doc(
+        chainerx.flipud,
+        """flipud(m)
+Flip array in the up/down direction.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the rows reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.flipud`
+""")
+
 
 def _docs_math():
     _docs.set_doc(
