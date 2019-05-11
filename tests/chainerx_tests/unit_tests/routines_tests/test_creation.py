@@ -3,6 +3,7 @@ import sys
 import tempfile
 from random import randint
 
+import chainer
 import numpy
 import pytest
 
@@ -11,6 +12,7 @@ import chainerx.testing
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
 _array_params_list = [
@@ -1176,21 +1178,35 @@ def test_copy(xp, shape, dtype, device, is_module):
         return a.copy()
 
 
-@pytest.mark.parametrize('n_arr', [2, 3, 4, 5, 6, 7, 8, 9])
-@pytest.mark.parametrize('indexing', ['xy', 'ij'])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_meshgrid(n_arr, indexing, device):
-    np_arrs = []
-    chx_arrs = []
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
+@chainer.testing.parameterize_pytest('input_arrs', [2, 3, 4, 5, 6])
+class TestMeshgrid(op_utils.NumpyOpTest):
 
-    # Generate Co-ordinate Vectors
-    for i in range(n_arr):
-        arr = numpy.linspace(randint(-10, 0), randint(1, 10), randint(3, 7))
-        np_arrs.append(arr)
-        chx_arrs.append(chainerx.array(arr, device=device))
+    check_numpy_strides_compliance = False
 
-    np_outs = numpy.meshgrid(*np_arrs)
-    chx_outs = chainerx.meshgrid(chx_arrs)
+    def setup(self, dtype):
+        # TODO(kshitij12345) : Remove when #6621 is in.
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
 
-    for chx_out, np_out in zip(chx_outs, np_outs):
-        assert (chx_out - chainerx.array(np_out, device=device)).sum() == 0
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        arrs = ()
+        for _ in range(self.input_arrs):
+            arrs += (numpy.linspace(randint(-10, 0), randint(1, 10),
+                                    randint(3, 7)).astype(self.dtype),)
+
+        return arrs
+
+    def forward_xp(self, inputs, xp):
+        if xp is numpy:
+            outs = xp.meshgrid(*inputs, indexing=self.indexing)
+        elif xp is chainerx:
+            outs = xp.meshgrid(list(inputs), indexing=self.indexing)
+
+        return tuple(outs)
