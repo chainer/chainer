@@ -26,7 +26,7 @@ from .test_tabular_dataset import DummyDataset
         {'keys': (3,), 'key_exception': IndexError},
         {'keys': ('c',), 'expected_keys': ('c',)},
         {'keys': ('d',), 'key_exception': KeyError},
-        {'keys': ('c', 0), 'expected_keys': ('c', 'a')},
+        {'keys': (-1, 'a'), 'expected_keys': ('c', 'a')},
     ],
     testing.product({
         'get_examples_indices': [
