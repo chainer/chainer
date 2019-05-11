@@ -72,3 +72,32 @@ class Concat(TabularDataset):
                      for sub_examples in examples
                      for data in sub_examples[col_index]]
                     for col_index in six.moves.range(n_cols))
+
+        else:
+            examples = {}
+            example_indices = [None] * len(indices)
+            offset = 0
+            for dataset_index, dataset in enumerate(self._datasets):
+                sub_indices = []
+                for p, index in enumerate(indices):
+                    if index < offset or offset + len(dataset) <= index:
+                        continue
+                    sub_indices.append(index - offset)
+                    example_indices[p] = (
+                        dataset_index, len(sub_indices) - 1)
+
+                if len(sub_indices) > 0:
+                    examples[dataset_index] = dataset.get_examples(
+                        sub_indices, key_indices)
+
+                offset += len(dataset)
+
+            if len(examples) == 0:
+                return tuple([] for _ in six.moves.range(n_cols))
+            elif len(examples) == 1:
+                return list(examples.values())[0]
+            else:
+                return tuple(
+                    [examples[dataset_index][col_index][p]
+                     for dataset_index, p in example_indices]
+                    for col_index in six.moves.range(n_cols))
