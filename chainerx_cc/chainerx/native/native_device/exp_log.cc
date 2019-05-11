@@ -14,39 +14,11 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeExpKernel : public ExpKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Exp(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = chainerx::Exp(x); });
 
-CHAINERX_NATIVE_REGISTER_KERNEL(ExpKernel, NativeExpKernel);
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = chainerx::Log(x); });
 
-class NativeLogKernel : public LogKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Log(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(LogKernel, NativeLogKernel);
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = chainerx::Log10(x); });
 
 }  // namespace
 }  // namespace native

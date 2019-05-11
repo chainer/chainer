@@ -25,6 +25,16 @@ inline py::handle GetCachedNumpyInteger() {
     return ret;
 }
 
+inline py::handle GetCachedNumpyNumber() {
+    static py::handle ret = py::module::import("numpy").attr("number");
+    return ret;
+}
+
+inline py::handle GetCachedNumpyBool() {
+    static py::handle ret = py::module::import("numpy").attr("bool_");
+    return ret;
+}
+
 inline py::handle GetCachedCupyModule() {
     static py::handle ret = py::module::import("cupy");
     return ret;

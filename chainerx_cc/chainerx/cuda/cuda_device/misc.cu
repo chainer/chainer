@@ -105,6 +105,27 @@ public:
 CHAINERX_CUDA_REGISTER_KERNEL(IsInfKernel, CudaIsInfKernel);
 
 template <typename T>
+struct IsFiniteImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !(cuda::IsInf(x) || cuda::IsNan(x)); }
+};
+
+class CudaIsFiniteKernel : public IsFiniteKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsFiniteImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsFiniteKernel, CudaIsFiniteKernel);
+
+template <typename T>
 struct CeilImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Ceil(x); }
