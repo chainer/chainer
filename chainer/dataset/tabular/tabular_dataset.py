@@ -1,3 +1,5 @@
+import six
+
 from chainer.dataset import DatasetMixin
 
 
@@ -120,7 +122,7 @@ class TabularDataset(DatasetMixin):
         if self.mode is tuple:
             return examples
         elif self.mode is dict:
-            return dict(zip(self.keys, examples))
+            return dict(six.moves.zip(self.keys, examples))
 
     def as_tuple(self):
         """Return a view with tuple mode.
@@ -146,4 +148,4 @@ class TabularDataset(DatasetMixin):
         if self.mode is tuple:
             return example
         elif self.mode is dict:
-            return dict(zip(self.keys, example))
+            return dict(six.moves.zip(self.keys, example))
