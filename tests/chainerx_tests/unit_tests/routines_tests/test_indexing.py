@@ -239,7 +239,7 @@ class TestWhere(op_utils.NumpyOpTest):
         (x_dtype, y_dtype) = self.in_dtypes
         x = array_utils.uniform(self.x_shape, x_dtype)
         y = array_utils.uniform(self.y_shape, y_dtype)
-        condition = array_utils.uniform(self.cond_shape, self.condition_dtype)
+        condition = array_utils.uniform(self.cond_shape, 'float32')
         self.condition = (condition > 0.5).astype(self.condition_dtype)
         return (x, y)
 
