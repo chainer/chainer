@@ -23,9 +23,9 @@ class TabularDataset(DatasetMixin):
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
 
-    >>> len(dataet)
+    >>> len(dataset)
     4
-    >>> dataet.keys
+    >>> dataset.keys
     ('a', 'b', 'c')
     >>>
     >>> dataet = dataset.as_tuple()
