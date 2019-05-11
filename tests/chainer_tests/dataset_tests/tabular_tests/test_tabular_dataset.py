@@ -7,8 +7,9 @@ from chainer.dataset import TabularDataset
 
 class DummyDataset(TabularDataset):
 
-    def __init__(self, len_=10, mode=tuple, callback=None):
+    def __init__(self, len_=10, mode=tuple, return_array=False, callback=None):
         self._mode = mode
+        self._return_array = return_array
         self._callback = callback
 
         self.data = np.random.uniform(size=(3, len_))
@@ -33,13 +34,17 @@ class DummyDataset(TabularDataset):
             data = data[:, indices]
         if key_indices is not None:
             data = data[list(key_indices)]
-        return tuple(list(d) for d in data)
+
+        if self._return_array:
+            return tuple(data)
+        else:
+            return tuple(list(d) for d in data)
 
 
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
+@testing.parameterize(*testing.product({
+    'mode': [tuple, dict],
+    'return_array': [True, False],
+}))
 class TestTabularDataset(unittest.TestCase):
 
     def test_fetch(self):
@@ -47,22 +52,31 @@ class TestTabularDataset(unittest.TestCase):
             self.assertIsNone(indices)
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(mode=self.mode, callback=callback)
+        dataset = DummyDataset(
+            mode=self.mode, return_array=self.return_array, callback=callback)
+        output = dataset.fetch()
 
         if self.mode is tuple:
-            expected = tuple(list(d) for d in dataset.data)
+            expected = tuple(dataset.data)
         elif self.mode is dict:
-            expected = dict(zip(
-                ('a', 'b', 'c'), (list(d) for d in dataset.data)))
+            expected = dict(zip(('a', 'b', 'c'), dataset.data))
+        np.testing.assert_equal(output, expected)
 
-        self.assertEqual(dataset.fetch(), expected)
+        if self.mode is dict:
+            output = output.values()
+        for out in output:
+            if self.return_array:
+                self.assertIsInstance(out, np.ndarray)
+            else:
+                self.assertIsInstance(out, list)
 
     def test_get_example(self):
         def callback(indices, key_indices):
             self.assertEqual(indices, [3])
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(mode=self.mode, callback=callback)
+        dataset = DummyDataset(
+            mode=self.mode, return_array=self.return_array, callback=callback)
 
         if self.mode is tuple:
             expected = tuple(dataset.data[:, 3])
