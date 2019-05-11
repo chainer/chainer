@@ -10,6 +10,7 @@ from .test_tabular_dataset import DummyDataset
 @testing.parameterize(*testing.product_dict(
     testing.product({
         'mode': [tuple, dict],
+        'return_array': [True, False],
         'integer': [int, np.int32],
     }),
     [
@@ -61,7 +62,8 @@ class TestSlice(unittest.TestCase):
             else:
                 self.assertIsInstance(key_indices, tuple)
 
-        dataset = DummyDataset(mode=self.mode, callback=callback)
+        dataset = DummyDataset(
+            mode=self.mode, return_array=self.return_array, callback=callback)
 
         if self.exception is not None:
             with self.assertRaises(self.exception):
@@ -97,10 +99,15 @@ class TestSlice(unittest.TestCase):
             except IndexError:
                 return
 
-        self.assertEqual(
-            view.get_examples(
-                self.get_examples_indices, self.get_examples_key_indices),
-            tuple(list(d) for d in data))
+        output = view.get_examples(
+            self.get_examples_indices, self.get_examples_key_indices)
+
+        np.testing.assert_equal(output, data)
+        for out in output:
+            if self.return_array:
+                self.assertIsInstance(out, np.ndarray)
+            else:
+                self.assertIsInstance(out, list)
 
 
 testing.run_module(__name__, __file__)
