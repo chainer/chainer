@@ -12,6 +12,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/indexing.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -165,12 +166,16 @@ public:
         device.CheckDevicesCompatible(condition, x, y, out);
         const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
 
+        Dtype out_dtype = ResultType(x, y);
+        const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+        const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
+
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t /*i*/, bool condition, T x, T y, T& out) { out = condition ? x : y; }
             };
-            Elementwise<const bool, const T, const T, T>(Impl{}, condition_cast, x, y, out);
+            Elementwise<const bool, const T, const T, T>(Impl{}, condition_cast, x_cast, y_cast, out);
         });
     }
 };

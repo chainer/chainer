@@ -201,13 +201,10 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
 Array Where(const Array& condition, const Array& x, const Array& y) {
     Dtype out_dtype = ResultType(x, y);
-    const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
-    const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
-
     Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
     Array out = Empty(out_shape, out_dtype, x.device());
-    const Array& x_b = x_cast.BroadcastTo(out_shape);
-    const Array& y_b = y_cast.BroadcastTo(out_shape);
+    const Array& x_b = x.BroadcastTo(out_shape);
+    const Array& y_b = y.BroadcastTo(out_shape);
 
     {
         NoBackpropModeScope scope;
@@ -216,17 +213,17 @@ Array Where(const Array& condition, const Array& x, const Array& y) {
 
     BackwardBuilder bb{"where", {x_b, y_b}, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([condition](BackwardContext& bctx) {
+        bt.Define([condition, dtype = x.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, gout, ZerosLike(gout));
+            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-        bt.Define([condition](BackwardContext& bctx) {
+        bt.Define([condition, dtype = y.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, ZerosLike(gout), gout);
+            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
         });
     }
     bb.Finalize();

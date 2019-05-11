@@ -25,6 +25,7 @@
 #include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/indexing.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -280,10 +281,14 @@ public:
         device.CheckDevicesCompatible(condition, x, y, out);
         const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
 
+        Dtype out_dtype = ResultType(x, y);
+        const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+        const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
+
         CudaSetDeviceScope scope{device.index()};
         VisitDtype(out.dtype(), [&](auto x_pt) {
             using T = typename decltype(x_pt)::type;
-            Elementwise<const bool, const T, const T, T>(WhereImpl<T>{}, condition_cast, x, y, out);
+            Elementwise<const bool, const T, const T, T>(WhereImpl<T>{}, condition_cast, x_cast, y_cast, out);
         });
     }
 };
