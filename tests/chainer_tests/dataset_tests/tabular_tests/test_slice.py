@@ -14,45 +14,53 @@ from .test_tabular_dataset import DummyDataset
         'seq': [list, np.array],
     }),
     [
-        {'keys': None, 'expected_keys': ('a', 'b', 'c'),
-         'expected_key_indices': None},
-        {'keys': (1,), 'expected_keys': ('b',),
-         'expected_key_indices': (1,)},
-        {'keys': (3,), 'exception': IndexError},
-        {'keys': ('c',), 'expected_keys': ('c',),
-         'expected_key_indices': (2,)},
-        {'keys': ('d',), 'exception': KeyError},
-        {'keys': ('c', 0), 'expected_keys': ('c', 'a'),
-         'expected_key_indices': (2, 0)},
-    ],
-    [
         {'indices': slice(None), 'expected_len': 10,
          'expected_indices': slice(0, 10, 1)},
         {'indices': [3, 1], 'expected_len': 2, 'expected_indices': [3, 1]},
-        {'indices': [11, 1], 'exception': IndexError},
+        {'indices': [11, 1], 'index_exception': IndexError},
         {'indices': [i in {1, 3} for i in range(10)],
          'expected_len': 2, 'expected_indices': [1, 3]},
-        {'indices': [True] * 11, 'exception': ValueError},
+        {'indices': [True] * 11, 'index_exception': ValueError},
         {'indices': slice(3, None, -2), 'expected_len': 2,
          'expected_indices': slice(3, -1, -2)},
+    ],
+    [
+        {'keys': None, 'expected_keys': ('a', 'b', 'c')},
+        {'keys': (1,), 'expected_keys': ('b',)},
+        {'keys': (3,), 'key_exception': IndexError},
+        {'keys': ('c',), 'expected_keys': ('c',)},
+        {'keys': ('d',), 'key_exception': KeyError},
+        {'keys': ('c', 0), 'expected_keys': ('c', 'a')},
     ],
 ))
 class TestSlice(unittest.TestCase):
 
     def setUp(self):
+        self.exception = getattr(self, 'index_exception', None) \
+            or getattr(self, 'key_exception', None)
+
         if isinstance(self.indices, list):
             self.indices = self.seq(
                 [index if isinstance(index, bool) else self.integer(index)
                  for index in self.indices])
 
+        if self.keys is None:
+            self.key_indices = (0, 1, 2)
+        else:
+            self.key_indices = tuple(
+                {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys)
+
     def test_slice(self):
         def callback(indices, key_indices):
             self.assertEqual(indices, self.expected_indices)
-            self.assertEqual(key_indices, self.expected_key_indices)
+            if self.keys is None:
+                self.assertIsNone(key_indices)
+            else:
+                self.assertEqual(key_indices, self.key_indices)
 
         dataset = DummyDataset(mode=self.mode, callback=callback)
 
-        if hasattr(self, 'exception'):
+        if self.exception is not None:
             with self.assertRaises(self.exception):
                 if self.keys is None:
                     dataset.slice[self.indices]
@@ -65,9 +73,7 @@ class TestSlice(unittest.TestCase):
             data = dataset.data[:, self.indices]
         else:
             view = dataset.slice[self.indices, self.keys]
-            key_indices = [{'a': 0, 'b': 1, 'c': 2}.get(key, key)
-                           for key in self.keys]
-            data = dataset.data[key_indices][:, self.indices]
+            data = dataset.data[list(self.key_indices)][:, self.indices]
 
         self.assertIsInstance(view, TabularDataset)
         self.assertEqual(len(view), self.expected_len)
