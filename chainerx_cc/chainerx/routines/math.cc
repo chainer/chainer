@@ -538,20 +538,24 @@ Array Prod(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"prod", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([sorted_axis, a, out, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+        bt.Define(
+                [sorted_axis, a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), in_shape = a.shape(), keepdims](
+                        BackwardContext& bctx) {
+                    const Array& gout = *bctx.output_grad();
+                    const Array& a = bctx.GetRetainedInput(a_tok);
+                    const Array& out = bctx.GetRetainedOutput(out_tok);
+                    CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-            if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-                Shape out_shape_broadcastable = gout.shape();
-                for (auto axis : sorted_axis) {
-                    out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
-                }
-                bctx.input_grad() = (out.Reshape(out_shape_broadcastable) * gout.Reshape(out_shape_broadcastable) / a);
-            } else {
-                bctx.input_grad() = out * gout / a;
-            }
-        });
+                    if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+                        Shape out_shape_broadcastable = gout.shape();
+                        for (auto axis : sorted_axis) {
+                            out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+                        }
+                        bctx.input_grad() = (out.Reshape(out_shape_broadcastable) * gout.Reshape(out_shape_broadcastable) / a);
+                    } else {
+                        bctx.input_grad() = out * gout / a;
+                    }
+                });
     }
     bb.Finalize();
     return out;
