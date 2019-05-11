@@ -416,7 +416,9 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__pow__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(chainerx::Power(Array{self}, Array{rhs})); },
           py::is_operator());
-    c.def("__pow__", [](const ArrayBodyPtr& self, const Scalar rhs) { return MoveArrayBody(chainerx::Power(Array{self}, rhs)); }, py::is_operator());
+    c.def("__pow__",
+          [](const ArrayBodyPtr& self, const Scalar rhs) { return MoveArrayBody(chainerx::Power(Array{self}, rhs)); },
+          py::is_operator());
     c.def("__rpow__",
           [](const ArrayBodyPtr& self, const Scalar lhs) { return MoveArrayBody(chainerx::Power(lhs, Array{self})); },
           py::is_operator());

@@ -295,10 +295,7 @@ void InitChainerxIndexing(pybind11::module& m) {
                   return MoveArrayBody(
                           Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
               }
-              throw py::type_error{
-                      "only integers, slices (`:`), sequence, "
-                      "numpy.ndarray and chainerx.newaxis (`None`) "
-                      "are valid indices"};
+              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           py::arg("a"),
           py::arg("indices"),
