@@ -1005,24 +1005,20 @@ void InitChainerxPooling(pybind11::module& m) {
 
 void InitChainerxLoss(pybind11::module& m) {
     m.def("mean_absolute_error",
-          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) {
-              return MoveArrayBody(MeanAbsoluteError(Array{y}, Array{targ}));
-          },
-          py::arg("y"),
-          py::arg("targ"));
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) { return MoveArrayBody(MeanAbsoluteError(Array{y}, Array{targ})); },
+          py::arg("x0"),
+          py::arg("x1"));
     m.def("mean_squared_error",
-          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) {
-              return MoveArrayBody(MeanSquaredError(Array{y}, Array{targ}));
-          },
-          py::arg("y"),
-          py::arg("targ"));
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ) { return MoveArrayBody(MeanSquaredError(Array{y}, Array{targ})); },
+          py::arg("x0"),
+          py::arg("x1"));
     m.def("gaussian_kl_divergence",
           [](const ArrayBodyPtr& y, const ArrayBodyPtr& targ, const std::string& reduction) {
               return MoveArrayBody(GaussianKLDivergence(Array{y}, Array{targ}, reduction));
           },
-          py::arg("y"),
-          py::arg("targ"),
-          py::arg("reduction") = "sum");
+          py::arg("mean"),
+          py::arg("ln_var"),
+          py::arg("reduce") = "sum");
 }
 
 }  // namespace

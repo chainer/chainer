@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include <nonstd/optional.hpp>
 
@@ -9,11 +10,10 @@
 
 namespace chainerx {
 
-Array MeanAbsoluteError(const Array& y, const Array& targ);
+Array MeanAbsoluteError(const Array& x0, const Array& x1);
 
-Array MeanSquaredError(const Array& y, const Array& targ);
+Array MeanSquaredError(const Array& x0, const Array& x1);
 
 Array GaussianKLDivergence(const Array& mu, const Array& ln_var, const std::string& reduction);
 
-}
-
+}  // namespace chainerx
