@@ -462,9 +462,6 @@ Returns:
     from x where condition is True, and elements from y elsewhere.
 
 Note:
-    x, y and condition need to be broadcastable to some shape.
-
-Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x`` and ``y``.
 

@@ -213,12 +213,14 @@ class TestTake(op_utils.NumpyOpTest):
     ((2, 3), (1, 3), (1, 3)),
     ((2, 3), (2, 1), (1, 3)),
     ((2, 3), (2, 3), (1, 3)),
+    ((4, 5), (3, 4, 1), (1, 5)),
+    ((1, 4, 5), (3, 4, 1), (3, 1, 5)),
 ])
 @chainer.testing.parameterize_pytest(
     'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays
 )
 @chainer.testing.parameterize_pytest(
-    'condition_dtype', chainerx.testing.integral_dtypes)
+    'condition_dtype', chainerx.testing.all_dtypes)
 class TestWhere(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -238,11 +240,12 @@ class TestWhere(op_utils.NumpyOpTest):
         x = array_utils.uniform(self.x_shape, x_dtype)
         y = array_utils.uniform(self.y_shape, y_dtype)
         condition = array_utils.uniform(self.cond_shape, self.condition_dtype)
-        condition = (condition > 0.5).astype(self.condition_dtype)
-        return (x, y, condition)
+        self.condition = (condition > 0.5).astype(self.condition_dtype)
+        return (x, y)
 
     def forward_xp(self, inputs, xp):
-        x, y, condition = inputs
+        x, y = inputs
+        condition = xp.array(self.condition)
         o = xp.where(condition, x, y)
         o = dtype_utils.cast_if_numpy_array(xp, o, self.out_dtype)
         return o,

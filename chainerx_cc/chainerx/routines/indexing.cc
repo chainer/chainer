@@ -205,10 +205,11 @@ Array Where(const Array& condition, const Array& x, const Array& y) {
     Array out = Empty(out_shape, out_dtype, x.device());
     const Array& x_b = x.BroadcastTo(out_shape);
     const Array& y_b = y.BroadcastTo(out_shape);
+    const Array& condition_b = condition.BroadcastTo(out_shape);
 
     {
         NoBackpropModeScope scope;
-        x.device().backend().CallKernel<WhereKernel>(condition, x_b, y_b, out);
+        x.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
     }
 
     BackwardBuilder bb{"where", {x_b, y_b}, out};
