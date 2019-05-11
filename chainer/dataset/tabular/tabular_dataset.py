@@ -143,6 +143,15 @@ class TabularDataset(DatasetMixin):
         return AsDict(self)
 
     def concat(self, *datasets):
+        """Concatenate datasets.
+
+        Args:
+            datasets (iterable of TabularDataset): Datasets to be concatenated.
+                All datasets must have the same :attr:`keys`.
+
+        Returns:
+            A concatenated dataset.
+        """
         from chainer.dataset.tabular.concat import Concat
         return Concat(self, *datasets)
 
