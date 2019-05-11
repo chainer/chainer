@@ -28,12 +28,12 @@ inline bool IsInf(float value) { return std::isinf(value); }
 
 template <typename T>
 inline T Sign(T x) {
-    return IsNan(x) ? x : static_cast<T>(int{T{0} < x} - int{x < T{0}});
+    return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
 }
 
 template <>
 inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
-    return IsNan(x) ? x : Float16{int{Float16{0} < x} - int{x < Float16{0}}};
+    return IsNan(x) ? x : Float16{static_cast<int>(Float16{0} < x) - static_cast<int>(x < Float16{0})};
 }
 
 template <typename T>

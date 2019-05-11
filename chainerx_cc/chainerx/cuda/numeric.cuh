@@ -45,12 +45,12 @@ __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{
 
 template <typename T>
 __device__ inline T Sign(T x) {
-    return IsNan(x) ? x : static_cast<T>(int{T{0} < x} - int{x < T{0}});
+    return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
 }
 
 template <>
 __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
-    return IsNan(x) ? x : cuda::Float16{int{cuda::Float16{0} < x} - int{x < cuda::Float16{0}}};
+    return IsNan(x) ? x : cuda::Float16{static_cast<int>(cuda::Float16{0} < x) - static_cast<int>(x < cuda::Float16{0})};
 }
 
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
