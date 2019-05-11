@@ -11,6 +11,7 @@ from .test_tabular_dataset import DummyDataset
     testing.product({
         'mode_a': [tuple, dict],
         'mode_b': [tuple, dict],
+        'return_array': [True, False],
     }),
     [
         {'indices': None,
@@ -40,13 +41,17 @@ class TestConcat(unittest.TestCase):
             self.assertEqual(indices, self.expected_indices_a)
             self.assertIsNone(key_indices)
 
-        dataset_a = DummyDataset(mode=self.mode_a, callback=callback_a)
+        dataset_a = DummyDataset(
+            mode=self.mode_a,
+            return_array=self.return_array, callback=callback_a)
 
         def callback_b(indices, key_indices):
             self.assertEqual(indices, self.expected_indices_b)
             self.assertIsNone(key_indices)
 
-        dataset_b = DummyDataset(len_=5, mode=self.mode_b, callback=callback_b)
+        dataset_b = DummyDataset(
+            len_=5, mode=self.mode_b,
+            return_array=self.return_array, callback=callback_b)
 
         view = dataset_a.concat(dataset_b)
         self.assertIsInstance(view, TabularDataset)
@@ -57,9 +62,16 @@ class TestConcat(unittest.TestCase):
         data = np.hstack((dataset_a.data, dataset_b.data))
         if self.indices is not None:
             data = data[:, self.indices]
-        self.assertEqual(
-            view.get_examples(self.indices, None),
-            tuple(list(d) for d in data))
+
+        output = view.get_examples(self.indices, None)
+        np.testing.assert_equal(output, data)
+        for out in output:
+            if self.return_array and not (
+                    hasattr(self, 'expected_indices_a')
+                    and hasattr(self, 'expected_indices_b')):
+                self.assertIsInstance(out, np.ndarray)
+            else:
+                self.assertIsInstance(out, list)
 
 
 testing.run_module(__name__, __file__)
