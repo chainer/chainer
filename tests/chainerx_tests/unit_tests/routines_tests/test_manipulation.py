@@ -899,9 +899,9 @@ def test_flip_invalid(xp, shape, axis):
     })
 ))
 @chainer.testing.parameterize_pytest('contiguous', ['C', None])
-@chainer.testing.parameterize_pytest('func', [
-    lambda xp, a: xp.fliplr(a),
-    lambda xp, a: xp.flipud(a)
+@chainer.testing.parameterize_pytest('func_name', [
+    'fliplr',
+    'flipud'
 ])
 class TestFlipLRUD(op_utils.NumpyOpTest):
 
@@ -921,7 +921,11 @@ class TestFlipLRUD(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        return self.func(xp, a),
+        if self.func_name == 'fliplr':
+            b = xp.fliplr(a)
+        elif self.func_name == 'flipud':
+            b = xp.flipud(a)
+        return b,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
