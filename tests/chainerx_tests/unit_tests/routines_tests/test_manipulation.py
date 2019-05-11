@@ -793,9 +793,8 @@ def test_expand_dims_invalid(xp, shape, axis):
         [(1, 0, 1, 0), (1, 0, 1, 0), (1, 0, 1, 0)],
         [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
         [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
-    ], 'func': [
-        lambda xp, input: xp.hstack(input),
-        lambda xp, input: xp.vstack(input),
+    ], 'func_name': [
+        'hstack', 'vstack'
     ],
         'dtype': chainerx.testing.dtypes.all_dtypes
     })
@@ -813,7 +812,11 @@ class TestHVStack(op_utils.NumpyOpTest):
         return _make_inputs(self.shapes, [self.dtype] * len(self.shapes))
 
     def forward_xp(self, inputs, xp):
-        y = self.func(xp, inputs)
+        if self.func_name == 'hstack':
+            y = xp.hstack(inputs)
+        elif self.func_name == 'vstack':
+            y = xp.vstack(inputs)
+
         return y,
 
 
@@ -826,26 +829,35 @@ class TestHVStack(op_utils.NumpyOpTest):
     [(2, 1, 4), (1, 4, 5)],
     [(1, 1, 2), (3, 5, 8)]
 ])
-@pytest.mark.parametrize('func', [
-    lambda xp, input: xp.hstack(input),
-    lambda xp, input: xp.vstack(input),
+@pytest.mark.parametrize('func_name', [
+    'hstack', 'vstack'
 ])
-def test_hvstack_invalid_shapes(func, xp, shape):
+def test_hvstack_invalid_shapes(func_name, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
     inputs = [xp.array(a) for a in inputs]
-    return func(xp, inputs)
+
+    if func_name == 'hstack':
+        b = xp.hstack(inputs)
+    elif func_name == 'vstack':
+        b = xp.vstack(inputs)
+
+    return b
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(
         chainerx.DimensionError, ValueError))
-@pytest.mark.parametrize('func', [
-    lambda xp, input: xp.hstack(input),
-    lambda xp, input: xp.vstack(input),
+@pytest.mark.parametrize('func_name', [
+    'hstack', 'vstack'
 ])
-def test_hvstack_invalid_empty(func, xp):
+def test_hvstack_invalid_empty(func_name, xp):
     inputs = []
-    return func(xp, inputs)
+    if func_name == 'hstack':
+        output = xp.hstack(inputs)
+    elif func_name == 'vstack':
+        output = xp.vstack(inputs)
+
+    return output
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
