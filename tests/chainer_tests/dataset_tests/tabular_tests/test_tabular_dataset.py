@@ -11,11 +11,7 @@ class DummyDataset(TabularDataset):
         self._mode = mode
         self._callback = callback
 
-        self.data = np.array([
-            [3, 1, 4, 1, 5, 9, 2, 6, 5, 3],
-            [2, 7, 1, 8, 2, 8, 1, 8, 2, 8],
-            [1, 4, 1, 4, 2, 1, 3, 5, 6, 2],
-        ])
+        self.data = np.random.uniform(size=(3, 10))
 
     def __len__(self):
         return self.data.shape[1]
