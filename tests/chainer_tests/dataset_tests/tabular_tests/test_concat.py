@@ -69,4 +69,21 @@ class TestConcat(unittest.TestCase):
                 self.assertIsInstance(out, list)
 
 
+class TestConcatInvalid(unittest.TestCase):
+
+    def test_concat_key_length(self):
+        dataset_a = DummyDataset()
+        dataset_b = DummyDataset(keys=('a', 'b'))
+
+        with self.assertRaises(ValueError):
+            dataset_a.concat(dataset_b)
+
+    def test_concat_key_order(self):
+        dataset_a = DummyDataset()
+        dataset_b = DummyDataset(keys=('b', 'a', 'c'))
+
+        with self.assertRaises(ValueError):
+            dataset_a.concat(dataset_b)
+
+
 testing.run_module(__name__, __file__)
