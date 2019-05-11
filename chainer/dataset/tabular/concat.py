@@ -25,55 +25,50 @@ class Concat(TabularDataset):
 
     def get_examples(self, indices, key_indices):
         if indices is None:
-            indices = slice(0, len(self), 1)
+            indices = slice(None)
+
         if key_indices is None:
             n_cols = len(self.keys)
         else:
             n_cols = len(key_indices)
 
-        examples = [[] for _ in six.moves.range(n_cols)]
-        offset = 0
-        for dataset in self._datasets:
-            if isinstance(indices, slice):
-                start = indices.start - offset
-                stop = indices.stop - offset
-                step = indices.step
+        if isinstance(indices, slice):
+            start, stop, step = indices.indices(len(self))
+
+            examples = []
+            offset = 0
+            for dataset in self._datasets:
+                sub_start = start - offset
+                sub_stop = stop - offset
                 if step > 0:
-                    if start < 0:
-                        start %= step
-                    stop = min(stop, len(dataset))
+                    if sub_start < 0:
+                        sub_start %= step
+                    sub_stop = min(sub_stop, len(dataset))
                 else:
-                    if start >= len(dataset):
-                        start = len(dataset) + (start - len(dataset)) % step
-                    stop = max(stop, -1)
-                if len(six.moves.range(start, stop, step)) > 0:
-                    sub_indices = slice(start, stop, step)
-                else:
-                    sub_indices = None
+                    if sub_start >= len(dataset):
+                        sub_start = \
+                            len(dataset) + (sub_start - len(dataset)) % step
+                    sub_stop = max(sub_stop, -1)
+
+                if len(six.moves.range(sub_start, sub_stop, step)) > 0:
+                    if sub_start < 0 and step > 0:
+                        sub_start = None
+                    if sub_stop < 0 and step < 0:
+                        sub_stop = None
+                    examples.append(dataset.get_examples(
+                        slice(sub_start, sub_stop, step), key_indices))
+
+                offset += len(dataset)
+
+            if len(examples) == 0:
+                return tuple([] for _ in six.moves.range(n_cols))
+            elif len(examples) == 1:
+                return examples[0]
             else:
-                sub_indices = [
-                    index - offset
-                    for index in indices
-                    if offset <= index < offset + len(dataset)]
-                if len(sub_indices) == 0:
-                    sub_indices = None
-
-            if sub_indices is not None:
-                sub_examples = dataset.get_examples(sub_indices, key_indices)
-                for col_index in six.moves.range(n_cols):
-                    examples[col_index].append(sub_examples[col_index])
-
-            offset += len(dataset)
-
-        for col_index in six.moves.range(n_cols):
-            if len(examples[col_index]) == 0:
-                examples[col_index] = []
-            elif len(examples[col_index]) == 1:
-                examples[col_index] = examples[col_index][0]
-            else:
-                examples[col_index] = [
-                    example
-                    for sub_examples in examples[col_index]
-                    for example in sub_examples]
-
-        return tuple(examples)
+                if step < 0:
+                    examples.reverse()
+                return tuple(
+                    [data
+                     for sub_examples in examples
+                     for data in sub_examples[col_index]]
+                    for col_index in six.moves.range(n_cols))

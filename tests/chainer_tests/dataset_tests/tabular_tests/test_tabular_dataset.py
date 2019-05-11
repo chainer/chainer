@@ -7,11 +7,11 @@ from chainer.dataset import TabularDataset
 
 class DummyDataset(TabularDataset):
 
-    def __init__(self, mode, callback=None):
+    def __init__(self, len_=10, mode=tuple, callback=None):
         self._mode = mode
         self._callback = callback
 
-        self.data = np.random.uniform(size=(3, 10))
+        self.data = np.random.uniform(size=(3, len_))
 
     def __len__(self):
         return self.data.shape[1]
