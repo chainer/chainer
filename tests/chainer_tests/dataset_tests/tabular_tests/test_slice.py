@@ -73,14 +73,8 @@ class TestSlice(unittest.TestCase):
         self.assertEqual(len(view), self.expected_len)
         self.assertEqual(view.keys, self.expected_keys)
         self.assertEqual(view.mode, self.mode)
-
-        if self.mode is tuple:
-            expected_output = tuple(list(d) for d in data)
-        elif self.mode is dict:
-            expected_output = dict(zip(
-                self.expected_keys, (list(d) for d in data)))
-
-        self.assertEqual(view.fetch(), expected_output)
+        self.assertEqual(
+            view.get_examples(None, None), tuple(list(d) for d in data))
 
 
 testing.run_module(__name__, __file__)
