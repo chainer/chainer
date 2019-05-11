@@ -146,7 +146,8 @@ class TabularDataset(DatasetMixin):
         """Concatenate datasets.
 
         Args:
-            datasets (iterable of TabularDataset): Datasets to be concatenated.
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
                 All datasets must have the same :attr:`keys`.
 
         Returns:
