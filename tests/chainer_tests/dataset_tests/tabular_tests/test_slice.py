@@ -14,7 +14,7 @@ from .test_tabular_dataset import DummyDataset
     }),
     [
         {'indices': slice(None), 'expected_len': 10},
-        {'indices': [3, 1], 'expected_len': 2},
+        {'indices': [3, -2], 'expected_len': 2},
         {'indices': [11, 1], 'index_exception': IndexError},
         {'indices': [i in {1, 3} for i in range(10)], 'expected_len': 2},
         {'indices': [True] * 11, 'index_exception': ValueError},
@@ -26,7 +26,7 @@ from .test_tabular_dataset import DummyDataset
         {'keys': (3,), 'key_exception': IndexError},
         {'keys': ('c',), 'expected_keys': ('c',)},
         {'keys': ('d',), 'key_exception': KeyError},
-        {'keys': ('c', 0), 'expected_keys': ('c', 'a')},
+        {'keys': (-1, 'a'), 'expected_keys': ('c', 'a')},
     ],
     testing.product({
         'get_examples_indices': [
