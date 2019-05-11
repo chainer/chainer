@@ -443,14 +443,18 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::opti
         throw ValueError{R"(Valid values for indexing are "xy" or "ij")"};
     }
 
-    std::vector<Array> reshaped_arr(arrays.size());
-    for (unsigned int i = 0; i < arrays.size(); i++) {
-        reshaped_arr[i] = arrays[i].Reshape(arr_reshapes[i]);
-    }
+    {
+        NoBackpropModeScope scope;
 
-    // Step 2
-    for (unsigned int i = 0; i < arrays.size(); i++) {
-        grid_arrs[i] = reshaped_arr[i].BroadcastTo(broadcast_shape);
+        std::vector<Array> reshaped_arr(arrays.size());
+        for (unsigned int i = 0; i < arrays.size(); i++) {
+            reshaped_arr[i] = arrays[i].Reshape(arr_reshapes[i]);
+        }
+
+        // Step 2
+        for (unsigned int i = 0; i < arrays.size(); i++) {
+            grid_arrs[i] = reshaped_arr[i].BroadcastTo(broadcast_shape);
+        }
     }
 
     MeshgridBackward(arrays, grid_arrs, kind);
