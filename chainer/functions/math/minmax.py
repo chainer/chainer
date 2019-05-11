@@ -81,6 +81,9 @@ class Max(SelectorBase):
 
 class Min(SelectorBase):
 
+    def forward_chainerx(self, x):
+        return chainerx.amin(x[0], axis=self.axis, keepdims=self.keepdims),
+
     def _fwd(self, x, xp):
         return xp.amin(x, axis=self.axis, keepdims=self.keepdims)
 
@@ -124,6 +127,9 @@ class IndexSelectorBase(function_node.FunctionNode):
 
 
 class ArgMin(IndexSelectorBase):
+
+    def forward_chainerx(self, x):
+        return chainerx.argmin(x[0], axis=self.axis).astype(numpy.int32),
 
     def _fwd(self, x, xp):
         return xp.argmin(x, axis=self.axis).astype(numpy.int32)

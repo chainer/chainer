@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import sys
-
 import numpy
 
 import chainer
@@ -51,6 +49,9 @@ class Intel64Device(_backend.Device):
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
 
+    def __str__(self):
+        return '@intel64'
+
     def send_array(self, array):
         if isinstance(array, ideep.mdarray):
             return array
@@ -67,15 +68,6 @@ class Intel64Device(_backend.Device):
             # iDeep mdarray, e.g., when the dtype is not float32.
             array = ideep.array(array, itype=ideep.wgt_array)
         return array
-
-
-def _get_device(device_spec):
-    # Called from chainer.backend.get_device
-    if not is_ideep_available():
-        return None
-    if device_spec is sys.modules[__name__]:
-        return Intel64Device()
-    return None
 
 
 # ------------------------------------------------------------------------------

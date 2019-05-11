@@ -6,10 +6,12 @@
 
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
+#include "chainerx/backend.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
@@ -101,7 +103,7 @@ Array Im2Col(
     }
     Array padded_x = static_cast<int64_t>(pad_value) == int64_t{0} ? Zeros(padded_shape, x.dtype(), device)
                                                                    : Full(padded_shape, pad_value, x.dtype(), device);
-    device.Copy(x, padded_x.At(unpadded_slice));
+    device.backend().CallKernel<CopyKernel>(x, padded_x.At(unpadded_slice));
     CHAINERX_ASSERT(ndim + 2 == padded_x.ndim());
 
     // Create the output array.

@@ -64,6 +64,12 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             params, 'grad', self.gpu_buffer_a,
             allreduce_grad_dtype, stream)
 
+        if chainer.is_debug():
+            stream.synchronize()
+            array_a = self.gpu_buffer_a.array(n_elems_total)
+            array_b = self.gpu_buffer_b.array(n_elems_total)
+            self.check_ready_to_allreduce(array_a, array_b)
+
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
@@ -80,6 +86,10 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.intra_nccl_comm.bcast(
             self.gpu_buffer_b.ptr(), n_elems_total, nccl.NCCL_FLOAT, 0,
             stream.ptr)
+
+        if chainer.is_debug():
+            stream.synchronize()
+            self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
         _memory_utility.unpack_params(
             params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, stream)

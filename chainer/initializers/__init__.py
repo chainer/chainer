@@ -3,6 +3,7 @@ import typing as tp  # NOQA
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import _chainerx  # NOQA
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -59,12 +60,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     dtype = chainer.get_dtype(dtype)
 
     if device is None:
-        if xp is cuda.cupy:
-            backend_device = chainer.get_device(cuda.Device())
-        elif xp is chainerx:
-            backend_device = chainer.get_device(chainerx.get_default_device())
-        else:
-            backend_device = chainer.get_device(numpy)
+        backend_device = backend._guess_device_from_array_module(xp)
     else:
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:

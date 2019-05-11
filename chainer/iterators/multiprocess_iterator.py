@@ -288,7 +288,7 @@ class _Communicator(object):
     def get(self):
         with self._lock:
             start = datetime.datetime.now()
-            while len(self._batch_queue) == 0:
+            while not self._batch_queue:
                 self._not_empty_cond.wait(_response_time)
                 dt = datetime.datetime.now() - start
                 if (self.dataset_timeout is not None

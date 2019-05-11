@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <gsl/gsl>
+
 #include "chainerx/native/native_device.h"
 
 namespace chainerx {

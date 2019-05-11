@@ -225,7 +225,7 @@ class TestConvTranspose(op_utils.ChainerOpTest):
 
         if (x_dtype == 'float16' or w_dtype == 'float16'
                 or b_dtype == 'float16'):
-            self.check_forward_options.update({'rtol': 5e-2, 'atol': 5e-3})
+            self.check_forward_options.update({'rtol': 5e-2, 'atol': 2e-2})
             self.check_backward_options.update({
                 'eps': 2 ** -3, 'rtol': 1e-1, 'atol': 1e-2})
         else:

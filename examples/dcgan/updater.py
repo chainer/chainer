@@ -29,15 +29,15 @@ class DCGANUpdater(chainer.training.updaters.StandardUpdater):
         dis_optimizer = self.get_optimizer('dis')
 
         batch = self.get_iterator('main').next()
-        x_real = Variable(self.converter(batch, self.device)) / 255.
-        xp = chainer.backend.get_array_module(x_real.array)
+        device = self.device
+        x_real = Variable(self.converter(batch, device)) / 255.
 
         gen, dis = self.gen, self.dis
         batchsize = len(batch)
 
         y_real = dis(x_real)
 
-        z = Variable(xp.asarray(gen.make_hidden(batchsize)))
+        z = Variable(device.xp.asarray(gen.make_hidden(batchsize)))
         x_fake = gen(z)
         y_fake = dis(x_fake)
 

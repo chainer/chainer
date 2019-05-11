@@ -71,6 +71,7 @@ Activation/loss/normalization functions with parameters
 
    chainer.links.BatchNormalization
    chainer.links.BatchRenormalization
+   chainer.links.DecorrelatedBatchNormalization
    chainer.links.GroupNormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax

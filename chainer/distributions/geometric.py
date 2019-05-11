@@ -47,6 +47,10 @@ class Geometric(distribution.Distribution):
     def mean(self):
         return 1 / self.p
 
+    @property
+    def params(self):
+        return {'p': self.p}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)
         if xp is cuda.cupy:
