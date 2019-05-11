@@ -32,6 +32,9 @@ from .test_tabular_dataset import DummyDataset
         {'keys': ('d',), 'key_exception': KeyError},
         {'keys': ('c', 0), 'expected_keys': ('c', 'a')},
     ],
+    testing.product({
+        'get_examples_key_indices': [None, [1], [1, 0]],
+    }),
 ))
 class TestSlice(unittest.TestCase):
 
@@ -44,19 +47,23 @@ class TestSlice(unittest.TestCase):
                 [index if isinstance(index, bool) else self.integer(index)
                  for index in self.indices])
 
-        if self.keys is None:
-            self.key_indices = (0, 1, 2)
-        else:
-            self.key_indices = tuple(
-                {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys)
-
     def test_slice(self):
         def callback(indices, key_indices):
             self.assertEqual(indices, self.expected_indices)
+
             if self.keys is None:
-                self.assertIsNone(key_indices)
+                self.assertEqual(key_indices, self.get_examples_key_indices)
             else:
-                self.assertEqual(key_indices, self.key_indices)
+                if self.get_examples_key_indices is None:
+                    keys = self.keys
+                else:
+                    keys = tuple(
+                        self.keys[key_index]
+                        for key_index in self.get_examples_key_indices)
+                self.assertEqual(
+                    key_indices,
+                    tuple({'a': 0, 'b': 1, 'c': 2}.get(key, key)
+                          for key in keys))
 
         dataset = DummyDataset(mode=self.mode, callback=callback)
 
@@ -73,14 +80,24 @@ class TestSlice(unittest.TestCase):
             data = dataset.data[:, self.indices]
         else:
             view = dataset.slice[self.indices, self.keys]
-            data = dataset.data[list(self.key_indices)][:, self.indices]
+            key_indices = [
+                {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys]
+            data = dataset.data[key_indices][:, self.indices]
 
         self.assertIsInstance(view, TabularDataset)
         self.assertEqual(len(view), self.expected_len)
         self.assertEqual(view.keys, self.expected_keys)
         self.assertEqual(view.mode, self.mode)
+
+        if self.get_examples_key_indices is not None:
+            if any(key_index >= len(self.expected_keys)
+                   for key_index in self.get_examples_key_indices):
+                return
+            data = data[self.get_examples_key_indices]
+
         self.assertEqual(
-            view.get_examples(None, None), tuple(list(d) for d in data))
+            view.get_examples(None, self.get_examples_key_indices),
+            tuple(list(d) for d in data))
 
 
 testing.run_module(__name__, __file__)
