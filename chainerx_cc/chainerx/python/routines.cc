@@ -300,6 +300,13 @@ void InitChainerxIndexing(pybind11::module& m) {
           py::arg("a"),
           py::arg("indices"),
           py::arg("axis"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, const ArrayBodyPtr& y) {
+              return MoveArrayBody(Where(Array{condition}, Array{x}, Array{y}));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
