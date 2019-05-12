@@ -79,9 +79,13 @@ if(${CHAINERX_BUILD_CUDA})
         endif()
 
         if(MSVC)
-            list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+            if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+                list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+            else()
+                list(APPEND CUDA_NVCC_FLAGS_RELEASE -Xcompiler /MD)
+                list(APPEND CUDA_NVCC_FLAGS_DEBUG -Xcompiler /MDd)
+            endif()
         endif()
-
     endif()
 endif()
 
@@ -180,7 +184,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
 
-# TODO(durswd): Remove it. It is hack for MSVC+LLVM
+# ChainerX is linked with MultiThreaded DLL. So I specify gtest with MultiThreaded DLL.
 if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang") AND MSVC)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 endif()
