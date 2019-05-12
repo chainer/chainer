@@ -450,16 +450,17 @@ Note:
     _docs.set_doc(
         chainerx.where,
         """where(condition, x, y)
-Return elements chosen from x or y depending on condition.
+Return elements chosen from ``x`` or ``y`` depending on condition.
 
 Args:
-    condition (~chainerx.ndarray): Where True, yield x, otherwise yield y.
+    condition (~chainerx.ndarray): Where True, yield ``x``, otherwise
+    yield ``y``.
     x (~chainerx.ndarray): Values from which to choose.
     y (~chainerx.ndarray): Values from which to choose.
 
 Returns:
     :func:`~chainerx.ndarray`: An array with elements
-    from x where condition is True, and elements from y elsewhere.
+    from ``x`` where condition is True, and elements from ``y`` elsewhere.
 
 Note:
     During backpropagation, this function propagates the gradient of the
