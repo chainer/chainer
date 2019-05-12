@@ -23,7 +23,7 @@ public:
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = chainerx::Pow(x1, x2); }
+                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = chainerx::Power(x1, x2); }
             };
             Elementwise<const T, const T, T>(Impl{}, x1, x2, out);
         });
@@ -39,7 +39,7 @@ public:
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Pow(x1, x2); }
+                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Power(x1, x2); }
                 T x2;
             };
             Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
@@ -56,7 +56,7 @@ public:
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Pow(x1, x2); }
+                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Power(x1, x2); }
                 T x1;
             };
             Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2, out);

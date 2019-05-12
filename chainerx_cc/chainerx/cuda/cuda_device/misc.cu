@@ -65,7 +65,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(SqrtKernel, CudaSqrtKernel);
 template <typename T>
 struct PowerImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = cuda::Pow(x1, x2); }
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType& out) { out = cuda::Power(x1, x2); }
 };
 
 class CudaPowerKernel : public PowerKernel {
@@ -85,7 +85,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(PowerKernel, CudaPowerKernel);
 template <typename T>
 struct PowerASImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = cuda::Pow(x1, x2); }
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = cuda::Power(x1, x2); }
     CudaType x2;
 };
 
@@ -107,7 +107,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(PowerASKernel, CudaPowerASKernel);
 template <typename T>
 struct PowerSAImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = cuda::Pow(x1, x2); }
+    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = cuda::Power(x1, x2); }
     CudaType x1;
 };
 
