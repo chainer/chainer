@@ -104,6 +104,13 @@ public:
         return this->UnwrapAndCast<int64_t>() + rhs.UnwrapAndCast<int64_t>();
     }
 
+    Scalar operator-(const Scalar& rhs) const {
+        if (this->kind() == DtypeKind::kFloat || rhs.kind() == DtypeKind::kFloat) {
+            return this->UnwrapAndCast<double>() - rhs.UnwrapAndCast<double>();
+        }
+        return this->UnwrapAndCast<int64_t>() - rhs.UnwrapAndCast<int64_t>();
+    }
+
     Scalar operator*(const Scalar& rhs) const {
         if (this->kind() == DtypeKind::kFloat || rhs.kind() == DtypeKind::kFloat) {
             return Scalar{this->UnwrapAndCast<double>() * rhs.UnwrapAndCast<double>()};

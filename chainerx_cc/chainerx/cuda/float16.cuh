@@ -73,7 +73,6 @@ public:
     __device__ Float16 Log10() const { return Float16{std::log10(static_cast<float>(*this))}; }
     __device__ Float16 Sqrt() const { return Float16{std::sqrt(static_cast<float>(*this))}; }
     __device__ Float16 Floor() const { return Float16{std::floor(static_cast<float>(*this))}; }
-    __device__ Float16 Pow(cuda::Float16 x) const { return Float16{std::pow(static_cast<float>(*this), static_cast<float>(x))}; }
 
 private:
     explicit __device__ Float16(::__half x) : data_{__half_as_ushort(x)} {}

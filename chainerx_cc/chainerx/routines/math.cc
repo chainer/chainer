@@ -879,87 +879,70 @@ Array Sqrt(const Array& x) {
     return out;
 }
 
-Array Power(const Array& x1, const Array& x2) {
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    Array broadcasted_x1 = x1.BroadcastTo(result_shape);
-    Array broadcasted_x2 = x2.BroadcastTo(result_shape);
-
-    Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    Array x1_cast = broadcasted_x1.AsType(dtype);
-    Array x2_cast = broadcasted_x2.AsType(dtype);
-
-    Array out = Empty(x1.shape(), dtype, x1.device());
+void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1_cast.device().backend().CallKernel<PowerKernel>(x1_cast, x2_cast, out);
+        x1.device().backend().CallKernel<PowerKernel>(x1, x2, out);
     }
 
     {
-        BackwardBuilder bb{"power", {x1_cast, x2_cast}, out};
+        BackwardBuilder bb{"power", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-
-                bctx.input_grad() = gout * x2 * Power(x1, x2 - 1);
+                bctx.input_grad() = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, GetKind(x2.dtype())});
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([x1_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
-
-                bctx.input_grad() = gout * out * Log(x1);
+                bctx.input_grad() = *bctx.output_grad() * out * Log(x1);
             });
         }
 
         bb.Finalize();
     }
-    return out;
 }
 
-Array Power(const Array& x1, Scalar x2) {
-    Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    Array x1_cast = x1.AsType(dtype);
-    Array out = Empty(x1_cast.shape(), dtype, x1.device());
+void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallKernel<PowerASKernel>(x1_cast, x2, out);
+        x1.device().backend().CallKernel<PowerASKernel>(x1, x2, out);
     }
 
-    BackwardBuilder bb{"pow_array_scalar", x1_cast, out};
+    BackwardBuilder bb{"power_array_scalar", x1, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
             const Array& x1 = bctx.GetRetainedInput(x1_tok);
-
-            bctx.input_grad() = *bctx.output_grad() * x2 * Power(x1, x2 + (-1));
+            bctx.input_grad() = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, x2.kind()});
         });
     }
     bb.Finalize();
-    return out;
 }
 
-Array Power(Scalar x1, const Array& x2) {
-    Dtype dtype = GetArithmeticResultDtype(x2, x1);
-    Array x2_cast = x2.AsType(dtype);
-    Array out = Empty(x2.shape(), dtype, x2.device());
+void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x2.device().backend().CallKernel<PowerSAKernel>(x1, x2_cast, out);
+        x2.device().backend().CallKernel<PowerSAKernel>(x1, x2, out);
     }
-    BackwardBuilder bb{"pow_scalar_array", x2_cast, out};
+
+    BackwardBuilder bb{"power_scalar_array", x2, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([out_tok = bb.RetainOutput(0), x1](BackwardContext& bctx) {
             const Array& out = bctx.GetRetainedOutput(out_tok);
-
             bctx.input_grad() = *bctx.output_grad() * out * std::log(static_cast<double>(x1));
         });
     }
     bb.Finalize();
-    return out;
 }
+
+Array Power(const Array& x1, const Array& x2) { return BroadcastBinary(&PowerImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(const Array& x1, Scalar x2) { return Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(Scalar x1, const Array& x2) { return Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Tanh(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());

@@ -16,56 +16,6 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativePowerKernel : public PowerKernel {
-public:
-    void Call(const Array& x1, const Array& x2, const Array& out) override {
-        x1.device().CheckDevicesCompatible(x1, x2, out);
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = chainerx::Power(x1, x2); }
-            };
-            Elementwise<const T, const T, T>(Impl{}, x1, x2, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(PowerKernel, NativePowerKernel);
-
-class NativePowerASKernel : public PowerASKernel {
-public:
-    void Call(const Array& x1, Scalar x2, const Array& out) override {
-        x1.device().CheckDevicesCompatible(x1, out);
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Power(x1, x2); }
-                T x2;
-            };
-            Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
-
-class NativePowerSAKernel : public PowerSAKernel {
-public:
-    void Call(Scalar x1, const Array& x2, const Array& out) override {
-        x2.device().CheckDevicesCompatible(x2, out);
-        VisitNumericDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Power(x1, x2); }
-                T x1;
-            };
-            Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
-
 class NativeSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {
@@ -98,6 +48,46 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SqrtKernel, NativeSqrtKernel);
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(PowerKernel, { out = chainerx::Power(x1, x2); });
+
+class NativePowerASKernel : public PowerASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, out);
+        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Power(x1, x2); }
+                T x2;
+            };
+            Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
+
+class NativePowerSAKernel : public PowerSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Power(x1, x2); }
+                T x1;
+            };
+            Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
 
 class NativeIsNanKernel : public IsNanKernel {
 public:

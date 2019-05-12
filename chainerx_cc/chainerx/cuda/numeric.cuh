@@ -22,6 +22,14 @@ __device__ inline bool IsInf(cuda::Float16 value) { return value.IsInf(); }
 __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
+__device__ inline double Arcsinh(double x) { return std::asinh(x); }
+__device__ inline float Arcsinh(float x) { return std::asinhf(x); }
+__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinhf(static_cast<float>(x))}; }
+
+__device__ inline double Arccosh(double x) { return std::acosh(x); }
+__device__ inline float Arccosh(float x) { return std::acoshf(x); }
+__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
+
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                                       \
     __device__ inline T name(T x) {                             \
@@ -47,9 +55,7 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsinh, std::asin)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccosh, std::acos)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
