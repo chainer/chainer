@@ -46,20 +46,20 @@ public:
     // TODO(imanishi): Use cuda_half()
     __device__ Float16 operator-() const { return Float16{-static_cast<float>(*this)}; }
     __device__ bool operator!() const { return !static_cast<float>(*this); }
-    __device__ Float16 operator+(const Float16& r) const { return Float16{static_cast<float>(*this) + static_cast<float>(r)}; }
-    __device__ Float16 operator-(const Float16& r) const { return Float16{static_cast<float>(*this) - static_cast<float>(r)}; }
-    __device__ Float16 operator*(const Float16& r) const { return Float16{static_cast<float>(*this) * static_cast<float>(r)}; }
-    __device__ Float16 operator/(const Float16& r) const { return Float16{static_cast<float>(*this) / static_cast<float>(r)}; }
-    __device__ Float16 operator+=(const Float16& r) { return *this = Float16{*this + r}; }
-    __device__ Float16 operator-=(const Float16& r) { return *this = Float16{*this - r}; }
-    __device__ Float16 operator*=(const Float16& r) { return *this = Float16{*this * r}; }
-    __device__ Float16 operator/=(const Float16& r) { return *this = Float16{*this / r}; }
-    __device__ bool operator==(const Float16& r) const { return static_cast<float>(*this) == static_cast<float>(r); }
-    __device__ bool operator!=(const Float16& r) const { return !(*this == r); }
-    __device__ bool operator<(const Float16& r) const { return static_cast<float>(*this) < static_cast<float>(r); }
-    __device__ bool operator>(const Float16& r) const { return static_cast<float>(*this) > static_cast<float>(r); }
-    __device__ bool operator<=(const Float16& r) const { return static_cast<float>(*this) <= static_cast<float>(r); }
-    __device__ bool operator>=(const Float16& r) const { return static_cast<float>(*this) >= static_cast<float>(r); }
+    __device__ Float16 operator+(Float16 r) const { return Float16{static_cast<float>(*this) + static_cast<float>(r)}; }
+    __device__ Float16 operator-(Float16 r) const { return Float16{static_cast<float>(*this) - static_cast<float>(r)}; }
+    __device__ Float16 operator*(Float16 r) const { return Float16{static_cast<float>(*this) * static_cast<float>(r)}; }
+    __device__ Float16 operator/(Float16 r) const { return Float16{static_cast<float>(*this) / static_cast<float>(r)}; }
+    __device__ Float16 operator+=(Float16 r) { return *this = Float16{*this + r}; }
+    __device__ Float16 operator-=(Float16 r) { return *this = Float16{*this - r}; }
+    __device__ Float16 operator*=(Float16 r) { return *this = Float16{*this * r}; }
+    __device__ Float16 operator/=(Float16 r) { return *this = Float16{*this / r}; }
+    __device__ bool operator==(Float16 r) const { return static_cast<float>(*this) == static_cast<float>(r); }
+    __device__ bool operator!=(Float16 r) const { return !(*this == r); }
+    __device__ bool operator<(Float16 r) const { return static_cast<float>(*this) < static_cast<float>(r); }
+    __device__ bool operator>(Float16 r) const { return static_cast<float>(*this) > static_cast<float>(r); }
+    __device__ bool operator<=(Float16 r) const { return static_cast<float>(*this) <= static_cast<float>(r); }
+    __device__ bool operator>=(Float16 r) const { return static_cast<float>(*this) >= static_cast<float>(r); }
 
     __host__ __device__ static constexpr Float16 FromData(uint16_t data) { return cuda::Float16{data, FromDataTag{}}; }
 
@@ -85,22 +85,22 @@ private:
 };
 
 template <typename T>
-__device__ inline bool operator==(const T& l, const Float16& r) {
+__device__ inline bool operator==(const T& l, Float16 r) {
     return l == static_cast<float>(r);
 }
 
 template <typename T>
-__device__ inline bool operator==(const Float16& l, const T& r) {
+__device__ inline bool operator==(Float16 l, const T& r) {
     return static_cast<float>(l) == r;
 }
 
 template <typename T>
-__device__ inline bool operator!=(const T& l, const Float16& r) {
+__device__ inline bool operator!=(const T& l, Float16 r) {
     return !(l == r);
 }
 
 template <typename T>
-__device__ inline bool operator!=(const Float16& l, const T& r) {
+__device__ inline bool operator!=(Float16 l, const T& r) {
     return !(l == r);
 }
 

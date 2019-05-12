@@ -2579,6 +2579,8 @@ class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestAbs(UnaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def func(self, xp, a):
         assert chainerx.abs is chainerx.absolute
         return xp.abs(a)

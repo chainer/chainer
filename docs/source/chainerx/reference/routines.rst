@@ -69,6 +69,9 @@ Array manipulation routines
    chainerx.split
    chainerx.swapaxes
    chainerx.expand_dims
+   chainerx.flip
+   chainerx.fliplr
+   chainerx.flipud
 
 Indexing routines
 -----------------
@@ -78,6 +81,7 @@ Indexing routines
    :nosignatures:
 
    chainerx.take
+   chainerx.where
 
 Linear algebra
 --------------
@@ -103,6 +107,7 @@ Logic functions
 
    chainerx.logical_and
    chainerx.logical_or
+   chainerx.logical_xor
    chainerx.logical_not
 
    chainerx.greater
@@ -170,6 +175,7 @@ Sorting, searching, and counting
    :nosignatures:
 
    chainerx.argmax
+   chainerx.argmin
 
 Statistics
 ----------

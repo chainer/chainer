@@ -177,6 +177,14 @@ See :func:`chainerx.argmax` for the full documentation.
 """)
 
     _docs.set_doc(
+        ndarray.argmin,
+        """argmin(axis=None)
+Returns the indices of the minimum elements along a given axis.
+
+See :func:`chainerx.argmin` for the full documentation.
+""")
+
+    _docs.set_doc(
         ndarray.astype,
         """astype(dtype, copy=True)
 Casts each element to the specified data type.
