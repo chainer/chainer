@@ -1366,6 +1366,38 @@ TEST_F(BackpropTest, GradDoubleBackwardWithBackward) {
     EXPECT_ARRAY_EQ(Full({1}, 38.0f), *x2.GetGrad(backprop_id_1));  // (Initial 6) + 24 + 8
 }
 
+TEST_F(BackpropTest, BackproppableButDisconnected) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+
+    std::weak_ptr<void> weak_x3_data{};
+    Array x4{};
+
+    {
+        Array x1 = Ones({1}, Dtype::kFloat32).RequireGrad(backprop_id_1);
+        Array x2 = x1.AsType(Dtype::kInt32);
+
+        ASSERT_TRUE(internal::GetArrayBody(x2)->HasBackpropId(backprop_id_1));
+        ASSERT_TRUE(!internal::GetArrayBody(x2)->HasArrayNode(backprop_id_1));
+
+        Array x3 = x2.AsType(Dtype::kFloat32);
+        weak_x3_data = x3.data();
+
+        ASSERT_TRUE(internal::GetArrayBody(x3)->HasBackpropId(backprop_id_1));
+        ASSERT_TRUE(!internal::GetArrayBody(x3)->HasArrayNode(backprop_id_1));
+
+        // A function with input retention.
+        // If x4 has a reference to x3, the data of x3 would remain unfreed.
+        x4 = Sin(x3);
+    }
+
+    EXPECT_TRUE(internal::GetArrayBody(x4)->HasBackpropId(backprop_id_1));
+    EXPECT_TRUE(!internal::GetArrayBody(x4)->HasArrayNode(backprop_id_1));
+
+    // The data of x3 should be freed because x4 and x3 are disconnected.
+    EXPECT_TRUE(weak_x3_data.expired());
+}
+
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
 
 TEST_P(BackpropFunctionTest, OneToOneFunc) {

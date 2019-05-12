@@ -363,7 +363,7 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
 
 void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    if (!body_->HasArrayNode(actual_backprop_id)) {
+    if (!body_->HasBackpropId(actual_backprop_id)) {
         throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
     body_->ClearGrad(actual_backprop_id);
@@ -371,24 +371,30 @@ void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
 
 bool Array::IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    actual_backprop_id.CheckValid();
     return body_->HasArrayNode(actual_backprop_id) && chainerx::IsBackpropRequired(actual_backprop_id);
 }
 
 bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
-    const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = body_->nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const internal::ArrayNode>& array_node) {
-        return chainerx::IsBackpropRequired(array_node->backprop_id());
-    });
+    return std::any_of(
+            body_->backprop_entries().begin(), body_->backprop_entries().end(), [](const internal::ArrayBody::BackpropEntry& bp) {
+                return bp.has_array_node() && chainerx::IsBackpropRequired(bp.backprop_id());
+            });
 }
 
 bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    actual_backprop_id.CheckValid();
     return body_->IsGradRequired(actual_backprop_id);
 }
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
+    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
+    }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
+    actual_backprop_id.CheckValid();
     internal::ArrayBody::RequireGrad(internal::GetArrayBody(array), actual_backprop_id);
     return array;
 }
@@ -513,9 +519,9 @@ void DebugDumpComputationalGraph(
     PrintComputationalGraphImpl impl{os};
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
     for (const auto& pair : array_name_map) {
-        for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(pair.first.get())->nodes()) {
-            if (array_node->backprop_id() == actual_backprop_id) {
-                impl.SetArrayName(*array_node, pair.second);
+        for (const internal::ArrayBody::BackpropEntry& bp : internal::GetArrayBody(pair.first.get())->backprop_entries()) {
+            if (bp.has_array_node() && bp.backprop_id() == actual_backprop_id) {
+                impl.SetArrayName(*bp.array_node(), pair.second);
             }
         }
     }

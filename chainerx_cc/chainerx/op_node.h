@@ -74,10 +74,7 @@ class OpNode {
 public:
     // Creates a new op node that has output array nodes corresponding to the given outputs.
     static std::shared_ptr<OpNode> CreateWithOutputArrayNodes(
-            std::string name,
-            BackpropId backprop_id,
-            size_t input_count,
-            const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes);
+            std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
 
     ~OpNode() = default;
 
@@ -117,9 +114,9 @@ public:
 
     gsl::span<const OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
 
-    size_t input_array_node_count() const { return input_array_nodes_.size(); }
+    size_t input_count() const { return input_array_nodes_.size(); }
 
-    size_t output_array_node_count() const { return output_array_props_.size(); }
+    size_t output_count() const { return output_array_props_.size(); }
 
     int64_t rank() const { return rank_; }
 

@@ -84,7 +84,7 @@ public:
 
     size_t input_count() const { return input_grads_.size(); }
 
-    size_t output_count() const { return op_node_->output_array_node_count(); }
+    size_t output_count() const { return op_node_->output_count(); }
 
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
     bool next_required() const { return double_backprop_option_ == DoubleBackpropOption::kEnable; }

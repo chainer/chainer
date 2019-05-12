@@ -37,8 +37,14 @@ TEST(BackwardBuilderTest, FloatToInt_Backproppable) {
     Array y1{};
     Array y2{};
     forward(x, y1, y2);
-    EXPECT_TRUE(y1.IsBackpropRequired());
-    EXPECT_TRUE(y2.IsBackpropRequired());
+
+    EXPECT_TRUE(y1.HasBackpropId());
+    EXPECT_TRUE(y2.HasBackpropId());
+    EXPECT_FALSE(y1.IsBackpropRequired());
+    EXPECT_FALSE(y2.IsBackpropRequired());
+
+    Backward(y1);
+    Backward(y2);
 }
 
 TEST(BackwardBuilderTest, FloatToIntAndFloat_Backproppable) {
@@ -63,9 +69,13 @@ TEST(BackwardBuilderTest, FloatToIntAndFloat_Backproppable) {
     Array y1{};
     Array y2{};
     forward(x, y1, y2);
-    EXPECT_TRUE(y1.IsBackpropRequired());
+
+    EXPECT_TRUE(y1.HasBackpropId());
+    EXPECT_TRUE(y2.HasBackpropId());
+    EXPECT_FALSE(y1.IsBackpropRequired());
     EXPECT_TRUE(y2.IsBackpropRequired());
 
+    Backward(y1);
     Backward(y2);
 }
 
@@ -96,7 +106,10 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputFirstParam) {
     Array y2{};
 
     forward(x, y1, y2);
-    EXPECT_TRUE(y1.IsBackpropRequired());
+
+    EXPECT_TRUE(y1.HasBackpropId());
+    EXPECT_TRUE(y2.HasBackpropId());
+    EXPECT_FALSE(y1.IsBackpropRequired());
     EXPECT_TRUE(y2.IsBackpropRequired());
 
     y2.SetGrad(testing::BuildArray(shape).WithData<float>({4, 5, 6, 7, 8, 9}));
@@ -132,8 +145,11 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputSecondParam) {
     Array y2{};
 
     forward(x, y1, y2);
+
+    EXPECT_TRUE(y1.HasBackpropId());
+    EXPECT_TRUE(y2.HasBackpropId());
     EXPECT_TRUE(y1.IsBackpropRequired());
-    EXPECT_TRUE(y2.IsBackpropRequired());
+    EXPECT_FALSE(y2.IsBackpropRequired());
 
     y1.SetGrad(testing::BuildArray(shape).WithData<float>({4, 5, 6, 7, 8, 9}));
     Backward(y1);
@@ -170,8 +186,12 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayBodyIsGone) {
         Array y2{};
 
         forward(x, y1, y2);
+
+        EXPECT_TRUE(y1.HasBackpropId());
+        EXPECT_TRUE(y2.HasBackpropId());
         EXPECT_TRUE(y1.IsBackpropRequired());
-        EXPECT_TRUE(y2.IsBackpropRequired());
+        EXPECT_FALSE(y2.IsBackpropRequired());
+
         z2 = y2.MakeView();
     }
 
@@ -209,8 +229,11 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayNodeIsGone) {
         Array y2{};
 
         forward(x, y1, y2);
+
+        EXPECT_TRUE(y1.HasBackpropId());
+        EXPECT_TRUE(y2.HasBackpropId());
         EXPECT_TRUE(y1.IsBackpropRequired());
-        EXPECT_TRUE(y2.IsBackpropRequired());
+        EXPECT_FALSE(y2.IsBackpropRequired());
     }
 
     y1.SetGrad(testing::BuildArray(shape).WithData<float>({4, 5, 6, 7, 8, 9}));

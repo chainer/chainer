@@ -31,8 +31,10 @@ std::vector<Array> DisconnectInputArrays(const std::vector<Array>& inputs) {
     inputs_view.reserve(inputs.size());
     for (const auto& input : inputs) {
         Array a = input.AsGradStopped(CopyKind::kView);
-        for (const std::shared_ptr<internal::ArrayNode>& arr_node : internal::GetArrayBody(input)->nodes()) {
-            a.RequireGrad(arr_node->backprop_id());
+        for (const internal::ArrayBody::BackpropEntry& bp : internal::GetArrayBody(input)->backprop_entries()) {
+            if (bp.has_array_node()) {
+                a.RequireGrad(bp.backprop_id());
+            }
         }
         inputs_view.emplace_back(std::move(a));
     }

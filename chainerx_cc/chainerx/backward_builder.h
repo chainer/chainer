@@ -190,6 +190,8 @@ public:
     // This functions must be called when targets have been created for all inputs.
     void Finalize();
 
+    void BeforeTargetDefine();
+
 private:
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
@@ -229,8 +231,13 @@ private:
     backward_builder_detail::RetentionRecord input_retention_record_;
     backward_builder_detail::RetentionRecord output_retention_record_;
 
+    // List of relevant backprop IDs.
+    // The bool flag indicates whether any input has an array node.
+    std::vector<std::pair<BackpropId, bool>> backprop_ids_{};
+
     bool has_any_applicable_outputs_;
     bool is_finalized_{false};
+    bool any_target_defined_{false};
 };
 
 }  // namespace chainerx

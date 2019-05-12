@@ -140,8 +140,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
     EXPECT_EQ(a.offset(), b.offset());
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_TRUE(internal::GetArrayBody(a)->nodes().empty());
-    EXPECT_TRUE(internal::GetArrayBody(b)->nodes().empty());
+    EXPECT_FALSE(internal::GetArrayBody(a)->has_backprop_entries());
+    EXPECT_FALSE(internal::GetArrayBody(b)->has_backprop_entries());
 }
 
 TEST(ArrayInvalidCtorTest, InvalidArrayBody) { EXPECT_THROW(Array{nullptr}, ChainerxError); }
@@ -204,66 +204,56 @@ TEST_P(ArrayTest, RequireGrad) {
 }
 
 TEST_P(ArrayTest, RequireGradDtype) {
-    for (Dtype dtype : GetAllDtypes()) {
-        Array a = Ones(Shape{1}, dtype).RequireGrad();
-        EXPECT_TRUE(a.IsGradRequired()) << "Dtype: " << GetDtypeName(dtype);
-    }
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kBool).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt8).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt16).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt32).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt64).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kUInt8).RequireGrad(); }, DtypeError);
+    // no throw
+    Ones(Shape{1}, Dtype::kFloat32).RequireGrad();
+    Ones(Shape{1}, Dtype::kFloat64).RequireGrad();
 }
 
 // TODO(niboshi): Move to ArrayGradTest
 TEST_P(ArrayTest, Grad) {
-    Dtype dtypes[]{Dtype::kFloat32, Dtype::kInt32};
+    using T = float;
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
+    Shape shape{2, 3};
 
-    for (Dtype dtype : dtypes) {
-        BackpropScope backprop_scope{"bp1"};
-        BackpropId backprop_id = backprop_scope.backprop_id();
-        Shape shape{2, 3};
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
 
-        Array x{};
-        Array g{};
-        switch (dtype) {
-            case Dtype::kFloat32:
-                x = testing::BuildArray(shape).WithData<float>({5, 3, 2, 1, 4, 6});
-                g = testing::BuildArray(shape).WithData<float>({8, 4, 6, 3, 2, 1});
-                break;
-            case Dtype::kInt32:
-                x = testing::BuildArray(shape).WithData<int32_t>({5, 3, 2, 1, 4, 6});
-                g = testing::BuildArray(shape).WithData<int32_t>({8, 4, 6, 3, 2, 1});
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+    x.RequireGrad(backprop_id);
+    g.RequireGrad(backprop_id);
 
-        x.RequireGrad(backprop_id);
-        g.RequireGrad(backprop_id);
+    EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be initially unset";
 
-        EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be initially unset";
+    // Set and get grad
+    {
+        x.SetGrad(g, backprop_id);
 
-        // Set and get grad
-        {
-            x.SetGrad(g, backprop_id);
+        EXPECT_ARRAY_EQ(g, *x.GetGrad(backprop_id));
+    }
 
-            EXPECT_ARRAY_EQ(g, *x.GetGrad(backprop_id));
-        }
+    // Get grad multiple times
+    {
+        const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
+        const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
+        EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
+    }
 
-        // Get grad multiple times
-        {
-            const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
-            const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
-            EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
-        }
+    // ClearGrad
+    {
+        Array grad_view = *x.GetGrad(backprop_id);  // Make a view of grad
 
-        // ClearGrad
-        {
-            Array grad_view = *x.GetGrad(backprop_id);  // Make a view of grad
+        x.ClearGrad(backprop_id);
 
-            x.ClearGrad(backprop_id);
+        EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
 
-            EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
-
-            // ClearGrad() must not affect previously retrieved view to grad
-            EXPECT_ARRAY_EQ(grad_view, g);
-        }
+        // ClearGrad() must not affect previously retrieved view to grad
+        EXPECT_ARRAY_EQ(grad_view, g);
     }
 }
 

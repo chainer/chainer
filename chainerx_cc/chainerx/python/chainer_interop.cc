@@ -60,7 +60,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(input_indexes_to_retain, inputs.size()));
               CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(output_indexes_to_retain, outputs.size()));
               CHAINERX_ASSERT(std::all_of(outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) {
-                  return array_body == nullptr || array_body->nodes().empty();
+                  return array_body == nullptr || !array_body->has_backprop_entries();
               }));
               const size_t chainer_output_count = outputs.size();
 

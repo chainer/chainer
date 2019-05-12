@@ -79,7 +79,7 @@ BackwardContext::BackwardContext(
       double_backprop_option_{double_backprop_option} {
     CHAINERX_ASSERT(op_node.get() == &backward_entry.op_node());
     CHAINERX_ASSERT(output_array_nodes_.size() == output_grads_.size());
-    CHAINERX_ASSERT(input_grads_.size() == op_node->input_array_node_count());
+    CHAINERX_ASSERT(input_grads_.size() == op_node->input_count());
 
     // Input grads must be initialized with null-body arrays.
     const std::vector<size_t>& input_grad_indices = backward_entry.input_array_node_indices();
@@ -88,9 +88,9 @@ BackwardContext::BackwardContext(
     }));
 
     // Total number of input arrays including those that do not require grads.
-    retained_input_array_bodies_.resize(op_node->input_array_node_count());
+    retained_input_array_bodies_.resize(op_node->input_count());
 
-    retained_output_array_bodies_.resize(op_node->output_array_node_count());
+    retained_output_array_bodies_.resize(op_node->output_count());
 };
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
@@ -141,7 +141,7 @@ std::vector<const std::shared_ptr<ArrayNode>*> GetInputArrayNodesForIndex(const 
 }  // namespace
 
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
-    CHAINERX_ASSERT(token.index() < op_node_->input_array_node_count());
+    CHAINERX_ASSERT(token.index() < op_node_->input_count());
     size_t input_index = token.index();
 
     // Retrieve the kept array body for retained input.
@@ -170,7 +170,7 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
 
                 for (const std::shared_ptr<ArrayNode>* input_array_node_ptr : input_array_nodes) {
                     if (*input_array_node_ptr != nullptr) {
-                        ArrayBody::AddNode(array_body, *input_array_node_ptr);
+                        ArrayBody::InstallBackpropId(array_body, (*input_array_node_ptr)->backprop_id(), *input_array_node_ptr);
                     }
                 }
             }
@@ -258,7 +258,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.array_params());
     for (const std::shared_ptr<ArrayNode>& output_array_node : new_output_array_nodes) {
         CHAINERX_ASSERT(output_array_node->weak_body().expired());
-        ArrayBody::AddNode(fabricated_array_body, output_array_node);
+        ArrayBody::InstallBackpropId(fabricated_array_body, output_array_node->backprop_id(), output_array_node);
     }
 
     return fabricated_array_body;

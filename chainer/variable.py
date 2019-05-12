@@ -1399,8 +1399,9 @@ class Variable(object):
                     'loss_scale if not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
-            chainerx.backward(
-                arr, enable_double_backprop=enable_double_backprop)
+            if self.requires_grad:
+                chainerx.backward(
+                    arr, enable_double_backprop=enable_double_backprop)
             return
 
         # Initialize error by 1, if this is a loss variable

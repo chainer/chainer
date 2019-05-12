@@ -17,6 +17,11 @@
 namespace chainerx {
 namespace internal {
 
+class ArrayNode;
+
+// Assigns ArrayNode::weak_body_.
+void SetArrayNodeWeakBody(ArrayNode& array_node, std::weak_ptr<ArrayBody> weak_body);
+
 class ArrayNode {
 public:
     ArrayNode(Shape shape, Dtype dtype, Device& device, BackpropId backprop_id)
@@ -59,9 +64,7 @@ public:
     const std::weak_ptr<ArrayBody>& weak_body() const { return weak_body_; }
 
 private:
-    // weak_body_ is set by this function.
-    friend const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(
-            const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
+    friend void SetArrayNodeWeakBody(ArrayNode& array_node, std::weak_ptr<ArrayBody> weak_body);
 
     std::weak_ptr<ArrayBody> weak_body_;
     std::shared_ptr<OpNode> creator_op_node_;

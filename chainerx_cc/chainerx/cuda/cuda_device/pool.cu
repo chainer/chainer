@@ -269,7 +269,7 @@ public:
             bool cover_all,
             bool return_state,
             const nonstd::optional<Array>& out) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(x)->has_backprop_entries());
 
         Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);
 
@@ -291,7 +291,7 @@ public:
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(gout)->has_backprop_entries());
 
         CHAINERX_ASSERT(state != nullptr);
         CudaMaxPoolGradState& cuda_state = dynamic_cast<CudaMaxPoolGradState&>(*state);
@@ -318,7 +318,7 @@ public:
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(ggx)->has_backprop_entries());
 
         CHAINERX_ASSERT(state != nullptr);
         CudaMaxPoolGradGradState& cuda_state = dynamic_cast<CudaMaxPoolGradGradState&>(*state);
@@ -352,7 +352,7 @@ public:
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(x)->has_backprop_entries());
 
         Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, out);
 
@@ -374,7 +374,7 @@ public:
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(gout)->has_backprop_entries());
 
         CHAINERX_ASSERT(state != nullptr);
         CudaAveragePoolGradState& cuda_state = dynamic_cast<CudaAveragePoolGradState&>(*state);

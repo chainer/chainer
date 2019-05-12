@@ -164,9 +164,9 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormKernel::C
         const Axes& axis,
         bool return_state,
         const nonstd::optional<Array>& out) {
-    CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
-    CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
-    CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
+    CHAINERX_ASSERT(!internal::GetArrayBody(x)->has_backprop_entries());
+    CHAINERX_ASSERT(!internal::GetArrayBody(gamma)->has_backprop_entries());
+    CHAINERX_ASSERT(!internal::GetArrayBody(beta)->has_backprop_entries());
     CHAINERX_ASSERT(GetKind(x.dtype()) == DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(gamma.dtype()) == DtypeKind::kFloat);
     CHAINERX_ASSERT(GetKind(beta.dtype()) == DtypeKind::kFloat);
@@ -326,9 +326,9 @@ Array BatchNorm(
                 std::tie(gx, ggamma, gbeta) = device.backend().CallKernel<BatchNormGradKernel>(
                         x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
             }
-            CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
-            CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
-            CHAINERX_ASSERT(internal::GetArrayBody(gbeta)->nodes().empty());
+            CHAINERX_ASSERT(!internal::GetArrayBody(gx)->has_backprop_entries());
+            CHAINERX_ASSERT(!internal::GetArrayBody(ggamma)->has_backprop_entries());
+            CHAINERX_ASSERT(!internal::GetArrayBody(gbeta)->has_backprop_entries());
 
             if (bctx.next_required()) {
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};

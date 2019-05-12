@@ -76,13 +76,7 @@ template <typename ActualContainer, typename T = typename ActualContainer::value
 }  // namespace array_check_detail
 
 inline ::testing::AssertionResult IsBackpropIdsEqual(const std::vector<BackpropId>& expected, const Array& array) {
-    std::vector<BackpropId> actual;
-    std::vector<std::shared_ptr<internal::ArrayNode>>& nodes = internal::GetArrayBody(array)->nodes();
-    actual.reserve(nodes.size());
-    std::transform(nodes.begin(), nodes.end(), std::back_inserter(actual), [](const std::shared_ptr<internal::ArrayNode>& node) {
-        return node->backprop_id();
-    });
-    return array_check_detail::IsSetEqual(expected, actual);
+    return array_check_detail::IsSetEqual(expected, internal::GetArrayBody(array)->GetBackpropIds());
 }
 
 // TODO(hvy): Allow friendlier failure messages by avoiding EXPECT_* and return ::testing::AssertionResult instead.

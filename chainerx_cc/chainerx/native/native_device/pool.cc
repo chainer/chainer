@@ -67,7 +67,7 @@ public:
             bool cover_all,
             bool return_state,
             const nonstd::optional<Array>& out) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(x)->has_backprop_entries());
 
         // TODO(hvy): Implement and test the `out` argument.
         if (out.has_value()) {
@@ -101,7 +101,7 @@ public:
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(gout)->has_backprop_entries());
 
         // TODO(hvy): Implement and test the `gx` argument.
         if (gx.has_value()) {
@@ -157,7 +157,7 @@ public:
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(ggx)->has_backprop_entries());
 
         // TODO(hvy): Implement and test the `ggout` argument.
         if (ggout.has_value()) {
@@ -258,7 +258,7 @@ public:
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(x)->has_backprop_entries());
 
         // TODO(hvy): Implement and test the `out` argument.
         if (out.has_value()) {
@@ -312,7 +312,7 @@ public:
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {
-        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(gout)->has_backprop_entries());
 
         // TODO(hvy): Implement and test the `gx` argument.
         if (gx.has_value()) {

@@ -66,6 +66,7 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
             // No backprop is required
             bb.Finalize();
         }
+        CHAINERX_ASSERT(!out.IsBackpropRequired());
         return out;
     }
 

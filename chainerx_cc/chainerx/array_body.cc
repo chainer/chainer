@@ -43,6 +43,16 @@ std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {
 
 const std::shared_ptr<ArrayNode> ArrayBody::kNullArrayNode{nullptr};
 
+ArrayBody::BackpropEntry::BackpropEntry(const BackpropId& backprop_id)
+    : backprop_id_{backprop_id}, grad_{std::make_unique<nonstd::optional<Array>>(nonstd::nullopt)} {}
+
+void ArrayBody::BackpropEntry::SetArrayNode(std::shared_ptr<ArrayNode> array_node) {
+    CHAINERX_ASSERT(array_node->backprop_id() == backprop_id_);
+    array_node_ = std::move(array_node);
+}
+
+void ArrayBody::BackpropEntry::SetGrad(std::unique_ptr<nonstd::optional<Array>> grad) { grad_ = std::move(grad); }
+
 ArrayBody::ArrayBody(
         const Shape& shape,  // NOLINT(modernize-pass-by-value)
         const Strides& strides,  // NOLINT(modernize-pass-by-value)
@@ -55,69 +65,112 @@ ArrayBody::ArrayBody(
 ArrayBody::ArrayBody(Params params)
     : ArrayBody{params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset} {}
 
-const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node) {
+const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(
+        const std::shared_ptr<ArrayBody>& body, ArrayBody::BackpropEntry& bp, std::shared_ptr<ArrayNode> array_node) {
+    CHAINERX_ASSERT(bp.backprop_id() == array_node->backprop_id());
+
     body->AssertConsistency();
 
     // The body must be either unset (the array node is being created normally) or dead (the body is being replaced with a fabricated one,
     // as a retained output of backward)
     CHAINERX_ASSERT(array_node->weak_body().expired());
 
-    auto it = std::find_if(body->nodes_.begin(), body->nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
-        return existing_node->backprop_id() == array_node->backprop_id();
-    });
-    if (it != body->nodes_.end()) {
-        return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
+    // Do nothing and return the existing ArrayNode if found for this graph.
+    if (bp.has_array_node()) {
+        return bp.array_node();
     }
 
     // Connect the new backprop ID and the existing backprop IDs in this array body.
-    for (const std::shared_ptr<ArrayNode>& existing_array_node : body->nodes_) {
-        existing_array_node->device().context().ConnectBackpropIds(existing_array_node->backprop_id(), array_node->backprop_id());
+    for (const BackpropEntry& existing_bp : body->bps_) {
+        if (existing_bp.has_array_node()) {
+            Context& context = existing_bp.array_node()->device().context();
+            context.ConnectBackpropIds(existing_bp.backprop_id(), array_node->backprop_id());
+        }
     }
 
-    array_node->weak_body_ = body;
+    internal::SetArrayNodeWeakBody(*array_node, body);
 
-    body->nodes_.emplace_back(std::move(array_node));
-    body->grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));
+    // Assign the array node
+    bp.SetArrayNode(std::move(array_node));
 
     body->AssertConsistency();
-    return body->nodes_.back();
+    return bp.array_node();
 }
 
-const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
-    return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id));
+ArrayBody::BackpropEntry& ArrayBody::InstallBackpropId(
+        const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id, bool create_array_node) {
+    CHAINERX_ASSERT(!create_array_node || GetKind(body->dtype_) == DtypeKind::kFloat);
+
+    auto maybe_bp = body->FindBackpropEntry(backprop_id);
+    if (!maybe_bp.has_value()) {
+        body->bps_.emplace_back(backprop_id);
+        maybe_bp = std::reference_wrapper<BackpropEntry>{body->bps_.back()};
+    }
+
+    BackpropEntry& bp = *maybe_bp;
+
+    if (create_array_node) {
+        if (!bp.has_array_node()) {
+            std::shared_ptr<ArrayNode> array_node = std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id);
+            AddNode(body, bp, std::move(array_node));
+        }
+
+        CHAINERX_ASSERT(bp.has_array_node());
+        CHAINERX_ASSERT(body->HasBackpropId(backprop_id));
+    }
+
+    return bp;
+}
+
+ArrayBody::BackpropEntry& ArrayBody::InstallBackpropId(
+        const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id, std::shared_ptr<ArrayNode> array_node) {
+    CHAINERX_ASSERT(array_node != nullptr);
+    CHAINERX_ASSERT(backprop_id == array_node->backprop_id());
+    CHAINERX_ASSERT(GetKind(body->dtype_) == DtypeKind::kFloat);
+
+    BackpropEntry& bp = InstallBackpropId(body, backprop_id, false);
+    CHAINERX_ASSERT(!bp.has_array_node());  // Can't overwrite existing array node
+
+    ArrayNode* array_node_ptr = array_node.get();
+
+    AddNode(body, bp, std::move(array_node));
+
+    CHAINERX_ASSERT(bp.array_node().get() == array_node_ptr);
+    CHAINERX_ASSERT(body->HasBackpropId(backprop_id));
+    return bp;
 }
 
 void ArrayBody::AssertConsistency() const {
     if (CHAINERX_DEBUG) {
-        CHAINERX_ASSERT(nodes_.size() == grads_.size());
-        for (size_t i = 0; i < nodes_.size(); ++i) {
-            const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
-            const nonstd::optional<Array>& grad = *grads_[i];
-            CHAINERX_ASSERT(array_node != nullptr);
-            CHAINERX_ASSERT(this == array_node->weak_body().lock().get());
-
-            if (grad.has_value()) {
-                CHAINERX_ASSERT(internal::GetArrayBody(*grad) != nullptr);
-                CHAINERX_ASSERT(grad->shape() == array_node->shape());
-                CHAINERX_ASSERT(grad->dtype() == array_node->dtype());
-                CHAINERX_ASSERT(&grad->device() == &array_node->device());
+        for (const BackpropEntry& bp : bps_) {
+            // Assert uniqueness of backprop IDs
+            for (const BackpropEntry& bp2 : bps_) {
+                CHAINERX_ASSERT(&bp == &bp2 || bp.backprop_id() != bp2.backprop_id());
             }
 
-            // Array with integral dtypes can have array nodes but not gradients.
-            if (GetKind(dtype()) != DtypeKind::kFloat) {
-                CHAINERX_ASSERT(grad == nonstd::nullopt);
+            const std::shared_ptr<ArrayNode>& array_node = bp.array_node();
+            CHAINERX_ASSERT(bp.grad() != nullptr);
+
+            if (array_node != nullptr) {
+                CHAINERX_ASSERT(bp.backprop_id() == array_node->backprop_id());
+                CHAINERX_ASSERT(this == array_node->weak_body().lock().get());
+                CHAINERX_ASSERT(bp.grad() != nullptr);
+
+                // Array with integral dtypes cannot have array nodes.
+                CHAINERX_ASSERT(GetKind(dtype()) == DtypeKind::kFloat);
+
+                const nonstd::optional<Array>& grad = *bp.grad();
+
+                if (grad.has_value()) {
+                    CHAINERX_ASSERT(internal::GetArrayBody(*grad) != nullptr);
+                    CHAINERX_ASSERT(array_node != nullptr);
+                    CHAINERX_ASSERT(grad->shape() == array_node->shape());
+                    CHAINERX_ASSERT(grad->dtype() == array_node->dtype());
+                    CHAINERX_ASSERT(&grad->device() == &array_node->device());
+                }
             }
         }
     }
-}
-
-nonstd::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) const {
-    for (size_t i = 0; i < nodes_.size(); ++i) {
-        if (nodes_[i]->backprop_id() == backprop_id) {
-            return i;
-        }
-    }
-    return nonstd::nullopt;
 }
 
 void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
@@ -132,21 +185,25 @@ void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
     grad->reset();
 }
 
-template <typename ThisPtr, typename ReturnType>
-ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id) {
-    nonstd::optional<size_t> i = this_ptr->GetNodeIndex(backprop_id);
-    if (!i.has_value()) {
+const nonstd::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) const {
+    auto bp = FindBackpropEntry(backprop_id);
+    if (!bp.has_value()) {
         return nullptr;
     }
-    CHAINERX_ASSERT(*i < this_ptr->grads_.size());
-    ReturnType grad = this_ptr->grads_[*i].get();
-    CHAINERX_ASSERT(grad != nullptr);
-    return grad;
+    CHAINERX_ASSERT(bp->get().grad() != nullptr);
+    return bp->get().grad().get();
 }
 
-template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const BackpropId&);
-template const nonstd::optional<Array>* ArrayBody::GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(
-        const ArrayBody*, const BackpropId&);
+nonstd::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) {
+    auto bp = FindBackpropEntry(backprop_id);
+    if (!bp.has_value()) {
+        return nullptr;
+    }
+    if (bp->get().grad() == nullptr) {
+        return nullptr;
+    }
+    return bp->get().grad().get();
+}
 
 }  // namespace internal
 }  // namespace chainerx

@@ -21,7 +21,7 @@ namespace internal {
 // the check in this function will not be needed.
 inline void CheckNoUnsafeInplace(const Array& out, std::initializer_list<std::reference_wrapper<const Array>> inputs) {
     const std::shared_ptr<ArrayBody>& out_body = internal::GetArrayBody(out);
-    if (!out_body->nodes().empty()) {
+    if (out_body->has_backprop_entries()) {
         throw ChainerxError{"In-place assignment to output array requiring grad is not allowed."};
     }
 

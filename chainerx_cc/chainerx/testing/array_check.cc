@@ -54,8 +54,10 @@ inline bool IsAllClose(const Array& a, const Array& b, double rtol, double atol,
 
 ::testing::AssertionResult HaveDistinctArrayNodes(const char* a_expr, const char* b_expr, const Array& a, const Array& b) {
     // No array nodes should be shared.
-    for (const std::shared_ptr<internal::ArrayNode>& array_node_a : internal::GetArrayBody(a)->nodes()) {
-        for (const std::shared_ptr<internal::ArrayNode>& array_node_b : internal::GetArrayBody(b)->nodes()) {
+    for (const internal::ArrayBody::BackpropEntry& bp_a : internal::GetArrayBody(a)->backprop_entries()) {
+        for (const internal::ArrayBody::BackpropEntry& bp_b : internal::GetArrayBody(b)->backprop_entries()) {
+            const std::shared_ptr<internal::ArrayNode>& array_node_a = bp_a.array_node();
+            const std::shared_ptr<internal::ArrayNode>& array_node_b = bp_b.array_node();
             if (array_node_a == array_node_b) {
                 return ::testing::AssertionFailure()
                        << "Expected " << a_expr << " including: " << array_node_a << "(" << array_node_a->backprop_id() << ")\n"

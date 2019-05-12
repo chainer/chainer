@@ -34,6 +34,32 @@ public:
         int64_t offset;
     };
 
+    // A backprop ID entry.
+    // This is an aggregate data structure without logic.
+    class BackpropEntry {
+    public:
+        explicit BackpropEntry(const BackpropId& backprop_id);
+
+        const BackpropId& backprop_id() const { return backprop_id_; }
+
+        bool is_grad_required() const { return is_grad_required_; }
+        void SetIsGradRequired(bool value) { is_grad_required_ = value; }
+
+        const std::shared_ptr<ArrayNode>& array_node() const { return array_node_; }
+        bool has_array_node() const { return array_node_ != nullptr; }
+        void SetArrayNode(std::shared_ptr<ArrayNode> array_node);
+
+        std::unique_ptr<nonstd::optional<Array>>& grad() { return grad_; }
+        const std::unique_ptr<nonstd::optional<Array>>& grad() const { return grad_; }
+        void SetGrad(std::unique_ptr<nonstd::optional<Array>> grad);
+
+    private:
+        BackpropId backprop_id_;
+        bool is_grad_required_{};
+        std::shared_ptr<ArrayNode> array_node_{};
+        std::unique_ptr<nonstd::optional<Array>> grad_;
+    };
+
     ~ArrayBody() = default;
 
     ArrayBody(const ArrayBody&) = delete;
@@ -55,82 +81,89 @@ public:
 
     int64_t offset() const { return offset_; }
 
-    // Returns the list of backprop IDs whose gradients are marked as required.
-    // This does not take backprop mode into account.
-    const std::vector<BackpropId>& grad_required_backprop_ids() const { return grad_required_backprop_ids_; }
+    const std::vector<BackpropEntry>& backprop_entries() const { return bps_; }
 
-    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
+    bool has_backprop_entries() const { return !bps_.empty(); }
 
-    // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return nodes_; }
+    std::vector<BackpropEntry>& backprop_entries() { return bps_; }
 
     int64_t GetItemSize() const { return chainerx::GetItemSize(dtype()); }
 
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), GetItemSize()); }
 
+    // Returns whether the backprop ID is registered in the array body.
+    // It does not matter whether the graph is connected, i.e. whether the array body has an array node.
+    // It does not matter whether the backprop ID is expired.
+    // Backprop mode is not taken into account.
+    bool HasBackpropId(const BackpropId& backprop_id) const {
+        auto node = FindBackpropEntry(backprop_id);
+        return node.has_value();
+    }
+
+    // Returns whether the array body has an array node corresponding to the backprop ID.
+    // It does not matter whether the backprop ID is expired.
+    bool HasArrayNode(const BackpropId& backprop_id) const {
+        auto node = FindBackpropEntry(backprop_id);
+        return node.has_value() && node->get().has_array_node();
+    }
+
     // Returns whether the gradient of the specified backprop ID is marked as required.
-    // This does not take backprop mode into account.
+    // It does not matter whether the graph is connected, i.e. whether the array body has an array node.
+    // It does not matter whether the backprop ID is expired.
+    // Backprop mode is not taken into account.
     bool IsGradRequired(const BackpropId& backprop_id) const {
-        backprop_id.CheckValid();
-        return grad_required_backprop_ids_.end() !=
-               std::find(grad_required_backprop_ids_.begin(), grad_required_backprop_ids_.end(), backprop_id);
+        auto node = FindBackpropEntry(backprop_id);
+        return node.has_value() && node->get().is_grad_required();
     }
 
     // Mark the gradient of the specified backprop ID as required.
-    // This does not take backprop mode into account.
+    // Backprop mode is not taken into account.
+    // If the backprop ID is not registered in the array body, it will be registered.
+    // An array node will also be created, but only if the dtype kind is float.
     static void RequireGrad(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
-        backprop_id.CheckValid();
+        CHAINERX_ASSERT(GetKind(body->dtype_) == DtypeKind::kFloat);
 
-        if (body->grad_required_backprop_ids_.end() ==
-            std::find(body->grad_required_backprop_ids_.begin(), body->grad_required_backprop_ids_.end(), backprop_id)) {
-            body->grad_required_backprop_ids_.emplace_back(backprop_id);
-
-            if (!body->HasArrayNode(backprop_id)) {
-                CreateArrayNode(body, backprop_id);
-            }
-        }
+        bool create_array_node = GetKind(body->dtype_) == DtypeKind::kFloat;
+        BackpropEntry& node = InstallBackpropId(body, backprop_id, create_array_node);
+        node.SetIsGradRequired(true);
     }
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
     int64_t GetNBytes() const { return GetTotalSize() * GetItemSize(); }
 
+    // Returns the array node corresponding to a given backprop ID.
+    // Returns nullptr if it does not exist.
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
-        nonstd::optional<size_t> index = GetNodeIndex(backprop_id);
-        if (index.has_value()) {
-            return nodes_[*index];
+        auto node = FindBackpropEntry(backprop_id);
+        if (node.has_value()) {
+            return node->get().array_node();
         }
-
         return kNullArrayNode;
     }
 
-    bool HasArrayNode(const BackpropId& backprop_id) const { return GetNodeIndex(backprop_id).has_value(); }
+    // Creates a new backprop entry on the array body if it does not exist.
+    // Reference to the newly-created or existing backward entry is returned.
+    // The returned reference is only valid until the next call of InstallBackpropId on the same ArrayBody instance.
+    // If `create_array_node` is true and there already is an array node, it does not create a new one.
+    static BackpropEntry& InstallBackpropId(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id, bool create_array_node);
 
-    // Adds an array node to the array body.
-    // The array node must have been initialized with this array body in advance.
-    // Otherwise the behavior is undefined.
-    // It does nothing if an array node with the same backprop ID is already registered.
-    // The returned reference is only valid until the next call of AddNode on this instance.
-    static const std::shared_ptr<ArrayNode>& AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
-
-    // Creates a new array node on the specified graph.
-    // ChainerxError is thrown if an array node is already registered on the graph.
-    // The returned reference is only valid until the next call of CreateArrayNode (or AddNode) on the same ArrayBody instance.
-    static const std::shared_ptr<ArrayNode>& CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id);
+    // Creates a new backprop entry on the array body if it does not exist and sets the given array node.
+    // Reference to the newly-created or existing backward entry is returned.
+    // The returned reference is only valid until the next call of InstallBackpropId on the same ArrayBody instance.
+    // If there already is an array node corresponding to the backprop ID, the behavior is undefined.
+    static BackpropEntry& InstallBackpropId(
+            const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id, std::shared_ptr<ArrayNode> array_node);
 
     Params GetParams() const { return {shape_, strides_, dtype_, device_, data_, offset_}; }
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    const nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) const {
-        return GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(this, backprop_id);
-    }
+    const nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) const;
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) {
-        return GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(this, backprop_id);
-    }
+    nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id);
 
     // Sets a gradient array.
     // The behavior is undefined if there is no array node for the specified graph.
@@ -139,6 +172,16 @@ public:
     // Clears a gradient array.
     // The behavior is undefined if there is no array node for the specified graph.
     void ClearGrad(const BackpropId& backprop_id);
+
+    // Returns the list of backprop IDs registered in the array body.
+    std::vector<BackpropId> GetBackpropIds() const {
+        std::vector<BackpropId> bps{};
+        bps.reserve(bps_.size());
+        for (const BackpropEntry& node : bps_) {
+            bps.emplace_back(node.backprop_id());
+        }
+        return bps;
+    }
 
 private:
     friend std::shared_ptr<ArrayBody> CreateArrayBody(
@@ -155,10 +198,35 @@ private:
     // This function is no-op if CHAINERX_DEBUG is set.
     void AssertConsistency() const;
 
-    template <typename ThisPtr, typename ReturnType>
-    static ReturnType GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id);
+    // Adds an array node to the array body.
+    // The array node must have been initialized with this array body in advance.
+    // Otherwise the behavior is undefined.
+    // It does nothing if an array node with the same backprop ID is already registered.
+    // The returned reference is only valid until the next call of AddNode on this instance.
+    static const std::shared_ptr<ArrayNode>& AddNode(
+            const std::shared_ptr<ArrayBody>& body, ArrayBody::BackpropEntry& node, std::shared_ptr<ArrayNode> array_node);
 
-    nonstd::optional<size_t> GetNodeIndex(const BackpropId& backprop_id) const;
+    // Common implementation of FindBackpropEntry.
+    template <typename ThisPtr, typename BackpropEntryType>
+    static nonstd::optional<std::reference_wrapper<BackpropEntryType>> FindBackpropEntryImpl(
+            ThisPtr this_ptr, const BackpropId& backprop_id) {
+        for (BackpropEntryType& bp : this_ptr->bps_) {
+            if (bp.backprop_id() == backprop_id) {
+                return std::reference_wrapper<BackpropEntryType>{bp};
+            }
+        }
+        return nonstd::nullopt;
+    }
+
+    // Finds the backprop entry corresponding to a given backprop ID and returns the reference to it.
+    nonstd::optional<std::reference_wrapper<const BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) const {
+        return FindBackpropEntryImpl<const ArrayBody*, const BackpropEntry>(this, backprop_id);
+    }
+
+    // Finds the backprop entry corresponding to a given backprop ID and returns the reference to it.
+    nonstd::optional<std::reference_wrapper<BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) {
+        return FindBackpropEntryImpl<ArrayBody*, BackpropEntry>(this, backprop_id);
+    }
 
     // The use of non-POD static storage object here is safe, because destructing a shared_ptr with nullptr does not incur any
     // destruction order problem.
@@ -171,9 +239,7 @@ private:
     std::shared_ptr<void> data_;
     int64_t offset_;  // in bytes
 
-    std::vector<BackpropId> grad_required_backprop_ids_;
-    std::vector<std::shared_ptr<ArrayNode>> nodes_;
-    std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
+    std::vector<BackpropEntry> bps_;
 };
 
 std::shared_ptr<ArrayBody> CreateArrayBody(

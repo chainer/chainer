@@ -55,7 +55,11 @@ std::unordered_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> Backwar
                 continue;
             }
 
-            for (std::shared_ptr<ArrayNode>& input_array_node : internal::GetArrayBody(input)->nodes()) {
+            for (const internal::ArrayBody::BackpropEntry& input_bp : internal::GetArrayBody(input)->backprop_entries()) {
+                const std::shared_ptr<internal::ArrayNode>& input_array_node = input_bp.array_node();
+                if (input_array_node == nullptr) {
+                    continue;
+                }
                 const BackpropId& backprop_id = input_array_node->backprop_id();
                 if (!IsBackpropRequired(backprop_id)) {
                     continue;
@@ -90,6 +94,9 @@ std::unordered_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> Backwar
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     CHAINERX_ASSERT(is_definition_required());
+    CHAINERX_ASSERT(builder_.has_any_applicable_outputs_);
+
+    builder_.BeforeTargetDefine();
 
     // Find/Create an op node for each graph and register the given backward function to each of them.
     for (const auto& pair : graph_to_input_array_nodes_) {
@@ -108,7 +115,9 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
                 });
 
         std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(backprop_id);
-        op_node->RegisterBackwardFunction(std::move(temp_input_array_nodes), backward_func);
+        if (op_node != nullptr) {
+            op_node->RegisterBackwardFunction(std::move(temp_input_array_nodes), backward_func);
+        }
     }
 }
 
@@ -129,7 +138,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
             std::all_of(outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output) != nullptr; }));
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     CHAINERX_ASSERT(std::all_of(
-            outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
+            outputs_.begin(), outputs_.end(), [](const Array& output) { return !internal::GetArrayBody(output)->has_backprop_entries(); }));
     // Arrays must be on the same device within inputs / outputs respectively.
     CHAINERX_ASSERT(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
         return &outputs_.begin()->get().device() == &output.device();
@@ -138,41 +147,35 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 
     // Collect backprop Ids from input arrays.
-    std::vector<BackpropId> backprop_ids{};
+
     for (const Array& input : inputs_) {
         const std::shared_ptr<ArrayBody>& input_body = internal::GetArrayBody(input);
-        for (const std::shared_ptr<ArrayNode>& input_arr_node : input_body->nodes()) {
-            const BackpropId& backprop_id = input_arr_node->backprop_id();
-            if (!IsBackpropRequired(backprop_id)) {
+        for (internal::ArrayBody::BackpropEntry& bp : input_body->backprop_entries()) {
+            const BackpropId& input_backprop_id = bp.backprop_id();
+            if (!IsBackpropRequired(input_backprop_id)) {
                 continue;
             }
-            if (backprop_ids.end() == std::find(backprop_ids.begin(), backprop_ids.end(), backprop_id)) {
-                backprop_ids.emplace_back(backprop_id);
+            bool input_has_array_node = bp.has_array_node();
+
+            auto it = std::find_if(backprop_ids_.begin(), backprop_ids_.end(), [&input_backprop_id](const auto& pair) {
+                return pair.first == input_backprop_id;
+            });
+            if (it == backprop_ids_.end()) {
+                backprop_ids_.emplace_back(input_backprop_id, input_has_array_node);
+            } else {
+                it->second |= input_has_array_node;
             }
         }
     }
 
-    // Install output array nodes, but without op nodes.
-    // Op nodes are inserted in BackwardBuilder::Define later.
-    for (const BackpropId& backprop_id : backprop_ids) {
-        for (const Array& output : outputs_) {
-            const std::shared_ptr<ArrayBody>& output_body = internal::GetArrayBody(output);
-            ArrayBody::CreateArrayNode(output_body, backprop_id);
-        }
-    }
+    // Install backprop IDs, but without array nodes.
+    for (const std::pair<BackpropId, bool>& pair : backprop_ids_) {
+        const BackpropId& backprop_id = pair.first;
 
-    // Collect references to output array nodes to which graphs are connected.
-    // Note that the loop cannot be merged with the above one because creating a new array node would invalidate the references.
-    for (const BackpropId& backprop_id : backprop_ids) {
-        std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes{};
-        output_array_nodes.reserve(outputs_.size());
         for (const Array& output : outputs_) {
             const std::shared_ptr<ArrayBody>& output_body = internal::GetArrayBody(output);
-            const std::shared_ptr<ArrayNode>& output_array_node = output_body->GetArrayNode(backprop_id);
-            CHAINERX_ASSERT(output_array_node != nullptr);
-            output_array_nodes.emplace_back(output_array_node);
+            ArrayBody::InstallBackpropId(output_body, backprop_id, false);
         }
-        output_nodes_map_[backprop_id] = std::move(output_array_nodes);
     }
 
     has_any_applicable_outputs_ =
@@ -185,9 +188,7 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& b
 
     // If not found, create a new one.
     if (insert_result.second) {
-        auto it = output_nodes_map_.find(backprop_id);
-        CHAINERX_ASSERT(it != output_nodes_map_.end());
-        insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), it->second);
+        insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
     }
 
     CHAINERX_ASSERT(!op_node_map_.empty());
@@ -209,13 +210,64 @@ RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
 void BackwardBuilder::Finalize() {
     CHAINERX_ASSERT(!is_finalized_);
 
-    AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
+    if (any_target_defined_) {
+        AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
-    // Connect each pair of backprop IDs concerned in this op.
-    // If two backprop IDs are connected, backpropping on the one with lower ordinal will prohibit future backprop on the other.
-    ConnectBackpropIds();
+        // Connect each pair of backprop IDs concerned in this op.
+        // If two backprop IDs are connected, backpropping on the one with lower ordinal will prohibit future backprop on the other.
+        ConnectBackpropIds();
+    }
 
     is_finalized_ = true;
+}
+
+void BackwardBuilder::BeforeTargetDefine() {
+    if (any_target_defined_) {
+        return;
+    }
+
+    // Install output array nodes, but without op nodes.
+    // Op nodes are inserted in BackwardBuilder::Define later.
+    for (const std::pair<BackpropId, bool>& pair : backprop_ids_) {
+        const BackpropId& backprop_id = pair.first;
+        bool input_has_array_node = pair.second;
+
+        for (const Array& output : outputs_) {
+            // Create output array node if and only if
+            // - any input has array node, and
+            // - output array has float dtype.
+            bool create_array_node = input_has_array_node && GetKind(output.dtype()) == DtypeKind::kFloat;
+
+            if (create_array_node) {
+                const std::shared_ptr<ArrayBody>& output_body = internal::GetArrayBody(output);
+                ArrayBody::InstallBackpropId(output_body, backprop_id, create_array_node);
+            }
+        }
+    }
+
+    // Collect references to output array nodes to which graphs are connected.
+    // Note that the loop cannot be merged with the above one because creating a new array node would invalidate the references.
+    for (const std::pair<BackpropId, bool>& pair : backprop_ids_) {
+        const BackpropId& backprop_id = pair.first;
+        bool input_has_array_node = pair.second;
+
+        if (input_has_array_node) {
+            std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes{};
+            output_array_nodes.reserve(outputs_.size());
+            for (const Array& output : outputs_) {
+                const std::shared_ptr<ArrayBody>& output_body = internal::GetArrayBody(output);
+                const std::shared_ptr<ArrayNode>& output_array_node = output_body->GetArrayNode(backprop_id);
+                if (output_array_node != nullptr) {
+                    output_array_nodes.emplace_back(output_array_node);
+                }
+            }
+            if (!output_array_nodes.empty()) {
+                output_nodes_map_[backprop_id] = std::move(output_array_nodes);
+            }
+        }
+    }
+
+    any_target_defined_ = true;
 }
 
 namespace {
@@ -264,6 +316,8 @@ void BackwardBuilder::AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention() {
     // For outputs, we need to consider all graphs that this builder defines since each output participates in all of them.
     // For inputs, we only need to consider a subset of the graphs; the graphs that each input belongs to.
 
+    CHAINERX_ASSERT(any_target_defined_);
+
     // Add edges to input array nodes
     if (input_retention_record_.IsAnyRecorded()) {
         // Collect graphs to which the retained inputs belong.
@@ -271,8 +325,11 @@ void BackwardBuilder::AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention() {
         std::unordered_set<BackpropId> retained_graphs{};
         for (size_t i = 0; i < input_retention_record_.size(); ++i) {
             if (input_retention_record_.IsRecorded(i)) {
-                for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(gsl::at(inputs_, i))->nodes()) {
-                    retained_graphs.emplace(array_node->backprop_id());
+                const std::shared_ptr<internal::ArrayBody>& body = internal::GetArrayBody(gsl::at(inputs_, i));
+                for (const internal::ArrayBody::BackpropEntry& bp : body->backprop_entries()) {
+                    if (bp.has_array_node()) {
+                        retained_graphs.emplace(bp.backprop_id());
+                    }
                 }
             }
         }
@@ -306,6 +363,8 @@ void BackwardBuilder::AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention() {
 }
 
 void BackwardBuilder::ConnectBackpropIds() {
+    CHAINERX_ASSERT(any_target_defined_);
+
     for (auto it1 = op_node_map_.begin(); it1 != op_node_map_.end(); ++it1) {
         const BackpropId& backprop_id1 = it1->first;
         for (auto it2 = std::next(it1); it2 != op_node_map_.end(); ++it2) {

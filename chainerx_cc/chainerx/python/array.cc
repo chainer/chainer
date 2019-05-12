@@ -479,6 +479,9 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("value"));
 
+    c.def("has_backprop_id",
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.HasBackpropId(backprop_id); },
+          py::arg("backprop_id") = nullptr);
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
               return MoveArrayBody(std::move(Array{self}.RequireGrad(backprop_id)));

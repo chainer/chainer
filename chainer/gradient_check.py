@@ -582,7 +582,7 @@ class _CheckBackward(object):
         params = self.params
 
         xs = [
-            variable.Variable(x, requires_grad=True)
+            variable.Variable(x, requires_grad=x.dtype.kind == 'f')
             for x in xs]
 
         if self.is_immutable_params:
@@ -1003,7 +1003,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     def first_order_grad(*inputs):
         inputs = [
             x if x.requires_grad
-            else chainer.Variable(x.array, requires_grad=True)
+            else chainer.Variable(x.array, requires_grad=x.dtype.kind == 'f')
             for x in inputs]
         xs = inputs[:n_x]
         gys = inputs[n_x:]
@@ -1020,6 +1020,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         # See the comment in check_backward.
         y_backward = _apply_grad_setter_func(ys, gys)
 
+        # Run the first order backward.
         y_backward.backward(enable_double_backprop=True)
 
         gxs = []

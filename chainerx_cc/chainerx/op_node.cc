@@ -25,7 +25,7 @@ OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> in
     : op_node_{op_node}, input_array_node_indices_{std::move(input_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
 std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_node, size_t output_array_node_index) {
-    CHAINERX_ASSERT(output_array_node_index < op_node->output_array_node_count());
+    CHAINERX_ASSERT(output_array_node_index < op_node->output_count());
     CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index].has_value());
     CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index]->expired());
 
@@ -41,32 +41,46 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
 
 // static
 std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
-        std::string name,
-        BackpropId backprop_id,
-        size_t input_count,
-        const std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>& output_array_nodes) {
-    CHAINERX_ASSERT(input_count > 0);
-    CHAINERX_ASSERT(!output_array_nodes.empty());
-    CHAINERX_ASSERT(std::all_of(
-            output_array_nodes.begin(), output_array_nodes.end(), [](const std::shared_ptr<ArrayNode>& node) { return node != nullptr; }));
+        std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs) {
+    // If no output node needs an array node, return without creating an op node.
+    {
+        bool any_output_need_array_node = std::any_of(outputs.begin(), outputs.end(), [](const Array& out) {
+            const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
+            CHAINERX_ASSERT(out_body != nullptr);
+            return GetKind(out_body->dtype()) == DtypeKind::kFloat;
+        });
+
+        if (!any_output_need_array_node) {
+            return nullptr;
+        }
+    }
 
     // Trick to use make_shared with private ctor
     struct OpNodeWithPublicCtor : OpNode {
         OpNodeWithPublicCtor(std::string name, BackpropId backprop_id, size_t input_count)
             : OpNode{std::move(name), backprop_id, input_count} {}
     };
+
+    // Create the op node.
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), backprop_id, input_count);
 
-    for (const std::shared_ptr<ArrayNode>& output_array_node : output_array_nodes) {
-        op_node->output_array_props_.emplace_back(*output_array_node);
-        if (GetKind(output_array_node->dtype()) == DtypeKind::kFloat) {
+    // Create and connect output array nodes.
+    for (const Array& out : outputs) {
+        const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
+        CHAINERX_ASSERT(out_body != nullptr);
+        op_node->output_array_props_.emplace_back(*out_body);
+        if (GetKind(out_body->dtype()) == DtypeKind::kFloat) {
+            const ArrayBody::BackpropEntry& bp = ArrayBody::InstallBackpropId(out_body, backprop_id, true);
+            const std::shared_ptr<ArrayNode>& output_array_node = bp.array_node();
             op_node->output_array_nodes_.emplace_back(output_array_node);
             output_array_node->set_creator_op_node(op_node);
         } else {
             op_node->output_array_nodes_.emplace_back(nonstd::nullopt);
         }
     }
+
     op_node->AssertConsistency();
+    CHAINERX_ASSERT(op_node->output_array_nodes_.size() == outputs.size());
     return op_node;
 }
 
@@ -149,8 +163,8 @@ void AssertOuterGraphsArrayNodesConsistency(
 
 void OpNode::AssertConsistency() const {
 #if CHAINERX_DEBUG
-    AssertOuterGraphsArrayNodesConsistency(backprop_id_, input_array_node_count(), outer_graphs_input_array_nodes_, false);
-    AssertOuterGraphsArrayNodesConsistency(backprop_id_, output_array_node_count(), outer_graphs_output_array_nodes_, true);
+    AssertOuterGraphsArrayNodesConsistency(backprop_id_, input_count(), outer_graphs_input_array_nodes_, false);
+    AssertOuterGraphsArrayNodesConsistency(backprop_id_, output_count(), outer_graphs_output_array_nodes_, true);
 #endif  // CHAINERX_DEBUG
 }
 

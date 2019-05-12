@@ -138,7 +138,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     CHAINERX_ASSERT(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
-    CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
+    CHAINERX_ASSERT(!internal::GetArrayBody(indices)->has_backprop_entries());
 
     Array out = EmptyLike(a, a.device());
 
@@ -153,7 +153,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad(); });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
+            CHAINERX_ASSERT(!internal::GetArrayBody(indices)->has_backprop_entries());
             bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(*bctx.output_grad(), indices, axis); });
         }
         bb.Finalize();
@@ -168,7 +168,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
     }
 
-    CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
+    CHAINERX_ASSERT(!internal::GetArrayBody(indices)->has_backprop_entries());
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
@@ -185,7 +185,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
+        CHAINERX_ASSERT(!internal::GetArrayBody(indices)->has_backprop_entries());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to

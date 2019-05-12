@@ -223,14 +223,14 @@ struct ArrayReprImpl {
         os << ", shape=" << array.shape();
         os << ", dtype=" << array.dtype();
         os << ", device='" << array.device().name() << "'";
-        const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = internal::GetArrayBody(array)->nodes();
-        if (!array_nodes.empty()) {
+        const std::vector<BackpropId>& backprop_ids = internal::GetArrayBody(array)->GetBackpropIds();
+        if (!backprop_ids.empty()) {
             os << ", backprop_ids=[";
-            for (size_t i = 0; i < array_nodes.size(); ++i) {
+            for (size_t i = 0; i < backprop_ids.size(); ++i) {
                 if (i > 0) {
                     os << ", ";
                 }
-                os << '\'' << array_nodes[i]->backprop_id() << '\'';
+                os << '\'' << backprop_ids[i] << '\'';
             }
             os << ']';
         }

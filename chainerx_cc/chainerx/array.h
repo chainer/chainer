@@ -225,6 +225,15 @@ public:
     // This function ignores no/force-backprop mode.
     void ClearGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
+    // Returns whether the given backprop ID is registered in the array.
+    //
+    // Backprop mode is not taken into account.
+    bool HasBackpropId(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const {
+        BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+        actual_backprop_id.CheckValid();
+        return body_->HasBackpropId(actual_backprop_id);
+    }
+
     // Returns whether the array needs to backprop.
     //
     // If no-backprop mode is set with respect to the specified backprop ID, this function returns false.

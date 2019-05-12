@@ -170,11 +170,11 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
             std::vector<uint8_t>& flags = input_required_flags[op_node];
             if (flags.empty()) {
-                flags.resize(op_node->input_array_node_count());
+                flags.resize(op_node->input_count());
             }
 
             const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
-            for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
+            for (size_t i_input = 0; i_input < op_node->input_count(); ++i_input) {
                 if (input_array_nodes[i_input].get() == array_node) {
                     flags[i_input] = static_cast<int8_t>(true);
                     // Cannot break since the same inputs may appear more than once in an op node.
@@ -211,9 +211,12 @@ public:
           backprop_id_{backprop_id},
           double_backprop_{double_backprop},
           array_node_grad_map_{std::move(array_node_grad_map)} {
+        if (!IsBackpropRequired(backprop_id)) {
+            throw ChainerxError{"Cannot backprop with a disabled backprop ID '", backprop_id, "'."};
+        }
         for (const Array& output : outputs) {
-            if (!output.IsBackpropRequired(backprop_id)) {
-                throw ChainerxError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
+            if (!output.HasBackpropId(backprop_id)) {
+                throw ChainerxError{"Cannot start backprop from an array that is irrelevant to the backprop ID '", backprop_id, "'."};
             }
             output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));
         }
@@ -248,15 +251,17 @@ public:
             const Array& output = outputs_[i];
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
 
-            // Add GradRef for output array nodes
-            auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{*array_node});
+            if (array_node != nullptr) {
+                // Add GradRef for output array nodes
+                auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{*array_node});
 
-            // Set unset output gradients to the default value of one
-            if (!emplace_result.first->second.get().has_value()) {
-                emplace_result.first->second.get() = OnesLike(output, output.device());
+                // Set unset output gradients to the default value of one
+                if (!emplace_result.first->second.get().has_value()) {
+                    emplace_result.first->second.get() = OnesLike(output, output.device());
+                }
+
+                PushCreatorOpNode(array_node);
             }
-
-            PushCreatorOpNode(array_node);
         }
 
         // Backpropagation
@@ -353,7 +358,7 @@ private:
 
         // Call the backward functions and collects their gradients.
         std::vector<nonstd::optional<Array>> input_grads;
-        input_grads.resize(op_node->input_array_node_count());
+        input_grads.resize(op_node->input_count());
 
         const std::vector<uint8_t>& requires_grad = input_required_flags_[op_node.get()];
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node->backward_entries()) {
