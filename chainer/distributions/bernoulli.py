@@ -6,6 +6,7 @@ from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
+from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer.functions.math import sum
@@ -47,12 +48,11 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         dlogit = x - 1. / (1. + exponential.exp(-logit))
 
         # extreme logit
-        nan_dlogit = xp.zeros_like(dlogit.array)
+        nan = xp.array(xp.nan).astype(dlogit.dtype)
+        logit_isinf = xp.bitwise_or(self.logit_ispinf, self.logit_isminf)
+        dlogit = where.where(logit_isinf, nan, dlogit)
         if self.binary_check:
-            nan_dlogit[self.invalid] = numpy.nan
-        nan_dlogit[self.logit_ispinf] = numpy.nan
-        nan_dlogit[self.logit_isminf] = numpy.nan
-        dlogit += nan_dlogit
+            dlogit = where.where(self.invalid, nan, dlogit)
 
         return sum.sum_to(gy * dlogit, logit.shape), None
 
