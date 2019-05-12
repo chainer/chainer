@@ -9,6 +9,7 @@
 
 #include <nonstd/optional.hpp>
 
+#include "chainerx/routines/activation.h"
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/constant.h"
@@ -1006,6 +1007,15 @@ void InitChainerxPooling(pybind11::module& m) {
           "stride"_a = py::none(),
           "pad"_a = 0,
           "pad_mode"_a = "ignore");
+}
+
+void InitChainerxActivation(pybind11::module& m) {
+    m.def("leaky_relu",
+          [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
+          "x"_a,
+          "slope"_a = 0.2);
+    m.def("clipped_relu", [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); }, "x"_a, "z"_a = 20.0);
+    m.def("crelu", [](const ArrayBodyPtr& x) { return MoveArrayBody(Crelu(Array{x})); }, "x"_a);
 }
 
 }  // namespace
