@@ -2434,9 +2434,9 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'in_shapes': _shapes_combination_inplace_binary,
+        'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -2444,8 +2444,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -2454,7 +2453,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [True, False],
@@ -2475,7 +2474,6 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
-        dtype1, dtype2 = self.in_dtypes
 
         self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
         self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
@@ -2483,6 +2481,11 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
             {'rtol': 5e-3, 'atol': 5e-3})
 
     def func(self, xp, a, b):
+        if a.dtype.kind == 'i' and b.dtype.kind == 'i' and (b < 0).any():
+            raise unittest.SkipTest(
+                'NumPy raises ValueError but ChainerX does not, similar to '
+                'CuPy.')
+
         if self.is_module:
             return xp.power(a, b)
         else:
@@ -2494,20 +2497,18 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_float_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [2.0, 3.0],
+        'scalar_value': [-2.0, 3.14],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
     # Type combinations
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_float_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [2.0, 3.0],
+        'scalar_value': [-2.0, 3.14],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
@@ -2524,10 +2525,10 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_float_arithmetic_scalar,
-        'input': [float('inf')],
-        'scalar_value': [1, 2],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [float('inf'), -float('inf'), float('nan')],
+        'scalar_value': [
+            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
         'is_scalar_rhs': [False],
         'skip_backward_test': [True],
@@ -2537,6 +2538,13 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
 class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
+        if a.dtype.kind == 'i' and isinstance(scalar, float):
+            if ((self.is_scalar_rhs and scalar < 0)
+                    or (not self.is_scalar_rhs and (a < 0).any())):
+                raise unittest.SkipTest(
+                    'NumPy raises ValueError but ChainerX does not, similar '
+                    'to CuPy.')
+
         if self.is_module:
             if self.is_scalar_rhs:
                 return xp.power(a, scalar)
