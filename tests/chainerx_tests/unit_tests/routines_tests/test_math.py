@@ -2471,7 +2471,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
+class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
@@ -2534,7 +2534,7 @@ class TestPow(BinaryMathTestBase, op_utils.NumpyOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestPowScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
         if self.is_module:
