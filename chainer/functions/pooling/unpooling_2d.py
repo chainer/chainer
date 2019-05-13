@@ -46,7 +46,8 @@ class Unpooling2D(pooling_2d.Pooling2D):
         xp = backend.get_array_module(x)
         b, c, h, w = x.shape
         bs, cs, hs, ws = x.strides
-        x = x[:, :, self.ph // 2:-self.ph // 2, self.pw // 2:-self.pw // 2]
+        if self.ph > 0 or self.pw > 0:
+            x = x[:, :, self.ph // 2:-self.ph // 2, self.pw // 2:-self.pw // 2]
         y = xp.lib.stride_tricks.as_strided(
             x,
             (b, c, h - self.ph, self.kh, w - self.pw, self.kw),
