@@ -664,7 +664,7 @@ Array Flip(const Array& m, const OptionalAxes& axes) {
     int64_t offset = 0;
     for (auto axis : real_axes) {
         // last element of that dimension.
-        offset += std::max(shape[axis] - 1, 0L) * strides[axis];
+        offset += std::max(shape[axis] - 1, 0LL) * strides[axis];
         if (shape[axis] != 0) {
             strides[axis] = -strides[axis];
         }
