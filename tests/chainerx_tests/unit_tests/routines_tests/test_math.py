@@ -2480,8 +2480,45 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
         self.check_double_backward_options.update(
             {'rtol': 5e-3, 'atol': 5e-3})
 
+    def generate_inputs(self):
+        in_dtype1, in_dtype2 = self.in_dtypes
+        in_shape1, in_shape2 = self.in_shapes
+
+        if self.input_rhs == 'random':
+            low = 1 if numpy.dtype(in_dtype2).kind == 'u' else None
+            b = array_utils.uniform(in_shape2, in_dtype2, low=low, high=2)
+        elif isinstance(self.input_rhs, (bool, int, float)):
+            b = numpy.full(in_shape2, self.input_rhs, dtype=in_dtype2)
+        else:
+            assert False
+
+        if self.input_lhs == 'random':
+            low = 1 if numpy.dtype(in_dtype1).kind == 'u' else None
+            a = array_utils.uniform(in_shape1, in_dtype1, low=low, high=2)
+
+            # For each element, if the power (rhs) is negative, the
+            # corresponding base (lhs) should not contain elements near 0 in
+            # order to guarantee differentiability.
+            if ((not self.skip_backward_test
+                 or not self.skip_double_backward_test)
+                    and self.input_lhs == 'random'):
+                a_broadcast, b_broadcast = numpy.broadcast_arrays(a, b)
+                a_broadcast[
+                    (b_broadcast < 0)
+                    & (a_broadcast >= -1)
+                    & (a_broadcast <= 0)] = -1
+                a_broadcast[
+                    (b_broadcast < 0)
+                    & (a_broadcast <= 1)
+                    & (a_broadcast > 0)] = 1
+        elif isinstance(self.input_lhs, (bool, int, float)):
+            a = numpy.full(in_shape1, self.input_lhs, dtype=in_dtype1)
+        else:
+            assert False
+        return a, b
+
     def func(self, xp, a, b):
-        if a.dtype.kind == 'i' and b.dtype.kind == 'i' and (b < 0).any():
+        if a.dtype.kind != 'f' and b.dtype.kind != 'f' and (b < 0).any():
             raise unittest.SkipTest(
                 'NumPy raises ValueError but ChainerX does not, similar to '
                 'CuPy.')
@@ -2525,7 +2562,8 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_float_arithmetic_scalar,
         'input': [float('inf'), -float('inf'), float('nan')],
         'scalar_value': [
             0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
@@ -2538,12 +2576,13 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
 class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def func_scalar(self, xp, a, scalar):
-        if a.dtype.kind == 'i' and isinstance(scalar, float):
-            if ((self.is_scalar_rhs and scalar < 0)
-                    or (not self.is_scalar_rhs and (a < 0).any())):
-                raise unittest.SkipTest(
-                    'NumPy raises ValueError but ChainerX does not, similar '
-                    'to CuPy.')
+        if (a.dtype.kind != 'f'
+            and not isinstance(scalar, float)
+            and ((self.is_scalar_rhs and scalar < 0)
+                 or (not self.is_scalar_rhs and (a < 0).any()))):
+            raise unittest.SkipTest(
+                'NumPy raises ValueError but ChainerX does not, similar '
+                'to CuPy.')
 
         if self.is_module:
             if self.is_scalar_rhs:
