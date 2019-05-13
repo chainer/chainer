@@ -707,7 +707,7 @@ def test_swap_invalid(xp, shape, axis1, axis2):
     return xp.swapaxes(a, axis1, axis2)
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,repeats,axis', [
     ((4,), 1, 0),
     ((4,), 2, 0),
@@ -727,6 +727,9 @@ class TestRepeat(op_utils.NumpyOpTest):
             self.skip_backward_test = True
             self.skip_double_backward_test = True
         self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
 
     def generate_inputs(self):
         a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)

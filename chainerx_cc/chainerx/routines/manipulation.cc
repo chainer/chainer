@@ -777,7 +777,7 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
 
     {
         BackwardBuilder bb{"repeat", a, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([shape, axis, repeats, dtype = a.dtype(), &device = a.device()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
                 int64_t gout_offset = 0;
