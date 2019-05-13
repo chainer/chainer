@@ -613,6 +613,18 @@ Array Exp(const Array& x) {
     return out;
 }
 
+Array Expm1(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Exp(x_cast) - 1;
+}
+
+Array Exp2(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Power(2, x_cast);
+}
+
 Array Log(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
