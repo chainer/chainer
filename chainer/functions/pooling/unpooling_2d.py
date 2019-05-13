@@ -2,7 +2,7 @@ import numpy
 import numpy.lib.stride_tricks
 try:
     import cupy.lib.stride_tricks  # NOQA
-except ImportError:
+except Exception:
     pass
 
 from chainer import backend
