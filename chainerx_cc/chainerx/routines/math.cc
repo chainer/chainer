@@ -1165,6 +1165,36 @@ Array Arccosh(const Array& x) {
     return out;
 }
 
+Array Fabs(const Array& x) {
+    Dtype dtype = GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<FabsKernel>(x, out);
+    }
+
+    BackwardBuilder bb{"fabs", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& inp = bctx.GetRetainedInput(inp_tok);
+            bctx.input_grad() = gout * Sign(inp);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Sign(const Array& x) {
+    Array out = Empty(x.shape(), x.dtype(), x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<SignKernel>(x, out);
+    }
+    return out;
+}
+
 Array Ceil(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

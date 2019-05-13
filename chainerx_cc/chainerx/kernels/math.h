@@ -228,6 +228,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class FabsKernel : public Kernel {
+public:
+    static const char* name() { return "Fabs"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class SignKernel : public Kernel {
+public:
+    static const char* name() { return "Sign"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class IsNanKernel : public Kernel {
 public:
     static const char* name() { return "IsNan"; }

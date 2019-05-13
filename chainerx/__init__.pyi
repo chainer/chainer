@@ -648,6 +648,9 @@ def eye(N: int,
 def expand_dims(a: ndarray, axis: int) -> ndarray: ...
 
 
+def fabs(x: ndarray) -> ndarray: ...
+
+
 def fixed_batch_norm(
         x: ndarray,
         gamma: ndarray,
@@ -811,6 +814,8 @@ def reshape(
 
 @tp.overload
 def reshape(a: ndarray, *args: tp.Any) -> ndarray: ...
+
+def sign(x: ndarray) -> ndarray: ...
 
 def sin(x: ndarray) -> ndarray: ...
 
