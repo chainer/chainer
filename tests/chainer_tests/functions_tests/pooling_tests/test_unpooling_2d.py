@@ -144,10 +144,8 @@ class TestUnpooling2D(unittest.TestCase):
 
 @testing.parameterize(*testing.product_dict(
     [
-        # we assume insize as (2, 1)
-        # standard output size which is estimated with get_deconv_outsize
-        # function
-        {'outsize': (4, 2), 'ksize': 2},
+        {'insize': (2, 1), 'outsize': (4, 2), 'ksize': 2, 'pad': 0},
+        {'insize': (4, 5), 'outsize': (4, 6), 'ksize': 2, 'pad': 2},
     ],
     [
         {'dtype': numpy.float16},
@@ -160,7 +158,7 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
     def setUp(self):
         self.N = 2
         self.n_channels = 3
-        inh, inw = 2, 1
+        inh, inw = self.insize
         self.x = numpy.arange(
             self.N * self.n_channels * inh * inw,
             dtype=self.dtype).reshape(self.N, self.n_channels, inh, inw)
@@ -180,7 +178,8 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = functions.unpooling_2d(x, self.ksize, outsize=self.outsize)
+        y = functions.unpooling_2d(
+            x, self.ksize, outsize=self.outsize, pad=self.pad)
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
@@ -196,6 +195,21 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
                         [self.x[i, c, 1, 0], self.x[i, c, 1, 0]],
                         [self.x[i, c, 1, 0], self.x[i, c, 1, 0]],
                     ])
+                elif outsize == (4, 6):
+                    expect = numpy.array([
+                        [self.x[i, c, 1, 1], self.x[i, c, 1, 1],
+                         self.x[i, c, 1, 2], self.x[i, c, 1, 2],
+                         self.x[i, c, 1, 3], self.x[i, c, 1, 3]],
+                        [self.x[i, c, 1, 1], self.x[i, c, 1, 1],
+                         self.x[i, c, 1, 2], self.x[i, c, 1, 2],
+                         self.x[i, c, 1, 3], self.x[i, c, 1, 3]],
+                        [self.x[i, c, 2, 1], self.x[i, c, 2, 1],
+                         self.x[i, c, 2, 2], self.x[i, c, 2, 2],
+                         self.x[i, c, 2, 3], self.x[i, c, 2, 3]],
+                        [self.x[i, c, 2, 1], self.x[i, c, 2, 1],
+                         self.x[i, c, 2, 2], self.x[i, c, 2, 2],
+                         self.x[i, c, 2, 3], self.x[i, c, 2, 3]],
+                    ])
                 else:
                     raise ValueError('Unsupported outsize: {}'.format(outsize))
                 testing.assert_allclose(expect, y_data[i, c])
@@ -209,7 +223,8 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         def f(x):
-            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize)
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          pad=self.pad)
         gradient_check.check_backward(
             f, x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_options)
@@ -224,7 +239,8 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize)
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          pad=self.pad)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,

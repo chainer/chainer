@@ -46,9 +46,12 @@ class Unpooling2D(pooling_2d.Pooling2D):
         xp = backend.get_array_module(x)
         b, c, h, w = x.shape
         bs, cs, hs, ws = x.strides
+        x = x[:, :, self.ph // 2:-self.ph // 2, self.pw // 2:-self.pw // 2]
         y = xp.lib.stride_tricks.as_strided(
-            x, (b, c, h, self.kh, w, self.kw), (bs, cs, hs, 0, ws, 0))
-        y = y.reshape((b, c, self.kh * h, self.kw * w))
+            x,
+            (b, c, h - self.ph, self.kh, w - self.pw, self.kw),
+            (bs, cs, hs, 0, ws, 0))
+        y = y.reshape((b, c, self.kh * (h - self.ph), self.kw * (w - self.pw)))
         return y,
 
     def forward(self, x):
@@ -59,9 +62,11 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
-        if (self.outh % h == 0 and self.outw % w == 0 and
-            self.outh // h == self.kh and self.outw // w == self.kw and
-            self.ph == 0 and self.pw == 0 and
+        if (self.outh % (h - self.ph) == 0 and
+            self.outw % (w - self.pw) == 0 and
+            self.outh // (h - self.ph) == self.kh and
+            self.outw // (w - self.pw) == self.kw and
+            self.ph % 2 == 0 and self.pw % 2 == 0 and
                 self.sx == self.kh and self.sy == self.kw):
             self._use_int_scale_forward = True
             return self._integer_scale_forward(x[0])
@@ -99,6 +104,12 @@ class Unpooling2DGrad(function_node.FunctionNode):
         b, c, h, w = gy.shape
         gx = gy.reshape((b, c, h // self.kh, self.kh, w // self.kw, self.kw))
         gx = xp.rollaxis(gx, 3, 5).sum((4, 5))
+        if self.ph > 0 or self.pw > 0:
+            tmp = xp.zeros((b, c, h // 2 + self.ph, w //
+                            2 + self.pw), dtype=gx.dtype)
+            tmp[:, :, self.ph // 2:-self.ph // 2,
+                self.pw // 2:-self.pw // 2] = gx
+            gx = tmp
         return gx,
 
     def forward(self, gy):
