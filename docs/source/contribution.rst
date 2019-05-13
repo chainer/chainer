@@ -326,10 +326,10 @@ Release Cycle
 ~~~~~~~~~~~~~
 
 Two tracks with different versions are developed in parallel.
-The first track is the **stable versions**, which is a series of revision updates for the latest major version.
+The first track is the **stable versions**, which is a series of minor (occasional revision) updates for the latest major version.
 The second track is the **development versions**, which is a series of pre-releases for the upcoming major version.
 
-If ``X.0.0`` is the latest major version, followed by ``Y.0.0`` and ``Z.0.0``, the timeline with updates becomes as follows.
+If ``X.0.0`` is the latest major version, followed by ``Y.0.0`` and ``Z.0.0``,  a typical release cycle timeline would be as follows.
 
 ========== =========== =========== ============
    Date       ver X       ver Y       ver Z
@@ -344,10 +344,11 @@ If ``X.0.0`` is the latest major version, followed by ``Y.0.0`` and ``Z.0.0``, t
 (* These might be revision releases)
 
 The dates shown in the left-most column are relative to the release of ``X.0.0rc1``.
-In particular, each revision/minor release is made four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
+In particular, each revision/minor release is made around four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
 Whether these releases are revision or minor is determined based on the contents of each update.
 
-Note that there are only three stable releases for the versions ``X.x.x``.
+Note that there are only three stable releases for the versions ``X.x.x`` in the example table above.
+The number of stable releases may vary depending the development status of the following in this case ``Y`` and its number of required beta versions (a ``b`` followed by a number).
 During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` is treated as an **almost-stable version** and ``Z`` is treated as a development version.
 
 If there is a critical bug found in ``X.x.x`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
