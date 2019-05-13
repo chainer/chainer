@@ -32,11 +32,15 @@ __device__ inline cuda::Float16 Arctan2<cuda::Float16>(cuda::Float16 x1, cuda::F
 }
 
 __device__ inline double Arcsinh(double x) { return std::asinh(x); }
+
 __device__ inline float Arcsinh(float x) { return std::asinhf(x); }
+
 __device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinhf(static_cast<float>(x))}; }
 
 __device__ inline double Arccosh(double x) { return std::acosh(x); }
+
 __device__ inline float Arccosh(float x) { return std::acoshf(x); }
+
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
 template <typename T>
@@ -79,7 +83,7 @@ __device__ inline T Power(T x1, T x2) {
 }
 template <>
 __device__ inline cuda::Float16 Power<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
-    return cuda::Float16{powf(static_cast<double>(x1), static_cast<double>(x2))};
+    return cuda::Float16{powf(static_cast<float>(x1), static_cast<float>(x2))};
 }
 template <>
 __device__ inline float Power<float>(float x1, float x2) {

@@ -2497,8 +2497,8 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
             a = array_utils.uniform(in_shape1, in_dtype1, low=low, high=2)
 
             # For each element, if the power (RHS) is negative, the
-            # corresponding base (LHS) should not contain elements near 0 in
-            # order to guarantee differentiability.
+            # corresponding base (LHS) should not be near 0 in order to ensure
+            # differentiability.
             if ((not self.skip_backward_test
                  or not self.skip_double_backward_test)
                     and self.input_lhs == 'random'):
@@ -2596,9 +2596,8 @@ class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
         if self.is_scalar_rhs:
             # Array is the base (LHS).
-            # If the power (RHS scalar) is negative, all elements in the base
-            # array should not contain elements near 0 in order to guarantee
-            # differentiability.
+            # If the power (RHS scalar) is negative, no elements in the base
+            # array should be near 0 in order to ensure differentiability.
             if ((not self.skip_backward_test
                  or not self.skip_double_backward_test)
                     and self.scalar_value < 0):
