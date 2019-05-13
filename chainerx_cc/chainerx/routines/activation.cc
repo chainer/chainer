@@ -30,16 +30,13 @@ Array ClippedRelu(const Array& x, Scalar z) {
     return Minimum(Maximum(0, x), z);
 }
 
-Array Crelu(const Array& x) {
-    Array c = Concatenate(x, -x);
-    return Relu(c);
+Array Crelu(const Array& x, nonstd::optional<int8_t> axis) {
+    std::vector<Array> c{x, Negative(x)};
+    Array concat = Concatenate(c, axis);
+    return Relu(concat);
 }
 
 Array Elu(const Array& x, Scalar alpha) {
-    Array y = Copy(x);
-    Array neg_indices = x <= 0;
-    y[neg_indices] = alpha * (expm1(y[neg_indices]))
-    return y;
 }
 
 Array Sigmoid(const Array& x) {
