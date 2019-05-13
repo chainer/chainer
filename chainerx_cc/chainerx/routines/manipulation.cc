@@ -783,18 +783,18 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
                 int64_t gout_offset = 0;
                 int64_t gin_offset = 0;
 
-                Array gin = Zeros(shape, dtype, device);
+                std::vector<Array> elements;
 
                 for (int32_t i = 0; i < shape[axis]; i++) {
                     Shape summingShape = shape;
                     summingShape[axis] = repeats(i);
                     Array summing = internal::MakeArray(summingShape, gout.strides(), dtype, device, gout.data(), gout_offset);
                     Array summed = summing.Sum(axis, true);
-                    Array gin_dst = internal::MakeArray(summed.shape(), gin.strides(), dtype, device, gin.data(), gin_offset);
-                    gin.device().backend().CallKernel<CopyKernel>(summed, gin_dst);
-                    gin_offset += gin.strides()[axis];
+                    elements.push_back(summed);
                     gout_offset += gout.strides()[axis] * summingShape[axis];
                 }
+
+                auto gin = Concatenate(elements, axis);
 
                 bctx.input_grad() = std::move(gin);
             });
