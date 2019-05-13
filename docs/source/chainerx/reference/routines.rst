@@ -151,6 +151,8 @@ Mathematical functions
    chainerx.arccosh
    chainerx.square
    chainerx.clip
+   chainerx.fabs
+   chainerx.sign
    chainerx.ceil
    chainerx.floor
    chainerx.bitwise_and

@@ -112,6 +112,10 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(PowerSAKernel, CudaPowerSAKernel);
 
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = cuda::Sign(x); }, VisitNumericDtype);
+
 template <typename T>
 struct IsNanImpl {
     using CudaType = cuda_internal::DataType<T>;

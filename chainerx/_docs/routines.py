@@ -1533,6 +1533,31 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.fabs,
+        """fabs(x)
+Compute the absolute values element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The absolute values of x, the returned values
+    are always floats.
+.. seealso:: :data:`numpy.fabs`
+""")
+
+    _docs.set_doc(
+        chainerx.sign,
+        """sign(x)
+Returns an element-wise indication of the sign of a number.
+The sign function returns :math:`-1 if x < 0, 0 if x==0, 1 if x > 0`.
+``nan`` is returned for ``nan`` inputs.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The sign of x.
+.. seealso:: :data:`numpy.sign`
+""")
+
+    _docs.set_doc(
         chainerx.floor,
         """floor(x)
 Return the floor of the input, element-wise.

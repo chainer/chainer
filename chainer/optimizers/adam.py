@@ -343,7 +343,8 @@ class Adam(optimizer.GradientMethod):
     See: `Adam: A Method for Stochastic Optimization \
           <https://arxiv.org/abs/1412.6980v8>`_
 
-    Modified for proper weight decay (also called AdamW).
+    Modified for proper weight decay (also called
+    :class:`~chainer.optimizers.AdamW`).
     AdamW introduces the additional parameters ``eta``
     and ``weight_decay_rate``, which can be used to properly scale the
     learning rate, and decouple the weight decay rate from ``alpha``,
@@ -356,13 +357,19 @@ class Adam(optimizer.GradientMethod):
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
-    A flag ``amsgrad`` to use the AMSGrad variant of Adam from
+    A flag ``amsgrad`` to use the :class:`~chainer.optimizers.AMSGrad`
+    variant of Adam from
     the paper: `On the Convergence of Adam and Beyond \
                <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
-    A flag ``adabound`` to use the AdaBound variant of Adam from
+    A flag ``adabound`` to use the :class:`~chainer.optimizers.AdaBound`
+    variant of Adam from
     the paper: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
                <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+
+    If both ``amsgrad`` and ``adabound`` are ``True``, the optimizer is
+    equivalent to :class:`~chainer.optimizers.AMSBound` proposed in the
+    AdaBound paper.
 
     Args:
         alpha (float): Coefficient of learning rate.
@@ -426,3 +433,126 @@ class Adam(optimizer.GradientMethod):
             'Use of Adam.lr is deprecated in Chainer v6.',
             DeprecationWarning)
         return self.alpha_t
+
+
+class AdamW(Adam):
+
+    """AdamW optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
+    See: `Fixing Weight Decay Regularization in Adam \
+          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+
+    Args:
+        alpha (float): Coefficient of learning rate.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+        weight_decay_rate (float): Weight decay rate.
+            The default value is 1.0.
+        eps (float): Small value for the numerical stability.
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
+                 eta=_default_hyperparam.eta,
+                 eps=_default_hyperparam.eps):
+        super(AdamW, self).__init__(
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
+            weight_decay_rate=weight_decay_rate)
+
+
+class AMSGrad(Adam):
+
+    """AmsGrad optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
+    See: `On the Convergence of Adam and Beyond \
+          <https://openreview.net/forum?id=ryQu7f-RZ>`_
+
+    Args:
+        alpha (float): Coefficient of learning rate.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 eps=_default_hyperparam.eps,
+                 eta=_default_hyperparam.eta):
+        super(AMSGrad, self).__init__(
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
+            amsgrad=True)
+
+
+class AdaBound(Adam):
+
+    """AdaBound optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
+          <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+
+    Args:
+        alpha (float): Coefficient of learning rate.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        final_lr (float): Final (SGD) learning rate in AdaBound.
+        gamma (float): Convergence speed of the bound functions in AdaBound.
+        eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 final_lr=_default_hyperparam.final_lr,
+                 gamma=_default_hyperparam.gamma,
+                 eps=_default_hyperparam.eps,
+                 eta=_default_hyperparam.eta):
+        super(AdaBound, self).__init__(
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
+            amsgrad=False, adabound=True, final_lr=final_lr, gamma=gamma)
+
+
+class AMSBound(Adam):
+
+    """AMSBound optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
+          <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+
+    Args:
+        alpha (float): Coefficient of learning rate.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        final_lr (float): Final (SGD) learning rate in AdaBound.
+        gamma (float): Convergence speed of the bound functions in AdaBound.
+        eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 final_lr=_default_hyperparam.final_lr,
+                 gamma=_default_hyperparam.gamma,
+                 eps=_default_hyperparam.eps,
+                 eta=_default_hyperparam.eta):
+        super(AMSBound, self).__init__(
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
+            amsgrad=True, adabound=True, final_lr=final_lr, gamma=gamma)

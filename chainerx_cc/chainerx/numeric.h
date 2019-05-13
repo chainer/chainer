@@ -26,6 +26,16 @@ inline bool IsInf(chainerx::Float16 value) { return value.IsInf(); }
 inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
+template <typename T>
+inline T Sign(T x) {
+    return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
+}
+
+template <>
+inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
+    return IsNan(x) ? x : Float16{static_cast<int>(Float16{0} < x) - static_cast<int>(x < Float16{0})};
+}
+
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
     template <typename T>                                                   \
     inline T name(T x) {                                                    \
@@ -63,6 +73,7 @@ CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Power, std::pow)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Arctan2, std::atan2)

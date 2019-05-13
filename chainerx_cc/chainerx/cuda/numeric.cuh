@@ -39,6 +39,16 @@ __device__ inline double Arccosh(double x) { return std::acosh(x); }
 __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
+template <typename T>
+__device__ inline T Sign(T x) {
+    return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
+}
+
+template <>
+__device__ inline cuda::Float16 Sign(cuda::Float16 x) {
+    return IsNan(x) ? x : cuda::Float16{static_cast<int>(cuda::Float16{0} < x) - static_cast<int>(x < cuda::Float16{0})};
+}
+
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                                       \
     __device__ inline T name(T x) {                             \
@@ -61,6 +71,7 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
+CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 template <typename T>
 __device__ inline T Power(T x1, T x2) {
