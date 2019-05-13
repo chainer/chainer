@@ -87,18 +87,15 @@ class Standardize(function_node.FunctionNode):
 
 
 def _standardize(x, eps=1e-6):
-    """Standardize for `Weight standardization
-    <https://arxiv.org/abs/1903.10520>`_.
+    """Weight Standardization function.
 
     This function implements a "weight standardization"
     which standardizes the input weights by statistics
     that are computed except the first axis.
 
-
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Weight vectors.
             e.g., the input of :func:`~chainer.functions.convolution_2d`.
-
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape
