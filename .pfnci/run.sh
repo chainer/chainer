@@ -27,6 +27,9 @@ TARGET="$1"
 : "${GPU:=0}"
 : "${XPYTEST_NUM_THREADS:=$(nproc)}"
 
+# Use multi-process service to prevent GPU flakiness caused by running many
+# processes on a GPU.  Specifically, it seems running more than 16 processes
+# sometimes causes "cudaErrorLaunchFailure: unspecified launch failure".
 if (( GPU > 0 )); then
     nvidia-smi -c EXCLUSIVE_PROCESS
     nvidia-cuda-mps-control -d

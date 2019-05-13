@@ -7,16 +7,6 @@
 rules { name: "chainerx_tests/unit_tests/routines_tests/test_math.py" xdist: 8 deadline: 240 retry: 4 }
 rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist: 2 retry: 4 }
 
-# Tests consuming GPU memory a lot (>800MB).
-rules { name: "chainer_tests/functions_tests/connection_tests/test_n_step_gru.py" resource: 2 }
-rules { name: "chainer_tests/functions_tests/connection_tests/test_n_step_lstm.py" resource: 2 }
-rules { name: "chainer_tests/functions_tests/connection_tests/test_n_step_rnn.py" resource: 2 }
-rules { name: "chainer_tests/functions_tests/noise_tests/test_dropout.py" resource: 2 }
-rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_gru.py" resource: 2 }
-rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_lstm.py" resource: 2 }
-rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_rnn.py" resource: 2 }
-rules { name: "chainer_tests/training_tests/updaters_tests/test_multiprocess_parallel_updater.py" resource: 2 }
-
 # Slow tests take 60+ seconds.
 rules { name: "chainer_tests/functions_tests/activation_tests/test_crelu.py" xdist: 4 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_softmax_cross_entropy.py" xdist: 8 deadline: 240 }
