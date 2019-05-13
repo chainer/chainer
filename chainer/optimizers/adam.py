@@ -449,8 +449,9 @@ class AdamW(Adam):
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eta (float): Schedule multiplier, can be used for warm restarts.
-        weight_decay_rate (float): Weight decay rate.
             The default value is 1.0.
+        weight_decay_rate (float): Weight decay rate.
+            The default value is 0.
         eps (float): Small value for the numerical stability.
     """
 
@@ -458,8 +459,8 @@ class AdamW(Adam):
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
                  eta=_default_hyperparam.eta,
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
                  eps=_default_hyperparam.eps):
         super(AdamW, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
@@ -468,7 +469,7 @@ class AdamW(Adam):
 
 class AMSGrad(Adam):
 
-    """AmsGrad optimizer.
+    """AMSGrad optimizer.
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
@@ -479,16 +480,16 @@ class AMSGrad(Adam):
         alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
-        eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
+        eps (float): Small value for the numerical stability.
     """
 
     def __init__(self,
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
-                 eps=_default_hyperparam.eps,
-                 eta=_default_hyperparam.eta):
+                 eta=_default_hyperparam.eta,
+                 eps=_default_hyperparam.eps):
         super(AMSGrad, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=True)
@@ -509,8 +510,8 @@ class AdaBound(Adam):
         beta2 (float): Exponential decay rate of the second order moment.
         final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): Convergence speed of the bound functions in AdaBound.
-        eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
+        eps (float): Small value for the numerical stability.
     """
 
     def __init__(self,
@@ -519,8 +520,8 @@ class AdaBound(Adam):
                  beta2=_default_hyperparam.beta2,
                  final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma,
-                 eps=_default_hyperparam.eps,
-                 eta=_default_hyperparam.eta):
+                 eta=_default_hyperparam.eta,
+                 eps=_default_hyperparam.eps):
         super(AdaBound, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=False, adabound=True, final_lr=final_lr, gamma=gamma)
@@ -541,8 +542,8 @@ class AMSBound(Adam):
         beta2 (float): Exponential decay rate of the second order moment.
         final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): Convergence speed of the bound functions in AdaBound.
-        eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
+        eps (float): Small value for the numerical stability.
     """
 
     def __init__(self,
@@ -551,8 +552,8 @@ class AMSBound(Adam):
                  beta2=_default_hyperparam.beta2,
                  final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma,
-                 eps=_default_hyperparam.eps,
-                 eta=_default_hyperparam.eta):
+                 eta=_default_hyperparam.eta,
+                 eps=_default_hyperparam.eps):
         super(AMSBound, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=True, adabound=True, final_lr=final_lr, gamma=gamma)
