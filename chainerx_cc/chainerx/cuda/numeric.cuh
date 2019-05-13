@@ -22,6 +22,15 @@ __device__ inline bool IsInf(cuda::Float16 value) { return value.IsInf(); }
 __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
+template <typename T>
+__device__ inline T Arctan2(T x1, T x2) {
+    return std::atan2(x1, x2);
+}
+template <>
+__device__ inline cuda::Float16 Arctan2<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{std::atan2(static_cast<float>(x1), static_cast<float>(x2))};
+}
+
 __device__ inline double Arcsinh(double x) { return std::asinh(x); }
 __device__ inline float Arcsinh(float x) { return std::asinhf(x); }
 __device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinhf(static_cast<float>(x))}; }
@@ -36,15 +45,6 @@ __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{
         return func(x);                                         \
     }                                                           \
     __device__ inline cuda::Float16 name(cuda::Float16 x) { return cuda::Float16{func(static_cast<float>(x))}; }
-
-#define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_BINARY(name, func)                    \
-    template <typename T>                                                           \
-    __device__ inline T name(T x1, T x2) {                                          \
-        return func(x1, x2);                                                        \
-    }                                                                               \
-    __device__ inline cuda::Float16 name(cuda::Float16 x1, cuda::Float16 x2) {      \
-        return cuda::Float16{func(static_cast<float>(x1), static_cast<float>(x2))}; \
-    }
 
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
@@ -62,8 +62,22 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_BINARY(Power, std::pow)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_BINARY(Arctan2, std::atan2)
+template <typename T>
+__device__ inline T Power(T x1, T x2) {
+    return T{rint(pow(static_cast<double>(x1), static_cast<double>(x2)))};
+}
+template <>
+__device__ inline cuda::Float16 Power<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{powf(static_cast<double>(x1), static_cast<double>(x2))};
+}
+template <>
+__device__ inline float Power<float>(float x1, float x2) {
+    return powf(x1, x2);
+}
+template <>
+__device__ inline double Power<double>(double x1, double x2) {
+    return pow(x1, x2);
+}
 
 }  // namespace cuda
 }  // namespace chainerx
