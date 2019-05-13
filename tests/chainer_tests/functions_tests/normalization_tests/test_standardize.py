@@ -84,8 +84,8 @@ class TestStandardize(testing.FunctionTestCase):
             x *= numpy.random.uniform(-1, 1)
             if self.same == 'near':
                 # Make self.x have slightly different values
-                zero_scale = 10. ** numpy.random.randint(-40, -3)
-                x += numpy.random.uniform(-zero_scale, zero_scale, shape)
+                zero_scale = 10. ** numpy.random.randint(-16, -3)
+                x *= 1. + numpy.random.uniform(-zero_scale, zero_scale, shape)
         else:
             x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         return x,
