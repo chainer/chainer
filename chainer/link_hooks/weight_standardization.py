@@ -1,4 +1,4 @@
-from chainer.functions.normalization._standardize import _standardize
+from chainer.functions.normalization import _standardize
 from chainer import link_hook
 
 
