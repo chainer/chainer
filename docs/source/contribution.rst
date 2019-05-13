@@ -47,7 +47,9 @@ If you just describe the PR, the core team and other contributors can join the d
 WIP PRs may occasionally be useful for discussing based on concrete code.
 
 When a PR is created (or updated), it is automatically tested in one of our CI environments, namely Travis CI.
-Once tests pass all CI environments and the PR is approved by a reviewer from the core team, it will be merged.
+There are other CI environments as well often manually triggered by the reviewer.
+The various CIs are required to test for instance different platforms or CUDA environments.
+Once the tests in all CI environments pass and/or the PR is approved by the reviewer, the PR will be merged.
 
 .. note::
 
