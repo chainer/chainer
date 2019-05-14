@@ -19,49 +19,11 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct ExpImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = cuda::Exp(x); });
 
-class CudaExpKernel : public ExpKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = cuda::Log(x); });
 
-CHAINERX_CUDA_REGISTER_KERNEL(ExpKernel, CudaExpKernel);
-
-template <typename T>
-struct LogImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
-};
-
-class CudaLogKernel : public LogKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(LogKernel, CudaLogKernel);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = cuda::Log10(x); });
 
 }  // namespace
 }  // namespace cuda

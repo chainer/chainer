@@ -61,6 +61,47 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(ArgMaxKernel, CudaArgMaxKernel);
 
+}  // namespace
+
+namespace {
+
+template <typename T>
+struct ArgMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    struct MinAndArgMin {
+        CudaType min;
+        int64_t argmin;
+    };
+    __device__ MinAndArgMin Identity() { return {CudaType{}, -1}; }
+    __device__ MinAndArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
+        if (next.argmin != -1 && (accum.argmin == -1 || accum.min > next.min)) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
+};
+
+class CudaArgMinKernel : public ArgMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, ArgMinImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(ArgMinKernel, CudaArgMinKernel);
+
+}  // namespace
+
+namespace {
+
 template <typename In, typename Out>
 struct SumImpl {
     using InCudaType = cuda_internal::DataType<In>;

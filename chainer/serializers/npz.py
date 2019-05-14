@@ -8,6 +8,18 @@ from chainer import serializer
 import chainerx
 
 
+# For historical reasons, NPZ serializers in Chainer allow pickle despite their
+# potential security issues. This behavior may be changed in future.
+
+# `numpy.save` and `numpy.load` have `allow_pickle` option. `numpy.savez` and
+# `numpy.savez_compressed` do not have an option to disable pickle.
+# Before NumPy 1.10, pickle was always allowed. Since NumPy 1.16.3, pickle is
+# not allowed by default.
+_allow_pickle_kwargs = {}
+if numpy.lib.NumpyVersion(numpy.__version__) >= '1.10.0':
+    _allow_pickle_kwargs['allow_pickle'] = True
+
+
 class DictionarySerializer(serializer.Serializer):
 
     """Serializer for dictionary.
@@ -224,7 +236,7 @@ def load_npz(file, obj, path='', strict=True, ignore_names=None):
         :func:`chainer.serializers.save_npz`
 
     """
-    with numpy.load(file) as f:
+    with numpy.load(file, **_allow_pickle_kwargs) as f:
         d = NpzDeserializer(
             f, path=path, strict=strict, ignore_names=ignore_names)
         d.load(obj)
