@@ -280,6 +280,8 @@ Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastT
 
 Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }
 
+Array Array::ArgMin(const OptionalAxes& axis) const { return chainerx::ArgMin(*this, axis); }
+
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
@@ -476,6 +478,7 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
+Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
 
 namespace {
 

@@ -14,8 +14,9 @@ from chainer.testing import condition
     [
         {'shape': (), 'dim_in': 1, 'dim_out': 1},
         {'shape': (1,), 'dim_in': 1, 'dim_out': 1},
-        {'shape': (3, 4), 'dim_in': 4, 'dim_out': 3},
-        {'shape': (3, 4, 5), 'dim_in': 20, 'dim_out': 3}
+        {'shape': (4, 3), 'dim_in': 3, 'dim_out': 4},
+        {'shape': (6, 2, 3), 'dim_in': 6, 'dim_out': 6},
+        {'shape': (3, 4, 5), 'dim_in': 20, 'dim_out': 3},
     ],
     [
         {'scale': 2., 'dtype': numpy.float16}
@@ -70,9 +71,13 @@ class OrthogonalBase(unittest.TestCase):
     def check_orthogonality(self, w):
         initializer = self.target(**self.target_kwargs)
         initializer(w)
-        n = self.dim_out
-        w = w.astype(numpy.float64).reshape(n, -1)
-        dots = w.dot(w.T)
+        w = w.astype(numpy.float64).reshape(self.dim_out, self.dim_in)
+        if self.dim_in >= self.dim_out:
+            n = self.dim_out
+            dots = w.dot(w.T)
+        else:
+            n = self.dim_in
+            dots = w.T.dot(w)
         expected_scale = self.scale or 1.1
         testing.assert_allclose(
             dots, numpy.identity(n) * expected_scale**2,
@@ -99,10 +104,12 @@ class OrthogonalBase(unittest.TestCase):
         sampless = cuda.to_cpu(ws.reshape(n, -1).T)
         alpha = 0.01 / len(sampless)
 
-        ab = 0.5 * (self.dim_in - 1)
+        larger_dim = max(self.dim_out, self.dim_in)
+
+        ab = 0.5 * (larger_dim - 1)
 
         for samples in sampless:
-            if self.dim_in == 1:
+            if larger_dim == 1:
                 numpy.testing.assert_allclose(abs(samples), expected_scale)
                 _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
             else:
@@ -159,14 +166,18 @@ class TestEmpty(unittest.TestCase):
         self.check_assert(cuda.to_gpu(self.w))
 
 
-@testing.parameterize(
-    {'shape': (4, 3)},
-    {'shape': (21, 4, 5)})
-class TestOverComplete(unittest.TestCase):
+@testing.parameterize(*(testing.product({
+    'shape': [(3,), (4, 3), (21, 4, 5)],
+    'mode': ['projection', 'basis'],
+}) + testing.product({
+    'shape': [(0,), (3, 4, 5)],
+    'mode': ['embedding', 'basis'],
+})))
+class TestOrthogonalMode(unittest.TestCase):
 
     def setUp(self):
         self.w = numpy.empty(self.shape, dtype=numpy.float32)
-        self.initializer = initializers.Orthogonal(scale=1.0)
+        self.initializer = initializers.Orthogonal(scale=1.0, mode=self.mode)
 
     def check_invalid(self, w):
         with self.assertRaises(ValueError):
