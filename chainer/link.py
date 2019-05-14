@@ -172,12 +172,6 @@ class Link(device_resident.DeviceResident):
             cls=self.__class__.__name__, specs=specs,
         )
 
-    def forward(self):
-        """ This should be overwritten by the specific Link class.
-        """
-
-        raise NotImplementedError
-
     @property
     def local_link_hooks(self):
         # type: () -> collections.OrderedDict[str, chainer.LinkHook]
