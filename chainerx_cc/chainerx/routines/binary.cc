@@ -14,79 +14,110 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+namespace {
+
+void CheckBitwiseDtypes(DtypeKind kind1, DtypeKind kind2) {
+    if (kind1 == DtypeKind::kFloat || kind2 == DtypeKind::kFloat) {
+        throw DtypeError{"Bitwise operations don't support Float types"};
+    }
+}
+
+void CheckInplaceBitwiseDtypes(DtypeKind out_kind, DtypeKind in_kind) {
+    CheckBitwiseDtypes(out_kind, in_kind);
+    if (out_kind == DtypeKind::kBool && in_kind != DtypeKind::kBool) {
+        throw DtypeError{"Bitwise operations don't allow updating Bool array with integer array"};
+    }
+}
+
+void CheckBitwiseDtypes(const Array& x1, const Array& x2) { CheckBitwiseDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
+
+void CheckBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckBitwiseDtypes(GetKind(x1.dtype()), x2.kind()); }
+
+void CheckInplaceBitwiseDtypes(const Array& x1, const Array& x2) { CheckInplaceBitwiseDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
+
+void CheckInplaceBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckInplaceBitwiseDtypes(GetKind(x1.dtype()), x2.kind()); }
 
 template <typename Impl>
-inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-    Dtype out_dtype = ResultType(x1, x2);
-    return internal::BroadcastBinary(impl, x1, x2, out_dtype);
-}
-
-template <typename Kernel>
-inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
-    NoBackpropModeScope scope;
+void BitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
-    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
+    NoBackpropModeScope scope{};
+    x1.device().backend().CallKernel<Impl>(x1, x2, out);
 }
 
-template <typename Kernel>
-inline void ApplyBitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
-    NoBackpropModeScope scope;
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || x2.kind() == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
+template <typename Impl>
+void BitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
+    NoBackpropModeScope scope{};
+    x1.device().backend().CallKernel<Impl>(x1, x2, out);
 }
+
+}  // namespace
 
 namespace internal {
 
-template <typename Impl>
-inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-    if (GetKind(x1.dtype()) == DtypeKind::kBool && GetKind(x2.dtype()) != DtypeKind::kBool) {
-        throw DtypeError{"Bitwise operations don't allow updating Bool array with integer array"};
-    }
-    internal::BroadcastBinaryInPlace(impl, x1, x2);
+void IBitwiseAnd(const Array& x1, const Array& x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseAndKernel>, x1, x2);
 }
 
-void IBitwiseAnd(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+void IBitwiseAnd(const Array& x1, Scalar x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BinaryInPlace(BitwiseASImpl<BitwiseAndASKernel>, x1, x2);
+}
 
-void IBitwiseAnd(const Array& x1, Scalar x2) { internal::BinaryInPlace(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2); }
+void IBitwiseOr(const Array& x1, const Array& x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseOrKernel>, x1, x2);
+}
 
-void IBitwiseOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+void IBitwiseOr(const Array& x1, Scalar x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BinaryInPlace(BitwiseASImpl<BitwiseOrASKernel>, x1, x2);
+}
 
-void IBitwiseOr(const Array& x1, Scalar x2) { internal::BinaryInPlace(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2); }
+void IBitwiseXor(const Array& x1, const Array& x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseXorKernel>, x1, x2);
+}
 
-void IBitwiseXor(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
-
-void IBitwiseXor(const Array& x1, Scalar x2) { internal::BinaryInPlace(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2); }
+void IBitwiseXor(const Array& x1, Scalar x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BinaryInPlace(BitwiseASImpl<BitwiseXorASKernel>, x1, x2);
+}
 
 }  // namespace internal
 
-Array BitwiseAnd(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
+Array BitwiseAnd(const Array& x1, const Array& x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<BitwiseAndKernel>, x1, x2, ResultType(x1, x2));
+}
 
 Array BitwiseAnd(const Array& x1, Scalar x2) {
-    return internal::Binary(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2, ResultType(x1, x2, true));
+    CheckBitwiseDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<BitwiseAndASKernel>, x1, x2, ResultType(x1, x2));
 }
 
 Array BitwiseAnd(Scalar x1, const Array& x2) { return BitwiseAnd(x2, x1); }
 
-Array BitwiseOr(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
+Array BitwiseOr(const Array& x1, const Array& x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<BitwiseOrKernel>, x1, x2, ResultType(x1, x2));
+}
 
 Array BitwiseOr(const Array& x1, Scalar x2) {
-    return internal::Binary(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2, ResultType(x1, x2, true));
+    CheckBitwiseDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<BitwiseOrASKernel>, x1, x2, ResultType(x1, x2));
 }
 
 Array BitwiseOr(Scalar x1, const Array& x2) { return BitwiseOr(x2, x1); }
 
-Array BitwiseXor(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
+Array BitwiseXor(const Array& x1, const Array& x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<BitwiseXorKernel>, x1, x2, ResultType(x1, x2));
+}
 
 Array BitwiseXor(const Array& x1, Scalar x2) {
-    return internal::Binary(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2, ResultType(x1, x2, true));
+    CheckBitwiseDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<BitwiseXorASKernel>, x1, x2, ResultType(x1, x2));
 }
 
 Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
