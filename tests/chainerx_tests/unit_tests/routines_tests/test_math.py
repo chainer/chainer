@@ -2436,7 +2436,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     chainer.testing.product({
         'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -2444,7 +2444,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
+        'in_dtypes,out_dtype': dtype_utils.result_numeric_dtypes_two_arrays,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -2453,7 +2453,7 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.all_dtypes)),
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [True, False],
@@ -2627,6 +2627,35 @@ class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
                 y = scalar ** a
 
         return y
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('is_bool_rhs', [True, False])
+@pytest.mark.parametrize('is_bool_primitive', [True, False])
+@pytest.mark.parametrize('is_module', [True, False])
+def test_power_invalid_bool_dtype(
+        device, dtype, is_bool_rhs, is_bool_primitive, is_module):
+    shape = (3, 2)
+
+    a = chainerx.array(array_utils.uniform(shape, dtype))
+
+    if is_bool_primitive:
+        b = True
+    else:
+        b = chainerx.array(array_utils.uniform(shape, 'bool'))
+
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            if is_bool_rhs:
+                chainerx.power(a, b)
+            else:
+                chainerx.power(b, a)
+        else:
+            if is_bool_rhs:
+                a ** b
+            else:
+                b ** a
 
 
 @chainer.testing.parameterize(*(

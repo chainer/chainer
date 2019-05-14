@@ -79,7 +79,8 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 template <typename T>
 __device__ inline T Power(T x1, T x2) {
-    return T{rint(pow(static_cast<double>(x1), static_cast<double>(x2)))};
+    static_assert(!std::is_same<T, bool>::value, "Power is not defined for boolean arguments.");
+    return static_cast<T>(rint(pow(static_cast<double>(x1), static_cast<double>(x2))));
 }
 template <>
 __device__ inline cuda::Float16 Power<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {

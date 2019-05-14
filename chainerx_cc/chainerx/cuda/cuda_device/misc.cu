@@ -62,7 +62,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SqrtKernel, CudaSqrtKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_KERNEL(PowerKernel, { out = cuda::Power(x1, x2); });
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(PowerKernel, { out = cuda::Power(x1, x2); }, VisitNumericDtype);
 
 template <typename T>
 struct PowerASImpl {
@@ -78,7 +78,7 @@ public:
         device.CheckDevicesCompatible(x1, out);
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
             Elementwise<const T, T>(PowerASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
@@ -102,7 +102,7 @@ public:
         device.CheckDevicesCompatible(x2, out);
         const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             using CudaType = cuda_internal::DataType<T>;
             Elementwise<const T, T>(PowerSAImpl<T>{static_cast<CudaType>(x1)}, x2_cast, out);

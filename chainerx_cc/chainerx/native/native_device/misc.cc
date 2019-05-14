@@ -53,7 +53,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SqrtKernel, NativeSqrtKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(PowerKernel, { out = chainerx::Power(x1, x2); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(PowerKernel, { out = chainerx::Power(x1, x2); }, VisitNumericDtype);
 
 class NativePowerASKernel : public PowerASKernel {
 public:

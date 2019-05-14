@@ -880,6 +880,10 @@ Array Sqrt(const Array& x) {
 }
 
 void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
+    if (x1.dtype() == Dtype::kBool || x2.dtype() == Dtype::kBool) {
+        throw DtypeError{"Power operations don't support boolean types"};
+    }
+
     {
         NoBackpropModeScope scope{};
         x1.device().backend().CallKernel<PowerKernel>(x1, x2, out);
@@ -906,6 +910,10 @@ void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
 }
 
 void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
+    if (x1.dtype() == Dtype::kBool || x2.kind() == DtypeKind::kBool) {
+        throw DtypeError{"Power operations don't support boolean types"};
+    }
+
     {
         NoBackpropModeScope scope{};
         x1.device().backend().CallKernel<PowerASKernel>(x1, x2, out);
@@ -923,6 +931,10 @@ void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
 }
 
 void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
+    if (x1.kind() == DtypeKind::kBool || x2.dtype() == Dtype::kBool) {
+        throw DtypeError{"Power operations don't support boolean types"};
+    }
+
     {
         NoBackpropModeScope scope{};
         x2.device().backend().CallKernel<PowerSAKernel>(x1, x2, out);
