@@ -1280,38 +1280,61 @@ class Variable(object):
         """Accumulates the gradient array from given source variable.
 
         This method adds the gradient of a given variable to the gradient of
-        this variable. The accumulation is even done across the host and
-        different devices. If this variable has uninitialized data/grad arrays,
-        this method initializes it with the shape of the given variable and
-        then accumulates the gradient.
+        this variable. The accumulation is even done across different devices.
+        If this variable has uninitialized data/grad arrays, this method
+        initializes it with the shape of the given variable and then
+        accumulates the gradient.
+
+        Accumulation between a non-ChainerX device and a ChainerX device is
+        not supported.
 
         Args:
             var (~chainer.Variable): Source variable.
 
         """
         dst_device = self.device
-        is_chainerx = dst_device.xp is chainerx
+        src_device = var.device
 
-        if is_chainerx != (var.device.xp is chainerx):
+        if (src_device.xp is chainerx) != (dst_device.xp is chainerx):
             raise RuntimeError(
                 'Variable.addgrad does not support addition between '
                 'gradients on non-ChainerX and ChainerX devices.\n'
                 'Adding gradient to: {}\n'
                 'Adding gradient from: {}'.format(
-                    dst_device, var.device))
+                    dst_device, src_device))
 
-        if var.grad is None:
+        # If both variables are uninitialized, do nothing.
+        if self.array is None and var.array is None:
             return
 
-        src = var.grad_var
-
+        # Initialize self if uninitialized
         if self.array is None:
             self.initialize(var.shape)
 
-        dst = self.grad_var
-        src_device = src.device
+        # Initialize var if uninitialized
+        if var.array is None:
+            var.initialize(self.shape)
+
+        # Check dtypes
+        if self.dtype != var.dtype:
+            raise ValueError(
+                'Variable.addgrad is called with mismatched dtype:\n'
+                'Adding grad to: {}\n'
+                'Adding grad from: {}'.format(
+                    self.dtype.name, var.dtype.name))
+
+        # Do not add if source grad is None
+        src = var.grad_var
+        if src is None:
+            return
+
+        # In case of different devices, use F.copy to transfer src to the dst
+        # device.
         if src_device != dst_device:
             src = chainer.functions.copy(src, dst_device)
+
+        # Add the gradient
+        dst = self.grad_var
         self.grad_var = src if dst is None else src + dst
 
     def set_creator(self, gen_func):

@@ -104,23 +104,6 @@ def muladd(a, b, c):
     return MulAdd().apply((a, b, c))[0]
 
 
-_nonchainerx_backend_params = [
-    # NumPy
-    {},
-    # CuPy
-    {'use_cuda': True, 'cuda_device': 0},
-    {'use_cuda': True, 'cuda_device': 1},
-]
-
-
-_chainerx_backend_params = [
-    # ChainerX
-    {'use_chainerx': True, 'chainerx_device': 'native:0'},
-    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-]
-
-
 _backend_params = [
     # NumPy
     {},
@@ -843,102 +826,126 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
-class VariableAddgradTestBase(object):
-
-    def check_addgrad(
-            self, should_succeed,
-            src_backend_config, dst_backend_config, current_backend_config):
-        src_device = src_backend_config.device
-        dst_device = dst_backend_config.device
-
-        src_np = np.full(3, 10, dtype=np.float32)
-        dst_np = np.full(3, 20, dtype=np.float32)
-        if self.clear_src_grad:
-            expect_np = np.full(3, 20, dtype=np.float32)
-        elif self.clear_dst_grad:
-            expect_np = np.full(3, 10, dtype=np.float32)
-        else:
-            expect_np = np.full(3, 30, dtype=np.float32)
-
-        src = src_device.send(src_np)
-        dst = dst_device.send(dst_np)
-
-        a = chainer.Variable(src)
-        a.grad = src
-        b = chainer.Variable(dst)
-        b.grad = dst
-        if self.clear_src_grad:
-            a.cleargrad()
-        if self.clear_dst_grad:
-            b.cleargrad()
-
-        with current_backend_config:
-            if should_succeed:
-                b.addgrad(a)
-            else:
-                with pytest.raises(RuntimeError):
-                    b.addgrad(a)
-
-        if should_succeed:
-            np_device = chainer.get_device('@numpy')
-            np.testing.assert_array_equal(np_device.send(b.grad), expect_np)
-            assert backend.get_device_from_array(b.data) == dst_device
-            assert backend.get_device_from_array(b.grad) == dst_device
-
-
-addgrad_test_parameterize = testing.parameterize(*testing.product(
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.parameterize(*testing.product(
     {
         'clear_src_grad,clear_dst_grad': [
             [False, False],
             [True, False],
             [False, True],
         ],
+        'src_dtype': [np.float32, np.float64],
+        'dst_dtype': [np.float32],
+        'src_is_uninit_param': [False, True],
+        'dst_is_uninit_param': [False, True],
     }))
-
-
-@testing.backend.inject_backend_tests(None, _backend_params)
-@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
-@addgrad_test_parameterize
-class TestVariableAddgradNonChainerx(
-        VariableAddgradTestBase, unittest.TestCase):
+class TestVariableAddgrad(unittest.TestCase):
 
     def test_addgrad(
             self, src_backend_config, dst_backend_config,
             current_backend_config):
-        self.check_addgrad(
-            True, src_backend_config, dst_backend_config,
-            current_backend_config)
 
+        # Notes:
+        # - In uninitialized parameters, dtype will be the default dtype
+        # (float32).
+        # - In uninitialized parameters, gradients will be initialized with
+        # NaN.
+        shape = (2,)
+        SRC_VAL = 2
+        DST_VAL = 3
 
-@testing.backend.inject_backend_tests(None, _backend_params)
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
-@addgrad_test_parameterize
-class TestVariableAddgradChainerx(
-        VariableAddgradTestBase, unittest.TestCase):
+        src_dtype = self.src_dtype
+        dst_dtype = self.dst_dtype
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
 
-    def test_addgrad(
-            self, src_backend_config, dst_backend_config,
-            current_backend_config):
-        self.check_addgrad(
-            True, src_backend_config, dst_backend_config,
-            current_backend_config)
+        # Create variables with grads
 
+        # src
+        if self.src_is_uninit_param:
+            # Uninitialized parameter
+            src = chainer.Parameter()
+            src.to_device(src_device)
+            src_val = float('nan')
+            src_dtype = np.float32
+        else:
+            src = chainer.Variable(
+                src_device.send(np.full(shape, 100, dtype=src_dtype)))
+            src_val = SRC_VAL
+            src.grad = src_device.send(
+                np.full(shape, src_val, dtype=src_dtype))
 
-@testing.backend.inject_backend_tests(None, _backend_params)
-@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
-@addgrad_test_parameterize
-class TestVariableAddgradBetweenNonChainerxAndChainerx(
-        VariableAddgradTestBase, unittest.TestCase):
+        # dst
+        if self.dst_is_uninit_param:
+            # Uninitialized parameter
+            dst = chainer.Parameter()
+            dst.to_device(dst_device)
+            dst_val = float('nan')
+            dst_dtype = np.float32
+        else:
+            dst = chainer.Variable(
+                dst_device.send(np.full(shape, 200, dtype=dst_dtype)))
+            dst_val = DST_VAL
+            dst.grad = dst_device.send(
+                np.full(shape, dst_val, dtype=dst_dtype))
 
-    def test_unsupported_addgrad(
-            self, src_backend_config, dst_backend_config,
-            current_backend_config):
-        self.check_addgrad(
-            False, src_backend_config, dst_backend_config,
-            current_backend_config)
+        # Call cleargrad
+
+        if self.clear_src_grad:
+            src.cleargrad()
+            src_val = 0
+
+        if self.clear_dst_grad:
+            dst.cleargrad()
+            dst_val = 0
+
+        # Determine expected errror
+
+        if (src_device.xp is chainerx) != (dst_device.xp is chainerx):
+            expected_error = RuntimeError  # Incompatible devices
+        elif src_dtype != dst_dtype:
+            expected_error = ValueError  # Dtype mismatch
+        else:
+            expected_error = None
+
+        # Call addgrad
+
+        if expected_error is not None:
+            # Expected to cause error
+            with current_backend_config:
+                with pytest.raises(expected_error):
+                    dst.addgrad(src)
+        else:
+            # Expected to succeed
+            with current_backend_config:
+                dst.addgrad(src)
+
+            # Postcondition checks
+
+            if self.src_is_uninit_param and self.dst_is_uninit_param:
+                # Both variables are uninitialized:
+                # Both arrays should remain uninitialized
+                assert dst.array is None
+                assert src.array is None
+                assert dst.grad is None
+                assert src.grad is None
+
+            else:
+                # At least one variable is initialized
+                expected_val = dst_val + src_val
+
+                np_device = chainer.get_device('@numpy')
+                assert backend.get_device_from_array(dst.array) == dst_device
+                assert backend.get_device_from_array(dst.grad) == dst_device
+                assert dst.device == dst_device
+                assert dst.grad_var.device == dst_device
+                assert dst.grad.dtype == dst_dtype
+                assert dst.grad_var.dtype == dst_dtype
+                np.testing.assert_array_equal(
+                    np_device.send(dst.grad),
+                    np.full(shape, expected_val, dst_dtype))
 
 
 @testing.parameterize(
