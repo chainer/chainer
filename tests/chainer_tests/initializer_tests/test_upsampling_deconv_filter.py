@@ -9,15 +9,17 @@ import numpy
 
 @testing.parameterize(*testing.product({
     'target': [
-        initializers.Bilinear,
+        initializers.UpsamplingDeconvFilter,
     ],
+    'interpolation': ['bilinear'],
     'shape': [(5, 5, 3, 3), (5, 1, 3, 3)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestBilinear(unittest.TestCase):
+class TestUpsamplingDeconvFilter(unittest.TestCase):
 
     def check_initializer(self, w):
-        initializer = self.target()
+        initializer = self.target(
+            interpolation=self.interpolation, dtype=self.dtype)
         initializer(w)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)

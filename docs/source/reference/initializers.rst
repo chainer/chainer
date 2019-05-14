@@ -58,7 +58,7 @@ Concrete initializers
    chainer.initializers.LeCunUniform
    chainer.initializers.GlorotUniform
    chainer.initializers.HeUniform
-   chainer.initializers.Bilinear
+   chainer.initializers.UpsamplingDeconvFilter
 
 Helper function
 ---------------

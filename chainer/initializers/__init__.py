@@ -10,7 +10,6 @@ from chainer.backends import cuda
 import chainerx
 
 # import class and function
-from chainer.initializers.bilinear import Bilinear  # NOQA
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
 from chainer.initializers.constant import NaN  # NOQA
@@ -25,6 +24,7 @@ from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
+from chainer.initializers.upsampling_deconv_filter import UpsamplingDeconvFilter  # NOQA
 from chainer import types  # NOQA
 
 

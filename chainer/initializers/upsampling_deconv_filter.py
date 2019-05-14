@@ -1,4 +1,5 @@
 import numpy
+import warnings
 
 from chainer.backends import cuda
 from chainer import initializer
@@ -22,19 +23,26 @@ def _get_upsampling_filter(size, ndim):
     return filt
 
 
-class Bilinear(initializer.Initializer):
-    """Initializes array with bilinear upsampling.
+class UpsamplingDeconvFilter(initializer.Initializer):
+    """Initializes array with upsampling deconvolution filter.
 
-    The array is initialized with a standard image bilinear upsampling weight.
+    The array is initialized with a standard image upsampling weight.
     This initializer is often used as inital weight for
-    :func:`~chainer.links.Deconvolution2D`.
+    :func:`~chainer.links.DeconvolutionND`.
 
     Reference: Long et al., https://arxiv.org/abs/1411.4038
 
+    Attributes:
+        interpolation (str): Upsampling interpolation method.
+        Default is 'bilinear'.
+
     """
 
-    def __init__(self, dtype=None):
-        super(Bilinear, self).__init__(dtype)
+    def __init__(self, interpolation='bilinear', dtype=None):
+        super(UpsamplingDeconvFilter, self).__init__(dtype)
+        if interpolation != 'bilinear':
+            warnings.warn(
+                'Unsupported interpolation method: {}'.format(interpolation))
 
     def __call__(self, array):
         if self.dtype is not None:
