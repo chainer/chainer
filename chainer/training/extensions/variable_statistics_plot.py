@@ -125,11 +125,11 @@ class Statistician(object):
 class VariableStatisticsPlot(extension.Extension):
 
     """__init__(\
-           targets, max_sample_size=1000, report_data=True,\
-           report_grad=True, plot_mean=True, plot_std=True,\
-           percentile_sigmas=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87,\
-           100), trigger=(1, 'epoch'), filename='statistics.png',\
-           figsize=None, marker=None, grid=True)
+targets, max_sample_size=1000, report_data=True, report_grad=True, \
+plot_mean=True, plot_std=True, \
+percentile_sigmas=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100), \
+trigger=(1, 'epoch'), filename='statistics.png', figsize=None, marker=None, \
+grid=True)
 
     Trainer extension to plot statistics for :class:`Variable`\\s.
 
