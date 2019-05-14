@@ -1,6 +1,7 @@
 #include "chainerx/native/native_device.h"
 
 #include <cstdint>
+#include <random>
 
 #include "chainerx/array.h"
 #include "chainerx/device.h"
@@ -158,6 +159,52 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(FillKernel, NativeFillKernel);
+
+namespace {
+
+template <typename T>
+struct Impl {
+    void operator()(int64_t /*i*/, T& out) { out = sampler(prng); }
+    T a;
+    T b;
+    std::mt19937_64 prng;
+    std::uniform_real_distribution<T> sampler;
+    Impl(T a, T b) : a{a}, b{b} {
+        // TODO(kshitij12345) use library seed.
+        std::random_device rd;
+        prng = std::mt19937_64{rd()};
+        sampler = std::uniform_real_distribution<T>{a, b};
+    }
+};
+
+template <>
+struct Impl<chainerx::Float16> {
+    void operator()(int64_t /*i*/, chainerx::Float16& out) { out = chainerx::Float16{sampler(prng)}; }
+    chainerx::Float16 a;
+    chainerx::Float16 b;
+    std::mt19937_64 prng;
+    std::uniform_real_distribution<float> sampler;
+    Impl(chainerx::Float16 a, chainerx::Float16 b) : a{a}, b{b} {
+        // TODO(kshitij12345) use library seed.
+        std::random_device rd;
+        prng = std::mt19937_64{rd()};
+        sampler = std::uniform_real_distribution<float>{static_cast<float>(a), static_cast<float>(b)};
+    }
+};
+
+}  // namespace
+
+class NativeUniformKernel : public UniformKernel {
+public:
+    void Call(const Array& out, Scalar a, Scalar b) override {
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<T>(Impl<T>{static_cast<T>(a), static_cast<T>(b)}, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(UniformKernel, NativeUniformKernel);
 
 }  // namespace
 }  // namespace native

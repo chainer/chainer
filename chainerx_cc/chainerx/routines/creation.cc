@@ -345,4 +345,22 @@ Array Linspace(
     return out;
 }
 
+Array Uniform(const Scalar a, const Scalar b, Shape shape, Dtype dtype, Device& device) {
+    if (a.kind() != DtypeKind::kFloat || b.kind() != DtypeKind::kFloat) {
+        throw ChainerxError{"dtype of a and b should be float"};
+    }
+
+    // Terrible hack for Cuda since CudaKernel is not implemented.
+    Device& default_dev = GetDefaultDevice();
+    Array out = Empty(shape, dtype, default_dev);
+
+    {
+        NoBackpropModeScope scope;
+        default_dev.backend().CallKernel<UniformKernel>(out, a, b);
+    }
+
+    // Hack.
+    return out.ToDevice(device);
+}
+
 }  // namespace chainerx

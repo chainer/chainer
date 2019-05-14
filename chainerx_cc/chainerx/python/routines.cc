@@ -972,6 +972,18 @@ void InitChainerxPooling(pybind11::module& m) {
           py::arg("pad_mode") = "ignore");
 }
 
+void InitChainerxRandom(pybind11::module& m) {
+    m.def("uniform",
+          [](Scalar a, Scalar b, py::tuple shape, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Uniform(a, b, ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("a"),
+          py::arg("b"),
+          py::arg("shape"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+}
+
 }  // namespace
 
 void InitChainerxRoutines(pybind11::module& m) {
@@ -986,6 +998,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxConnection(m);
     InitChainerxNormalization(m);
     InitChainerxPooling(m);
+    InitChainerxRandom(m);
 }
 
 }  // namespace python_internal

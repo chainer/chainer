@@ -12,6 +12,7 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -118,6 +119,13 @@ Array Linspace(
         const nonstd::optional<int64_t>& num = nonstd::nullopt,
         bool endpoint = true,
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
+        Device& device = GetDefaultDevice());
+
+Array Uniform(
+        const Scalar a,
+        const Scalar b,
+        Shape shape,
+        Dtype dtype = internal::GetDefaultDtype(DtypeKind::kFloat),
         Device& device = GetDefaultDevice());
 
 }  // namespace chainerx
