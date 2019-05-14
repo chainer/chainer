@@ -16,7 +16,7 @@ from chainer.utils import argument
 class LogReport(extension.Extension):
 
     """__init__(\
-        keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
+keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
 
     Trainer extension to output the accumulated results to a log file.
 
