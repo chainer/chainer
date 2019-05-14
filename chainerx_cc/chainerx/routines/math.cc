@@ -615,14 +615,44 @@ Array Exp(const Array& x) {
 
 Array Expm1(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Exp(x_cast) - 1;
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Expm1Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"expm1", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * out;
+        });
+    }
+    bb.Finalize();
+
+    return out;
 }
 
 Array Exp2(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Power(2, x_cast);
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Exp2Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"exp2", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * out * Log(2.0);
+        });
+    }
+    bb.Finalize();
+
+    return out;
 }
 
 Array Log(const Array& x) {
