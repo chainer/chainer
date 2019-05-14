@@ -51,6 +51,16 @@ _in_out_dtypes_inplace_bitwise = [
 ]
 
 _in_out_dtypes_bitwise_scalar = [
+    # Bool scalar
+    # TODO(imanishi): Support bool in op_utils.NumpyOpTest
+    # (('bool_',), bool, 'bool_'),
+    (('int8',), bool, 'int8'),
+    (('int32',), bool, 'int32'),
+    (('uint8',), bool, 'uint8'),
+    (('uint8',), numpy.bool_, 'uint8'),
+    # Int scalar
+    # TODO(imanishi): Support bool in op_utils.NumpyOpTest
+    # (('bool_',), int, 'bool_'),
     (('int8',), int, 'int8'),
     (('int16',), int, 'int16'),
     (('int32',), int, 'int32'),
