@@ -47,6 +47,9 @@ inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
     if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
         throw DtypeError{"Bitwise operations don't support Float types"};
     }
+    if (GetKind(x1.dtype()) == DtypeKind::kBool && GetKind(x2.dtype()) != DtypeKind::kBool) {
+        throw DtypeError{"Bitwise operations don't allow updating Bool array with integer array"};
+    }
     internal::BroadcastBinaryInPlace(impl, x1, x2);
 }
 
