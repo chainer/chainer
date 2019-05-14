@@ -70,7 +70,7 @@ class WeightStandardization(link_hook.LinkHook):
         # the unnormalized weight.
         self.original_weight = weight
         # note: `normalized_weight` is ~chainer.Variable
-        normalized_weight = _standardize(weight, self.eps)
+        normalized_weight = _standardize._standardize(weight, self.eps)
         setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):
