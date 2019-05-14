@@ -468,7 +468,7 @@ class AdamW(Adam):
 
 class AMSGrad(Adam):
 
-    """AmsGrad optimizer.
+    """AMSGrad optimizer.
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
