@@ -231,6 +231,9 @@ class GpuDevice(_backend.Device):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
 
+    def __str__(self):
+        return '@cupy:{}'.format(self.device.id)
+
     @property
     def xp(self):
         return cupy
@@ -417,17 +420,7 @@ def _array_to_gpu(array, device, stream):
         # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
-            array = cupy.ndarray(
-                array.shape,
-                array.dtype,
-                cupy.cuda.MemoryPointer(
-                    cupy.cuda.UnownedMemory(
-                        array.data_ptr + array.offset,
-                        array.data_size,
-                        array,
-                        array.device.index),
-                    0),
-                strides=array.strides)
+            array = chainerx._to_cupy(array)
         else:
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):

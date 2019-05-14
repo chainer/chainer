@@ -7,9 +7,10 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/shape.h"
 
@@ -17,7 +18,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeTakeOp : public TakeOp {
+class NativeTakeKernel : public TakeKernel {
 public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
@@ -81,9 +82,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(TakeKernel, NativeTakeKernel);
 
-class NativeAddAtOp : public AddAtOp {
+class NativeAddAtKernel : public AddAtKernel {
 public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
@@ -155,7 +156,30 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddAtOp, NativeAddAtOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AddAtKernel, NativeAddAtKernel);
+
+class NativeWhereKernel : public WhereKernel {
+public:
+    void Call(const Array& condition, const Array& x, const Array& y, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(condition, x, y, out);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+        Dtype out_dtype = out.dtype();
+        const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+        const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
+
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, bool condition, T x, T y, T& out) { out = condition ? x : y; }
+            };
+            Elementwise<const bool, const T, const T, T>(Impl{}, condition_cast, x_cast, y_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereKernel, NativeWhereKernel);
 
 }  // namespace
 }  // namespace native

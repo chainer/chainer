@@ -1,18 +1,21 @@
-CUDA and Backend Utilities
-==========================
+Backends and Devices
+====================
 
-Utilities across backends
--------------------------
+Common Classes and Utilities
+----------------------------
 
 .. module:: chainer.backend
-.. currentmodule:: /
+.. currentmodule:: chainer
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
+   chainer.get_device
+   chainer.using_device
    chainer.backend.copyto
    chainer.backend.get_array_module
+
 
 CUDA
 ----
@@ -89,3 +92,4 @@ See :doc:`../../tips` and :doc:`../../performance` for details.
    :nosignatures:
 
    chainer.backends.intel64.is_ideep_available
+   

@@ -20,6 +20,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/hash_combine.h"
+#include "chainerx/kernels/connection.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
@@ -266,7 +267,6 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     }
 }
 
-// TODO(sonots): Support tensor core
 Array CudaConv::Conv(
         CudaDevice& device,
         const Array& x,
@@ -324,7 +324,13 @@ Array CudaConv::Conv(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
@@ -422,7 +428,13 @@ Array CudaConv::ConvTranspose(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
@@ -516,7 +528,13 @@ Array CudaConv::ConvGradWeight(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardFilterAlgorithm(

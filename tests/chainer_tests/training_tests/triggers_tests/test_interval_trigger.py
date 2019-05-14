@@ -117,4 +117,11 @@ class TestIntervalTrigger(unittest.TestCase):
                 self.assertEqual(trigger(trainer), expected)
 
 
+class TestInvalidIntervalTrigger(unittest.TestCase):
+
+    def test_invalid_unit(self):
+        with self.assertRaises(ValueError):
+            training.triggers.IntervalTrigger(1, 'day')
+
+
 testing.run_module(__name__, __file__)
