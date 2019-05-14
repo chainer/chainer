@@ -8,8 +8,8 @@ from chainer import initializer
 # https://github.com/shelhamer/fcn.berkeleyvision.org/blob/master/surgery.py
 
 
-def _get_upsampling_filter(size, ndim):
-    """Make a 2D bilinear kernel suitable for upsampling"""
+def _get_bilinear_upsampling_filter(size, ndim):
+    """Make a ND bilinear kernel suitable for upsampling"""
     factor = (size + 1) // 2
     if size % 2 == 1:
         center = factor - 1.
@@ -59,7 +59,7 @@ class UpsamplingDeconvFilter(initializer.Initializer):
             else:
                 assert ksize == k
 
-        filt = _get_upsampling_filter(ksize, ndim=array.ndim - 2)
+        filt = _get_bilinear_upsampling_filter(ksize, ndim=array.ndim - 2)
         filt = xp.asarray(filt)
 
         array[...] = 0.
