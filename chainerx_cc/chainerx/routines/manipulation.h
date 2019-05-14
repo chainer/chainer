@@ -51,4 +51,12 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
 
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
+Array ExpandDims(const Array& a, int8_t axis);
+
+Array Flip(const Array& m, const OptionalAxes& axes = nonstd::nullopt);
+
+Array Fliplr(const Array& m);
+
+Array Flipud(const Array& m);
+
 }  // namespace chainerx

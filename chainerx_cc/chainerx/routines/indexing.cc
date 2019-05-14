@@ -22,6 +22,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -69,6 +70,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
     Shape out_shape{};
     Strides out_strides{};
     int64_t out_offset = a.offset();
+    bool is_a_empty = a.GetTotalSize() == 0;
     int64_t i_in = 0;
     for (const ArrayIndex& index : indices) {
         switch (index.tag()) {
@@ -77,16 +79,23 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 if (index.index() < -dim || dim <= index.index()) {
                     throw DimensionError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
                 }
-                out_offset += a.strides()[i_in] * ((index.index() + dim) % dim);
+                if (!is_a_empty) {
+                    out_offset += a.strides()[i_in] * ((index.index() + dim) % dim);
+                }
                 ++i_in;
                 break;
             }
             case ArrayIndexTag::kSlice: {
                 const Slice& slice = index.slice();
                 int64_t slice_length = slice.GetLength(a.shape()[i_in]);
-                out_offset += a.strides()[i_in] * slice.GetStart(a.shape()[i_in]);
                 out_shape.emplace_back(slice_length);
                 out_strides.emplace_back(a.strides()[i_in] * slice.step());
+                if (!is_a_empty) {
+                    int64_t start = slice.GetStart(a.shape()[i_in]);
+                    if (start > 0) {
+                        out_offset += a.strides()[i_in] * start;
+                    }
+                }
                 ++i_in;
                 break;
             }
@@ -183,6 +192,39 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
             // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
             // the output of `AddAt`.
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, const Array& x, const Array& y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
+    Array out = Empty(out_shape, out_dtype, x.device());
+    const Array& x_b = x.BroadcastTo(out_shape);
+    const Array& y_b = y.BroadcastTo(out_shape);
+    const Array& condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        x.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
+    }
+
+    BackwardBuilder bb{"where", {x_b, y_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([condition, dtype = x.dtype()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
+            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([condition, dtype = y.dtype()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
+            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
         });
     }
     bb.Finalize();

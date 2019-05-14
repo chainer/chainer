@@ -127,15 +127,25 @@ Returns self[key].
     binary_op('__isub__', 'Computes ``x -= y`` elementwise.')
     binary_op('__imul__', 'Computes ``x *= y`` elementwise.')
     binary_op('__itruediv__', 'Computes ``x /= y`` elementwise.')
+    binary_op('__iand__', 'Computes ``x &= y`` elementwise.')
+    binary_op('__ior__', 'Computes ``x |= y`` elementwise.')
+    binary_op('__ixor__', 'Computes ``x ^= y`` elementwise.')
 
     binary_op('__add__', 'Computes ``x + y`` elementwise.')
     binary_op('__sub__', 'Computes ``x - y`` elementwise.')
     binary_op('__mul__', 'Computes ``x * y`` elementwise.')
     binary_op('__truediv__', 'Computes ``x / y`` elementwise.')
 
+    binary_op('__and__', 'Computes ``x & y`` elementwise.')
+    binary_op('__or__', 'Computes ``x | y`` elementwise.')
+    binary_op('__xor__', 'Computes ``x ^ y`` elementwise.')
+
     binary_op('__radd__', 'Computes ``y + x`` elementwise.')
     binary_op('__rsub__', 'Computes ``y - x`` elementwise.')
     binary_op('__rmul__', 'Computes ``y * x`` elementwise.')
+    binary_op('__rand__', 'Computes ``y & x`` elementwise.')
+    binary_op('__ror__', 'Computes ``y | x`` elementwise.')
+    binary_op('__rxor__', 'Computes ``y ^ x`` elementwise.')
 
     # TODO(beam2d): Write about as_grad_stopped(backprop_ids, copy) overload.
     _docs.set_doc(
@@ -164,6 +174,14 @@ Returns:
 Returns the indices of the maximum elements along a given axis.
 
 See :func:`chainerx.argmax` for the full documentation.
+""")
+
+    _docs.set_doc(
+        ndarray.argmin,
+        """argmin(axis=None)
+Returns the indices of the minimum elements along a given axis.
+
+See :func:`chainerx.argmin` for the full documentation.
 """)
 
     _docs.set_doc(

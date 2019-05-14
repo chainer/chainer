@@ -94,14 +94,6 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _isfinite(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.isfinite(arr)
-        return _to_chx(ret)
-
-    chainerx.isfinite = _isfinite
-
     def _hstack(arrs):
         assert len(arrs) > 0
         arrs2 = []
@@ -125,14 +117,6 @@ def _populate_module_functions():
         return _to_chx(ret)
 
     chainerx.vstack = _vstack
-
-    def _sign(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.sign(arr)
-        return _to_chx(ret)
-
-    chainerx.sign = _sign
 
     def _fix(arr):
         xp, dev, arr = _from_chx(arr)
