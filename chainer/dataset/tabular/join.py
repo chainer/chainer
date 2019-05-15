@@ -1,9 +1,9 @@
 import six
 
-from chainer.dataset import TabularDataset
+import chainer.dataset
 
 
-class Join(TabularDataset):
+class Join(chainer.dataset.TabularDataset):
 
     def __init__(self, *datasets):
         keys = set(datasets[0].keys)

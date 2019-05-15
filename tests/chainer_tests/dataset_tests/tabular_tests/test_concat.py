@@ -1,10 +1,11 @@
-import numpy as np
 import unittest
 
-from chainer import testing
-from chainer.dataset import TabularDataset
+import numpy as np
 
-from .test_tabular_dataset import DummyDataset
+import chainer
+from chainer import testing
+
+from . import dummy_dataset
 
 
 @testing.parameterize(*testing.product_dict(
@@ -36,7 +37,7 @@ class TestConcat(unittest.TestCase):
             self.assertEqual(indices, self.expected_indices_a)
             self.assertIsNone(key_indices)
 
-        dataset_a = DummyDataset(
+        dataset_a = dummy_dataset.DummyDataset(
             mode=self.mode_a,
             return_array=self.return_array, callback=callback_a)
 
@@ -44,12 +45,12 @@ class TestConcat(unittest.TestCase):
             self.assertEqual(indices, self.expected_indices_b)
             self.assertIsNone(key_indices)
 
-        dataset_b = DummyDataset(
+        dataset_b = dummy_dataset.DummyDataset(
             len_=5, mode=self.mode_b,
             return_array=self.return_array, callback=callback_b)
 
         view = dataset_a.concat(dataset_b)
-        self.assertIsInstance(view, TabularDataset)
+        self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), len(dataset_a) + len(dataset_b))
         self.assertEqual(view.keys, dataset_a.keys)
         self.assertEqual(view.mode, dataset_a.mode)
@@ -72,15 +73,15 @@ class TestConcat(unittest.TestCase):
 class TestConcatInvalid(unittest.TestCase):
 
     def test_concat_key_length(self):
-        dataset_a = DummyDataset()
-        dataset_b = DummyDataset(keys=('a', 'b'))
+        dataset_a = dummy_dataset.DummyDataset()
+        dataset_b = dummy_dataset.DummyDataset(keys=('a', 'b'))
 
         with self.assertRaises(ValueError):
             dataset_a.concat(dataset_b)
 
     def test_concat_key_order(self):
-        dataset_a = DummyDataset()
-        dataset_b = DummyDataset(keys=('b', 'a', 'c'))
+        dataset_a = dummy_dataset.DummyDataset()
+        dataset_b = dummy_dataset.DummyDataset(keys=('b', 'a', 'c'))
 
         with self.assertRaises(ValueError):
             dataset_a.concat(dataset_b)
