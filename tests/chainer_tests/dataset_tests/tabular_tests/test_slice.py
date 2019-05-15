@@ -1,5 +1,7 @@
-import numpy as np
 import unittest
+
+import numpy as np
+import six
 
 import chainer
 from chainer import testing
@@ -12,13 +14,20 @@ def _filter_params(params):
     for param in params:
         try:
             a = np.empty(10)
-            a[param['indices']][param['get_examples_indices']]
+            if param['indices'] is not None:
+                a = a[param['indices']]
+            if param['get_examples_indices'] is not None:
+                a[param['get_examples_indices']]
         except IndexError:
             continue
 
         try:
-            a = np.empty(3)
-            a[param['keys']][param['get_examples_key_indices']]
+            if param['keys'] is None:
+                b = np.empty(3)
+            else:
+                b = np.empty(len(param['keys']))
+            if param['get_examples_key_indices'] is not None:
+                b[list(param['get_examples_key_indices'])]
         except IndexError:
             continue
 
@@ -37,7 +46,8 @@ def _filter_params(params):
         {'indices': [11, 1], 'index_exception': IndexError},
         {'indices': [i in {1, 3} for i in range(10)], 'expected_len': 2},
         {'indices': [True] * 11, 'index_exception': ValueError},
-        {'indices': slice(3, None, -2), 'expected_len': 2}
+        {'indices': slice(3, None, -2), 'expected_len': 2},
+        {'indices': [], 'expected_len': 0},
     ],
     [
         {'keys': None, 'expected_keys': ('a', 'b', 'c')},
@@ -46,11 +56,12 @@ def _filter_params(params):
         {'keys': ('c',), 'expected_keys': ('c',)},
         {'keys': ('d',), 'key_exception': KeyError},
         {'keys': (-1, 'a'), 'expected_keys': ('c', 'a')},
+        {'keys': (), 'expected_keys': ()},
     ],
     testing.product({
         'get_examples_indices': [
-            None, [1], [1, 0], slice(0, 2, 1), slice(1, None, -1)],
-        'get_examples_key_indices': [None, (1,), (1, 0)],
+            None, [1], [1, 0], slice(0, 2, 1), slice(1, None, -1), []],
+        'get_examples_key_indices': [None, (1,), (1, 0), ()],
     }),
 )))
 class TestSlice(unittest.TestCase):
@@ -113,8 +124,8 @@ class TestSlice(unittest.TestCase):
         if self.get_examples_key_indices is not None:
             data = data[list(self.get_examples_key_indices)]
 
-        np.testing.assert_equal(output, data)
-        for out in output:
+        for out, d in six.moves.zip_longest(output, data):
+            np.testing.assert_equal(out, d)
             if self.return_array:
                 self.assertIsInstance(out, np.ndarray)
             else:
