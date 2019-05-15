@@ -996,31 +996,38 @@ class TestVariableToGpu(unittest.TestCase):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_gpu(self, x, gx, device=None, requires_grad=True):
+    def check_to_gpu(self, x, gx, device_id=None, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
 
         set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
         if set_grad_var:
             x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
-        x_var.to_gpu(device)
+        x_var.to_gpu(device_id)
+
+        if device_id is None:
+            expected_device_id = cuda.cupy.cuda.runtime.getDevice()
+        else:
+            expected_device_id = device_id
+        expected_device = cuda.GpuDevice.from_device_id(expected_device_id)
 
         assert x_var.xp is cuda.cupy
         assert x_var._has_chainerx_array is False
         assert x_var.node is not None
         assert isinstance(x_var.data, cuda.cupy.ndarray)
+        assert x_var.data.device.id == expected_device_id
+        assert x_var.device == expected_device
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        device = cuda.Device(device)
-        assert cuda.get_device_from_array(x_var.data) == device
         np.testing.assert_array_equal(
             backend.CpuDevice().send(x_var.data), backend.CpuDevice().send(x))
 
         if set_grad_var:
             assert isinstance(x_var.grad, cuda.cupy.ndarray)
+            assert x_var.grad.device.id == expected_device_id
+            assert x_var.grad_var.device == expected_device
             assert gx.shape == x_var.grad.shape
             assert gx.dtype == x_var.grad.dtype
-            assert cuda.get_device_from_array(x_var.grad) == device
             np.testing.assert_array_equal(
                 backend.CpuDevice().send(x_var.grad),
                 backend.CpuDevice().send(gx))
@@ -1030,9 +1037,8 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.grad is None
             assert x_var.grad_var is None
 
-        orig_xp = backend.get_array_module(x, gx)
-        orig_device = cuda.get_device_from_array(x)
-        if orig_xp is cuda.cupy and orig_device == device:
+        orig_device = backend.get_device_from_array(x)
+        if orig_device == expected_device:
             assert x_var.data is x
             assert x_var.grad is gx
         else:

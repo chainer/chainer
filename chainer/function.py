@@ -4,6 +4,7 @@ import weakref
 
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
@@ -199,7 +200,8 @@ class FunctionAdapter(function_node.FunctionNode):
             grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
-        with cuda.get_device_from_array(*(in_data + grad_out_data)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + grad_out_data))):
             if is_chainerx_fallback_mode:
                 # Enable attribute fallback
                 with function_node._chainerx_attribute_fallback(
