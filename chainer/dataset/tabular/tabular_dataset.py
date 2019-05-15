@@ -1,7 +1,6 @@
 import six
 
 from chainer.dataset import dataset_mixin
-from chainer.dataset import tabular
 
 
 class TabularDataset(dataset_mixin.DatasetMixin):
@@ -102,7 +101,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A view of specifed range.
         """
-        return tabular.slice.SliceHelper(self)
+        from chainer.dataset.tabular import slice as slice_
+        return slice_.SliceHelper(self)
 
     def fetch(self):
         """Fetch data.
@@ -130,7 +130,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`tuple`.
         """
-        return tabular.as_mode.AsTuple(self)
+        from chainer.dataset.tabular import as_mode
+        return as_mode.AsTuple(self)
 
     def as_dict(self):
         """Return a view with dict mode.
@@ -138,7 +139,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`dict`.
         """
-        return tabular.as_mode.AsDict(self)
+        from chainer.dataset.tabular import as_mode
+        return as_mode.AsDict(self)
 
     def get_example(self, i):
         example = self.get_examples([i], None)

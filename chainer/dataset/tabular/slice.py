@@ -3,10 +3,10 @@ import numbers
 import numpy as np
 import six
 
-from chainer.dataset import tabular
+import chainer.dataset
 
 
-class Slice(tabular.TabularDataset):
+class Slice(chainer.dataset.TabularDataset):
 
     def __init__(self, dataset, indices, keys):
         self._dataset = dataset
