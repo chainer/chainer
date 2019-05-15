@@ -1661,7 +1661,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_init_without_data(self):
         x = chainer.Parameter()
         assert x.data is None
-        assert x.grad is None
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def test_initialize(self):
         x = chainer.Parameter()
@@ -1672,6 +1673,8 @@ class TestUninitializedParameter(unittest.TestCase):
         np.testing.assert_array_equal(x.grad, np.float32('nan'))
         assert backend.get_device_from_array(x.data).xp is np
         assert backend.get_device_from_array(x.grad).xp is np
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def check_constant_initialization(self, x, a, xp, expected_device):
         x.initialize(a.shape)
