@@ -10,6 +10,8 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
