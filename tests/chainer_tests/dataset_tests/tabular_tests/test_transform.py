@@ -26,11 +26,13 @@ def _filter_params(params):
     'out_mode': [tuple, dict, None],
     'indices': [None, [1, 3], slice(None, 2)],
     'key_indices': [None, (0,), (1, 0)],
+    'with_batch': [False, True],
 })))
 class TestTransform(unittest.TestCase):
 
     def test_transform(self):
-        dataset = dummy_dataset.DummyDataset(mode=self.in_mode)
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.in_mode, return_array=True)
 
         def transform(*args, **kwargs):
             if self.in_mode is tuple:
@@ -42,6 +44,15 @@ class TestTransform(unittest.TestCase):
                 self.assertEqual(len(kwargs), 3)
                 a, b, c = kwargs['a'], kwargs['b'], kwargs['c']
 
+            if self.with_batch:
+                self.assertIsInstance(a, np.ndarray)
+                self.assertIsInstance(b, np.ndarray)
+                self.assertIsInstance(c, np.ndarray)
+            else:
+                self.assertIsInstance(a, float)
+                self.assertIsInstance(b, float)
+                self.assertIsInstance(c, float)
+
             if self.out_mode is tuple:
                 return a + b, b + c
             elif self.out_mode is dict:
@@ -50,13 +61,18 @@ class TestTransform(unittest.TestCase):
                 return a + b + c
 
         if self.out_mode is not None:
-            view = dataset.transform(('alpha', 'beta'), transform)
+            if self.with_batch:
+                view = dataset.transform_batch(('alpha', 'beta'), transform)
+            else:
+                view = dataset.transform(('alpha', 'beta'), transform)
             data = np.vstack((
                 dataset.data[0] + dataset.data[1],
                 dataset.data[1] + dataset.data[2]))
-            print(data.shape)
         else:
-            view = dataset.transform('alpha', transform)
+            if self.with_batch:
+                view = dataset.transform_batch('alpha', transform)
+            else:
+                view = dataset.transform('alpha', transform)
             data = dataset.data.sum(axis=0, keepdims=True)
 
         self.assertIsInstance(view, chainer.dataset.TabularDataset)
@@ -64,12 +80,9 @@ class TestTransform(unittest.TestCase):
 
         if self.out_mode is not None:
             self.assertEqual(view.keys, ('alpha', 'beta'))
-        else:
-            self.assertEqual(view.keys, ('alpha',))
-
-        if self.out_mode is not None:
             self.assertEqual(view.mode, self.out_mode)
         else:
+            self.assertEqual(view.keys, ('alpha',))
             self.assertEqual(view.mode, tuple)
 
         output = view.get_examples(self.indices, self.key_indices)
@@ -81,7 +94,10 @@ class TestTransform(unittest.TestCase):
 
         for out, d in six.moves.zip_longest(output, data):
             np.testing.assert_equal(out, d)
-            self.assertIsInstance(out, list)
+            if self.with_batch:
+                self.assertIsInstance(out, np.ndarray)
+            else:
+                self.assertIsInstance(out, list)
 
 
 testing.run_module(__name__, __file__)

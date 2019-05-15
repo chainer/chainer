@@ -144,6 +144,10 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         return chainer.dataset.tabular.transform.Transform(
             self, keys, transform)
 
+    def transform_batch(self, keys, transform_batch):
+        return chainer.dataset.tabular.transform.TransformBatch(
+            self, keys, transform_batch)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)
