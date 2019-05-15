@@ -1,8 +1,8 @@
 import numpy as np
 import unittest
 
+import chainer
 from chainer import testing
-from chainer.dataset import TabularDataset
 
 from . import dummy_dataset
 
@@ -100,7 +100,7 @@ class TestSlice(unittest.TestCase):
                 {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys]
             data = dataset.data[key_indices][:, self.indices]
 
-        self.assertIsInstance(view, TabularDataset)
+        self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), self.expected_len)
         self.assertEqual(view.keys, self.expected_keys)
         self.assertEqual(view.mode, self.mode)

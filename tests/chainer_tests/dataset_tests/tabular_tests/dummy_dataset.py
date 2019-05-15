@@ -1,9 +1,9 @@
 import numpy as np
 
-from chainer import dataset
+import chainer
 
 
-class DummyDataset(dataset.TabularDataset):
+class DummyDataset(chainer.dataset.TabularDataset):
 
     def __init__(self, mode, return_array=False, callback=None):
         self._mode = mode
