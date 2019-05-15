@@ -140,6 +140,10 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         """
         return chainer.dataset.tabular.as_mode.AsDict(self)
 
+    def transform(self, keys, transform):
+        return chainer.dataset.tabular.transform.Transform(
+            self, keys, transform)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)
