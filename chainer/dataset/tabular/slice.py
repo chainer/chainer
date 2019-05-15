@@ -1,11 +1,12 @@
 import numbers
+
 import numpy as np
 import six
 
-from chainer.dataset import TabularDataset
+import chainer.dataset
 
 
-class Slice(TabularDataset):
+class Slice(chainer.dataset.TabularDataset):
 
     def __init__(self, dataset, indices, keys):
         self._dataset = dataset
@@ -110,8 +111,12 @@ def _as_key_indices(keys, key_names):
 
 
 def _merge_indices(a, b, len_a, len_b):
-    if a is None or b is None:
-        return a or b
+    if a is None and b is None:
+        return None
+    elif a is None:
+        return b
+    elif b is None:
+        return a
     elif isinstance(a, slice) and isinstance(b, slice):
         a_start, a_stop, a_step = a.indices(len_a)
         b_start, b_stop, b_step = b.indices(len_b)
@@ -130,14 +135,17 @@ def _merge_indices(a, b, len_a, len_b):
         a_start, _, a_step = a.indices(len_a)
         return [a_start + a_step * index for index in b]
     elif isinstance(b, slice):
-        b_start, b_stop, b_step = b.indices(len_b)
-        return [a[index] for index in six.moves.range(b_start, b_stop, b_step)]
+        return a[b]
     else:
         return [a[index] for index in b]
 
 
 def _merge_key_indices(a, b):
-    if a is None or b is None:
-        return a or b
+    if a is None and b is None:
+        return None
+    elif a is None:
+        return b
+    elif b is None:
+        return a
     else:
         return tuple(a[index] for index in b)
