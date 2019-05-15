@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import six
 
 import chainer
 from chainer import testing
@@ -23,6 +24,9 @@ from . import dummy_dataset
          'expected_key_indices_b': (1,)},
         {'key_indices': (0, 2),
          'expected_key_indices_a': (0, 2)},
+        {'key_indices': (1, 2, 1),
+         'expected_key_indices_a': (1, 2)},
+        {'key_indices': ()},
     ],
 ))
 class TestJoin(unittest.TestCase):
@@ -50,13 +54,14 @@ class TestJoin(unittest.TestCase):
         self.assertEqual(view.keys, dataset_a.keys + dataset_b.keys)
         self.assertEqual(view.mode, dataset_a.mode)
 
+        output = view.get_examples(None, self.key_indices)
+
         data = np.vstack((dataset_a.data, dataset_b.data))
         if self.key_indices is not None:
             data = data[list(self.key_indices)]
 
-        output = view.get_examples(None, self.key_indices)
-        np.testing.assert_equal(output, data)
-        for out in output:
+        for out, d in six.moves.zip_longest(output, data):
+            np.testing.assert_equal(out, d)
             if self.return_array:
                 self.assertIsInstance(out, np.ndarray)
             else:
