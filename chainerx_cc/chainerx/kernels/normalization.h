@@ -19,7 +19,14 @@ namespace chainerx {
 // results.
 class BatchNormGradState {
 public:
+    BatchNormGradState() = default;
+
     virtual ~BatchNormGradState() = default;
+
+    BatchNormGradState(const BatchNormGradState&) = default;
+    BatchNormGradState(BatchNormGradState&&) = default;
+    BatchNormGradState& operator=(const BatchNormGradState&) = default;
+    BatchNormGradState& operator=(BatchNormGradState&&) = default;
 };
 
 class BatchNormKernel : public Kernel {

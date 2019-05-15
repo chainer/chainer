@@ -16,6 +16,10 @@ namespace chainerx {
 namespace native {
 namespace {
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
+
 class NativeSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {
@@ -80,6 +84,22 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(IsInfKernel, NativeIsInfKernel);
+
+class NativeIsFiniteKernel : public IsFiniteKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = !(chainerx::IsInf(x) || chainerx::IsNan(x)); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(IsFiniteKernel, NativeIsFiniteKernel);
 
 class NativeCeilKernel : public CeilKernel {
 public:

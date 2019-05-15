@@ -231,6 +231,9 @@ class GpuDevice(_backend.Device):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
 
+    def __str__(self):
+        return '@cupy:{}'.format(self.device.id)
+
     @property
     def xp(self):
         return cupy

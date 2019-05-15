@@ -21,7 +21,7 @@ public:
     cudnnStatus_t error() const noexcept { return status_; }
 
 private:
-    cudnnStatus_t status_;
+    cudnnStatus_t status_{};
 };
 
 void CheckCudnnError(cudnnStatus_t status);
@@ -55,7 +55,7 @@ public:
     ~CudnnTensorDescriptor();
 
     CudnnTensorDescriptor(const CudnnTensorDescriptor&) = delete;
-    CudnnTensorDescriptor(CudnnTensorDescriptor&& other) : desc_{other.desc_} { other.desc_ = nullptr; }
+    CudnnTensorDescriptor(CudnnTensorDescriptor&& other) noexcept : desc_{other.desc_} { other.desc_ = nullptr; }
     CudnnTensorDescriptor& operator=(const CudnnTensorDescriptor&) = delete;
     CudnnTensorDescriptor& operator=(CudnnTensorDescriptor&&) = delete;
 
@@ -144,6 +144,11 @@ class CudnnHandle {
 public:
     explicit CudnnHandle(int device_index) : device_index_{device_index} {}
     ~CudnnHandle();
+
+    CudnnHandle(const CudnnHandle&) = delete;
+    CudnnHandle(CudnnHandle&&) = delete;
+    CudnnHandle& operator=(const CudnnHandle&) = delete;
+    CudnnHandle& operator=(CudnnHandle&&) = delete;
 
     template <class Func, class... Args>
     void Call(Func&& func, Args&&... args) {

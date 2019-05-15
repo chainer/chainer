@@ -37,4 +37,6 @@ Array Take(const Array& a, const Array& indices, int8_t axis);
 
 Array Diagonal(const Array& x, const int64_t offset = 0, const int64_t axis1 = 0, const int64_t axis2 = 1);
 
+Array Where(const Array& condition, const Array& x, const Array& y);
+
 }  // namespace chainerx

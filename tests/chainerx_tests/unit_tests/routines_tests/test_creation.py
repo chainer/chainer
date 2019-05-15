@@ -1,4 +1,4 @@
-from io import StringIO
+import io
 import itertools
 import sys
 import tempfile
@@ -1117,7 +1117,7 @@ def test_loadtxt(xp, dtype_spec, device):
 1 2 3 4
 5 6 7 8
 '''
-    txt = StringIO(txt)
+    txt = io.StringIO(txt)
 
     # Converter that is used to add 1 to each element in the 3rd column.
     def converter(element_str):
