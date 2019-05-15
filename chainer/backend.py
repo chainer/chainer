@@ -126,6 +126,9 @@ def get_device(device_spec):
     if chainerx.is_available() and isinstance(device_spec, chainerx.Device):
         return _chainerx.ChainerxDevice(device_spec)
 
+    if device_spec is cuda.DummyDevice:
+        return _cpu.CpuDevice()
+
     if cuda.available and isinstance(device_spec, cuda.Device):
         return cuda.GpuDevice(device_spec)
 

@@ -258,6 +258,9 @@ class TestDeviceSpec(unittest.TestCase):
     def test_str_intel64(self):
         self.check_device_spec_intel64('@intel64')
 
+    def test_cuda_dummy_device(self):
+        self.check_device_spec_numpy(cuda.DummyDevice)
+
     def test_str_chainerx_invalid(self):
         self.check_invalid('native:foo')
         self.check_invalid('')
