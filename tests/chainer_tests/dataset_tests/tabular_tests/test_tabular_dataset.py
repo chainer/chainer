@@ -1,44 +1,10 @@
-import numpy as np
 import unittest
 
+import numpy as np
+
 from chainer import testing
-from chainer.dataset import TabularDataset
 
-
-class DummyDataset(TabularDataset):
-
-    def __init__(self, mode, return_array=False, callback=None):
-        self._mode = mode
-        self._return_array = return_array
-        self._callback = callback
-
-        self.data = np.random.uniform(size=(3, 10))
-
-    def __len__(self):
-        return self.data.shape[1]
-
-    @property
-    def keys(self):
-        return ('a', 'b', 'c')
-
-    @property
-    def mode(self):
-        return self._mode
-
-    def get_examples(self, indices, key_indices):
-        if self._callback:
-            self._callback(indices, key_indices)
-
-        data = self.data
-        if indices is not None:
-            data = data[:, indices]
-        if key_indices is not None:
-            data = data[list(key_indices)]
-
-        if self._return_array:
-            return tuple(data)
-        else:
-            return tuple(list(d) for d in data)
+from . import dummy_dataset
 
 
 @testing.parameterize(*testing.product({
@@ -52,7 +18,7 @@ class TestTabularDataset(unittest.TestCase):
             self.assertIsNone(indices)
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(
+        dataset = dummy_dataset.DummyDataset(
             mode=self.mode, return_array=self.return_array, callback=callback)
         output = dataset.fetch()
 
@@ -75,7 +41,7 @@ class TestTabularDataset(unittest.TestCase):
             self.assertEqual(indices, [3])
             self.assertIsNone(key_indices)
 
-        dataset = DummyDataset(
+        dataset = dummy_dataset.DummyDataset(
             mode=self.mode, return_array=self.return_array, callback=callback)
 
         if self.mode is tuple:

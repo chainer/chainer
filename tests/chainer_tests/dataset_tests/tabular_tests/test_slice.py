@@ -4,10 +4,28 @@ import unittest
 from chainer import testing
 from chainer.dataset import TabularDataset
 
-from .test_tabular_dataset import DummyDataset
+from . import dummy_dataset
 
 
-@testing.parameterize(*testing.product_dict(
+# filter out invalid params using numpy as a reference
+def _filter_params(params):
+    for param in params:
+        try:
+            a = np.empty(10)
+            a[param['indices']][param['get_examples_indices']]
+        except IndexError:
+            continue
+
+        try:
+            a = np.empty(3)
+            a[param['keys']][param['get_examples_key_indices']]
+        except IndexError:
+            continue
+
+        yield param
+
+
+@testing.parameterize(*_filter_params(testing.product_dict(
     testing.product({
         'mode': [tuple, dict],
         'return_array': [True, False],
@@ -34,7 +52,7 @@ from .test_tabular_dataset import DummyDataset
             None, [1], [1, 0], slice(0, 2, 1), slice(1, None, -1)],
         'get_examples_key_indices': [None, (1,), (1, 0)],
     }),
-))
+)))
 class TestSlice(unittest.TestCase):
 
     def setUp(self):
@@ -62,7 +80,7 @@ class TestSlice(unittest.TestCase):
             else:
                 self.assertIsInstance(key_indices, tuple)
 
-        dataset = DummyDataset(
+        dataset = dummy_dataset.DummyDataset(
             mode=self.mode, return_array=self.return_array, callback=callback)
 
         if self.exception is not None:
@@ -87,20 +105,13 @@ class TestSlice(unittest.TestCase):
         self.assertEqual(view.keys, self.expected_keys)
         self.assertEqual(view.mode, self.mode)
 
-        if self.get_examples_indices is not None:
-            try:
-                data = data[:, self.get_examples_indices]
-            except IndexError:
-                return
-
-        if self.get_examples_key_indices is not None:
-            try:
-                data = data[list(self.get_examples_key_indices)]
-            except IndexError:
-                return
-
         output = view.get_examples(
             self.get_examples_indices, self.get_examples_key_indices)
+
+        if self.get_examples_indices is not None:
+            data = data[:, self.get_examples_indices]
+        if self.get_examples_key_indices is not None:
+            data = data[list(self.get_examples_key_indices)]
 
         np.testing.assert_equal(output, data)
         for out in output:
