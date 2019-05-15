@@ -9,26 +9,19 @@ from chainer import testing
 from . import dummy_dataset
 
 
-# filter out invalid params using numpy as a reference
+# filter out invalid combinations of params
 def _filter_params(params):
     for param in params:
-        try:
-            a = np.empty(10)
-            if param['indices'] is not None:
-                a = a[param['indices']]
-            if param['get_examples_indices'] is not None:
-                a[param['get_examples_indices']]
-        except IndexError:
+        if 'expected_len' in param and \
+           isinstance(param['get_examples_indices'], list) and \
+           any(param['expected_len'] <= index
+               for index in param['get_examples_indices']):
             continue
 
-        try:
-            if param['keys'] is None:
-                b = np.empty(3)
-            else:
-                b = np.empty(len(param['keys']))
-            if param['get_examples_key_indices'] is not None:
-                b[list(param['get_examples_key_indices'])]
-        except IndexError:
+        if 'expected_keys' in param and \
+           isinstance(param['get_examples_key_indices'], tuple) and \
+           any(len(param['expected_keys']) <= key_index
+               for key_index in param['get_examples_key_indices']):
             continue
 
         yield param
