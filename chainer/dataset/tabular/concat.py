@@ -1,9 +1,9 @@
 import six
 
-import chainer.dataset
+from chainer.dataset.tabular import tabular_dataset
 
 
-class Concat(chainer.dataset.TabularDataset):
+class Concat(tabular_dataset.TabularDataset):
 
     def __init__(self, *datasets):
         for dataset in datasets[1:]:

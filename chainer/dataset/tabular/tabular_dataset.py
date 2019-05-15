@@ -151,8 +151,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A concatenated dataset.
         """
-        from chainer.dataset.tabular import concat
-        return concat.Concat(self, *datasets)
+        return chainer.dataset.tabular.concat.Concat(self, *datasets)
 
     def join(self, *datasets):
         """Stack datasets along columns.
@@ -165,8 +164,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A joined dataset.
         """
-        from chainer.dataset.tabular import join
-        return join.Join(self, *datasets)
+        return chainer.dataset.tabular.join.Join(self, *datasets)
 
     def get_example(self, i):
         example = self.get_examples([i], None)
