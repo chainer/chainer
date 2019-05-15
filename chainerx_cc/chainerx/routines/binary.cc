@@ -39,7 +39,7 @@ void CheckInplaceBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckInplace
 
 template <typename Impl>
 void BitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
-    CheckEqual(x1.shape(), x2.shape());
+    CHAINERX_ASSERT(x1.shape() == x2.shape());
     NoBackpropModeScope scope{};
     x1.device().backend().CallKernel<Impl>(x1, x2, out);
 }
