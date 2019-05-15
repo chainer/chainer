@@ -32,7 +32,7 @@ class Join(tabular_dataset.TabularDataset):
             key_indices = six.moves.range(len(self.keys))
 
         examples = {}
-        key_offset = 00
+        key_offset = 0
         for dataset in self._datasets:
             sub_key_indices = []
             for key_index in key_indices:
