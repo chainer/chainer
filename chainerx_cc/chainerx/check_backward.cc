@@ -248,7 +248,7 @@ void CheckBackwardComputation(
                << *backward_grads[i] - numerical_grads[i] << std::endl  // TODO(niboshi): Use abs
                << "Backward gradients[" << i << "]:" << std::endl
                << *backward_grads[i] << std::endl
-               << "Numerical gradients[" << i << "]:" << std::endl
+               << "Numerical gradients[" << i << "]:" << std ::endl
                << numerical_grads[i] << std::endl
                << "Eps[" << i << "] (perturbation in numerical gradients):" << std::endl
                << eps[i] << std::endl;

@@ -48,7 +48,7 @@ Dtype PromoteTypes(Dtype dt1, Dtype dt2) {
     switch (dt2) {
         case Dtype::kUInt8:
             return Dtype::kInt16;
-        // If there will be more unsigned int types, add here.
+            // If there will be more unsigned int types, add here.
         default:
             CHAINERX_NEVER_REACH();
     }

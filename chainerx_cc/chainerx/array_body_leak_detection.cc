@@ -55,12 +55,12 @@ bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
     return true;
 }
 
-ArrayBodyLeakDetectionScope::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {
+ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {
     CHAINERX_ASSERT(array_body_leak_tracker_ == nullptr);  // nested use is not supported
     array_body_leak_tracker_ = &tracker;
 }
 
-ArrayBodyLeakDetectionScope::~ArrayBodyLeakDetectionScope() { array_body_leak_tracker_ = nullptr; }
+ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() { array_body_leak_tracker_ = nullptr; }
 
 void CheckAllArrayBodiesFreed(ArrayBodyLeakTracker& tracker) {
     std::ostringstream os;

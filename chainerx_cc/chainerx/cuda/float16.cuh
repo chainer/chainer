@@ -77,7 +77,7 @@ private:
     explicit __device__ Float16(::__half x) : data_{__half_as_ushort(x)} {}
     explicit __host__ __device__ constexpr Float16(uint16_t data, FromDataTag) : data_{data} {}
 
-    __device__::__half cuda_half() const { return ::__half{__ushort_as_half(data_)}; }
+    __device__ ::__half cuda_half() const { return ::__half{__ushort_as_half(data_)}; }
 
     uint16_t data_;
 };

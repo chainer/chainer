@@ -62,9 +62,9 @@ void InitChainerxModule(pybind11::module& m) {
     pybind11::module m_testing = m.def_submodule("_testing");
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 
-// chainerx._pybind_cuda
-//
-// Define the sub-module only if CUDA is available.
+    // chainerx._pybind_cuda
+    //
+    // Define the sub-module only if CUDA is available.
 #ifdef CHAINERX_ENABLE_CUDA
     pybind11::module m_cuda = m.def_submodule("_pybind_cuda");
     cuda::cuda_internal::InitChainerxCudaModule(m_cuda);

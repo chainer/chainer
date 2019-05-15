@@ -37,7 +37,7 @@ const void* GetCudnnCoefficientPtr(Dtype dtype) {
 
     switch (dtype) {
         case Dtype::kFloat16:
-        // fallthrough: cuDNN accepts float32 coefficients for float16 tensor operations.
+            // fallthrough: cuDNN accepts float32 coefficients for float16 tensor operations.
         case Dtype::kFloat32:
             return &kFloat32Value;
         case Dtype::kFloat64:
