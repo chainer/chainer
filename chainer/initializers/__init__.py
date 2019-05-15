@@ -20,11 +20,12 @@ from chainer.initializers.normal import HeNormal  # NOQA
 from chainer.initializers.normal import LeCunNormal
 from chainer.initializers.normal import Normal  # NOQA
 from chainer.initializers.orthogonal import Orthogonal  # NOQA
+from chainer.initializers.sampling import DownsamplingConvFilter  # NOQA
+from chainer.initializers.sampling import UpsamplingDeconvFilter  # NOQA
 from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
-from chainer.initializers.upsampling_deconv_filter import UpsamplingDeconvFilter  # NOQA
 from chainer import types  # NOQA
 
 

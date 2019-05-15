@@ -10,6 +10,7 @@ import numpy
 @testing.parameterize(*testing.product({
     'target': [
         initializers.UpsamplingDeconvFilter,
+        initializers.DownsamplingConvFilter,
     ],
     'interpolation': ['bilinear'],
     'shape': [(5, 5, 3, 3), (5, 1, 3, 3)],
