@@ -141,10 +141,34 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         return chainer.dataset.tabular.as_mode.AsDict(self)
 
     def transform(self, keys, transform):
+        """Apply a transform to each example.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform (callable): A callable that takes an example
+                and returns transformed example. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
         return chainer.dataset.tabular.transform.Transform(
             self, keys, transform)
 
     def transform_batch(self, keys, transform_batch):
+        """Apply a transform to examples.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform_batch (callable): A callable that takes examples
+                and returns transformed examples. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
         return chainer.dataset.tabular.transform.TransformBatch(
             self, keys, transform_batch)
 
