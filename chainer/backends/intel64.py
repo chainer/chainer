@@ -25,6 +25,8 @@ except ImportError as e:
 
 class Intel64Device(_backend.Device):
 
+    """Device for Intel64 (Intel Architecture) backend with iDeep"""
+
     def __init__(self):
         check_ideep_available()
         super(Intel64Device, self).__init__()

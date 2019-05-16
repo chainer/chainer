@@ -1,21 +1,42 @@
-CUDA and Backend Utilities
-==========================
-
-Utilities across backends
--------------------------
+Backends and Devices
+====================
 
 .. module:: chainer.backend
-.. currentmodule:: /
+
+Common Classes and Utilities
+----------------------------
+
+.. currentmodule:: chainer
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   chainer.backend.copyto
+   chainer.backend.Device
+   chainer.get_device
+   chainer.using_device
    chainer.backend.get_array_module
+   chainer.DeviceResident
+   chainer.device_resident.DeviceResidentsVisitor
+   chainer.backend.copyto
 
-CUDA
-----
+
+Concrete Device Classes
+-----------------------
+
+.. currentmodule:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.backend.CpuDevice
+   chainer.backend.GpuDevice
+   chainer.backend.Intel64Device
+   chainer.backend.ChainerxDevice
+
+GPU (CuPy)
+----------
 
 .. automodule:: chainer.backends.cuda
 
@@ -75,8 +96,8 @@ cuDNN support
    chainer.backends.cuda.set_max_workspace_size
    chainer.backends.cuda.get_max_workspace_size
 
-iDeep
------
+Intel64 (iDeep)
+---------------
 
 `iDeep <https://github.com/intel/ideep>`__ is a module that provides NumPy-like API and DNN acceleration using MKL-DNN for Intel CPUs.
 See :doc:`../../tips` and :doc:`../../performance` for details.
@@ -89,3 +110,15 @@ See :doc:`../../tips` and :doc:`../../performance` for details.
    :nosignatures:
 
    chainer.backends.intel64.is_ideep_available
+   
+ChainerX
+--------
+
+.. currentmodule:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.backend.from_chx
+   chainer.backend.to_chx
