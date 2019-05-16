@@ -203,7 +203,6 @@ class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
 # TODO(hvy): Safely remove this test class when BackendConfig no longer
 # modifies the current device since those cases should be covered by the tests
 # above.
-@attr.multi_gpu(2)
 @testing.inject_backend_tests(
     None,
     testing.product({
@@ -212,6 +211,7 @@ class BatchNormalizationTest(BatchNormalizationTestBase, testing.LinkTestCase):
         'cuda_device': [0],
     }))
 @_parameterize
+@attr.multi_gpu(2)
 class BatchNormalizationMultiGpuTest(
         BatchNormalizationTestBase, testing.LinkTestCase):
 

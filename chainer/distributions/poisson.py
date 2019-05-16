@@ -57,6 +57,10 @@ class Poisson(distribution.Distribution):
     def mean(self):
         return self.lam
 
+    @property
+    def params(self):
+        return {'lam': self.lam}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.lam)
         if xp is cuda.cupy:

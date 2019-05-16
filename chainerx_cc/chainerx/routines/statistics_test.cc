@@ -1,3 +1,5 @@
+// TODO(niboshi): Write Python test and delete this file.
+
 #include "chainerx/routines/statistics.h"
 
 #include <cmath>

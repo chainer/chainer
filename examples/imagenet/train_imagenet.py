@@ -10,7 +10,6 @@ ImageDataLayer).
 """
 import argparse
 import random
-import re
 
 import numpy as np
 
@@ -71,23 +70,6 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         return image, label
 
 
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(np)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.backend.get_device(args.device)
-
-
 def main():
     archs = {
         'alex': alex.Alex,
@@ -140,11 +122,12 @@ def main():
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     # Set the dtype if supplied.
     if args.dtype is not None:

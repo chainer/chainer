@@ -244,7 +244,8 @@ def destroy_communicator(comm):
 
     When too many NCCL communicator are alive, NCCL produces
     unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use."""
+    destory NCCL communicator after every use.
+    """
     if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
         comm.nccl_comm.destroy()
         comm.nccl_comm = None
@@ -295,7 +296,7 @@ def check_bcast_data(communicator, model):
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
-def check_allreduce_grad(communicator, model, comm_prec=None):
+def check_allreduce_grad(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
@@ -330,6 +331,39 @@ def check_allreduce_grad_empty(communicator, model):
                                         (base + 0) * np.ones((3, 2)))
         chainer.testing.assert_allclose(model.b.W.grad,
                                         (base + 1) * np.ones((4, 3)))
+
+
+def check_allreduce_grad_empty_half(communicator, model):
+    # We need to repeat twice for regressions on lazy initialization of
+    # sub communicators.
+
+    for _ in range(2):
+        model.a.W.data[:] = communicator.rank
+        model.b.W.data[:] = communicator.rank + 1
+        model.c.b.data[:] = communicator.rank + 2
+
+        model.a.W.grad[:] = communicator.rank
+        model.b.W.grad[:] = communicator.rank + 1
+        if communicator.rank % 2 == 0:
+            model.c.b.grad[:] = communicator.rank + 2
+        else:
+            model.c.b.grad = None
+
+        communicator.allreduce_grad(model, zero_fill=True)
+        base = (communicator.size - 1.0) / 2
+
+        chainer.testing.assert_allclose(model.a.W.grad,
+                                        (base + 0) * np.ones((3, 2)))
+        chainer.testing.assert_allclose(model.b.W.grad,
+                                        (base + 1) * np.ones((4, 3)))
+
+        v = 0
+        for i in range(communicator.size):
+            if i % 2 == 0:
+                v += i + 2
+        v /= communicator.size
+        chainer.testing.assert_allclose(model.c.b.grad,
+                                        v * np.ones((5, )))
 
 
 def check_send_recv(param, use_gpu):
@@ -440,8 +474,33 @@ def check_collective_communication(param, use_gpu):
     if use_gpu:
         model.to_gpu()
     check_bcast_data(communicator, model)
+
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
     check_allreduce_grad(communicator, model)
+
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
     check_allreduce_grad_empty(communicator, model)
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
+    check_allreduce_grad_empty_half(communicator, model)
+
+    # Check allreduce debug mode
+    model = ExampleModel()
+    if use_gpu:
+        model.to_gpu()
+
+    # The example model includes some nan parameters so the debug mode
+    # must detect it.
+    chainer.set_debug(True)
+    with pytest.raises(ValueError, match=r'.* diverged .*'):
+        check_allreduce_grad(communicator, model)
+    chainer.set_debug(False)
+
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()

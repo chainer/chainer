@@ -32,7 +32,8 @@ class Erfc(function_node.FunctionNode):
             except ImportError:
                 warnings.warn(
                     'SciPy is not available. Forward computation of erfc in'
-                    ' CPU can be slow without SciPy.')
+                    ' CPU can be slow without SciPy.',
+                    chainer.warnings.PerformanceWarning)
                 _erfc_cpu = numpy.vectorize(math.erfc)
         self.retain_inputs((0,))
         return utils.force_array(_erfc_cpu(x[0]), dtype=x[0].dtype),

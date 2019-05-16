@@ -273,7 +273,7 @@ def resize_images(x, output_shape):
     This function resizes 2D data to :obj:`output_shape`.
     Currently, only bilinear interpolation is supported as the sampling method.
 
-    Notatition: here is a notation for dimensionalities.
+    Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`c_I` is the number of the input channels.

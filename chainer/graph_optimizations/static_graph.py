@@ -49,13 +49,13 @@ class ScheduleInfo(object):
         assert len(self.array_infos) == len(self.unique_arrays)
         self.func_name = func_name
         self.in_list = None
-        if len(self.inputs_hooks) > 0:
+        if self.inputs_hooks:
             self.in_list = self.kwargs['inputs']
-        if len(self.outputs_hooks) > 0:
+        if self.outputs_hooks:
             self.out_list = self.kwargs['outputs']
         # Check if 'func' wraps code of a 'FunctionNode':
         self.function_node = None
-        if len(self.args) > 0:
+        if self.args:
             maybe_func = self.args[0]
             if isinstance(maybe_func, chainer.FunctionNode):
                 self.function_node = maybe_func

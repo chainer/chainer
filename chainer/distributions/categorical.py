@@ -74,6 +74,10 @@ class Categorical(distribution.Distribution):
         else:
             return self.log_p[mg + [x.astype(numpy.int32)]]
 
+    @property
+    def params(self):
+        return {'p': self.p}
+
     def sample_n(self, n):
         xp = backend.get_array_module(self.p)
         onebyone_p = self.p.data.reshape(-1, self.p.shape[-1])

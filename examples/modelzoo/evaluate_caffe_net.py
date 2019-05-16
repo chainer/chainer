@@ -16,7 +16,6 @@ import numpy as np
 from PIL import Image
 
 import chainer
-from chainer.backends import cuda
 import chainer.functions as F
 from chainer.links import caffe
 
@@ -34,12 +33,23 @@ parser.add_argument('--mean', '-m', default='ilsvrc_2012_mean.npy',
                     help='Path to the mean file')
 parser.add_argument('--batchsize', '-B', type=int, default=100,
                     help='Minibatch size')
-parser.add_argument('--gpu', '-g', type=int, default=-1,
-                    help='Zero-origin GPU ID (nevative value indicates CPU)')
+parser.add_argument('--device', '-d', type=str, default='-1',
+                    help='Device specifier. Either ChainerX device '
+                    'specifier or an integer. If non-negative integer, '
+                    'CuPy arrays with specified device id are used. If '
+                    'negative integer, NumPy arrays are used')
+parser.set_defaults(test=False)
+group = parser.add_argument_group('deprecated arguments')
+group.add_argument('--gpu', '-g', dest='device',
+                   type=int, nargs='?', const=-1,
+                   help='GPU ID (negative value indicates CPU)')
+
 args = parser.parse_args()
-if args.gpu >= 0:
-    cuda.check_cuda_available()
-xp = cuda.cupy if args.gpu >= 0 else np
+device = chainer.get_device(args.device)
+device.use()
+
+xp = device.xp
+
 assert args.batchsize > 0
 
 chainer.config.train = False  # All the codes will run in test mode
@@ -58,9 +68,7 @@ assert len(dataset) % args.batchsize == 0
 print('Loading Caffe model file %s...' % args.model)
 func = caffe.CaffeFunction(args.model)
 print('Loaded')
-if args.gpu >= 0:
-    cuda.get_device_from_id(args.gpu).use()
-    func.to_gpu()
+func.to_device(device)
 
 if args.model_type == 'alexnet' or args.model_type == 'caffenet':
     in_size = 227

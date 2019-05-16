@@ -10,6 +10,8 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 import argparse
+import os
+
 import numpy as np
 
 import chainer
@@ -36,8 +38,9 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Directory that has `rnnln.model`'
+                        ' and `rnnlm.state`')
     parser.add_argument('--test', action='store_true',
                         help='Use tiny datasets for quick tests')
     parser.set_defaults(test=False)
@@ -92,6 +95,19 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
+    # Load model and optimizer
+    if args.resume is not None:
+        resume = args.resume
+        if os.path.exists(resume):
+            serializers.load_npz(os.path.join(resume, 'rnnlm.model'), model)
+            serializers.load_npz(
+                os.path.join(resume, 'rnnlm.state'), optimizer)
+        else:
+            raise ValueError(
+                '`args.resume` ("{}") is specified,'
+                ' but it does not exist'.format(resume)
+            )
+
     sum_perp = 0
     count = 0
     iteration = 0
@@ -134,10 +150,13 @@ def main():
     print('test perplexity: {}'.format(test_perp))
 
     # Save the model and the optimizer
+    out = args.out
+    if not os.path.exists(out):
+        os.makedirs(out)
     print('save the model')
-    serializers.save_npz('rnnlm.model', model)
+    serializers.save_npz(os.path.join(out, 'rnnlm.model'), model)
     print('save the optimizer')
-    serializers.save_npz('rnnlm.state', optimizer)
+    serializers.save_npz(os.path.join(out, 'rnnlm.state'), optimizer)
 
 
 if __name__ == '__main__':

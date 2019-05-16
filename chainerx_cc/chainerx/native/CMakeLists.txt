@@ -3,6 +3,7 @@ install(FILES
     native_backend.h
     data_type.h
     elementwise.h
+    kernel_regist.h
     reduce.h
     col2im.h
     im2col.h
@@ -14,6 +15,7 @@ add_library(chainerx_native STATIC
     native_device.cc
     native_device/activation.cc
     native_device/arithmetic.cc
+    native_device/batch_norm.cc
     native_device/conv.cc
     native_device/copy.cc
     native_device/comparison.cc
@@ -25,6 +27,7 @@ add_library(chainerx_native STATIC
     native_device/misc.cc
     native_device/pool.cc
     native_device/reduction.cc
+    native_device/trigonometric.cc
     native_backend.cc
     col2im.cc
     im2col.cc

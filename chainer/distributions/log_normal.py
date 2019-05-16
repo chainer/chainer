@@ -65,6 +65,10 @@ class LogNormal(distribution.Distribution):
     def mean(self):
         return exponential.exp(self.mu + 0.5 * self.sigma ** 2)
 
+    @property
+    def params(self):
+        return {'mu': self.mu, 'sigma': self.sigma}
+
     def sample_n(self, n):
         xp = backend.get_array_module(self.mu)
         if xp is cuda.cupy:
