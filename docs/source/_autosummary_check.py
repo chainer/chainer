@@ -2,12 +2,19 @@ import inspect
 import os
 import types
 
+import sphinx
+
 import chainer.functions
 import chainer.links
 
 
+logger = sphinx.util.logging.getLogger(__name__)
+doc_source_dir = os.path.dirname(__file__)
+
+
 def _is_rst_exists(entity):
-    return os.path.exists('source/reference/generated/{}.rst'.format(entity))
+    return os.path.exists(os.path.join(
+        doc_source_dir, 'reference', 'generated', '{}.rst'.format(entity)))
 
 
 def check(app, exception):
@@ -22,7 +29,7 @@ def check(app, exception):
         if not _is_rst_exists(name)]
 
     if len(missing_entities) != 0:
-        app.warn('\n'.join([
+        logger.warning('\n'.join([
             'Undocumented entities found.',
             '',
         ] + missing_entities))
