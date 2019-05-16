@@ -56,16 +56,16 @@ Configuration Keys
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
 
-   If it is ``True``, computational graphs are created during forward passes by :class:`FunctionNode`\ s, allowing backpropagation to start from any :class:`Variable` in the graph.
+   If it is ``True``, computational graphs are created during forward passes by :class:`~chainer.FunctionNode`\ s, allowing backpropagation to start from any :class:`~chainer.Variable` in the graph.
    Otherwise, computational graphs are not created but memory consumptions are reduced.
    So calling :func:`~chainer.Variable.backward` on the results of a function will not compute any gradients of any input.
 
 * ``keep_graph_on_report`` (default: ``False``)
    Flag to configure whether or not to let :func:`report` keep the computational graph.
 
-   If it is ``False``, :func:`report` does not keep the computational graph when a :class:`Variable` object is reported.
-   It means that :func:`report` stores a copy of the :class:`Variable` object which is purged from the computational graph.
-   If it is ``True``, :func:`report` just stores the :class:`Variable` object as is with the computational graph left attached.
+   If it is ``False``, :func:`report` does not keep the computational graph when a :class:`~chainer.Variable` object is reported.
+   It means that :func:`report` stores a copy of the :class:`~chainer.Variable` object which is purged from the computational graph.
+   If it is ``True``, :func:`report` just stores the :class:`~chainer.Variable` object as is with the computational graph left attached.
 
    You can change the default value to ``True`` by setting ``CHAINER_KEEP_GRAPH_ON_REPORT`` environment variable to ``1``.
 
@@ -99,7 +99,7 @@ Configuration Keys
 * ``type_check`` (default: ``True``)
    Type checking mode flag.
 
-   If it is ``True``, Chainer checks the types (data types and shapes) of inputs on :class:`Function` applications.
+   If it is ``True``, Chainer checks the types (data types and shapes) of inputs on :class:`~chainer.Function` applications.
    Otherwise, it skips type checking.
 
    You can change the default value to ``False`` by setting ``CHAINER_TYPE_CHECK`` environment variable to ``0``.
@@ -151,7 +151,7 @@ Configuration Keys
 * ``autotune`` (default: ``False``)
    Autotune for convolutional networks flag.
 
-   If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for :class:`chainer.links.Convolution2D`, :class:`ConvolutionND`, :class:`Deconvolution2D`, or :class:`DeconvolutionND` links.
+   If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for :class:`chainer.links.Convolution2D`, :class:`~chainer.links.ConvolutionND`, :class:`~chainer.links.Deconvolution2D`, or :class:`~chainer.links.DeconvolutionND` links.
 
 * ``cudnn_fast_batch_normalization`` (default: ``False``)
    Flag to configure whether or not to enable use of fast implementation for batch normalization in cuDNN.
