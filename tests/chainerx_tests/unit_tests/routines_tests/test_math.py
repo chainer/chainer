@@ -2437,16 +2437,14 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_shapes': _shapes_combination_binary,
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs,input_rhs': [(2, 2)],
         'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': dtype_utils.result_numeric_dtypes_two_arrays,
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs,input_rhs': [(2, 2)],
         'is_module': [False],
     })
     # is_module
@@ -2454,75 +2452,51 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs,input_rhs': [(2, 2)],
         'is_module': [True, False],
     })
-    # Special values
+    # Special values (integers forward)
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(
+                2, chainerx.testing.signed_integral_dtypes)),
+        'input_lhs': [-2, -1, 0, 1, 2, 5],
+        'input_rhs': [0, 1, 2, 5],
+        'is_module': [False],
+    })
+    # Special values (floats forward)
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_lhs': [-1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
+        'input_rhs': [-1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+    })
+    # Special values (floats backward)
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': [-3.0, -1.2, 1.2, 3],
+        'input_rhs': [-3.0, -1.2, 0.0, 1.2, 3.0],
+        'is_module': [False],
     })
 ))
 class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
-
-        self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
-        self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
-        self.check_double_backward_options.update(
-            {'rtol': 5e-3, 'atol': 5e-3})
-
-    def generate_inputs(self):
         in_dtype1, in_dtype2 = self.in_dtypes
-        in_shape1, in_shape2 = self.in_shapes
-
-        if self.input_rhs == 'random':
-            low = 1 if numpy.dtype(in_dtype2).kind == 'u' else None
-            b = array_utils.uniform(in_shape2, in_dtype2, low=low, high=2)
-        elif isinstance(self.input_rhs, (bool, int, float)):
-            b = numpy.full(in_shape2, self.input_rhs, dtype=in_dtype2)
-        else:
-            assert False
-
-        if self.input_lhs == 'random':
-            low = 1 if numpy.dtype(in_dtype1).kind == 'u' else None
-            a = array_utils.uniform(in_shape1, in_dtype1, low=low, high=2)
-
-            # For each element, if the power (RHS) is negative, the
-            # corresponding base (LHS) should not be near 0 in order to ensure
-            # differentiability.
-            if ((not self.skip_backward_test
-                 or not self.skip_double_backward_test)
-                    and self.input_lhs == 'random'):
-                a_broadcast, b_broadcast = numpy.broadcast_arrays(a, b)
-                a_broadcast[
-                    (b_broadcast < 0)
-                    & (a_broadcast >= -1)
-                    & (a_broadcast <= 0)] = -1
-                a_broadcast[
-                    (b_broadcast < 0)
-                    & (a_broadcast <= 1)
-                    & (a_broadcast > 0)] = 1
-        elif isinstance(self.input_lhs, (bool, int, float)):
-            a = numpy.full(in_shape1, self.input_lhs, dtype=in_dtype1)
-        else:
-            assert False
-        return a, b
+        if in_dtype1 == 'float16' or in_dtype2 == 'float16':
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
 
     def func(self, xp, a, b):
-        if a.dtype.kind != 'f' and b.dtype.kind != 'f' and (b < 0).any():
-            raise unittest.SkipTest(
-                'NumPy raises ValueError but ChainerX does not, similar to '
-                'CuPy.')
-
         if self.is_module:
             y = xp.power(a, b)
         else:
