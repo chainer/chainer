@@ -34,7 +34,7 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
-This is done by calling its :meth:`~Variable.backward` method:
+This is done by calling its :meth:`~chainer.Variable.backward` method:
 
 .. doctest::
 
