@@ -25,6 +25,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/stack_vector.h"
 
@@ -361,7 +362,8 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([w_dtype = w.dtype(), x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-                const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
+    
+               const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = Dot(gout.Transpose(), x_matrix, w_dtype);
             });
@@ -378,6 +380,41 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
     }
     CHAINERX_ASSERT(out_matrix.dtype() == out_dtype);
     return out_matrix.Reshape(out_shape);
+}
+
+std::vector<Array> lstm(const Array &c, const Array &x) {
+    if (x.shape()[0] > c.shape()[0]) {
+        throw DimensionError("The batch size of x must be equal to or less than the size of c");
+    }
+    std::vector<Array> x_split = Split(x, 4, 1);
+    x_split[0] = Tanh(x_split[0]);
+    x_split[1] = Sigmoid(x_split[1]);
+    x_split[2] = Sigmoid(x_split[2]);
+    x_split[3] = Sigmoid(x_split[3]);
+    if(x.shape()[0] < c.shape()[0]) {
+        Dtype dtype = x.dtype();
+
+        Shape out_shape{c.shape()[0] - x.shape()[0], x_split[0].shape()[1]};
+        Array z[4];
+        for(int i = 0; i < 4 ; i++) {
+            if (i == 2) {
+                z[i] = Ones(out_shape, dtype, x.device());
+
+            }else {
+                z[i] = Zeros(out_shape, dtype, x.device());
+            }
+            std::vector<Array> v;
+            v.push_back(x_split[i]);
+            v.push_back(z[i]);
+            x_split[i] = Stack(v, 0);
+        }
+    }
+    Array new_c = x_split[0] * x_split[1] + x_split[2] * c;
+    Array h = x_split[3] * Tanh(c);
+    std::vector<Array>  out;
+    out.push_back(new_c);
+    out.push_back(h);
+    return out;
 }
 
 }  // namespace chainerx

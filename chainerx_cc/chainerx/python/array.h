@@ -13,6 +13,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
+namespace py = pybind11;
 // TODO(beam2d): The current binding has an overhead on wrapping ArrayBodyPtr by Array, which copies shared_ptr. One
 // simple way to avoid this overhead is to use reinterpret_cast<Array&>(ptr). This cast is valid if ArrayBodyPtr (i.e.,
 // shared_ptr) satisfies "standard layout" conditions. We can test if ArrayBodyPtr satisfies these conditions by
@@ -26,6 +27,7 @@ ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool cop
 
 ArrayBodyPtr MakeArray(pybind11::handle object, const nonstd::optional<Dtype>& dtype, bool copy, Device& device);
 
+py::tuple ToTuple(std::vector<Array> ary);
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
 

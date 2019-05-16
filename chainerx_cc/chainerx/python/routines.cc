@@ -882,6 +882,11 @@ void InitChainerxConnection(pybind11::module& m) {
           py::arg("w"),
           py::arg("b") = nullptr,
           py::arg("n_batch_axes") = 1);
+    m.def("lstm",[](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
+      return ToTuple(lstm(Array{c}, Array{x}));
+    },
+    py::arg("c"),
+    py::arg("x"));
 }
 
 void InitChainerxNormalization(pybind11::module& m) {

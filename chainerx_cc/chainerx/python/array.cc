@@ -113,7 +113,17 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
 }
 
+py::tuple ToTuple(std::vector<Array> ary) {
+  py::tuple ret{ary.size()};
+  for(uint i = 0; i < ary.size(); i++) {
+    ret[i] = ary[i];
+  }
+  return ret;
+}
+
 }  // namespace
+
+
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
     nonstd::optional<Dtype> dtype_ = dtype.is_none() ? nonstd::nullopt : nonstd::optional<Dtype>(GetDtype(dtype));

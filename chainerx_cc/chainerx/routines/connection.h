@@ -47,4 +47,6 @@ Array ConvTranspose(
 
 Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b = nonstd::nullopt, uint8_t n_batch_axes = 1);
 
+std::vector<Array> lstm(const Array &c, const Array &x);
+
 }  // namespace chainerx
