@@ -184,7 +184,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
 
-# ChainerX is linked with MultiThreaded DLL. So I specify gtest with MultiThreaded DLL.
+# ChainerX is linked with MultiThreaded DLL, including gtest
 if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang") AND MSVC)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 endif()
