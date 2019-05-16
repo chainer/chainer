@@ -448,19 +448,20 @@ class AdamW(Adam):
         alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
-        eta (float): Schedule multiplier, can be used for warm restarts.
-        weight_decay_rate (float): Weight decay rate.
-            The default value is 1.0.
         eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+            The default value is 1.0.
+        weight_decay_rate (float): Weight decay rate.
+            The default value is 0.
     """
 
     def __init__(self,
                  alpha=_default_hyperparam.alpha,
                  beta1=_default_hyperparam.beta1,
                  beta2=_default_hyperparam.beta2,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
+                 eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
-                 eps=_default_hyperparam.eps):
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate):
         super(AdamW, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             weight_decay_rate=weight_decay_rate)
@@ -468,7 +469,7 @@ class AdamW(Adam):
 
 class AMSGrad(Adam):
 
-    """AmsGrad optimizer.
+    """AMSGrad optimizer.
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 

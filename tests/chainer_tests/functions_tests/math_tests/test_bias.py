@@ -3,57 +3,50 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
+from chainer import utils
 
 
-class TestBias(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestBias(testing.FunctionTestCase):
 
-    def setUp(self):
-        self.x1 = numpy.random.uniform(-1, 1, (3, 2, 3)).astype(numpy.float32)
-        self.x2 = numpy.random.uniform(-1, 1, (2)).astype(numpy.float32)
-        self.axis = 1
-        self.y_expected = numpy.copy(self.x1)
-        for i, j, k in numpy.ndindex(self.y_expected.shape):
-            self.y_expected[i, j, k] += self.x2[j]
-        self.gy = numpy.random.uniform(-1, 1, (3, 2, 3)).astype(numpy.float32)
+    skip_double_backward_test = True
 
-    def check_forward(self, x1_data, x2_data, axis, y_expected):
-        x1 = chainer.Variable(x1_data)
-        x2 = chainer.Variable(x2_data)
-        y = functions.bias(x1, x2, axis)
-        testing.assert_allclose(y_expected, y.data)
+    def generate_inputs(self):
+        x1 = numpy.random.uniform(-1, 1, (3, 2, 3)).astype(numpy.float32)
+        x2 = numpy.random.uniform(-1, 1, (2)).astype(numpy.float32)
+        return x1, x2
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x1, self.x2, self.axis, self.y_expected)
+    def forward(self, inputs, device):
+        x1, x2 = inputs
+        axis = 1
+        return functions.bias(x1, x2, axis),
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        x1 = cuda.to_gpu(self.x1)
-        x2 = cuda.to_gpu(self.x2)
-        self.check_forward(x1, x2, self.axis, self.y_expected)
-
-    def check_backward(self, x1_data, x2_data, axis, y_grad):
-        x = (x1_data, x2_data)
-        gradient_check.check_backward(
-            lambda x, y: functions.bias(x, y, axis),
-            x, y_grad, dtype=numpy.float64)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x1, self.x2, self.axis, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        x1 = cuda.to_gpu(self.x1)
-        x2 = cuda.to_gpu(self.x2)
-        gy = cuda.to_gpu(self.gy)
-        self.check_backward(x1, x2, self.axis, gy)
+    def forward_expected(self, inputs):
+        x1, x2 = inputs
+        expected = numpy.copy(x1)
+        for i, j, k in numpy.ndindex(expected.shape):
+            expected[i, j, k] += x2[j]
+        expected = utils.force_array(expected)
+        return expected,
 
 
 class TestBiasInvalidShape(unittest.TestCase):

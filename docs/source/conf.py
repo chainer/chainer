@@ -349,6 +349,7 @@ import os
 import numpy as np
 import chainer
 from chainer.backends import cuda
+from chainer.backends.cuda import cupy
 from chainer import Function, gradient_check, training, utils, Variable
 from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
