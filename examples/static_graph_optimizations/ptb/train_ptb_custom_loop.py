@@ -185,8 +185,11 @@ def main():
                              '(= length of truncated BPTT)')
     parser.add_argument('--epoch', '-e', type=int, default=39,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=0,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='0',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--out', '-o', default='result',
@@ -198,7 +201,14 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of LSTM units in each layer')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = chainer.get_device(args.device)
+    device.use()
 
     def evaluate(model, iter):
         # Evaluation routine to be used for validation and test.
@@ -212,7 +222,7 @@ def main():
         with configuration.using_config('train', False):
             iter.reset()
             for batch in iter:
-                word, label = convert.concat_examples(batch, args.gpu)
+                word, label = convert.concat_examples(batch, device)
                 words.append(word)
                 labels.append(label)
                 data_count += 1
@@ -243,10 +253,7 @@ def main():
     # Prepare an RNNLM model
     model = RNNForLMUnrolled(n_vocab, args.unit)
     lossfun = softmax_cross_entropy.softmax_cross_entropy
-    if args.gpu >= 0:
-        # Make the specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     # Set up an optimizer
     optimizer = chainer.optimizers.SGD(lr=1.0)
@@ -268,7 +275,7 @@ def main():
             # Concatenate the word IDs to matrices and send them to the device
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
-            word, label = convert.concat_examples(batch, args.gpu)
+            word, label = convert.concat_examples(batch, device)
             words.append(word)
             labels.append(label)
             count += 1
