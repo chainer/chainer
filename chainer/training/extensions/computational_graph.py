@@ -43,7 +43,7 @@ _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 class DumpGraph(extension.Extension):
 
     """__init__(\
-        root_name, filename='cg.dot', variable_style=None, function_style=None)
+root_name, filename='cg.dot', variable_style=None, function_style=None)
 
     Trainer extension to dump a computational graph.
 
