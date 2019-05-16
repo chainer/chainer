@@ -57,6 +57,18 @@ __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
     return IsNan(x) ? x : cuda::Float16{static_cast<int>(cuda::Float16{0} < x) - static_cast<int>(x < cuda::Float16{0})};
 }
 
+__device__ inline double Expm1(double x) { return std::expm1(x); }
+
+__device__ inline float Expm1(float x) { return std::expm1f(x); }
+
+__device__ inline cuda::Float16 Expm1(cuda::Float16 x) { return cuda::Float16{std::expm1f(static_cast<float>(x))}; }
+
+__device__ inline double Exp2(double x) { return std::exp2(x); }
+
+__device__ inline float Exp2(float x) { return std::exp2f(x); }
+
+__device__ inline cuda::Float16 Exp2(cuda::Float16 x) { return cuda::Float16{std::exp2f(static_cast<float>(x))}; }
+
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                                       \
     __device__ inline T name(T x) {                             \
@@ -76,8 +88,6 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Expm1, std::expm1)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp2, std::exp2)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
