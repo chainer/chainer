@@ -13,7 +13,7 @@ _optional_dependencies = [
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==6.0.0',
+        'specifier': '>=6.0.0,<7.0.0',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {
