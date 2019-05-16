@@ -1,6 +1,7 @@
 import numpy as np
 
 import chainer
+from chainer import testing
 
 
 class DummyDataset(chainer.dataset.TabularDataset):
@@ -40,3 +41,7 @@ class DummyDataset(chainer.dataset.TabularDataset):
             return tuple(data)
         else:
             return tuple(list(d) for d in data)
+
+
+# tests/chainer_tests/test_runnable.py
+testing.run_module(__name__, __file__)
