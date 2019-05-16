@@ -50,7 +50,7 @@ __device__ inline T Sign(T x) {
 
 template <>
 __device__ inline uint8_t Sign(uint8_t x) {
-    return x > 0;
+    return static_cast<uint8_t>(x > 0);
 }
 template <>
 __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
