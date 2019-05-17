@@ -717,7 +717,7 @@ TEST_THREAD_SAFE_P(CreationTest, AsContiguousScalar) {
                 [](const std::vector<Array>& xs) {
                     Array y = AsContiguous(xs[0]);
                     EXPECT_TRUE(y.IsContiguous());
-		    EXPECT_EQ(0, y.ndim());
+                    EXPECT_EQ(0, y.ndim());
                     return std::vector<Array>{y};
                 },
                 {a},
