@@ -1948,8 +1948,16 @@ def as_array(obj):
     return obj
 
 
-def _recover_parameter(
-        data, name, grad, grad_valid, initializer, update_rule, device):
+def _recover_parameter(*args):
+    if len(args) == 7:
+        # latest
+        data, name, grad, grad_valid, initializer, update_rule, device = args
+    elif len(args) == 6:
+        data, name, grad, initializer, update_rule, device = args
+        grad_valid = True
+    else:
+        assert False, len(args)
+
     p = Parameter(initializer=initializer, name=name)
     p.array = data
     p._grad = grad
