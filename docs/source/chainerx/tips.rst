@@ -1,6 +1,22 @@
 Tips and FAQs
 =============
 
+Can I use ChainerX without Chainer?
+-----------------------------------
+
+Yes, it is possible. See the code samples below.
+
+- Train an MLP with MNIST dataset (:tree:`chainerx_cc/examples/mnist_py`)
+- Train a CNN with ImageNet dataset (:tree:`chainerx_cc/examples/imagenet_py`)
+
+What does the C++ interface look like?
+--------------------------------------
+
+It is almost identical to the Python interface with a 1-to-1 mapping.
+The interface is still subject to change, but there is an example code:
+
+- Train an MLP with MNIST dataset in C++ (:tree:`chainerx_cc/examples/mnist`)
+
 GPU memory consumption is too high when used with CuPy
 ------------------------------------------------------
 
