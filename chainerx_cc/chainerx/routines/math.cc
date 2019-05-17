@@ -898,11 +898,11 @@ void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
     bb.Finalize();
 }
 
-Array Power(const Array& x1, const Array& x2) { return BroadcastBinary(&PowerImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
+Array Power(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&PowerImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
-Array Power(const Array& x1, Scalar x2) { return Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
+Array Power(const Array& x1, Scalar x2) { return internal::Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
-Array Power(Scalar x1, const Array& x2) { return Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
+Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Tanh(const Array& x) {
     Dtype dtype = GetMathResultDtype(x.dtype());

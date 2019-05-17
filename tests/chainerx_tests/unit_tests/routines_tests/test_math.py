@@ -1901,9 +1901,10 @@ class TestCos(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'in_shapes': _shapes_combination_binary,
+        'in_shapes': math_utils.shapes_combination_binary,
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
         'input_lhs,input_rhs': [(2, 2)],
         'is_module': [False],
     })
@@ -1918,7 +1919,8 @@ class TestCos(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
         'input_lhs,input_rhs': [(2, 2)],
         'is_module': [True, False],
     })
@@ -1926,7 +1928,7 @@ class TestCos(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(
+            dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.signed_integral_dtypes)),
         'input_lhs': [-2, -1, 0, 1, 2, 5],
         'input_rhs': [0, 1, 2, 5],
@@ -1936,7 +1938,8 @@ class TestCos(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.float_dtypes)),
         'input_lhs': [-1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
         'input_rhs': [-1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
@@ -1947,13 +1950,14 @@ class TestCos(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
-            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.float_dtypes)),
         'input_lhs': [-3.0, -1.2, 1.2, 3],
         'input_rhs': [-3.0, -1.2, 0.0, 1.2, 3.0],
         'is_module': [False],
     })
 ))
-class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
+class TestPower(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
@@ -2015,7 +2019,7 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+class TestPowerScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
