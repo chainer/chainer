@@ -33,6 +33,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/dot.cu
     cuda_device/exp_log.cu
     cuda_device/fill.cu
+    cuda_device/hyperbolic.cu
     cuda_device/indexing.cu
     cuda_device/memory.cc
     cuda_device/misc.cu

@@ -20,6 +20,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
@@ -29,6 +30,7 @@
 #include "chainerx/routines/pooling.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
+#include "chainerx/routines/trigonometric.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
 
