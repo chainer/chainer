@@ -661,7 +661,7 @@ Array Log1p(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<Log10Kernel>(x, out);
+        x.device().backend().CallKernel<Log1pKernel>(x, out);
     }
 
     BackwardBuilder bb{"log1p", x, out};
