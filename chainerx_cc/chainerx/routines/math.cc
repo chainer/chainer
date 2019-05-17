@@ -833,8 +833,6 @@ Array Sqrt(const Array& x) {
 }
 
 void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
-    CheckArithmeticDtypes(GetKind(x1.dtype()), GetKind(x2.dtype()), false);
-
     {
         NoBackpropModeScope scope{};
         x1.device().backend().CallKernel<PowerKernel>(x1, x2, out);
@@ -861,8 +859,6 @@ void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
 }
 
 void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
-    CheckArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), false);
-
     {
         NoBackpropModeScope scope{};
         x1.device().backend().CallKernel<PowerASKernel>(x1, x2, out);
@@ -880,8 +876,6 @@ void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
 }
 
 void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
-    CheckArithmeticDtypes(x1.kind(), GetKind(x2.dtype()), false);
-
     {
         NoBackpropModeScope scope{};
         x2.device().backend().CallKernel<PowerSAKernel>(x1, x2, out);
