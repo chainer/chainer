@@ -1,4 +1,5 @@
 install(FILES
+    binary.h
     connection.h
     creation.h
     indexing.h
