@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <gsl/gsl>
 
+#include "chainerx/chainerx.h"
 #include "chainerx/python/array.h"
 #include "chainerx/python/array_index.h"
 #include "chainerx/python/backend.h"
@@ -53,6 +54,8 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxCheckBackward(m);
     InitChainerxRoutines(m);
     InitChainerxChainerInterop(m);
+
+    m.def("is_debug", []() { return IsDebug(); });
 
     // chainerx.testing (chainerx._testing)
     //
