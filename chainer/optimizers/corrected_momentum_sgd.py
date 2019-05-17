@@ -88,7 +88,7 @@ class CorrectedMomentumSGD(optimizer.GradientMethod):
     """Momentum SGD optimizer.
 
     This implements momentum correction discussed in the third section of
-    `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour \
+    `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour
     <https://arxiv.org/abs/1706.02677>`_.
 
     :class:`~chainer.optimizers.MomentumSGD` implements the equation (10) of

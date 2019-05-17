@@ -72,8 +72,8 @@ class BatchNormalization(link.Link):
         may have a slightly different behavior on inference. To emulate the
         old behavior, pass ``initial_avg_var=0`` for training.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_normalization`,
