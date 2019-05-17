@@ -182,8 +182,8 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
         If it is desired to update the running statistics, call the function
         with `update_statistics=True` option.
 
-    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
-          Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
+    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
+    Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso:: :class:`~chainer.links.BatchRenormalization`
 
