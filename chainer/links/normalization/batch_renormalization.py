@@ -16,8 +16,8 @@ class BatchRenormalization(BatchNormalization):
     training and inference models generate the same outputs that depend on
     individual examples rather than the entire minibatch.
 
-    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
-          Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
+    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
+    Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_renormalization`,
