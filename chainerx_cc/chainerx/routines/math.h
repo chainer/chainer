@@ -49,6 +49,7 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2);
 void IFloorDivide(const Array& x1, Scalar x2);
+
 void ITrueDivide(const Array& x1, const Array& x2);
 void ITrueDivide(const Array& x1, Scalar x2);
 
@@ -130,6 +131,8 @@ Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
 
+Array Arctan2(const Array& x1, const Array& x2);
+
 Array Sinh(const Array& x);
 
 Array Cosh(const Array& x);
@@ -141,5 +144,9 @@ Array Arccosh(const Array& x);
 Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
+
+Array Fabs(const Array& x);
+
+Array Sign(const Array& x);
 
 }  // namespace chainerx

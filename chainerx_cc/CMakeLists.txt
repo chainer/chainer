@@ -79,9 +79,13 @@ if(${CHAINERX_BUILD_CUDA})
         endif()
 
         if(MSVC)
-            list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+            if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+                list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+            else()
+                list(APPEND CUDA_NVCC_FLAGS_RELEASE -Xcompiler /MD)
+                list(APPEND CUDA_NVCC_FLAGS_DEBUG -Xcompiler /MDd)
+            endif()
         endif()
-
     endif()
 endif()
 
@@ -179,6 +183,12 @@ get_third_party(optional-lite)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
 # Test
+
+# ChainerX is linked with MultiThreaded DLL, including gtest
+if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang") AND MSVC)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+endif()
+
 # TODO(niboshi): Remove gtest dependency from testing
 get_third_party(gtest)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src

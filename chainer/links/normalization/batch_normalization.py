@@ -274,7 +274,7 @@ class BatchNormalization(link.Link):
         input using batch statistics.
 
         Args:
-            x (Variable): Input variable.
+            x (~chainer.Variable): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is
                 ``True``, BatchNormalization runs in fine-tuning mode; it
                 accumulates the input array to compute population statistics

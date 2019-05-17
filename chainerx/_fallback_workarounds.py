@@ -94,15 +94,6 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _sign(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.sign(arr)
-            ret = xp.asarray(ret)
-        return _to_chx(ret)
-
-    chainerx.sign = _sign
-
     def _fix(arr):
         xp, dev, arr = _from_chx(arr)
         with dev:

@@ -530,7 +530,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
             l.x = chainer.Parameter(shape=(2, 3),
                                     initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
-            l.u = chainer.Parameter(shape=(2, 3))
+            l.u = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.v = chainer.Parameter()
         l.x.grad.fill(1)
         l.y.grad.fill(2)

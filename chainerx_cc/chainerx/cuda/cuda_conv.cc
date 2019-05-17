@@ -107,7 +107,7 @@ void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc,
     for (int8_t i = 0; i < ndim; ++i) {
         new_shape.emplace_back(1);
     }
-    Array b_cont = internal::AsContiguous(b).Reshape(new_shape);
+    Array b_cont = AsContiguous(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
     handle.Call(
@@ -267,7 +267,6 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     }
 }
 
-// TODO(sonots): Support tensor core
 Array CudaConv::Conv(
         CudaDevice& device,
         const Array& x,
@@ -316,8 +315,8 @@ Array CudaConv::Conv(
     const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
     const Array& w_cast = dtypes.in_dtype == w.dtype() ? w : w.AsType(dtypes.in_dtype);
 
-    Array x_cont = internal::AsContiguous(x_cast);
-    Array w_cont = internal::AsContiguous(w_cast);
+    Array x_cont = AsContiguous(x_cast);
+    Array w_cont = AsContiguous(w_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
@@ -329,6 +328,9 @@ Array CudaConv::Conv(
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
     CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
@@ -417,8 +419,8 @@ Array CudaConv::ConvTranspose(
     const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
     const Array& w_cast = dtypes.in_dtype == w.dtype() ? w : w.AsType(dtypes.in_dtype);
 
-    Array x_cont = internal::AsContiguous(x_cast);
-    Array w_cont = internal::AsContiguous(w_cast);
+    Array x_cont = AsContiguous(x_cast);
+    Array w_cont = AsContiguous(w_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
@@ -430,6 +432,9 @@ Array CudaConv::ConvTranspose(
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
     CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
@@ -514,8 +519,8 @@ Array CudaConv::ConvGradWeight(
     const Array& x_cast = dtypes.in_dtype == x.dtype() ? x : x.AsType(dtypes.in_dtype);
     const Array& gy_cast = dtypes.in_dtype == gy.dtype() ? gy : gy.AsType(dtypes.in_dtype);
 
-    Array x_cont = internal::AsContiguous(x_cast);
-    Array gy_cont = internal::AsContiguous(gy_cast);
+    Array x_cont = AsContiguous(x_cast);
+    Array gy_cont = AsContiguous(gy_cast);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
@@ -527,6 +532,9 @@ Array CudaConv::ConvGradWeight(
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
 
     CudnnHandle& handle = device_internals.cudnn_handle();
+
+    // enable tensor core
+    cudnnSetConvolutionMathType(*conv_desc, CUDNN_TENSOR_OP_MATH);
 
     // auto tune
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardFilterAlgorithm(

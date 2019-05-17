@@ -3,10 +3,12 @@ import unittest
 import numpy
 import pytest
 
+from chainerx_tests import array_utils
 import chainer.testing
 import chainerx
 import chainerx.testing
 
+from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
@@ -201,3 +203,64 @@ class TestTake(op_utils.NumpyOpTest):
         else:
             b = a.take(indices, axis)
         return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('cond_shape,x_shape,y_shape', [
+    # Same Shapes
+    ((2, 3), (2, 3), (2, 3)),
+    # Broadcast Shapes
+    ((2, 3), (1, 3), (1, 3)),
+    ((2, 3), (2, 1), (1, 3)),
+    ((2, 3), (2, 3), (1, 3)),
+    ((4, 5), (3, 4, 1), (1, 5)),
+    ((1, 4, 5), (3, 4, 1), (3, 1, 5)),
+])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays
+)
+@chainer.testing.parameterize_pytest(
+    'condition_dtype', chainerx.testing.all_dtypes)
+class TestWhere(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+
+    def setup(self):
+        (x_dtype, y_dtype) = self.in_dtypes
+        if numpy.dtype(x_dtype).kind != 'f' or \
+           numpy.dtype(y_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if x_dtype == 'float16' or y_dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        (x_dtype, y_dtype) = self.in_dtypes
+        x = array_utils.uniform(self.x_shape, x_dtype)
+        y = array_utils.uniform(self.y_shape, y_dtype)
+        condition = numpy.random.uniform(0, 1, size=self.cond_shape)
+        self.condition = (condition > 0.5).astype(self.condition_dtype)
+        return (x, y)
+
+    def forward_xp(self, inputs, xp):
+        x, y = inputs
+        condition = xp.array(self.condition)
+        o = xp.where(condition, x, y)
+        o = dtype_utils.cast_if_numpy_array(xp, o, self.out_dtype)
+        return o,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('cond_shape,x_shape,y_shape', [
+    ((2, 3), (3, 4), (2, 3)),
+    ((2, 3), (2, 3), (3, 4)),
+    ((2, 3), (1, 3), (2, 4))
+])
+def test_where_invalid_shapes(xp, cond_shape, x_shape, y_shape):
+    x = array_utils.create_dummy_ndarray(xp, x_shape, 'float32')
+    y = array_utils.create_dummy_ndarray(xp, y_shape, 'float32')
+    c = array_utils.create_dummy_ndarray(xp, cond_shape, 'float32')
+    return xp.where(c, x, y)

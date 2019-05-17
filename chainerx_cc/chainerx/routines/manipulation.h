@@ -49,6 +49,16 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis = 0);
 // Returns a set of arrays resulting from splitting the given array at the indices along the specified axis.
 std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis = 0);
 
+Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
+
+Array ExpandDims(const Array& a, int8_t axis);
+
+Array Flip(const Array& m, const OptionalAxes& axes = nonstd::nullopt);
+
+Array Fliplr(const Array& m);
+
+Array Flipud(const Array& m);
+
 Array AtLeast2D(const Array& x);
 
 // Returns a joined array along horizontal axis.
@@ -56,9 +66,5 @@ Array HStack(const std::vector<Array>& arrays);
 
 // Returns a joined array along vertical axis.
 Array VStack(const std::vector<Array>& arrays);
-
-Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
-
-Array ExpandDims(const Array& a, int8_t axis);
 
 }  // namespace chainerx

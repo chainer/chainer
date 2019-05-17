@@ -284,22 +284,41 @@ class TestDevice(unittest.TestCase):
 
     def test_repr_str_numpy(self):
         device = chainer.get_device('@numpy')
-        assert str(device) == '<CpuDevice (numpy)>'
+        assert str(device) == '@numpy'
 
     @attr.chainerx
     def test_repr_str_chainerx_device(self):
         device = chainer.get_device('native:0')
-        assert str(device) == '<ChainerxDevice native:0>'
+        assert str(device) == 'native:0'
 
     @attr.gpu
     def test_repr_str_cupy_device(self):
         device = chainer.get_device('@cupy:0')
-        assert str(device) == '<GpuDevice (cupy):0>'
+        assert str(device) == '@cupy:0'
 
     @attr.ideep
     def test_repr_str_intel64_device(self):
         device = chainer.get_device('@intel64')
-        assert str(device) == '<Intel64Device>'
+        assert str(device) == '@intel64'
+
+    def test_repr_numpy(self):
+        device = chainer.get_device('@numpy')
+        assert repr(device) == '<CpuDevice (numpy)>'
+
+    @attr.chainerx
+    def test_repr_chainerx_device(self):
+        device = chainer.get_device('native:0')
+        assert repr(device) == '<ChainerxDevice native:0>'
+
+    @attr.gpu
+    def test_repr_cupy_device(self):
+        device = chainer.get_device('@cupy:0')
+        assert repr(device) == '<GpuDevice (cupy):0>'
+
+    @attr.ideep
+    def test_repr_intel64_device(self):
+        device = chainer.get_device('@intel64')
+        assert repr(device) == '<Intel64Device>'
 
     def test_eq_numpy(self):
         assert backend.get_device('@numpy') == backend.get_device('@numpy')

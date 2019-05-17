@@ -1,4 +1,5 @@
 import unittest
+import itertools
 
 import chainer
 import numpy
@@ -10,6 +11,13 @@ import chainerx.testing
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)  # allows duplicate elements
+    return list(itertools.chain(*[itertools.combinations(s, r)
+                                  for r in range(len(s)+1)]))
 
 
 # Value for parameterization to represent an unspecified (default) argument.
@@ -410,7 +418,7 @@ def _make_inputs(shapes, dtypes):
     return tuple(inputs)
 
 
-class ConcatenateTestBase(op_utils.NumpyOpTest):
+class JoinTestBase(op_utils.NumpyOpTest):
 
     chx_expected_dtype = None
     dtypes = None
@@ -431,15 +439,28 @@ class ConcatenateTestBase(op_utils.NumpyOpTest):
     def generate_inputs(self):
         return _make_inputs(self.shapes, self.dtypes)
 
+    def join(self, inputs, xp):
+        # Calls and returns the result of joining routines e.g. xp.concatenate,
+        # xp.stack and xp.vstack.
+        raise NotImplementedError()
+
     def forward_xp(self, inputs, xp):
+        b = self.join(inputs, xp)
+        if self.chx_expected_dtype is not None:
+            b = dtype_utils.cast_if_numpy_array(xp, b, self.chx_expected_dtype)
+        return b,
+
+
+class ConcatenateTestBase(JoinTestBase):
+
+    axis = None
+
+    def join(self, inputs, xp):
         if self.axis is _unspecified:
             b = xp.concatenate(inputs)
         else:
             b = xp.concatenate(inputs, self.axis)
-
-        if self.chx_expected_dtype is not None:
-            b = dtype_utils.cast_if_numpy_array(xp, b, self.chx_expected_dtype)
-        return b,
+        return b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -480,11 +501,6 @@ class TestConcatenate(ConcatenateTestBase):
         super().setup()
 
 
-def test_concatenate_insufficient_inputs():
-    with pytest.raises(chainerx.DimensionError):
-        chainerx.concatenate([])
-
-
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,), (0,)], 0),
@@ -522,6 +538,23 @@ class TestConcatenateThreeArraysMixedDtypes(ConcatenateTestBase):
     pass
 
 
+def test_concatenate_insufficient_inputs():
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.concatenate([])
+
+
+class StackTestBase(JoinTestBase):
+
+    axis = None
+
+    def join(self, inputs, xp):
+        if self.axis is None:
+            b = xp.stack(inputs)
+        else:
+            b = xp.stack(inputs, self.axis)
+        return b
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shapes,axis', [
     ([(0,)], -1),
@@ -539,28 +572,65 @@ class TestConcatenateThreeArraysMixedDtypes(ConcatenateTestBase):
     ([(1, 0,), (1, 0,)], 0),
     ([(1, 0,), (1, 0,)], 1),
     ([(1, 0,), (1, 0,)], 2),
+    ([(2, 3,), (2, 3,)], None),
+    ([(2, 3,), (2, 3,)], 1),
+    ([(2, 3,), (2, 3,)], -1),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], None),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 0),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 1),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 2),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 3),
     ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 4),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], -1),
     ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
 ])
-class TestStack(op_utils.NumpyOpTest):
+class TestStack(StackTestBase):
 
     forward_accept_errors = (chainerx.DimensionError, ValueError)
 
-    def generate_inputs(self):
-        return _make_inputs(self.shapes, ['float32'] * len(self.shapes))
+    def setup(self):
+        self.dtypes = ['float32'] * len(self.shapes)
+        super().setup()
 
-    def forward_xp(self, inputs, xp):
-        axis = self.axis
-        if axis is None:
-            b = xp.stack(inputs)
-        else:
-            b = xp.stack(inputs, axis)
-        return b,
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', [
+    ((0,), 0),
+    ((0,), 1),
+    ((0, 0), 0),
+    ((0, 0), 1),
+    ((1, 0), 0),
+    ((1, 0), 1),
+    ((1, 0), 2),
+    ((2, 3), None),
+    ((2, 3), 1),
+    ((2, 3), -1),
+])
+@chainer.testing.parameterize_pytest(
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_two_arrays)
+class TestStackTwoArraysMixedDtypes(StackTestBase):
+
+    def setup(self):
+        self.shapes = (self.shape, self.shape)
+        super().setup()
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,axis', [
+    ((3, 4, 5), None),
+    ((3, 4, 5), 0),
+    ((3, 4, 5), 1),
+    ((3, 4, 5), 2),
+    ((3, 4, 5), 3),
+    ((3, 4, 5), -1),
+])
+@chainer.testing.parameterize_pytest(
+    'dtypes,chx_expected_dtype', dtype_utils.result_dtypes_three_arrays)
+class TestStackThreeArraysMixedDtypes(StackTestBase):
+
+    def setup(self):
+        self.shapes = (self.shape, self.shape, self.shape)
+        super().setup()
 
 
 def test_stack_insufficient_inputs():
@@ -760,7 +830,13 @@ class TestExpandDims(op_utils.NumpyOpTest):
         if self.is_contiguous:
             a = a.copy()
 
-        return xp.expand_dims(a, self.axis),
+        y = xp.expand_dims(a, self.axis)
+
+        # Result should be a view, not a copy.
+        if xp is chainerx:
+            assert y.data_ptr == a.data_ptr
+
+        return y,
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -777,6 +853,171 @@ class TestExpandDims(op_utils.NumpyOpTest):
 def test_expand_dims_invalid(xp, shape, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.expand_dims(a, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Single axis and None
+    chainer.testing.product({
+        'shape': [()],
+        'axis': [*range(0)] + [None] + [*range(-0, -0, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(0,)],
+        'axis': [*range(1)] + [None] + [*range(-1, -1, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(2, 2, 2)],
+        'axis': [*range(3)] + [None] + [*range(-1, -3, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 3, 2, 3, 3)],
+        'axis': [*range(5)] + [None] + [*range(-1, -5, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2, 0, 3)],
+        'axis': [*range(5)] + [None] + [*range(-1, -5, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 2, 3, 1, 3, 3)],
+        'axis': [*range(6)] + [None] + [*range(-1, -6, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(3, 4, 5, 2, 3, 5)],
+        'axis': [*range(6)] + [None] + [*range(-1, -6, -1)],
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': [*range(1)] + [None] + [*range(-1, -1, -1)],
+    })
+    # Multiple axes
+    + chainer.testing.product({
+        'shape': [(1, 3, 4)],
+        'axis': powerset([*range(3)]) + powerset([*range(-1, -3, -1)]),
+    })
+    + chainer.testing.product({
+        'shape': [(3, 0, 2)],
+        'axis': powerset([*range(3)]) + powerset([*range(-1, -3, -1)]),
+    })
+    + chainer.testing.product({
+        'shape': [(1,)],
+        'axis': powerset([*range(1)]) + powerset([*range(-1, -1, -1)]),
+    })
+    + chainer.testing.product({
+        'shape': [(0,)],
+        'axis': powerset([*range(1)]) + powerset([*range(-1, -1, -1)]),
+    })
+))
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+class TestFlip(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # TODO(kshitij12345) : Remove when #6621 is in.
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.uniform(self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        return xp.flip(a, self.axis),
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize('shape,axis', [
+    # Axis out of range.
+    ((), 1),
+    ((2,), 3),
+    ((2,), -3),
+    ((2, 4), 4),
+    ((1, 1, 2), -4),
+    ((1, 1, 2), (0, 4)),
+    ((1, 1, 2), (0, -6)),
+])
+def test_flip_invalid(xp, shape, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.flip(a, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(2, 2, 2)],
+    })
+    + chainer.testing.product({
+        'shape': [(2, 1, 3)],
+    })
+    + chainer.testing.product({
+        'shape': [(0, 1, 3, 4)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 0, 3, 4)],
+    })
+    + chainer.testing.product({
+        'shape': [(1, 0, 3, 4, 0)],
+    })
+))
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+@chainer.testing.parameterize_pytest('func_name', [
+    'fliplr',
+    'flipud'
+])
+class TestFlipLRUD(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # TODO(kshitij12345) : Remove when #6621 is in.
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.uniform(self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.func_name == 'fliplr':
+            b = xp.fliplr(a)
+        elif self.func_name == 'flipud':
+            b = xp.flipud(a)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape', [
+    (),
+    (1,),
+    (10,),
+])
+def test_fliplr_invalid(xp, shape):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.fliplr(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape', [
+    (),
+])
+def test_flipud_invalid(xp, shape):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.flipud(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
