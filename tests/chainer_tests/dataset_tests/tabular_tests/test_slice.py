@@ -10,7 +10,6 @@ from chainer import testing
 from . import dummy_dataset
 
 
-# filter out invalid combinations of params
 def _filter_params(params):
     for param in params:
         if 'expected_len' in param and \
@@ -23,6 +22,15 @@ def _filter_params(params):
            isinstance(param['get_examples_key_indices'], tuple) and \
            any(len(param['expected_keys']) <= key_index
                for key_index in param['get_examples_key_indices']):
+            continue
+
+        # To reduce the number of tests,
+        # drop combinations of indices and keys.
+        # (check only `slice[indices]` and `slice[:, keys]`)
+        if not (param['indices'] == slice(None) and
+                param['get_examples_indices'] is None) and \
+           not (param['keys'] is None and
+                param['get_examples_key_indices'] is None):
             continue
 
         yield param
