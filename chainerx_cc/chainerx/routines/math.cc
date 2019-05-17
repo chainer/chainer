@@ -668,7 +668,7 @@ Array Log1p(const Array& x) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x = bctx.GetRetainedInput(x_tok);
-            bctx.input_grad() = *bctx.output_grad() / (1.0 + x) ;
+            bctx.input_grad() = *bctx.output_grad() / (1.0 + x);
         });
     }
     bb.Finalize();
