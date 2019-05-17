@@ -109,3 +109,7 @@ def cast_if_numpy_array(xp, array, chx_expected_dtype):
         return array.astype(chx_expected_dtype, copy=False)
 
     assert False
+
+
+def make_same_in_out_dtypes(number_of_in_params, dtypes):
+    return [((dtype,) * number_of_in_params, dtype) for dtype in dtypes]

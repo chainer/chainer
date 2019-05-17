@@ -202,6 +202,8 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 class GpuDevice(_backend.Device):
 
+    """Device for GPU (CuPy) backend"""
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
