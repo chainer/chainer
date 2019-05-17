@@ -43,6 +43,8 @@ __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
+__device__ inline cuda::Float16 Log1p(float x) { return std::log(x + 1); }
+
 template <typename T>
 __device__ inline T Sign(T x) {
     return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
@@ -78,7 +80,6 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log1p, std::log1p)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
