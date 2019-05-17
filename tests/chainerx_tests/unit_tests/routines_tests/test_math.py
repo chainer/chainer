@@ -2511,8 +2511,8 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-        'input': ['random'],
-        'scalar_value': [-2.0, 3.14],
+        'input': [2],
+        'scalar_value': [1.2, 2],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
@@ -2520,8 +2520,8 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-        'input': ['random'],
-        'scalar_value': [-2.0, 3.14],
+        'input': [2],
+        'scalar_value': [1.2, 2],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
@@ -2529,8 +2529,8 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
-        'input': ['random'],
-        'scalar_value': [1.0],
+        'input': [2],
+        'scalar_value': [1.2, 2],
         'is_module': [True, False],
         'is_scalar_rhs': [True, False],
     })
@@ -2539,9 +2539,9 @@ class TestPower(BinaryMathTestBase, op_utils.NumpyOpTest):
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype':
             _in_out_dtypes_float_arithmetic_scalar,
-        'input': [float('inf'), -float('inf'), float('nan')],
+        'input': [-1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
         'scalar_value': [
-            0, -1, 1, 2, float('inf'), -float('inf'), float('nan')],
+            -1, 0, 1, 2, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
         'is_scalar_rhs': [False],
         'skip_backward_test': [True],
@@ -2552,43 +2552,12 @@ class TestPowerScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
-
-        self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
-        self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
-        self.check_double_backward_options.update(
-            {'rtol': 5e-3, 'atol': 5e-3})
-
-    def generate_inputs(self):
-        in_dtype, = self.in_dtypes
-        in_shape = self.shape
-
-        if not self.input == 'random':
-            return super().generate_inputs()
-
-        low = 1 if numpy.dtype(in_dtype).kind == 'u' else None
-        a = array_utils.uniform(in_shape, in_dtype, low=low, high=2)
-
-        if self.is_scalar_rhs:
-            # Array is the base (LHS).
-            # If the power (RHS scalar) is negative, no elements in the base
-            # array should be near 0 in order to ensure differentiability.
-            if ((not self.skip_backward_test
-                 or not self.skip_double_backward_test)
-                    and self.scalar_value < 0):
-                a[(a >= -1) & (a <= 0)] = -1
-                a[(a <= 1) & (a > 0)] = 1
-
-        return a,
+        if self.in_dtypes == 'float16':
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
 
     def func_scalar(self, xp, a, scalar):
-        if (a.dtype.kind != 'f'
-            and not isinstance(scalar, float)
-            and ((self.is_scalar_rhs and scalar < 0)
-                 or (not self.is_scalar_rhs and (a < 0).any()))):
-            raise unittest.SkipTest(
-                'NumPy raises ValueError but ChainerX does not, similar '
-                'to CuPy.')
-
         if self.is_module:
             if self.is_scalar_rhs:
                 y = xp.power(a, scalar)
