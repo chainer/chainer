@@ -1415,48 +1415,25 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
     return xp.array(x)
 
 
-# An association list that associates a dtype to the type which ChainerX's
-# real-valued functions should return.
-_in_out_float_dtypes_math_functions = [
-    # Float.
-    (('float16',), 'float16'),
-    (('float32',), 'float32'),
-    (('float64',), 'float64'),
-]
-
-
-_in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
-    # Signed int.
-    (('int8',), 'float32'),
-    (('int16',), 'float32'),
-    (('int32',), 'float32'),
-    (('int64',), 'float32'),
-    # Unsigned int.
-    (('uint8',), 'float32'),
-    # Bool.
-    (('bool_',), 'float32'),
-]
-
-
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [0, 2, -2],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0), (2, 0, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [0, 2, -2],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1473,20 +1450,20 @@ class TestExp(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0,), (2, 0, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1503,20 +1480,20 @@ class TestLog(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0,), (2, 0, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1558,7 +1535,7 @@ _invalid_logsumexp_params = [
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+    'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
 @chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
 @chainer.testing.parameterize_pytest('keepdims', [True, False])
 class TestLogSumExp(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -1594,7 +1571,7 @@ def test_logsumexp_invalid(device, a_shape, axis, keepdims, dtype):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
 @chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+    'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
 class TestLogSoftmax(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
@@ -1723,7 +1700,7 @@ class TestSigmoid(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis', _logsumexp_params)
 @chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', _in_out_dtypes_math_functions)
+    'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
 class TestSoftmax(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
@@ -1748,14 +1725,14 @@ class TestSoftmax(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1772,20 +1749,20 @@ class TestSquare(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (1,), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
     })
     # Special shapes (array.size = 0)
     + chainer.testing.product({
         'shape': [(0,), (2, 0, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [1, 3],
         'check_numpy_strides_compliance': [False],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1801,12 +1778,12 @@ class TestSqrt(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     }) + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1822,13 +1799,13 @@ class TestTanh(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': ['random'],
         'contiguous': [None, 'C'],
     })
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1848,14 +1825,14 @@ class TestAbs(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [-2.5, -1.5, -0.1, 0.1, 1.5, 2.5],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1915,7 +1892,7 @@ def test_sign(xp, device, input, dtypes):
     numpy.full((1, 1), 1.01),
     numpy.full((1, 1), 1.99),
 ])
-@pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
+@pytest.mark.parametrize('dtypes', math_utils.in_out_dtypes_math_functions)
 @pytest.mark.parametrize('func', [
     lambda xp, a: xp.ceil(a),
     lambda xp, a: xp.floor(a)
@@ -2230,12 +2207,12 @@ _mean_var_params = \
             ((1, 2, 3), (0, 2)),
             ((2, 2, 2, 2), (2, 1, 0)),
             ((1, 1, 1), (-1))],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': ['random'],
         'contiguous': [None, 'C'],
     }) + chainer.testing.product({
         'shape,axis': [((2, 3), None)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -2310,7 +2287,7 @@ def compute_var(is_module, xp, a, axis):
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
 ])
-@pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
+@pytest.mark.parametrize('dtypes', math_utils.in_out_dtypes_math_functions)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('func', [
     compute_mean,
@@ -2340,7 +2317,7 @@ def test_valid_stats(is_module, func, xp, device, input, axis, dtypes):
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
     (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
 ])
-@pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
+@pytest.mark.parametrize('dtypes', math_utils.in_out_dtypes_math_functions)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('func', [
     compute_mean,

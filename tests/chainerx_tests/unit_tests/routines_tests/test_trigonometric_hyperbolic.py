@@ -8,71 +8,15 @@ from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
-_in_out_float_dtypes_math_functions = [
-    # Float.
-    (('float16',), 'float16'),
-    (('float32',), 'float32'),
-    (('float64',), 'float64'),
-]
-
-
-_in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
-    # Signed int.
-    (('int8',), 'float32'),
-    (('int16',), 'float32'),
-    (('int32',), 'float32'),
-    (('int64',), 'float32'),
-    # Unsigned int.
-    (('uint8',), 'float32'),
-    # Bool.
-    (('bool_',), 'float32'),
-]
-
-
-_in_out_dtypes_math_binary_functions = dtype_utils._permutate_dtype_mapping([
-    # integer mixed
-    (('int8', 'int16'), 'float32'),
-    (('int8', 'int32'), 'float32'),
-    (('int8', 'int64'), 'float32'),
-    (('int8', 'uint8'), 'float32'),
-    (('int16', 'int32'), 'float32'),
-    (('int16', 'int64'), 'float32'),
-    (('int16', 'uint8'), 'float32'),
-    (('int32', 'int64'), 'float32'),
-    (('int32', 'uint8'), 'float32'),
-    (('int64', 'uint8'), 'float32'),
-    # integer float mixed
-    (('int8', 'float16'), 'float16'),
-    (('int8', 'float32'), 'float32'),
-    (('int8', 'float64'), 'float64'),
-    (('int16', 'float16'), 'float16'),
-    (('int16', 'float32'), 'float32'),
-    (('int16', 'float64'), 'float64'),
-    (('int32', 'float16'), 'float16'),
-    (('int32', 'float32'), 'float32'),
-    (('int32', 'float64'), 'float64'),
-    (('int64', 'float16'), 'float16'),
-    (('int64', 'float32'), 'float32'),
-    (('int64', 'float64'), 'float64'),
-    (('uint8', 'float16'), 'float16'),
-    (('uint8', 'float32'), 'float32'),
-    (('uint8', 'float64'), 'float64'),
-    # float mixed
-    (('float16', 'float32'), 'float32'),
-    (('float16', 'float64'), 'float64'),
-    (('float32', 'float64'), 'float64'),
-])
-
-
 _trigonometric_hyperbolic_params = (
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
         'input': [-2, 0, 2],
         'contiguous': [None, 'C'],
     }) + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -107,7 +51,7 @@ def _make_inverse_trig_params(name):
         # Various shapes and differentiable inputs
         chainer.testing.product({
             'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-            'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+            'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
             'input': inverse_trig_differentiable_inputs[name],
             'contiguous': [None, 'C'],
         })
@@ -115,7 +59,8 @@ def _make_inverse_trig_params(name):
         # Nondifferentiable inputs
         chainer.testing.product({
             'shape': [(2, 3)],
-            'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+            'in_dtypes,out_dtype': (
+                math_utils.in_out_float_dtypes_math_functions),
             'input': (
                 inverse_trig_nondifferentiable_inputs[name]
                 + nonfinite_numbers),
@@ -214,7 +159,7 @@ class TestArctan(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Mixed dtypes
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _in_out_dtypes_math_binary_functions,
+        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_binary_functions,
         'input_lhs': [-1.],
         'input_rhs': [-1.],
     })
