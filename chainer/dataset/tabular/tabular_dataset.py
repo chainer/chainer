@@ -24,25 +24,54 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
 
+    An inheritance should implement
+    :meth:`__len__`, :attr:`keys`, :attr:`mode` and :meth:`get_examples`.
+
+    >>> import numpy as np
+    >>>
+    >>> from chainer import dataset
+    >>>
+    >>> class MyDataset(dataset.TabularDataset):
+    ...
+    ...     def __len__(self):
+    ...         return 4
+    ...
+    ...     @property
+    ...     def keys(self):
+    ...          return ('a', 'b', 'c')
+    ...
+    ...     @property
+    ...     def mode(self):
+    ...          return tuple
+    ...
+    ...     def get_examples(self, indices, key_indices):
+    ...          data = np.arange(12).reshape((4, 3))
+    ...          if indices is not None:
+    ...              data = data[indices]
+    ...          if key_indices is not None:
+    ...              data = data[:, list(key_indices)]
+    ...          return tuple(data.transpose())
+    ...
+    >>> dataset = MyDataset()
     >>> len(dataset)
     4
     >>> dataset.keys
     ('a', 'b', 'c')
+    >>> dataset.as_tuple()[0]
+    (0, 1, 2)
+    >>> dataset.as_dict()[0]
+    {'a': 0, 'b': 1, 'c': 2}
     >>>
-    >>> dataet = dataset.as_tuple()
-    >>> dataset.mode
-    <class 'tuple'>
-    >>> dataset[0]
-    (0, 1, 2)  # (a[0], b[0], c[0])
-    >>>
-    >>> dataet = dataset.as_dict()
-    >>> dataset.mode
-    <class 'dict'>
-    >>> dataset[0]
-    {'a': 0, 'b': 1, 'c': 2)  # {'a': a[0], 'b': b[0], 'c': c[0]}
+    >>> view = dataset.slice[[3, 2], ('c', 0)]
+    >>> len(view)
+    2
+    >>> view.keys
+    ('c', 'a')
+    >>> view.as_tuple()[1]
+    (8, 6)
+    >>> view.as_dict()[1]
+    {'c': 8, 'a': 6}
 
-    An inheritance should implement
-    :meth:`__len__`, :attr:`keys`, :attr:`mode` and :meth:`get_examples`.
     """
 
     def __len__(self):
@@ -83,17 +112,6 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     @property
     def slice(self):
         """Get a slice of dataset.
-
-        >>> len(dataet)
-        4
-        >>> dataet.keys
-        ('a', 'b', 'c')
-        >>>
-        >>> dataset = dataset.slice[[3, 2], ('c', 0)]
-        >>> len(dataet)
-        2
-        >>> dataet.keys
-        ('c', 'a')
 
         Args:
            indices (list/array of ints/bools or slice): Requested rows.
