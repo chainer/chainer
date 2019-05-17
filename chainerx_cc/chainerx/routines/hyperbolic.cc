@@ -15,19 +15,9 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
-namespace {
-
-Dtype GetMathResultDtype(Dtype dtype) {
-    if (GetKind(dtype) == DtypeKind::kFloat) {
-        return dtype;
-    }
-    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
-}
-
-}
 
 Array Sinh(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -49,7 +39,7 @@ Array Sinh(const Array& x) {
 }
 
 Array Cosh(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -71,7 +61,7 @@ Array Cosh(const Array& x) {
 }
 
 Array Arcsinh(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -93,7 +83,7 @@ Array Arcsinh(const Array& x) {
 }
 
 Array Arccosh(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {

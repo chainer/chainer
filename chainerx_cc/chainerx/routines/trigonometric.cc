@@ -15,19 +15,9 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
-namespace {
-
-Dtype GetMathResultDtype(Dtype dtype) {
-    if (GetKind(dtype) == DtypeKind::kFloat) {
-        return dtype;
-    }
-    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
-}
-
-}
 
 Array Sin(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -49,7 +39,7 @@ Array Sin(const Array& x) {
 }
 
 Array Cos(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -71,7 +61,7 @@ Array Cos(const Array& x) {
 }
 
 Array Tan(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -94,7 +84,7 @@ Array Tan(const Array& x) {
 }
 
 Array Arcsin(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -116,7 +106,7 @@ Array Arcsin(const Array& x) {
 }
 
 Array Arccos(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -138,7 +128,7 @@ Array Arccos(const Array& x) {
 }
 
 Array Arctan(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -160,7 +150,7 @@ Array Arctan(const Array& x) {
 }
 
 Array Arctan2(const Array& x1, const Array& x2) {
-    Dtype out_dtype = GetMathResultDtype(ResultType(x1, x2));
+    Dtype out_dtype = internal::GetMathResultDtype(ResultType(x1, x2));
 
     auto impl = [](const Array& x1, const Array& x2, Array& out) {
         CheckEqual(x1.shape(), x2.shape());

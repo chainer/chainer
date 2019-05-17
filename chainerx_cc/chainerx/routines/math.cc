@@ -582,13 +582,6 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     return out;
 }
 
-Dtype GetMathResultDtype(Dtype dtype) {
-    if (GetKind(dtype) == DtypeKind::kFloat) {
-        return dtype;
-    }
-    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
-}
-
 }  // namespace
 
 namespace {
@@ -688,7 +681,7 @@ Array Minimum(const Array& x1, const Array& x2) {
 }
 
 Array Exp(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -709,7 +702,7 @@ Array Exp(const Array& x) {
 }
 
 Array Log(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -730,7 +723,7 @@ Array Log(const Array& x) {
 }
 
 Array Log10(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -751,7 +744,7 @@ Array Log10(const Array& x) {
 }
 
 Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
     Array xmax = AMax(x_cast, sorted_axis, true);
@@ -760,25 +753,25 @@ Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
 }
 
 Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
 Array Sigmoid(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Reciprocal(1 + Exp(-x_cast));
 }
 
 Array Relu(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
 }
 
 Array Softmax(const Array& x, const OptionalAxes& axis) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis.has_value() ? axis : OptionalAxes{1}, x.ndim());
     Array xmax = AMax(x_cast, sorted_axis, true);
@@ -810,7 +803,7 @@ Array Square(const Array& x) {
 Array SquaredDifference(const Array& x1, const Array& x2) { return Square(Subtract(x1, x2)); }
 
 Array Sqrt(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -832,7 +825,7 @@ Array Sqrt(const Array& x) {
 }
 
 Array Tanh(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
@@ -862,7 +855,7 @@ Array Absolute(const Array& x) {
 }
 
 Array Fabs(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
     {
         NoBackpropModeScope scope{};
@@ -892,7 +885,7 @@ Array Sign(const Array& x) {
 }
 
 Array Ceil(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
     {
         NoBackpropModeScope scope{};
@@ -902,7 +895,7 @@ Array Ceil(const Array& x) {
 }
 
 Array Floor(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
     {
         NoBackpropModeScope scope{};
