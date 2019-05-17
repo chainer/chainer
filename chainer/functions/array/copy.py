@@ -34,8 +34,10 @@ class Copy(function_node.FunctionNode):
 def copy(x, dst):
     """Copies the input variable onto the specified device.
 
-    This function copies the array of input variable onto the device specified
-    by ``dst``. When ``dst == -1``, it copies the array onto the host memory.
+    If the input ``x`` already resides on the device specified by ``dst``, no
+    copy will actually take place and the returned variable will hold a view
+    of the input. In other cases, the input will be copied to ``dst``.
+    When ``dst == -1``, the array is copied to the host memory.
     This function supports copies from host to host, from host to device,
     from device to device and from device to host.
 
