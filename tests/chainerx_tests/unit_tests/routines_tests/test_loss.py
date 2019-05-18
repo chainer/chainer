@@ -21,9 +21,9 @@ _in_out_loss_dtypes = dtype_utils._permutate_dtype_mapping([
 class LossBase(op_utils.ChainerOpTest):
 
     def generate_inputs(self):
-        y = numpy.random.normal(loc=0, scale=3.0, size=self.shape)
-        targ = numpy.random.normal(loc=0, scale=2.0, size=self.shape) + \
-            numpy.random.uniform(0, 1, size=self.shape)
+        y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
+            numpy.random.normal(loc=0, scale=0.5, size=self.shape)
         return y, targ
 
     def forward_chainerx(self, inputs):
@@ -92,7 +92,7 @@ class TestMAE(LossBase):
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', _in_out_loss_dtypes),
         chainer.testing.from_pytest_parameterize(
-            'reduce', ['sum', 'mean'])
+            'reduce', ['sum', 'mean', 'no'])
     ])
 ))
 class TestGaussianKLDivergence(LossBase):
@@ -100,3 +100,28 @@ class TestGaussianKLDivergence(LossBase):
     def forward_xp(self, inputs, xp):
         mean, ln_var = inputs
         return xp.gaussian_kl_divergence(mean, ln_var, reduce=self.reduce),
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', _in_out_loss_dtypes),
+        chainer.testing.from_pytest_parameterize(
+            'reduce', ['sum_along_second_axis', 'no']),
+        chainer.testing.from_pytest_parameterize(
+            'delta', [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
+    ])
+))
+class TestHuberLoss(LossBase):
+
+    def forward_xp(self, inputs, xp):
+        x, t = inputs
+        return xp.huber_loss(x, t, 0.5, reduce=self.reduce),
