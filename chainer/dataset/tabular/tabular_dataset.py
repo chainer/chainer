@@ -59,8 +59,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     ('a', 'b', 'c')
     >>> dataset.as_tuple()[0]
     (0, 1, 2)
-    >>> dataset.as_dict()[0]
-    {'a': 0, 'b': 1, 'c': 2}
+    >>> sorted(dataset.as_dict()[0].items())
+    [('a', 0), ('b', 1), ('c', 2)]
     >>>
     >>> view = dataset.slice[[3, 2], ('c', 0)]
     >>> len(view)
@@ -69,8 +69,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     ('c', 'a')
     >>> view.as_tuple()[1]
     (8, 6)
-    >>> view.as_dict()[1]
-    {'c': 8, 'a': 6}
+    >>> sorted(view.as_dict()[1].items())
+    [('a', 6), ('c', 8)]
 
     """
 
