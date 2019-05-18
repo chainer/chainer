@@ -121,12 +121,12 @@ namespace internal {
 
 void IAdd(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(&AddImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&AddImpl, x1, x2);
 }
 
 void IAdd(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BinaryInPlace(&AddASImpl, x1, x2);
+    internal::BinaryInplace(&AddASImpl, x1, x2);
 }
 
 }  // namespace internal
@@ -180,12 +180,12 @@ namespace internal {
 
 void ISubtract(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(SubtractImpl, x1, x2);
+    internal::BroadcastBinaryInplace(SubtractImpl, x1, x2);
 }
 
 void ISubtract(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BinaryInPlace(&SubtractASImpl, x1, x2);
+    internal::BinaryInplace(&SubtractASImpl, x1, x2);
 }
 
 }  // namespace internal
@@ -251,12 +251,12 @@ namespace internal {
 
 void IMultiply(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2, true);
-    internal::BroadcastBinaryInPlace(&MultiplyImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&MultiplyImpl, x1, x2);
 }
 
 void IMultiply(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2, true);
-    internal::BinaryInPlace(&MultiplyASImpl, x1, x2);
+    internal::BinaryInplace(&MultiplyASImpl, x1, x2);
 }
 
 }  // namespace internal
@@ -290,12 +290,12 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&FloorDivideImpl, x1, x2);
 }
 
 void IFloorDivide(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BinaryInPlace(&FloorDivideASImpl, x1, x2);
+    internal::BinaryInplace(&FloorDivideASImpl, x1, x2);
 }
 
 }  // namespace internal
@@ -373,7 +373,7 @@ void ITrueDivide(const Array& x1, const Array& x2) {
         throw DtypeError{"Integer inplace-division is not allowed."};
     }
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(&DivideImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&DivideImpl, x1, x2);
 }
 
 void ITrueDivide(const Array& x1, Scalar x2) {
@@ -381,7 +381,7 @@ void ITrueDivide(const Array& x1, Scalar x2) {
         throw DtypeError{"Integer inplace-division is not allowed."};
     }
     CheckInplaceArithmeticDtypes(x1, x2);
-    internal::BinaryInPlace(&DivideASImpl, x1, x2);
+    internal::BinaryInplace(&DivideASImpl, x1, x2);
 }
 
 void IDivide(const Array& x1, const Array& x2) { ITrueDivide(x1, x2); }
