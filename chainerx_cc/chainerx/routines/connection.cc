@@ -32,6 +32,8 @@
 namespace chainerx {
 namespace internal {
 
+
+
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
     CHAINERX_ASSERT(stride > 0);
     int64_t numerator{0};
@@ -383,14 +385,28 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 }
 
 std::vector<Array> lstm(const Array &c, const Array &x) {
+    
     if (x.shape()[0] > c.shape()[0]) {
-        throw DimensionError("The batch size of x must be equal to or less than the size of c");
+        throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
     }
-    std::vector<Array> x_split = Split(x, 4, 1);
-    x_split[0] = Tanh(x_split[0]);
-    x_split[1] = Sigmoid(x_split[1]);
-    x_split[2] = Sigmoid(x_split[2]);
-    x_split[3] = Sigmoid(x_split[3]);
+    if (x.shape()[1] != 4 * c.shape()[1]) {
+        throw DimensionError{"Expected dimension at axis 1 of x to be equal 4 times dimension at axis 1 of c."};
+    }
+    if (GetKind(c.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Expected data type float"};
+    }
+    if(c.dtype() != x.dtype()) {
+        throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
+    }
+
+
+    Array x1 = x.Reshape(Shape{x.shape()[0], x.shape()[1]/4, 4});
+
+    std::vector<Array> x_split = Split(x1, 4, 2);
+    x_split[0] = Tanh(x_split[0].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
+    x_split[1] = Sigmoid(x_split[1].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
+    x_split[2] = Sigmoid(x_split[2].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
+    x_split[3] = Sigmoid(x_split[3].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
     if(x.shape()[0] < c.shape()[0]) {
         Dtype dtype = x.dtype();
 
@@ -406,14 +422,18 @@ std::vector<Array> lstm(const Array &c, const Array &x) {
             std::vector<Array> v;
             v.push_back(x_split[i]);
             v.push_back(z[i]);
-            x_split[i] = Stack(v, 0);
+            x_split[i] = Concatenate(v, 0);
         }
     }
     Array new_c = x_split[0] * x_split[1] + x_split[2] * c;
-    Array h = x_split[3] * Tanh(c);
+    Array h = x_split[3] * Tanh(new_c);
     std::vector<Array>  out;
+    std::vector<int64_t> indices;
+    indices.push_back(x.shape()[0]);
+    indices.push_back(h.shape()[0]);
+    std::vector<Array> h_new = Split(h, indices, 0);
     out.push_back(new_c);
-    out.push_back(h);
+    out.push_back(h_new[0]);
     return out;
 }
 

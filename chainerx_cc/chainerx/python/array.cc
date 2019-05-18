@@ -50,10 +50,19 @@ namespace python_internal {
 namespace {
 
 using internal::MoveArrayBody;
+using internal::GetArrayBody;
 
 }  // namespace
 
 namespace py = pybind11;
+
+py::tuple ToTuple(const std::vector<Array>& ary) {
+    py::tuple ret{ary.size()};
+    for (uint i = 0; i < ary.size(); ++i) {
+        ret[i] = GetArrayBody(ary[i]);
+    }
+    return ret;
+}
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
@@ -111,14 +120,6 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
 
     auto ndarray = GetCachedCupyNdarray();
     return ndarray(ToTuple(shape), dtype, memptr, ToTuple(strides));
-}
-
-py::tuple ToTuple(std::vector<Array> ary) {
-  py::tuple ret{ary.size()};
-  for(uint i = 0; i < ary.size(); i++) {
-    ret[i] = ary[i];
-  }
-  return ret;
 }
 
 }  // namespace
