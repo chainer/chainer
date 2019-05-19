@@ -728,7 +728,7 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
     return xp.split(a, indices_or_sections, axis)
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
