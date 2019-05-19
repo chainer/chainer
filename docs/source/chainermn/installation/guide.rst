@@ -102,7 +102,7 @@ CuPy
 Chainer and ChainerMN rely on CuPy to use GPUs.
 Please refer to `CuPy Installation Guide <https://docs-cupy.chainer.org/en/stable/install.html>`__ for the detailed steps to install CuPy.
 
-In most cases it is recommended to install CuPy using wheel distribution (precompiled binary) rather than source distribution.
+In most cases it is recommended that you install CuPy using wheel distribution (precompiled binary) rather than source distribution.
 If you are installing from source, NCCL library must be installed before installing CuPy to enable NCCL feature in CuPy.
 Refer to :ref:`nccl-install` for the installation steps of NCCL library.
 See :ref:`check-nccl`, if you want to check whether NCCL is enabled in your CuPy.
