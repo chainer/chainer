@@ -117,7 +117,8 @@ class BatchRenormalizationTest(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'nx': 10, 'ny': 10},
+    {'nx': 10, 'ny': 10, 'eps': 2e-5},
+    {'nx': 10, 'ny': 10, 'eps': 1e-1},
     # TODO(Kenta Oono)
     # Pass the case below (this test does not pass when nx != ny).
     # {'nx': 10, 'ny': 15}
@@ -127,7 +128,8 @@ class TestPopulationStatistics(unittest.TestCase):
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchRenormalization(self.size, self.decay)
+        self.link = links.BatchRenormalization(
+            self.size, decay=self.decay, eps=self.eps)
         self.x = numpy.random.uniform(
             -1, 1, (self.nx, self.size)).astype(numpy.float32)
         self.y = numpy.random.uniform(
