@@ -5,6 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+#include <tuple>
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
@@ -118,9 +119,15 @@ private:
         std::size_t operator()(const AlgoCacheKey& key) const;
     };
 
-    using FwdAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
-    using BwdDataAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
-    using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
+    using FwdAlgoCacheMap = std::unordered_map<AlgoCacheKey,
+                                               std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t>,
+                                               AlgoCacheKeyHash>;
+    using BwdDataAlgoCacheMap = std::unordered_map<AlgoCacheKey,
+                                                   std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t>,
+                                                   AlgoCacheKeyHash>;
+    using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey,
+                                                     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t>,
+                                                     AlgoCacheKeyHash>;
 
     friend class CudaConvTest;  // for unit-tests
 
