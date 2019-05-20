@@ -4,7 +4,6 @@ import argparse
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from chainer import training
 from chainer.training import extensions
 import chainerx
 
@@ -54,6 +53,7 @@ def main():
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
+    device.use()
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -66,7 +66,6 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
     model.to_device(device)
-    device.use()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -75,17 +74,31 @@ def main():
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
 
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
-                                                 repeat=False, shuffle=False)
+    train_iter = chainer.iterators.SerialIterator(
+        train,
+        args.batchsize)
+    test_iter = chainer.iterators.SerialIterator(
+        test,
+        args.batchsize,
+        repeat=False,
+        shuffle=False)
 
     # Set up a trainer
-    updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, device=device)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+    updater = chainer.training.updaters.StandardUpdater(
+        train_iter,
+        optimizer,
+        device=device)
+    trainer = chainer.training.Trainer(
+        updater,
+        (args.epoch, 'epoch'),
+        out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
+    trainer.extend(
+        extensions.Evaluator(
+            test_iter,
+            model,
+            device=device))
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
@@ -94,21 +107,32 @@ def main():
         trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
-    frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
-    trainer.extend(extensions.snapshot(), trigger=(frequency, 'epoch'))
+    if args.frequency == -1:
+        frequency = args.epoch
+    else:
+        frequency = max(1, args.frequency)
+    trainer.extend(
+        extensions.snapshot(),
+        trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
     if args.plot and extensions.PlotReport.available():
+        # Loss
         trainer.extend(
-            extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                  'epoch', file_name='loss.png'))
+            extensions.PlotReport(
+                ['main/loss', 'validation/main/loss'],
+                'epoch',
+                file_name='loss.png'))
+
+        # Accuracy
         trainer.extend(
             extensions.PlotReport(
                 ['main/accuracy', 'validation/main/accuracy'],
-                'epoch', file_name='accuracy.png'))
+                'epoch',
+                file_name='accuracy.png'))
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -122,8 +146,8 @@ def main():
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
 
+    # Resume from a snapshot
     if args.resume is not None:
-        # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
