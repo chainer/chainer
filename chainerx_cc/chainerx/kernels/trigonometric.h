@@ -1,10 +1,7 @@
 #pragma once
 
-#include <cstdint>
-
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
-#include "chainerx/scalar.h"
 
 namespace chainerx {
 

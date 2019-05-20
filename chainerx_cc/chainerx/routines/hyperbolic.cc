@@ -5,13 +5,11 @@
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
-#include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/hyperbolic.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
-#include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

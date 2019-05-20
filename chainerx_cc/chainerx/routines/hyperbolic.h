@@ -1,7 +1,6 @@
 #pragma once
 
 #include "chainerx/array.h"
-#include "chainerx/scalar.h"
 
 namespace chainerx {
 
