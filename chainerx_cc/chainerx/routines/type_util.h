@@ -26,6 +26,13 @@ inline Dtype GetDefaultDtype(DtypeKind kind) {
     }
 }
 
+inline Dtype GetMathResultDtype(Dtype dtype) {
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        return dtype;
+    }
+    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
+}
+
 }  // namespace internal
 
 namespace type_util_detail {
@@ -92,16 +99,5 @@ Dtype ResultType(Container args) {
     }
     return resolver.Resolve();
 }
-
-namespace internal {
-
-inline Dtype GetMathResultDtype(Dtype dtype) {
-    if (GetKind(dtype) == DtypeKind::kFloat) {
-        return dtype;
-    }
-    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
-}
-
-}  // namespace internal
 
 }  // namespace chainerx
