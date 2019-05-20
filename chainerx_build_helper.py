@@ -45,7 +45,7 @@ class CMakeBuild(build_ext.build_ext):
         elif self.debug:
             # Being built with `python setup.py build --debug`
             build_type = 'Debug'
-        elif os.getenv('READTHEDOCS', None) == 'True':
+        elif os.getenv('CHAINER_READTHEDOCS', None) == 'True':
             # on ReadTheDocs
             build_type = 'Debug'
         else:
