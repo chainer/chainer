@@ -73,7 +73,7 @@ def is_available():
     return _available
 
 
-if _available and _core.is_debug():
+if _available and _core._is_debug():
     # Warn if the ChainerX core binary is built in debug mode
     warnings.warn(
         'ChainerX core binary is built in debug mode.', stacklevel=2)
