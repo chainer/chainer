@@ -1398,7 +1398,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
                 raise RuntimeError(
-                    'loss_scale if not supported for ChainerX array.')
+                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
