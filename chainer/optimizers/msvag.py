@@ -33,13 +33,13 @@ class MSVAGRule(optimizer.UpdateRule):
 
     """Update rule of the M-SVAG optimization algorithm.
 
-    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic \
-          Gradients <https://arxiv.org/abs/1705.07774>`_
+    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic
+    Gradients <https://arxiv.org/abs/1705.07774>`_
 
     Modified for proper weight decay.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     See :class:`~chainer.optimizers.MSVAG` for the default values
     of the hyperparameters.
@@ -153,8 +153,8 @@ class MSVAG(optimizer.GradientMethod):
 
     """M-SVAG optimizer.
 
-    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic \
-          Gradients <https://arxiv.org/abs/1705.07774>`_
+    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic
+    Gradients <https://arxiv.org/abs/1705.07774>`_
 
     Modified for proper weight decay (also called AdamW).
     AdamW introduces the additional parameters ``eta``
@@ -162,8 +162,8 @@ class MSVAG(optimizer.GradientMethod):
     learning rate, and decouple the weight decay rate from ``alpha``,
     as shown in the below paper.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     Args:
         lr (float): Learning rate.

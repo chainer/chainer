@@ -35,6 +35,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
+#include "chainerx/routines/binary.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -280,6 +281,8 @@ Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastT
 
 Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }
 
+Array Array::ArgMin(const OptionalAxes& axis) const { return chainerx::ArgMin(*this, axis); }
+
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
 Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
@@ -322,7 +325,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = AsGradStopped(CopyKind::kView);
     } else {
         // Make a contiguous copy to transfer it to the destination device.
-        Array src_contig = internal::AsContiguous(AsGradStopped(CopyKind::kView));
+        Array src_contig = AsContiguous(AsGradStopped(CopyKind::kView));
 
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
@@ -476,6 +479,7 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
+Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
 
 namespace {
 

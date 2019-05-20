@@ -49,6 +49,7 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2);
 void IFloorDivide(const Array& x1, Scalar x2);
+
 void ITrueDivide(const Array& x1, const Array& x2);
 void ITrueDivide(const Array& x1, Scalar x2);
 
@@ -144,29 +145,8 @@ Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
 
-namespace internal {
+Array Fabs(const Array& x);
 
-void IBitwiseAnd(const Array& x1, const Array& x2);
-void IBitwiseAnd(const Array& x1, Scalar x2);
-
-void IBitwiseOr(const Array& x1, const Array& x2);
-void IBitwiseOr(const Array& x1, Scalar x2);
-
-void IBitwiseXor(const Array& x1, const Array& x2);
-void IBitwiseXor(const Array& x1, Scalar x2);
-
-}  // namespace internal
-
-Array BitwiseAnd(const Array& x1, const Array& x2);
-Array BitwiseAnd(const Array& x1, Scalar x2);
-Array BitwiseAnd(Scalar x1, const Array& x2);
-
-Array BitwiseOr(const Array& x1, const Array& x2);
-Array BitwiseOr(const Array& x1, Scalar x2);
-Array BitwiseOr(Scalar x1, const Array& x2);
-
-Array BitwiseXor(const Array& x1, const Array& x2);
-Array BitwiseXor(const Array& x1, Scalar x2);
-Array BitwiseXor(Scalar x1, const Array& x2);
+Array Sign(const Array& x);
 
 }  // namespace chainerx
