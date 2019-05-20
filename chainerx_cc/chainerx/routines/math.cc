@@ -37,59 +37,6 @@ Array Negative(const Array& x) {
 
 namespace {
 
-// Called from Add, Subtract, Multiply, Divide, etc. to handle broadcasting.
-template <typename Impl>
-Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2, Dtype dtype) {
-    auto func = [&impl, dtype](const Array& x1, const Array& x2) -> Array {
-        Array out = Empty(x1.shape(), dtype, x1.device());
-        impl(x1, x2, out);
-        return out;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-// Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
-template <typename Impl>
-void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
-    internal::CheckNoUnsafeInplace(x1, {x1, x2});
-    if (x1.shape() == x2.shape()) {
-        impl(x1, x2, x1);
-    } else {
-        impl(x1, x2.BroadcastTo(x1.shape()), x1);
-    }
-}
-
-template <typename Impl>
-Array Binary(Impl&& impl, const Array& x1, Scalar x2, Dtype dtype) {
-    Array out = Empty(x1.shape(), dtype, x1.device());
-    impl(x1, x2, out);
-    return out;
-}
-
-template <typename Impl>
-Array Binary(Impl&& impl, Scalar x1, const Array& x2, Dtype dtype) {
-    Array out = Empty(x2.shape(), dtype, x2.device());
-    impl(x1, x2, out);
-    return out;
-}
-
-template <typename Impl>
-void BinaryInPlace(Impl&& impl, const Array& x1, Scalar x2) {
-    internal::CheckNoUnsafeInplace(x1, {x1});
-    impl(x1, x2, x1);
-}
-
 void CheckArithmeticDtypes(DtypeKind kind1, DtypeKind kind2, bool is_multiply) {
     if (!is_multiply && (kind1 == DtypeKind::kBool || kind2 == DtypeKind::kBool)) {
         throw DtypeError{"Boolean arguments are not allowed in arithmetic functions."};
@@ -174,19 +121,19 @@ namespace internal {
 
 void IAdd(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(&AddImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&AddImpl, x1, x2);
 }
 
 void IAdd(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BinaryInPlace(&AddASImpl, x1, x2);
+    internal::BinaryInplace(&AddASImpl, x1, x2);
 }
 
 }  // namespace internal
 
-Array Add(const Array& x1, const Array& x2) { return BroadcastBinary(&AddImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array Add(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&AddImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
-Array Add(const Array& x1, Scalar x2) { return Binary(&AddASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array Add(const Array& x1, Scalar x2) { return internal::Binary(&AddASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
 
@@ -233,19 +180,21 @@ namespace internal {
 
 void ISubtract(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(SubtractImpl, x1, x2);
+    internal::BroadcastBinaryInplace(SubtractImpl, x1, x2);
 }
 
 void ISubtract(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BinaryInPlace(&SubtractASImpl, x1, x2);
+    internal::BinaryInplace(&SubtractASImpl, x1, x2);
 }
 
 }  // namespace internal
 
-Array Subtract(const Array& x1, const Array& x2) { return BroadcastBinary(&SubtractImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array Subtract(const Array& x1, const Array& x2) {
+    return internal::BroadcastBinary(&SubtractImpl, x1, x2, GetArithmeticResultDtype(x1, x2));
+}
 
-Array Subtract(const Array& x1, Scalar x2) { return Binary(&SubtractASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array Subtract(const Array& x1, Scalar x2) { return internal::Binary(&SubtractASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Subtract(Scalar x1, const Array& x2) {
     // TODO(imanishi): Avoid type casting. This cast is introduced in order to avoid overflow in negative operation.
@@ -302,19 +251,21 @@ namespace internal {
 
 void IMultiply(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2, true);
-    BroadcastBinaryInPlace(&MultiplyImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&MultiplyImpl, x1, x2);
 }
 
 void IMultiply(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2, true);
-    BinaryInPlace(&MultiplyASImpl, x1, x2);
+    internal::BinaryInplace(&MultiplyASImpl, x1, x2);
 }
 
 }  // namespace internal
 
-Array Multiply(const Array& x1, const Array& x2) { return BroadcastBinary(&MultiplyImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
+Array Multiply(const Array& x1, const Array& x2) {
+    return internal::BroadcastBinary(&MultiplyImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true));
+}
 
-Array Multiply(const Array& x1, Scalar x2) { return Binary(&MultiplyASImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
+Array Multiply(const Array& x1, Scalar x2) { return internal::Binary(&MultiplyASImpl, x1, x2, GetArithmeticResultDtype(x1, x2, true)); }
 
 Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
@@ -339,21 +290,23 @@ namespace internal {
 
 void IFloorDivide(const Array& x1, const Array& x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(&FloorDivideImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&FloorDivideImpl, x1, x2);
 }
 
 void IFloorDivide(const Array& x1, Scalar x2) {
     CheckInplaceArithmeticDtypes(x1, x2);
-    BinaryInPlace(&FloorDivideASImpl, x1, x2);
+    internal::BinaryInplace(&FloorDivideASImpl, x1, x2);
 }
 
 }  // namespace internal
 
-Array FloorDivide(const Array& x1, const Array& x2) { return BroadcastBinary(&FloorDivideImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array FloorDivide(const Array& x1, const Array& x2) {
+    return internal::BroadcastBinary(&FloorDivideImpl, x1, x2, GetArithmeticResultDtype(x1, x2));
+}
 
-Array FloorDivide(const Array& x1, Scalar x2) { return Binary(&FloorDivideASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array FloorDivide(const Array& x1, Scalar x2) { return internal::Binary(&FloorDivideASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
-Array FloorDivide(Scalar x1, const Array& x2) { return Binary(&FloorDivideSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+Array FloorDivide(Scalar x1, const Array& x2) { return internal::Binary(&FloorDivideSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
@@ -420,7 +373,7 @@ void ITrueDivide(const Array& x1, const Array& x2) {
         throw DtypeError{"Integer inplace-division is not allowed."};
     }
     CheckInplaceArithmeticDtypes(x1, x2);
-    BroadcastBinaryInPlace(&DivideImpl, x1, x2);
+    internal::BroadcastBinaryInplace(&DivideImpl, x1, x2);
 }
 
 void ITrueDivide(const Array& x1, Scalar x2) {
@@ -428,7 +381,7 @@ void ITrueDivide(const Array& x1, Scalar x2) {
         throw DtypeError{"Integer inplace-division is not allowed."};
     }
     CheckInplaceArithmeticDtypes(x1, x2);
-    BinaryInPlace(&DivideASImpl, x1, x2);
+    internal::BinaryInplace(&DivideASImpl, x1, x2);
 }
 
 void IDivide(const Array& x1, const Array& x2) { ITrueDivide(x1, x2); }
@@ -442,7 +395,7 @@ Array TrueDivide(const Array& x1, const Array& x2) {
     if (GetKind(dtype) != DtypeKind::kFloat) {
         dtype = internal::GetDefaultDtype(DtypeKind::kFloat);
     }
-    return BroadcastBinary(&DivideImpl, x1, x2, dtype);
+    return internal::BroadcastBinary(&DivideImpl, x1, x2, dtype);
 }
 
 Array TrueDivide(const Array& x1, Scalar x2) {
@@ -450,7 +403,7 @@ Array TrueDivide(const Array& x1, Scalar x2) {
     if (GetKind(dtype) != DtypeKind::kFloat) {
         dtype = internal::GetDefaultDtype(DtypeKind::kFloat);
     }
-    return Binary(&DivideASImpl, x1, x2, dtype);
+    return internal::Binary(&DivideASImpl, x1, x2, dtype);
 }
 
 Array TrueDivide(Scalar x1, const Array& x2) {
@@ -458,7 +411,7 @@ Array TrueDivide(Scalar x1, const Array& x2) {
     if (GetKind(dtype) != DtypeKind::kFloat) {
         dtype = internal::GetDefaultDtype(DtypeKind::kFloat);
     }
-    return Binary(&DivideSAImpl, x1, x2, dtype);
+    return internal::Binary(&DivideSAImpl, x1, x2, dtype);
 }
 
 Array Divide(const Array& x1, const Array& x2) { return TrueDivide(x1, x2); }
@@ -719,7 +672,7 @@ Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Maximum(const Array& x1, const Array& x2) {
     Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    return BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
+    return internal::BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
 }
 
 Array Minimum(const Array& x1, Scalar x2) {
@@ -731,7 +684,7 @@ Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
     Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    return BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
+    return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
 Array Exp(const Array& x) {
@@ -1074,7 +1027,7 @@ Array Arctan2(const Array& x1, const Array& x2) {
         bb.Finalize();
     };
 
-    return BroadcastBinary(impl, x1, x2, out_dtype);
+    return internal::BroadcastBinary(impl, x1, x2, out_dtype);
 }
 
 Array Sinh(const Array& x) {
@@ -1241,90 +1194,5 @@ Array IsFinite(const Array& x) {
     }
     return out;
 }
-
-template <typename Impl>
-inline Array BitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-
-    Dtype out_dtype = GetArithmeticResultDtype(x1, x2, true);
-    return BroadcastBinary(impl, x1, x2, out_dtype);
-}
-
-template <typename Kernel>
-inline void ApplyBitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
-    NoBackpropModeScope scope;
-    CheckEqual(x1.shape(), x2.shape());
-    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
-}
-
-template <typename Kernel>
-inline void ApplyBitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
-    NoBackpropModeScope scope;
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || x2.kind() == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-    x1.device().backend().CallKernel<Kernel>(x1, x2, out);
-}
-
-namespace internal {
-
-template <typename Impl>
-inline void IBitwiseImpl(Impl&& impl, const Array& x1, const Array& x2) {
-    if (GetKind(x1.dtype()) == DtypeKind::kFloat || GetKind(x2.dtype()) == DtypeKind::kFloat) {
-        throw DtypeError{"Bitwise operations don't support Float types"};
-    }
-
-    CheckInplaceArithmeticDtypes(x1, x2, true);
-    BroadcastBinaryInPlace(impl, x1, x2);
-}
-
-void IBitwiseAnd(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
-
-void IBitwiseAnd(const Array& x1, Scalar x2) {
-    CheckInplaceArithmeticDtypes(x1, x2, true);
-    BinaryInPlace(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2);
-}
-
-void IBitwiseOr(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
-
-void IBitwiseOr(const Array& x1, Scalar x2) {
-    CheckInplaceArithmeticDtypes(x1, x2, true);
-    BinaryInPlace(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2);
-}
-
-void IBitwiseXor(const Array& x1, const Array& x2) { IBitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
-
-void IBitwiseXor(const Array& x1, Scalar x2) {
-    CheckInplaceArithmeticDtypes(x1, x2, true);
-    BinaryInPlace(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2);
-}
-
-}  // namespace internal
-
-Array BitwiseAnd(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseAndKernel>, x1, x2); }
-
-Array BitwiseAnd(const Array& x1, Scalar x2) {
-    return Binary(ApplyBitwiseASImpl<BitwiseAndASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
-}
-
-Array BitwiseAnd(Scalar x1, const Array& x2) { return BitwiseAnd(x2, x1); }
-
-Array BitwiseOr(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseOrKernel>, x1, x2); }
-
-Array BitwiseOr(const Array& x1, Scalar x2) {
-    return Binary(ApplyBitwiseASImpl<BitwiseOrASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
-}
-
-Array BitwiseOr(Scalar x1, const Array& x2) { return BitwiseOr(x2, x1); }
-
-Array BitwiseXor(const Array& x1, const Array& x2) { return BitwiseImpl(ApplyBitwiseImpl<BitwiseXorKernel>, x1, x2); }
-
-Array BitwiseXor(const Array& x1, Scalar x2) {
-    return Binary(ApplyBitwiseASImpl<BitwiseXorASKernel>, x1, x2, GetArithmeticResultDtype(x1, x2, true));
-}
-
-Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
 
 }  // namespace chainerx

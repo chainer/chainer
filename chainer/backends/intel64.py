@@ -25,6 +25,8 @@ except ImportError as e:
 
 class Intel64Device(_backend.Device):
 
+    """Device for Intel64 (Intel Architecture) backend with iDeep"""
+
     xp = numpy
     name = '@intel64'
     supported_array_types = (numpy.ndarray, mdarray)

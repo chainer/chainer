@@ -10,6 +10,8 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
     xp = chainerx
     supported_array_types = (chainerx.ndarray,)
 

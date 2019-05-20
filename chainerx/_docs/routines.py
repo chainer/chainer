@@ -853,6 +853,63 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.hstack,
+        """stack(arrays)
+Stack arrays in sequence horizontally (column wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.hstack`
+""")
+
+    _docs.set_doc(
+        chainerx.vstack,
+        """stack(arrays)
+Stack arrays in sequence vertically (row wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_2d,
+        """atleast_2d(a)
+View inputs as arrays with at least two dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 2.
+    Copies are avoided where possible, and views with
+    two or more dimensions are returned.
+
+Note:
+    * Arrays that already have two or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
         chainerx.split,
         """split(ary, indices_or_sections, axis=0)
 Splits an array into multiple sub arrays along a given axis.

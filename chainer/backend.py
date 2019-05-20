@@ -93,9 +93,9 @@ def get_device(device_spec):
     """Returns a device object.
 
     Args:
-        device_spec (object): Device specifier. If a :class:`chainer.Device`
-            instance is given, it is returned intact. Otherwise the following
-            values are supported:
+        device_spec (object): Device specifier.
+            If a :class:`chainer.backend.Device` instance is given, it is
+            returned intact. Otherwise the following values are supported:
 
             * ChainerX devices
 
@@ -171,6 +171,17 @@ def using_device(device_spec):
     Args:
         device_spec (object): Device specifier. See :func:`chainer.get_device`
             for details.
+
+    .. admonition:: Example
+
+        .. testcode::
+           :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
+
+           with chainer.using_device('@cupy:1'):
+               a = cupy.empty((3, 2))
+
+           assert a.device.id == 1
+
     """
 
     # TODO(niboshi): Set default device (once this concept is introduced in
@@ -230,7 +241,7 @@ def get_device_from_array(*arrays):
             is returned.
 
     Returns:
-        chainer.Device: Device instance.
+        chainer.backend.Device: Device instance.
     """
     for array in arrays:
         device = GpuDevice.from_array(array)

@@ -779,8 +779,8 @@ running_var=None, decay=0.9, axis=None)
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso:: :class:`~chainer.links.BatchNormalization`
 
