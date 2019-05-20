@@ -649,25 +649,17 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
     Strides out_strides{out_shape, dtype};
 
     std::vector<Array> output_elements;
+    std::vector<Array> splitted = Split(a, 1, axis);
 
-    NoBackpropModeScope scope{};
-    int64_t in_offset = 0;
-    Shape element_shape = shape;
-    element_shape[axis] = 1;
-
-    for (int32_t i = 0; i < shape[axis]; i++) {
+    for (size_t i = 0; i < splitted.size(); i++) {
         for (int32_t j = 0; j < repeats(i); j++) {
-            Array element = internal::MakeArray(element_shape, strides, dtype, device, a.data(), in_offset);
-            output_elements.push_back(element);
+            output_elements.push_back(splitted[i]);
         }
-        in_offset += a.strides()[axis];
     }
 
     auto out = Concatenate(output_elements, axis);
 
-    out = AsContiguousArray(out);
-
-    return out;
+    return AsContiguousArray(out);
 }
 
 Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
