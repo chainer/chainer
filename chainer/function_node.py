@@ -159,6 +159,8 @@ class FunctionNode(object):
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
     lazy_grad_sum = False
+    # Becomes True once apply() is called.
+    _apply_done = False
 
     @property
     def local_function_hooks(self):
@@ -280,11 +282,13 @@ Use apply() method instead.\
             if outputs is not chainer.Fallback:
                 # Supported. Wrap with variables and return
                 assert isinstance(outputs, tuple)
-                return tuple([
+                ret = tuple([
                     variable.Variable._init_unchecked(
                         y, requires_grad=y.is_backprop_required(),
                         is_chainerx_array=True)
                     for y in outputs])
+                self._apply_done = True
+                return ret
 
             # Fall back to FunctionNode.forward()
             chainerx_in_data, in_data, chainerx_device = (
@@ -388,6 +392,7 @@ Use apply() method instead.\
 
                 self.lazy_grad_sum = configuration.config.lazy_grad_sum
 
+        self._apply_done = True
         return ret
 
     def _check_data_type_forward(self, in_data):
@@ -800,10 +805,20 @@ Use apply() method instead.\
             return `None`.
 
         """
+        if not self._apply_done:
+            raise RuntimeError(
+                'get_retained_inputs() cannot be called until forward '
+                'propagation is done.')
+
         if self._is_chainerx_fallback_mode:
             return self._chainerx_retained_inputs
 
-        if self._input_indexes_to_retain is None or self.inputs is None:
+        if self.inputs is None:
+            raise RuntimeError(
+                'get_retained_inputs() cannot be called because the inputs '
+                'are not kept in the function node.')
+
+        if self._input_indexes_to_retain is None:
             return ()
 
         retained_inputs = []
@@ -833,10 +848,20 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if not self._apply_done:
+            raise RuntimeError(
+                'get_retained_outputs() cannot be called until forward '
+                'propagation is done.')
+
         if self._is_chainerx_fallback_mode:
             return self._chainerx_retained_outputs
 
-        if self._output_indexes_to_retain is None or self.outputs is None:
+        if self.outputs is None:
+            raise RuntimeError(
+                'get_retained_outputs() cannot be called because the outputs '
+                'are not kept in the function node.')
+
+        if self._output_indexes_to_retain is None:
             return ()
 
         # TODO(hvy): It should be safe to remove this check.

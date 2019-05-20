@@ -823,6 +823,46 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         self.check_no_retain(backend_config, False)
         self.check_no_retain(backend_config, True)
 
+    def test_invalid_retain(self, backend_config):
+
+        class MyFunc(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                self.retain_outputs((0,))
+                self.retain_inputs((0,))
+                return x * 3,
+
+            def backward(self, input_indices, grad_outputs):
+                assert False  # never called
+
+        x_arr = backend_config.get_array(numpy.array([1, 2], numpy.float32))
+
+        # get_retained_inputs without forward
+        func = MyFunc()
+        with pytest.raises(RuntimeError):
+            func.get_retained_inputs()
+
+        # get_retained_outputs without forward
+        func = MyFunc()
+        with pytest.raises(RuntimeError):
+            func.get_retained_outputs()
+
+        # get_retained_inputs after unchaining
+        func = MyFunc()
+        x = chainer.Variable(x_arr, requires_grad=True)
+        func.apply((x,))
+        func.unchain()
+        with pytest.raises(RuntimeError):
+            func.get_retained_inputs()
+
+        # get_retained_outputs after unchaining
+        func = MyFunc()
+        x = chainer.Variable(x_arr, requires_grad=True)
+        func.apply((x,))
+        func.unchain()
+        with pytest.raises(RuntimeError):
+            func.get_retained_outputs()
+
 
 def _get_value(x):
     if isinstance(x, chainer.Variable):
