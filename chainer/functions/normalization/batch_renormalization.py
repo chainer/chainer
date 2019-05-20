@@ -187,10 +187,10 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
         intentionally ignores some of the theoretical flaws in Algorithm 1 of
         the Batch Renormalization paper:
 
-        - The function maintains the moving average of variances
+        - ``F.batch_renormalization`` maintains the moving average of variances
           :math:`\\sigma^2`, while the original paper maintains the moving
           average of standard deviations :math:`\\sigma`.
-        - The function applies Bessel's correction to update the moving average
+        - ``F.batch_renormalization`` applies Bessel's correction to update the moving average
           of variances.
 
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
