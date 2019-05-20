@@ -109,15 +109,19 @@ class BackendConfig(object):
 
     def __repr__(self):
         lst = []
-        for k, _ in self._props:
-            lst.append('{}={!r}'.format(k, getattr(self, k)))
+        for k, default_val in self._props:
+            val = getattr(self, k)
+            if val != default_val:
+                lst.append('{}={!r}'.format(k, val))
         return '<BackendConfig {}>'.format(' '.join(lst))
 
     def get_func_str(self):
         """Returns a string that can be used in method name"""
         lst = []
-        for k, _ in self._props:
+        for k, default_val in self._props:
             val = getattr(self, k)
+            if val == default_val:
+                continue
             if val is True:
                 val = 'true'
             elif val is False:
