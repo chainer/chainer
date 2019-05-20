@@ -128,13 +128,6 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class TanhKernel : public Kernel {
-public:
-    static const char* name() { return "Tanh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
 class CeilKernel : public Kernel {
 public:
     static const char* name() { return "Ceil"; }

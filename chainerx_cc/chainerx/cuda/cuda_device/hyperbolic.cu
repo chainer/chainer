@@ -25,6 +25,8 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SinhKernel, { out = cuda::Sinh
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CoshKernel, { out = cuda::Cosh(x); });
 
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(TanhKernel, { out = cuda::Tanh(x); });
+
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArcsinhKernel, { out = cuda::Arcsinh(x); });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccoshKernel, { out = cuda::Arccosh(x); });

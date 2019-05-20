@@ -115,8 +115,6 @@ Array IsInf(const Array& x);
 
 Array IsFinite(const Array& x);
 
-Array Tanh(const Array& x);
-
 Array Absolute(const Array& x);
 
 Array Ceil(const Array& x);

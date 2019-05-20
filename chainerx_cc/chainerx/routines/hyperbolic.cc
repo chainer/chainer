@@ -58,6 +58,28 @@ Array Cosh(const Array& x) {
     return out;
 }
 
+Array Tanh(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<TanhKernel>(x, out);
+    }
+
+    BackwardBuilder bb{"tanh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = gout * (1 - out * out);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Arcsinh(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
