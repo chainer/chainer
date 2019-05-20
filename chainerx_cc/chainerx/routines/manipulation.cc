@@ -635,19 +635,6 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 }
 
 Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats, int8_t axis) {
-    Shape shape = a.shape();
-    Dtype dtype = a.dtype();
-    Device& device = a.device();
-    Strides strides = a.strides();
-
-    Shape out_shape = shape;
-    out_shape[axis] = 0;
-    for (int64_t i = 0; i < shape[axis]; i++) {
-        out_shape[axis] += repeats(i);
-    }
-
-    Strides out_strides{out_shape, dtype};
-
     std::vector<Array> output_elements;
     std::vector<Array> splitted = Split(a, 1, axis);
 
