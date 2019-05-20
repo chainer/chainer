@@ -667,32 +667,6 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
 
     out = AsContiguousArray(out);
 
-    {
-        BackwardBuilder bb{"repeat", a, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([shape, axis, repeats, dtype = a.dtype(), &device = a.device()](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                int64_t gout_offset = 0;
-
-                std::vector<Array> elements;
-
-                for (int32_t i = 0; i < shape[axis]; i++) {
-                    Shape summingShape = shape;
-                    summingShape[axis] = repeats(i);
-                    Array summing = internal::MakeArray(summingShape, gout.strides(), dtype, device, gout.data(), gout_offset);
-                    Array summed = summing.Sum(axis, true);
-                    elements.push_back(summed);
-                    gout_offset += gout.strides()[axis] * summingShape[axis];
-                }
-
-                auto gin = Concatenate(elements, axis);
-
-                bctx.input_grad() = std::move(gin);
-            });
-        }
-        bb.Finalize();
-    }
-
     return out;
 }
 
