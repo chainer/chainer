@@ -1529,7 +1529,7 @@ class TestLog10(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestLog1p(UnaryMathTestBase, op_utils.NumpyOpTest):
+class TestLog1p(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.log1p(a)
