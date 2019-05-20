@@ -656,8 +656,10 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
     element_shape[axis] = 1;
 
     for (int32_t i = 0; i < shape[axis]; i++) {
-        Array element = internal::MakeArray(element_shape, strides, dtype, device, a.data(), in_offset);
-        output_elements.push_back(element);
+        for (int32_t j = 0; j < repeats(i); j++) {
+            Array element = internal::MakeArray(element_shape, strides, dtype, device, a.data(), in_offset);
+            output_elements.push_back(element);
+        }
         in_offset += a.strides()[axis];
     }
 
