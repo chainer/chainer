@@ -648,29 +648,20 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
 
     Strides out_strides{out_shape, dtype};
 
-    Array out = internal::Empty(out_shape, dtype, out_strides, device);
+    std::vector<Array> output_elements;
 
-    {
-        NoBackpropModeScope scope{};
-        int64_t offset = 0;
-        int64_t in_offset = 0;
-        int64_t out_offset = 0;
-        Shape copy_shape = shape;
-        copy_shape[axis] = 1;
+    NoBackpropModeScope scope{};
+    int64_t in_offset = 0;
+    Shape element_shape = shape;
+    element_shape[axis] = 1;
 
-        for (int32_t i = 0; i < shape[axis]; i++) {
-            Array src = internal::MakeArray(copy_shape, strides, dtype, device, a.data(), in_offset);
-
-            for (int32_t j = 0; j < repeats(offset); j++) {
-                Array dst = internal::MakeArray(copy_shape, out_strides, dtype, device, out.data(), out_offset);
-                device.backend().CallKernel<CopyKernel>(src, dst);
-                out_offset += out_strides[axis];
-            }
-
-            in_offset += a.strides()[axis];
-            offset++;
-        }
+    for (int32_t i = 0; i < shape[axis]; i++) {
+        Array element = internal::MakeArray(element_shape, strides, dtype, device, a.data(), in_offset);
+        output_elements.push_back(element);
+        in_offset += a.strides()[axis];
     }
+
+    auto out = Concatenate(output_elements, axis);
 
     {
         BackwardBuilder bb{"repeat", a, out};
