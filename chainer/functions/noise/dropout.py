@@ -166,7 +166,7 @@ def dropout(x, ratio=.5, **kwargs):
             input. The mask will become ``None`` when ``chainer.config.train``
             is set to ``False``.
 
-    See the paper by G. Hinton: `Improving neural networks by preventing \
+    See the paper by G. Hinton: `Improving neural networks by preventing
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
 
     .. admonition:: Example

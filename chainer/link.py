@@ -658,10 +658,7 @@ class Link(device_resident.DeviceResident):
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
-                if isinstance(param.data, numpy.ndarray):
-                    numpy.copyto(param.data, data)
-                else:
-                    param.data.set(numpy.asarray(data))  # type: ignore
+                param.data[:] = param.device.send(data)
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 

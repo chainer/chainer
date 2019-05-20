@@ -17,6 +17,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
@@ -474,6 +475,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           },
           py::arg("arrays"),
           py::arg("axis") = 0);
+    m.def("atleast_2d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast2D(Array{a})); }, py::arg("a"));
+    m.def("hstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(HStack(xs));
+          },
+          py::arg("arrays"));
+    m.def("vstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(VStack(xs));
+          },
+          py::arg("arrays"));
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
               // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to

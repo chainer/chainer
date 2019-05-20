@@ -47,8 +47,8 @@ class ChildSumTreeLSTM(link.Chain):
         W_h_f (chainer.links.Linear): Linear layer of connections between
             forget gate :math:`f` and the output of each child.
 
-    See the paper for details: `Improved Semantic Representations From \
-    Tree-Structured Long Short-Term Memory Networks \
+    See the paper for details: `Improved Semantic Representations From
+    Tree-Structured Long Short-Term Memory Networks
     <https://www.aclweb.org/anthology/P15-1150>`_.
 
     """
@@ -170,10 +170,10 @@ class NaryTreeLSTM(link.Chain):
             :math:`a`, input compound, equals to :math:`u` in
             the paper by Tai et al.
 
-    See the papers for details: `Improved Semantic Representations From \
-    Tree-Structured Long Short-Term Memory Networks \
+    See the papers for details: `Improved Semantic Representations From
+    Tree-Structured Long Short-Term Memory Networks
     <https://www.aclweb.org/anthology/P15-1150>`_, and
-    `A Fast Unified Model for Parsing and Sentence Understanding \
+    `A Fast Unified Model for Parsing and Sentence Understanding
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 
     Tai et al.'s N-Ary TreeLSTM is little extended in

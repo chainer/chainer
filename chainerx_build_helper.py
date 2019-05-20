@@ -69,8 +69,6 @@ class CMakeBuild(build_ext.build_ext):
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     build_type.upper(), extdir)]
 
-            cmake_args += ['-G', 'Visual Studio 15 2017', '-T', 'llvm']
-
             if sys.maxsize > 2**32:
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
