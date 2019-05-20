@@ -2466,6 +2466,19 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         assert l.child.to_method_called == 1
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
 class TestSerialize(unittest.TestCase):
     def setUp(self):
         self.array = numpy.array([1, 2, 3], dtype=numpy.float32)
@@ -2478,12 +2491,12 @@ class TestSerialize(unittest.TestCase):
         link.add_persistent('z', None)
         self.link = link
 
-    def check_serialize(self, device_spec):
+    def test_serialize_numpy(self, backend_config):
         array = self.array
         link = self.link
         serializer = self.serializer
 
-        link.to_device(device_spec)
+        link.to_device(backend_config.device)
         link.serialize(serializer)
 
         self.assertEqual(serializer.call_count, 3)
@@ -2491,17 +2504,6 @@ class TestSerialize(unittest.TestCase):
         numpy.testing.assert_array_equal(cpu_device.send(link.x.array), array)
         numpy.testing.assert_array_equal(cpu_device.send(link.y.array), array)
         numpy.testing.assert_array_equal(cpu_device.send(link.z), array)
-
-    def test_serialize_numpy(self):
-        self.check_serialize('@numpy')
-
-    @attr.gpu
-    def test_serialize_cupy(self):
-        self.check_serialize('@cupy:0')
-
-    @attr.chainerx
-    def test_serialize_chainerx(self):
-        self.check_serialize('native:0')
 
 
 testing.run_module(__name__, __file__)

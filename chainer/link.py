@@ -660,7 +660,7 @@ class Link(device_resident.DeviceResident):
                 # Initialize the parameter here
                 param.initialize(data.shape)
                 if isinstance(param.data, chainerx.ndarray):
-                    param.data[:] = data
+                    param.data[:] = param.device.send(data)
                 elif isinstance(param.data, numpy.ndarray):
                     numpy.copyto(param.data, data)
                 else:
