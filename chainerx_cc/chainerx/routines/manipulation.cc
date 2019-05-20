@@ -665,6 +665,8 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
 
     auto out = Concatenate(output_elements, axis);
 
+    out = AsContiguousArray(out);
+
     {
         BackwardBuilder bb{"repeat", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
@@ -725,7 +727,7 @@ Array Repeat(const Array& a, int64_t repeats, nonstd::optional<int8_t> axis) {
     auto expandedArray = ExpandDims(targetArray, targetAxis + 1);
     auto broadcastedArray = BroadcastTo(expandedArray, broadcastShape);
     auto reshapedArray = Reshape(broadcastedArray, reshapeShape);
-    return reshapedArray;
+    return AsContiguousArray(reshapedArray);
 }
 
 Array Repeat(const Array& a, const std::vector<int64_t>& repeats, nonstd::optional<int8_t> axis) {
