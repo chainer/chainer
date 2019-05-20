@@ -11,6 +11,7 @@ Optimizers
    chainer.optimizers.CorrectedMomentumSGD
    chainer.optimizers.MomentumSGD
    chainer.optimizers.NesterovAG
+   chainer.optimizers.MSVAG
    chainer.optimizers.RMSprop
    chainer.optimizers.RMSpropGraves
    chainer.optimizers.SGD
