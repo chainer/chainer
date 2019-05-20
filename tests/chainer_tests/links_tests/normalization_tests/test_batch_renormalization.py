@@ -143,18 +143,16 @@ class TestPopulationStatistics(unittest.TestCase):
         unbiased_var = self.x.var(axis=0) * self.nx / (self.nx - 1)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
+        y = chainer.Variable(y)
         with chainer.using_config('train', False):
-            y = chainer.Variable(y)
             self.link(y, finetune=True)
-            testing.assert_allclose(mean, self.link.avg_mean)
-            testing.assert_allclose(unbiased_var, self.link.avg_var)
+        testing.assert_allclose(mean, self.link.avg_mean)
+        testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics_cpu(self):
         self.check_statistics(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics_gpu(self):
         self.link.to_gpu()
         self.check_statistics(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
@@ -178,12 +176,10 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics2_cpu(self):
         self.check_statistics2(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics2_gpu(self):
         self.link.to_gpu()
         self.check_statistics2(
