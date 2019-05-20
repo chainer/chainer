@@ -757,7 +757,12 @@ class TestVariableCopydata(unittest.TestCase):
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
-@testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
+@testing.parameterize(*testing.product(
+    {
+        'shape': [(10,), (0,), ()],
+        'requires_grad': [True, False],
+    }
+))
 class TestVariableGrad(unittest.TestCase):
 
     def test_grad(self, backend_config):
@@ -765,22 +770,44 @@ class TestVariableGrad(unittest.TestCase):
             np.random.uniform(-1, 1, self.shape).astype(np.float32))
         g = backend_config.get_array(
             np.random.uniform(0.1, 10, self.shape).astype(np.float32))
-        v = chainer.Variable(x)
-        v.grad = g
-        backend_config.xp.testing.assert_array_equal(v.grad, g)
+        v = chainer.Variable(x, requires_grad=self.requires_grad)
+        expected_error = (
+            backend_config.xp is chainerx
+            and not self.requires_grad)
+
+        if expected_error:
+            with pytest.raises(Exception):
+                v.grad = g
+        else:
+            v.grad = g
+
+            assert v.grad_var.requires_grad is True
+            assert v.grad is not None
+            assert v.requires_grad == self.requires_grad
+            backend_config.xp.testing.assert_array_equal(v.grad, g)
 
     def test_grad_var(self, backend_config):
         x = backend_config.get_array(
             np.random.uniform(-1, 1, self.shape).astype(np.float32))
         g = backend_config.get_array(
             np.random.uniform(0.1, 10, self.shape).astype(np.float32))
-        v = chainer.Variable(x)
+        v = chainer.Variable(x, requires_grad=self.requires_grad)
         gv = chainer.Variable(g)
-        v.grad_var = gv
-        backend_config.xp.testing.assert_array_equal(v.grad, g)
+        expected_error = (
+            backend_config.xp is chainerx
+            and not self.requires_grad)
 
-        # Same instance should be returned each time.
-        assert v.grad_var is gv
+        if expected_error:
+            with pytest.raises(Exception):
+                v.grad_var = gv
+        else:
+            v.grad_var = gv
+
+            assert v.requires_grad == self.requires_grad
+            backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+            # Same instance should be returned each time.
+            assert v.grad_var is gv
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -798,8 +825,7 @@ class TestVariableZerogad(unittest.TestCase):
         dtype = np.float32
         expect_error = (
             backend_config.xp is chainerx
-            and self.fill
-            and self.grad_var_requires_grad)
+            and self.fill)
         xp = backend_config.xp
         a = chainer.Variable(
             backend_config.get_array(np.empty(shape, dtype)))

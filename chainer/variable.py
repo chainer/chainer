@@ -925,6 +925,10 @@ class Variable(object):
                 raise RuntimeError(
                     'Cannot set a gradient to an empty variable')
         elif arr.is_backprop_required():
+            # If g is grad-stopped, require grad on it.
+            # Make a view in order not to affect the input.
+            if g is not None and not g.is_backprop_required():
+                g = g.view().require_grad()
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
