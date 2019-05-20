@@ -205,6 +205,16 @@ class TestCosh(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
+    _trigonometric_hyperbolic_params
+))
+class TestTanh(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.tanh(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
     _make_inverse_trig_params('arcsinh')
 ))
 class TestArcsinh(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
