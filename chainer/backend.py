@@ -242,7 +242,7 @@ def get_device_from_array(*arrays):
             is returned.
 
     Returns:
-        chainer.Device: Device instance.
+        chainer.backend.Device: Device instance.
     """
     for array in arrays:
         device = GpuDevice.from_array(array)
