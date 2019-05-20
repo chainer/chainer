@@ -6,8 +6,7 @@ import six
 
 import chainer
 from chainer import testing
-
-from . import dummy_dataset
+from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
 
 def _filter_params(params):
