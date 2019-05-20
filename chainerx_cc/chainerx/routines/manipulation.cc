@@ -669,7 +669,6 @@ Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats,
             bt.Define([shape, axis, repeats, dtype = a.dtype(), &device = a.device()](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
                 int64_t gout_offset = 0;
-                int64_t gin_offset = 0;
 
                 std::vector<Array> elements;
 
