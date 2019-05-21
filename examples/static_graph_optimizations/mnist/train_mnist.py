@@ -8,6 +8,7 @@ the code is mostly unchanged except for the addition of the
 from __future__ import print_function
 
 import argparse
+import sys
 
 import chainer
 import chainer.functions as F
@@ -16,6 +17,7 @@ from chainer import static_code
 from chainer import static_graph
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 
 # Network definition
@@ -112,6 +114,10 @@ def main():
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     device.use()
 

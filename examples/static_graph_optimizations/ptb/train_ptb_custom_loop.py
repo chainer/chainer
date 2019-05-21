@@ -24,6 +24,7 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import random
+import sys
 
 import chainer
 from chainer import configuration
@@ -33,6 +34,7 @@ from chainer.functions.loss import softmax_cross_entropy
 import chainer.links as L
 from chainer import serializers
 from chainer import static_graph
+import chainerx
 
 
 # Definition of a recurrent net for language modeling
@@ -208,6 +210,11 @@ def main():
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
+
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
     device.use()
 
     def evaluate(model, iter):

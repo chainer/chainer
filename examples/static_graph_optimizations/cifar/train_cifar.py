@@ -6,12 +6,14 @@ the code is mostly unchanged except for the addition of the
 `@static_graph` decorator to the model chain's `__call__()` method.
 """
 import argparse
+import sys
 
 import chainer
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 from chainer.training import triggers
+import chainerx
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
@@ -52,6 +54,10 @@ def main():
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     device.use()
 

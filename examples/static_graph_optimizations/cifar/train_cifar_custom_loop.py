@@ -11,12 +11,14 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 import argparse
+import sys
 
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
+import chainerx
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
@@ -57,6 +59,10 @@ def main():
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     device.use()
 
