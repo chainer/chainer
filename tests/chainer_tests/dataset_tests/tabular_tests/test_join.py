@@ -5,8 +5,7 @@ import six
 
 import chainer
 from chainer import testing
-
-from . import dummy_dataset
+from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
 
 @testing.parameterize(*testing.product_dict(
