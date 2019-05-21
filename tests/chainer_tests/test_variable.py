@@ -672,8 +672,8 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
-@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
 @testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
 class TestVariableCopydata(unittest.TestCase):
 
@@ -686,13 +686,15 @@ class TestVariableCopydata(unittest.TestCase):
         dst_arr = dst_backend_config.get_array(dst_arr_numpy.copy())
         src_var = chainer.Variable(src_arr)
         dst_var = chainer.Variable(dst_arr)
+        src_arr_prev = src_var.array
+        dst_arr_prev = dst_var.array
 
         dst_var.copydata(src_var)
 
         assert src_var.device == src_backend_config.device
         assert dst_var.device == dst_backend_config.device
-        assert dst_var.array is dst_arr
-        assert src_var.array is src_arr
+        assert dst_var.array is dst_arr_prev
+        assert src_var.array is src_arr_prev
         assert dst_var.dtype == dtype
         np.testing.assert_array_equal(
             _numpy_device.send(dst_var.array), src_arr_numpy)
@@ -708,9 +710,11 @@ class TestVariableCopydata(unittest.TestCase):
         dst_var = chainer.Parameter()
         dst_var.to_device(dst_backend_config.device)
         src_var = chainer.Parameter(src_arr)
+        src_arr_prev = src_var.array
 
         dst_var.copydata(src_var)
 
+        assert src_var.array is src_arr_prev
         assert src_var.device == src_backend_config.device
         assert dst_var.device == dst_backend_config.device
         np.testing.assert_array_equal(
@@ -726,12 +730,13 @@ class TestVariableCopydata(unittest.TestCase):
         dst_var = chainer.Parameter(dst_arr)
         src_var = chainer.Parameter(initializer)
         src_var.to_device(src_backend_config.device)
+        dst_arr_prev = dst_var.array
 
         dst_var.copydata(src_var)
 
         assert src_var.device == src_backend_config.device
         assert dst_var.device == dst_backend_config.device
-        assert dst_var.array is not src_var.array
+        assert dst_var.array is dst_arr_prev
         np.testing.assert_array_equal(
             _numpy_device.send(dst_var.array),
             _numpy_device.send(src_var.array))
