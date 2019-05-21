@@ -1778,27 +1778,6 @@ class TestSqrt(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': math_utils.in_out_dtypes_math_functions,
-        'input': [-2, 0, 2],
-        'contiguous': [None, 'C'],
-    }) + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
-        'input': [1.57, 2, 3.14, float('inf'), -float('inf'), float('nan')],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
-    })
-))
-class TestTanh(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
-
-    def func(self, xp, a):
-        return xp.tanh(a)
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': ['random'],
         'contiguous': [None, 'C'],
