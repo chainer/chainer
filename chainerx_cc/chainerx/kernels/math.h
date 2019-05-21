@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include <nonstd/optional.hpp>
-
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/kernel.h"
@@ -130,90 +128,6 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class SinKernel : public Kernel {
-public:
-    static const char* name() { return "Sin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CosKernel : public Kernel {
-public:
-    static const char* name() { return "Cos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanKernel : public Kernel {
-public:
-    static const char* name() { return "Tan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class SinhKernel : public Kernel {
-public:
-    static const char* name() { return "Sinh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CoshKernel : public Kernel {
-public:
-    static const char* name() { return "Cosh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanhKernel : public Kernel {
-public:
-    static const char* name() { return "Tanh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArcsinKernel : public Kernel {
-public:
-    static const char* name() { return "Arcsin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccosKernel : public Kernel {
-public:
-    static const char* name() { return "Arccos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArctanKernel : public Kernel {
-public:
-    static const char* name() { return "Arctan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Arctan2Kernel : public Kernel {
-public:
-    static const char* name() { return "Arctan2"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class ArcsinhKernel : public Kernel {
-public:
-    static const char* name() { return "Archsinh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccoshKernel : public Kernel {
-public:
-    static const char* name() { return "Arccosh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
 class CeilKernel : public Kernel {
 public:
     static const char* name() { return "Ceil"; }
@@ -224,6 +138,20 @@ public:
 class FloorKernel : public Kernel {
 public:
     static const char* name() { return "Floor"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class FabsKernel : public Kernel {
+public:
+    static const char* name() { return "Fabs"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class SignKernel : public Kernel {
+public:
+    static const char* name() { return "Sign"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };
@@ -304,48 +232,6 @@ public:
     static const char* name() { return "IfGreaterElseAAAA"; }
 
     virtual void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
-};
-
-class BitwiseAndKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseAnd"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class BitwiseAndASKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseAndAS"; }
-
-    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
-};
-
-class BitwiseOrKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseOr"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class BitwiseOrASKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseOrAS"; }
-
-    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
-};
-
-class BitwiseXorKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseXor"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class BitwiseXorASKernel : public Kernel {
-public:
-    static const char* name() { return "BitwiseXorAS"; }
-
-    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
 }  // namespace chainerx

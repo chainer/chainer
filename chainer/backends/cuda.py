@@ -202,6 +202,8 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 class GpuDevice(_backend.Device):
 
+    """Device for GPU (CuPy) backend"""
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
@@ -279,7 +281,7 @@ def get_device_from_array(*arrays):
     .. deprecated:: v6.0.0
 
         This API is deprecated. Please use
-        :func:`~chainer.backend.get_device_from_array` instead.
+        :func:`chainer.backend.get_device_from_array` instead.
 
     The device on which the given CuPy array reside is returned.
 

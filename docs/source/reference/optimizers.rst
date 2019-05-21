@@ -1,6 +1,8 @@
 Optimizers
 ==========
 
+.. module:: chainer.optimizers
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -8,9 +10,14 @@ Optimizers
    chainer.optimizers.AdaDelta
    chainer.optimizers.AdaGrad
    chainer.optimizers.Adam
+   chainer.optimizers.AdamW
+   chainer.optimizers.AMSGrad
+   chainer.optimizers.AdaBound
+   chainer.optimizers.AMSBound
    chainer.optimizers.CorrectedMomentumSGD
    chainer.optimizers.MomentumSGD
    chainer.optimizers.NesterovAG
+   chainer.optimizers.MSVAG
    chainer.optimizers.RMSprop
    chainer.optimizers.RMSpropGraves
    chainer.optimizers.SGD

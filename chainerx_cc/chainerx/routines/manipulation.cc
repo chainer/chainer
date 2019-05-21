@@ -649,4 +649,118 @@ Array ExpandDims(const Array& a, int8_t axis) {
     return out;
 }
 
+Array Flip(const Array& m, const OptionalAxes& axes) {
+    Axes real_axes;
+    if (axes.has_value()) {
+        real_axes = internal::GetNormalizedAxes(*axes, m.ndim());
+    } else {
+        for (int8_t i = 0; i < m.ndim(); ++i) {
+            real_axes.emplace_back(m.ndim() - i - 1);
+        }
+    }
+
+    Strides strides = m.strides();
+    Shape shape = m.shape();
+    int64_t offset = 0;
+    for (auto axis : real_axes) {
+        // last element of that dimension.
+        offset += std::max<int64_t>(shape[axis] - 1, 0) * strides[axis];
+        if (shape[axis] != 0) {
+            strides[axis] = -strides[axis];
+        }
+    }
+
+    auto is_zero = std::find(shape.begin(), shape.end(), 0);
+    if (is_zero != shape.end()) {
+        offset = 0;
+    }
+
+    Array out = internal::MakeArray(m.shape(), strides, m.dtype(), m.device(), m.data(), offset);
+
+    BackwardBuilder bb{"flip", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([real_axes](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Flip(gout, real_axes);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Fliplr(const Array& m) {
+    if (m.ndim() < 2) {
+        throw DimensionError{"Input must be >= 2-d."};
+    }
+    return Flip(m, Axes{1});
+}
+
+Array Flipud(const Array& m) {
+    if (m.ndim() < 1) {
+        throw DimensionError{"Input must be >= 1-d."};
+    }
+    return Flip(m, Axes{0});
+}
+
+Array AtLeast2D(const Array& x) {
+    Array out;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                strides.insert(strides.begin(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
+    }
+
+    BackwardBuilder bb{"atleast_2d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 1) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array HStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    if (arrays.front().ndim() <= 1) {
+        return Concatenate(arrays, 0);
+    }
+    return Concatenate(arrays, 1);
+}
+
+Array VStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
+
+    return Concatenate(reshaped_arrays, 0);
+}
+
 }  // namespace chainerx

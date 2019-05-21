@@ -34,7 +34,7 @@ More Pythonic way is combining the links and procedures into a class:
    ...         return self.l2(h)
 
 In order to make it more reusable, we want to support parameter management, CPU/GPU migration, robust and flexible save/load features, etc.
-These features are all supported by the :class:`Chain` class in Chainer.
+These features are all supported by the :class:`~chainer.Chain` class in Chainer.
 Then, what we have to do here is just define the above class as a subclass of Chain:
 
 .. doctest::
@@ -60,7 +60,7 @@ It means we can define more complex chains that hold ``MyChain`` objects as thei
    We often define a single forward method of a link by the ``forward`` operator.
    Such links and chains are callable and behave like regular functions of Variables.
 
-Another way to define a chain is using the :class:`ChainList` class, which behaves like a list of links:
+Another way to define a chain is using the :class:`~chainer.ChainList` class, which behaves like a list of links:
 
 .. doctest::
 

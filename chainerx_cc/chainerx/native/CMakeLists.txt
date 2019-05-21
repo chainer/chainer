@@ -16,12 +16,14 @@ add_library(chainerx_native STATIC
     native_device/activation.cc
     native_device/arithmetic.cc
     native_device/batch_norm.cc
+    native_device/binary.cc
     native_device/conv.cc
     native_device/copy.cc
     native_device/comparison.cc
     native_device/dot.cc
     native_device/exp_log.cc
     native_device/fill.cc
+    native_device/hyperbolic.cc
     native_device/indexing.cc
     native_device/memory.cc
     native_device/misc.cc

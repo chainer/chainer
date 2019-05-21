@@ -104,6 +104,23 @@ def muladd(a, b, c):
     return MulAdd().apply((a, b, c))[0]
 
 
+_nonchainerx_backend_params = [
+    # NumPy
+    {},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+]
+
+
+_chainerx_backend_params = [
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
+
+
 _backend_params = [
     # NumPy
     {},
@@ -297,45 +314,6 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
         assert a._has_chainerx_array is False
-
-    def check_grad(self, xp, x, g):
-        v = chainer.Variable(x)
-        v.grad = g
-        xp.testing.assert_array_equal(v.grad, g)
-
-    def test_grad_cpu(self):
-        self.check_grad(np, self.x, self.a)
-
-    @attr.gpu
-    def test_grad_gpu(self):
-        self.check_grad(cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
-
-    @attr.chainerx
-    def test_grad_chainerx(self):
-        self.check_grad(
-            chainerx, chainerx.array(self.x), chainerx.array(self.a))
-
-    def check_grad_var(self, xp, x, g):
-        v = chainer.Variable(x)
-        gv = chainer.Variable(g)
-        v.grad_var = gv
-        xp.testing.assert_array_equal(v.grad, g)
-
-        # Same instance should be returned each time.
-        assert v.grad_var is gv
-
-    def test_grad_var_cpu(self):
-        self.check_grad_var(np, self.x, self.a)
-
-    @attr.gpu
-    def test_grad_var_gpu(self):
-        self.check_grad_var(
-            cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
-
-    @attr.chainerx
-    def test_grad_var_chainerx(self):
-        self.check_grad_var(
-            chainerx, chainerx.array(self.x), chainerx.array(self.a))
 
     def check_len(self, a):
         x = chainer.Variable(a)
@@ -827,25 +805,37 @@ class TestVariable(unittest.TestCase):
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
-@testing.backend.inject_backend_tests(None, _backend_params)
-@testing.backend.inject_backend_tests(None, _backend_params)
-@testing.parameterize(*testing.product(
-    {
-        'clear_src_grad,clear_dst_grad': [
-            [False, False],
-            [True, False],
-            [False, True],
-        ],
-    }))
-class TestVariableAddgrad(unittest.TestCase):
+@testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
+class TestVariableGrad(unittest.TestCase):
 
-    def test_addgrad(
-            self, src_backend_config, dst_backend_config,
-            current_backend_config):
-        # TODO(niboshi): Support ChainerX
-        if (src_backend_config.xp is chainerx
-                or dst_backend_config.xp is chainerx):
-            raise unittest.SkipTest('addgrad does not support ChainerX')
+    def test_grad(self, backend_config):
+        x = backend_config.get_array(
+            np.random.uniform(-1, 1, self.shape).astype(np.float32))
+        g = backend_config.get_array(
+            np.random.uniform(0.1, 10, self.shape).astype(np.float32))
+        v = chainer.Variable(x)
+        v.grad = g
+        backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+    def test_grad_var(self, backend_config):
+        x = backend_config.get_array(
+            np.random.uniform(-1, 1, self.shape).astype(np.float32))
+        g = backend_config.get_array(
+            np.random.uniform(0.1, 10, self.shape).astype(np.float32))
+        v = chainer.Variable(x)
+        gv = chainer.Variable(g)
+        v.grad_var = gv
+        backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+        # Same instance should be returned each time.
+        assert v.grad_var is gv
+
+
+class VariableAddgradTestBase(object):
+
+    def check_addgrad(
+            self, should_succeed,
+            src_backend_config, dst_backend_config, current_backend_config):
         src_device = src_backend_config.device
         dst_device = dst_backend_config.device
 
@@ -871,12 +861,72 @@ class TestVariableAddgrad(unittest.TestCase):
             b.cleargrad()
 
         with current_backend_config:
-            b.addgrad(a)
+            if should_succeed:
+                b.addgrad(a)
+            else:
+                with pytest.raises(RuntimeError):
+                    b.addgrad(a)
 
-        np_device = chainer.get_device('@numpy')
-        np.testing.assert_array_equal(np_device.send(b.grad), expect_np)
-        assert backend.get_device_from_array(b.data) == dst_device
-        assert backend.get_device_from_array(b.grad) == dst_device
+        if should_succeed:
+            np_device = chainer.get_device('@numpy')
+            np.testing.assert_array_equal(np_device.send(b.grad), expect_np)
+            assert backend.get_device_from_array(b.data) == dst_device
+            assert backend.get_device_from_array(b.grad) == dst_device
+
+
+addgrad_test_parameterize = testing.parameterize(*testing.product(
+    {
+        'clear_src_grad,clear_dst_grad': [
+            [False, False],
+            [True, False],
+            [False, True],
+        ],
+    }))
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
+@addgrad_test_parameterize
+class TestVariableAddgradNonChainerx(
+        VariableAddgradTestBase, unittest.TestCase):
+
+    def test_addgrad(
+            self, src_backend_config, dst_backend_config,
+            current_backend_config):
+        self.check_addgrad(
+            True, src_backend_config, dst_backend_config,
+            current_backend_config)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@addgrad_test_parameterize
+class TestVariableAddgradChainerx(
+        VariableAddgradTestBase, unittest.TestCase):
+
+    def test_addgrad(
+            self, src_backend_config, dst_backend_config,
+            current_backend_config):
+        self.check_addgrad(
+            True, src_backend_config, dst_backend_config,
+            current_backend_config)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _nonchainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@addgrad_test_parameterize
+class TestVariableAddgradBetweenNonChainerxAndChainerx(
+        VariableAddgradTestBase, unittest.TestCase):
+
+    def test_unsupported_addgrad(
+            self, src_backend_config, dst_backend_config,
+            current_backend_config):
+        self.check_addgrad(
+            False, src_backend_config, dst_backend_config,
+            current_backend_config)
 
 
 @testing.parameterize(

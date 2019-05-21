@@ -10,6 +10,8 @@ import chainerx
 
 class CpuDevice(_backend.Device):
 
+    """Device for CPU (NumPy) backend"""
+
     @property
     def xp(self):
         return numpy

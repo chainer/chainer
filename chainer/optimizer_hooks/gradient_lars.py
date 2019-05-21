@@ -6,12 +6,12 @@ class GradientLARS(object):
 
     """Optimizer/UpdateRule hook function for layer wise adaptive rate scaling.
 
-    See: `Large Batch Training of Convolutional Networks \
-          <https://arxiv.org/abs/1708.03888>`_.
+    See: `Large Batch Training of Convolutional Networks
+    <https://arxiv.org/abs/1708.03888>`_.
 
-    See: `Convergence Analysis of Gradient Descent Algorithms \
-          with Proportional Updates \
-          <https://arxiv.org/abs/1801.03137>`_.
+    See: `Convergence Analysis of Gradient Descent Algorithms
+    with Proportional Updates
+    <https://arxiv.org/abs/1801.03137>`_.
 
     This hook function scales all gradient arrays to fit to the weight norm.
 
