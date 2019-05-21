@@ -3,10 +3,12 @@
 from __future__ import print_function
 
 import argparse
+import sys
 
 import chainer
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 from facade_dataset import FacadeDataset
 from facade_visualizer import out_image
@@ -49,6 +51,9 @@ def main():
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     print('GPU: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
