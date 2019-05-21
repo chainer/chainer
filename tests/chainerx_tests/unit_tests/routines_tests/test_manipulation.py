@@ -816,7 +816,7 @@ class TestRepeat(op_utils.NumpyOpTest):
 
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(
-        chainerx.DimensionError, numpy.AxisError))
+        chainerx.DimensionError, numpy.ValueError))
 @pytest.mark.parametrize('shape,repeats,axis', [
     # Axis out of range.
     ((1,), 1, 1),
