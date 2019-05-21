@@ -590,7 +590,7 @@ class Function(object):
         :attr:`output_data`.
 
         .. note::
-           It is STRONGLY RECOMMENDED to use this method if the function
+           It is STRONGLY RECOMMENDED that you use this method if the function
            requires some or all output arrays in backprop. The function can
            also use output arrays just by keeping references to them directly,
            whereas it might influence on the performance of later function

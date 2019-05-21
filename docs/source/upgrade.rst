@@ -66,7 +66,7 @@ Use ``forward`` Instead of ``__call__`` in Links
 ------------------------------------------------
 
 Prior to Chainer v5, ``__call__`` method is used to define the behavior of :class:`~chainer.Link`.
-In Chainer v5, ``forward`` method has been introduced, and is now recommended to use it instead of ``__call__``.
+In Chainer v5, ``forward`` method has been introduced, and is now recommended that you use it instead of ``__call__``.
 The base class (:class:`~chainer.Link`) provides ``__call__`` method implementation that invokes ``forward`` method defined in the subclass; the only thing you need to do is to rename the method name (replace ``def __call__(...)`` with ``def forward(...)``).
 
 For backward compatibility, you can still use ``__call__`` to define your own link.

@@ -90,23 +90,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(IfGreaterElseAAAAKernel, NativeIfGreaterElseAAAAKernel);
 
-class NativeTanhKernel : public TanhKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Tanh(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(TanhKernel, NativeTanhKernel);
-
 }  // namespace
 }  // namespace native
 }  // namespace chainerx

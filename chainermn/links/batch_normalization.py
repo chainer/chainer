@@ -128,3 +128,18 @@ class MultiNodeBatchNormalization(link.Link):
 
         """
         self.N = 0
+
+    def copy(self, mode='share'):
+        to_be_preserved = ['_communication_backend', 'comm']
+        preserved = {}
+        for name in to_be_preserved:
+            preserved[name] = getattr(self, name)
+            setattr(self, name, None)
+
+        ret = super(MultiNodeBatchNormalization, self).copy(mode)
+
+        for name in to_be_preserved:
+            setattr(self, name, preserved[name])
+            setattr(ret, name, preserved[name])
+
+        return ret

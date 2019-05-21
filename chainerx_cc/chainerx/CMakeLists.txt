@@ -27,6 +27,7 @@ install(FILES
     backward_builder.h
     backward_context.h
     backward_fwd.h
+    chainerx.h
     check_backward.h
     constant.h
     context.h
@@ -61,7 +62,6 @@ install(FILES
     strides.h
     thread_local_state.h
     util.h
-    chainerx.h
     DESTINATION include/chainerx
     )
 

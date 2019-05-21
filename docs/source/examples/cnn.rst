@@ -92,7 +92,7 @@ When it's in training mode, ``forward()`` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
 
-It is recommended to use the global configuration ``chainer.config.train`` to switch the running mode.
+It is recommended that you use the global configuration ``chainer.config.train`` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
 can also write the same model like in this way:

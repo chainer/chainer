@@ -2,6 +2,7 @@ add_library(chainerx_routines STATIC
     binary.cc
     connection.cc
     creation.cc
+    hyperbolic.cc
     indexing.cc
     linalg.cc
     logic.cc
@@ -11,6 +12,7 @@ add_library(chainerx_routines STATIC
     pooling.cc
     sorting.cc
     statistics.cc
+    trigonometric.cc
     type_util.cc
 )
 
@@ -18,6 +20,7 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    hyperbolic.h
     indexing.h
     linalg.h
     logic.h
@@ -28,6 +31,7 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
+    trigonometric.h
     type_util.h
     DESTINATION include/chainerx/routines
     )

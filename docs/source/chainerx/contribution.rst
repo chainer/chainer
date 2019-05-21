@@ -9,6 +9,10 @@ It describes how to build the project and how to run the test suite so that you 
     Please refer to the :ref:`Chainer Contribution Guide <contrib>` for the more general contribution guideline that is not specific to ChainerX.
     E.g. how to download the source code, manage git branches, send pull requests or contribute to Chainer's Python code base.
 
+.. note::
+    There is a public `ChainerX Product Backlog <https://docs.google.com/spreadsheets/d/1daitXlRhHu7eZENFUs1cHw8o12rmA8bvudUQ0Yof8Jc>`__.
+
+
 Building the shared library
 ---------------------------
 
