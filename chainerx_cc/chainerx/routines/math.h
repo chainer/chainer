@@ -109,6 +109,12 @@ Array SquaredDifference(const Array& x1, const Array& x2);
 
 Array Sqrt(const Array& x);
 
+Array Power(const Array& x1, const Array& x2);
+
+Array Power(const Array& x1, Scalar x2);
+
+Array Power(Scalar x1, const Array& x2);
+
 Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);

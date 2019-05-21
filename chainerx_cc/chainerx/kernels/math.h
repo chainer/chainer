@@ -128,6 +128,27 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class PowerKernel : public Kernel {
+public:
+    static const char* name() { return "Power"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class PowerASKernel : public Kernel {
+public:
+    static const char* name() { return "PowerAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class PowerSAKernel : public Kernel {
+public:
+    static const char* name() { return "PowerSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 class CeilKernel : public Kernel {
 public:
     static const char* name() { return "Ceil"; }

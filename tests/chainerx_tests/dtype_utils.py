@@ -14,9 +14,8 @@ def _permutate_dtype_mapping(dtype_mapping_list):
     return sorted(d.items())
 
 
-result_dtypes_two_arrays = _permutate_dtype_mapping([
-    # Bools.
-    (('bool_', 'bool_'), 'bool_'),
+# Used for e.g. testing power.
+result_numeric_dtypes_two_arrays = _permutate_dtype_mapping([
     # Floats.
     (('float16', 'float16'), 'float16'),
     (('float32', 'float32'), 'float32'),
@@ -47,13 +46,19 @@ result_dtypes_two_arrays = _permutate_dtype_mapping([
     (('int16', 'float32'), 'float32'),
     (('int32', 'float32'), 'float32'),
     (('int64', 'float32'), 'float32'),
+])
+
+
+result_dtypes_two_arrays = _permutate_dtype_mapping([
+    # Bools.
+    (('bool_', 'bool_'), 'bool_'),
     # Bool and other.
     (('bool_', 'uint8'), 'uint8'),
     (('bool_', 'int8'), 'int8'),
     (('bool_', 'int16'), 'int16'),
     (('bool_', 'float16'), 'float16'),
     (('bool_', 'float64'), 'float64'),
-])
+]) + result_numeric_dtypes_two_arrays
 
 
 result_dtypes_three_arrays = _permutate_dtype_mapping([

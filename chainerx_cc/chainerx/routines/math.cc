@@ -1,5 +1,6 @@
 #include "chainerx/routines/math.h"
 
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <utility>
@@ -823,6 +824,72 @@ Array Sqrt(const Array& x) {
 
     return out;
 }
+
+void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<PowerKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power", {x1, x2}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& x2 = bctx.GetRetainedInput(x2_tok);
+            const Array& gin = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, GetKind(x2.dtype())});
+            bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([x1_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), x2_dtype = x2.dtype()](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            const Array& gin = *bctx.output_grad() * out * Log(x1);
+            bctx.input_grad() = x2_dtype != gin.dtype() ? gin.AsType(x2_dtype) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<PowerASKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power_array_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& gin = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, x2.kind()});
+            bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x2.device().backend().CallKernel<PowerSAKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power_scalar_array", x2, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0), x1, x2_dtype = x2.dtype()](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            const Array& gin = *bctx.output_grad() * out * std::log(static_cast<double>(x1));
+            bctx.input_grad() = x2_dtype != gin.dtype() ? gin.AsType(x2_dtype) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+Array Power(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&PowerImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(const Array& x1, Scalar x2) { return internal::Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Absolute(const Array& x) {
     Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
