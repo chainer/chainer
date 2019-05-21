@@ -23,7 +23,7 @@ def main():
                         help='Learning rate for SGD')
     parser.add_argument('--epoch', '-e', type=int, default=300,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', action='store_true',  
+    parser.add_argument('--gpu', '-g', action='store_true',
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
@@ -52,7 +52,6 @@ def main():
             'This example can only be executed on the even number'
             'of processes.')
 
-    
     if comm.rank == 0:
         print('==========================================')
         print('Num process (COMM_WORLD): {}'.format(comm.size))
@@ -62,7 +61,6 @@ def main():
         print('Num epoch: {}'.format(args.epoch))
         print('==========================================')
 
-    
     # Set up a neural network to train.
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
@@ -78,21 +76,22 @@ def main():
         else:
             raise RuntimeError('Invalid dataset choice.')
     model = L.Classifier(models.VGG.VGG(class_labels))
-    
+
     if device >= 0:
         # Make a specified GPU current
         chainer.backends.cuda.get_device_from_id(device).use()
         model.to_gpu()  # Copy the model to the GPU
 
-    optimizer =  chainermn.create_multi_node_optimizer(chainer.optimizers.MomentumSGD(args.learnrate), data_comm)
+    optimizer = chainermn.create_multi_node_optimizer(
+        chainer.optimizers.MomentumSGD(args.learnrate), data_comm)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
-    
     train = chainermn.scatter_dataset(train, data_comm, shuffle = True)
     test = chainermn.scatter_dataset(test, data_comm, shuffle = True)
 
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize, shuffle = False) 
+    train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
+                                                 shuffle = False)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
@@ -115,12 +114,12 @@ def main():
 
     trainer.extend(extensions.ExponentialShift('lr', 0.5),
                    trigger=(25, 'epoch'))
-    
+
     if comm.rank == 0:
-        trainer.extend(extensions.dump_graph('main/loss'))    
+        trainer.extend(extensions.dump_graph('main/loss'))
         trainer.extend(extensions.snapshot(
-            filename='snaphot_epoch_{.updater.epoch}'))   
-        trainer.extend(extensions.LogReport())    
+            filename='snaphot_epoch_{.updater.epoch}'))
+        trainer.extend(extensions.LogReport())
         trainer.extend(extensions.PrintReport(
             ['epoch', 'main/loss', 'validation/main/loss',
              'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
