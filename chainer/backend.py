@@ -49,7 +49,9 @@ def copyto(dst, src):
             Source array.
 
     """
-    if isinstance(dst, numpy.ndarray):
+    if isinstance(dst, chainerx.ndarray):
+        dst[...] = _chainerx._array_to_chainerx(src, dst.device)
+    elif isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
