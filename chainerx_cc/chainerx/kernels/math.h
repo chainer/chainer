@@ -191,24 +191,6 @@ public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
-// Calculates the maximum along specified axes.
-// See Sum() for the explanation of arguments.
-class AMaxKernel : public Kernel {
-public:
-    static const char* name() { return "AMax"; }
-
-    virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
-};
-
-// Calculates the minimum along specified axes.
-// See Sum() for the explanation of arguments.
-class AMinKernel : public Kernel {
-public:
-    static const char* name() { return "AMin"; }
-
-    virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
-};
-
 // Compares x1 and x2 and assign either pos or neg according to the result.
 // Formally, it calculates: out = x1 < x2 ? pos : neg
 class IfLessElseASSAKernel : public Kernel {
