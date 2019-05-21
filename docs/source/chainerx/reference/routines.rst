@@ -66,9 +66,15 @@ Array manipulation routines
    chainerx.ascontiguousarray
    chainerx.concatenate
    chainerx.stack
+   chainerx.hstack
+   chainerx.vstack
+   chainerx.atleast_2d
    chainerx.split
    chainerx.swapaxes
    chainerx.expand_dims
+   chainerx.flip
+   chainerx.fliplr
+   chainerx.flipud
 
 Indexing routines
 -----------------
@@ -78,6 +84,7 @@ Indexing routines
    :nosignatures:
 
    chainerx.take
+   chainerx.where
 
 Linear algebra
 --------------
@@ -147,6 +154,8 @@ Mathematical functions
    chainerx.arccosh
    chainerx.square
    chainerx.clip
+   chainerx.fabs
+   chainerx.sign
    chainerx.ceil
    chainerx.floor
    chainerx.bitwise_and

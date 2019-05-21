@@ -96,12 +96,12 @@ Following is the complete list of the configuration entries that have correspond
 ``chainer.config.enable_backprop``
     It is corresponding to the *backprop mode* in Chainer v1.
     The functions :func:`no_backprop_mode` and :func:`force_backprop_mode` are still available in Chainer v2, which automatically turns on/off the ``enable_backprop`` flag.
-    One important difference from Chainer v1 is that **the** ``volatile`` **flag is removed from** :class:`Variable`.
+    One important difference from Chainer v1 is that **the** ``volatile`` **flag is removed from** :class:`~chainer.Variable`.
     Therefore, there are more situations that you need to modify the ``enable_backprop`` flag.
 ``chainer.config.keep_graph_on_report``
     This flag configures whether or not to keep the computational graph alive for a reported variable.
-    In Chainer v2, when a :class:`Variable` object is reported by :func:`report`, a copy of the variable isolated from the computational graph is created and stored by default.
-    Setting ``True`` to this flag, you can change this behavior and then the original :class:`Variable` object is stored as is.
+    In Chainer v2, when a :class:`~chainer.Variable` object is reported by :func:`report`, a copy of the variable isolated from the computational graph is created and stored by default.
+    Setting ``True`` to this flag, you can change this behavior and then the original :class:`~chainer.Variable` object is stored as is.
     See :ref:`upgrade-reporter-purge-variable` for the details.
 ``chainer.config.train``
     It is corresponding to the ``train`` or ``test`` argument of some functions in Chainer v1.
@@ -148,7 +148,7 @@ The :attr:`Variable.volatile` flag has been removed since Chainer v2.
 Instead, the configuration ``chainer.config.enable_backprop`` can be used to enable/disable the automatic differentiation feature.
 If it is ``True``, Chainer always creates a computational graph on the forward propagation, which corresponds to passing non-volatile variables in Chainer v1.
 Otherwise, Chainer does not create a graph, which corresponds to passing volatile variables in Chainer v1.
-The biggest difference is that ``enable_backprop`` is a thread-local flag, whereas ``volatile`` was a flag local to each :class:`Variable` object.
+The biggest difference is that ``enable_backprop`` is a thread-local flag, whereas ``volatile`` was a flag local to each :class:`~chainer.Variable` object.
 Note that ``enable_backprop`` flag has already existed in Chainer v1, which took effect only if all the inputs to the function have ``volatile == 'auto'``.
 
 The ``chainer.config.enable_backprop`` flag can be modified directly or by using :func:`~chainer.using_config`.
@@ -183,27 +183,27 @@ If you are using the ``Variable.volatile`` flag, you have to stop setting this f
 Variable is not a part of a computational graph anymore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :class:`Variable` class has been separated into two distinct classes, the :class:`Variable` class and the :class:`VariableNode` class, since Chainer v2.
-Every :class:`Variable` object owns its own :class:`VariableNode` object.
-A computational graph consists of :class:`Function` objects and :class:`VariableNode` objects.
-When one applies a :class:`Function` to a :class:`Variable`, the :class:`VariableNode` object of the variable is extracted and set to one of the inputs of the function.
+The :class:`~chainer.Variable` class has been separated into two distinct classes, the :class:`~chainer.Variable` class and the :class:`~chainer.VariableNode` class, since Chainer v2.
+Every :class:`~chainer.Variable` object owns its own :class:`~chainer.VariableNode` object.
+A computational graph consists of :class:`~chainer.Function` objects and :class:`~chainer.VariableNode` objects.
+When one applies a :class:`~chainer.Function` to a :class:`~chainer.Variable`, the :class:`~chainer.VariableNode` object of the variable is extracted and set to one of the inputs of the function.
 
-Note that the underlying data array of the variable is still held by the :class:`Variable` object.
-It allows each :class:`Function` implementation to release unneeded arrays from the computational graph, resulting in greatly reduced memory consumption.
+Note that the underlying data array of the variable is still held by the :class:`~chainer.Variable` object.
+It allows each :class:`~chainer.Function` implementation to release unneeded arrays from the computational graph, resulting in greatly reduced memory consumption.
 
 **This change does not affect most users' code.**
 If you are directly traversing the computational graph by yourself or modifying the graph ad-hoc, you may have to update your code.
-In most cases, it is enough to just change :class:`Variable` into :class:`VariableNode` in the code traversing the computational graph.
+In most cases, it is enough to just change :class:`~chainer.Variable` into :class:`~chainer.VariableNode` in the code traversing the computational graph.
 
 .. _upgrade-parameter:
 
 Parameter has to be an instance of Parameter class
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer v2 has a subclass of :class:`Variable` called :class:`Parameter`.
-This class has an interface convenient on setting up a parameter variable registered to :class:`Link`.
+Chainer v2 has a subclass of :class:`~chainer.Variable` called :class:`~chainer.Parameter`.
+This class has an interface convenient on setting up a parameter variable registered to :class:`~chainer.Link`.
 
-You basically do not need to update your code because :meth:`Link.add_param` creates a :class:`Parameter` object in Chainer v2.
+You basically do not need to update your code because :meth:`Link.add_param` creates a :class:`~chainer.Parameter` object in Chainer v2.
 There is a new recommended way of registering parameters to a link in Chainer v2, though.
 :ref:`See here <upgrade-new-param-register>` for the recommended way of parameter registration.
 
@@ -259,8 +259,8 @@ This change makes the ordinary path of running the type checking much faster, wh
 Methods to release unneeded arrays are added
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:ref:`As is written above <upgrade-variable-node>`, Chainer v2 introduced a new mechanism to reduce the memory consumption of each :class:`Function` implementation.
-In many cases, a :class:`Function` implementation does not need some input arrays in its backward computation.
+:ref:`As is written above <upgrade-variable-node>`, Chainer v2 introduced a new mechanism to reduce the memory consumption of each :class:`~chainer.Function` implementation.
+In many cases, a :class:`~chainer.Function` implementation does not need some input arrays in its backward computation.
 A new method called :meth:`Function.retain_inputs` can be used to specify which input arrays are actually needed.
 This method must not be called from the outside of :meth:`Function.forward`.
 
@@ -291,15 +291,15 @@ This method must not be called from the outside of :meth:`Function.forward`.
                return grad_outputs[0], grad_outputs[0]
 
 In some cases, the function can (or have to) use the output arrays instead of the inputs in its backward computation.
-In Chainer v1, we have written code that store the output arrays to attributes of the :class:`Function` object and reuse them in the :meth:`~Function.backward` method.
-In Chainer v2, it is recommended to use :meth:`Function.retain_outputs` to declare which outputs are required in the backward computation.
+In Chainer v1, we have written code that store the output arrays to attributes of the :class:`~chainer.Function` object and reuse them in the :meth:`~Function.backward` method.
+In Chainer v2, it is recommended that you use :meth:`Function.retain_outputs` to declare which outputs are required in the backward computation.
 The retained output arrays can be accessed via :attr:`Function.output_data`.
 
 .. note::
 
-   The existing :class:`Function` implementations that store the output arrays to its attributes will run correctly in Chainer v2.
+   The existing :class:`~chainer.Function` implementations that store the output arrays to its attributes will run correctly in Chainer v2.
    There is no any memory overhead right now.
-   It is recommended to use :meth:`~Function.retain_outputs`, though, so that we can incorporate more memory optimization in the future.
+   It is recommended that you use :meth:`~Function.retain_outputs`, though, so that we can incorporate more memory optimization in the future.
 
 .. admonition:: Example
 
@@ -396,7 +396,7 @@ init_weight function is removed
 The ``chainer.initializers.init_weight`` function that was used on weight initialization has been removed since Chainer v2.
 
 **You have to update your code if you are using** ``init_weight``.
-In most cases, the update is simple: pass an initializer to :class:`Parameter`.
+In most cases, the update is simple: pass an initializer to :class:`~chainer.Parameter`.
 
 .. admonition:: Example
 
@@ -415,7 +415,7 @@ In most cases, the update is simple: pass an initializer to :class:`Parameter`.
               self.b.data.fill(0)
           ...
 
-   This code should be fixed as follows (see the next topic for the use of :class:`Parameter`).
+   This code should be fixed as follows (see the next topic for the use of :class:`~chainer.Parameter`).
 
    .. code-block:: py
 
@@ -493,15 +493,15 @@ Parameter link is removed
 
 The ``chainer.links.Parameter`` link is removed in Chainer v2.
 This link existed in Chainer v1 only for the backward compatibility.
-Use :class:`chainer.Parameter` instead (for the new :class:`Parameter` class, see :ref:`upgrade-parameter`).
+Use :class:`chainer.Parameter` instead (for the new :class:`~chainer.Parameter` class, see :ref:`upgrade-parameter`).
 
 .. _upgrade-new-param-register:
 
 New-style parameter registration APIs are added to Link
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, :meth:`Link.init_scope` method returns a context manager that automatically registers a :class:`Parameter` object to the link at setting it to an attribute.
-If you are using IDE like PyCharm, it is recommended to use this new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
+In Chainer v2, :meth:`Link.init_scope` method returns a context manager that automatically registers a :class:`~chainer.Parameter` object to the link at setting it to an attribute.
+If you are using IDE like PyCharm, it is recommended that you use this new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
 .. note::
@@ -540,13 +540,13 @@ It is also a good practice to use the new-style API even if you are not using ID
 
 .. note::
 
-   To keep a :class:`Parameter` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
+   To keep a :class:`~chainer.Parameter` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
 
 New-style child link registration APIs are added to Chain
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Like :class:`Parameter`, a :class:`Link` object is also automatically registered to a :class:`Chain` object by substitution to an attribute within a :meth:`~Link.init_scope` scope.
-If you are using IDE like PyCharm, it is recommended to use the new-style child link registration so that IDEs can easily detect the existence of the child link as an attribute.
+Like :class:`~chainer.Parameter`, a :class:`~chainer.Link` object is also automatically registered to a :class:`~chainer.Chain` object by substitution to an attribute within a :meth:`~Link.init_scope` scope.
+If you are using IDE like PyCharm, it is recommended that you use the new-style child link registration so that IDEs can easily detect the existence of the child link as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
 .. note::
@@ -584,7 +584,7 @@ It is also a good practice to use the new-style API even if you are not using ID
 
 .. note::
 
-   To keep a :class:`Link` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
+   To keep a :class:`~chainer.Link` object as an attribute without registration, you can set the attribute without using the ``with self.init_scope():`` block.
 
 .. _update-omit-input-size:
 
@@ -613,7 +613,7 @@ Optimizer
 Deprecated methods of Optimizer are removed
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following methods are removed from :class:`Optimizer`.
+The following methods are removed from :class:`~chainer.Optimizer`.
 These methods have been already deprecated in the past versions.
 **If you are using these methods, you have to update your code.**
 
@@ -628,9 +628,9 @@ These methods have been already deprecated in the past versions.
 GradientMethod uses Link.cleargrads instead of Link.zerograds by default
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, :class:`GradientMethod` clears the gradient before running backprop by :meth:`Link.cleargrads`.
+In Chainer v2, :class:`~chainer.GradientMethod` clears the gradient before running backprop by :meth:`Link.cleargrads`.
 It means that the gradient of each parameter is initialized by ``None`` instead of a zero array.
-Note that all the optimizer implementations provided by Chainer are subclasses of :class:`GradientMethod`, and therefore this change affects all of them.
+Note that all the optimizer implementations provided by Chainer are subclasses of :class:`~chainer.GradientMethod`, and therefore this change affects all of them.
 
 **In most cases, you do not need to update your code.**
 If your code relies on the zeroing initialization, you have to fix your code to explicitly initialize the gradient by zero, or to pass ``False`` to :meth:`GradientMethod.use_cleargrads`.
@@ -640,26 +640,26 @@ If your code relies on the zeroing initialization, you have to fix your code to 
 GradientMethod is redesigned to allow parameter-specific update rules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, the new class :class:`UpdateRule` is used to define an update rule specific to each :class:`Parameter` object.
-The :class:`UpdateRule` is set to each :class:`Parameter` object, and is used at each update step.
+In Chainer v2, the new class :class:`~chainer.UpdateRule` is used to define an update rule specific to each :class:`~chainer.Parameter` object.
+The :class:`~chainer.UpdateRule` is set to each :class:`~chainer.Parameter` object, and is used at each update step.
 This object implements an *update formula* using the data and gradient arrays.
 
-Each :class:`UpdateRule` object has :attr:`~UpdateRule.enabled` flag, which configures if the update rule should be applied to that parameter on update.
+Each :class:`~chainer.UpdateRule` object has :attr:`~UpdateRule.enabled` flag, which configures if the update rule should be applied to that parameter on update.
 By setting the flag to ``False``, you can *freeze* the parameter.
 There is also a convenient method :meth:`Link.enable_update` and :meth:`Link.disable_update`, which configure the flag of each parameter under the link hierarchy.
 In other frameworks, a similar feature is called *layer freezing*.
 In Chainer v2, this is officially supported by these methods.
 
-Each :class:`UpdateRule` object can also hold its own hook functions similar to :class:`Optimizer`.
-The built-in hook functions except for :class:`~optimizer.GradientClipping` can also be used as a hook function of :class:`UpdateRule`.
+Each :class:`~chainer.UpdateRule` object can also hold its own hook functions similar to :class:`~chainer.Optimizer`.
+The built-in hook functions except for :class:`~optimizer.GradientClipping` can also be used as a hook function of :class:`~chainer.UpdateRule`.
 
-**In most cases, you do not have to update your code** because each optimizer automatically sets up an appropriate :class:`UpdaterRule` object to each parameter.
+**In most cases, you do not have to update your code** because each optimizer automatically sets up an appropriate :class:`~chainer.UpdaterRule` object to each parameter.
 
 **If you are using a custom gradient-based optimizer implementation, you need to update the implementation.**
 The following list shows what you have to do.
 
-- Write a subclass of :class:`UpdateRule` that implements the update rule.
-- Rewrite your :class:`GradientMethod` implementation.
+- Write a subclass of :class:`~chainer.UpdateRule` that implements the update rule.
+- Rewrite your :class:`~chainer.GradientMethod` implementation.
   The new implementation only has to set up the update rule for each parameter in the target link.
 
 You can see live examples in `the optimizer implementations provided by Chainer <https://github.com/chainer/chainer/tree/master/chainer/optimizers>`_.
@@ -684,11 +684,11 @@ Trainer and Extension
 Updater and Evaluator pass raw data arrays to the loss function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, :class:`~training.Updater` and :class:`~training.extensions.Evaluator` pass raw data arrays to the loss function without wrapping them with :class:`Variable`.
+In Chainer v2, :class:`~training.Updater` and :class:`~training.extensions.Evaluator` pass raw data arrays to the loss function without wrapping them with :class:`~chainer.Variable`.
 **You might need to update your code so that the loss function (in most cases, the model's** ``__call__`` **) accepts raw arrays.**
 
-Note that raw arrays can be directly passed to any :class:`Function`; they are automatically wrapped by :class:`Variable`.
-For example, if the input is directly passed to a :class:`Function` object (or any function under :mod:`chainer.functions`), you do not need to update the code.
+Note that raw arrays can be directly passed to any :class:`~chainer.Function`; they are automatically wrapped by :class:`~chainer.Variable`.
+For example, if the input is directly passed to a :class:`~chainer.Function` object (or any function under :mod:`chainer.functions`), you do not need to update the code.
 
 .. admonition:: Example
 
@@ -782,7 +782,7 @@ Reporter
 When a variable is reported, the variable is copied with the graph purged
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Chainer v2, when a :class:`Variable` object is reported using :func:`report` function (or directly using :class:`Reporter`), a copy of the variable is made without preserving the computational graph.
+In Chainer v2, when a :class:`~chainer.Variable` object is reported using :func:`report` function (or directly using :class:`~chainer.Reporter`), a copy of the variable is made without preserving the computational graph.
 **If your code depends on the reachability of the computational graph from the reported variable, you have to update your code.**
 The easiest way to update your code is setting ``chainer.config.keep_graph_on_report`` to ``True``, then Chainer will keep the computational graph reachable from the reported variable.
 
@@ -807,7 +807,7 @@ Some obsolete classes and functions are removed
 The following classes and functions are removed in Chainer v2.
 
 - ``chainer.Flag``
-- ``chainer.FunctionSet`` (Use :class:`Chain` or :class:`ChainList` instead)
+- ``chainer.FunctionSet`` (Use :class:`~chainer.Chain` or :class:`~chainer.ChainList` instead)
 - ``chainer.cuda.init`` (It did nothing except for calling :func:`~cuda.check_cuda_available`)
 - ``chainer.cuda.empty`` (Use :func:`cupy.empty`)
 - ``chainer.cuda.empty_like`` (Use :func:`cupy.empty_like`)

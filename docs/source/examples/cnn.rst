@@ -76,7 +76,7 @@ by assigning the objects of :class:`~chainer.Link` as an attribute.
 
 The model class is instantiated before the forward and backward computations.
 To give input images and label vectors simply by calling the model object
-like a function, :meth:`forward` is usually defined in the model class.
+like a function, ``forward()`` is usually defined in the model class.
 This method performs the forward computation of the model. Chainer uses
 the powerful autograd system for any computational graphs written with
 :class:`~chainer.FunctionNode`\ s and :class:`~chainer.Link`\ s (actually a
@@ -85,14 +85,14 @@ inside of it), so that you don't need to explicitly write the code for backward
 computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
 forward computation has a :meth:`~chainer.Variable.backward` method to perform
-autograd. In the above model, :meth:`forward` has a ``if`` statement at the
+autograd. In the above model, ``forward()`` has a ``if`` statement at the
 end to switch its behavior by the Chainer's running mode, i.e., training mode or
 not. Chainer presents the running mode as a global variable ``chainer.config.train``.
-When it's in training mode, :meth:`forward` returns the output value of the
+When it's in training mode, ``forward()`` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
 
-It is recommended to use the global configuration ``chainer.config.train`` to switch the running mode.
+It is recommended that you use the global configuration ``chainer.config.train`` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
 can also write the same model like in this way:
@@ -144,11 +144,11 @@ This code creates a list of pairs of component name (e.g., ``conv1``, ``_sigm1``
 In this case, components whose name start with ``_`` are functions (:class:`~chainer.FunctionNode`), which doesn't have any trainable parameters, so that we don't register (``setattr``) it to the model.
 Others (``conv1``, ``fc4``, etc.) are :class:`~chainer.Link`\ s, which are trainable layers that hold parameters.
 This operation can be freely replaced with many other ways because those component names are just designed to select :class:`~chainer.Link`\ s only from the list ``net`` easily.
-The list ``net`` is stored as an attribute :attr:`layers` to refer it in
-:meth:`forward`. In :meth:`forward`, it retrieves all layers in the network
-from :attr:`self.forward` sequentially and gives the
+The list ``net`` is stored as an attribute ``layers`` to refer it in
+``forward()``. In ``forward()``, it retrieves all layers in the network
+from ``self.forward`` sequentially and gives the
 input variable or the intermediate output from the previous layer to the
-current layer. The last part of the :meth:`forward` to switch its behavior
+current layer. The last part of the ``forward()`` to switch its behavior
 by the training/inference mode is the same as the former way.
 
 Ways to calculate loss
@@ -276,7 +276,7 @@ build the whole network by re-using the building block definition. Each part
 of the network is consisted of 2 or 3 convolutional layers and activation
 function (:meth:`~chainer.functions.relu`) following them, and
 :meth:`~chainer.functions.max_pooling_2d` operations. This block is written as
-:class:`VGGBlock` in the above example code. And the whole network just calls
+``VGGBlock`` in the above example code. And the whole network just calls
 this block one by one in sequential manner.
 
 ResNet152
@@ -357,17 +357,17 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 x = self.bn_r(self.conv1x1r(x))
             return F.relu(h + x)
 
-In the :class:`BottleNeck` class, depending on the value of the proj argument
+In the ``BottleNeck`` class, depending on the value of the proj argument
 supplied to the initializer, it will conditionally compute a convolutional
 layer ``conv1x1r`` which will extend the number of channels of the input ``x``
 to be equal to the number of channels of the output of ``conv1x1c``, and
 followed by a batch normalization layer before the final ReLU layer.
 Writing the building block in this way improves the re-usability of a class.
-It switches not only the behavior in :meth:`__class__` by flags but also the
-parameter registration. In this case, when :attr:`proj` is ``False``, the
-:class:`BottleNeck` doesn't have `conv1x1r` and `bn_r` layers, so the memory
+It switches not only the behavior in :meth:`~chainer.Chain.__class__` by flags but also the
+parameter registration. In this case, when ``proj`` is ``False``, the
+``BottleNeck`` doesn't have `conv1x1r` and `bn_r` layers, so the memory
 usage would be efficient compared to the case when it registers both anyway and
-just ignore them if :attr:`proj` is ``False``.
+just ignore them if ``proj`` is ``False``.
 
 Using nested :class:`~chainer.Chain`\ s and :class:`~chainer.ChainList` for
 sequential part enables us to write complex and very deep models easily.

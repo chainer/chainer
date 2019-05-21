@@ -54,6 +54,8 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxRoutines(m);
     InitChainerxChainerInterop(m);
 
+    m.def("_is_debug", []() -> bool { return CHAINERX_DEBUG; });
+
     // chainerx.testing (chainerx._testing)
     //
     // Attributes under chainerx._testing are aliased by chainerx.testing in chainerx/testing/__init__.py.

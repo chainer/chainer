@@ -1,15 +1,14 @@
 import unittest
+import warnings
 
 import numpy as np
 import six
 
 import chainer
 from chainer import testing
+from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
-from . import dummy_dataset
 
-
-# filter out invalid combinations of params
 def _filter_params(params):
     for param in params:
         if 'expected_len' in param and \
@@ -22,6 +21,15 @@ def _filter_params(params):
            isinstance(param['get_examples_key_indices'], tuple) and \
            any(len(param['expected_keys']) <= key_index
                for key_index in param['get_examples_key_indices']):
+            continue
+
+        # To reduce the number of tests,
+        # drop combinations of indices and keys.
+        # (check only `slice[indices]` and `slice[:, keys]`)
+        if not (param['indices'] == slice(None) and
+                param['get_examples_indices'] is None) and \
+           not (param['keys'] is None and
+                param['get_examples_key_indices'] is None):
             continue
 
         yield param
@@ -97,12 +105,13 @@ class TestSlice(unittest.TestCase):
 
         if self.keys is None:
             view = dataset.slice[self.indices]
-            data = dataset.data[:, self.indices]
+            data = dataset.data[:, _indices_for_numpy(self.indices)]
         else:
             view = dataset.slice[self.indices, self.keys]
             key_indices = [
                 {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys]
-            data = dataset.data[key_indices][:, self.indices]
+            data = dataset.data[key_indices][
+                :, _indices_for_numpy(self.indices)]
 
         self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), self.expected_len)
@@ -113,7 +122,7 @@ class TestSlice(unittest.TestCase):
             self.get_examples_indices, self.get_examples_key_indices)
 
         if self.get_examples_indices is not None:
-            data = data[:, self.get_examples_indices]
+            data = data[:, _indices_for_numpy(self.get_examples_indices)]
         if self.get_examples_key_indices is not None:
             data = data[list(self.get_examples_key_indices)]
 
@@ -123,6 +132,24 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+
+# Replace list of bool with ndarray of bool
+# since old numpy cannot handle list of bool.
+def _indices_for_numpy(indices):
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', FutureWarning)
+        if len(np.empty(2)[[False, True]]) == 1:
+            # new numpy
+            return indices
+
+    # old numpy
+    if isinstance(indices, list) and \
+       len(indices) > 0 and \
+       isinstance(indices[0], bool):
+        return np.array(indices)
+    else:
+        return indices
 
 
 testing.run_module(__name__, __file__)

@@ -91,15 +91,11 @@ Array Eye(
         nonstd::optional<Dtype> dtype,
         Device& device = GetDefaultDevice());
 
-namespace internal {
-
 // Returns a C-contiguous array without changing input shape.
 Array AsContiguous(const Array& a, Dtype dtype);
 
 // Returns a C-contiguous array with the same shape and dtype as the input array.
 inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
-
-}  // namespace internal
 
 // Returns a C-contiguous array.
 // An input array with shape {} results in a new array with shape {1}.
