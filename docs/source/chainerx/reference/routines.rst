@@ -120,6 +120,18 @@ Logic functions
    chainerx.equal
    chainerx.not_equal
 
+Loss functions
+---------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.mean_absolute_error
+   chainerx.mean_squared_error
+   chainerx.huber_loss
+   chainerx.gaussian_kl_divergence
+
 Mathematical functions
 ----------------------
 

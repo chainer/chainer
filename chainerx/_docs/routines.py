@@ -726,6 +726,139 @@ Note:
 """)
 
 
+def _docs_loss():
+    _docs.set_doc(
+        chainerx.mean_absolute_error,
+        """Mean absolute error function.
+
+The function computes the mean absolute error between two variables. The
+mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
+same dimensions. Note that the error is not scaled by 1/2.
+
+Args:
+    x0 (~chainerx.ndarray): Input variable.
+    x1 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the mean absolute error of two inputs.
+
+.. seealso:: :func:`chainer.functions.mean_absolute_error`
+""")
+
+    _docs.set_doc(
+        chainerx.mean_squared_error,
+        """Mean squared error function.
+
+The function computes the mean squared error between two variables. The
+mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
+same dimensions. Note that the error is not scaled by 1/2.
+
+Args:
+    x0 (~chainerx.ndarray): Input variable.
+    x1 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the mean squared error of two inputs.
+
+.. seealso:: :func:`chainer.functions.mean_squared_error`
+""")
+
+    _docs.set_doc(
+        chainerx.huber_loss,
+        """Computes the Huber loss.
+
+    The Huber loss is similar to the :func:`mean_squared_error` but is less
+    sensitive to outliers in the data. It is defined as
+
+    .. math::
+
+        L_{\\delta}(a) = \\left \\{ \\begin{array}{cc}
+        \\frac{1}{2} a^2 & {\\rm if~|a| \\leq \\delta} \\\\
+        \\delta (|a| - \\frac{1}{2} \\delta) & {\\rm otherwise,}
+        \\end{array} \\right.
+
+    where :math:`a = x - t` is the difference between the input :math:`x`
+    and the target :math:`t`.
+
+    The loss is a variable whose value depends on the value of
+    the option ``reduce``. If it is ``'no'``, it holds the elementwise
+    loss values. If it is ``'sum_along_second_axis'``, loss values are
+    summed up along the second axis (i.e. ``axis=1``).
+
+    See: `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
+
+    Args:
+        x (~chainerx.ndarray): Input variable.
+            The shape of ``x`` should be (:math:`N`, :math:`K`, ...) if
+            ``reduce='sum_along_second_axis'``.
+        t (~chainerx.ndarray): Target variable for
+            regression. The shape of ``t`` should be
+            (:math:`N`, :math:`K`, ...) if ``reduce='sum_along_second_axis'``.
+        delta (float): Constant variable for Huber loss function
+            as used in definition.
+        reduce (str): Reduction option. Its value must be either
+            ``'sum_along_second_axis'`` or ``'no'``. Otherwise,
+            :class:`ValueError` is raised.
+
+    Returns:
+        :class:`~chainerx.ndarray`:
+            A variable object holding a scalar array of the
+            Huber loss :math:`L_{\\delta}`.
+            If ``reduce`` is ``'no'``, the output variable holds array
+            whose shape is same as one of (hence both of) input variables.
+            If it is ``'sum_along_second_axis'``, the shape of the array
+            is same as the input variables, except the second axis is removed.
+
+.. seealso:: :func:`chainer.functions.huber_loss`
+""")
+
+    _docs.set_doc(
+        chainerx.gaussian_kl_divergence,
+        """Computes the KL-divergence of Gaussian variables from the standard one.
+
+    Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
+    representing :math:`\\log(\\sigma^2)`, this function calculates
+    the KL-divergence in elementwise manner between the given multi-dimensional
+    Gaussian :math:`N(\\mu, S)` and the standard Gaussian :math:`N(0, I)`
+
+    .. math::
+
+       D_{\\mathbf{KL}}(N(\\mu, S) \\| N(0, I)),
+
+    where :math:`S` is a diagonal matrix such that :math:`S_{ii} = \\sigma_i^2`
+    and :math:`I` is an identity matrix.
+
+    The output is a variable whose value depends on the value of
+    the option ``reduce``. If it is ``'no'``, it holds the elementwise
+    loss values. If it is ``'sum'`` or ``'mean'``, loss values are summed up
+    or averaged respectively.
+
+    Args:
+        mean (~chainerx.ndarray):
+            A variable representing mean of given
+            gaussian distribution, :math:`\\mu`.
+        ln_var (~chainerx.ndarray):
+            A variable representing logarithm of
+            variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
+        reduce (str): Reduction option. Its value must be either
+            ``'sum'``, ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError`
+            is raised.
+
+    Returns:
+        :class:`~chainerx.ndarray`:
+            A variable representing KL-divergence between
+            given gaussian distribution and the standard gaussian.
+            If ``reduce`` is ``'no'``, the output variable holds array
+            whose shape is same as one of (hence both of) input variables.
+            If it is ``'sum'`` or ``'mean'``, the output variable holds a
+            scalar value.
+
+.. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
+""")
+
+
 def _docs_manipulation():
     _docs.set_doc(
         chainerx.reshape,
