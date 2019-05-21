@@ -35,9 +35,9 @@ class GradientNoise(object):
     :math:`\\gamma = 0.55`.
 
     Args:
-        eta (float): Parameter that defines the scale of the noise, which for
-            the default noise function is recommended to be either 0.01, 0.3
-            or 1.0.
+        eta (float): Parameter that defines the scale of the noise. For
+            the default noise function, it is recommended that it be either
+            0.01, 0.3 or 1.0.
         noise_func (function): Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
             Networks <https://arxiv.org/pdf/1511.06807>`_.

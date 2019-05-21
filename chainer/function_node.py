@@ -219,9 +219,9 @@ class FunctionNode(object):
 Chainer's built-in function class object ({}) which is derived from \
 chainer.FunctionNode has been called as if it were a callable. \
 Use FunctionNode.apply() method instead.
-Furthermore, it's not recommended to use built-in function classes directly; \
-use corresponding function aliases (those with snake_case name, such as \
-F.convolution_nd) instead.\
+Furthermore, it's not recommended that you use built-in function classes \
+directly; use corresponding function aliases (those with snake_case name, \
+such as F.convolution_nd) instead.\
 '''.format(self.__class__.__name__)
         else:
             msg = '''\

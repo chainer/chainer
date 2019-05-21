@@ -70,10 +70,10 @@ class Link(device_resident.DeviceResident):
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
-       values, it is strongly recommended to just register values that should
-       be treated as results of learning. A typical example of persistent
-       values is ones computed during training and required for testing, e.g.
-       running statistics for batch normalization.
+       values, it is strongly recommended that you just register values that
+       should be treated as results of learning. A typical example of
+       persistent values is ones computed during training and required for
+       testing, e.g. running statistics for batch normalization.
 
     Parameters and persistent values are referred by their names. They can be
     accessed as attributes of the links. Link class itself manages the lists

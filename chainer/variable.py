@@ -1372,7 +1372,8 @@ class Variable(object):
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
-                and therefore it is recommended to set this flag ``False``.
+                and therefore it is recommended that this flag be set to
+                ``False``.
             enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
                 computational trace of the whole backpropagation procedure is
                 recorded to the computational graph so that one can further do

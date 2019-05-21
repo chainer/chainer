@@ -51,7 +51,7 @@ Configuration Keys
    You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``mixed16``, ``float16``, ``float32``, ``float64``.
 
    .. note::
-      If you want to use float16 for better performance, it is recommended to use ``mixed16`` instead of ``float16``.
+      If you want to use float16 for better performance, it is recommended that you use ``mixed16`` instead of ``float16``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -171,7 +171,7 @@ Users can also define their own configurations.
 There are two ways:
 
 1. Use Chainer's configuration objects.
-   In this case, **it is strongly recommended to prefix the name by "user_"** to avoid name conflicts with configurations introduced to Chainer in the future.
+   In this case, **it is strongly recommended that the name be prefixed by "user_"** to avoid name conflicts with configurations introduced to Chainer in the future.
 2. Use your own configuration objects.
    Users can define their own configuration objects using :class:`chainer.configuration.GlobalConfig` and :class:`chainer.configuration.LocalConfig`.
    In this case, there is no need to take care of the name conflicts.
