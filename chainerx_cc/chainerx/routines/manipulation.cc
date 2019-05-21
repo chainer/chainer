@@ -636,7 +636,7 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 
 Array RepeatImpl(const Array& a, const std::function<int64_t(int64_t)>& repeats, int8_t axis) {
     std::vector<Array> output_elements;
-    std::vector<Array> splitted = Split(a, 1, axis);
+    std::vector<Array> splitted = Split(a, a.shape()[axis], axis);
 
     for (size_t i = 0; i < splitted.size(); i++) {
         for (int32_t j = 0; j < repeats(i); j++) {
