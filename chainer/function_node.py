@@ -5,7 +5,6 @@ import inspect
 import traceback
 import weakref
 
-import numpy
 import six
 
 import chainer
@@ -219,9 +218,9 @@ class FunctionNode(object):
 Chainer's built-in function class object ({}) which is derived from \
 chainer.FunctionNode has been called as if it were a callable. \
 Use FunctionNode.apply() method instead.
-Furthermore, it's not recommended to use built-in function classes directly; \
-use corresponding function aliases (those with snake_case name, such as \
-F.convolution_nd) instead.\
+Furthermore, it's not recommended that you use built-in function classes \
+directly; use corresponding function aliases (those with snake_case name, \
+such as F.convolution_nd) instead.\
 '''.format(self.__class__.__name__)
         else:
             msg = '''\
@@ -306,7 +305,7 @@ Use apply() method instead.\
             hook.forward_preprocess(self, in_data)
 
         # Forward propagation
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
@@ -1059,11 +1058,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grad_outputs = (None,) * len(outputs)
     for y, gy in zip(outputs, grad_outputs):
         if gy is None:
-            with cuda.get_device_from_array(y.data) as device:
-                if device is cuda.DummyDevice:
-                    gy_data = numpy.ones_like(y.data)
-                else:
-                    gy_data = cuda.cupy.ones_like(y.data)
+            with chainer.using_device(y.device):
+                gy_data = y.device.xp.ones_like(y.array)
                 gy = variable.Variable(gy_data, requires_grad=False)
             if loss_scale is not None:
                 gy.data *= loss_scale
@@ -1148,7 +1144,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         in_data = [x.data for x in func.inputs]
         out_grad_data = [None if g is None else g.data for g in gys]
 
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             for hook in hooks:
                 hook.backward_preprocess(
                     func, tuple(in_data), tuple(out_grad_data))

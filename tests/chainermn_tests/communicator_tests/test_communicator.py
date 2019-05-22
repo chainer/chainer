@@ -881,6 +881,59 @@ class TestNonContiguousArray(unittest.TestCase):
         self.teardown()
 
 
+class TestMpiCommunicatorBase(unittest.TestCase):
+
+    def setup(self):
+        self.communicator = chainermn.create_communicator('naive')
+
+        if self.communicator.size != 2:
+            pytest.skip('This test is for two processes')
+
+    def teardown(self):
+        if self.communicator:
+            destroy_communicator(self.communicator)
+
+    def check_send_recv_obj(self, x, tag=0,
+                            use_any_recv=True, use_status=False):
+        if self.communicator.rank == 0:
+            self.communicator.send_obj(x, dest=1, tag=tag)
+            y = x
+
+        elif self.communicator.rank == 1:
+            status = None
+            if use_status:
+                status = mpi4py.MPI.Status()
+
+            if use_any_recv:
+                y = self.communicator.recv_obj(source=0,
+                                               status=status)
+            else:
+                y = self.communicator.recv_obj(source=0,
+                                               tag=tag,
+                                               status=status)
+
+            if use_status:
+                status_src = status.Get_source()
+                self.assertEqual(0, status_src)
+                status_tag = status.Get_tag()
+                self.assertEqual(tag, status_tag)
+
+        self.assertEqual(x, y)
+
+    def test_send_recv_obj(self):
+        self.setup()
+
+        self.check_send_recv_obj(0)
+        self.check_send_recv_obj(1, tag=1)
+        self.check_send_recv_obj(2, tag=2, use_any_recv=False)
+
+        self.check_send_recv_obj(3, use_status=True)
+        self.check_send_recv_obj(4, tag=4, use_status=True)
+        self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
+
+        self.teardown()
+
+
 @chainer.testing.attr.gpu
 def test_deprecation():
     with chainer.testing.assert_warns(DeprecationWarning):

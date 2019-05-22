@@ -109,37 +109,19 @@ Array SquaredDifference(const Array& x1, const Array& x2);
 
 Array Sqrt(const Array& x);
 
+Array Power(const Array& x1, const Array& x2);
+
+Array Power(const Array& x1, Scalar x2);
+
+Array Power(Scalar x1, const Array& x2);
+
 Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
 Array IsFinite(const Array& x);
 
-Array Tanh(const Array& x);
-
-Array Sin(const Array& x);
-
-Array Cos(const Array& x);
-
 Array Absolute(const Array& x);
-
-Array Tan(const Array& x);
-
-Array Arcsin(const Array& x);
-
-Array Arccos(const Array& x);
-
-Array Arctan(const Array& x);
-
-Array Arctan2(const Array& x1, const Array& x2);
-
-Array Sinh(const Array& x);
-
-Array Cosh(const Array& x);
-
-Array Arcsinh(const Array& x);
-
-Array Arccosh(const Array& x);
 
 Array Ceil(const Array& x);
 

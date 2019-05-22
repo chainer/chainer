@@ -128,88 +128,25 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class SinKernel : public Kernel {
+class PowerKernel : public Kernel {
 public:
-    static const char* name() { return "Sin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CosKernel : public Kernel {
-public:
-    static const char* name() { return "Cos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanKernel : public Kernel {
-public:
-    static const char* name() { return "Tan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class SinhKernel : public Kernel {
-public:
-    static const char* name() { return "Sinh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CoshKernel : public Kernel {
-public:
-    static const char* name() { return "Cosh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanhKernel : public Kernel {
-public:
-    static const char* name() { return "Tanh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArcsinKernel : public Kernel {
-public:
-    static const char* name() { return "Arcsin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccosKernel : public Kernel {
-public:
-    static const char* name() { return "Arccos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArctanKernel : public Kernel {
-public:
-    static const char* name() { return "Arctan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Arctan2Kernel : public Kernel {
-public:
-    static const char* name() { return "Arctan2"; }
+    static const char* name() { return "Power"; }
 
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-class ArcsinhKernel : public Kernel {
+class PowerASKernel : public Kernel {
 public:
-    static const char* name() { return "Archsinh"; }
+    static const char* name() { return "PowerAS"; }
 
-    virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
-class ArccoshKernel : public Kernel {
+class PowerSAKernel : public Kernel {
 public:
-    static const char* name() { return "Arccosh"; }
+    static const char* name() { return "PowerSA"; }
 
-    virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
 class CeilKernel : public Kernel {
@@ -273,24 +210,6 @@ public:
     static const char* name() { return "Sum"; }
 
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
-};
-
-// Calculates the maximum along specified axes.
-// See Sum() for the explanation of arguments.
-class AMaxKernel : public Kernel {
-public:
-    static const char* name() { return "AMax"; }
-
-    virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
-};
-
-// Calculates the minimum along specified axes.
-// See Sum() for the explanation of arguments.
-class AMinKernel : public Kernel {
-public:
-    static const char* name() { return "AMin"; }
-
-    virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
 };
 
 // Compares x1 and x2 and assign either pos or neg according to the result.

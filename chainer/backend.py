@@ -30,8 +30,9 @@ def _contains_nan(x):
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with cuda.get_device_from_array(x):
-            return get_array_module(x).isnan(x).any()
+        device = get_device_from_array(x)
+        with chainer.using_device(device):
+            return device.xp.isnan(x).any()
     else:
         return False
 

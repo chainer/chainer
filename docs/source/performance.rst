@@ -7,7 +7,7 @@ This guide explains some tips and advice for maximizing the performance of Chain
 Use the Latest Version
 ----------------------
 
-It is generally recommended to use the latest version of Chainer and its dependent libraries (CUDA, cuDNN, iDeep, etc.).
+It is generally recommended that you use the latest version of Chainer and its dependent libraries (CUDA, cuDNN, iDeep, etc.).
 Some of the new features and performance optimizations introduced in newer versions of dependent libraries may not be available in older versions of Chainer.
 Also, Chainer itself is incrementally being improved to provide better performance.
 
@@ -151,7 +151,7 @@ Although the default values work well in most cases, you can adjust the followin
   By default, Chainer checks the integrity between input data and functions.
   This makes possible to display friendly message when, for example, data with invalid dtype or shape is given to a function.
   By setting this configuration to ``False``, you can let Chainer skip such check to improve performance.
-  It is recommended to turn off the check only for well-tested code and input data.
+  It is recommended that you turn off the check only for well-tested code and input data.
 
 See :doc:`reference/configuration` for detailed descriptions.
 

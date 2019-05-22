@@ -1,5 +1,4 @@
-from chainer import backend
-from chainer import cuda
+import chainer
 
 
 class GradientHardClipping(object):
@@ -46,6 +45,6 @@ class GradientHardClipping(object):
         grad = param.grad
         if grad is None:
             return
-        xp = backend.get_array_module(grad)
-        with cuda.get_device_from_array(grad):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)

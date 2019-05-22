@@ -315,45 +315,6 @@ class TestVariable(unittest.TestCase):
         assert a.xp is np
         assert a._has_chainerx_array is False
 
-    def check_grad(self, xp, x, g):
-        v = chainer.Variable(x)
-        v.grad = g
-        xp.testing.assert_array_equal(v.grad, g)
-
-    def test_grad_cpu(self):
-        self.check_grad(np, self.x, self.a)
-
-    @attr.gpu
-    def test_grad_gpu(self):
-        self.check_grad(cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
-
-    @attr.chainerx
-    def test_grad_chainerx(self):
-        self.check_grad(
-            chainerx, chainerx.array(self.x), chainerx.array(self.a))
-
-    def check_grad_var(self, xp, x, g):
-        v = chainer.Variable(x)
-        gv = chainer.Variable(g)
-        v.grad_var = gv
-        xp.testing.assert_array_equal(v.grad, g)
-
-        # Same instance should be returned each time.
-        assert v.grad_var is gv
-
-    def test_grad_var_cpu(self):
-        self.check_grad_var(np, self.x, self.a)
-
-    @attr.gpu
-    def test_grad_var_gpu(self):
-        self.check_grad_var(
-            cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
-
-    @attr.chainerx
-    def test_grad_var_chainerx(self):
-        self.check_grad_var(
-            chainerx, chainerx.array(self.x), chainerx.array(self.a))
-
     def check_len(self, a):
         x = chainer.Variable(a)
         if x.ndim == 0:
@@ -682,86 +643,6 @@ class TestVariable(unittest.TestCase):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
-    def check_zerograd(self, a_data, fill=False, grad_var_requires_grad=True,
-                       expect_error=False):
-        xp = backend.get_array_module(a_data)
-        a = chainer.Variable(a_data)
-        if fill:
-            a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan),
-                                          requires_grad=grad_var_requires_grad)
-            if xp is not chainerx:
-                a.grad_var.creator_node = chainer.FunctionNode()
-
-        with testing.assert_warns(DeprecationWarning):
-            if expect_error:
-                with pytest.raises(Exception):
-                    a.zerograd()
-                return
-            a.zerograd()
-
-        assert a.grad is not None
-        if fill and xp is not chainerx:
-            assert a.grad_var.creator_node is None
-        xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
-
-    def test_zerograd_cpu(self):
-        self.check_zerograd(np.empty(3, dtype=np.float32))
-
-    def test_zerograd_fill_cpu(self):
-        self.check_zerograd(np.empty(3, dtype=np.float32), fill=True)
-
-    @attr.multi_gpu(2)
-    def test_zerograds_multi_gpu(self):
-        cupy = cuda.cupy
-        with cuda.get_device_from_id(1):
-            a = chainer.Variable(cupy.empty(3, dtype=np.float32))
-        with testing.assert_warns(DeprecationWarning):
-            a.zerograd()
-        assert a.grad is not None
-        assert int(a.grad.device) == 1
-        with cuda.get_device_from_id(1):
-            g_expect = cupy.zeros_like(a.data)
-            cupy.testing.assert_array_equal(a.grad, g_expect)
-
-    @attr.multi_gpu(2)
-    def test_zerograds_fill_multi_gpu(self):
-        cupy = cuda.cupy
-        with cuda.get_device_from_id(1):
-            a = chainer.Variable(cupy.empty(3, dtype=np.float32))
-            a.grad = cupy.empty_like(a.data)
-        with testing.assert_warns(DeprecationWarning):
-            a.zerograd()
-        assert int(a.grad.device) == 1
-        with cuda.get_device_from_id(1):
-            g_expect = cupy.zeros_like(a.data)
-            cupy.testing.assert_array_equal(a.grad, g_expect)
-
-    @attr.gpu
-    def test_zerograd_gpu(self):
-        self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32))
-
-    @attr.gpu
-    def test_zerograd_fill_gpu(self):
-        self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32), fill=True)
-
-    @attr.chainerx
-    def test_zerograd_chainerx(self):
-        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
-        self.check_zerograd(chainerx.empty((3,), dtype=np.float32))
-
-    @attr.chainerx
-    def test_zerograd_fill_chainerx(self):
-        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
-        self.check_zerograd(chainerx.empty((3,), dtype=np.float32), fill=True,
-                            grad_var_requires_grad=False)
-
-    @attr.chainerx
-    def test_zerograd_fill_chainerx_requiring_grad(self):
-        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
-        self.check_zerograd(chainerx.empty((3,), dtype=np.float32),
-                            fill=True, grad_var_requires_grad=True,
-                            expect_error=True)
-
     def check_copydata(self, data1, data2, expect):
         xp = backend.get_array_module(data1)
         v = chainer.Variable(data1)
@@ -841,6 +722,73 @@ class TestVariable(unittest.TestCase):
         d = six.moves.cPickle.loads(binary)
         cp.testing.assert_array_equal(x.data, d.data)
         cp.testing.assert_array_equal(x.grad, d.grad)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
+class TestVariableGrad(unittest.TestCase):
+
+    def test_grad(self, backend_config):
+        x = backend_config.get_array(
+            np.random.uniform(-1, 1, self.shape).astype(np.float32))
+        g = backend_config.get_array(
+            np.random.uniform(0.1, 10, self.shape).astype(np.float32))
+        v = chainer.Variable(x)
+        v.grad = g
+        backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+    def test_grad_var(self, backend_config):
+        x = backend_config.get_array(
+            np.random.uniform(-1, 1, self.shape).astype(np.float32))
+        g = backend_config.get_array(
+            np.random.uniform(0.1, 10, self.shape).astype(np.float32))
+        v = chainer.Variable(x)
+        gv = chainer.Variable(g)
+        v.grad_var = gv
+        backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+        # Same instance should be returned each time.
+        assert v.grad_var is gv
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.parameterize(*testing.product(
+    {
+        'shape': [(10,), (0,), ()],
+        'grad_var_requires_grad': [True, False],
+        'fill': [True, False],
+    }
+))
+class TestVariableZerogad(unittest.TestCase):
+
+    def test_zerograd(self, backend_config):
+        shape = self.shape
+        dtype = np.float32
+        expect_error = (
+            backend_config.xp is chainerx
+            and self.fill
+            and self.grad_var_requires_grad)
+        xp = backend_config.xp
+        a = chainer.Variable(
+            backend_config.get_array(np.empty(shape, dtype)))
+        if self.fill:
+            a.grad_var = chainer.Variable(
+                backend_config.get_array(np.full(shape, np.nan, dtype)),
+                requires_grad=self.grad_var_requires_grad)
+            if xp is not chainerx:
+                a.grad_var.creator_node = chainer.FunctionNode()
+
+        with testing.assert_warns(DeprecationWarning):
+            if expect_error:
+                with pytest.raises(Exception):
+                    a.zerograd()
+                return
+            a.zerograd()
+
+        assert a.grad is not None
+        if self.fill and xp is not chainerx:
+            assert a.grad_var.creator_node is None
+        xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
 
 
 class VariableAddgradTestBase(object):
@@ -1058,31 +1006,38 @@ class TestVariableToGpu(unittest.TestCase):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_gpu(self, x, gx, device=None, requires_grad=True):
+    def check_to_gpu(self, x, gx, device_id=None, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
 
         set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
         if set_grad_var:
             x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
-        x_var.to_gpu(device)
+        x_var.to_gpu(device_id)
+
+        if device_id is None:
+            expected_device_id = cuda.cupy.cuda.runtime.getDevice()
+        else:
+            expected_device_id = device_id
+        expected_device = cuda.GpuDevice.from_device_id(expected_device_id)
 
         assert x_var.xp is cuda.cupy
         assert x_var._has_chainerx_array is False
         assert x_var.node is not None
         assert isinstance(x_var.data, cuda.cupy.ndarray)
+        assert x_var.data.device.id == expected_device_id
+        assert x_var.device == expected_device
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        device = cuda.Device(device)
-        assert cuda.get_device_from_array(x_var.data) == device
         np.testing.assert_array_equal(
             backend.CpuDevice().send(x_var.data), backend.CpuDevice().send(x))
 
         if set_grad_var:
             assert isinstance(x_var.grad, cuda.cupy.ndarray)
+            assert x_var.grad.device.id == expected_device_id
+            assert x_var.grad_var.device == expected_device
             assert gx.shape == x_var.grad.shape
             assert gx.dtype == x_var.grad.dtype
-            assert cuda.get_device_from_array(x_var.grad) == device
             np.testing.assert_array_equal(
                 backend.CpuDevice().send(x_var.grad),
                 backend.CpuDevice().send(gx))
@@ -1092,9 +1047,8 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.grad is None
             assert x_var.grad_var is None
 
-        orig_xp = backend.get_array_module(x, gx)
-        orig_device = cuda.get_device_from_array(x)
-        if orig_xp is cuda.cupy and orig_device == device:
+        orig_device = backend.get_device_from_array(x)
+        if orig_device == expected_device:
             assert x_var.data is x
             assert x_var.grad is gx
         else:

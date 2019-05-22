@@ -729,8 +729,9 @@ class Variable(object):
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
         array = self.array
-        with cuda.get_device_from_array(array) as dev:
-            xp = numpy if int(dev) == -1 else cuda.cupy
+        device = self.device
+        with chainer.using_device(device):
+            xp = device.xp
 
             if array is None:
                 # `array` can be `None` if constructed without any arguments
@@ -1237,9 +1238,9 @@ class Variable(object):
             else:
                 gv._data[0].fill(0)
         else:
-            with cuda.get_device_from_array(arr) as dev:
+            with chainer.using_device(self.device):
+                xp = self.device.xp
                 if self._grad is None:
-                    xp = numpy if dev.id == -1 else cuda.cupy
                     self._grad = xp.zeros_like(arr)
                     self._grad_var = None
                 else:
@@ -1374,7 +1375,8 @@ class Variable(object):
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
-                and therefore it is recommended to set this flag ``False``.
+                and therefore it is recommended that this flag be set to
+                ``False``.
             enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
                 computational trace of the whole backpropagation procedure is
                 recorded to the computational graph so that one can further do
@@ -1398,7 +1400,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
                 raise RuntimeError(
-                    'loss_scale if not supported for ChainerX array.')
+                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
@@ -1416,11 +1418,8 @@ class Variable(object):
                     ' If the size of this variable accidentally becomes one,'
                     ' set zero to grad.',
                     DeprecationWarning)
-            with cuda.get_device_from_array(self.array) as device:
-                if device is cuda.DummyDevice:
-                    self.grad = numpy.ones_like(self.array)
-                else:
-                    self.grad = cuda.cupy.ones_like(self.array)
+            with chainer.using_device(self.device):
+                self.grad = self.device.xp.ones_like(self.array)
             if loss_scale is not None:
                 self.grad *= loss_scale
 
@@ -1632,7 +1631,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         else:
             hooks = base_hooks
 
-        with cuda.get_device_from_array(*(in_data + out_grad_array)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + out_grad_array))):
             for hook in hooks:
                 hook.backward_preprocess(
                     func, tuple(in_data), tuple(out_grad_array))

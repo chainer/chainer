@@ -81,5 +81,34 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
+template <typename T>
+__device__ inline T Power(T x1, T x2) {
+    static_assert(std::is_integral<T>::value, "Non-specialized template Power expects only integral arguments.");
+    T out{1};
+
+    while (x2 > 0) {
+        if (x2 & 1) {
+            out *= x1;
+        }
+        x1 *= x1;
+        x2 >>= 1;
+    }
+
+    return out;
+}
+
+template <>
+__device__ inline cuda::Float16 Power<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{powf(static_cast<float>(x1), static_cast<float>(x2))};
+}
+template <>
+__device__ inline float Power<float>(float x1, float x2) {
+    return powf(x1, x2);
+}
+template <>
+__device__ inline double Power<double>(double x1, double x2) {
+    return pow(x1, x2);
+}
+
 }  // namespace cuda
 }  // namespace chainerx
