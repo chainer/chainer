@@ -37,9 +37,10 @@ class ChainerxDevice(_backend.Device):
     def from_fallback_device(device):
         # TODO(niboshi): Write unit test
         assert isinstance(device, _backend.Device)
-        if isinstance(device, _cpu.CpuDevice):
+        assert not isinstance(device, intel64.Intel64Device)
+        if device.xp is numpy:
             return ChainerxDevice(chainerx.get_device('native', 0))
-        if isinstance(device, cuda.GpuDevice):
+        if device.xp is cuda.cupy:
             return ChainerxDevice(
                 chainerx.get_device('cuda', device.device.id))
         raise RuntimeError(

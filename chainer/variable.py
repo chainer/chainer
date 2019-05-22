@@ -1812,7 +1812,7 @@ class Parameter(Variable):
         else:
             device = self._initial_device
 
-        if isinstance(device, backend.ChainerxDevice):
+        if device.xp is chainerx:
             backend_name = device.device.backend.name
             if backend_name == 'native':
                 self._initial_device = backend.CpuDevice()
