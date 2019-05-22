@@ -92,8 +92,9 @@ The typical use case is to use :class:`~chainer.training.extensions.Evaluator` t
    chainer.training.extensions.FailOnNonNumber
    chainer.training.extensions.ParameterStatistics
 
-   chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
+   chainer.training.extensions.observe_optimizer
+   chainer.training.extensions.observe_lr
 
 Optimizer Behavior Control
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
