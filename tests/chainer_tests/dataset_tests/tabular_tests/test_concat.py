@@ -17,8 +17,8 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
     }),
     [
         {'indices': None,
-         'expected_indices_a': slice(0, 10, 1),
-         'expected_indices_b': slice(0, 5, 1)},
+         'expected_indices_a': None,
+         'expected_indices_b': None},
         {'indices': [3, 1, 4, 12, 14, 13, 7, 5],
          'expected_indices_a': [3, 1, 4, 7, 5],
          'expected_indices_b': [2, 4, 3]},

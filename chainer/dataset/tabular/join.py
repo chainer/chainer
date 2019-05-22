@@ -29,7 +29,10 @@ class Join(tabular_dataset.TabularDataset):
 
     def get_examples(self, indices, key_indices):
         if key_indices is None:
-            key_indices = six.moves.range(len(self.keys))
+            return tuple(
+                col
+                for dataset in self._datasets
+                for col in dataset.get_examples(indices, None))
 
         examples = {}
         key_offset = 0
