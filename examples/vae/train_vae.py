@@ -4,6 +4,7 @@
 import argparse
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import chainer
@@ -117,33 +118,57 @@ def main():
     # Run the training
     trainer.run()
 
-    # Visualize the results
-    def save_images(x, filename):
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(3, 3, figsize=(9, 9), dpi=100)
-        for ai, xi in zip(ax.flatten(), x):
-            ai.imshow(xi.reshape(28, 28))
-        fig.savefig(filename)
+    # Save images for demonstration
+    save_images(device, encoder, decoder, train, test, prior, args.out)
 
-    avg_elbo_loss.to_cpu()
+
+# Saves 3x3 tiled image
+def save3x3(x, filename):
+    numpy_device = chainer.get_device('@numpy')
+    fig, ax = plt.subplots(3, 3, figsize=(9, 9), dpi=100)
+    for ai, xi in zip(ax.flatten(), x):
+        im = xi.reshape(28, 28)
+        im = numpy_device.send(im)
+        ai.imshow(im)
+    fig.savefig(filename)
+
+
+# Saves reconstruction images using:
+# - training image samples
+# - test image samples
+# - randomly sampled values of z
+def save_images(device, encoder, decoder, train, test, prior, out_dir):
+
+    # Training samples
     train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
-    x = chainer.Variable(np.asarray(train[train_ind]))
-    with chainer.using_config('train', False), chainer.no_backprop_mode():
-        x1 = decoder(encoder(x).mean, inference=True).mean
-    save_images(x.array, os.path.join(args.out, 'train'))
-    save_images(x1.array, os.path.join(args.out, 'train_reconstructed'))
+    x_numpy = train[train_ind]
+    x = device.send(x_numpy)
+    with chainer.using_config('train', False):
+        with chainer.no_backprop_mode():
+            z = encoder(x).mean
+            y = decoder(z, inference=True).mean
+            y = y.array
+    save3x3(x, os.path.join(out_dir, 'train'))
+    save3x3(y, os.path.join(out_dir, 'train_reconstructed'))
 
+    # Test samples
     test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
-    x = chainer.Variable(np.asarray(test[test_ind]))
-    with chainer.using_config('train', False), chainer.no_backprop_mode():
-        x1 = decoder(encoder(x).mean, inference=True).mean
-    save_images(x.array, os.path.join(args.out, 'test'))
-    save_images(x1.array, os.path.join(args.out, 'test_reconstructed'))
+    x_numpy = test[test_ind]
+    x = device.send(x_numpy)
+    with chainer.using_config('train', False):
+        with chainer.no_backprop_mode():
+            z = encoder(x).mean
+            y = decoder(z, inference=True).mean
+            y = y.array
+    save3x3(x, os.path.join(out_dir, 'test'))
+    save3x3(y, os.path.join(out_dir, 'test_reconstructed'))
 
-    # draw images from randomly sampled z
+    # Draw images from 9 randomly sampled values of z
     z = prior().sample(9)
-    x = decoder(z, inference=True).mean
-    save_images(x.array, os.path.join(args.out, 'sampled'))
+    with chainer.no_backprop_mode():
+        y = decoder(z, inference=True).mean
+        y = y.array
+    save3x3(y, os.path.join(out_dir, 'sampled'))
 
 
 if __name__ == '__main__':
