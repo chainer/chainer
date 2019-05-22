@@ -16,8 +16,8 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
     }),
     [
         {'key_indices': None,
-         'expected_key_indices_a': (0, 1, 2),
-         'expected_key_indices_b': (0, 1)},
+         'expected_key_indices_a': None,
+         'expected_key_indices_b': None},
         {'key_indices': (0, 4, 1),
          'expected_key_indices_a': (0, 1),
          'expected_key_indices_b': (1,)},
