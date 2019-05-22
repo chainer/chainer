@@ -4,6 +4,9 @@
 This code is ported from the following implementation written in Torch.
 https://github.com/tomsercu/lstm
 
+Lines in this file are directly referenced by the RST file
+`docs/source/examples/ptb.rst`. The RST file must be updated in conjunction.
+
 """
 from __future__ import division
 import argparse
