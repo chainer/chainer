@@ -28,6 +28,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) = 0;
@@ -50,6 +52,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) = 0;
@@ -66,6 +70,8 @@ public:
             const Array& gy,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             bool cover_all,
             const nonstd::optional<Array>& out) = 0;
 };

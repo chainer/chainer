@@ -274,6 +274,8 @@ Array CudaConv::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilation,
+        int group,
         bool cover_all,
         Dtype out_dtype) {
     if (cover_all) {
@@ -321,7 +323,7 @@ Array CudaConv::Conv(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -377,6 +379,8 @@ Array CudaConv::ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilation,
+        int group,
         const StackVector<int64_t, kMaxNdim>& out_size,
         Dtype out_dtype) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
@@ -428,7 +432,7 @@ Array CudaConv::ConvTranspose(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -485,6 +489,8 @@ Array CudaConv::ConvGradWeight(
         const Array& gy,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilation,
+        int group,
         bool cover_all) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
@@ -531,7 +537,7 @@ Array CudaConv::ConvGradWeight(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
     CudnnFilterDescriptor gw_desc{gw};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 

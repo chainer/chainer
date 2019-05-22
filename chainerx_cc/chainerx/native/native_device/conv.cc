@@ -39,6 +39,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -54,7 +56,7 @@ public:
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
         // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
 
         // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
         Axes axes;
@@ -92,6 +94,8 @@ public:
             const Array& gy,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
         CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
@@ -107,7 +111,7 @@ public:
         StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
 
         // Im2Col
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
 
         // TensorDot
         Axes out_axes{0};
@@ -130,6 +134,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int group,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -141,7 +147,7 @@ public:
         Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
         col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-        Array actual_out = native_internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
+        Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, group, out_size);  // shape: batch_size, out_channel, out_size...
 
         // Add bias, if given.
         if (b.has_value()) {
