@@ -18,19 +18,17 @@ def main():
     parser.add_argument('--dataset', '-d', default='cifar10',
                         help='The dataset to use: cifar10 or cifar100')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
-                        help='Number of images in each mini-batch')
+                        help='Number of images per GPU in a mini-batch')
     parser.add_argument('--learnrate', '-l', type=float, default=0.05,
                         help='Learning rate for SGD')
     parser.add_argument('--epoch', '-e', type=int, default=300,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', action='store_true',
-                        help='GPU ID (negative value indicates CPU)')
+                        help='Use GPU (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--early-stopping', type=str,
-                        help='Metric to watch for early stopping')
     args = parser.parse_args()
 
     # Prepare ChainerMN communicator.
@@ -87,20 +85,15 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
-    train = chainermn.scatter_dataset(train, data_comm, shuffle = True)
-    test = chainermn.scatter_dataset(test, data_comm, shuffle = True)
+    train = chainermn.scatter_dataset(train, data_comm, shuffle=True)
+    test = chainermn.scatter_dataset(test, data_comm, shuffle=True)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
-                                                 shuffle = False)
+                                                  shuffle=False)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
     stop_trigger = (args.epoch, 'epoch')
-    # Early stopping option
-    if args.early_stopping:
-        stop_trigger = triggers.EarlyStoppingTrigger(
-            monitor=args.early_stopping, verbose=True,
-            max_trigger=(args.epoch, 'epoch'))
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
