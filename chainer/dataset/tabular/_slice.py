@@ -81,13 +81,14 @@ def _as_indices(indices, len_):
     else:
         checked_indices = []
         for index in indices:
+            index = int(index)
             if index < 0:
                 index += len_
             if index < 0 or len_ <= index:
                 raise IndexError(
                     'index {} is out of bounds for dataset with size {}'
                     .format(index, len_))
-            checked_indices.append(int(index))
+            checked_indices.append(index)
         return checked_indices
 
 
