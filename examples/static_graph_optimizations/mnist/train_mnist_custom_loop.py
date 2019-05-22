@@ -13,12 +13,14 @@ applies an optimizer to update the model.
 from __future__ import print_function
 
 import argparse
+import sys
 
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
+import chainerx
 
 import train_mnist
 
@@ -29,8 +31,11 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--model', '-m', default='MLP',
@@ -39,23 +44,31 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
+    print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device.use()
 
     # Set up a neural network to train
     if args.model == 'MLP':
         model = L.Classifier(train_mnist.MLP(args.unit, 10))
     elif args.model == 'MLPSideEffect':
         model = L.Classifier(train_mnist.MLPSideEffect(args.unit, 10))
-    if args.gpu >= 0:
-        # Make a speciied GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
+    model.to_device(device)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -76,9 +89,9 @@ def main():
 
     while train_iter.epoch < args.epoch:
         batch = train_iter.next()
-        x_array, t_array = convert.concat_examples(batch, args.gpu)
+        x_array, t_array = convert.concat_examples(batch, device)
         x = chainer.Variable(x_array)
-        t = chainer.Variable(t_array)
+        t = chainer.Variable(t_array, requires_grad=False)
         optimizer.update(model, x, t)
         sum_loss += float(model.loss.array) * len(t)
         sum_accuracy += float(model.accuracy.array) * len(t)
@@ -93,7 +106,7 @@ def main():
             # It is good practice to turn off train mode during evaluation.
             with configuration.using_config('train', False):
                 for batch in test_iter:
-                    x_array, t_array = convert.concat_examples(batch, args.gpu)
+                    x_array, t_array = convert.concat_examples(batch, device)
                     x = chainer.Variable(x_array)
                     t = chainer.Variable(t_array)
                     loss = model(x, t)
