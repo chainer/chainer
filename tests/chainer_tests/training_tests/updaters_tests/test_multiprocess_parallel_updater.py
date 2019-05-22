@@ -153,9 +153,11 @@ class TestRawArray(unittest.TestCase):
 
 class TestChildReporter(unittest.TestCase):
 
-    def check_with_devices(self, *devices):
+    def check_with_devices(self, n_devices):
+        devices_str = ','.join([
+            '@cupy:{}'.format(device_id) for device_id in range(n_devices)])
         ret, stdoutdata, stderrdata = _run_test_snippet(
-            'child_reporter.py', ','.join(devices))
+            'child_reporter.py', devices_str)
         assert ret == 0, (
             '[stdout]:{!r}\n'
             '[stderr]:{!r}'.format(stdoutdata, stderrdata))
@@ -164,13 +166,13 @@ class TestChildReporter(unittest.TestCase):
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
     def test_single_device(self):
-        self.check_with_devices('@cupy:0')
+        self.check_with_devices(1)
 
     @attr.multi_gpu(2)
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
     def test_multi_device(self):
-        self.check_with_devices('@cupy:0', '@cupy:1')
+        self.check_with_devices(2)
 
 
 class TestCUDAContext(unittest.TestCase):
