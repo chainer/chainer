@@ -29,32 +29,22 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
+    parser.add_argument('--communicator', default='hierarchical')
     args = parser.parse_args()
 
     # Prepare ChainerMN communicator.
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
-        data_axis, model_axis = comm.rank % 2, comm.rank // 2
-        data_comm = comm.split(data_axis, comm.rank)
-        model_comm = comm.split(model_axis, comm.rank)
+        comm = chainermn.create_communicator(args.communicator)
         device = comm.intra_rank
     else:
         comm = chainermn.create_communicator('naive')
-        data_axis, model_axis = comm.rank % 2, comm.rank // 2
-        data_comm = comm.split(data_axis, comm.rank)
-        model_comm = comm.split(model_axis, comm.rank)
         device = -1
-
-    if model_comm.size != 2:
-        raise ValueError(
-            'This example can only be executed on the even number'
-            'of processes.')
 
     if comm.rank == 0:
         print('==========================================')
         print('Num process (COMM_WORLD): {}'.format(comm.size))
         if args.gpu:
-            print('Using GPUs')
+            print('Using {} communicator'.format(args.communicator))
         print('Num Minibatch-size: {}'.format(args.batchsize))
         print('Num epoch: {}'.format(args.epoch))
         print('==========================================')
@@ -62,7 +52,7 @@ def main():
     # Set up a neural network to train.
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    if model_axis == 0:
+    if comm.rank == 0:
         if args.dataset == 'cifar10':
             print('Using CIFAR10 dataset.')
             class_labels = 10
@@ -81,12 +71,12 @@ def main():
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainermn.create_multi_node_optimizer(
-        chainer.optimizers.MomentumSGD(args.learnrate), data_comm)
+        chainer.optimizers.MomentumSGD(args.learnrate), comm)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
-    train = chainermn.scatter_dataset(train, data_comm, shuffle=True)
-    test = chainermn.scatter_dataset(test, data_comm, shuffle=True)
+    train = chainermn.scatter_dataset(train, comm, shuffle=True)
+    test = chainermn.scatter_dataset(test, comm, shuffle=True)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
                                                   shuffle=False)
@@ -102,7 +92,7 @@ def main():
 
     # Evaluate the model with the test dataset for each epoch
     evaluator = extensions.Evaluator(test_iter, model, device=device)
-    evaluator = chainermn.create_multi_node_evaluator(evaluator, data_comm)
+    evaluator = chainermn.create_multi_node_evaluator(evaluator, comm)
     trainer.extend(evaluator)
 
     trainer.extend(extensions.ExponentialShift('lr', 0.5),
