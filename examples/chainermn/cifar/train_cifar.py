@@ -5,7 +5,6 @@ import chainer
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
-from chainer.training import triggers
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
@@ -29,7 +28,8 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--communicator', default='hierarchical')
+    parser.add_argument('--communicator', type=str,
+                        default='hierarchical', help='Type of communicator')
     args = parser.parse_args()
 
     # Prepare ChainerMN communicator.
@@ -44,7 +44,8 @@ def main():
         print('==========================================')
         print('Num process (COMM_WORLD): {}'.format(comm.size))
         if args.gpu:
-            print('Using {} communicator'.format(args.communicator))
+            print('Using GPUs')
+        print('Using {} communicator'.format(args.communicator))
         print('Num Minibatch-size: {}'.format(args.batchsize))
         print('Num epoch: {}'.format(args.epoch))
         print('==========================================')
@@ -82,8 +83,6 @@ def main():
                                                   shuffle=False)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
-
-    stop_trigger = (args.epoch, 'epoch')
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
