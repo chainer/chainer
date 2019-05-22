@@ -1,4 +1,4 @@
-from chainer.dataset.tabular.tabular_dataset import TabularDataset
+from chainer.dataset.tabular import tabular_dataset
 
 
 def from_array(key, array, mode=tuple):
@@ -7,7 +7,7 @@ def from_array(key, array, mode=tuple):
     return Array(key, array, mode)
 
 
-class Array(TabularDataset):
+class Array(tabular_dataset.TabularDataset):
 
     def __init__(self, key, array, mode):
         self._key = key
