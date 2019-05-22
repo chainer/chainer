@@ -54,15 +54,14 @@ def main():
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    if device.xp is chainerx:
-        sys.stderr.write('This example does not support ChainerX devices.\n')
-        sys.exit(1)
 
     device.use()
 

@@ -49,15 +49,14 @@ def main():
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
-
-    if device.xp is chainerx:
-        sys.stderr.write('This example does not support ChainerX devices.\n')
-        sys.exit(1)
 
     device.use()
 
@@ -107,7 +106,7 @@ def main():
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
     # TODO(hvy): Support ChainerX
-    if not isinstance(device, chainer.backend.ChainerxDevice):
+    if device.xp is not chainerx:
         trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot at each epoch
