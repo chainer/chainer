@@ -55,7 +55,7 @@ def main():
         sys.stderr.write('This example does not support ChainerX devices.\n')
         sys.exit(1)
 
-    print('GPU: {}'.format(device))
+    print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
