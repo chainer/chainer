@@ -4,8 +4,10 @@
 This code is ported from the following implementation written in Torch.
 https://github.com/tomsercu/lstm
 
-Lines in this file are directly referenced by the RST file
-`docs/source/examples/ptb.rst`. The RST file must be updated in conjunction.
+Note for contributors:
+This example code is referred to from the "RNN Language Models" tutorial.
+If this file is to be modified, please also update the line numbers in
+`docs/source/examples/ptb.rst` accordingly.
 
 """
 from __future__ import division
