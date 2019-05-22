@@ -28,7 +28,7 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
-    parser.add_argument('--communicator', default='hierarchical',
+    parser.add_argument('--communicator', type=str, default='flat',
                         help='Type of communicator')
     args = parser.parse_args()
 
