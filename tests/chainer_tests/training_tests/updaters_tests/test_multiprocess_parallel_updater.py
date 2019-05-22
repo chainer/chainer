@@ -51,9 +51,6 @@ class SimpleNet(chainer.Chain):
 }))
 class TestGatherScatter(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     @attr.gpu
     def test_gather_scatter_grads(self):
         cupy = cuda.cupy
@@ -143,9 +140,6 @@ def _run_test_snippet(name, *args):
 
 class TestRawArray(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     @attr.gpu
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
@@ -192,9 +186,6 @@ class TestCUDAContext(unittest.TestCase):
 
 
 class TestDevicesByDeviceIds(unittest.TestCase):
-
-    def setUp(self):
-        pass
 
     @attr.gpu
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
