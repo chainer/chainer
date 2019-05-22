@@ -65,7 +65,7 @@ If you want to file an issue or send a pull request, [please follow the contribu
 
 ## ChainerX
 
-See this [separate user guide](chainerx.md) for how to build and run Chainer with ChainerX.
+See the [ChainerX documentation](https://docs.chainer.org/en/stable/chainerx/index.html).
 
 
 ## License

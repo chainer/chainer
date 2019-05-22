@@ -385,15 +385,15 @@ def connectionist_temporal_classification(
     .. note::
        This function supports (batch, sequence, 1-dimensional input)-data.
 
-    .. [Graves2006] Alex Graves, Santiago Fernandez,\
-    Faustino Gomez, Jurgen Schmidhuber,\
-    `Connectionist Temporal Classification: Labelling Unsegmented\
-    Sequence Data with Recurrent Neural Networks\
-    <ftp://ftp.idsia.ch/pub/juergen/icml2006.pdf>`_
+    .. [Graves2006] Alex Graves, Santiago Fernandez,
+       Faustino Gomez, Jurgen Schmidhuber,
+       `Connectionist Temporal Classification: Labelling Unsegmented
+       Sequence Data with Recurrent Neural Networks
+       <ftp://ftp.idsia.ch/pub/juergen/icml2006.pdf>`_
 
-    .. [Graves2012] Alex Graves,\
-    `Supervised Sequence Labelling with Recurrent Neural Networks\
-    <https://www.cs.toronto.edu/~graves/preprint.pdf>`_
+    .. [Graves2012] Alex Graves,
+       `Supervised Sequence Labelling with Recurrent Neural Networks
+       <https://www.cs.toronto.edu/~graves/preprint.pdf>`_
 
     """
     if not isinstance(x, collections_abc.Sequence):

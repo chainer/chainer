@@ -333,6 +333,39 @@ def check_allreduce_grad_empty(communicator, model):
                                         (base + 1) * np.ones((4, 3)))
 
 
+def check_allreduce_grad_empty_half(communicator, model):
+    # We need to repeat twice for regressions on lazy initialization of
+    # sub communicators.
+
+    for _ in range(2):
+        model.a.W.data[:] = communicator.rank
+        model.b.W.data[:] = communicator.rank + 1
+        model.c.b.data[:] = communicator.rank + 2
+
+        model.a.W.grad[:] = communicator.rank
+        model.b.W.grad[:] = communicator.rank + 1
+        if communicator.rank % 2 == 0:
+            model.c.b.grad[:] = communicator.rank + 2
+        else:
+            model.c.b.grad = None
+
+        communicator.allreduce_grad(model, zero_fill=True)
+        base = (communicator.size - 1.0) / 2
+
+        chainer.testing.assert_allclose(model.a.W.grad,
+                                        (base + 0) * np.ones((3, 2)))
+        chainer.testing.assert_allclose(model.b.W.grad,
+                                        (base + 1) * np.ones((4, 3)))
+
+        v = 0
+        for i in range(communicator.size):
+            if i % 2 == 0:
+                v += i + 2
+        v /= communicator.size
+        chainer.testing.assert_allclose(model.c.b.grad,
+                                        v * np.ones((5, )))
+
+
 def check_send_recv(param, use_gpu):
     communicator = create_communicator(param, use_gpu)
 
@@ -441,8 +474,20 @@ def check_collective_communication(param, use_gpu):
     if use_gpu:
         model.to_gpu()
     check_bcast_data(communicator, model)
+
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
     check_allreduce_grad(communicator, model)
+
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
     check_allreduce_grad_empty(communicator, model)
+    model = ExampleModel(param.model_dtype)
+    if use_gpu:
+        model.to_gpu()
+    check_allreduce_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
@@ -833,6 +878,59 @@ class TestNonContiguousArray(unittest.TestCase):
     def test_alltoall_gpu(self):
         self.setup(True)
         self.check_alltoall()
+        self.teardown()
+
+
+class TestMpiCommunicatorBase(unittest.TestCase):
+
+    def setup(self):
+        self.communicator = chainermn.create_communicator('naive')
+
+        if self.communicator.size != 2:
+            pytest.skip('This test is for two processes')
+
+    def teardown(self):
+        if self.communicator:
+            destroy_communicator(self.communicator)
+
+    def check_send_recv_obj(self, x, tag=0,
+                            use_any_recv=True, use_status=False):
+        if self.communicator.rank == 0:
+            self.communicator.send_obj(x, dest=1, tag=tag)
+            y = x
+
+        elif self.communicator.rank == 1:
+            status = None
+            if use_status:
+                status = mpi4py.MPI.Status()
+
+            if use_any_recv:
+                y = self.communicator.recv_obj(source=0,
+                                               status=status)
+            else:
+                y = self.communicator.recv_obj(source=0,
+                                               tag=tag,
+                                               status=status)
+
+            if use_status:
+                status_src = status.Get_source()
+                self.assertEqual(0, status_src)
+                status_tag = status.Get_tag()
+                self.assertEqual(tag, status_tag)
+
+        self.assertEqual(x, y)
+
+    def test_send_recv_obj(self):
+        self.setup()
+
+        self.check_send_recv_obj(0)
+        self.check_send_recv_obj(1, tag=1)
+        self.check_send_recv_obj(2, tag=2, use_any_recv=False)
+
+        self.check_send_recv_obj(3, use_status=True)
+        self.check_send_recv_obj(4, tag=4, use_status=True)
+        self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
+
         self.teardown()
 
 

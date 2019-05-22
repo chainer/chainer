@@ -1,10 +1,11 @@
-import numpy as np
 import unittest
 
-from chainer import testing
-from chainer.dataset import TabularDataset
+import numpy as np
+import six
 
-from .test_tabular_dataset import DummyDataset
+import chainer
+from chainer import testing
+from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
 
 @testing.parameterize(*testing.product_dict(
@@ -22,6 +23,9 @@ from .test_tabular_dataset import DummyDataset
          'expected_key_indices_b': (1,)},
         {'key_indices': (0, 2),
          'expected_key_indices_a': (0, 2)},
+        {'key_indices': (1, 2, 1),
+         'expected_key_indices_a': (1, 2)},
+        {'key_indices': ()},
     ],
 ))
 class TestJoin(unittest.TestCase):
@@ -31,7 +35,7 @@ class TestJoin(unittest.TestCase):
             self.assertIsNone(indices)
             self.assertEqual(key_indices, self.expected_key_indices_a)
 
-        dataset_a = DummyDataset(
+        dataset_a = dummy_dataset.DummyDataset(
             mode=self.mode_a,
             return_array=self.return_array, callback=callback_a)
 
@@ -39,23 +43,24 @@ class TestJoin(unittest.TestCase):
             self.assertIsNone(indices)
             self.assertEqual(key_indices, self.expected_key_indices_b)
 
-        dataset_b = DummyDataset(
+        dataset_b = dummy_dataset. DummyDataset(
             keys=('d', 'e'), mode=self.mode_b,
             return_array=self.return_array, callback=callback_b)
 
         view = dataset_a.join(dataset_b)
-        self.assertIsInstance(view, TabularDataset)
+        self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), len(dataset_a))
         self.assertEqual(view.keys, dataset_a.keys + dataset_b.keys)
         self.assertEqual(view.mode, dataset_a.mode)
+
+        output = view.get_examples(None, self.key_indices)
 
         data = np.vstack((dataset_a.data, dataset_b.data))
         if self.key_indices is not None:
             data = data[list(self.key_indices)]
 
-        output = view.get_examples(None, self.key_indices)
-        np.testing.assert_equal(output, data)
-        for out in output:
+        for out, d in six.moves.zip_longest(output, data):
+            np.testing.assert_equal(out, d)
             if self.return_array:
                 self.assertIsInstance(out, np.ndarray)
             else:
@@ -65,15 +70,15 @@ class TestJoin(unittest.TestCase):
 class TestJoinInvalid(unittest.TestCase):
 
     def test_join_length(self):
-        dataset_a = DummyDataset()
-        dataset_b = DummyDataset(len_=5, keys=('d', 'e'))
+        dataset_a = dummy_dataset.DummyDataset()
+        dataset_b = dummy_dataset.DummyDataset(len_=5, keys=('d', 'e'))
 
         with self.assertRaises(ValueError):
             dataset_a.join(dataset_b)
 
     def test_join_conflict_key(self):
-        dataset_a = DummyDataset()
-        dataset_b = DummyDataset(keys=('a', 'd'))
+        dataset_a = dummy_dataset.DummyDataset()
+        dataset_b = dummy_dataset.DummyDataset(keys=('a', 'd'))
 
         with self.assertRaises(ValueError):
             dataset_a.join(dataset_b)

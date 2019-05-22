@@ -1,4 +1,9 @@
 import numpy
+import numpy.lib.stride_tricks
+try:
+    import cupy.lib.stride_tricks  # NOQA
+except Exception:
+    pass
 
 from chainer import backend
 from chainer.backends import cuda
@@ -16,6 +21,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
                  outsize=None, cover_all=True):
         super(Unpooling2D, self).__init__(ksize, stride, pad, cover_all)
         self.outh, self.outw = (None, None) if outsize is None else outsize
+        self._use_int_scale_forward = False
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -36,6 +42,19 @@ class Unpooling2D(pooling_2d.Pooling2D):
                 self.outw, self.kw, self.sx, self.pw, cover_all=self.cover_all)
             type_check.expect(x_type.shape[3] == expected_w)
 
+    def _integer_scale_forward(self, x):
+        xp = backend.get_array_module(x)
+        b, c, h, w = x.shape
+        bs, cs, hs, ws = x.strides
+        if self.ph > 0 or self.pw > 0:
+            x = x[:, :, self.ph // 2:-self.ph // 2, self.pw // 2:-self.pw // 2]
+        y = xp.lib.stride_tricks.as_strided(
+            x,
+            (b, c, h - self.ph, self.kh, w - self.pw, self.kw),
+            (bs, cs, hs, 0, ws, 0))
+        y = y.reshape((b, c, self.kh * (h - self.ph), self.kw * (w - self.pw)))
+        return y,
+
     def forward(self, x):
         h, w = x[0].shape[2:]
         if self.outh is None:
@@ -44,6 +63,14 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
+        if (self.outh % (h - self.ph) == 0 and
+            self.outw % (w - self.pw) == 0 and
+            self.outh // (h - self.ph) == self.kh and
+            self.outw // (w - self.pw) == self.kw and
+            self.ph % 2 == 0 and self.pw % 2 == 0 and
+                self.sx == self.kh and self.sy == self.kw):
+            self._use_int_scale_forward = True
+            return self._integer_scale_forward(x[0])
         xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
                       (1, 1, self.kh, self.kw, 1, 1))
@@ -71,8 +98,24 @@ class Unpooling2DGrad(function_node.FunctionNode):
         self.outh = unpooling2d.outh
         self.outw = unpooling2d.outw
         self.cover_all = unpooling2d.cover_all
+        self._use_int_scale_forward = unpooling2d._use_int_scale_forward
+
+    def _integer_scale_forward(self, gy):
+        xp = backend.get_array_module(gy)
+        b, c, h, w = gy.shape
+        gx = gy.reshape((b, c, h // self.kh, self.kh, w // self.kw, self.kw))
+        gx = xp.rollaxis(gx, 3, 5).sum((4, 5))
+        if self.ph > 0 or self.pw > 0:
+            tmp = xp.zeros((b, c, h // 2 + self.ph, w //
+                            2 + self.pw), dtype=gx.dtype)
+            tmp[:, :, self.ph // 2:-self.ph // 2,
+                self.pw // 2:-self.pw // 2] = gx
+            gx = tmp
+        return gx,
 
     def forward(self, gy):
+        if self._use_int_scale_forward:
+            return self._integer_scale_forward(gy[0])
         if isinstance(gy[0], cuda.ndarray):
             gcol = conv.im2col_gpu(
                 gy[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,

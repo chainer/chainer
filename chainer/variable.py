@@ -164,7 +164,7 @@ class VariableNode(object):
     :class:`~chainer.Variable`.
 
     Args:
-        variable (Variable): The corresponding variable object.
+        variable (~chainer.Variable): The corresponding variable object.
         name (str): Name of the variable node.
 
     Attributes:
@@ -340,7 +340,7 @@ class VariableNode(object):
         this node object and returns it.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         var = self._variable()
@@ -358,7 +358,7 @@ class VariableNode(object):
         returns ``None``.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         return self._variable()
@@ -1261,7 +1261,7 @@ class Variable(object):
         does nothing.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         src = var.array
@@ -1286,15 +1286,21 @@ class Variable(object):
         then accumulates the gradient.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
-        # TODO(sonots): Implement for ChainerX
-        if self._has_chainerx_array:
-            raise NotImplementedError()
+        dst_device = self.device
+        is_chainerx = dst_device.xp is chainerx
 
-        assert var.xp is not chainerx
-        if var._grad is None:
+        if is_chainerx != (var.device.xp is chainerx):
+            raise RuntimeError(
+                'Variable.addgrad does not support addition between '
+                'gradients on non-ChainerX and ChainerX devices.\n'
+                'Adding gradient to: {}\n'
+                'Adding gradient from: {}'.format(
+                    dst_device, var.device))
+
+        if var.grad is None:
             return
 
         src = var.grad_var
@@ -1303,14 +1309,10 @@ class Variable(object):
             self.initialize(var.shape)
 
         dst = self.grad_var
-
-        src_dev = cuda.get_device_from_array(src.array)
-        dst_dev = cuda.get_device_from_array(self.array)
-
-        if src_dev.id != dst_dev.id:
-            src = chainer.functions.copy(src, dst_dev.id)
-        self._grad_var = src if dst is None else src + dst
-        self._grad = None
+        src_device = src.device
+        if src_device != dst_device:
+            src = chainer.functions.copy(src, dst_device)
+        self.grad_var = src if dst is None else src + dst
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -1372,7 +1374,8 @@ class Variable(object):
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
-                and therefore it is recommended to set this flag ``False``.
+                and therefore it is recommended that this flag be set to
+                ``False``.
             enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
                 computational trace of the whole backpropagation procedure is
                 recorded to the computational graph so that one can further do
@@ -1396,7 +1399,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
                 raise RuntimeError(
-                    'loss_scale if not supported for ChainerX array.')
+                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(

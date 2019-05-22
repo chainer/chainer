@@ -1,7 +1,6 @@
 pull_request_rules:
   - name: Auto merge
     conditions:
-      - "#approved-reviews-by>=1"
       - "#changes-requested-reviews-by=0"
       - label=st:test-and-merge
       - status-success=Jenkins
@@ -19,4 +18,4 @@ pull_request_rules:
     actions:
       merge:
         method: merge
-        strict: smart
+        strict: false  # strict mode and manually-triggered CIs do not get along

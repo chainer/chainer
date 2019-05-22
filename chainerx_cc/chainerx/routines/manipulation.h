@@ -53,4 +53,18 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
 Array ExpandDims(const Array& a, int8_t axis);
 
+Array Flip(const Array& m, const OptionalAxes& axes = nonstd::nullopt);
+
+Array Fliplr(const Array& m);
+
+Array Flipud(const Array& m);
+
+Array AtLeast2D(const Array& x);
+
+// Returns a joined array along horizontal axis.
+Array HStack(const std::vector<Array>& arrays);
+
+// Returns a joined array along vertical axis.
+Array VStack(const std::vector<Array>& arrays);
+
 }  // namespace chainerx

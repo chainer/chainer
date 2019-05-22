@@ -16,6 +16,10 @@ namespace chainerx {
 namespace native {
 namespace {
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
+
 class NativeSquareKernel : public SquareKernel {
 public:
     void Call(const Array& x, const Array& out) override {

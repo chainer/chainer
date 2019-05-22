@@ -1,9 +1,10 @@
 import six
 
-from chainer.dataset import DatasetMixin
+import chainer
+from chainer.dataset import dataset_mixin
 
 
-class TabularDataset(DatasetMixin):
+class TabularDataset(dataset_mixin.DatasetMixin):
     """An abstract class that represents tabular dataset.
 
     This class represents a tabular dataset.
@@ -23,25 +24,54 @@ class TabularDataset(DatasetMixin):
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
 
-    >>> len(dataet)
-    4
-    >>> dataet.keys
-    ('a', 'b', 'c')
-    >>>
-    >>> dataet = dataset.as_tuple()
-    >>> dataset.mode
-    <class 'tuple'>
-    >>> dataset[0]
-    (0, 1, 2)  # (a[0], b[0], c[0])
-    >>>
-    >>> dataet = dataset.as_dict()
-    >>> dataset.mode
-    <class 'dict'>
-    >>> dataset[0]
-    {'a': 0, 'b': 1, 'c': 2)  # {'a': a[0], 'b': b[0], 'c': c[0]}
-
     An inheritance should implement
     :meth:`__len__`, :attr:`keys`, :attr:`mode` and :meth:`get_examples`.
+
+    >>> import numpy as np
+    >>>
+    >>> from chainer import dataset
+    >>>
+    >>> class MyDataset(dataset.TabularDataset):
+    ...
+    ...     def __len__(self):
+    ...         return 4
+    ...
+    ...     @property
+    ...     def keys(self):
+    ...          return ('a', 'b', 'c')
+    ...
+    ...     @property
+    ...     def mode(self):
+    ...          return tuple
+    ...
+    ...     def get_examples(self, indices, key_indices):
+    ...          data = np.arange(12).reshape((4, 3))
+    ...          if indices is not None:
+    ...              data = data[indices]
+    ...          if key_indices is not None:
+    ...              data = data[:, list(key_indices)]
+    ...          return tuple(data.transpose())
+    ...
+    >>> dataset = MyDataset()
+    >>> len(dataset)
+    4
+    >>> dataset.keys
+    ('a', 'b', 'c')
+    >>> dataset.as_tuple()[0]
+    (0, 1, 2)
+    >>> sorted(dataset.as_dict()[0].items())
+    [('a', 0), ('b', 1), ('c', 2)]
+    >>>
+    >>> view = dataset.slice[[3, 2], ('c', 0)]
+    >>> len(view)
+    2
+    >>> view.keys
+    ('c', 'a')
+    >>> view.as_tuple()[1]
+    (8, 6)
+    >>> sorted(view.as_dict()[1].items())
+    [('a', 6), ('c', 8)]
+
     """
 
     def __len__(self):
@@ -83,17 +113,6 @@ class TabularDataset(DatasetMixin):
     def slice(self):
         """Get a slice of dataset.
 
-        >>> len(dataet)
-        4
-        >>> dataet.keys
-        ('a', 'b', 'c')
-        >>>
-        >>> dataset = dataset.slice[[3, 2], ('c', 0)]
-        >>> len(dataet)
-        2
-        >>> dataet.keys
-        ('c', 'a')
-
         Args:
            indices (list/array of ints/bools or slice): Requested rows.
            keys (tuple of ints/strs): Requested columns.
@@ -101,8 +120,7 @@ class TabularDataset(DatasetMixin):
         Returns:
             A view of specifed range.
         """
-        from chainer.dataset.tabular.slice import SliceHelper
-        return SliceHelper(self)
+        return chainer.dataset.tabular.slice.SliceHelper(self)
 
     def fetch(self):
         """Fetch data.
@@ -130,8 +148,7 @@ class TabularDataset(DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`tuple`.
         """
-        from chainer.dataset.tabular.as_mode import AsTuple
-        return AsTuple(self)
+        return chainer.dataset.tabular.as_mode.AsTuple(self)
 
     def as_dict(self):
         """Return a view with dict mode.
@@ -139,8 +156,7 @@ class TabularDataset(DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`dict`.
         """
-        from chainer.dataset.tabular.as_mode import AsDict
-        return AsDict(self)
+        return chainer.dataset.tabular.as_mode.AsDict(self)
 
     def concat(self, *datasets):
         """Stack datasets along rows.
@@ -153,8 +169,7 @@ class TabularDataset(DatasetMixin):
         Returns:
             A concatenated dataset.
         """
-        from chainer.dataset.tabular.concat import Concat
-        return Concat(self, *datasets)
+        return chainer.dataset.tabular.concat.Concat(self, *datasets)
 
     def join(self, *datasets):
         """Stack datasets along columns.
@@ -167,8 +182,7 @@ class TabularDataset(DatasetMixin):
         Returns:
             A joined dataset.
         """
-        from chainer.dataset.tabular.join import Join
-        return Join(self, *datasets)
+        return chainer.dataset.tabular.join.Join(self, *datasets)
 
     def get_example(self, i):
         example = self.get_examples([i], None)
