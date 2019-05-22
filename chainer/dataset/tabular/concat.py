@@ -24,15 +24,22 @@ class Concat(tabular_dataset.TabularDataset):
         return self._datasets[0].mode
 
     def get_examples(self, indices, key_indices):
-        if indices is None:
-            indices = slice(None)
-
         if key_indices is None:
             n_cols = len(self.keys)
         else:
             n_cols = len(key_indices)
 
-        if isinstance(indices, slice):
+        if indices is None:
+            examples = [
+                dataset.get_examples(None, key_indices)
+                for dataset in self._datasets]
+            return tuple(
+                [data
+                 for sub_examples in examples
+                 for data in sub_examples[col_index]]
+                for col_index in six.moves.range(n_cols))
+
+        elif isinstance(indices, slice):
             start, stop, step = indices.indices(len(self))
 
             examples = []
