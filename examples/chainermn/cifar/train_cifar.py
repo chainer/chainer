@@ -87,7 +87,7 @@ def main():
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=device)
-    trainer = training.Trainer(updater, stop_trigger, out=args.out)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     evaluator = extensions.Evaluator(test_iter, model, device=device)
