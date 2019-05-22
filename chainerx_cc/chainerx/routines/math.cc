@@ -656,7 +656,7 @@ Array Log10(const Array& x) {
 }
 
 Array Log1p(const Array& x) {
-    Dtype dtype = GetMathResultDtype(x.dtype());
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
     {
