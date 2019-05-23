@@ -34,6 +34,7 @@ requirements = {
         # See also: https://github.com/pypa/setuptools/issues/855
         'protobuf>=3.0.0,<3.8.0rc1',
         'six>=1.9.0',
+        'cmake',
     ],
     'stylecheck': [
         'autopep8>=1.4.1,<1.5',
