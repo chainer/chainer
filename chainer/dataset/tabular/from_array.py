@@ -26,7 +26,10 @@ class Array(tabular_dataset.TabularDataset):
         return self._mode
 
     def get_examples(self, indices, key_indices):
+        if key_indices is None:
+            key_indices = 0,
+
         if indices is None:
-            return self._array,
+            return (self._array,) * len(key_indices)
         else:
-            return self._array[indices],
+            return (self._array[indices],) * len(key_indices)
