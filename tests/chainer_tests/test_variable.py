@@ -104,6 +104,9 @@ def muladd(a, b, c):
     return MulAdd().apply((a, b, c))[0]
 
 
+_numpy_device = backend.CpuDevice()
+
+
 _nonchainerx_backend_params = [
     # NumPy
     {},
@@ -643,61 +646,6 @@ class TestVariable(unittest.TestCase):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
-    def check_copydata(self, data1, data2, expect):
-        xp = backend.get_array_module(data1)
-        v = chainer.Variable(data1)
-        w = chainer.Variable(data2)
-        v.copydata(w)
-        xp.testing.assert_array_equal(v.data, expect)
-
-    def test_copydata_cpu_to_cpu(self):
-        self.check_copydata(np.zeros(3, dtype=np.float32),
-                            np.ones(3, dtype=np.float32),
-                            np.ones(3, dtype=np.float32))
-
-    @attr.gpu
-    def test_copydata_cpu_to_gpu(self):
-        cp = cuda.cupy
-        self.check_copydata(cp.zeros(3, dtype=np.float32),
-                            np.ones(3, dtype=np.float32),
-                            cp.ones(3, dtype=np.float32))
-
-    @attr.ideep
-    def test_copydata_cpu_to_ideep(self):
-        self.check_copydata(intel64.ideep.array(np.zeros(3, dtype=np.float32)),
-                            np.ones(3, dtype=np.float32),
-                            np.ones(3, dtype=np.float32))
-
-    @attr.gpu
-    def test_copydata_gpu_to_gpu(self):
-        cp = cuda.cupy
-        self.check_copydata(cp.zeros(3, dtype=np.float32),
-                            cp.ones(3, dtype=np.float32),
-                            cp.ones(3, dtype=np.float32))
-
-    @attr.gpu
-    def test_copydata_gpu_to_cpu(self):
-        cp = cuda.cupy
-        self.check_copydata(np.zeros(3, dtype=np.float32),
-                            cp.ones(3, dtype=np.float32),
-                            np.ones(3, dtype=np.float32))
-
-    @attr.ideep
-    def test_copydata_ideep_to_cpu(self):
-        self.check_copydata(np.zeros(3, dtype=np.float32),
-                            intel64.ideep.array(np.ones(3, dtype=np.float32)),
-                            np.ones(3, dtype=np.float32))
-
-    @attr.multi_gpu(2)
-    def test_copydata_gpu_to_another_gpu(self):
-        cp = cuda.cupy
-        with cuda.get_device_from_id(0):
-            data1 = cp.zeros(3, dtype=np.float32)
-            expect = cp.ones(3, dtype=np.float32)
-        with cuda.get_device_from_id(1):
-            data2 = cp.ones(3, dtype=np.float32)
-        self.check_copydata(data1, data2, expect)
-
     def test_addgrad_none_src_dst(self):
         x = chainer.Variable(self.x)
         y = chainer.Variable(self.x)
@@ -722,6 +670,90 @@ class TestVariable(unittest.TestCase):
         d = six.moves.cPickle.loads(binary)
         cp.testing.assert_array_equal(x.data, d.data)
         cp.testing.assert_array_equal(x.grad, d.grad)
+
+
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
+class TestVariableCopydata(unittest.TestCase):
+
+    def test_copydata(self, src_backend_config, dst_backend_config):
+        shape = self.shape
+        dtype = np.float32
+        src_arr_numpy = np.asarray(np.random.randn(*shape), dtype)
+        dst_arr_numpy = np.asarray(np.random.randn(*shape), dtype)
+        src_arr = src_backend_config.get_array(src_arr_numpy.copy())
+        dst_arr = dst_backend_config.get_array(dst_arr_numpy.copy())
+        src_var = chainer.Variable(src_arr)
+        dst_var = chainer.Variable(dst_arr)
+        src_arr_prev = src_var.array
+        dst_arr_prev = dst_var.array
+
+        dst_var.copydata(src_var)
+
+        assert src_var.device == src_backend_config.device
+        assert dst_var.device == dst_backend_config.device
+        assert dst_var.array is dst_arr_prev
+        assert src_var.array is src_arr_prev
+        assert dst_var.dtype == dtype
+        np.testing.assert_array_equal(
+            _numpy_device.send(dst_var.array), src_arr_numpy)
+        np.testing.assert_array_equal(
+            _numpy_device.send(src_var.array), src_arr_numpy)
+
+    def test_copydata_to_uninitialized_parameter(
+            self, src_backend_config, dst_backend_config):
+        shape = self.shape
+        dtype = np.float32
+        src_arr_numpy = np.asarray(np.random.randn(*shape), dtype)
+        src_arr = src_backend_config.get_array(src_arr_numpy.copy())
+        dst_var = chainer.Parameter()
+        dst_var.to_device(dst_backend_config.device)
+        src_var = chainer.Parameter(src_arr)
+        src_arr_prev = src_var.array
+
+        dst_var.copydata(src_var)
+
+        assert src_var.array is src_arr_prev
+        assert src_var.device == src_backend_config.device
+        assert dst_var.device == dst_backend_config.device
+        np.testing.assert_array_equal(
+            _numpy_device.send(dst_var.data), src_arr_numpy)
+
+    def test_copydata_from_uninitialized_parameter(
+            self, src_backend_config, dst_backend_config):
+        shape = self.shape
+        dtype = np.float32
+        dst_arr_numpy = np.asarray(np.random.randn(*shape), dtype)
+        dst_arr = dst_backend_config.get_array(dst_arr_numpy.copy())
+        initializer = initializers.Zero()
+        dst_var = chainer.Parameter(dst_arr)
+        src_var = chainer.Parameter(initializer)
+        src_var.to_device(src_backend_config.device)
+        dst_arr_prev = dst_var.array
+
+        dst_var.copydata(src_var)
+
+        assert src_var.device == src_backend_config.device
+        assert dst_var.device == dst_backend_config.device
+        assert dst_var.array is dst_arr_prev
+        np.testing.assert_array_equal(
+            _numpy_device.send(dst_var.array),
+            _numpy_device.send(src_var.array))
+
+    def test_copydata_from_to_uninitialized_parameters(
+            self, src_backend_config, dst_backend_config):
+        dst_var = chainer.Parameter()
+        src_var = chainer.Parameter()
+        src_var.to_device(src_backend_config.device)
+        dst_var.to_device(dst_backend_config.device)
+
+        dst_var.copydata(src_var)
+
+        assert src_var.device == src_backend_config.device
+        assert dst_var.device == dst_backend_config.device
+        assert src_var.array is None
+        assert dst_var.array is None
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -828,8 +860,8 @@ class VariableAddgradTestBase(object):
                     b.addgrad(a)
 
         if should_succeed:
-            np_device = chainer.get_device('@numpy')
-            np.testing.assert_array_equal(np_device.send(b.grad), expect_np)
+            np.testing.assert_array_equal(
+                _numpy_device.send(b.grad), expect_np)
             assert backend.get_device_from_array(b.data) == dst_device
             assert backend.get_device_from_array(b.grad) == dst_device
 
@@ -1854,60 +1886,6 @@ class TestUninitializedParameter(unittest.TestCase):
             x.zerograd()
         x.initialize((3, 2))
         assert x.grad.dtype == x.data.dtype
-
-    def test_copydata_to_uninitialized_parameter(self):
-        x = chainer.Parameter()
-        y = chainer.Parameter(self.a)
-        x.copydata(y)
-        np.testing.assert_array_equal(x.data, self.a)
-
-    @attr.gpu
-    def test_copydata_to_uninitialized_parameter_gpu(self):
-        x = chainer.Parameter()
-        y = chainer.Parameter(self.a)
-        x.to_gpu()
-        x.copydata(y)
-        cp = cuda.cupy
-        assert isinstance(x.data, cp.ndarray)
-        cp.testing.assert_array_equal(x.data, self.a)
-
-    @attr.chainerx
-    def test_copydata_to_uninitialized_parameter_chainerx(self):
-        # TODO(sonots): Support copyto with ChainerX
-        raise unittest.SkipTest('ChainerX does not support copyto')
-
-    def test_copydata_from_uninitialized_parameter(self):
-        initializer = initializers.Zero()
-        x = chainer.Parameter(self.a)
-        y = chainer.Parameter(initializer)
-        x.copydata(y)
-        assert isinstance(x.data, np.ndarray)
-        assert isinstance(y.data, np.ndarray)
-        np.testing.assert_array_equal(x.data, y.data)
-
-    @attr.gpu
-    def test_copydata_from_uninitialized_parameter_gpu(self):
-        initializer = initializers.Zero()
-        x = chainer.Parameter(self.a)
-        y = chainer.Parameter(initializer)
-        y.to_gpu()
-        x.copydata(y)
-        cp = cuda.cupy
-        assert isinstance(x.data, np.ndarray)
-        assert isinstance(y.data, cp.ndarray)
-        cp.testing.assert_array_equal(x.data, y.data)
-
-    @attr.chainerx
-    def test_copydata_from_uninitialized_parameter_chainerx(self):
-        # TODO(sonots): Support copydata with ChainerX
-        raise unittest.SkipTest('ChainerX does not support copydata')
-
-    def test_copydata_from_to_uninitialized_parameters(self):
-        x = chainer.Parameter()
-        y = chainer.Parameter()
-        x.copydata(y)
-        assert x.data is None
-        assert y.data is None
 
     def test_addgrad_to_uninitialized_parameter(self):
         x = chainer.Parameter()
