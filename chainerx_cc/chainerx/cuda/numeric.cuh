@@ -84,6 +84,17 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 template <typename T>
 __device__ inline T Power(T x1, T x2) {
     static_assert(std::is_integral<T>::value, "Non-specialized template Power expects only integral arguments.");
+    if (x2 < 0) {
+        switch (x1) {
+            case -1:
+                return x2 & 1 ? -1 : 1;
+            case 1:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+
     T out{1};
 
     while (x2 > 0) {
