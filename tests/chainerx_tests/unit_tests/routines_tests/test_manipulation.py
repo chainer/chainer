@@ -1129,3 +1129,80 @@ class TestAtLeast2d(op_utils.NumpyOpTest):
         x, = input
         y = xp.atleast_2d(x)
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # sequence args
+    chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 3)),
+        'dst': list(itertools.permutations(range(3), 3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    }) + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 2)),
+        'dst': list(itertools.permutations(range(3), 2)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 1)),
+        'dst': list(itertools.permutations(range(3), 1)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': [()],
+        'dst': [()],
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    # integer args
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(range(3)),
+        'dst': list(range(3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+))
+class TestMoveaxis(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = numpy.random.uniform(0, 1, self.arr_shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, input, xp):
+        x, = input
+        y = xp.moveaxis(x, self.src, self.dst)
+        return y,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,source,dst', [
+    # differing src, dst
+    ((1, 2, 3), (1, 2), (2,)),
+    # out of bounds
+    ((1, 2, 3), (1, 4), (2, 0)),
+    ((1, 2, 3), (1, 2), (-4, 0)),
+    # duplicate
+    ((1, 2, 3), (1, 1), (2, 0)),
+    ((1, 2, 3), (1, 2), (2, 2)),
+])
+def test_moveaxis_invalid(xp, shape, source, dst):
+    a = array_utils.uniform(shape, 'float')
+    a = xp.array(a)
+    return xp.moveaxis(a, source, dst)
