@@ -1,6 +1,5 @@
 import argparse
 
-import chainermn
 import chainer
 import chainer.links as L
 from chainer import training
@@ -9,11 +8,13 @@ from chainer.training import extensions
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
 
+import chainermn
+
 import models.VGG
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Chainer CIFAR example:')
+    parser = argparse.ArgumentParser(description='ChainerMN example: CIFAR')
     parser.add_argument('--dataset', '-d', default='cifar10',
                         help='The dataset to use: cifar10 or cifar100')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
@@ -64,11 +65,13 @@ def main():
             train, test = get_cifar100()
         else:
             raise RuntimeError('Invalid dataset choice.')
-    model = L.Classifier(models.VGG.VGG(class_labels))
+    train = chainermn.scatter_dataset(train, comm, shuffle=True)
+    test = chainermn.scatter_dataset(test, comm, shuffle=True)
 
+    model = L.Classifier(models.VGG.VGG(class_labels))
     if device >= 0:
         # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(device).use()
+        chainer.cuda.get_device_from_id(device).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainermn.create_multi_node_optimizer(
@@ -76,11 +79,7 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
-    train = chainermn.scatter_dataset(train, comm, shuffle=True)
-    test = chainermn.scatter_dataset(test, comm, shuffle=True)
-
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
-                                                  shuffle=False)
+    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
