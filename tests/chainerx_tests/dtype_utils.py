@@ -49,6 +49,12 @@ result_numeric_dtypes_two_arrays = _permutate_dtype_mapping([
 ])
 
 
+result_comparable_dtypes_two_arrays = [
+    # Bools.
+    (('bool_', 'bool_'), 'bool_'),
+] + result_numeric_dtypes_two_arrays
+
+
 result_dtypes_two_arrays = _permutate_dtype_mapping([
     # Bools.
     (('bool_', 'bool_'), 'bool_'),
