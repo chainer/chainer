@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/numeric.h"
@@ -81,20 +82,11 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
-template <typename T>
-__device__ inline T Power(T x1, T x2) {
-    static_assert(std::is_integral<T>::value, "Non-specialized template Power expects only integral arguments.");
-    if (x2 < 0) {
-        switch (x1) {
-            case -1:
-                return x2 & 1 ? -1 : 1;
-            case 1:
-                return 1;
-            default:
-                return 0;
-        }
-    }
+namespace numeric_detail {
 
+template <typename T>
+__device__ inline T NonNegativePower(T x1, T x2) {
+    static_assert(std::is_integral<T>::value, "NonNegativePower is only defined for non-negative integrals.");
     T out{1};
 
     while (x2 > 0) {
@@ -108,16 +100,40 @@ __device__ inline T Power(T x1, T x2) {
     return out;
 }
 
+}  // namespace numeric_detail
+
+template <typename T>
+__device__ inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, T> {
+    if (x2 < 0) {
+        switch (x1) {
+            case -1:
+                return x2 & 1 ? -1 : 1;
+            case 1:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    return numeric_detail::NonNegativePower(x1, x2);
+}
+
+template <typename T>
+__device__ inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_unsigned<T>::value, T> {
+    return numeric_detail::NonNegativePower(x1, x2);
+}
+
+template <typename T>
+__device__ inline auto Power(T x1, T x2) -> std::enable_if_t<!std::is_integral<T>::value, T>;
 template <>
-__device__ inline cuda::Float16 Power<cuda::Float16>(cuda::Float16 x1, cuda::Float16 x2) {
+__device__ inline cuda::Float16 Power(cuda::Float16 x1, cuda::Float16 x2) {
     return cuda::Float16{powf(static_cast<float>(x1), static_cast<float>(x2))};
 }
 template <>
-__device__ inline float Power<float>(float x1, float x2) {
+__device__ inline float Power(float x1, float x2) {
     return powf(x1, x2);
 }
 template <>
-__device__ inline double Power<double>(double x1, double x2) {
+__device__ inline double Power(double x1, double x2) {
     return pow(x1, x2);
 }
 
