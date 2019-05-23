@@ -1914,7 +1914,6 @@ def as_variable(obj):
     return Variable(obj, requires_grad=requires_grad)
 
 
-# TODO(hvy): Make private, i.e. _as_array?
 def as_array(obj):
     """Returns the underlying array from a variable or an array.
 
