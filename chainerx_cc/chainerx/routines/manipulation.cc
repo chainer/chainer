@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -761,6 +762,44 @@ Array VStack(const std::vector<Array>& arrays) {
     std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
 
     return Concatenate(reshaped_arrays, 0);
+}
+
+Array Moveaxis(const Array& a, const OptionalAxes& src, const OptionalAxes& dst) {
+    Axes real_src;
+    Axes real_dst;
+    if (src.has_value()) {
+        real_src = internal::GetNormalizedAxes(*src, a.ndim());
+    }
+    if (dst.has_value()) {
+        real_dst = internal::GetNormalizedAxes(*dst, a.ndim());
+    }
+
+    if (real_src.size() == 0 || real_dst.size() == 0 || real_src.size() != real_dst.size()) {
+        throw DimensionError{"Invalid Source or Destination Axes"};
+    }
+
+    Axes order;
+    std::set<int8_t> src_set(real_src.begin(), real_src.end());
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        if (src_set.find(i) == src_set.end()) {
+            order.emplace_back(i);
+        }
+    }
+
+    std::vector<std::pair<int8_t, int8_t>> dst_src_pairs;
+    for (int8_t i = 0; i < real_dst.ndim(); i++) {
+        dst_src_pairs.emplace_back(std::make_pair(real_dst[i], real_src[i]));
+    }
+
+    std::sort(dst_src_pairs.begin(), dst_src_pairs.end(), [](std::pair<int8_t, int8_t> a, std::pair<int8_t, int8_t> b) {
+        return a.first < b.first;
+    });
+
+    for (uint8_t i = 0; i < dst_src_pairs.size(); i++) {
+        order.insert(order.begin() + dst_src_pairs[i].first, dst_src_pairs[i].second);
+    }
+
+    return a.Transpose(order);
 }
 
 }  // namespace chainerx
