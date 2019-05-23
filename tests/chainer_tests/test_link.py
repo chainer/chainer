@@ -130,7 +130,7 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertTrue(all(p is not param for param in self.link.params()))
 
     def test_assign_var_in_init_scope(self):
-        p = chainer.Variable()
+        p = chainer.Variable(numpy.array([1.3]))
         with self.link.init_scope():
             self.link.p = p
         self.assertTrue(all(p is not param for param in self.link.params()))

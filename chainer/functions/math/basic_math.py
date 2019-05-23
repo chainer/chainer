@@ -869,21 +869,21 @@ def rmatmul(self, rhs):  # rhs @ lhs
 
 
 def install_variable_arithmetics():
-    variable.Variable.__neg__ = neg
-    variable.Variable.__abs__ = absolute
-    variable.Variable.__add__ = add
-    variable.Variable.__radd__ = add
-    variable.Variable.__sub__ = sub
-    variable.Variable.__rsub__ = rsub
-    variable.Variable.__mul__ = mul
-    variable.Variable.__rmul__ = mul
-    variable.Variable.__div__ = div
-    variable.Variable.__truediv__ = div
-    variable.Variable.__rdiv__ = rdiv
-    variable.Variable.__rtruediv__ = rdiv
-    variable.Variable.__floordiv__ = floordiv
-    variable.Variable.__rfloordiv__ = rfloordiv
-    variable.Variable.__pow__ = pow
-    variable.Variable.__rpow__ = rpow
-    variable.Variable.__matmul__ = matmul
-    variable.Variable.__rmatmul__ = rmatmul
+    variable.BaseVariable.__neg__ = neg
+    variable.BaseVariable.__abs__ = absolute
+    variable.BaseVariable.__add__ = add
+    variable.BaseVariable.__radd__ = add
+    variable.BaseVariable.__sub__ = sub
+    variable.BaseVariable.__rsub__ = rsub
+    variable.BaseVariable.__mul__ = mul
+    variable.BaseVariable.__rmul__ = mul
+    variable.BaseVariable.__div__ = div
+    variable.BaseVariable.__truediv__ = div
+    variable.BaseVariable.__rdiv__ = rdiv
+    variable.BaseVariable.__rtruediv__ = rdiv
+    variable.BaseVariable.__floordiv__ = floordiv
+    variable.BaseVariable.__rfloordiv__ = rfloordiv
+    variable.BaseVariable.__pow__ = pow
+    variable.BaseVariable.__rpow__ = rpow
+    variable.BaseVariable.__matmul__ = matmul
+    variable.BaseVariable.__rmatmul__ = rmatmul

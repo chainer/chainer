@@ -482,9 +482,9 @@ class TestFunctionOutputNone(unittest.TestCase):
         # Forward
         y1, y2, y3 = self.call_func(backend_config, x1)
 
-        assert y1.array is None
+        assert y1 is None
         assert isinstance(y2.array, backend_config.xp.ndarray)
-        assert y3.array is None
+        assert y3 is None
 
         # Backward
         y2.grad = gy2_arr

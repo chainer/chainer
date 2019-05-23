@@ -351,33 +351,48 @@ Use apply() method instead.\
                 chainerx_in_data, inputs, outputs)
 
         else:
-            input_vars = [chainer.as_variable(x) for x in inputs]
-            requires_grad = any([x.requires_grad for x in input_vars])
+            input_vars = [
+                None if x is None else chainer.as_variable(x) for x in inputs]
+            requires_grad = any([
+                x.requires_grad for x in input_vars if x is not None])
 
             ret = tuple(
-                [variable.Variable(y, requires_grad=requires_grad)
+                [None if y is None else (
+                    variable.Variable(y, requires_grad=requires_grad))
                  for y in outputs])
 
             if configuration.config.enable_backprop:
                 # Topological ordering
-                self.rank = max(
-                    [x.rank for x in input_vars]) if input_vars else 0
+                if input_vars:
+                    self.rank = max([
+                        x.rank for x in input_vars if x is not None])
+                else:
+                    self.rank = 0
                 # Add backward edges
                 for y in ret:
-                    y.creator_node = self
-                self.inputs = tuple([x.node for x in input_vars])
+                    if y is not None:
+                        y.creator_node = self
+                self.inputs = tuple([
+                    None if x is None else x.node for x in input_vars])
                 # Add forward edges (must be weak references)
-                self.outputs = tuple([weakref.ref(y.node) for y in ret])
+                self.outputs = tuple([
+                    None if y is None else weakref.ref(y.node) for y in ret])
 
                 if self._input_indexes_to_retain is not None:
                     for index in self._input_indexes_to_retain:
-                        input_vars[index].retain_data()
+                        x = input_vars[index]
+                        if x is not None:
+                            x.retain_data()
 
                 if self._output_indexes_to_retain is not None:
                     retained_data = []
                     for index in self._output_indexes_to_retain:
-                        ret[index].retain_data()
-                        retained_data.append(outputs[index])
+                        y = ret[index]
+                        if y is not None:
+                            y.retain_data()
+                            retained_data.append(outputs[index])
+                        else:
+                            retained_data.append(None)
                     self._retained_output_data = tuple(retained_data)
 
                 self.lazy_grad_sum = configuration.config.lazy_grad_sum
@@ -461,8 +476,9 @@ Use apply() method instead.\
             else variable._ChainerxVariableNodeProps(x) for x in inputs])
 
         ret = tuple([
-            _to_variable_with_chainerx_fallback_array(
-                chainerx_out_array, out_array)
+            None if chainerx_out_array is None else (
+                _to_variable_with_chainerx_fallback_array(
+                    chainerx_out_array, out_array))
             for chainerx_out_array, out_array
             in six.moves.zip(chainerx_out_data, outputs)])
         return ret
@@ -802,7 +818,7 @@ Use apply() method instead.\
         retained_inputs = []
         for index in self._input_indexes_to_retain:
             input = self.inputs[index]
-            if input.data is None:
+            if input is None or input.data is None:
                 retained_inputs.append(None)
             else:
                 retained_inputs.append(input.get_variable())
@@ -844,21 +860,29 @@ Use apply() method instead.\
         outputs_modified = False
         for index, data in six.moves.zip(self._output_indexes_to_retain,
                                          self._retained_output_data):
-            output = outputs[index]()
-            if output is None:
+            output_var = None
+
+            # Decide output_var
+            while True:
+                if data is None:
+                    break
+                output_weak = outputs[index]
+                if output_weak is None:
+                    break
+                output = output_weak()
+                if output is not None:
+                    output_var = output.get_variable()
+                    break
+
                 # The output node is garbage collected, so create a fresh
                 # Variable object.
                 output_var = variable.Variable(data)
                 output_var.creator_node = self
                 new_outputs[index] = weakref.ref(output_var.node)
                 outputs_modified = True
-            else:
-                output_var = output.get_variable()
+                break
 
-            if output_var.array is None:
-                ret.append(None)
-            else:
-                ret.append(output_var)
+            ret.append(output_var)
 
         if outputs_modified:
             self.outputs = tuple(new_outputs)
@@ -1194,7 +1218,7 @@ def _extract_apply_in_data(inputs):
         # Unwrap arrays
         arrays = []
         for x in inputs:
-            if isinstance(x, variable.Variable):
+            if isinstance(x, variable.BaseVariable):
                 if x._has_chainerx_array:
                     arrays.append(x._data[0])
                     has_chainerx_array = True
@@ -1213,7 +1237,7 @@ def _extract_apply_in_data(inputs):
 
     else:
         return False, tuple([
-            x.array if isinstance(x, variable.Variable) else x
+            x.array if isinstance(x, variable.BaseVariable) else x
             for x in inputs])
 
 

@@ -227,7 +227,8 @@ class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
         with pytest.raises(ValueError):
-            variable.VariableNode(chainer.Variable(), '', grad=None)
+            variable.VariableNode(
+                chainer.Variable(np.array([1.3])), '', grad=None)
 
 
 @testing.parameterize(
@@ -313,10 +314,10 @@ class TestVariable(unittest.TestCase):
     def test_attributes_gpu(self):
         self.check_attributes(cuda.cupy)
 
-    def test_uninitialized(self):
-        a = chainer.Variable(None)
-        assert a.xp is np
-        assert a._has_chainerx_array is False
+    # def test_uninitialized(self):
+    #     a = chainer.Variable(None)
+    #     assert a.xp is np
+    #     assert a._has_chainerx_array is False
 
     def check_len(self, a):
         x = chainer.Variable(a)
@@ -547,7 +548,7 @@ class TestVariable(unittest.TestCase):
         self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
 
     def test_set_fresh_creator(self):
-        v = chainer.Variable()
+        v = chainer.Variable(np.array([1.3]))
         f = chainer.Function()
         v.creator = f
         assert v.creator is f
@@ -555,7 +556,7 @@ class TestVariable(unittest.TestCase):
         assert v.rank == 1
 
     def test_set_fresh_creator_node(self):
-        v = chainer.Variable()
+        v = chainer.Variable(np.array([1.3]))
         f = chainer.FunctionNode()
         v.creator_node = f
         assert v.creator is f
@@ -1301,7 +1302,8 @@ class TestVariableToDevice(unittest.TestCase):
 
 @testing.parameterize(*testing.product(
     {
-        'x_shape': [(10,), (), None],
+        # 'x_shape': [(10,), (), None],
+        'x_shape': [(10,), ()],
         'requires_grad': [True, False],
     }))
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -1310,7 +1312,8 @@ class TestVariableToDeviceTwice(unittest.TestCase):
 
     def setUp(self):
         if self.x_shape is None:
-            self.x = None
+            assert False
+            # self.x = None
         else:
             self.x = np.zeros(self.x_shape, dtype=np.float32)
 
@@ -2020,9 +2023,9 @@ class TestDebugPrint(unittest.TestCase):
         self.check_debug_print(v, mean=float(cuda.cupy.mean(v.data)),
                                std=float(cuda.cupy.std(v.data)))
 
-    def test_debug_print_empty(self):
-        v = chainer.Variable()
-        self.check_debug_print_empty(v)
+    # def test_debug_print_empty(self):
+    #     v = chainer.Variable(None)
+    #     self.check_debug_print_empty(v)
 
 
 class TestVariableSetCreator(unittest.TestCase):
@@ -2379,7 +2382,8 @@ class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
-            self.x = chainer.Variable()
+            assert False
+            # self.x = chainer.Variable(None)
         else:
             x = np.empty(self.x_shape)
             x = np.arange(x.size).reshape(self.x_shape)
@@ -2440,8 +2444,8 @@ class UnnamedVariableToStringTestBase(object):
 
 
 @testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
+    # {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+    #  'str': 'variable(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float16,
      'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
      'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
@@ -2462,8 +2466,8 @@ class TestUnnamedVariableToStringLegacy(
 
 
 @testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
+    # {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+    #  'str': 'variable(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float16,
      'repr': 'variable([[0., 1.],\n          [2., 3.]])',
      'str': 'variable([[0. 1.]\n          [2. 3.]])'},
@@ -2517,7 +2521,8 @@ class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
-            self.x = chainer.Variable(name='x')
+            assert False
+            # self.x = chainer.Variable(name='x')
         else:
             x = np.empty(self.x_shape)
             x = np.arange(x.size).reshape(self.x_shape)
@@ -2542,8 +2547,8 @@ class NamedVariableToStringTestBase(object):
 
 
 @testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
+    # {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+    #  'str': 'variable x(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float32,
      'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
      'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
@@ -2558,8 +2563,8 @@ class TestNamedVariableToStringLegacy(
 
 
 @testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
+    # {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+    #  'str': 'variable x(None)'},
     {'x_shape': (2, 2,), 'dtype': np.float32,
      'repr': 'variable x([[0., 1.],\n            [2., 3.]])',
      'str': 'variable x([[0. 1.]\n            [2. 3.]])'},

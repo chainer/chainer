@@ -439,57 +439,7 @@ def _create_variable(data, name, grad, requires_grad, device):
     return var
 
 
-class Variable(object):
-
-    """__init__(data=None, *, name=None, grad=None, requires_grad=True)
-
-    Array with a structure to keep track of computation.
-
-    Every variable holds a data array of type either :class:`numpy.ndarray` or
-    :class:`cupy.ndarray`.
-
-    A variable object holds a data array and a
-    :class:`~chainer.variable.VariableNode` object of
-    a computational graph. If the variable is constructed by the user, the node
-    is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
-    ``chainer.functions`` or user-defined functions), or by using operators
-    (see the list below), the node holds a reference to its parent called
-    :attr:`creator_node`.
-    This reference is used in backpropagation to backtrack the graph.
-
-    Users can disable (resp. enable) this chaining behavior by calling
-    :func:`~chainer.no_backprop_mode` (resp.
-    :func:`~chainer.force_backprop_mode`).
-    In the former context, a variable never creates a computational graph,
-    whereas in the latter context, it is forced to create.
-
-    .. note::
-
-        The following operators are defined for variable(s).
-
-        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
-        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
-        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
-        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
-        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
-                               :meth:`__truediv__`, :meth:`__rtruediv__`)
-        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
-                                      :meth:`__rfloordiv__`)
-        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
-        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
-                                            :meth:`__rmatmul__`)
-        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
-        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
-
-    Args:
-        data (:ref:`ndarray`): Initial data array.
-        name (str): Name of the variable.
-        grad (:ref:`ndarray`): Initial gradient array.
-        requires_grad (bool): Boolean indicating whether ``grad`` will be set
-            in backward calculation.
-
-    """
+class BaseVariable(object):
 
     # Cached value of `self.xp is chainerx`. It prevents from initializing
     # self._device as much as possible because it is really costly.
@@ -517,40 +467,18 @@ class Variable(object):
     # instance.
     _grad = None
 
-    def __init__(self, data=None, **kwargs):
-        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
+    def __init__(
+            self, data, name, grad, requires_grad, is_chainerx_array, node):
 
-        name, grad, requires_grad = argument.parse_kwargs(
-            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
-            volatile='volatile argument is not supported anymore. '
-                     'Use chainer.using_config')
-        assert isinstance(requires_grad, bool)
-        if data is not None:
-            array_types = chainer.get_array_types()
-            if not isinstance(data, array_types):
-                msg = '{} or {} are expected. Actual: {}'.format(
-                    ', '.join([str(at) for at in array_types[:-1]]),
-                    array_types[-1], type(data))
-                raise TypeError(msg)
-
-        self._init_impl(data, name, grad, requires_grad, None, None)
+        self._init_impl(
+            data, name, grad, requires_grad, is_chainerx_array, node)
 
     @staticmethod
-    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
-                        is_chainerx_array=None, node=None):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> Variable # NOQA
-        """Creates a new :class:`Variable` without the validations for
-        optimizing performance.
-        """
+    def _empty():
+        return BaseVariable(None, None, None, False, False, None)
 
-        # Create a Variable without invoking __init__
-        var = Variable.__new__(Variable)
-        var._init_impl(data, name, grad, requires_grad, is_chainerx_array,
-                       node)
-        return var
-
-    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array,
-                   node):
+    def _init_impl(
+            self, data, name, grad, requires_grad, is_chainerx_array, node):
         # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> None # NOQA
 
         # Use a list as a data structure to hold the data array indirectly to
@@ -583,7 +511,7 @@ class Variable(object):
             self._grad = grad
 
     def __copy__(self):
-        return self._copy_to(Variable())
+        return self._copy_to(BaseVariable._empty())
 
     def _copy_to(self, target):
         target.__dict__ = copy.copy(self.__dict__)
@@ -1568,6 +1496,93 @@ class Variable(object):
     __hash__ = None  # type: tp.Callable[[object], int]
 
 
+class Variable(BaseVariable):
+
+    """__init__(data=None, *, name=None, grad=None, requires_grad=True)
+
+    Array with a structure to keep track of computation.
+
+    Every variable holds a data array of type either :class:`numpy.ndarray` or
+    :class:`cupy.ndarray`.
+
+    A variable object holds a data array and a
+    :class:`~chainer.variable.VariableNode` object of
+    a computational graph. If the variable is constructed by the user, the node
+    is *root* and does not hold any parent. If the variable is constructed by a
+    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
+    ``chainer.functions`` or user-defined functions), or by using operators
+    (see the list below), the node holds a reference to its parent called
+    :attr:`creator_node`.
+    This reference is used in backpropagation to backtrack the graph.
+
+    Users can disable (resp. enable) this chaining behavior by calling
+    :func:`~chainer.no_backprop_mode` (resp.
+    :func:`~chainer.force_backprop_mode`).
+    In the former context, a variable never creates a computational graph,
+    whereas in the latter context, it is forced to create.
+
+    .. note::
+
+        The following operators are defined for variable(s).
+
+        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
+        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
+        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
+        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
+        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
+                               :meth:`__truediv__`, :meth:`__rtruediv__`)
+        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
+                                      :meth:`__rfloordiv__`)
+        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+                                            :meth:`__rmatmul__`)
+        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
+
+    Args:
+        data (:ref:`ndarray`): Initial data array.
+        name (str): Name of the variable.
+        grad (:ref:`ndarray`): Initial gradient array.
+        requires_grad (bool): Boolean indicating whether ``grad`` will be set
+            in backward calculation.
+
+    """
+
+    def __init__(self, data, **kwargs):
+        if data is None:
+            raise ValueError('TODO: error message!!')
+
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
+                     'Use chainer.using_config')
+        assert isinstance(requires_grad, bool)
+        if data is not None:
+            array_types = chainer.get_array_types()
+            if not isinstance(data, array_types):
+                msg = '{} or {} are expected. Actual: {}'.format(
+                    ', '.join([str(at) for at in array_types[:-1]]),
+                    array_types[-1], type(data))
+                raise TypeError(msg)
+
+        super(Variable, self).__init__(
+            data, name, grad, requires_grad, None, None)
+
+    @staticmethod
+    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
+                        is_chainerx_array=None, node=None):
+        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> Variable # NOQA
+        """Creates a new :class:`Variable` without the validations for
+        optimizing performance.
+        """
+
+        # Create a Variable without invoking __init__
+        var = Variable.__new__(Variable)
+        var._init_impl(data, name, grad, requires_grad, is_chainerx_array,
+                       node)
+        return var
+
+
 def _backprop_to_all(outputs, retain_grad, loss_scale):
     """Backprop to all input variables
 
@@ -1612,9 +1627,11 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
-            i for i, x in enumerate(inputs) if x.requires_grad
+            i for i, x in enumerate(inputs)
+            if (x is not None and x.requires_grad)
         ])
-        outputs = [y() for y in func.outputs]  # access via weak ref
+        outputs = [  # access via weak ref
+            None if y is None else y() for y in func.outputs]
         out_grad = tuple([grads.pop(y)
                           if y is not None and y.creator_node is not None
                           else None
@@ -1622,7 +1639,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         if not target_input_indexes:
             continue
 
-        in_data = [x.data for x in inputs]
+        in_data = [None if x is None else x.data for x in inputs]
         out_grad_array = [None if g is None else g.array for g in out_grad]
         if func._n_local_function_hooks != 0:
             local_hooks = collections.OrderedDict(chainer.get_function_hooks())
@@ -1687,7 +1704,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
     grads.assert_no_grads()
 
 
-class Parameter(Variable):
+class Parameter(BaseVariable):
 
     """Parameter variable that can be registered to a link.
 
@@ -1744,10 +1761,12 @@ class Parameter(Variable):
         if shape is None:
             if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
-                super(Parameter, self).__init__(initializer, name=name)
+                super(Parameter, self).__init__(
+                    initializer, name, None, True, None, None)
             else:
                 # uninitialized parameter
-                super(Parameter, self).__init__(name=name)
+                super(Parameter, self).__init__(
+                    None, name, None, True, None, None)
                 dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1759,7 +1778,7 @@ class Parameter(Variable):
                 xp = numpy
             data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
             grad = xp.full_like(data, numpy.nan)
-            super(Parameter, self).__init__(data, name=name, grad=grad)
+            super(Parameter, self).__init__(data, name, grad, True, None, None)
 
         self._initial_device = backend.CpuDevice()
         self.update_rule = None
@@ -1904,7 +1923,10 @@ def as_variable(obj):
         ``obj`` as is.
 
     """
-    if isinstance(obj, Variable):
+    if obj is None:
+        raise ValueError('TODO: ERROR!!!!')
+
+    if isinstance(obj, BaseVariable):
         return obj
 
     if isinstance(obj, chainerx.ndarray):

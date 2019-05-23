@@ -296,7 +296,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         return arr
 
     def visit_variable(self, param):
-        assert isinstance(param, chainer.Variable)
+        assert isinstance(param, chainer.BaseVariable)
         if not (self._skip_between_cupy_devices
                 and self._device.xp is cuda.cupy
                 and param.device.xp is cuda.cupy):
@@ -315,7 +315,7 @@ class _ToChxVisitor(DeviceResidentsVisitor):
         return backend.to_chx(arr)
 
     def visit_variable(self, param):
-        assert isinstance(param, chainer.Variable)
+        assert isinstance(param, chainer.BaseVariable)
         param.to_chx()
 
 
@@ -331,5 +331,5 @@ class _FromChxVisitor(DeviceResidentsVisitor):
         return backend.from_chx(arr)
 
     def visit_variable(self, param):
-        assert isinstance(param, chainer.Variable)
+        assert isinstance(param, chainer.BaseVariable)
         param.from_chx()
