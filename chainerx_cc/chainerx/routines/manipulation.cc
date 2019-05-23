@@ -774,8 +774,12 @@ Array Moveaxis(const Array& a, const OptionalAxes& src, const OptionalAxes& dst)
         real_dst = internal::GetNormalizedAxes(*dst, a.ndim());
     }
 
-    if (real_src.size() == 0 || real_dst.size() == 0 || real_src.size() != real_dst.size()) {
+    if (real_src.size() != real_dst.size()) {
         throw DimensionError{"Invalid Source or Destination Axes"};
+    }
+
+    if (real_src.size() == 0) {
+        return a;
     }
 
     Axes order;
