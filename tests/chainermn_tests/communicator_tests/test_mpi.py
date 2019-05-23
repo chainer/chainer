@@ -1,10 +1,14 @@
 import os
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 import re
 import signal
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from subprocess import Popen
+import sys
 import threading
 import unittest
 
@@ -48,7 +52,8 @@ class _TimeoutThread(threading.Thread):
                     # Rank 0 may finish Bcast() immediately without deadlock,
                     # depending on the timing,
                     # because rank 0 is the root of Bcast().
-                    print(msg.format(version), flush=True)
+                    print(msg.format(version))
+                    sys.stdout.flush()
 
                 os.kill(os.getpid(), signal.SIGKILL)
             except CalledProcessError:
