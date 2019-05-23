@@ -69,7 +69,12 @@ class BatchRenormalization(BatchNormalization):
                 # called.
                 if finetune:
                     self.N -= 1  # Revert the count
+                avg_mean = self._prev_avg_mean
+                avg_var = self._prev_avg_var
                 update_statistics = False
+            else:
+                self._prev_avg_mean = avg_mean.copy()
+                self._prev_avg_var = avg_var.copy()
 
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
