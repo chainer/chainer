@@ -952,4 +952,3 @@ def test_deprecation_single():
 
     with chainer.testing.assert_warns(DeprecationWarning):
         chainermn.create_communicator('single_node')
-

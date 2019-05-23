@@ -2,6 +2,9 @@ import os
 import queue
 import re
 import signal
+from subprocess import CalledProcessError
+from subprocess import PIPE
+from subprocess import Popen
 import threading
 import unittest
 
@@ -12,6 +15,7 @@ import chainer.testing
 import chainer.testing.attr
 import chainermn
 from chainermn.communicators import _memory_utility
+
 
 class _TimeoutThread(threading.Thread):
     def __init__(self, queue, rank):
@@ -24,7 +28,6 @@ class _TimeoutThread(threading.Thread):
             self.queue.get(timeout=60)
         except queue.Empty:
             # Show error message and information of the problem
-            from subprocess import Popen, PIPE, CalledProcessError
             try:
                 p = Popen(['ompi_info', '--all', '--parsable'], stdout=PIPE)
                 out, err = p.communicate()
@@ -71,9 +74,7 @@ class TestBcastDeadlock(unittest.TestCase):
 
     @chainer.testing.attr.gpu
     def test_bcast_gpu_large_buffer_deadlock(self):
-        """This is a regression test of Open MPI's issue
-        https://github.com/open-mpi/ompi/issues/3972
-        """
+        """Regression test of Open MPI's issue #3972"""
         self.setup(True)
         buf_size = 10000
         mpi_comm = self.communicator.mpi_comm
@@ -96,5 +97,3 @@ class TestBcastDeadlock(unittest.TestCase):
         assert True
 
         self.teardown()
-
-
