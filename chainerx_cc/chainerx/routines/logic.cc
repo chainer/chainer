@@ -54,7 +54,11 @@ Array LogicalNot(const Array& x) {
 
 Array LogicalAnd(const Array& x1, const Array& x2) { return LogicBinary<LogicalAndKernel>(x1, x2); }
 
+Array LogicalAnd(const Array& x1, Scalar x2) { return static_cast<bool>(x2) ? x1 : Zeros(x1.shape(), Dtype::kBool, x1.device()); }
+
 Array LogicalOr(const Array& x1, const Array& x2) { return LogicBinary<LogicalOrKernel>(x1, x2); }
+
+Array LogicalOr(const Array& x1, Scalar x2) { return static_cast<bool>(x2) ? Ones(x1.shape(), Dtype::kBool, x1.device()) : x1; }
 
 Array LogicalXor(const Array& x1, const Array& x2) { return LogicBinary<LogicalXorKernel>(x1, x2); }
 
