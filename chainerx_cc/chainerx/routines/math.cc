@@ -579,6 +579,9 @@ void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreater
 }  // namespace
 
 Array Maximum(const Array& x1, Scalar x2) {
+    if (x1.dtype() == Dtype::kBool && x2.kind() == DtypeKind::kBool) {
+        return LogicalOr(x1, x2);
+    }
     // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
@@ -586,11 +589,17 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Maximum(const Array& x1, const Array& x2) {
+    if (x1.dtype() == Dtype::kBool && x2.dtype() == Dtype::kBool) {
+        return LogicalOr(x1, x2);
+    }
     Dtype dtype = ResultType(x1, x2);
     return internal::BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
 }
 
 Array Minimum(const Array& x1, Scalar x2) {
+    if (x1.dtype() == Dtype::kBool && x2.kind() == DtypeKind::kBool) {
+        return LogicalAnd(x1, x2);
+    }
     // TODO(niboshi): IfGreaterElse redundantly casts x1 twice.
     return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
 }
@@ -598,6 +607,9 @@ Array Minimum(const Array& x1, Scalar x2) {
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
+    if (x1.dtype() == Dtype::kBool && x2.dtype() == Dtype::kBool) {
+        return LogicalAnd(x1, x2);
+    }
     Dtype dtype = ResultType(x1, x2);
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }

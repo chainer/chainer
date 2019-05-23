@@ -25,9 +25,9 @@ public:
         Dtype x_dtype = ResultType(x1, x2);
         const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 struct Impl {
                     void operator()(int64_t /*i*/, In x1, Out neg, Out& out) { out = x1 < x2 ? pos : neg; }
@@ -49,9 +49,9 @@ public:
         Dtype x_dtype = ResultType(x1, x2);
         const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 struct Impl {
                     void operator()(int64_t /*i*/, In x1, Out neg, Out& out) { out = x1 > x2 ? pos : neg; }
@@ -75,9 +75,9 @@ public:
         const Array& x2_cast = x2.dtype() == x_dtype ? x2 : x2.AsType(x_dtype);
         const Array& pos_cast = pos.dtype() == out.dtype() ? pos : pos.AsType(out.dtype());
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 struct Impl {
                     void operator()(int64_t /*i*/, In x1, In x2, Out pos, Out neg, Out& out) { out = x1 > x2 ? pos : neg; }
