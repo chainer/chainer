@@ -471,7 +471,7 @@ namespace {
 
 void CheckComparisonDtypes(DtypeKind kind1, DtypeKind kind2) {
     if ((kind1 == DtypeKind::kBool) != (kind2 == DtypeKind::kBool)) {
-        throw DtypeError{"Comparison does not support Boolean and another mixed dtypes"};
+        throw DtypeError{"Comparison of bool and non-bool dtypes is not supported."};
     }
 }
 
