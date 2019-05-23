@@ -27,7 +27,6 @@ class ClassifierSNNL(link.Chain):
             for l in list(predictor.children())[:-1]:
                 hook = SNNL_hook()
                 hook.name = '{}_snn_loss'.format(l.name)
-                hook.name = l.name
                 l.add_hook(hook)
                 self.snnl_hooks.append(hook)
         else:
@@ -56,4 +55,3 @@ class ClassifierSNNL(link.Chain):
             reporter.report({snnl_hook.name: snnl_hook.get_loss()}, self)
         reporter.report({'snn_loss': self.snn_loss}, self)
         return self.snn_loss
-#        return self.loss
