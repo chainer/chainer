@@ -13,6 +13,7 @@ Please see https://github.com/nvidia/nccl#build--run .
 
 """
 import argparse
+import sys
 
 import numpy as np
 
@@ -20,6 +21,7 @@ import chainer
 from chainer import training
 from chainer.training import extensions
 from chainer.training import updaters
+import chainerx
 
 import alex
 import googlenet
@@ -78,6 +80,11 @@ def main():
                        help='GPU IDs (negative value indicates CPU)')
     args = parser.parse_args()
 
+    devices = tuple([chainer.get_device(d) for d in args.devices])
+    if any(device.xp is chainerx for device in devices):
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
@@ -92,8 +99,6 @@ def main():
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-    devices = tuple([chainer.get_device(d) for d in args.devices])
-
     train_iters = [
         chainer.iterators.MultiprocessIterator(i,
                                                args.batchsize,
